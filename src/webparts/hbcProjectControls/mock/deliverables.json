@@ -1,0 +1,12 @@
+[
+  { "id": 1, "projectCode": "25-042-01", "name": "Conceptual Estimate", "department": "Estimating", "assignedTo": "Mike Chen", "assignedToId": 2, "status": "Complete", "dueDate": "2026-02-01", "completedDate": "2026-01-29" },
+  { "id": 2, "projectCode": "25-042-01", "name": "Schematic Design Estimate", "department": "Estimating", "assignedTo": "Mike Chen", "assignedToId": 2, "status": "In Progress", "dueDate": "2026-02-15" },
+  { "id": 3, "projectCode": "25-042-01", "name": "Qualifications Package", "department": "Marketing", "assignedTo": "Rachel Green", "assignedToId": 8, "status": "In Review", "dueDate": "2026-02-10" },
+  { "id": 4, "projectCode": "25-042-01", "name": "Project Schedule (Preliminary)", "department": "Estimating", "assignedTo": "Sarah Martinez", "assignedToId": 3, "status": "Not Started", "dueDate": "2026-02-20" },
+  { "id": 5, "projectCode": "25-042-01", "name": "Site Logistics Plan", "department": "Estimating", "assignedTo": "Sarah Martinez", "assignedToId": 3, "status": "Not Started", "dueDate": "2026-02-25" },
+  { "id": 6, "projectCode": "25-042-01", "name": "BIM Execution Plan", "department": "IDS", "assignedTo": "David Kim", "assignedToId": 7, "status": "In Progress", "dueDate": "2026-02-12" },
+  { "id": 7, "projectCode": "25-042-01", "name": "Safety Plan (Pre-Bid)", "department": "BD", "assignedTo": "Tom Bradley", "assignedToId": 6, "status": "Complete", "dueDate": "2026-01-28", "completedDate": "2026-01-27" },
+  { "id": 8, "projectCode": "25-042-01", "name": "Proposal Cover Letter", "department": "Marketing", "assignedTo": "Rachel Green", "assignedToId": 8, "status": "Not Started", "dueDate": "2026-03-01" },
+  { "id": 9, "projectCode": "25-042-01", "name": "Fee Proposal", "department": "BD", "assignedTo": "Karen Foster", "assignedToId": 1, "status": "Not Started", "dueDate": "2026-03-05" },
+  { "id": 10, "projectCode": "25-042-01", "name": "Value Engineering Options", "department": "Estimating", "assignedTo": "Mike Chen", "assignedToId": 2, "status": "Not Started", "dueDate": "2026-03-10" }
+]

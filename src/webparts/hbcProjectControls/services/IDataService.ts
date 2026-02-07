@@ -7,6 +7,13 @@ import { IMeeting, ICalendarAvailability } from '../models/IMeeting';
 import { INotification } from '../models/INotification';
 import { IAuditEntry } from '../models/IAuditEntry';
 import { IProvisioningLog } from '../models/IProvisioningLog';
+import { IDeliverable } from '../models/IDeliverable';
+import { ITeamMember } from '../models/ITeamMember';
+import { IInterviewPrep } from '../models/IInterviewPrep';
+import { IContractInfo } from '../models/IContractInfo';
+import { ITurnoverItem } from '../models/ITurnoverItem';
+import { ICloseoutItem } from '../models/ICloseoutItem';
+import { ILossAutopsy } from '../models/ILossAutopsy';
 import { GoNoGoDecision, Stage } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -79,6 +86,22 @@ export interface IDataService {
   updateProvisioningLog(projectCode: string, data: Partial<IProvisioningLog>): Promise<IProvisioningLog>;
   getProvisioningLogs(): Promise<IProvisioningLog[]>;
   retryProvisioning(projectCode: string, fromStep: number): Promise<IProvisioningLog>;
+
+  // Phase 6 — Workflow
+  getTeamMembers(projectCode: string): Promise<ITeamMember[]>;
+  getDeliverables(projectCode: string): Promise<IDeliverable[]>;
+  createDeliverable(data: Partial<IDeliverable>): Promise<IDeliverable>;
+  updateDeliverable(id: number, data: Partial<IDeliverable>): Promise<IDeliverable>;
+  getInterviewPrep(leadId: number): Promise<IInterviewPrep | null>;
+  saveInterviewPrep(data: Partial<IInterviewPrep>): Promise<IInterviewPrep>;
+  getContractInfo(projectCode: string): Promise<IContractInfo | null>;
+  saveContractInfo(data: Partial<IContractInfo>): Promise<IContractInfo>;
+  getTurnoverItems(projectCode: string): Promise<ITurnoverItem[]>;
+  updateTurnoverItem(id: number, data: Partial<ITurnoverItem>): Promise<ITurnoverItem>;
+  getCloseoutItems(projectCode: string): Promise<ICloseoutItem[]>;
+  updateCloseoutItem(id: number, data: Partial<ICloseoutItem>): Promise<ICloseoutItem>;
+  getLossAutopsy(leadId: number): Promise<ILossAutopsy | null>;
+  saveLossAutopsy(data: Partial<ILossAutopsy>): Promise<ILossAutopsy>;
 
   // App Context
   getAppContextConfig(siteUrl: string): Promise<{ RenderMode: string; AppTitle: string; VisibleModules: string[] } | null>;

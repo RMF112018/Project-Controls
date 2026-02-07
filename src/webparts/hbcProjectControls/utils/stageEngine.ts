@@ -88,3 +88,52 @@ export function isActiveStage(stage: Stage): boolean {
 export function isArchived(stage: Stage): boolean {
   return [Stage.ArchivedNoGo, Stage.ArchivedLoss, Stage.ArchivedHistorical].includes(stage);
 }
+
+/**
+ * Validates a stage transition and returns an error message if invalid.
+ * Returns null if the transition is valid.
+ * Admin override to ArchivedNoGo is allowed from any active stage.
+ */
+export function validateTransition(
+  from: Stage,
+  to: Stage,
+  isAdminOverride?: boolean
+): string | null {
+  // Admin override: any stage -> ArchivedNoGo
+  if (isAdminOverride && to === Stage.ArchivedNoGo) {
+    return null;
+  }
+
+  if (!canTransition(from, to)) {
+    const validTargets = getValidTransitions(from);
+    if (validTargets.length === 0) {
+      return `Cannot transition from "${getStageLabel(from)}" — this is a terminal stage.`;
+    }
+    const validLabels = validTargets.map(s => getStageLabel(s)).join(', ');
+    return `Cannot transition from "${getStageLabel(from)}" to "${getStageLabel(to)}". Valid transitions: ${validLabels}.`;
+  }
+
+  return null;
+}
+
+/**
+ * Maps stages to which workflow screens are relevant.
+ */
+export function getStageScreens(stage: Stage): string[] {
+  switch (stage) {
+    case Stage.Opportunity:
+      return ['kickoff', 'deliverables', 'interview'];
+    case Stage.Pursuit:
+      return ['kickoff', 'deliverables', 'interview', 'winloss'];
+    case Stage.WonContractPending:
+      return ['kickoff', 'deliverables', 'contract', 'turnover'];
+    case Stage.ActiveConstruction:
+      return ['deliverables', 'contract', 'turnover', 'closeout'];
+    case Stage.Closeout:
+      return ['closeout'];
+    case Stage.ArchivedLoss:
+      return ['autopsy'];
+    default:
+      return [];
+  }
+}

@@ -1,0 +1,16 @@
+[
+  { "id": 1, "projectCode": "25-042-01", "category": "Documents", "description": "Transfer all preconstruction documents to project site", "status": "Not Started", "assignedTo": "Sarah Martinez", "assignedToId": 3, "required": true },
+  { "id": 2, "projectCode": "25-042-01", "category": "Documents", "description": "Compile final estimate package with bid tabs", "status": "Not Started", "assignedTo": "Mike Chen", "assignedToId": 2, "required": true },
+  { "id": 3, "projectCode": "25-042-01", "category": "Documents", "description": "Update project directory with subcontractor contacts", "status": "Not Started", "assignedTo": "Sarah Martinez", "assignedToId": 3, "required": true },
+  { "id": 4, "projectCode": "25-042-01", "category": "Safety", "description": "Complete site-specific safety plan", "status": "Not Started", "assignedTo": "Tom Bradley", "assignedToId": 6, "required": true },
+  { "id": 5, "projectCode": "25-042-01", "category": "Safety", "description": "Identify site hazards and mitigation measures", "status": "Not Started", "assignedTo": "Tom Bradley", "assignedToId": 6, "required": true },
+  { "id": 6, "projectCode": "25-042-01", "category": "Financial", "description": "Transfer budget and cost codes to operations", "status": "Not Started", "assignedTo": "Mike Chen", "assignedToId": 2, "required": true },
+  { "id": 7, "projectCode": "25-042-01", "category": "Financial", "description": "Reconcile preconstruction fee billing", "status": "Not Started", "assignedTo": "Karen Foster", "assignedToId": 1, "required": true },
+  { "id": 8, "projectCode": "25-042-01", "category": "Scheduling", "description": "Develop construction baseline schedule", "status": "Not Started", "assignedTo": "James Wilson", "assignedToId": 4, "required": true },
+  { "id": 9, "projectCode": "25-042-01", "category": "Scheduling", "description": "Identify long-lead procurement items", "status": "Not Started", "assignedTo": "James Wilson", "assignedToId": 4, "required": true },
+  { "id": 10, "projectCode": "25-042-01", "category": "Staffing", "description": "Assign project superintendent", "status": "Not Started", "assignedTo": "James Wilson", "assignedToId": 4, "required": true },
+  { "id": 11, "projectCode": "25-042-01", "category": "Staffing", "description": "Assign project engineer", "status": "Not Started", "assignedTo": "James Wilson", "assignedToId": 4, "required": true },
+  { "id": 12, "projectCode": "25-042-01", "category": "Subcontracts", "description": "Finalize subcontractor scope letters", "status": "Not Started", "assignedTo": "Sarah Martinez", "assignedToId": 3, "required": true },
+  { "id": 13, "projectCode": "25-042-01", "category": "Subcontracts", "description": "Execute critical path subcontracts", "status": "Not Started", "assignedTo": "James Wilson", "assignedToId": 4, "required": true },
+  { "id": 14, "projectCode": "25-042-01", "category": "Documents", "description": "Archive preconstruction meeting minutes", "status": "Not Started", "assignedTo": "Sarah Martinez", "assignedToId": 3, "required": false }
+]
