@@ -13,3 +13,5 @@ export type { IDataTableColumn } from './DataTable';
 export { PipelineChart } from './PipelineChart';
 export { ExportButtons } from './ExportButtons';
 export { StageIndicator } from './StageIndicator';
+export { MeetingScheduler } from './MeetingScheduler';
+export type { IMeetingSchedulerProps } from './MeetingScheduler';

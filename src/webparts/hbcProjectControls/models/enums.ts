@@ -201,3 +201,16 @@ export enum NotificationType {
   Teams = 'Teams',
   Both = 'Both'
 }
+
+export enum NotificationEvent {
+  LeadSubmitted = 'LeadSubmitted',
+  GoNoGoScoringRequested = 'GoNoGoScoringRequested',
+  GoNoGoDecisionMade = 'GoNoGoDecisionMade',
+  SiteProvisioned = 'SiteProvisioned',
+  PreconKickoff = 'PreconKickoff',
+  DeliverableDueApproaching = 'DeliverableDueApproaching',
+  WinLossRecorded = 'WinLossRecorded',
+  AutopsyScheduled = 'AutopsyScheduled',
+  TurnoverCompleted = 'TurnoverCompleted',
+  SafetyFolderChanged = 'SafetyFolderChanged'
+}

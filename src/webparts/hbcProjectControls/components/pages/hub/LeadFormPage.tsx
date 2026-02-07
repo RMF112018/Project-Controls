@@ -2,16 +2,18 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, Select } from '@fluentui/react-components';
 import { useLeads } from '../../hooks/useLeads';
+import { useNotifications } from '../../hooks/useNotifications';
 import { useAppContext } from '../../contexts/AppContext';
 import { RoleGate } from '../../guards/RoleGate';
 import { PageHeader } from '../../shared/PageHeader';
-import { ILeadFormData, Stage, Region, Sector, Division, DepartmentOfOrigin, DeliveryMethod, RoleName } from '../../../models';
+import { ILeadFormData, Stage, Region, Sector, Division, DepartmentOfOrigin, DeliveryMethod, RoleName, NotificationEvent } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { validateLeadForm } from '../../../utils/validators';
 
 export const LeadFormPage: React.FC = () => {
   const navigate = useNavigate();
   const { createLead } = useLeads();
+  const { notify } = useNotifications();
   const { currentUser } = useAppContext();
   const [formData, setFormData] = React.useState<Partial<ILeadFormData>>({
     Stage: Stage.LeadDiscovery,
@@ -46,7 +48,13 @@ export const LeadFormPage: React.FC = () => {
         OriginatorId: currentUser?.id,
         DateOfEvaluation: new Date().toISOString(),
       };
-      await createLead(leadData as unknown as ILeadFormData);
+      const newLead = await createLead(leadData as unknown as ILeadFormData);
+      // Fire-and-forget notification
+      notify(NotificationEvent.LeadSubmitted, {
+        leadTitle: newLead.Title,
+        leadId: newLead.id,
+        clientName: newLead.ClientName,
+      }).catch(console.error);
       navigate('/');
     } catch (err) {
       console.error('Failed to create lead:', err);

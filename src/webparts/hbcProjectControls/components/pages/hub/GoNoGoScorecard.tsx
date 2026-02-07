@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Input, Select, Textarea } from '@fluentui/react-components';
 import { useGoNoGo } from '../../hooks/useGoNoGo';
 import { useLeads } from '../../hooks/useLeads';
+import { useNotifications } from '../../hooks/useNotifications';
 import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
@@ -17,6 +18,7 @@ import {
   GoNoGoDecision,
   RoleName,
   Stage,
+  NotificationEvent,
 } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { PERMISSIONS } from '../../../utils/permissions';
@@ -62,6 +64,7 @@ export const GoNoGoScorecard: React.FC = () => {
   const { currentUser, hasPermission } = useAppContext();
   const { getScorecardByLeadId, createScorecard, updateScorecard, submitDecision } = useGoNoGo();
   const { getLeadById, updateLead } = useLeads();
+  const { notify } = useNotifications();
 
   const [lead, setLead] = React.useState<ILead | null>(null);
   const [scorecard, setScorecard] = React.useState<IScorecardModel | null>(null);
@@ -225,6 +228,16 @@ export const GoNoGoScorecard: React.FC = () => {
         console.log('[Mock] Reminder notification scheduled for WAIT decision');
         setToastMessage('WAIT decision recorded. Reminder notification scheduled.');
       }
+
+      // Fire-and-forget notification
+      notify(NotificationEvent.GoNoGoDecisionMade, {
+        leadTitle: lead?.Title,
+        leadId,
+        clientName: lead?.ClientName,
+        decision: dec,
+        score: cmteTotal || origTotal,
+        projectCode: dec === GoNoGoDecision.Go ? projectCode : undefined,
+      }).catch(console.error);
 
       setDecision(dec);
       setShowGoDialog(false);

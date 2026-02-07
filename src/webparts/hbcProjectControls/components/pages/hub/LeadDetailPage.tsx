@@ -7,7 +7,7 @@ import { PageHeader } from '../../shared/PageHeader';
 import { StageBadge } from '../../shared/StageBadge';
 import { ScoreTierBadge } from '../../shared/ScoreTierBadge';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { ILead } from '../../../models';
+import { ILead, Stage } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { formatCurrency, formatDate, formatSquareFeet } from '../../../utils/formatters';
 import { PERMISSIONS } from '../../../utils/permissions';
@@ -71,6 +71,11 @@ export const LeadDetailPage: React.FC = () => {
               lead.GoNoGoDecision
                 ? <Button appearance="subtle" onClick={() => navigate(`/lead/${lead.id}/gonogo/detail`)}>View Scorecard</Button>
                 : <Button appearance="primary" style={{ backgroundColor: '#F59E0B' }} onClick={() => navigate(`/lead/${lead.id}/gonogo`)}>Go/No-Go Scorecard</Button>
+            )}
+            {hasPermission(PERMISSIONS.MEETING_SCHEDULE) && lead.Stage === Stage.GoNoGoPending && (
+              <Button appearance="primary" onClick={() => navigate(`/lead/${lead.id}/schedule-gonogo`)}>
+                Schedule Go/No-Go
+              </Button>
             )}
             {hasPermission(PERMISSIONS.LEAD_EDIT) && !isEditing && (
               <Button appearance="primary" onClick={() => { setIsEditing(true); setEditData({}); }}>
