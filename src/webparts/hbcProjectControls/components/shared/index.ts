@@ -15,3 +15,5 @@ export { ExportButtons } from './ExportButtons';
 export { StageIndicator } from './StageIndicator';
 export { MeetingScheduler } from './MeetingScheduler';
 export type { IMeetingSchedulerProps } from './MeetingScheduler';
+export { ProvisioningStatusView } from './ProvisioningStatus';
+export type { IProvisioningStatusProps } from './ProvisioningStatus';

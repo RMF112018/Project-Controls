@@ -7,3 +7,4 @@ export * from './IFeatureFlag';
 export * from './IMeeting';
 export * from './INotification';
 export * from './IAuditEntry';
+export * from './IProvisioningLog';

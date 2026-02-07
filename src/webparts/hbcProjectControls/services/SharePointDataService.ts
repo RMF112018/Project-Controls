@@ -7,6 +7,7 @@ import { IFeatureFlag } from '../models/IFeatureFlag';
 import { IMeeting, ICalendarAvailability } from '../models/IMeeting';
 import { INotification } from '../models/INotification';
 import { IAuditEntry } from '../models/IAuditEntry';
+import { IProvisioningLog } from '../models/IProvisioningLog';
 import { GoNoGoDecision, Stage } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 
@@ -212,21 +213,32 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Provisioning ---
-  async triggerProvisioning(_leadId: number, _projectCode: string): Promise<{ status: string; logId: number }> {
+  async triggerProvisioning(_leadId: number, _projectCode: string, _projectName: string, _requestedBy: string): Promise<IProvisioningLog> {
     // Delegated to PowerAutomateService
     throw new Error('Use PowerAutomateService directly');
   }
 
-  async getProvisioningStatus(projectCode: string): Promise<{ status: string; step: number; error?: string }> {
+  async getProvisioningStatus(projectCode: string): Promise<IProvisioningLog | null> {
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items
       .filter(`ProjectCode eq '${projectCode}'`)
       .orderBy('RequestedAt', false)
       .top(1)();
-    if (items.length === 0) return { status: 'NotFound', step: 0 };
-    return { status: items[0].Status, step: items[0].StepCompleted || 0, error: items[0].ErrorMessage };
+    if (items.length === 0) return null;
+    return items[0] as IProvisioningLog;
   }
 
-  async retryProvisioning(_projectCode: string, _fromStep: number): Promise<void> {
+  async updateProvisioningLog(_projectCode: string, _data: Partial<IProvisioningLog>): Promise<IProvisioningLog> {
+    throw new Error('Use PowerAutomateService directly');
+  }
+
+  async getProvisioningLogs(): Promise<IProvisioningLog[]> {
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items
+      .orderBy('RequestedAt', false)
+      .top(100)();
+    return items as IProvisioningLog[];
+  }
+
+  async retryProvisioning(_projectCode: string, _fromStep: number): Promise<IProvisioningLog> {
     // Delegated to PowerAutomateService
     throw new Error('Use PowerAutomateService directly');
   }
