@@ -7,7 +7,8 @@ import { PageHeader } from '../../shared/PageHeader';
 import { StageBadge } from '../../shared/StageBadge';
 import { ScoreTierBadge } from '../../shared/ScoreTierBadge';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { ILead, Stage } from '../../../models';
+import { ILead, Stage, GoNoGoDecision } from '../../../models';
+import { ProvisioningStatusView } from '../../shared/ProvisioningStatus';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { formatCurrency, formatDate, formatSquareFeet } from '../../../utils/formatters';
 import { PERMISSIONS } from '../../../utils/permissions';
@@ -210,6 +211,32 @@ export const LeadDetailPage: React.FC = () => {
                     {lead.GoNoGoDecision}
                   </span>
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Provisioning Status — shown after GO decision */}
+          {lead.GoNoGoDecision === GoNoGoDecision.Go && lead.ProjectCode && (
+            <div style={{ marginTop: '16px' }}>
+              {lead.ProjectSiteURL ? (
+                <div style={{
+                  backgroundColor: '#fff',
+                  borderRadius: '8px',
+                  padding: '24px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                }}>
+                  <h3 style={{ margin: '0 0 12px', color: HBC_COLORS.navy }}>Project Site</h3>
+                  <a
+                    href={lead.ProjectSiteURL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: HBC_COLORS.navy, fontWeight: 600, fontSize: '14px' }}
+                  >
+                    {lead.ProjectSiteURL}
+                  </a>
+                </div>
+              ) : (
+                <ProvisioningStatusView projectCode={lead.ProjectCode} compact pollInterval={1000} />
               )}
             </div>
           )}

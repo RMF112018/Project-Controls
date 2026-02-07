@@ -6,6 +6,7 @@ import { IFeatureFlag } from '../models/IFeatureFlag';
 import { IMeeting, ICalendarAvailability } from '../models/IMeeting';
 import { INotification } from '../models/INotification';
 import { IAuditEntry } from '../models/IAuditEntry';
+import { IProvisioningLog } from '../models/IProvisioningLog';
 import { GoNoGoDecision, Stage } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -73,9 +74,11 @@ export interface IDataService {
   getAuditLog(entityType?: string, entityId?: string): Promise<IAuditEntry[]>;
 
   // Provisioning
-  triggerProvisioning(leadId: number, projectCode: string): Promise<{ status: string; logId: number }>;
-  getProvisioningStatus(projectCode: string): Promise<{ status: string; step: number; error?: string }>;
-  retryProvisioning(projectCode: string, fromStep: number): Promise<void>;
+  triggerProvisioning(leadId: number, projectCode: string, projectName: string, requestedBy: string): Promise<IProvisioningLog>;
+  getProvisioningStatus(projectCode: string): Promise<IProvisioningLog | null>;
+  updateProvisioningLog(projectCode: string, data: Partial<IProvisioningLog>): Promise<IProvisioningLog>;
+  getProvisioningLogs(): Promise<IProvisioningLog[]>;
+  retryProvisioning(projectCode: string, fromStep: number): Promise<IProvisioningLog>;
 
   // App Context
   getAppContextConfig(siteUrl: string): Promise<{ RenderMode: string; AppTitle: string; VisibleModules: string[] } | null>;

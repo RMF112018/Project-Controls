@@ -1,0 +1,361 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/pnp/provisioning-schema-2022-09",
+  "description": "HBC Project Controls — Project Site Provisioning Template",
+  "version": "1.0.0",
+  "template": {
+    "siteSettings": {
+      "template": "STS#3",
+      "title": "{{ProjectCode}} — {{ProjectName}}",
+      "description": "Hedrick Brothers Construction project site for {{ProjectName}} ({{ClientName}})",
+      "locale": 1033,
+      "hubSiteAssociation": "https://hedrickbrothers.sharepoint.com/sites/HBCHub"
+    },
+    "documentLibraries": [
+      {
+        "title": "00_Project_Admin",
+        "folders": [
+          "Contracts",
+          "Contracts/Templates",
+          "Change_Orders",
+          "Insurance",
+          "Permits",
+          "RFI",
+          "Submittals",
+          "Meeting_Minutes",
+          "Turnover",
+          "Team_Files"
+        ]
+      },
+      {
+        "title": "01_Preconstruction",
+        "folders": [
+          "Proposals",
+          "Estimates",
+          "01_FinalDeliver",
+          "02_PlansSpecs",
+          "03_Assemblies",
+          "04_Takeoff",
+          "05_Addenda",
+          "06_RFI",
+          "07_ScopeLetters",
+          "08_Qualifications",
+          "09_SubBids",
+          "10_BidTabulation",
+          "11_ValueEngineering",
+          "12_ProjectTurnover",
+          "Value_Engineering",
+          "Team_Files"
+        ]
+      },
+      {
+        "title": "02_Safety",
+        "folders": [
+          "Plans",
+          "Inspections",
+          "Incidents",
+          "Team_Files"
+        ]
+      },
+      {
+        "title": "03_Quality_Control",
+        "folders": [
+          "Inspections",
+          "Reports",
+          "Team_Files"
+        ]
+      },
+      {
+        "title": "04_Design",
+        "folders": [
+          "Drawings",
+          "Specifications",
+          "Finish_Schedules",
+          "Team_Files"
+        ]
+      },
+      {
+        "title": "05_Budget",
+        "folders": [
+          "Cost_Reports",
+          "Pay_Applications",
+          "Team_Files"
+        ]
+      },
+      {
+        "title": "10_Scheduling",
+        "folders": [
+          "Baseline",
+          "Updates",
+          "Team_Files"
+        ]
+      },
+      {
+        "title": "20_Field_Operations",
+        "folders": [
+          "Daily_Reports",
+          "Photos",
+          "Team_Files"
+        ]
+      },
+      {
+        "title": "30_Subcontracts",
+        "folders": [
+          "Div_01_General",
+          "Div_01_General/CCO",
+          "Div_01_General/Compliance",
+          "Div_01_General/Contract",
+          "Div_01_General/Proposals",
+          "Div_02_Existing_Conditions",
+          "Div_02_Existing_Conditions/CCO",
+          "Div_02_Existing_Conditions/Compliance",
+          "Div_02_Existing_Conditions/Contract",
+          "Div_02_Existing_Conditions/Proposals",
+          "Div_03_Concrete",
+          "Div_03_Concrete/CCO",
+          "Div_03_Concrete/Compliance",
+          "Div_03_Concrete/Contract",
+          "Div_03_Concrete/Proposals",
+          "Div_04_Masonry",
+          "Div_04_Masonry/CCO",
+          "Div_04_Masonry/Compliance",
+          "Div_04_Masonry/Contract",
+          "Div_04_Masonry/Proposals",
+          "Div_05_Metals",
+          "Div_05_Metals/CCO",
+          "Div_05_Metals/Compliance",
+          "Div_05_Metals/Contract",
+          "Div_05_Metals/Proposals",
+          "Div_06_Wood_Plastics",
+          "Div_06_Wood_Plastics/CCO",
+          "Div_06_Wood_Plastics/Compliance",
+          "Div_06_Wood_Plastics/Contract",
+          "Div_06_Wood_Plastics/Proposals",
+          "Div_07_Thermal_Moisture",
+          "Div_07_Thermal_Moisture/CCO",
+          "Div_07_Thermal_Moisture/Compliance",
+          "Div_07_Thermal_Moisture/Contract",
+          "Div_07_Thermal_Moisture/Proposals",
+          "Div_08_Openings",
+          "Div_08_Openings/CCO",
+          "Div_08_Openings/Compliance",
+          "Div_08_Openings/Contract",
+          "Div_08_Openings/Proposals",
+          "Div_09_Finishes",
+          "Div_09_Finishes/CCO",
+          "Div_09_Finishes/Compliance",
+          "Div_09_Finishes/Contract",
+          "Div_09_Finishes/Proposals",
+          "Div_10_Specialties",
+          "Div_10_Specialties/CCO",
+          "Div_10_Specialties/Compliance",
+          "Div_10_Specialties/Contract",
+          "Div_10_Specialties/Proposals",
+          "Div_11_Equipment",
+          "Div_11_Equipment/CCO",
+          "Div_11_Equipment/Compliance",
+          "Div_11_Equipment/Contract",
+          "Div_11_Equipment/Proposals",
+          "Div_12_Furnishings",
+          "Div_12_Furnishings/CCO",
+          "Div_12_Furnishings/Compliance",
+          "Div_12_Furnishings/Contract",
+          "Div_12_Furnishings/Proposals",
+          "Div_13_Special_Construction",
+          "Div_13_Special_Construction/CCO",
+          "Div_13_Special_Construction/Compliance",
+          "Div_13_Special_Construction/Contract",
+          "Div_13_Special_Construction/Proposals",
+          "Div_14_Conveying",
+          "Div_14_Conveying/CCO",
+          "Div_14_Conveying/Compliance",
+          "Div_14_Conveying/Contract",
+          "Div_14_Conveying/Proposals",
+          "Div_21_Fire_Suppression",
+          "Div_21_Fire_Suppression/CCO",
+          "Div_21_Fire_Suppression/Compliance",
+          "Div_21_Fire_Suppression/Contract",
+          "Div_21_Fire_Suppression/Proposals",
+          "Div_22_Plumbing",
+          "Div_22_Plumbing/CCO",
+          "Div_22_Plumbing/Compliance",
+          "Div_22_Plumbing/Contract",
+          "Div_22_Plumbing/Proposals",
+          "Div_23_HVAC",
+          "Div_23_HVAC/CCO",
+          "Div_23_HVAC/Compliance",
+          "Div_23_HVAC/Contract",
+          "Div_23_HVAC/Proposals",
+          "Div_26_Electrical",
+          "Div_26_Electrical/CCO",
+          "Div_26_Electrical/Compliance",
+          "Div_26_Electrical/Contract",
+          "Div_26_Electrical/Proposals",
+          "Div_27_Communications",
+          "Div_27_Communications/CCO",
+          "Div_27_Communications/Compliance",
+          "Div_27_Communications/Contract",
+          "Div_27_Communications/Proposals",
+          "Div_28_Electronic_Safety",
+          "Div_28_Electronic_Safety/CCO",
+          "Div_28_Electronic_Safety/Compliance",
+          "Div_28_Electronic_Safety/Contract",
+          "Div_28_Electronic_Safety/Proposals",
+          "Div_31_Earthwork",
+          "Div_31_Earthwork/CCO",
+          "Div_31_Earthwork/Compliance",
+          "Div_31_Earthwork/Contract",
+          "Div_31_Earthwork/Proposals",
+          "Div_32_Exterior_Improvements",
+          "Div_32_Exterior_Improvements/CCO",
+          "Div_32_Exterior_Improvements/Compliance",
+          "Div_32_Exterior_Improvements/Contract",
+          "Div_32_Exterior_Improvements/Proposals",
+          "Div_33_Utilities",
+          "Div_33_Utilities/CCO",
+          "Div_33_Utilities/Compliance",
+          "Div_33_Utilities/Contract",
+          "Div_33_Utilities/Proposals",
+          "Team_Files"
+        ]
+      },
+      {
+        "title": "40_Closeout",
+        "folders": [
+          "00_Closeout_Checklist",
+          "01_Punch_List",
+          "02_Certificate_of_Occupancy",
+          "03_Certificate_of_Substantial_Completion",
+          "04_Final_Lien_Waivers",
+          "05_Consent_of_Surety",
+          "06_Final_Change_Order_Log",
+          "07_As_Builts",
+          "08_O_and_M_Manuals",
+          "09_Warranties",
+          "10_Attic_Stock",
+          "11_Keys_and_Access",
+          "12_Training_Records",
+          "13_Final_Inspections",
+          "14_Utility_Transfers",
+          "15_Retention_Release",
+          "Team_Files"
+        ]
+      },
+      {
+        "title": "50_Marketing",
+        "folders": [
+          "Photos",
+          "Awards",
+          "Case_Studies",
+          "Team_Files"
+        ]
+      },
+      {
+        "title": "60_Media",
+        "folders": [
+          "Renderings",
+          "Drone",
+          "Video",
+          "Team_Files"
+        ]
+      },
+      {
+        "title": "70_3rd_Party",
+        "folders": [
+          "Architect",
+          "Architect/Correspondence",
+          "Architect/Drawings",
+          "Architect/Specifications",
+          "Engineer",
+          "Engineer/Civil",
+          "Engineer/MEP",
+          "Engineer/Structural",
+          "Owner",
+          "Owner/Correspondence",
+          "Owner/Notices",
+          "Owner/OCIP",
+          "Owner/Regulatory",
+          "Team_Files"
+        ]
+      }
+    ],
+    "securityGroups": [
+      {
+        "name": "{{ProjectCode}}_Owners",
+        "description": "Full control for project {{ProjectCode}}",
+        "permissionLevel": "Full Control",
+        "memberRoles": ["Executive Leadership", "BD Representative"]
+      },
+      {
+        "name": "{{ProjectCode}}_Members",
+        "description": "Contribute access for project {{ProjectCode}}",
+        "permissionLevel": "Contribute",
+        "memberRoles": ["Preconstruction Team", "Operations Team", "Estimating Coordinator"]
+      },
+      {
+        "name": "{{ProjectCode}}_Visitors",
+        "description": "Read-only access for project {{ProjectCode}}",
+        "permissionLevel": "Read",
+        "memberRoles": ["Marketing", "Legal", "Accounting Manager", "Risk Management", "Quality Control", "Safety"]
+      }
+    ],
+    "lists": [
+      {
+        "title": "Project_Info",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text" },
+          { "name": "ProjectName", "type": "Text" },
+          { "name": "ClientName", "type": "Text" },
+          { "name": "Division", "type": "Choice" },
+          { "name": "Region", "type": "Choice" },
+          { "name": "Sector", "type": "Choice" },
+          { "name": "ProjectValue", "type": "Currency" },
+          { "name": "SquareFeet", "type": "Number" },
+          { "name": "SiteURL", "type": "URL" }
+        ]
+      },
+      {
+        "title": "Team_Members",
+        "template": "GenericList",
+        "fields": [
+          { "name": "MemberName", "type": "Person" },
+          { "name": "Role", "type": "Choice" },
+          { "name": "StartDate", "type": "DateTime" }
+        ]
+      },
+      {
+        "title": "Deliverables",
+        "template": "GenericList",
+        "fields": [
+          { "name": "Title", "type": "Text" },
+          { "name": "Status", "type": "Choice" },
+          { "name": "DueDate", "type": "DateTime" },
+          { "name": "AssignedTo", "type": "Person" },
+          { "name": "Priority", "type": "Choice" }
+        ]
+      },
+      {
+        "title": "Action_Items",
+        "template": "GenericList",
+        "fields": [
+          { "name": "Title", "type": "Text" },
+          { "name": "Status", "type": "Choice" },
+          { "name": "DueDate", "type": "DateTime" },
+          { "name": "AssignedTo", "type": "Person" },
+          { "name": "Priority", "type": "Choice" }
+        ]
+      },
+      {
+        "title": "Turnover_Checklist",
+        "template": "GenericList",
+        "fields": [
+          { "name": "Title", "type": "Text" },
+          { "name": "Category", "type": "Choice" },
+          { "name": "Status", "type": "Choice" },
+          { "name": "CompletedDate", "type": "DateTime" },
+          { "name": "CompletedBy", "type": "Person" }
+        ]
+      }
+    ]
+  }
+}

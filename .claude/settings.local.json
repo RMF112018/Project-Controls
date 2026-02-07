@@ -12,7 +12,15 @@
       "Bash(volta pin:*)",
       "Bash(node --version:*)",
       "Bash(volta run:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nImplement Phases 1-3: app shell, pipeline, and Go/No-Go scorecard\n\nPhase 1: Foundation — app shell, context, services, models, shared\ncomponents, RoleGate/FeatureGate guards, mock data service.\n\nPhase 2: Lead Intake & Pipeline — SearchBar, DataTable, PipelineChart,\nExportButtons, StageIndicator components. Integrated into PipelinePage,\nDashboardPage, LeadFormPage, and AppShell.\n\nPhase 3: Go/No-Go Scorecard — 19-criteria dual-column scoring interface\nwith RBAC-gated columns, qualitative assessment fields, decision flow\n\\(GO/NO GO/WAIT\\), project code validation, stage transitions, PDF/Excel\nexport, and read-only detail view.\n\nScorecard criteria use exact HBC Excel template values \\(max 92 pts\\).\nScore thresholds: 69+ Focus All Efforts, 55-68 Pursue/Prioritize,\nbelow 55 Drop.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(gh pr create:*)",
+      "Bash(git pull:*)",
+      "Bash(gh pr close:*)"
     ]
   }
 }

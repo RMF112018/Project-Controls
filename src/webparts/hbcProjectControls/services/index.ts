@@ -12,3 +12,5 @@ export { PowerAutomateService } from './PowerAutomateService';
 export type { IProvisioningPayload } from './PowerAutomateService';
 export { NotificationService } from './NotificationService';
 export type { INotificationContext } from './NotificationService';
+export { ProvisioningService } from './ProvisioningService';
+export type { IProvisioningInput } from './ProvisioningService';
