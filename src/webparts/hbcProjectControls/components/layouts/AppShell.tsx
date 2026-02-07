@@ -46,7 +46,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ fontWeight: 700, fontSize: '16px', color: HBC_COLORS.orange }}>HBC</span>
-          <span style={{ fontSize: '14px', opacity: 0.9 }}>Project Controls</span>
+          <span style={{ fontSize: '14px', opacity: 0.9 }}>{renderMode === RenderMode.Standalone ? 'Estimating Tracker' : 'Project Controls'}</span>
         </div>
         <SearchBar />
         {currentUser && (
