@@ -10,6 +10,8 @@ import { LoadingSpinner } from '../../shared/LoadingSpinner';
 import { ScoreTierBadge } from '../../shared/ScoreTierBadge';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { ConfirmDialog } from '../../shared/ConfirmDialog';
+import { ProvisioningStatusView } from '../../shared/ProvisioningStatus';
+import { ProvisioningService } from '../../../services/ProvisioningService';
 import {
   IGoNoGoScorecard as IScorecardModel,
   SCORECARD_CRITERIA,
@@ -61,10 +63,11 @@ const PROJECT_CODE_REGEX = /^\d{2}-\d{3}-\d{2}$/;
 export const GoNoGoScorecard: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { currentUser, hasPermission } = useAppContext();
+  const { dataService, currentUser, hasPermission } = useAppContext();
   const { getScorecardByLeadId, createScorecard, updateScorecard, submitDecision } = useGoNoGo();
   const { getLeadById, updateLead } = useLeads();
   const { notify } = useNotifications();
+  const provisioningService = React.useMemo(() => new ProvisioningService(dataService), [dataService]);
 
   const [lead, setLead] = React.useState<ILead | null>(null);
   const [scorecard, setScorecard] = React.useState<IScorecardModel | null>(null);
@@ -78,6 +81,7 @@ export const GoNoGoScorecard: React.FC = () => {
   const [showGoDialog, setShowGoDialog] = React.useState(false);
   const [showNoGoDialog, setShowNoGoDialog] = React.useState(false);
   const [toastMessage, setToastMessage] = React.useState('');
+  const [provisioningCode, setProvisioningCode] = React.useState<string | null>(null);
 
   const leadId = Number(id);
 
@@ -206,8 +210,20 @@ export const GoNoGoScorecard: React.FC = () => {
           GoNoGoScore_Committee: cmteTotal,
           ProjectCode: projectCode,
         });
-        console.log(`[Mock] Site provisioning triggered for project ${projectCode}`);
-        setToastMessage(`GO decision recorded. Project code ${projectCode} assigned. Site provisioning triggered.`);
+
+        // Trigger site provisioning
+        provisioningService.provisionSite({
+          leadId,
+          projectCode,
+          projectName: lead?.Title ?? '',
+          clientName: lead?.ClientName ?? '',
+          division: lead?.Division ?? '',
+          region: lead?.Region ?? '',
+          requestedBy: currentUser?.email ?? '',
+        }).catch(console.error);
+        setProvisioningCode(projectCode);
+
+        setToastMessage(`GO decision recorded. Project code ${projectCode} assigned. Site provisioning started.`);
       } else if (dec === GoNoGoDecision.NoGo) {
         await updateLead(leadId, {
           Stage: Stage.ArchivedNoGo,
@@ -659,6 +675,13 @@ export const GoNoGoScorecard: React.FC = () => {
           <Button appearance="primary" onClick={handleSave} disabled={isSaving}>
             {isSaving ? 'Saving...' : 'Save Scorecard'}
           </Button>
+        </div>
+      )}
+
+      {/* Provisioning Progress */}
+      {provisioningCode && (
+        <div style={{ marginTop: '24px' }}>
+          <ProvisioningStatusView projectCode={provisioningCode} pollInterval={800} />
         </div>
       )}
 

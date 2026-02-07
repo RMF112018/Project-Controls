@@ -16,13 +16,15 @@ import {
   ICalendarAvailability,
   INotification,
   IAuditEntry,
+  IProvisioningLog,
   GoNoGoDecision,
   Stage,
   RoleName,
   AuditAction,
   EntityType,
   NotificationType,
-  MeetingType
+  MeetingType,
+  ProvisioningStatus
 } from '../models';
 
 import { ROLE_PERMISSIONS } from '../utils/permissions';
@@ -46,7 +48,7 @@ export class MockDataService implements IDataService {
   private meetings: IMeeting[];
   private notifications: INotification[];
   private auditLog: IAuditEntry[];
-  private provisioningStatuses: Map<string, { status: string; step: number; error?: string }>;
+  private provisioningLogs: IProvisioningLog[];
   private nextId: number;
 
   constructor() {
@@ -59,7 +61,7 @@ export class MockDataService implements IDataService {
     this.meetings = [];
     this.notifications = [];
     this.auditLog = [];
-    this.provisioningStatuses = new Map();
+    this.provisioningLogs = [];
     this.nextId = 1000;
   }
 
@@ -622,52 +624,74 @@ export class MockDataService implements IDataService {
   // ---------------------------------------------------------------------------
 
   public async triggerProvisioning(
-    _leadId: number,
-    projectCode: string
-  ): Promise<{ status: string; logId: number }> {
+    leadId: number,
+    projectCode: string,
+    projectName: string,
+    requestedBy: string
+  ): Promise<IProvisioningLog> {
     await delay();
 
-    const logId = this.getNextId();
+    const log: IProvisioningLog = {
+      id: this.getNextId(),
+      projectCode,
+      projectName,
+      leadId,
+      status: ProvisioningStatus.Queued,
+      currentStep: 0,
+      completedSteps: 0,
+      retryCount: 0,
+      requestedBy,
+      requestedAt: new Date().toISOString(),
+    };
 
-    this.provisioningStatuses.set(projectCode, {
-      status: 'Queued',
-      step: 0
-    });
-
-    return { status: 'Queued', logId };
+    this.provisioningLogs.push(log);
+    return { ...log };
   }
 
-  public async getProvisioningStatus(
-    projectCode: string
-  ): Promise<{ status: string; step: number; error?: string }> {
+  public async getProvisioningStatus(projectCode: string): Promise<IProvisioningLog | null> {
     await delay();
-
-    const status = this.provisioningStatuses.get(projectCode);
-    if (!status) {
-      return { status: 'NotFound', step: 0 };
-    }
-
-    // Simulate progress: advance step each time status is checked
-    if (status.status === 'Queued') {
-      status.status = 'InProgress';
-      status.step = 1;
-    } else if (status.status === 'InProgress' && status.step < 5) {
-      status.step += 1;
-      if (status.step >= 5) {
-        status.status = 'Completed';
-      }
-    }
-
-    return { ...status };
+    const log = this.provisioningLogs.find(l => l.projectCode === projectCode);
+    return log ? { ...log } : null;
   }
 
-  public async retryProvisioning(projectCode: string, fromStep: number): Promise<void> {
+  public async updateProvisioningLog(
+    projectCode: string,
+    data: Partial<IProvisioningLog>
+  ): Promise<IProvisioningLog> {
     await delay();
 
-    this.provisioningStatuses.set(projectCode, {
-      status: 'InProgress',
-      step: fromStep
-    });
+    const index = this.provisioningLogs.findIndex(l => l.projectCode === projectCode);
+    if (index === -1) {
+      throw new Error(`Provisioning log for ${projectCode} not found`);
+    }
+
+    this.provisioningLogs[index] = { ...this.provisioningLogs[index], ...data };
+    return { ...this.provisioningLogs[index] };
+  }
+
+  public async getProvisioningLogs(): Promise<IProvisioningLog[]> {
+    await delay();
+    return [...this.provisioningLogs].sort(
+      (a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+    );
+  }
+
+  public async retryProvisioning(projectCode: string, fromStep: number): Promise<IProvisioningLog> {
+    await delay();
+
+    const index = this.provisioningLogs.findIndex(l => l.projectCode === projectCode);
+    if (index === -1) {
+      throw new Error(`Provisioning log for ${projectCode} not found`);
+    }
+
+    const log = this.provisioningLogs[index];
+    log.status = ProvisioningStatus.InProgress;
+    log.currentStep = fromStep;
+    log.failedStep = undefined;
+    log.errorMessage = undefined;
+    log.retryCount += 1;
+
+    return { ...log };
   }
 
   // ---------------------------------------------------------------------------

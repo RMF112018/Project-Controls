@@ -1,0 +1,28 @@
+/**
+ * Mock SPFx-like context object.
+ * The app code does NOT reference pageContext directly — this exists
+ * purely as a safety net and for future-proofing.
+ */
+export const mockContext = {
+  pageContext: {
+    user: {
+      displayName: 'Bobby Fetting',
+      email: 'bfetting@hedrickbrothers.com',
+      loginName: 'bfetting@hedrickbrothers.com',
+    },
+    web: {
+      title: 'HBC Hub',
+      absoluteUrl: 'https://hedrickbrothers.sharepoint.com/sites/HBCHub',
+      serverRelativeUrl: '/sites/HBCHub',
+    },
+    site: {
+      absoluteUrl: 'https://hedrickbrothers.sharepoint.com/sites/HBCHub',
+      serverRelativeUrl: '/sites/HBCHub',
+      id: { toString: (): string => '00000000-0000-0000-0000-000000000000' },
+    },
+    legacyPageContext: {},
+  },
+  serviceScope: {
+    consume: (): undefined => undefined,
+  },
+};

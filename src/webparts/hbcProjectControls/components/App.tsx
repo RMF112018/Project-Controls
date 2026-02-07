@@ -16,6 +16,7 @@ import { LeadFormPage } from './pages/hub/LeadFormPage';
 import { GoNoGoScorecard } from './pages/hub/GoNoGoScorecard';
 import { GoNoGoDetail } from './pages/hub/GoNoGoDetail';
 import { GoNoGoMeetingScheduler } from './pages/hub/GoNoGoMeetingScheduler';
+import { AdminPanel } from './pages/hub/AdminPanel';
 
 // Precon pages
 import { EstimatingDashboard } from './pages/precon/EstimatingDashboard';
@@ -37,6 +38,7 @@ const HubRoutes: React.FC = () => (
     <Route path="/lead/:id/gonogo" element={<GoNoGoScorecard />} />
     <Route path="/lead/:id/gonogo/detail" element={<GoNoGoDetail />} />
     <Route path="/lead/:id/schedule-gonogo" element={<GoNoGoMeetingScheduler />} />
+    <Route path="/admin" element={<AdminPanel />} />
   </Routes>
 );
 
