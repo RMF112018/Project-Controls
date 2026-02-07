@@ -6,7 +6,7 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { useAppContext } from '../../contexts/AppContext';
 import { RoleGate } from '../../guards/RoleGate';
 import { PageHeader } from '../../shared/PageHeader';
-import { ILeadFormData, Stage, Region, Sector, Division, DepartmentOfOrigin, DeliveryMethod, RoleName, NotificationEvent } from '../../../models';
+import { ILeadFormData, Stage, Region, Sector, Division, DepartmentOfOrigin, DeliveryMethod, RoleName, NotificationEvent, AuditAction, EntityType } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { validateLeadForm } from '../../../utils/validators';
 
@@ -14,7 +14,7 @@ export const LeadFormPage: React.FC = () => {
   const navigate = useNavigate();
   const { createLead } = useLeads();
   const { notify } = useNotifications();
-  const { currentUser } = useAppContext();
+  const { currentUser, dataService } = useAppContext();
   const [formData, setFormData] = React.useState<Partial<ILeadFormData>>({
     Stage: Stage.LeadDiscovery,
   });
@@ -49,6 +49,16 @@ export const LeadFormPage: React.FC = () => {
         DateOfEvaluation: new Date().toISOString(),
       };
       const newLead = await createLead(leadData as unknown as ILeadFormData);
+      // Fire-and-forget audit log
+      dataService.logAudit({
+        Action: AuditAction.LeadCreated,
+        EntityType: EntityType.Lead,
+        EntityId: String(newLead.id),
+        ProjectCode: newLead.ProjectCode,
+        User: currentUser?.displayName || 'Unknown',
+        UserId: currentUser?.id,
+        Details: `Lead "${newLead.Title}" created for ${newLead.ClientName}`,
+      }).catch(console.error);
       // Fire-and-forget notification
       notify(NotificationEvent.LeadSubmitted, {
         leadTitle: newLead.Title,

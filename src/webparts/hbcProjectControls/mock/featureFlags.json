@@ -11,5 +11,6 @@
   { "id": 10, "FeatureName": "Sage300Integration", "Enabled": false, "EnabledForRoles": null, "TargetDate": "2026-06-01", "Notes": "Phase 2 - Sage 300 accounting" },
   { "id": 11, "FeatureName": "DocumentCrunchIntegration", "Enabled": false, "EnabledForRoles": null, "TargetDate": "2026-09-01", "Notes": "AI contract review" },
   { "id": 12, "FeatureName": "EstimatingModule", "Enabled": false, "EnabledForRoles": null, "TargetDate": "2026-12-01", "Notes": "Full estimating module" },
-  { "id": 13, "FeatureName": "BudgetSync", "Enabled": false, "EnabledForRoles": null, "TargetDate": null, "Notes": "Budget sync with accounting" }
+  { "id": 13, "FeatureName": "BudgetSync", "Enabled": false, "EnabledForRoles": null, "TargetDate": null, "Notes": "Budget sync with accounting" },
+  { "id": 14, "FeatureName": "ExecutiveDashboard", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 8 exec dashboard" }
 ]

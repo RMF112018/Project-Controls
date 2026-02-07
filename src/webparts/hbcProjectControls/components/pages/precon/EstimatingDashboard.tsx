@@ -2,12 +2,13 @@ import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useEstimating } from '../../hooks/useEstimating';
 import { useLeads } from '../../hooks/useLeads';
+import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { IEstimatingTracker, ILead, GoNoGoDecision, AwardStatus } from '../../../models';
+import { IEstimatingTracker, ILead, GoNoGoDecision, AwardStatus, AuditAction, EntityType } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
 import {
   formatCurrency,
@@ -39,6 +40,7 @@ export const EstimatingDashboard: React.FC = () => {
   const navigate = useNavigate();
   const activeTab = pathToTab(location.pathname);
 
+  const { dataService, currentUser } = useAppContext();
   const { records, isLoading: estLoading, fetchRecords, updateRecord } = useEstimating();
   const { leads, isLoading: leadsLoading, fetchLeads } = useLeads();
 
@@ -165,7 +167,19 @@ export const EstimatingDashboard: React.FC = () => {
   const handleCheckToggle = React.useCallback(async (record: IEstimatingTracker, field: keyof IEstimatingTracker) => {
     const current = record[field] as boolean;
     await updateRecord(record.id, { [field]: !current } as Partial<IEstimatingTracker>);
-  }, [updateRecord]);
+    dataService.logAudit({
+      Action: AuditAction.EstimateStatusChanged,
+      EntityType: EntityType.Estimate,
+      EntityId: String(record.id),
+      ProjectCode: record.ProjectCode,
+      FieldChanged: field as string,
+      PreviousValue: String(current),
+      NewValue: String(!current),
+      User: currentUser?.displayName || 'Unknown',
+      UserId: currentUser?.id,
+      Details: `Checklist "${field}" ${!current ? 'checked' : 'unchecked'} for "${record.Title}"`,
+    }).catch(console.error);
+  }, [updateRecord, dataService, currentUser]);
 
   // Date cell renderer
   const dateCell = (dateStr: string | undefined): React.ReactNode => {

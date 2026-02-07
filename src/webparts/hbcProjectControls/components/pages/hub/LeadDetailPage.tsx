@@ -7,7 +7,7 @@ import { PageHeader } from '../../shared/PageHeader';
 import { StageBadge } from '../../shared/StageBadge';
 import { ScoreTierBadge } from '../../shared/ScoreTierBadge';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { ILead, Stage, GoNoGoDecision } from '../../../models';
+import { ILead, Stage, GoNoGoDecision, AuditAction, EntityType } from '../../../models';
 import { ProvisioningStatusView } from '../../shared/ProvisioningStatus';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { formatCurrency, formatDate, formatSquareFeet } from '../../../utils/formatters';
@@ -16,7 +16,7 @@ import { PERMISSIONS } from '../../../utils/permissions';
 export const LeadDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { hasPermission } = useAppContext();
+  const { hasPermission, dataService, currentUser } = useAppContext();
   const { getLeadById, updateLead } = useLeads();
   const [lead, setLead] = React.useState<ILead | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -37,6 +37,24 @@ export const LeadDetailPage: React.FC = () => {
     if (!lead) return;
     try {
       const updated = await updateLead(lead.id, editData);
+      // Audit log for each changed field
+      for (const [field, newValue] of Object.entries(editData)) {
+        const prevValue = (lead as unknown as Record<string, unknown>)[field];
+        if (prevValue !== newValue) {
+          dataService.logAudit({
+            Action: AuditAction.LeadEdited,
+            EntityType: EntityType.Lead,
+            EntityId: String(lead.id),
+            ProjectCode: lead.ProjectCode,
+            FieldChanged: field,
+            PreviousValue: prevValue != null ? String(prevValue) : '',
+            NewValue: newValue != null ? String(newValue) : '',
+            User: currentUser?.displayName || 'Unknown',
+            UserId: currentUser?.id,
+            Details: `Lead "${lead.Title}" field "${field}" updated`,
+          }).catch(console.error);
+        }
+      }
       setLead(updated);
       setIsEditing(false);
       setEditData({});

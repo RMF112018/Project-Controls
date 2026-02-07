@@ -29,8 +29,43 @@ export class ExportService {
         format: [canvas.width, canvas.height],
       });
 
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-      pdf.save(`${options.filename}.pdf`);
+      const headerHeight = 40;
+      const footerHeight = 30;
+      const totalHeight = canvas.height + headerHeight + footerHeight;
+
+      const pdfDoc = new jsPDF({
+        orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [canvas.width, totalHeight],
+      });
+
+      // Branded header
+      pdfDoc.setFillColor(27, 42, 74); // HBC Navy
+      pdfDoc.rect(0, 0, canvas.width, headerHeight, 'F');
+      pdfDoc.setTextColor(232, 119, 34); // HBC Orange
+      pdfDoc.setFontSize(14);
+      pdfDoc.text('HBC Project Controls', 16, 26);
+      if (options.title) {
+        pdfDoc.setTextColor(255, 255, 255);
+        pdfDoc.setFontSize(10);
+        pdfDoc.text(options.title, canvas.width - 16, 26, { align: 'right' });
+      }
+
+      // Content
+      pdfDoc.addImage(imgData, 'PNG', 0, headerHeight, canvas.width, canvas.height);
+
+      // Footer
+      pdfDoc.setFillColor(249, 250, 251); // Gray50
+      pdfDoc.rect(0, headerHeight + canvas.height, canvas.width, footerHeight, 'F');
+      pdfDoc.setTextColor(107, 114, 128); // Gray500
+      pdfDoc.setFontSize(8);
+      pdfDoc.text(
+        `Generated ${new Date().toLocaleString('en-US')}`,
+        16,
+        headerHeight + canvas.height + 18
+      );
+
+      pdfDoc.save(`${options.filename}.pdf`);
     } catch (error) {
       console.error('[ExportService] PDF export failed:', error);
       throw error;
