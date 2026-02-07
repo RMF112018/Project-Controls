@@ -29,6 +29,7 @@ export interface IEstimatingTracker {
   DocSetStage?: string;
   PreconFee?: number;
   FeePaidToDate?: number;
+  DesignBudget?: number;
   EstimateType?: DeliverableType;
   EstimatedCostValue?: number;
   CostPerGSF?: number;

@@ -406,6 +406,7 @@ export class MockDataService implements IDataService {
       DocSetStage: data.DocSetStage,
       PreconFee: data.PreconFee,
       FeePaidToDate: data.FeePaidToDate,
+      DesignBudget: data.DesignBudget,
       EstimateType: data.EstimateType,
       EstimatedCostValue: data.EstimatedCostValue,
       CostPerGSF: data.CostPerGSF,
@@ -434,7 +435,7 @@ export class MockDataService implements IDataService {
   public async getCurrentPursuits(): Promise<IEstimatingTracker[]> {
     await delay();
     return this.estimatingRecords.filter(
-      r => r.AwardStatus === 'Pending' || !(r as unknown as Record<string, unknown>).AwardStatus
+      r => (!r.AwardStatus || r.AwardStatus === 'Pending') && !r.SubmittedDate
     );
   }
 
