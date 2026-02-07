@@ -749,4 +749,28 @@ export class MockDataService implements IDataService {
 
     return null;
   }
+
+  // -- Lookups ----------------------------------------------------------
+
+  public async getTemplates(): Promise<Array<{ TemplateName: string; SourceURL: string; TargetFolder: string; Division: string; Active: boolean }>> {
+    await delay();
+    try {
+      const templates = require('../mock/templateRegistry.json');
+      return templates;
+    } catch {
+      return [];
+    }
+  }
+
+  public async getRegions(): Promise<string[]> {
+    await delay();
+    const { Region } = require('../models/enums');
+    return Object.values(Region) as string[];
+  }
+
+  public async getSectors(): Promise<string[]> {
+    await delay();
+    const { Sector } = require('../models/enums');
+    return Object.values(Sector) as string[];
+  }
 }

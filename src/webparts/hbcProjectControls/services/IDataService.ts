@@ -80,6 +80,11 @@ export interface IDataService {
   getProvisioningLogs(): Promise<IProvisioningLog[]>;
   retryProvisioning(projectCode: string, fromStep: number): Promise<IProvisioningLog>;
 
+  // Lookups
+  getTemplates(): Promise<Array<{ TemplateName: string; SourceURL: string; TargetFolder: string; Division: string; Active: boolean }>>;
+  getRegions(): Promise<string[]>;
+  getSectors(): Promise<string[]>;
+
   // App Context
   getAppContextConfig(siteUrl: string): Promise<{ RenderMode: string; AppTitle: string; VisibleModules: string[] } | null>;
 }

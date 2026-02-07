@@ -3,21 +3,27 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Select } from '@fluentui/react-components';
 import { useLeads } from '../../hooks/useLeads';
 import { useAppContext } from '../../contexts/AppContext';
+import { useResponsive } from '../../hooks/useResponsive';
 import { PageHeader } from '../../shared/PageHeader';
+import { KPICard } from '../../shared/KPICard';
+import { PipelineChart } from '../../shared/PipelineChart';
 import { StageBadge } from '../../shared/StageBadge';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { FeatureGate } from '../../guards/FeatureGate';
-import { ILead, Stage, Region, Sector, Division } from '../../../models';
+import { ILead, Stage, Region, Sector, Division, AwardStatus } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
-import { formatCurrencyCompact } from '../../../utils/formatters';
+import { formatCurrencyCompact, formatDate, formatPercent } from '../../../utils/formatters';
+import { isActiveStage } from '../../../utils/stageEngine';
 import { PERMISSIONS } from '../../../utils/permissions';
 
 export const PipelinePage: React.FC = () => {
   const navigate = useNavigate();
   const { hasPermission } = useAppContext();
   const { leads, totalCount, isLoading, fetchLeads } = useLeads();
+  const { isMobile } = useResponsive();
+  const [chartMode, setChartMode] = React.useState<'count' | 'value'>('count');
   const [stageFilter, setStageFilter] = React.useState<string>('all');
   const [regionFilter, setRegionFilter] = React.useState<string>('all');
   const [sectorFilter, setSectorFilter] = React.useState<string>('all');
@@ -96,10 +102,24 @@ export const PipelinePage: React.FC = () => {
       render: (lead) => lead.Sector,
     },
     {
+      key: 'Division',
+      header: 'Division',
+      sortable: true,
+      render: (lead) => lead.Division,
+      hideOnMobile: true,
+    },
+    {
       key: 'ProjectValue',
       header: 'Value',
       sortable: true,
       render: (lead) => lead.ProjectValue ? formatCurrencyCompact(lead.ProjectValue) : '-',
+    },
+    {
+      key: 'ProposalBidDue',
+      header: 'Due Date',
+      sortable: true,
+      render: (lead) => lead.ProposalBidDue ? formatDate(lead.ProposalBidDue) : '-',
+      hideOnMobile: true,
     },
     {
       key: 'Stage',
@@ -120,6 +140,23 @@ export const PipelinePage: React.FC = () => {
       render: (lead) => <>{lead.GoNoGoScore_Originator ?? '-'}</>,
     },
   ], []);
+
+  // KPI calculations
+  const kpis = React.useMemo(() => {
+    const active = filteredLeads.filter(l => isActiveStage(l.Stage));
+    const totalPipelineValue = active.reduce((sum, l) => sum + (l.ProjectValue || 0), 0);
+    const activePursuits = active.length;
+    const now = new Date();
+    const thisMonth = filteredLeads.filter(l => {
+      if (!l.DateOfEvaluation) return false;
+      const d = new Date(l.DateOfEvaluation);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    }).length;
+    const won = filteredLeads.filter(l => l.GoNoGoDecision === 'GO' && l.Stage !== Stage.ArchivedNoGo).length;
+    const lost = filteredLeads.filter(l => l.Stage === Stage.ArchivedLoss || l.Stage === Stage.ArchivedNoGo).length;
+    const winRate = won + lost > 0 ? (won / (won + lost)) * 100 : 0;
+    return { totalPipelineValue, activePursuits, thisMonth, winRate };
+  }, [filteredLeads]);
 
   const hasActiveFilters = stageFilter !== 'all' || regionFilter !== 'all' || sectorFilter !== 'all' || divisionFilter !== 'all';
 
@@ -147,6 +184,19 @@ export const PipelinePage: React.FC = () => {
             </div>
           }
         />
+        {/* KPI Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+          <KPICard title="Total Pipeline Value" value={formatCurrencyCompact(kpis.totalPipelineValue)} subtitle={`${kpis.activePursuits} active projects`} />
+          <KPICard title="Active Pursuits" value={kpis.activePursuits} subtitle="Across all active stages" />
+          <KPICard title="Leads This Month" value={kpis.thisMonth} subtitle={new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} />
+          <KPICard title="Win Rate" value={formatPercent(kpis.winRate)} subtitle="GO / (GO + Archived)" />
+        </div>
+
+        {/* Pipeline Chart */}
+        <div style={{ marginBottom: '24px' }}>
+          <PipelineChart leads={filteredLeads} mode={chartMode} />
+        </div>
+
         <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
           <Select value={stageFilter} onChange={(_, data) => setStageFilter(data.value)} style={{ minWidth: '160px' }}>
             <option value="all">All Stages</option>

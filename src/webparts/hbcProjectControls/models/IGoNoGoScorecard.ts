@@ -24,9 +24,9 @@ export const SCORECARD_CRITERIA: IScorecardCriterion[] = [
   { id: 13, label: 'Type of Contract', high: 5, avg: 4, low: 1 },
   { id: 14, label: 'Client Financing', high: 5, avg: 3, low: 1 },
   { id: 15, label: 'Supports Sector Diversification', high: 7, avg: 5, low: 2 },
-  { id: 16, label: 'Investment Front End/Time', high: 5, avg: 2, low: 1 },
+  { id: 16, label: 'Investment Front End/Time Budgeting, Estimating, Mktg.', high: 5, avg: 2, low: 1 },
   { id: 17, label: 'Profit Potential', high: 5, avg: 3, low: 2 },
-  { id: 18, label: 'Fee Enhancement', high: 5, avg: 3, low: 2 },
+  { id: 18, label: 'Fee Enhancement Subguard, Billable Rates, Savings Split or all', high: 5, avg: 3, low: 2 },
   { id: 19, label: 'Self Perform Potential', high: 3, avg: 2, low: 1 },
 ];
 

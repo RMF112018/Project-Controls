@@ -254,4 +254,25 @@ export class SharePointDataService implements IDataService {
       VisibleModules: JSON.parse(items[0].VisibleModules || '[]'),
     };
   }
+
+  async getTemplates(): Promise<Array<{ TemplateName: string; SourceURL: string; TargetFolder: string; Division: string; Active: boolean }>> {
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.TEMPLATE_REGISTRY).items();
+    return items.map((i: Record<string, unknown>) => ({
+      TemplateName: String(i.TemplateName || ''),
+      SourceURL: String(i.SourceURL || ''),
+      TargetFolder: String(i.TargetFolder || ''),
+      Division: String(i.Division || ''),
+      Active: Boolean(i.Active),
+    }));
+  }
+
+  async getRegions(): Promise<string[]> {
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.REGIONS).items.select('Title')();
+    return items.map((i: Record<string, unknown>) => String(i.Title || ''));
+  }
+
+  async getSectors(): Promise<string[]> {
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.SECTORS).items.select('Title')();
+    return items.map((i: Record<string, unknown>) => String(i.Title || ''));
+  }
 }

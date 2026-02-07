@@ -44,7 +44,7 @@ const TIER_DESCRIPTORS: Record<number, Record<ScoreLevel, string>> = {
   3: { high: 'Above $50M', avg: '$10M-$50M', low: 'Below $10M' },
   4: { high: 'Core market, ideal location', avg: 'Acceptable location/conditions', low: 'Remote or challenging environment' },
   5: { high: 'Strong margins expected', avg: 'Acceptable margins', low: 'Thin or uncertain margins' },
-  6: { high: 'HBC is preferred builder', avg: 'HBC is on short list', low: 'No established preference' },
+  6: { high: 'Yes', avg: 'Neutral', low: 'No or decision maker prefers other' },
   7: { high: 'Multiple successful projects with A/E', avg: 'Some prior experience', low: 'No prior relationship' },
   8: { high: 'Team fully available', avg: 'Partial availability, some reallocation', low: 'Key staff committed elsewhere' },
   9: { high: 'Extensive experience in type', avg: 'Some relevant experience', low: 'No experience in project type' },
@@ -176,6 +176,17 @@ export const GoNoGoScorecard: React.FC = () => {
         const created = await createScorecard(data);
         setScorecard(created);
       }
+      // Fire-and-forget audit log for scorecard submission
+      dataService.logAudit({
+        Action: AuditAction.GoNoGoScoreSubmitted,
+        EntityType: EntityType.Scorecard,
+        EntityId: String(scorecard ? scorecard.id : 'new'),
+        ProjectCode: lead?.ProjectCode,
+        User: currentUser?.displayName || 'Unknown',
+        UserId: currentUser?.id,
+        Details: `Scorecard saved for "${lead?.Title}" (Originator: ${origTotal}, Committee: ${cmteTotal})`,
+      }).catch(console.error);
+
       setToastMessage('Scorecard saved successfully');
       setTimeout(() => setToastMessage(''), 3000);
     } catch (err) {

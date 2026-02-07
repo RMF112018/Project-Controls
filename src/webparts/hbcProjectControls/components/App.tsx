@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { FluentProvider } from '@fluentui/react-components';
 import { hbcLightTheme } from '../theme/hbcTheme';
 import { AppProvider } from './contexts/AppContext';
@@ -26,6 +26,14 @@ import { GoNoGoTracker } from './pages/precon/GoNoGoTracker';
 // Project pages
 import { ProjectDashboard } from './pages/project/ProjectDashboard';
 
+const NotFoundPage: React.FC = () => (
+  <div style={{ padding: '48px', textAlign: 'center', color: '#6B7280' }}>
+    <h2 style={{ color: '#1B2A4A', marginBottom: '8px' }}>404 — Page Not Found</h2>
+    <p>The page you are looking for does not exist or has been moved.</p>
+    <a href="#/" style={{ color: '#E87722', textDecoration: 'underline' }}>Return to Home</a>
+  </div>
+);
+
 export interface IAppProps {
   dataService: IDataService;
   renderMode: RenderMode;
@@ -41,12 +49,14 @@ const HubRoutes: React.FC = () => (
     <Route path="/lead/:id/gonogo/detail" element={<GoNoGoDetail />} />
     <Route path="/lead/:id/schedule-gonogo" element={<GoNoGoMeetingScheduler />} />
     <Route path="/admin" element={<AdminPanel />} />
+    <Route path="*" element={<NotFoundPage />} />
   </Routes>
 );
 
 const ProjectRoutes: React.FC = () => (
   <Routes>
     <Route path="/" element={<ProjectDashboard />} />
+    <Route path="*" element={<NotFoundPage />} />
   </Routes>
 );
 
@@ -57,6 +67,7 @@ const PreconRoutes: React.FC = () => (
     <Route path="/precon-tracking" element={<EstimatingDashboard />} />
     <Route path="/estimate-log" element={<EstimatingDashboard />} />
     <Route path="/gonogo-tracker" element={<GoNoGoTracker />} />
+    <Route path="*" element={<NotFoundPage />} />
   </Routes>
 );
 

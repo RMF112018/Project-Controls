@@ -3,12 +3,13 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useEstimating } from '../../hooks/useEstimating';
 import { useLeads } from '../../hooks/useLeads';
 import { useAppContext } from '../../contexts/AppContext';
+import { RoleGate } from '../../guards/RoleGate';
 import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { IEstimatingTracker, ILead, GoNoGoDecision, AwardStatus, AuditAction, EntityType } from '../../../models';
+import { IEstimatingTracker, ILead, GoNoGoDecision, AwardStatus, AuditAction, EntityType, RoleName } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
 import {
   formatCurrency,
@@ -268,6 +269,10 @@ export const EstimatingDashboard: React.FC = () => {
       return px !== '-' ? px.split(' ').map(n => n[0]).join('') : '-';
     }},
     { key: 'DocSetStage', header: 'Doc Stage', sortable: true, width: '80px', render: (r) => r.DocSetStage || '-' },
+    { key: 'CurrentStage', header: 'Current Stage', width: '120px', render: (r) => {
+      const lead = r.LeadID ? leadMap.get(r.LeadID) : undefined;
+      return lead ? lead.Stage : '-';
+    }},
     { key: 'PreconFee', header: 'Precon Budget', sortable: true, width: '110px', render: (r) => formatCurrency(r.PreconFee) },
     { key: 'DesignBudget', header: 'Design Budget', sortable: true, width: '110px', render: (r) => formatCurrency(r.DesignBudget) },
     { key: 'FeePaidToDate', header: 'Billed to Date', sortable: true, width: '110px', render: (r) => formatCurrency(r.FeePaidToDate) },
@@ -434,6 +439,13 @@ export const EstimatingDashboard: React.FC = () => {
 
   if (estLoading || leadsLoading) return <LoadingSpinner label="Loading estimating data..." />;
 
+  const accessDenied = (
+    <div style={{ padding: '48px', textAlign: 'center', color: HBC_COLORS.gray500 }}>
+      <h3>Access Restricted</h3>
+      <p>The Estimating Dashboard is restricted to Estimating Coordinators and Executive Leadership.</p>
+    </div>
+  );
+
   const selectStyle: React.CSSProperties = {
     padding: '6px 10px', borderRadius: '6px', border: `1px solid ${HBC_COLORS.gray200}`,
     fontSize: '13px', backgroundColor: '#fff', color: HBC_COLORS.gray800,
@@ -452,6 +464,10 @@ export const EstimatingDashboard: React.FC = () => {
   };
 
   return (
+    <RoleGate
+      allowedRoles={[RoleName.EstimatingCoordinator, RoleName.ExecutiveLeadership]}
+      fallback={accessDenied}
+    >
     <div>
       <PageHeader
         title="Estimating Dashboard"
@@ -605,5 +621,6 @@ export const EstimatingDashboard: React.FC = () => {
         </>
       )}
     </div>
+    </RoleGate>
   );
 };

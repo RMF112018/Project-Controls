@@ -114,6 +114,7 @@ export enum AuditAction {
   EstimateCreated = 'Estimate.Created',
   EstimateStatusChanged = 'Estimate.StatusChanged',
   TurnoverInitiated = 'Turnover.Initiated',
+  TurnoverCompleted = 'Turnover.Completed',
   PermissionChanged = 'Permission.Changed',
   MeetingScheduled = 'Meeting.Scheduled',
   LossRecorded = 'Loss.Recorded',
@@ -189,9 +190,9 @@ export enum DeliverableType {
 
 export enum MeetingType {
   GoNoGo = 'GoNoGo',
-  PreconKickoff = 'PreconKickoff',
-  WinStrategy = 'WinStrategy',
-  LossAutopsy = 'LossAutopsy',
+  Kickoff = 'Kickoff',
+  RedTeam = 'RedTeam',
+  Autopsy = 'Autopsy',
   Turnover = 'Turnover',
   Other = 'Other'
 }
