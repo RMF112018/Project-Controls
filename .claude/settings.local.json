@@ -20,7 +20,10 @@
       "Bash(git commit:*)",
       "Bash(gh pr create:*)",
       "Bash(git pull:*)",
-      "Bash(gh pr close:*)"
+      "Bash(gh pr close:*)",
+      "Bash(git rebase:*)",
+      "Bash(GIT_EDITOR=true git rebase:*)",
+      "Bash(git -c core.editor=true rebase --continue)"
     ]
   }
 }

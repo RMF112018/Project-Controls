@@ -23,6 +23,14 @@ import { EstimatingDashboard } from './pages/precon/EstimatingDashboard';
 
 // Project pages
 import { ProjectDashboard } from './pages/project/ProjectDashboard';
+import { PreconKickoff } from './pages/project/PreconKickoff';
+import { DeliverablesTracker } from './pages/project/DeliverablesTracker';
+import { InterviewPrep } from './pages/project/InterviewPrep';
+import { WinLossRecorder } from './pages/project/WinLossRecorder';
+import { LossAutopsy } from './pages/project/LossAutopsy';
+import { ContractTracking } from './pages/project/ContractTracking';
+import { TurnoverToOps } from './pages/project/TurnoverToOps';
+import { CloseoutChecklist } from './pages/project/CloseoutChecklist';
 
 export interface IAppProps {
   dataService: IDataService;
@@ -45,6 +53,14 @@ const HubRoutes: React.FC = () => (
 const ProjectRoutes: React.FC = () => (
   <Routes>
     <Route path="/" element={<ProjectDashboard />} />
+    <Route path="/kickoff" element={<PreconKickoff />} />
+    <Route path="/deliverables" element={<DeliverablesTracker />} />
+    <Route path="/interview" element={<InterviewPrep />} />
+    <Route path="/winloss" element={<WinLossRecorder />} />
+    <Route path="/autopsy" element={<LossAutopsy />} />
+    <Route path="/contract" element={<ContractTracking />} />
+    <Route path="/turnover" element={<TurnoverToOps />} />
+    <Route path="/closeout" element={<CloseoutChecklist />} />
   </Routes>
 );
 
