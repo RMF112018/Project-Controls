@@ -4,8 +4,9 @@ import { useEstimating } from '../../hooks/useEstimating';
 import { useLeads } from '../../hooks/useLeads';
 import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';
+import { ExportButtons } from '../../shared/ExportButtons';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { IEstimatingTracker, AwardStatus, EstimateSource, DeliverableType, WinLossDecision } from '../../../models';
+import { IEstimatingTracker, AwardStatus, EstimateSource, DeliverableType, WinLossDecision, AuditAction, EntityType } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { formatCurrency, formatDate, getDaysUntil, getUrgencyColor } from '../../../utils/formatters';
 import { PERMISSIONS } from '../../../utils/permissions';
@@ -50,7 +51,7 @@ const CHK_FIELDS: Array<{ key: keyof IEstimatingTracker; label: string }> = [
 export const PursuitDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { currentUser } = useAppContext();
+  const { currentUser, dataService } = useAppContext();
   const { getRecordById, updateRecord } = useEstimating();
   const { updateLead } = useLeads();
 
@@ -85,6 +86,22 @@ export const PursuitDetail: React.FC = () => {
     try {
       const updated = await updateRecord(record.id, formData);
       setRecord(updated);
+
+      // Audit log for award status change
+      if (formData.AwardStatus !== record.AwardStatus) {
+        dataService.logAudit({
+          Action: AuditAction.EstimateStatusChanged,
+          EntityType: EntityType.Estimate,
+          EntityId: String(record.id),
+          ProjectCode: record.ProjectCode,
+          FieldChanged: 'AwardStatus',
+          PreviousValue: record.AwardStatus || 'Pending',
+          NewValue: formData.AwardStatus || 'Pending',
+          User: currentUser?.displayName || 'Unknown',
+          UserId: currentUser?.id,
+          Details: `Award status changed for "${record.Title}"`,
+        }).catch(console.error);
+      }
 
       // Award status sync to lead
       if (formData.AwardStatus !== record.AwardStatus && record.LeadID) {
@@ -145,7 +162,7 @@ export const PursuitDetail: React.FC = () => {
   const remaining = (formData.PreconFee || 0) - (formData.FeePaidToDate || 0);
 
   return (
-    <div>
+    <div id="pursuit-detail-view">
       <PageHeader
         title={record.Title}
         subtitle={record.ProjectCode ? `Project Code: ${record.ProjectCode}` : 'No project code assigned'}
@@ -158,20 +175,27 @@ export const PursuitDetail: React.FC = () => {
           </span>
         }
         actions={
-          canEdit ? (
-            <button
-              onClick={() => { handleSave().catch(console.error); }}
-              disabled={isSaving}
-              style={{
-                padding: '8px 20px', borderRadius: '6px', border: 'none',
-                backgroundColor: HBC_COLORS.navy, color: '#fff', fontSize: '13px',
-                cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 500,
-                opacity: isSaving ? 0.7 : 1,
-              }}
-            >
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </button>
-          ) : undefined
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <ExportButtons
+              pdfElementId="pursuit-detail-view"
+              filename={`pursuit-${record.ProjectCode || record.id}`}
+              title={record.Title}
+            />
+            {canEdit && (
+              <button
+                onClick={() => { handleSave().catch(console.error); }}
+                disabled={isSaving}
+                style={{
+                  padding: '8px 20px', borderRadius: '6px', border: 'none',
+                  backgroundColor: HBC_COLORS.navy, color: '#fff', fontSize: '13px',
+                  cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 500,
+                  opacity: isSaving ? 0.7 : 1,
+                }}
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            )}
+          </div>
         }
       />
 

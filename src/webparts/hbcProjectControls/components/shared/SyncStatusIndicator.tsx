@@ -1,0 +1,47 @@
+import * as React from 'react';
+import { offlineQueueService, ConnectivityStatus } from '../../services/OfflineQueueService';
+import { HBC_COLORS } from '../../theme/tokens';
+
+const STATUS_CONFIG: Record<ConnectivityStatus, { color: string; label: string }> = {
+  online: { color: HBC_COLORS.success, label: 'Online' },
+  offline: { color: HBC_COLORS.error, label: 'Offline' },
+  syncing: { color: HBC_COLORS.warning, label: 'Syncing' },
+};
+
+export const SyncStatusIndicator: React.FC = () => {
+  const [status, setStatus] = React.useState<ConnectivityStatus>(offlineQueueService.status);
+
+  React.useEffect(() => {
+    const unsubscribe = offlineQueueService.onStatusChange(setStatus);
+    return unsubscribe;
+  }, []);
+
+  const config = STATUS_CONFIG[status];
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        fontSize: '12px',
+        color: status === 'online' ? 'rgba(255,255,255,0.6)' : '#fff',
+      }}
+      title={config.label}
+    >
+      <span
+        style={{
+          width: '8px',
+          height: '8px',
+          borderRadius: '50%',
+          backgroundColor: config.color,
+          display: 'inline-block',
+          animation: status === 'syncing' ? 'pulse 1.5s ease-in-out infinite' : undefined,
+        }}
+      />
+      {status !== 'online' && (
+        <span style={{ fontWeight: 500 }}>{config.label}</span>
+      )}
+    </div>
+  );
+};

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { HBC_COLORS } from '../../theme/tokens';
+import { useResponsive } from '../hooks/useResponsive';
 import { LoadingSpinner } from './LoadingSpinner';
 import { EmptyState } from './EmptyState';
 
@@ -9,6 +10,7 @@ export interface IDataTableColumn<T> {
   render: (item: T) => React.ReactNode;
   sortable?: boolean;
   width?: string;
+  hideOnMobile?: boolean;
 }
 
 interface IDataTableProps<T> {
@@ -38,7 +40,14 @@ export function DataTable<T>({
   onSort,
   pageSize = 25,
 }: IDataTableProps<T>): React.ReactElement {
+  const { isMobile } = useResponsive();
   const [currentPage, setCurrentPage] = React.useState(0);
+
+  // Filter out columns hidden on mobile
+  const visibleColumns = React.useMemo(
+    () => isMobile ? columns.filter(c => !c.hideOnMobile) : columns,
+    [columns, isMobile]
+  );
 
   const totalPages = Math.ceil(items.length / pageSize);
   const pagedItems = items.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
@@ -81,7 +90,7 @@ export function DataTable<T>({
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              {columns.map(col => (
+              {visibleColumns.map(col => (
                 <th
                   key={col.key}
                   style={{
@@ -109,7 +118,7 @@ export function DataTable<T>({
                 onMouseEnter={e => onRowClick && ((e.currentTarget as HTMLElement).style.backgroundColor = HBC_COLORS.gray50)}
                 onMouseLeave={e => onRowClick && ((e.currentTarget as HTMLElement).style.backgroundColor = '')}
               >
-                {columns.map(col => (
+                {visibleColumns.map(col => (
                   <td key={col.key} style={cellStyle}>{col.render(item)}</td>
                 ))}
               </tr>

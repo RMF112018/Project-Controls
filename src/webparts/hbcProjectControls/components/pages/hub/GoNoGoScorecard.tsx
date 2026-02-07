@@ -21,6 +21,8 @@ import {
   RoleName,
   Stage,
   NotificationEvent,
+  AuditAction,
+  EntityType,
 } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { PERMISSIONS } from '../../../utils/permissions';
@@ -244,6 +246,17 @@ export const GoNoGoScorecard: React.FC = () => {
         console.log('[Mock] Reminder notification scheduled for WAIT decision');
         setToastMessage('WAIT decision recorded. Reminder notification scheduled.');
       }
+
+      // Fire-and-forget audit log
+      dataService.logAudit({
+        Action: AuditAction.GoNoGoDecisionMade,
+        EntityType: EntityType.Scorecard,
+        EntityId: String(scorecard.id),
+        ProjectCode: dec === GoNoGoDecision.Go ? projectCode : undefined,
+        User: currentUser?.displayName || 'Unknown',
+        UserId: currentUser?.id,
+        Details: `Go/No-Go decision: ${dec} for "${lead?.Title}" (Score: ${cmteTotal || origTotal})`,
+      }).catch(console.error);
 
       // Fire-and-forget notification
       notify(NotificationEvent.GoNoGoDecisionMade, {

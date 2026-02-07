@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useLeads } from '../../hooks/useLeads';
 import { PageHeader } from '../../shared/PageHeader';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
+import { ExportButtons } from '../../shared/ExportButtons';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 import { ILead, GoNoGoDecision } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
@@ -61,6 +62,17 @@ export const GoNoGoTracker: React.FC = () => {
       render: (l) => <span>{l.GoNoGoScore_Originator ?? '-'} / {l.GoNoGoScore_Committee ?? '-'}</span> },
   ], []);
 
+  const exportData = React.useMemo(() =>
+    filtered.map(l => ({
+      Date: l.GoNoGoDecisionDate || l.DateOfEvaluation,
+      Project: l.Title,
+      Region: l.Region,
+      Decision: l.GoNoGoDecision || '',
+      'Originator Score': l.GoNoGoScore_Originator ?? '',
+      'Committee Score': l.GoNoGoScore_Committee ?? '',
+    })),
+  [filtered]);
+
   if (isLoading) return <LoadingSpinner label="Loading Go/No-Go data..." />;
 
   const selectStyle: React.CSSProperties = {
@@ -69,8 +81,19 @@ export const GoNoGoTracker: React.FC = () => {
   };
 
   return (
-    <div>
-      <PageHeader title="Go/No-Go Tracker" subtitle="All Go/No-Go decisions from Leads Master" />
+    <div id="gonogo-tracker-view">
+      <PageHeader
+        title="Go/No-Go Tracker"
+        subtitle="All Go/No-Go decisions from Leads Master"
+        actions={
+          <ExportButtons
+            data={exportData}
+            pdfElementId="gonogo-tracker-view"
+            filename="gonogo-tracker"
+            title="Go/No-Go Tracker"
+          />
+        }
+      />
 
       <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center' }}>
         <label style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>

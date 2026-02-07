@@ -17,3 +17,5 @@ export { MeetingScheduler } from './MeetingScheduler';
 export type { IMeetingSchedulerProps } from './MeetingScheduler';
 export { ProvisioningStatusView } from './ProvisioningStatus';
 export type { IProvisioningStatusProps } from './ProvisioningStatus';
+export { SyncStatusIndicator } from './SyncStatusIndicator';
+export { WhatsNewModal } from './WhatsNewModal';
