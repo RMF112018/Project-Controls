@@ -1,0 +1,12 @@
+[
+  { "id": 1, "projectCode": "25-042-01", "name": "Karen Foster", "email": "kfoster@hedrickbrothers.com", "role": "BD Representative", "department": "Business Development", "phone": "561-555-0101" },
+  { "id": 2, "projectCode": "25-042-01", "name": "Mike Chen", "email": "mchen@hedrickbrothers.com", "role": "Estimating Coordinator", "department": "Estimating", "phone": "561-555-0102" },
+  { "id": 3, "projectCode": "25-042-01", "name": "Sarah Martinez", "email": "smartinez@hedrickbrothers.com", "role": "Preconstruction Team", "department": "Preconstruction", "phone": "561-555-0103" },
+  { "id": 4, "projectCode": "25-042-01", "name": "James Wilson", "email": "jwilson@hedrickbrothers.com", "role": "Operations Team", "department": "Operations", "phone": "561-555-0104" },
+  { "id": 5, "projectCode": "25-042-01", "name": "Lisa Park", "email": "lpark@hedrickbrothers.com", "role": "Quality Control", "department": "Quality Control", "phone": "561-555-0105" },
+  { "id": 6, "projectCode": "25-042-01", "name": "Tom Bradley", "email": "tbradley@hedrickbrothers.com", "role": "Safety", "department": "Safety", "phone": "561-555-0106" },
+  { "id": 7, "projectCode": "25-042-01", "name": "David Kim", "email": "dkim@hedrickbrothers.com", "role": "IDS", "department": "IDS", "phone": "561-555-0107" },
+  { "id": 8, "projectCode": "25-042-01", "name": "Rachel Green", "email": "rgreen@hedrickbrothers.com", "role": "Marketing", "department": "Marketing", "phone": "561-555-0108" },
+  { "id": 9, "projectCode": "25-042-01", "name": "Robert Hedrick", "email": "rhedrick@hedrickbrothers.com", "role": "Executive Leadership", "department": "Executive", "phone": "561-555-0109" },
+  { "id": 10, "projectCode": "25-042-01", "name": "Jennifer Adams", "email": "jadams@hedrickbrothers.com", "role": "Legal", "department": "Legal", "phone": "561-555-0110" }
+]

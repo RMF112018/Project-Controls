@@ -1,0 +1,17 @@
+[
+  { "id": 1, "projectCode": "25-042-01", "category": "00_PunchList", "description": "Complete all punch list items", "status": "Not Started", "assignedTo": "James Wilson", "assignedToId": 4 },
+  { "id": 2, "projectCode": "25-042-01", "category": "01_Warranties", "description": "Collect all subcontractor warranties", "status": "Not Started", "assignedTo": "James Wilson", "assignedToId": 4 },
+  { "id": 3, "projectCode": "25-042-01", "category": "01_Warranties", "description": "Compile warranty binder for owner", "status": "Not Started", "assignedTo": "James Wilson", "assignedToId": 4 },
+  { "id": 4, "projectCode": "25-042-01", "category": "02_AsBuilts", "description": "Collect as-built drawings from all trades", "status": "Not Started", "assignedTo": "David Kim", "assignedToId": 7 },
+  { "id": 5, "projectCode": "25-042-01", "category": "02_AsBuilts", "description": "Compile and deliver final as-built set", "status": "Not Started", "assignedTo": "David Kim", "assignedToId": 7 },
+  { "id": 6, "projectCode": "25-042-01", "category": "03_OMManuals", "description": "Collect O&M manuals from all trades", "status": "Not Started", "assignedTo": "James Wilson", "assignedToId": 4 },
+  { "id": 7, "projectCode": "25-042-01", "category": "04_FinalLienWaivers", "description": "Obtain final lien waivers from all subcontractors", "status": "Not Started", "assignedTo": "Karen Foster", "assignedToId": 1 },
+  { "id": 8, "projectCode": "25-042-01", "category": "05_FinalPayApplications", "description": "Submit final pay application", "status": "Not Started", "assignedTo": "Karen Foster", "assignedToId": 1 },
+  { "id": 9, "projectCode": "25-042-01", "category": "06_CertificateOfOccupancy", "description": "Obtain Certificate of Occupancy", "status": "Not Started", "assignedTo": "James Wilson", "assignedToId": 4 },
+  { "id": 10, "projectCode": "25-042-01", "category": "07_FinalInspections", "description": "Complete all final inspections", "status": "Not Started", "assignedTo": "Lisa Park", "assignedToId": 5 },
+  { "id": 11, "projectCode": "25-042-01", "category": "08_SubcontractorCloseout", "description": "Close out all subcontractor accounts", "status": "Not Started", "assignedTo": "Karen Foster", "assignedToId": 1 },
+  { "id": 12, "projectCode": "25-042-01", "category": "09_OwnerTraining", "description": "Complete owner training on building systems", "status": "Not Started", "assignedTo": "James Wilson", "assignedToId": 4 },
+  { "id": 13, "projectCode": "25-042-01", "category": "10_FinalPhotos", "description": "Complete final project photography", "status": "Not Started", "assignedTo": "Rachel Green", "assignedToId": 8 },
+  { "id": 14, "projectCode": "25-042-01", "category": "11_SafetyCloseout", "description": "Complete final safety audit and close safety file", "status": "Not Started", "assignedTo": "Tom Bradley", "assignedToId": 6 },
+  { "id": 15, "projectCode": "25-042-01", "category": "15_LessonsLearned", "description": "Conduct lessons learned session and document findings", "status": "Not Started", "assignedTo": "Karen Foster", "assignedToId": 1 }
+]

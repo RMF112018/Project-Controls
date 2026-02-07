@@ -17,6 +17,13 @@ import {
   INotification,
   IAuditEntry,
   IProvisioningLog,
+  IDeliverable,
+  ITeamMember,
+  IInterviewPrep,
+  IContractInfo,
+  ITurnoverItem,
+  ICloseoutItem,
+  ILossAutopsy,
   GoNoGoDecision,
   Stage,
   RoleName,
@@ -35,6 +42,10 @@ import mockEstimating from '../mock/estimating.json';
 import mockUsers from '../mock/users.json';
 import mockFeatureFlags from '../mock/featureFlags.json';
 import mockCalendarAvailability from '../mock/calendarAvailability.json';
+import mockTeamMembers from '../mock/teamMembers.json';
+import mockDeliverables from '../mock/deliverables.json';
+import mockTurnoverItems from '../mock/turnoverItems.json';
+import mockCloseoutItems from '../mock/closeoutItems.json';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
 
@@ -49,6 +60,13 @@ export class MockDataService implements IDataService {
   private notifications: INotification[];
   private auditLog: IAuditEntry[];
   private provisioningLogs: IProvisioningLog[];
+  private teamMembers: ITeamMember[];
+  private deliverables: IDeliverable[];
+  private interviewPreps: IInterviewPrep[];
+  private contractInfos: IContractInfo[];
+  private turnoverItems: ITurnoverItem[];
+  private closeoutItems: ICloseoutItem[];
+  private lossAutopsies: ILossAutopsy[];
   private nextId: number;
 
   constructor() {
@@ -58,10 +76,17 @@ export class MockDataService implements IDataService {
     this.users = JSON.parse(JSON.stringify(mockUsers));
     this.featureFlags = JSON.parse(JSON.stringify(mockFeatureFlags)) as IFeatureFlag[];
     this.calendarAvailability = JSON.parse(JSON.stringify(mockCalendarAvailability)) as ICalendarAvailability[];
+    this.teamMembers = JSON.parse(JSON.stringify(mockTeamMembers)) as ITeamMember[];
+    this.deliverables = JSON.parse(JSON.stringify(mockDeliverables)) as IDeliverable[];
+    this.turnoverItems = JSON.parse(JSON.stringify(mockTurnoverItems)) as ITurnoverItem[];
+    this.closeoutItems = JSON.parse(JSON.stringify(mockCloseoutItems)) as ICloseoutItem[];
     this.meetings = [];
     this.notifications = [];
     this.auditLog = [];
     this.provisioningLogs = [];
+    this.interviewPreps = [];
+    this.contractInfos = [];
+    this.lossAutopsies = [];
     this.nextId = 1000;
   }
 
@@ -692,6 +717,160 @@ export class MockDataService implements IDataService {
     log.retryCount += 1;
 
     return { ...log };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Phase 6 — Workflow
+  // ---------------------------------------------------------------------------
+
+  public async getTeamMembers(projectCode: string): Promise<ITeamMember[]> {
+    await delay();
+    return this.teamMembers.filter(tm => tm.projectCode === projectCode);
+  }
+
+  public async getDeliverables(projectCode: string): Promise<IDeliverable[]> {
+    await delay();
+    return this.deliverables.filter(d => d.projectCode === projectCode);
+  }
+
+  public async createDeliverable(data: Partial<IDeliverable>): Promise<IDeliverable> {
+    await delay();
+    const newItem: IDeliverable = {
+      id: this.getNextId(),
+      projectCode: data.projectCode ?? '',
+      name: data.name ?? '',
+      department: data.department ?? 'BD',
+      assignedTo: data.assignedTo ?? '',
+      assignedToId: data.assignedToId,
+      status: data.status ?? 'Not Started' as IDeliverable['status'],
+      dueDate: data.dueDate ?? new Date().toISOString().split('T')[0],
+      completedDate: data.completedDate,
+      notes: data.notes,
+    };
+    this.deliverables.push(newItem);
+    return { ...newItem };
+  }
+
+  public async updateDeliverable(id: number, data: Partial<IDeliverable>): Promise<IDeliverable> {
+    await delay();
+    const index = this.deliverables.findIndex(d => d.id === id);
+    if (index === -1) throw new Error(`Deliverable with id ${id} not found`);
+    this.deliverables[index] = { ...this.deliverables[index], ...data };
+    return { ...this.deliverables[index] };
+  }
+
+  public async getInterviewPrep(leadId: number): Promise<IInterviewPrep | null> {
+    await delay();
+    return this.interviewPreps.find(ip => ip.leadId === leadId) ?? null;
+  }
+
+  public async saveInterviewPrep(data: Partial<IInterviewPrep>): Promise<IInterviewPrep> {
+    await delay();
+    const existing = this.interviewPreps.findIndex(ip => ip.leadId === data.leadId);
+    if (existing >= 0) {
+      this.interviewPreps[existing] = { ...this.interviewPreps[existing], ...data };
+      return { ...this.interviewPreps[existing] };
+    }
+    const newItem: IInterviewPrep = {
+      id: this.getNextId(),
+      leadId: data.leadId ?? 0,
+      projectCode: data.projectCode ?? '',
+      interviewDate: data.interviewDate,
+      interviewLocation: data.interviewLocation,
+      panelMembers: data.panelMembers ?? [],
+      presentationTheme: data.presentationTheme,
+      keyMessages: data.keyMessages,
+      teamAssignments: data.teamAssignments,
+      rehearsalDate: data.rehearsalDate,
+      documents: data.documents,
+    };
+    this.interviewPreps.push(newItem);
+    return { ...newItem };
+  }
+
+  public async getContractInfo(projectCode: string): Promise<IContractInfo | null> {
+    await delay();
+    return this.contractInfos.find(c => c.projectCode === projectCode) ?? null;
+  }
+
+  public async saveContractInfo(data: Partial<IContractInfo>): Promise<IContractInfo> {
+    await delay();
+    const existing = this.contractInfos.findIndex(c => c.projectCode === data.projectCode);
+    if (existing >= 0) {
+      this.contractInfos[existing] = { ...this.contractInfos[existing], ...data };
+      return { ...this.contractInfos[existing] };
+    }
+    const newItem: IContractInfo = {
+      id: this.getNextId(),
+      leadId: data.leadId ?? 0,
+      projectCode: data.projectCode ?? '',
+      contractStatus: data.contractStatus ?? 'Draft',
+      contractType: data.contractType,
+      contractValue: data.contractValue,
+      insuranceRequirements: data.insuranceRequirements,
+      bondRequirements: data.bondRequirements,
+      executionDate: data.executionDate,
+      noticeToProceed: data.noticeToProceed,
+      substantialCompletion: data.substantialCompletion,
+      finalCompletion: data.finalCompletion,
+      documents: data.documents,
+    };
+    this.contractInfos.push(newItem);
+    return { ...newItem };
+  }
+
+  public async getTurnoverItems(projectCode: string): Promise<ITurnoverItem[]> {
+    await delay();
+    return this.turnoverItems.filter(t => t.projectCode === projectCode);
+  }
+
+  public async updateTurnoverItem(id: number, data: Partial<ITurnoverItem>): Promise<ITurnoverItem> {
+    await delay();
+    const index = this.turnoverItems.findIndex(t => t.id === id);
+    if (index === -1) throw new Error(`Turnover item with id ${id} not found`);
+    this.turnoverItems[index] = { ...this.turnoverItems[index], ...data };
+    return { ...this.turnoverItems[index] };
+  }
+
+  public async getCloseoutItems(projectCode: string): Promise<ICloseoutItem[]> {
+    await delay();
+    return this.closeoutItems.filter(c => c.projectCode === projectCode);
+  }
+
+  public async updateCloseoutItem(id: number, data: Partial<ICloseoutItem>): Promise<ICloseoutItem> {
+    await delay();
+    const index = this.closeoutItems.findIndex(c => c.id === id);
+    if (index === -1) throw new Error(`Closeout item with id ${id} not found`);
+    this.closeoutItems[index] = { ...this.closeoutItems[index], ...data };
+    return { ...this.closeoutItems[index] };
+  }
+
+  public async getLossAutopsy(leadId: number): Promise<ILossAutopsy | null> {
+    await delay();
+    return this.lossAutopsies.find(la => la.leadId === leadId) ?? null;
+  }
+
+  public async saveLossAutopsy(data: Partial<ILossAutopsy>): Promise<ILossAutopsy> {
+    await delay();
+    const existing = this.lossAutopsies.findIndex(la => la.leadId === data.leadId);
+    if (existing >= 0) {
+      this.lossAutopsies[existing] = { ...this.lossAutopsies[existing], ...data };
+      return { ...this.lossAutopsies[existing] };
+    }
+    const newItem: ILossAutopsy = {
+      id: this.getNextId(),
+      leadId: data.leadId ?? 0,
+      projectCode: data.projectCode,
+      rootCauseAnalysis: data.rootCauseAnalysis,
+      lessonsLearned: data.lessonsLearned,
+      competitiveIntelligence: data.competitiveIntelligence,
+      actionItems: data.actionItems ?? [],
+      meetingNotes: data.meetingNotes,
+      completedDate: data.completedDate,
+      completedBy: data.completedBy,
+    };
+    this.lossAutopsies.push(newItem);
+    return { ...newItem };
   }
 
   // ---------------------------------------------------------------------------

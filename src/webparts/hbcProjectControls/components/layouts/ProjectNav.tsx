@@ -2,25 +2,51 @@ import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { HBC_COLORS } from '../../theme/tokens';
 import { useAppContext } from '../contexts/AppContext';
+import { useLeads } from '../hooks/useLeads';
+import { ILead, Stage } from '../../models';
+import { getStageScreens, getStageLabel } from '../../utils/stageEngine';
 
 interface INavItem {
   label: string;
   path: string;
+  screenKey?: string;
 }
 
-const NAV_ITEMS: INavItem[] = [
+const ALL_NAV_ITEMS: INavItem[] = [
   { label: 'Project Home', path: '/' },
-  { label: 'Go/No-Go', path: '/gonogo' },
-  { label: 'Deliverables', path: '/deliverables' },
-  { label: 'Win/Loss', path: '/winloss' },
-  { label: 'Turnover', path: '/turnover' },
-  { label: 'Closeout', path: '/closeout' },
+  { label: 'Kickoff', path: '/kickoff', screenKey: 'kickoff' },
+  { label: 'Deliverables', path: '/deliverables', screenKey: 'deliverables' },
+  { label: 'Interview Prep', path: '/interview', screenKey: 'interview' },
+  { label: 'Win/Loss', path: '/winloss', screenKey: 'winloss' },
+  { label: 'Loss Autopsy', path: '/autopsy', screenKey: 'autopsy' },
+  { label: 'Contract', path: '/contract', screenKey: 'contract' },
+  { label: 'Turnover', path: '/turnover', screenKey: 'turnover' },
+  { label: 'Closeout', path: '/closeout', screenKey: 'closeout' },
 ];
 
 export const ProjectNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { siteContext } = useAppContext();
+  const { leads, fetchLeads } = useLeads();
+  const [project, setProject] = React.useState<ILead | null>(null);
+
+  const projectCode = siteContext.projectCode ?? '';
+
+  React.useEffect(() => { fetchLeads().catch(console.error); }, [fetchLeads]);
+  React.useEffect(() => {
+    if (leads.length > 0 && projectCode) {
+      setProject(leads.find(l => l.ProjectCode === projectCode) ?? null);
+    }
+  }, [leads, projectCode]);
+
+  const stage = project?.Stage ?? Stage.Opportunity;
+  const activeScreens = getStageScreens(stage);
+
+  const visibleItems = ALL_NAV_ITEMS.filter(item => {
+    if (!item.screenKey) return true; // Project Home always visible
+    return activeScreens.includes(item.screenKey);
+  });
 
   return (
     <nav style={{
@@ -30,12 +56,13 @@ export const ProjectNav: React.FC = () => {
       padding: '16px 0',
       flexShrink: 0,
     }}>
-      {siteContext.projectCode && (
+      {projectCode && (
         <div style={{ padding: '8px 24px 16px', fontSize: '12px', color: HBC_COLORS.gray500, borderBottom: `1px solid ${HBC_COLORS.gray200}`, marginBottom: '8px' }}>
-          Project: <strong>{siteContext.projectCode}</strong>
+          <div>Project: <strong>{projectCode}</strong></div>
+          <div style={{ marginTop: 4, fontSize: 11, color: HBC_COLORS.gray400 }}>{getStageLabel(stage)}</div>
         </div>
       )}
-      {NAV_ITEMS.map(item => {
+      {visibleItems.map(item => {
         const isActive = location.pathname === item.path ||
           (item.path !== '/' && location.pathname.startsWith(item.path));
         return (
