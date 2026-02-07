@@ -1,0 +1,110 @@
+import * as React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { HBC_COLORS, SPACING } from '../../../theme/tokens';
+import { MeetingType, RoleName, ILead, IMeeting, NotificationEvent } from '../../../models';
+import { useAppContext } from '../../contexts/AppContext';
+import { useLeads } from '../../hooks/useLeads';
+import { useNotifications } from '../../hooks/useNotifications';
+import { MeetingScheduler } from '../../shared/MeetingScheduler';
+import { PageHeader } from '../../shared/PageHeader';
+import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { RoleGate } from '../../guards/RoleGate';
+
+export function GoNoGoMeetingScheduler(): React.ReactElement {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { dataService } = useAppContext();
+  const { getLeadById } = useLeads();
+  const { notify } = useNotifications();
+  const [lead, setLead] = React.useState<ILead | null>(null);
+  const [committeeEmails, setCommitteeEmails] = React.useState<string[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const loadData = async (): Promise<void> => {
+      try {
+        const leadId = parseInt(id ?? '0', 10);
+        const [leadData, roles] = await Promise.all([
+          getLeadById(leadId),
+          dataService.getRoles(),
+        ]);
+        setLead(leadData);
+
+        // Get Executive Leadership emails for GNG committee
+        const execRole = roles.find(r => r.Title === RoleName.ExecutiveLeadership);
+        setCommitteeEmails(execRole?.UserOrGroup ?? []);
+      } catch {
+        // Error handled via empty state
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData().catch(console.error);
+  }, [id, getLeadById, dataService]);
+
+  const handleScheduled = React.useCallback((meeting: IMeeting) => {
+    // Fire-and-forget notification
+    if (lead) {
+      notify(NotificationEvent.GoNoGoScoringRequested, {
+        leadTitle: lead.Title,
+        leadId: lead.id,
+        clientName: lead.ClientName,
+        meetingDate: new Date(meeting.startTime).toLocaleDateString('en-US', {
+          weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+          hour: 'numeric', minute: '2-digit',
+        }),
+      }).catch(console.error);
+    }
+    navigate(`/lead/${id}`);
+  }, [lead, id, navigate, notify]);
+
+  const handleCancel = React.useCallback(() => {
+    navigate(`/lead/${id}`);
+  }, [id, navigate]);
+
+  if (loading) {
+    return <LoadingSpinner label="Loading..." />;
+  }
+
+  if (!lead) {
+    return (
+      <div style={{ padding: SPACING.xl, color: HBC_COLORS.error }}>
+        Lead not found.
+      </div>
+    );
+  }
+
+  // Date range: next business week (Mon-Fri)
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
+  const nextMonday = new Date(today);
+  nextMonday.setDate(today.getDate() + daysUntilMonday);
+  const nextFriday = new Date(nextMonday);
+  nextFriday.setDate(nextMonday.getDate() + 4);
+
+  const startDate = nextMonday.toISOString().split('T')[0];
+  const endDate = nextFriday.toISOString().split('T')[0];
+
+  return (
+    <RoleGate allowedRoles={[RoleName.BDRepresentative, RoleName.ExecutiveLeadership]}>
+      <PageHeader
+        title={`Schedule Go/No-Go Meeting`}
+        subtitle={`${lead.Title} — ${lead.ClientName ?? ''}`}
+      />
+      <div style={{ padding: SPACING.md }}>
+        <MeetingScheduler
+          meetingType={MeetingType.GoNoGo}
+          subject={`Go/No-Go: ${lead.Title}`}
+          attendeeEmails={committeeEmails}
+          leadId={lead.id}
+          projectCode={lead.ProjectCode}
+          startDate={startDate}
+          endDate={endDate}
+          onScheduled={handleScheduled}
+          onCancel={handleCancel}
+        />
+      </div>
+    </RoleGate>
+  );
+}

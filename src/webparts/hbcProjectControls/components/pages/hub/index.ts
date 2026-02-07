@@ -4,3 +4,4 @@ export { LeadDetailPage } from './LeadDetailPage';
 export { LeadFormPage } from './LeadFormPage';
 export { GoNoGoScorecard } from './GoNoGoScorecard';
 export { GoNoGoDetail } from './GoNoGoDetail';
+export { GoNoGoMeetingScheduler } from './GoNoGoMeetingScheduler';

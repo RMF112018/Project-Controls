@@ -10,3 +10,5 @@ export type { IGraphService } from './GraphService';
 export { OfflineQueueService } from './OfflineQueueService';
 export { PowerAutomateService } from './PowerAutomateService';
 export type { IProvisioningPayload } from './PowerAutomateService';
+export { NotificationService } from './NotificationService';
+export type { INotificationContext } from './NotificationService';
