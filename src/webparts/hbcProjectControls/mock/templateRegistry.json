@@ -1,0 +1,14 @@
+[
+  { "id": 1, "TemplateName": "Subcontractor Agreement", "SourceURL": "/sites/Templates/Contracts/SubcontractorAgreement.docx", "TargetFolder": "00_Project_Admin/Contracts/Templates", "Division": "Both", "Active": true },
+  { "id": 2, "TemplateName": "GMP Amendment", "SourceURL": "/sites/Templates/Contracts/GMPAmendment.docx", "TargetFolder": "00_Project_Admin/Contracts/Templates", "Division": "Both", "Active": true },
+  { "id": 3, "TemplateName": "Change Order Template", "SourceURL": "/sites/Templates/Contracts/ChangeOrder.docx", "TargetFolder": "00_Project_Admin/Change_Orders", "Division": "Both", "Active": true },
+  { "id": 4, "TemplateName": "Safety Plan Template", "SourceURL": "/sites/Templates/Safety/SafetyPlan.docx", "TargetFolder": "02_Safety/Plans", "Division": "Both", "Active": true },
+  { "id": 5, "TemplateName": "Quality Control Plan", "SourceURL": "/sites/Templates/Quality/QCPlan.docx", "TargetFolder": "03_Quality_Control", "Division": "Both", "Active": true },
+  { "id": 6, "TemplateName": "Schedule Template", "SourceURL": "/sites/Templates/Scheduling/MasterSchedule.mpp", "TargetFolder": "10_Scheduling", "Division": "Both", "Active": true },
+  { "id": 7, "TemplateName": "Budget Template", "SourceURL": "/sites/Templates/Budget/ProjectBudget.xlsx", "TargetFolder": "05_Budget", "Division": "Both", "Active": true },
+  { "id": 8, "TemplateName": "RFI Log", "SourceURL": "/sites/Templates/Admin/RFILog.xlsx", "TargetFolder": "00_Project_Admin/RFI", "Division": "Both", "Active": true },
+  { "id": 9, "TemplateName": "Submittal Log", "SourceURL": "/sites/Templates/Admin/SubmittalLog.xlsx", "TargetFolder": "00_Project_Admin/Submittals", "Division": "Both", "Active": true },
+  { "id": 10, "TemplateName": "Luxury Finish Schedule", "SourceURL": "/sites/Templates/LuxRes/FinishSchedule.xlsx", "TargetFolder": "04_Design/Finish_Schedules", "Division": "Luxury Residential", "Active": true },
+  { "id": 11, "TemplateName": "Preconstruction Proposal", "SourceURL": "/sites/Templates/Precon/PreconProposal.docx", "TargetFolder": "01_Preconstruction/Proposals", "Division": "Both", "Active": true },
+  { "id": 12, "TemplateName": "Turnover Checklist", "SourceURL": "/sites/Templates/Ops/TurnoverChecklist.xlsx", "TargetFolder": "00_Project_Admin/Turnover", "Division": "Both", "Active": true }
+]

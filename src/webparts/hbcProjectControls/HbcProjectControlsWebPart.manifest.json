@@ -1,0 +1,29 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-web-part-manifest.schema.json",
+  "id": "c8e4f1a9-6d23-4b87-9e5c-1a3f7d8b2e60",
+  "alias": "HbcProjectControlsWebPart",
+  "componentType": "WebPart",
+  "version": "*",
+  "manifestVersion": 2,
+  "requiresCustomScript": false,
+  "supportedHosts": [
+    "SharePointWebPart",
+    "TeamsPersonalApp",
+    "TeamsTab"
+  ],
+  "preconfiguredEntries": [
+    {
+      "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+      "group": {
+        "default": "HBC"
+      },
+      "title": {
+        "default": "HBC Project Controls"
+      },
+      "description": {
+        "default": "Unified project lifecycle management for Hedrick Brothers Construction"
+      },
+      "properties": {}
+    }
+  ]
+}

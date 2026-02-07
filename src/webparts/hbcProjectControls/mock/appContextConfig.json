@@ -1,0 +1,5 @@
+[
+  { "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/HBCHub", "RenderMode": "full", "AppTitle": "HBC Project Controls", "ShowNavigation": "Full", "VisibleModules": ["Pipeline", "LeadIntake", "GoNoGo", "Estimating", "Executive", "Admin"] },
+  { "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/HBPrecon", "RenderMode": "standalone", "AppTitle": "HBC Estimating Tracker", "ShowNavigation": "Estimating only", "VisibleModules": ["EstimatingDashboard", "PursuitDetail", "GoNoGoTracker"] },
+  { "SiteURL": "default-project", "RenderMode": "project", "AppTitle": "Project Controls", "ShowNavigation": "Project context", "VisibleModules": ["ProjectHome", "GoNoGo", "Kickoff", "Deliverables", "WinLoss", "Contract", "Turnover", "Closeout"] }
+]

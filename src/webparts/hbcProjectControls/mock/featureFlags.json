@@ -1,0 +1,15 @@
+[
+  { "id": 1, "FeatureName": "LeadIntake", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Core feature - always on" },
+  { "id": 2, "FeatureName": "GoNoGoScorecard", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "" },
+  { "id": 3, "FeatureName": "AutoSiteProvisioning", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "" },
+  { "id": 4, "FeatureName": "MeetingScheduler", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "" },
+  { "id": 5, "FeatureName": "PipelineDashboard", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "" },
+  { "id": 6, "FeatureName": "TurnoverWorkflow", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "" },
+  { "id": 7, "FeatureName": "LossAutopsy", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "" },
+  { "id": 8, "FeatureName": "EstimatingTracker", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "" },
+  { "id": 9, "FeatureName": "UnanetSync", "Enabled": false, "EnabledForRoles": null, "TargetDate": "2026-06-01", "Notes": "Phase 2 - Unanet ERP integration" },
+  { "id": 10, "FeatureName": "Sage300Integration", "Enabled": false, "EnabledForRoles": null, "TargetDate": "2026-06-01", "Notes": "Phase 2 - Sage 300 accounting" },
+  { "id": 11, "FeatureName": "DocumentCrunchIntegration", "Enabled": false, "EnabledForRoles": null, "TargetDate": "2026-09-01", "Notes": "AI contract review" },
+  { "id": 12, "FeatureName": "EstimatingModule", "Enabled": false, "EnabledForRoles": null, "TargetDate": "2026-12-01", "Notes": "Full estimating module" },
+  { "id": 13, "FeatureName": "BudgetSync", "Enabled": false, "EnabledForRoles": null, "TargetDate": null, "Notes": "Budget sync with accounting" }
+]

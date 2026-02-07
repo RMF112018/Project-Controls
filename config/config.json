@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "hbc-project-controls-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/hbcProjectControls/HbcProjectControlsWebPart.js",
+          "manifest": "./src/webparts/hbcProjectControls/HbcProjectControlsWebPart.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "HbcProjectControlsWebPartStrings": "lib/webparts/hbcProjectControls/loc/{locale}.js"
+  }
+}

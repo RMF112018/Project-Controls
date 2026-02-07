@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /Users/bobbyfetting/Project-Controls log --oneline)",
+      "WebSearch",
+      "Bash(python3:*)",
+      "Bash(wc:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx gulp build:*)",
+      "Bash(volta list:*)",
+      "Bash(volta pin:*)",
+      "Bash(node --version:*)",
+      "Bash(volta run:*)",
+      "Bash(node -e:*)"
+    ]
+  }
+}

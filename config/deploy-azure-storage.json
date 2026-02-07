@@ -1,0 +1,7 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/deploy-azure-storage.schema.json",
+  "workingDir": "./temp/deploy/",
+  "account": "<!-- AZURE STORAGE ACCOUNT NAME -->",
+  "container": "hbc-project-controls",
+  "accessKey": "<!-- AZURE STORAGE ACCESS KEY -->"
+}

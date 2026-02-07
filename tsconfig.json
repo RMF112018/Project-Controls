@@ -1,0 +1,61 @@
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "lib": [
+      "es2017",
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "jsx": "react",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "lib",
+    "rootDir": "src",
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": false,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": false,
+    "skipLibCheck": true,
+    "experimentalDecorators": true,
+    "baseUrl": ".",
+    "paths": {
+      "@webparts/*": ["src/webparts/*"],
+      "@components/*": ["src/webparts/hbcProjectControls/components/*"],
+      "@services/*": ["src/webparts/hbcProjectControls/services/*"],
+      "@models/*": ["src/webparts/hbcProjectControls/models/*"],
+      "@hooks/*": ["src/webparts/hbcProjectControls/components/hooks/*"],
+      "@contexts/*": ["src/webparts/hbcProjectControls/components/contexts/*"],
+      "@utils/*": ["src/webparts/hbcProjectControls/utils/*"],
+      "@theme/*": ["src/webparts/hbcProjectControls/theme/*"]
+    },
+    "types": [
+      "jest",
+      "webpack-env"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "lib",
+    "dist",
+    "temp"
+  ]
+}
