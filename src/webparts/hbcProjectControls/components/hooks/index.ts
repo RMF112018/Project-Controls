@@ -21,3 +21,4 @@ export { useJobNumberRequest } from './useJobNumberRequest';
 export { useEstimatingKickoff } from './useEstimatingKickoff';
 export { usePostBidAutopsy } from './usePostBidAutopsy';
 export { useBuyoutLog } from './useBuyoutLog';
+export { useCommitmentApproval } from './useCommitmentApproval';

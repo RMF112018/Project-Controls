@@ -32,3 +32,4 @@ export * from './IProjectType';
 export * from './IStandardCostCode';
 export * from './IEstimatingKickoff';
 export * from './IBuyoutEntry';
+export * from './ICommitmentApproval';

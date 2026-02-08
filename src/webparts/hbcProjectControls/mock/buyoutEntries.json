@@ -21,7 +21,10 @@
     "status": "Executed",
     "notes": "",
     "createdDate": "2025-06-01T00:00:00.000Z",
-    "modifiedDate": "2025-06-22T00:00:00.000Z"
+    "modifiedDate": "2025-06-22T00:00:00.000Z",
+    "commitmentStatus": "Committed",
+    "waiverRequired": false,
+    "approvalHistory": []
   },
   {
     "id": 502,
@@ -45,7 +48,10 @@
     "status": "Executed",
     "notes": "Exceeded budget due to unforeseen debris removal.",
     "createdDate": "2025-06-01T00:00:00.000Z",
-    "modifiedDate": "2025-07-01T00:00:00.000Z"
+    "modifiedDate": "2025-07-01T00:00:00.000Z",
+    "commitmentStatus": "Committed",
+    "waiverRequired": false,
+    "approvalHistory": []
   },
   {
     "id": 503,
@@ -69,7 +75,10 @@
     "status": "Awarded",
     "notes": "Contract pending final review.",
     "createdDate": "2025-06-01T00:00:00.000Z",
-    "modifiedDate": "2025-07-05T00:00:00.000Z"
+    "modifiedDate": "2025-07-05T00:00:00.000Z",
+    "commitmentStatus": "Budgeted",
+    "waiverRequired": false,
+    "approvalHistory": []
   },
   {
     "id": 504,
@@ -93,7 +102,10 @@
     "status": "Awarded",
     "notes": "",
     "createdDate": "2025-06-01T00:00:00.000Z",
-    "modifiedDate": "2025-07-05T00:00:00.000Z"
+    "modifiedDate": "2025-07-05T00:00:00.000Z",
+    "commitmentStatus": "Budgeted",
+    "waiverRequired": false,
+    "approvalHistory": []
   },
   {
     "id": 505,
@@ -117,7 +129,10 @@
     "status": "In Progress",
     "notes": "Soliciting bids from 3 vendors.",
     "createdDate": "2025-06-01T00:00:00.000Z",
-    "modifiedDate": "2025-07-10T00:00:00.000Z"
+    "modifiedDate": "2025-07-10T00:00:00.000Z",
+    "commitmentStatus": "Budgeted",
+    "waiverRequired": false,
+    "approvalHistory": []
   },
   {
     "id": 506,
@@ -141,7 +156,10 @@
     "status": "In Progress",
     "notes": "",
     "createdDate": "2025-06-01T00:00:00.000Z",
-    "modifiedDate": "2025-07-08T00:00:00.000Z"
+    "modifiedDate": "2025-07-08T00:00:00.000Z",
+    "commitmentStatus": "Budgeted",
+    "waiverRequired": false,
+    "approvalHistory": []
   },
   {
     "id": 507,
@@ -165,7 +183,10 @@
     "status": "Executed",
     "notes": "Significant savings achieved through early procurement.",
     "createdDate": "2025-06-01T00:00:00.000Z",
-    "modifiedDate": "2025-06-18T00:00:00.000Z"
+    "modifiedDate": "2025-06-18T00:00:00.000Z",
+    "commitmentStatus": "Committed",
+    "waiverRequired": false,
+    "approvalHistory": []
   },
   {
     "id": 508,
@@ -189,7 +210,10 @@
     "status": "Not Started",
     "notes": "",
     "createdDate": "2025-06-01T00:00:00.000Z",
-    "modifiedDate": "2025-06-01T00:00:00.000Z"
+    "modifiedDate": "2025-06-01T00:00:00.000Z",
+    "commitmentStatus": "Budgeted",
+    "waiverRequired": false,
+    "approvalHistory": []
   },
   {
     "id": 509,
@@ -213,7 +237,10 @@
     "status": "Not Started",
     "notes": "",
     "createdDate": "2025-06-01T00:00:00.000Z",
-    "modifiedDate": "2025-06-01T00:00:00.000Z"
+    "modifiedDate": "2025-06-01T00:00:00.000Z",
+    "commitmentStatus": "Budgeted",
+    "waiverRequired": false,
+    "approvalHistory": []
   },
   {
     "id": 510,
@@ -237,7 +264,10 @@
     "status": "Not Started",
     "notes": "",
     "createdDate": "2025-06-01T00:00:00.000Z",
-    "modifiedDate": "2025-06-01T00:00:00.000Z"
+    "modifiedDate": "2025-06-01T00:00:00.000Z",
+    "commitmentStatus": "Budgeted",
+    "waiverRequired": false,
+    "approvalHistory": []
   },
   {
     "id": 511,
@@ -261,7 +291,10 @@
     "status": "Not Started",
     "notes": "",
     "createdDate": "2025-06-01T00:00:00.000Z",
-    "modifiedDate": "2025-06-01T00:00:00.000Z"
+    "modifiedDate": "2025-06-01T00:00:00.000Z",
+    "commitmentStatus": "Budgeted",
+    "waiverRequired": false,
+    "approvalHistory": []
   },
   {
     "id": 512,
@@ -285,7 +318,10 @@
     "status": "Not Started",
     "notes": "",
     "createdDate": "2025-06-01T00:00:00.000Z",
-    "modifiedDate": "2025-06-01T00:00:00.000Z"
+    "modifiedDate": "2025-06-01T00:00:00.000Z",
+    "commitmentStatus": "Budgeted",
+    "waiverRequired": false,
+    "approvalHistory": []
   },
   {
     "id": 513,
@@ -309,7 +345,10 @@
     "status": "Awarded",
     "notes": "Scope includes HVAC, ductwork, and controls.",
     "createdDate": "2025-06-01T00:00:00.000Z",
-    "modifiedDate": "2025-07-05T00:00:00.000Z"
+    "modifiedDate": "2025-07-05T00:00:00.000Z",
+    "commitmentStatus": "Budgeted",
+    "waiverRequired": false,
+    "approvalHistory": []
   },
   {
     "id": 514,
@@ -333,7 +372,10 @@
     "status": "In Progress",
     "notes": "LOI sent, awaiting return.",
     "createdDate": "2025-06-01T00:00:00.000Z",
-    "modifiedDate": "2025-07-08T00:00:00.000Z"
+    "modifiedDate": "2025-07-08T00:00:00.000Z",
+    "commitmentStatus": "Budgeted",
+    "waiverRequired": false,
+    "approvalHistory": []
   },
   {
     "id": 515,
@@ -357,6 +399,9 @@
     "status": "Not Started",
     "notes": "Custom division added for specialty tile scope.",
     "createdDate": "2025-07-01T00:00:00.000Z",
-    "modifiedDate": "2025-07-01T00:00:00.000Z"
+    "modifiedDate": "2025-07-01T00:00:00.000Z",
+    "commitmentStatus": "Budgeted",
+    "waiverRequired": false,
+    "approvalHistory": []
   }
 ]

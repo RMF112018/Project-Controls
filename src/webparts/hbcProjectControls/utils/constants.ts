@@ -30,6 +30,7 @@ export const LIST_NAMES = {
   ACTION_ITEMS: 'Action_Items',
   TURNOVER_CHECKLIST: 'Turnover_Checklist',
   BUYOUT_LOG: 'Buyout_Log',
+  COMMITMENT_APPROVALS: 'Commitment_Approvals',
 } as const;
 
 export const ROUTES = {

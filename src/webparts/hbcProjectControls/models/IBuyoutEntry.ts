@@ -1,4 +1,8 @@
+import { CommitmentStatus, WaiverType, ApprovalStep, ICommitmentApproval } from './ICommitmentApproval';
+
 export type BuyoutStatus = 'Not Started' | 'In Progress' | 'Awarded' | 'Executed';
+
+export type CompassPreQualStatus = 'Approved' | 'Pending' | 'Expired' | 'Not Registered';
 
 export interface IBuyoutEntry {
   id: number;
@@ -21,6 +25,29 @@ export interface IBuyoutEntry {
   enrolledInSDI: boolean;      // Yes/No
   bondRequired: boolean;       // Yes/No
 
+  // Risk Profile (Compass Integration)
+  qScore?: number;                          // Compass Q-Score (0-100)
+  compassPreQualStatus?: CompassPreQualStatus;
+
+  // Compliance Checklist
+  scopeMatchesBudget?: boolean;
+  exhibitCInsuranceConfirmed?: boolean;
+  exhibitDScheduleConfirmed?: boolean;
+  exhibitESafetyConfirmed?: boolean;
+
+  // Commitment Status & Workflow
+  commitmentStatus: CommitmentStatus;
+  waiverRequired: boolean;
+  waiverType?: WaiverType;
+  waiverReason?: string;
+
+  // Compiled Commitment Document
+  compiledCommitmentPdfUrl?: string;
+
+  // Approval Tracking
+  currentApprovalStep?: ApprovalStep;
+  approvalHistory: ICommitmentApproval[];
+
   // Milestone Dates
   loiSentDate?: string;
   loiReturnedDate?: string;
@@ -28,7 +55,7 @@ export interface IBuyoutEntry {
   contractExecutedDate?: string;
   insuranceCOIReceivedDate?: string;
 
-  // Status
+  // Status (legacy — kept for backward compatibility)
   status: BuyoutStatus;
   notes?: string;
   createdDate: string;

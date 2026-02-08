@@ -24,6 +24,7 @@ import { IJobNumberRequest, JobNumberRequestStatus } from '../models/IJobNumberR
 import { IProjectType } from '../models/IProjectType';
 import { IStandardCostCode } from '../models/IStandardCostCode';
 import { IBuyoutEntry, BuyoutStatus } from '../models/IBuyoutEntry';
+import { ICommitmentApproval, CommitmentStatus, WaiverType, ApprovalStep } from '../models/ICommitmentApproval';
 import { GoNoGoDecision, Stage } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
@@ -622,6 +623,19 @@ export class SharePointDataService implements IDataService {
       overUnder: item.OverUnder as number | undefined,
       enrolledInSDI: (item.EnrolledInSDI as boolean) || false,
       bondRequired: (item.BondRequired as boolean) || false,
+      qScore: item.QScore as number | undefined,
+      compassPreQualStatus: item.CompassPreQualStatus as IBuyoutEntry['compassPreQualStatus'],
+      scopeMatchesBudget: item.ScopeMatchesBudget as boolean | undefined,
+      exhibitCInsuranceConfirmed: item.ExhibitCInsuranceConfirmed as boolean | undefined,
+      exhibitDScheduleConfirmed: item.ExhibitDScheduleConfirmed as boolean | undefined,
+      exhibitESafetyConfirmed: item.ExhibitESafetyConfirmed as boolean | undefined,
+      commitmentStatus: (item.CommitmentStatus as CommitmentStatus) || 'Budgeted',
+      waiverRequired: (item.WaiverRequired as boolean) || false,
+      waiverType: item.WaiverType as WaiverType | undefined,
+      waiverReason: item.WaiverReason as string | undefined,
+      compiledCommitmentPdfUrl: item.CompiledCommitmentPdfUrl as string | undefined,
+      currentApprovalStep: item.CurrentApprovalStep as ApprovalStep | undefined,
+      approvalHistory: [],
       loiSentDate: item.LOISentDate as string | undefined,
       loiReturnedDate: item.LOIReturnedDate as string | undefined,
       contractSentDate: item.ContractSentDate as string | undefined,
@@ -632,6 +646,119 @@ export class SharePointDataService implements IDataService {
       createdDate: item.Created as string,
       modifiedDate: item.Modified as string,
     };
+  }
+
+  // --- Commitment Approval ---
+
+  async submitCommitmentForApproval(projectCode: string, entryId: number, _submittedBy: string): Promise<IBuyoutEntry> {
+    const entry = (await this.getBuyoutEntries(projectCode)).find(e => e.id === entryId);
+    if (!entry) throw new Error(`Buyout entry ${entryId} not found`);
+
+    const { evaluateCommitmentRisk, determineWaiverType } = await import('../utils/riskEngine');
+    const risk = evaluateCommitmentRisk(entry);
+    const waiverType = risk.requiresWaiver ? determineWaiverType(entry) : undefined;
+
+    await this.sp.web.lists
+      .getByTitle(LIST_NAMES.BUYOUT_LOG)
+      .items
+      .getById(entryId)
+      .update({
+        CommitmentStatus: risk.requiresWaiver ? 'WaiverPending' : 'PendingReview',
+        WaiverRequired: risk.requiresWaiver,
+        WaiverType: waiverType,
+        CurrentApprovalStep: 'PX',
+      });
+
+    // Create approval record
+    await this.sp.web.lists
+      .getByTitle(LIST_NAMES.COMMITMENT_APPROVALS)
+      .items
+      .add({
+        BuyoutEntryId: entryId,
+        ProjectCode: projectCode,
+        Step: 'PX',
+        ApproverName: 'Project Executive',
+        ApproverEmail: '',
+        Status: 'Pending',
+        WaiverType: waiverType,
+      });
+
+    return (await this.getBuyoutEntries(projectCode)).find(e => e.id === entryId) as IBuyoutEntry;
+  }
+
+  async respondToCommitmentApproval(projectCode: string, entryId: number, approved: boolean, comment: string, escalate?: boolean): Promise<IBuyoutEntry> {
+    const approvals = await this.getCommitmentApprovalHistory(projectCode, entryId);
+    const pending = approvals.find(a => a.status === 'Pending');
+    if (!pending) throw new Error('No pending approval step found');
+
+    const entry = (await this.getBuyoutEntries(projectCode)).find(e => e.id === entryId);
+    if (!entry) throw new Error(`Buyout entry ${entryId} not found`);
+
+    // Update the pending approval record
+    await this.sp.web.lists
+      .getByTitle(LIST_NAMES.COMMITMENT_APPROVALS)
+      .items
+      .getById(pending.id)
+      .update({
+        Status: !approved ? 'Rejected' : escalate ? 'Escalated' : 'Approved',
+        Comment: comment,
+        ActionDate: new Date().toISOString(),
+      });
+
+    let newStatus: CommitmentStatus;
+    let nextStep: ApprovalStep | undefined;
+
+    if (!approved) {
+      newStatus = 'Rejected';
+      nextStep = undefined;
+    } else if (escalate && pending.step === 'ComplianceManager') {
+      newStatus = 'CFOReview';
+      nextStep = 'CFO';
+      await this.sp.web.lists.getByTitle(LIST_NAMES.COMMITMENT_APPROVALS).items.add({
+        BuyoutEntryId: entryId, ProjectCode: projectCode, Step: 'CFO',
+        ApproverName: 'CFO', ApproverEmail: '', Status: 'Pending', WaiverType: entry.waiverType,
+      });
+    } else if (pending.step === 'PX' && entry.waiverRequired && (entry.contractValue ?? 0) >= 250000) {
+      newStatus = 'ComplianceReview';
+      nextStep = 'ComplianceManager';
+      await this.sp.web.lists.getByTitle(LIST_NAMES.COMMITMENT_APPROVALS).items.add({
+        BuyoutEntryId: entryId, ProjectCode: projectCode, Step: 'ComplianceManager',
+        ApproverName: 'Compliance Manager', ApproverEmail: '', Status: 'Pending', WaiverType: entry.waiverType,
+      });
+    } else {
+      newStatus = 'Committed';
+      nextStep = undefined;
+    }
+
+    const updateData: Record<string, unknown> = {
+      CommitmentStatus: newStatus,
+      CurrentApprovalStep: nextStep ?? null,
+    };
+    if (newStatus === 'Committed') updateData.Status = 'Executed';
+
+    await this.sp.web.lists.getByTitle(LIST_NAMES.BUYOUT_LOG).items.getById(entryId).update(updateData);
+    return (await this.getBuyoutEntries(projectCode)).find(e => e.id === entryId) as IBuyoutEntry;
+  }
+
+  async getCommitmentApprovalHistory(projectCode: string, entryId: number): Promise<ICommitmentApproval[]> {
+    const items = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.COMMITMENT_APPROVALS)
+      .items
+      .filter(`ProjectCode eq '${projectCode}' and BuyoutEntryId eq ${entryId}`)
+      .orderBy('Id', true)();
+
+    return items.map((item: Record<string, unknown>) => ({
+      id: item.Id as number,
+      buyoutEntryId: item.BuyoutEntryId as number,
+      projectCode: item.ProjectCode as string,
+      step: item.Step as ApprovalStep,
+      approverName: item.ApproverName as string,
+      approverEmail: item.ApproverEmail as string,
+      status: item.Status as ICommitmentApproval['status'],
+      comment: item.Comment as string | undefined,
+      actionDate: item.ActionDate as string | undefined,
+      waiverType: item.WaiverType as WaiverType | undefined,
+    }));
   }
 
   // --- Re-Key ---
