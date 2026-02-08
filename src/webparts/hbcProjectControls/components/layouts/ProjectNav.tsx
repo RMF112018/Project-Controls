@@ -10,6 +10,9 @@ interface INavItem {
 
 const NAV_ITEMS: INavItem[] = [
   { label: 'Project Home', path: '/' },
+  { label: 'Startup Checklist', path: '/startup-checklist' },
+  { label: 'Responsibility', path: '/responsibility' },
+  { label: 'Project Record', path: '/project-record' },
   { label: 'Go/No-Go', path: '/gonogo' },
   { label: 'Deliverables', path: '/deliverables' },
   { label: 'Win/Loss', path: '/winloss' },

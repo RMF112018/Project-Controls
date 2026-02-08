@@ -15,5 +15,7 @@
   { "id": 14, "FeatureName": "ExecutiveDashboard", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 8 exec dashboard" },
   { "id": 15, "FeatureName": "DualNotifications", "Enabled": false, "EnabledForRoles": null, "TargetDate": null, "Notes": "Send both email and Teams notifications" },
   { "id": 16, "FeatureName": "AuditTrail", "Enabled": false, "EnabledForRoles": null, "TargetDate": null, "Notes": "Detailed audit trail logging" },
-  { "id": 17, "FeatureName": "OfflineSupport", "Enabled": false, "EnabledForRoles": null, "TargetDate": null, "Notes": "Offline mode with queue sync" }
+  { "id": 17, "FeatureName": "OfflineSupport", "Enabled": false, "EnabledForRoles": null, "TargetDate": null, "Notes": "Offline mode with queue sync" },
+  { "id": 18, "FeatureName": "ProjectStartup", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 9 startup checklist and responsibility matrices" },
+  { "id": 19, "FeatureName": "MarketingProjectRecord", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 9 marketing project record and dashboard" }
 ]

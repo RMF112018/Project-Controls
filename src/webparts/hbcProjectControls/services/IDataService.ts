@@ -7,6 +7,9 @@ import { IMeeting, ICalendarAvailability } from '../models/IMeeting';
 import { INotification } from '../models/INotification';
 import { IAuditEntry } from '../models/IAuditEntry';
 import { IProvisioningLog } from '../models/IProvisioningLog';
+import { IStartupChecklistItem } from '../models/IStartupChecklist';
+import { IInternalMatrixTask, ITeamRoleAssignment, IOwnerContractArticle, ISubContractClause } from '../models/IResponsibilityMatrix';
+import { IMarketingProjectRecord } from '../models/IMarketingProjectRecord';
 import { GoNoGoDecision, Stage } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -79,6 +82,40 @@ export interface IDataService {
   updateProvisioningLog(projectCode: string, data: Partial<IProvisioningLog>): Promise<IProvisioningLog>;
   getProvisioningLogs(): Promise<IProvisioningLog[]>;
   retryProvisioning(projectCode: string, fromStep: number): Promise<IProvisioningLog>;
+
+  // Startup Checklist
+  getStartupChecklist(projectCode: string): Promise<IStartupChecklistItem[]>;
+  updateChecklistItem(projectCode: string, itemId: number, data: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem>;
+  addChecklistItem(projectCode: string, item: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem>;
+  removeChecklistItem(projectCode: string, itemId: number): Promise<void>;
+
+  // Internal Responsibility Matrix
+  getInternalMatrix(projectCode: string): Promise<IInternalMatrixTask[]>;
+  updateInternalMatrixTask(projectCode: string, taskId: number, data: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask>;
+  addInternalMatrixTask(projectCode: string, task: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask>;
+  removeInternalMatrixTask(projectCode: string, taskId: number): Promise<void>;
+
+  // Team Role Assignments
+  getTeamRoleAssignments(projectCode: string): Promise<ITeamRoleAssignment[]>;
+  updateTeamRoleAssignment(projectCode: string, role: string, person: string, email?: string): Promise<ITeamRoleAssignment>;
+
+  // Owner Contract Matrix
+  getOwnerContractMatrix(projectCode: string): Promise<IOwnerContractArticle[]>;
+  updateOwnerContractArticle(projectCode: string, itemId: number, data: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle>;
+  addOwnerContractArticle(projectCode: string, item: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle>;
+  removeOwnerContractArticle(projectCode: string, itemId: number): Promise<void>;
+
+  // Sub-Contract Matrix
+  getSubContractMatrix(projectCode: string): Promise<ISubContractClause[]>;
+  updateSubContractClause(projectCode: string, itemId: number, data: Partial<ISubContractClause>): Promise<ISubContractClause>;
+  addSubContractClause(projectCode: string, item: Partial<ISubContractClause>): Promise<ISubContractClause>;
+  removeSubContractClause(projectCode: string, itemId: number): Promise<void>;
+
+  // Marketing Project Record
+  getMarketingProjectRecord(projectCode: string): Promise<IMarketingProjectRecord | null>;
+  createMarketingProjectRecord(data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord>;
+  updateMarketingProjectRecord(projectCode: string, data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord>;
+  getAllMarketingProjectRecords(): Promise<IMarketingProjectRecord[]>;
 
   // Lookups
   getTemplates(): Promise<Array<{ TemplateName: string; SourceURL: string; TargetFolder: string; Division: string; Active: boolean }>>;

@@ -120,7 +120,14 @@ export enum AuditAction {
   LossRecorded = 'Loss.Recorded',
   AutopsyCompleted = 'Autopsy.Completed',
   ConfigFeatureFlagChanged = 'Config.FeatureFlagChanged',
-  ConfigRoleChanged = 'Config.RoleChanged'
+  ConfigRoleChanged = 'Config.RoleChanged',
+  ChecklistItemUpdated = 'Checklist.ItemUpdated',
+  ChecklistItemAdded = 'Checklist.ItemAdded',
+  ChecklistSignedOff = 'Checklist.SignedOff',
+  MatrixAssignmentChanged = 'Matrix.AssignmentChanged',
+  MatrixTaskAdded = 'Matrix.TaskAdded',
+  ProjectRecordUpdated = 'ProjectRecord.Updated',
+  ProjectRecordCreated = 'ProjectRecord.Created'
 }
 
 export enum EntityType {
@@ -129,7 +136,10 @@ export enum EntityType {
   Estimate = 'Estimate',
   Project = 'Project',
   Permission = 'Permission',
-  Config = 'Config'
+  Config = 'Config',
+  Checklist = 'Checklist',
+  Matrix = 'Matrix',
+  ProjectRecord = 'ProjectRecord'
 }
 
 export enum DeliverableStatus {

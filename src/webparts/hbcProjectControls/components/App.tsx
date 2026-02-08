@@ -25,6 +25,12 @@ import { GoNoGoTracker } from './pages/precon/GoNoGoTracker';
 
 // Project pages
 import { ProjectDashboard } from './pages/project/ProjectDashboard';
+import { ProjectStartupChecklist } from './pages/project/ProjectStartupChecklist';
+import { ResponsibilityMatrices } from './pages/project/ResponsibilityMatrices';
+import { ProjectRecord } from './pages/project/ProjectRecord';
+
+// Hub pages (Phase 9)
+import { MarketingDashboard } from './pages/hub/MarketingDashboard';
 
 const NotFoundPage: React.FC = () => (
   <div style={{ padding: '48px', textAlign: 'center', color: '#6B7280' }}>
@@ -48,6 +54,7 @@ const HubRoutes: React.FC = () => (
     <Route path="/lead/:id/gonogo" element={<GoNoGoScorecard />} />
     <Route path="/lead/:id/gonogo/detail" element={<GoNoGoDetail />} />
     <Route path="/lead/:id/schedule-gonogo" element={<GoNoGoMeetingScheduler />} />
+    <Route path="/marketing" element={<MarketingDashboard />} />
     <Route path="/admin" element={<AdminPanel />} />
     <Route path="*" element={<NotFoundPage />} />
   </Routes>
@@ -56,6 +63,11 @@ const HubRoutes: React.FC = () => (
 const ProjectRoutes: React.FC = () => (
   <Routes>
     <Route path="/" element={<ProjectDashboard />} />
+    <Route path="/startup-checklist" element={<ProjectStartupChecklist />} />
+    <Route path="/responsibility" element={<ResponsibilityMatrices />} />
+    <Route path="/responsibility/owner-contract" element={<ResponsibilityMatrices />} />
+    <Route path="/responsibility/sub-contract" element={<ResponsibilityMatrices />} />
+    <Route path="/project-record" element={<ProjectRecord />} />
     <Route path="*" element={<NotFoundPage />} />
   </Routes>
 );

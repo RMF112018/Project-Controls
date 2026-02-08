@@ -8,6 +8,9 @@ import { IMeeting, ICalendarAvailability } from '../models/IMeeting';
 import { INotification } from '../models/INotification';
 import { IAuditEntry } from '../models/IAuditEntry';
 import { IProvisioningLog } from '../models/IProvisioningLog';
+import { IStartupChecklistItem } from '../models/IStartupChecklist';
+import { IInternalMatrixTask, ITeamRoleAssignment, IOwnerContractArticle, ISubContractClause } from '../models/IResponsibilityMatrix';
+import { IMarketingProjectRecord } from '../models/IMarketingProjectRecord';
 import { GoNoGoDecision, Stage } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 
@@ -275,4 +278,38 @@ export class SharePointDataService implements IDataService {
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.SECTORS).items.select('Title')();
     return items.map((i: Record<string, unknown>) => String(i.Title || ''));
   }
+
+  // --- Startup Checklist ---
+  async getStartupChecklist(_projectCode: string): Promise<IStartupChecklistItem[]> { return []; }
+  async updateChecklistItem(_projectCode: string, _itemId: number, _data: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> { throw new Error('Not implemented'); }
+  async addChecklistItem(_projectCode: string, _item: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> { throw new Error('Not implemented'); }
+  async removeChecklistItem(_projectCode: string, _itemId: number): Promise<void> { throw new Error('Not implemented'); }
+
+  // --- Internal Matrix ---
+  async getInternalMatrix(_projectCode: string): Promise<IInternalMatrixTask[]> { return []; }
+  async updateInternalMatrixTask(_projectCode: string, _taskId: number, _data: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask> { throw new Error('Not implemented'); }
+  async addInternalMatrixTask(_projectCode: string, _task: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask> { throw new Error('Not implemented'); }
+  async removeInternalMatrixTask(_projectCode: string, _taskId: number): Promise<void> { throw new Error('Not implemented'); }
+
+  // --- Team Assignments ---
+  async getTeamRoleAssignments(_projectCode: string): Promise<ITeamRoleAssignment[]> { return []; }
+  async updateTeamRoleAssignment(_projectCode: string, _role: string, _person: string, _email?: string): Promise<ITeamRoleAssignment> { throw new Error('Not implemented'); }
+
+  // --- Owner Contract Matrix ---
+  async getOwnerContractMatrix(_projectCode: string): Promise<IOwnerContractArticle[]> { return []; }
+  async updateOwnerContractArticle(_projectCode: string, _itemId: number, _data: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle> { throw new Error('Not implemented'); }
+  async addOwnerContractArticle(_projectCode: string, _item: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle> { throw new Error('Not implemented'); }
+  async removeOwnerContractArticle(_projectCode: string, _itemId: number): Promise<void> { throw new Error('Not implemented'); }
+
+  // --- Sub-Contract Matrix ---
+  async getSubContractMatrix(_projectCode: string): Promise<ISubContractClause[]> { return []; }
+  async updateSubContractClause(_projectCode: string, _itemId: number, _data: Partial<ISubContractClause>): Promise<ISubContractClause> { throw new Error('Not implemented'); }
+  async addSubContractClause(_projectCode: string, _item: Partial<ISubContractClause>): Promise<ISubContractClause> { throw new Error('Not implemented'); }
+  async removeSubContractClause(_projectCode: string, _itemId: number): Promise<void> { throw new Error('Not implemented'); }
+
+  // --- Marketing Project Record ---
+  async getMarketingProjectRecord(_projectCode: string): Promise<IMarketingProjectRecord | null> { return null; }
+  async createMarketingProjectRecord(_data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> { throw new Error('Not implemented'); }
+  async updateMarketingProjectRecord(_projectCode: string, _data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> { throw new Error('Not implemented'); }
+  async getAllMarketingProjectRecords(): Promise<IMarketingProjectRecord[]> { return []; }
 }

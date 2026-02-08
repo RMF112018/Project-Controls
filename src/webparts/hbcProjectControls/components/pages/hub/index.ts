@@ -6,3 +6,4 @@ export { GoNoGoScorecard } from './GoNoGoScorecard';
 export { GoNoGoDetail } from './GoNoGoDetail';
 export { GoNoGoMeetingScheduler } from './GoNoGoMeetingScheduler';
 export { AdminPanel } from './AdminPanel';
+export { MarketingDashboard } from './MarketingDashboard';

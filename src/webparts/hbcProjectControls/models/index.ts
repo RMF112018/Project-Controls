@@ -8,3 +8,6 @@ export * from './IMeeting';
 export * from './INotification';
 export * from './IAuditEntry';
 export * from './IProvisioningLog';
+export * from './IStartupChecklist';
+export * from './IResponsibilityMatrix';
+export * from './IMarketingProjectRecord';
