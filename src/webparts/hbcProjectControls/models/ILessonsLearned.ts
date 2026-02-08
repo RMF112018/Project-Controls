@@ -1,4 +1,4 @@
-export type LessonCategory = 'Cost' | 'Schedule' | 'Quality' | 'Safety' | 'Communication' | 'Subcontractor' | 'Design' | 'Client' | 'Other';
+export type LessonCategory = 'Cost' | 'Schedule' | 'Quality' | 'Safety' | 'Communication' | 'Subcontractor' | 'Design' | 'Client' | 'Preconstruction' | 'Other';
 export type LessonImpact = 'Positive' | 'Negative' | 'Neutral';
 
 export interface ILessonLearned {

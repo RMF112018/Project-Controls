@@ -329,6 +329,26 @@ export class SharePointDataService implements IDataService {
     return result as import('../models').ILossAutopsy;
   }
 
+  async finalizeLossAutopsy(leadId: number, data: Partial<import('../models').ILossAutopsy>): Promise<import('../models').ILossAutopsy> {
+    const items = await this.sp.web.lists.getByTitle('Loss_Autopsy').items.filter(`LeadID eq ${leadId}`)();
+    if (items.length === 0) throw new Error(`No autopsy found for lead ${leadId}`);
+    await this.sp.web.lists.getByTitle('Loss_Autopsy').items.getById(items[0].Id).update({
+      ...data,
+      isFinalized: true,
+      finalizedDate: new Date().toISOString(),
+    });
+    return { ...items[0], ...data, isFinalized: true } as import('../models').ILossAutopsy;
+  }
+
+  async isAutopsyFinalized(leadId: number): Promise<boolean> {
+    const items = await this.sp.web.lists.getByTitle('Loss_Autopsy').items.filter(`LeadID eq ${leadId} and isFinalized eq 1`)();
+    return items.length > 0;
+  }
+
+  async getAllLossAutopsies(): Promise<import('../models').ILossAutopsy[]> {
+    return await this.sp.web.lists.getByTitle('Loss_Autopsy').items() as import('../models').ILossAutopsy[];
+  }
+
   // --- App Context ---
   async getAppContextConfig(siteUrl: string): Promise<{ RenderMode: string; AppTitle: string; VisibleModules: string[] } | null> {
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG).items

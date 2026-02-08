@@ -117,6 +117,9 @@ export interface IDataService {
   updateCloseoutItem(id: number, data: Partial<ICloseoutItem>): Promise<ICloseoutItem>;
   getLossAutopsy(leadId: number): Promise<ILossAutopsy | null>;
   saveLossAutopsy(data: Partial<ILossAutopsy>): Promise<ILossAutopsy>;
+  finalizeLossAutopsy(leadId: number, data: Partial<ILossAutopsy>): Promise<ILossAutopsy>;
+  isAutopsyFinalized(leadId: number): Promise<boolean>;
+  getAllLossAutopsies(): Promise<ILossAutopsy[]>;
 
   // Startup Checklist
   getStartupChecklist(projectCode: string): Promise<IStartupChecklistItem[]>;

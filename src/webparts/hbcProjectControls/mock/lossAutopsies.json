@@ -1,0 +1,57 @@
+[
+  {
+    "id": 1,
+    "leadId": 27,
+    "projectCode": null,
+    "rootCauseAnalysis": "Lost on GMP price by $4.2M. Brasfield & Gorrie had an existing MSA with Orlando Health system which gave them a significant advantage.",
+    "lessonsLearned": "Need to establish MSA relationships with major healthcare systems before pursuing large-scale hospital projects.",
+    "competitiveIntelligence": "Brasfield & Gorrie leveraged existing MSA for preferential pricing on repeat work. Their team had completed 3 previous Orlando Health projects.",
+    "actionItems": [
+      {
+        "id": 1,
+        "projectCode": null,
+        "description": "Research MSA opportunities with Orlando Health and other Central FL healthcare systems",
+        "assignee": "jrodriguez@hedrickbrothers.com",
+        "dueDate": "2025-06-15",
+        "status": "Open"
+      },
+      {
+        "id": 2,
+        "projectCode": null,
+        "description": "Update historical pricing database with latest healthcare construction costs",
+        "assignee": "estimating@hedrickbrothers.com",
+        "dueDate": "2025-05-30",
+        "status": "Open"
+      }
+    ],
+    "meetingNotes": "Team reviewed the bid process in detail. Consensus that our pricing was competitive but the MSA advantage was insurmountable.",
+    "completedDate": null,
+    "completedBy": null,
+    "realisticTimeline": true,
+    "scopesBeforeProposals": true,
+    "threeBidsPerTrade": true,
+    "reasonableITBTime": false,
+    "bidsSavedProperly": true,
+    "multipleSubCommunications": true,
+    "vettedProposals": true,
+    "reasonableSpread": false,
+    "pricesMatchHistorical": false,
+    "veOptionsOffered": true,
+    "deliverablesOnTime": true,
+    "processScore": 73,
+    "strengths": "Strong estimating team coordination. Excellent subcontractor engagement with 15+ trades providing competitive bids. VE options were well-received by the client.",
+    "weaknesses": "ITB time was compressed due to late plan revisions. Historical pricing for healthcare MEP systems was outdated. Spread on mechanical trades exceeded 8%.",
+    "opportunities": "Pursue MSA relationships with healthcare systems. Develop specialized healthcare estimating database. Partner with specialized healthcare subs for future pursuits.",
+    "challenges": "Competing against firms with existing MSAs. Healthcare construction complexity requires specialized historical data. Orlando market is highly competitive.",
+    "overallRating": 6,
+    "meetingScheduledDate": "2025-04-15T10:00:00.000Z",
+    "meetingAttendees": [
+      "jrodriguez@hedrickbrothers.com",
+      "estimating@hedrickbrothers.com",
+      "exec@hedrickbrothers.com"
+    ],
+    "isFinalized": true,
+    "finalizedDate": "2025-04-15T11:00:00.000Z",
+    "finalizedBy": "estimating@hedrickbrothers.com"
+  }
+]
