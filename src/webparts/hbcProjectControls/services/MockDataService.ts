@@ -90,8 +90,11 @@ import mockProjectTypes from '../mock/projectTypes.json';
 import mockStandardCostCodes from '../mock/standardCostCodes.json';
 import mockEstimatingKickoffs from '../mock/estimatingKickoffs.json';
 import mockLossAutopsies from '../mock/lossAutopsies.json';
+import mockBuyoutEntries from '../mock/buyoutEntries.json';
 import { createEstimatingKickoffTemplate } from '../utils/estimatingKickoffTemplate';
+import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 import { IEstimatingKickoff, IEstimatingKickoffItem } from '../models/IEstimatingKickoff';
+import { IBuyoutEntry } from '../models/IBuyoutEntry';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
 
@@ -131,6 +134,7 @@ export class MockDataService implements IDataService {
   private boilerplate: IPMPBoilerplateSection[];
   private jobNumberRequests: IJobNumberRequest[];
   private estimatingKickoffs: IEstimatingKickoff[];
+  private buyoutEntries: IBuyoutEntry[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -182,6 +186,7 @@ export class MockDataService implements IDataService {
       ...k,
       items: k.items && k.items.length > 0 ? k.items : createEstimatingKickoffTemplate(),
     }));
+    this.buyoutEntries = JSON.parse(JSON.stringify(mockBuyoutEntries)) as IBuyoutEntry[];
     this.nextId = 1000;
   }
 
@@ -1947,6 +1952,103 @@ export class MockDataService implements IDataService {
   }
 
   // ---------------------------------------------------------------------------
+  // Buyout Log
+  // ---------------------------------------------------------------------------
+
+  public async getBuyoutEntries(projectCode: string): Promise<IBuyoutEntry[]> {
+    await delay();
+    return this.buyoutEntries
+      .filter(e => e.projectCode === projectCode)
+      .sort((a, b) => a.divisionCode.localeCompare(b.divisionCode));
+  }
+
+  public async initializeBuyoutLog(projectCode: string): Promise<IBuyoutEntry[]> {
+    await delay();
+    const existing = this.buyoutEntries.filter(e => e.projectCode === projectCode);
+    if (existing.length > 0) return existing;
+
+    const now = new Date().toISOString();
+    const newEntries: IBuyoutEntry[] = STANDARD_BUYOUT_DIVISIONS.map(div => ({
+      id: this.getNextId(),
+      projectCode,
+      divisionCode: div.divisionCode,
+      divisionDescription: div.divisionDescription,
+      isStandard: true,
+      originalBudget: 0,
+      estimatedTax: 0,
+      totalBudget: 0,
+      enrolledInSDI: false,
+      bondRequired: false,
+      status: 'Not Started' as const,
+      createdDate: now,
+      modifiedDate: now,
+    }));
+
+    this.buyoutEntries.push(...newEntries);
+    return newEntries;
+  }
+
+  public async addBuyoutEntry(projectCode: string, entry: Partial<IBuyoutEntry>): Promise<IBuyoutEntry> {
+    await delay();
+    const now = new Date().toISOString();
+    const totalBudget = (entry.originalBudget || 0) + (entry.estimatedTax || 0);
+    const overUnder = entry.contractValue != null ? totalBudget - entry.contractValue : undefined;
+
+    const newEntry: IBuyoutEntry = {
+      id: this.getNextId(),
+      projectCode,
+      divisionCode: entry.divisionCode || '',
+      divisionDescription: entry.divisionDescription || '',
+      isStandard: entry.isStandard ?? false,
+      originalBudget: entry.originalBudget || 0,
+      estimatedTax: entry.estimatedTax || 0,
+      totalBudget,
+      subcontractorName: entry.subcontractorName,
+      contractValue: entry.contractValue,
+      overUnder,
+      enrolledInSDI: entry.enrolledInSDI ?? false,
+      bondRequired: entry.bondRequired ?? false,
+      loiSentDate: entry.loiSentDate,
+      loiReturnedDate: entry.loiReturnedDate,
+      contractSentDate: entry.contractSentDate,
+      contractExecutedDate: entry.contractExecutedDate,
+      insuranceCOIReceivedDate: entry.insuranceCOIReceivedDate,
+      status: entry.status || 'Not Started',
+      notes: entry.notes,
+      createdDate: now,
+      modifiedDate: now,
+    };
+
+    this.buyoutEntries.push(newEntry);
+    return newEntry;
+  }
+
+  public async updateBuyoutEntry(projectCode: string, entryId: number, data: Partial<IBuyoutEntry>): Promise<IBuyoutEntry> {
+    await delay();
+    const idx = this.buyoutEntries.findIndex(e => e.id === entryId && e.projectCode === projectCode);
+    if (idx === -1) throw new Error(`Buyout entry ${entryId} not found`);
+
+    const current = this.buyoutEntries[idx];
+    const updated = { ...current, ...data, modifiedDate: new Date().toISOString() };
+
+    // Recalculate derived fields
+    updated.totalBudget = updated.originalBudget + updated.estimatedTax;
+    if (updated.contractValue != null) {
+      updated.overUnder = updated.totalBudget - updated.contractValue;
+    }
+
+    this.buyoutEntries[idx] = updated;
+    return updated;
+  }
+
+  public async removeBuyoutEntry(projectCode: string, entryId: number): Promise<void> {
+    await delay();
+    const idx = this.buyoutEntries.findIndex(e => e.id === entryId && e.projectCode === projectCode);
+    if (idx === -1) throw new Error(`Buyout entry ${entryId} not found`);
+    this.buyoutEntries.splice(idx, 1);
+  }
+
+  // ---------------------------------------------------------------------------
   // Re-Key Operation
   // ---------------------------------------------------------------------------
 
@@ -2097,6 +2199,13 @@ export class MockDataService implements IDataService {
     for (const pl of this.provisioningLogs) {
       if (pl.projectCode === oldCode) {
         pl.projectCode = newCode;
+      }
+    }
+
+    // 22. Update buyout entries
+    for (const be of this.buyoutEntries) {
+      if (be.projectCode === oldCode) {
+        be.projectCode = newCode;
       }
     }
   }

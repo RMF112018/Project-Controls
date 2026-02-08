@@ -23,8 +23,10 @@ import { IEstimatingKickoff, IEstimatingKickoffItem } from '../models/IEstimatin
 import { IJobNumberRequest, JobNumberRequestStatus } from '../models/IJobNumberRequest';
 import { IProjectType } from '../models/IProjectType';
 import { IStandardCostCode } from '../models/IStandardCostCode';
+import { IBuyoutEntry, BuyoutStatus } from '../models/IBuyoutEntry';
 import { GoNoGoDecision, Stage } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
+import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 
 /**
  * SharePoint Data Service — Live implementation using PnP JS.
@@ -480,6 +482,157 @@ export class SharePointDataService implements IDataService {
   // --- Reference Data ---
   async getProjectTypes(): Promise<IProjectType[]> { return []; }
   async getStandardCostCodes(): Promise<IStandardCostCode[]> { return []; }
+
+  // --- Buyout Log ---
+
+  async getBuyoutEntries(projectCode: string): Promise<IBuyoutEntry[]> {
+    const items = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.BUYOUT_LOG)
+      .items
+      .filter(`ProjectCode eq '${projectCode}'`)
+      .orderBy('Title', true)();
+    return items.map((item: Record<string, unknown>) => this.mapToBuyoutEntry(item));
+  }
+
+  async initializeBuyoutLog(projectCode: string): Promise<IBuyoutEntry[]> {
+    const existing = await this.getBuyoutEntries(projectCode);
+    if (existing.length > 0) return existing;
+
+    const batch = this.sp.web.createBatch();
+    const list = this.sp.web.lists.getByTitle(LIST_NAMES.BUYOUT_LOG);
+
+    for (const division of STANDARD_BUYOUT_DIVISIONS) {
+      list.items.inBatch(batch).add({
+        Title: division.divisionCode,
+        ProjectCode: projectCode,
+        DivisionDescription: division.divisionDescription,
+        IsStandard: true,
+        OriginalBudget: 0,
+        EstimatedTax: 0,
+        TotalBudget: 0,
+        EnrolledInSDI: false,
+        BondRequired: false,
+        Status: 'Not Started',
+      });
+    }
+
+    await batch.execute();
+    return this.getBuyoutEntries(projectCode);
+  }
+
+  async addBuyoutEntry(projectCode: string, entry: Partial<IBuyoutEntry>): Promise<IBuyoutEntry> {
+    const totalBudget = (entry.originalBudget || 0) + (entry.estimatedTax || 0);
+    const overUnder = entry.contractValue != null ? totalBudget - entry.contractValue : undefined;
+
+    const result = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.BUYOUT_LOG)
+      .items
+      .add({
+        Title: entry.divisionCode,
+        ProjectCode: projectCode,
+        DivisionDescription: entry.divisionDescription,
+        IsStandard: entry.isStandard ?? false,
+        OriginalBudget: entry.originalBudget || 0,
+        EstimatedTax: entry.estimatedTax || 0,
+        TotalBudget: totalBudget,
+        SubcontractorName: entry.subcontractorName,
+        ContractValue: entry.contractValue,
+        OverUnder: overUnder,
+        EnrolledInSDI: entry.enrolledInSDI ?? false,
+        BondRequired: entry.bondRequired ?? false,
+        LOISentDate: entry.loiSentDate,
+        LOIReturnedDate: entry.loiReturnedDate,
+        ContractSentDate: entry.contractSentDate,
+        ContractExecutedDate: entry.contractExecutedDate,
+        InsuranceCOIReceivedDate: entry.insuranceCOIReceivedDate,
+        Status: entry.status || 'Not Started',
+        Notes: entry.notes,
+      });
+
+    return this.mapToBuyoutEntry(result.data);
+  }
+
+  async updateBuyoutEntry(projectCode: string, entryId: number, data: Partial<IBuyoutEntry>): Promise<IBuyoutEntry> {
+    const current = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.BUYOUT_LOG)
+      .items
+      .getById(entryId)();
+
+    const originalBudget = data.originalBudget ?? current.OriginalBudget ?? 0;
+    const estimatedTax = data.estimatedTax ?? current.EstimatedTax ?? 0;
+    const totalBudget = originalBudget + estimatedTax;
+    const contractValue = data.contractValue ?? current.ContractValue;
+    const overUnder = contractValue != null ? totalBudget - contractValue : undefined;
+
+    const updateData: Record<string, unknown> = {};
+
+    if (data.divisionCode !== undefined) updateData.Title = data.divisionCode;
+    if (data.divisionDescription !== undefined) updateData.DivisionDescription = data.divisionDescription;
+    if (data.originalBudget !== undefined) updateData.OriginalBudget = data.originalBudget;
+    if (data.estimatedTax !== undefined) updateData.EstimatedTax = data.estimatedTax;
+    if (data.subcontractorName !== undefined) updateData.SubcontractorName = data.subcontractorName;
+    if (data.contractValue !== undefined) updateData.ContractValue = data.contractValue;
+    if (data.enrolledInSDI !== undefined) updateData.EnrolledInSDI = data.enrolledInSDI;
+    if (data.bondRequired !== undefined) updateData.BondRequired = data.bondRequired;
+    if (data.loiSentDate !== undefined) updateData.LOISentDate = data.loiSentDate;
+    if (data.loiReturnedDate !== undefined) updateData.LOIReturnedDate = data.loiReturnedDate;
+    if (data.contractSentDate !== undefined) updateData.ContractSentDate = data.contractSentDate;
+    if (data.contractExecutedDate !== undefined) updateData.ContractExecutedDate = data.contractExecutedDate;
+    if (data.insuranceCOIReceivedDate !== undefined) updateData.InsuranceCOIReceivedDate = data.insuranceCOIReceivedDate;
+    if (data.status !== undefined) updateData.Status = data.status;
+    if (data.notes !== undefined) updateData.Notes = data.notes;
+
+    updateData.TotalBudget = totalBudget;
+    if (overUnder !== undefined) updateData.OverUnder = overUnder;
+
+    await this.sp.web.lists
+      .getByTitle(LIST_NAMES.BUYOUT_LOG)
+      .items
+      .getById(entryId)
+      .update(updateData);
+
+    const updated = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.BUYOUT_LOG)
+      .items
+      .getById(entryId)();
+
+    return this.mapToBuyoutEntry(updated);
+  }
+
+  async removeBuyoutEntry(_projectCode: string, entryId: number): Promise<void> {
+    await this.sp.web.lists
+      .getByTitle(LIST_NAMES.BUYOUT_LOG)
+      .items
+      .getById(entryId)
+      .delete();
+  }
+
+  private mapToBuyoutEntry(item: Record<string, unknown>): IBuyoutEntry {
+    return {
+      id: item.Id as number,
+      projectCode: item.ProjectCode as string,
+      divisionCode: item.Title as string,
+      divisionDescription: item.DivisionDescription as string,
+      isStandard: item.IsStandard as boolean,
+      originalBudget: (item.OriginalBudget as number) || 0,
+      estimatedTax: (item.EstimatedTax as number) || 0,
+      totalBudget: (item.TotalBudget as number) || 0,
+      subcontractorName: item.SubcontractorName as string | undefined,
+      contractValue: item.ContractValue as number | undefined,
+      overUnder: item.OverUnder as number | undefined,
+      enrolledInSDI: (item.EnrolledInSDI as boolean) || false,
+      bondRequired: (item.BondRequired as boolean) || false,
+      loiSentDate: item.LOISentDate as string | undefined,
+      loiReturnedDate: item.LOIReturnedDate as string | undefined,
+      contractSentDate: item.ContractSentDate as string | undefined,
+      contractExecutedDate: item.ContractExecutedDate as string | undefined,
+      insuranceCOIReceivedDate: item.InsuranceCOIReceivedDate as string | undefined,
+      status: item.Status as BuyoutStatus,
+      notes: item.Notes as string | undefined,
+      createdDate: item.Created as string,
+      modifiedDate: item.Modified as string,
+    };
+  }
 
   // --- Re-Key ---
   async rekeyProjectCode(_oldCode: string, _newCode: string, _leadId: number): Promise<void> { throw new Error('Not implemented'); }

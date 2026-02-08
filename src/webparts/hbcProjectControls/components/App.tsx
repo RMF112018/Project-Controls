@@ -48,6 +48,7 @@ import { SuperintendentPlanPage } from './pages/project/SuperintendentPlanPage';
 import { LessonsLearnedPage } from './pages/project/LessonsLearnedPage';
 import { ProjectManagementPlan } from './pages/project/pmp/ProjectManagementPlan';
 import { MonthlyProjectReview } from './pages/project/MonthlyProjectReview';
+import { BuyoutLogPage } from './pages/project/BuyoutLogPage';
 
 // Hub pages (Phase 9)
 import { MarketingDashboard } from './pages/hub/MarketingDashboard';
@@ -110,6 +111,7 @@ const ProjectRoutes: React.FC = () => (
     <Route path="/lessons-learned" element={<LessonsLearnedPage />} />
     <Route path="/pmp" element={<ProjectManagementPlan />} />
     <Route path="/monthly-review" element={<MonthlyProjectReview />} />
+    <Route path="/buyout" element={<BuyoutLogPage />} />
     <Route path="*" element={<NotFoundPage />} />
   </Routes>
 );
