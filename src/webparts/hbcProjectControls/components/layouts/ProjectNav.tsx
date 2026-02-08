@@ -5,43 +5,45 @@ import { useAppContext } from '../contexts/AppContext';
 import { useLeads } from '../hooks/useLeads';
 import { ILead, Stage } from '../../models';
 import { getStageScreens, getStageLabel } from '../../utils/stageEngine';
+import { PERMISSIONS } from '../../utils/permissions';
 
 interface INavItem {
   label: string;
   path: string;
   screenKey?: string;
   group?: string;
+  permission?: string;
 }
 
 const ALL_NAV_ITEMS: INavItem[] = [
-  { label: 'Project Home', path: '/' },
-  { label: 'Startup Checklist', path: '/startup-checklist' },
-  { label: 'Responsibility', path: '/responsibility' },
-  { label: 'Project Record', path: '/project-record' },
-  { label: 'Kickoff', path: '/kickoff', screenKey: 'kickoff' },
-  { label: 'Deliverables', path: '/deliverables', screenKey: 'deliverables' },
-  { label: 'Interview Prep', path: '/interview', screenKey: 'interview' },
-  { label: 'Win/Loss', path: '/winloss', screenKey: 'winloss' },
-  { label: 'Loss Autopsy', path: '/autopsy', screenKey: 'autopsy' },
-  { label: 'Contract', path: '/contract', screenKey: 'contract' },
-  { label: 'Turnover', path: '/turnover', screenKey: 'turnover' },
-  { label: 'Closeout', path: '/closeout', screenKey: 'closeout' },
+  { label: 'Project Home', path: '/', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Startup Checklist', path: '/startup-checklist', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Responsibility', path: '/responsibility', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Project Record', path: '/project-record', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Kickoff', path: '/kickoff', screenKey: 'kickoff', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Deliverables', path: '/deliverables', screenKey: 'deliverables', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Interview Prep', path: '/interview', screenKey: 'interview', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Win/Loss', path: '/winloss', screenKey: 'winloss', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Loss Autopsy', path: '/autopsy', screenKey: 'autopsy', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Contract', path: '/contract', screenKey: 'contract', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Turnover', path: '/turnover', screenKey: 'turnover', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Closeout', path: '/closeout', screenKey: 'closeout', permission: PERMISSIONS.PROJECT_HUB_VIEW },
   // Phase 10 — Project Management group
-  { label: 'Risk & Cost', path: '/risk-cost', screenKey: 'risk-cost', group: 'Project Management' },
-  { label: 'Quality Concerns', path: '/quality-concerns', screenKey: 'quality', group: 'Project Management' },
-  { label: 'Safety Concerns', path: '/safety-concerns', screenKey: 'safety', group: 'Project Management' },
-  { label: 'Schedule', path: '/schedule-critical-path', screenKey: 'schedule', group: 'Project Management' },
-  { label: "Super's Plan", path: '/superintendent-plan', screenKey: 'superintendent', group: 'Project Management' },
-  { label: 'Lessons Learned', path: '/lessons-learned', screenKey: 'lessons-learned', group: 'Project Management' },
-  { label: 'PMP', path: '/pmp', screenKey: 'pmp', group: 'Project Management' },
-  { label: 'Monthly Review', path: '/monthly-review', screenKey: 'monthly-review', group: 'Project Management' },
-  { label: 'Buyout Log', path: '/buyout', screenKey: 'buyout', group: 'Project Management' },
+  { label: 'Risk & Cost', path: '/risk-cost', screenKey: 'risk-cost', group: 'Project Management', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Quality Concerns', path: '/quality-concerns', screenKey: 'quality', group: 'Project Management', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Safety Concerns', path: '/safety-concerns', screenKey: 'safety', group: 'Project Management', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Schedule', path: '/schedule-critical-path', screenKey: 'schedule', group: 'Project Management', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: "Super's Plan", path: '/superintendent-plan', screenKey: 'superintendent', group: 'Project Management', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Lessons Learned', path: '/lessons-learned', screenKey: 'lessons-learned', group: 'Project Management', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'PMP', path: '/pmp', screenKey: 'pmp', group: 'Project Management', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Monthly Review', path: '/monthly-review', screenKey: 'monthly-review', group: 'Project Management', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+  { label: 'Buyout Log', path: '/buyout', screenKey: 'buyout', group: 'Project Management', permission: PERMISSIONS.BUYOUT_VIEW },
 ];
 
 export const ProjectNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { siteContext } = useAppContext();
+  const { siteContext, hasPermission } = useAppContext();
   const { leads, fetchLeads } = useLeads();
   const [project, setProject] = React.useState<ILead | null>(null);
 
@@ -58,6 +60,7 @@ export const ProjectNav: React.FC = () => {
   const activeScreens = getStageScreens(stage);
 
   const visibleItems = ALL_NAV_ITEMS.filter(item => {
+    if (item.permission && !hasPermission(item.permission)) return false;
     if (!item.screenKey) return true; // Project Home always visible
     return activeScreens.includes(item.screenKey);
   });
