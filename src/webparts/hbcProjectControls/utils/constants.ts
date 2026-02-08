@@ -29,6 +29,7 @@ export const LIST_NAMES = {
   DELIVERABLES: 'Deliverables',
   ACTION_ITEMS: 'Action_Items',
   TURNOVER_CHECKLIST: 'Turnover_Checklist',
+  BUYOUT_LOG: 'Buyout_Log',
 } as const;
 
 export const ROUTES = {

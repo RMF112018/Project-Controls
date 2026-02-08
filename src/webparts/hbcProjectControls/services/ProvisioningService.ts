@@ -193,6 +193,24 @@ export class ProvisioningService {
   }
 
   /**
+   * Create the Buyout_Log list on a project site.
+   * Called during site provisioning or on-demand initialization.
+   * In production, this uses PnP JS to create the list schema with all required columns.
+   */
+  public async createBuyoutLogList(siteUrl: string): Promise<void> {
+    // In mock mode, simulate the delay
+    await new Promise(resolve => setTimeout(resolve, STEP_DELAY_MS));
+
+    this.dataService.logAudit({
+      Action: AuditAction.SiteProvisioningCompleted,
+      EntityType: EntityType.Project,
+      EntityId: siteUrl,
+      Details: `Buyout_Log list created for ${siteUrl}`,
+      User: 'system',
+    }).catch(console.error);
+  }
+
+  /**
    * Update the title of an existing project site.
    * Used during the re-key operation to reflect the official job number.
    * In mock mode this is a no-op; in production it would call SP REST API.

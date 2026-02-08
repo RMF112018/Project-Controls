@@ -35,6 +35,7 @@ const ALL_NAV_ITEMS: INavItem[] = [
   { label: 'Lessons Learned', path: '/lessons-learned', screenKey: 'lessons-learned', group: 'Project Management' },
   { label: 'PMP', path: '/pmp', screenKey: 'pmp', group: 'Project Management' },
   { label: 'Monthly Review', path: '/monthly-review', screenKey: 'monthly-review', group: 'Project Management' },
+  { label: 'Buyout Log', path: '/buyout', screenKey: 'buyout', group: 'Project Management' },
 ];
 
 export const ProjectNav: React.FC = () => {

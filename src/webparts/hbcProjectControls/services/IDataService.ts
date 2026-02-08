@@ -29,6 +29,7 @@ import { IEstimatingKickoff, IEstimatingKickoffItem } from '../models/IEstimatin
 import { IJobNumberRequest, JobNumberRequestStatus } from '../models/IJobNumberRequest';
 import { IProjectType } from '../models/IProjectType';
 import { IStandardCostCode } from '../models/IStandardCostCode';
+import { IBuyoutEntry } from '../models/IBuyoutEntry';
 import { GoNoGoDecision, Stage } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -224,6 +225,13 @@ export interface IDataService {
 
   // Re-Key Operation
   rekeyProjectCode(oldCode: string, newCode: string, leadId: number): Promise<void>;
+
+  // Buyout Log
+  getBuyoutEntries(projectCode: string): Promise<IBuyoutEntry[]>;
+  initializeBuyoutLog(projectCode: string): Promise<IBuyoutEntry[]>;
+  addBuyoutEntry(projectCode: string, entry: Partial<IBuyoutEntry>): Promise<IBuyoutEntry>;
+  updateBuyoutEntry(projectCode: string, entryId: number, data: Partial<IBuyoutEntry>): Promise<IBuyoutEntry>;
+  removeBuyoutEntry(projectCode: string, entryId: number): Promise<void>;
 
   // App Context
   getAppContextConfig(siteUrl: string): Promise<{ RenderMode: string; AppTitle: string; VisibleModules: string[] } | null>;
