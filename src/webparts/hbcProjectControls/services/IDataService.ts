@@ -7,6 +7,13 @@ import { IMeeting, ICalendarAvailability } from '../models/IMeeting';
 import { INotification } from '../models/INotification';
 import { IAuditEntry } from '../models/IAuditEntry';
 import { IProvisioningLog } from '../models/IProvisioningLog';
+import { IDeliverable } from '../models/IDeliverable';
+import { ITeamMember } from '../models/ITeamMember';
+import { IInterviewPrep } from '../models/IInterviewPrep';
+import { IContractInfo } from '../models/IContractInfo';
+import { ITurnoverItem } from '../models/ITurnoverItem';
+import { ICloseoutItem } from '../models/ICloseoutItem';
+import { ILossAutopsy } from '../models/ILossAutopsy';
 import { IStartupChecklistItem } from '../models/IStartupChecklist';
 import { IInternalMatrixTask, ITeamRoleAssignment, IOwnerContractArticle, ISubContractClause } from '../models/IResponsibilityMatrix';
 import { IMarketingProjectRecord } from '../models/IMarketingProjectRecord';
@@ -83,6 +90,22 @@ export interface IDataService {
   getProvisioningLogs(): Promise<IProvisioningLog[]>;
   retryProvisioning(projectCode: string, fromStep: number): Promise<IProvisioningLog>;
 
+  // Phase 6 — Workflow
+  getTeamMembers(projectCode: string): Promise<ITeamMember[]>;
+  getDeliverables(projectCode: string): Promise<IDeliverable[]>;
+  createDeliverable(data: Partial<IDeliverable>): Promise<IDeliverable>;
+  updateDeliverable(id: number, data: Partial<IDeliverable>): Promise<IDeliverable>;
+  getInterviewPrep(leadId: number): Promise<IInterviewPrep | null>;
+  saveInterviewPrep(data: Partial<IInterviewPrep>): Promise<IInterviewPrep>;
+  getContractInfo(projectCode: string): Promise<IContractInfo | null>;
+  saveContractInfo(data: Partial<IContractInfo>): Promise<IContractInfo>;
+  getTurnoverItems(projectCode: string): Promise<ITurnoverItem[]>;
+  updateTurnoverItem(id: number, data: Partial<ITurnoverItem>): Promise<ITurnoverItem>;
+  getCloseoutItems(projectCode: string): Promise<ICloseoutItem[]>;
+  updateCloseoutItem(id: number, data: Partial<ICloseoutItem>): Promise<ICloseoutItem>;
+  getLossAutopsy(leadId: number): Promise<ILossAutopsy | null>;
+  saveLossAutopsy(data: Partial<ILossAutopsy>): Promise<ILossAutopsy>;
+
   // Startup Checklist
   getStartupChecklist(projectCode: string): Promise<IStartupChecklistItem[]>;
   updateChecklistItem(projectCode: string, itemId: number, data: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem>;
@@ -116,11 +139,6 @@ export interface IDataService {
   createMarketingProjectRecord(data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord>;
   updateMarketingProjectRecord(projectCode: string, data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord>;
   getAllMarketingProjectRecords(): Promise<IMarketingProjectRecord[]>;
-
-  // Lookups
-  getTemplates(): Promise<Array<{ TemplateName: string; SourceURL: string; TargetFolder: string; Division: string; Active: boolean }>>;
-  getRegions(): Promise<string[]>;
-  getSectors(): Promise<string[]>;
 
   // App Context
   getAppContextConfig(siteUrl: string): Promise<{ RenderMode: string; AppTitle: string; VisibleModules: string[] } | null>;

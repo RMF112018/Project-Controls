@@ -201,8 +201,11 @@ export enum DeliverableType {
 export enum MeetingType {
   GoNoGo = 'GoNoGo',
   Kickoff = 'Kickoff',
+  PreconKickoff = 'PreconKickoff',
   RedTeam = 'RedTeam',
+  WinStrategy = 'WinStrategy',
   Autopsy = 'Autopsy',
+  LossAutopsy = 'LossAutopsy',
   Turnover = 'Turnover',
   Other = 'Other'
 }

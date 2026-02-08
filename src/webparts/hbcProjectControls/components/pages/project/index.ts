@@ -1,4 +1,12 @@
 export { ProjectDashboard } from './ProjectDashboard';
+export { PreconKickoff } from './PreconKickoff';
+export { DeliverablesTracker } from './DeliverablesTracker';
+export { InterviewPrep } from './InterviewPrep';
+export { WinLossRecorder } from './WinLossRecorder';
+export { LossAutopsy } from './LossAutopsy';
+export { ContractTracking } from './ContractTracking';
+export { TurnoverToOps } from './TurnoverToOps';
+export { CloseoutChecklist } from './CloseoutChecklist';
 export { ProjectStartupChecklist } from './ProjectStartupChecklist';
 export { ResponsibilityMatrices } from './ResponsibilityMatrices';
 export { InternalResponsibilityMatrix } from './InternalResponsibilityMatrix';

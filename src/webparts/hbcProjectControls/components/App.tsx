@@ -25,6 +25,14 @@ import { GoNoGoTracker } from './pages/precon/GoNoGoTracker';
 
 // Project pages
 import { ProjectDashboard } from './pages/project/ProjectDashboard';
+import { PreconKickoff } from './pages/project/PreconKickoff';
+import { DeliverablesTracker } from './pages/project/DeliverablesTracker';
+import { InterviewPrep } from './pages/project/InterviewPrep';
+import { WinLossRecorder } from './pages/project/WinLossRecorder';
+import { LossAutopsy } from './pages/project/LossAutopsy';
+import { ContractTracking } from './pages/project/ContractTracking';
+import { TurnoverToOps } from './pages/project/TurnoverToOps';
+import { CloseoutChecklist } from './pages/project/CloseoutChecklist';
 import { ProjectStartupChecklist } from './pages/project/ProjectStartupChecklist';
 import { ResponsibilityMatrices } from './pages/project/ResponsibilityMatrices';
 import { ProjectRecord } from './pages/project/ProjectRecord';
@@ -32,18 +40,17 @@ import { ProjectRecord } from './pages/project/ProjectRecord';
 // Hub pages (Phase 9)
 import { MarketingDashboard } from './pages/hub/MarketingDashboard';
 
-const NotFoundPage: React.FC = () => (
-  <div style={{ padding: '48px', textAlign: 'center', color: '#6B7280' }}>
-    <h2 style={{ color: '#1B2A4A', marginBottom: '8px' }}>404 — Page Not Found</h2>
-    <p>The page you are looking for does not exist or has been moved.</p>
-    <a href="#/" style={{ color: '#E87722', textDecoration: 'underline' }}>Return to Home</a>
-  </div>
-);
-
 export interface IAppProps {
   dataService: IDataService;
   renderMode: RenderMode;
 }
+
+const NotFoundPage: React.FC = () => (
+  <div style={{ padding: 48, textAlign: 'center' }}>
+    <h2>Page Not Found</h2>
+    <p>The page you requested does not exist.</p>
+  </div>
+);
 
 const HubRoutes: React.FC = () => (
   <Routes>
@@ -63,12 +70,19 @@ const HubRoutes: React.FC = () => (
 const ProjectRoutes: React.FC = () => (
   <Routes>
     <Route path="/" element={<ProjectDashboard />} />
+    <Route path="/kickoff" element={<PreconKickoff />} />
+    <Route path="/deliverables" element={<DeliverablesTracker />} />
+    <Route path="/interview" element={<InterviewPrep />} />
+    <Route path="/winloss" element={<WinLossRecorder />} />
+    <Route path="/autopsy" element={<LossAutopsy />} />
+    <Route path="/contract" element={<ContractTracking />} />
+    <Route path="/turnover" element={<TurnoverToOps />} />
+    <Route path="/closeout" element={<CloseoutChecklist />} />
     <Route path="/startup-checklist" element={<ProjectStartupChecklist />} />
     <Route path="/responsibility" element={<ResponsibilityMatrices />} />
     <Route path="/responsibility/owner-contract" element={<ResponsibilityMatrices />} />
     <Route path="/responsibility/sub-contract" element={<ResponsibilityMatrices />} />
     <Route path="/project-record" element={<ProjectRecord />} />
-    <Route path="*" element={<NotFoundPage />} />
   </Routes>
 );
 

@@ -246,6 +246,77 @@ export class SharePointDataService implements IDataService {
     throw new Error('Use PowerAutomateService directly');
   }
 
+  // --- Phase 6: Workflow ---
+  async getTeamMembers(_projectCode: string): Promise<import('../models').ITeamMember[]> {
+    const items = await this.sp.web.lists.getByTitle('Team_Members').items.filter(`ProjectCode eq '${_projectCode}'`)();
+    return items;
+  }
+
+  async getDeliverables(_projectCode: string): Promise<import('../models').IDeliverable[]> {
+    const items = await this.sp.web.lists.getByTitle('Deliverables').items.filter(`ProjectCode eq '${_projectCode}'`)();
+    return items;
+  }
+
+  async createDeliverable(data: Partial<import('../models').IDeliverable>): Promise<import('../models').IDeliverable> {
+    const result = await this.sp.web.lists.getByTitle('Deliverables').items.add(data);
+    return result as import('../models').IDeliverable;
+  }
+
+  async updateDeliverable(id: number, data: Partial<import('../models').IDeliverable>): Promise<import('../models').IDeliverable> {
+    await this.sp.web.lists.getByTitle('Deliverables').items.getById(id).update(data);
+    return { id, ...data } as import('../models').IDeliverable;
+  }
+
+  async getInterviewPrep(_leadId: number): Promise<import('../models').IInterviewPrep | null> {
+    const items = await this.sp.web.lists.getByTitle('Interview_Prep').items.filter(`LeadID eq ${_leadId}`)();
+    return items.length > 0 ? items[0] : null;
+  }
+
+  async saveInterviewPrep(data: Partial<import('../models').IInterviewPrep>): Promise<import('../models').IInterviewPrep> {
+    const result = await this.sp.web.lists.getByTitle('Interview_Prep').items.add(data);
+    return result as import('../models').IInterviewPrep;
+  }
+
+  async getContractInfo(_projectCode: string): Promise<import('../models').IContractInfo | null> {
+    const items = await this.sp.web.lists.getByTitle('Contract_Info').items.filter(`ProjectCode eq '${_projectCode}'`)();
+    return items.length > 0 ? items[0] : null;
+  }
+
+  async saveContractInfo(data: Partial<import('../models').IContractInfo>): Promise<import('../models').IContractInfo> {
+    const result = await this.sp.web.lists.getByTitle('Contract_Info').items.add(data);
+    return result as import('../models').IContractInfo;
+  }
+
+  async getTurnoverItems(_projectCode: string): Promise<import('../models').ITurnoverItem[]> {
+    const items = await this.sp.web.lists.getByTitle('Turnover_Items').items.filter(`ProjectCode eq '${_projectCode}'`)();
+    return items;
+  }
+
+  async updateTurnoverItem(id: number, data: Partial<import('../models').ITurnoverItem>): Promise<import('../models').ITurnoverItem> {
+    await this.sp.web.lists.getByTitle('Turnover_Items').items.getById(id).update(data);
+    return { id, ...data } as import('../models').ITurnoverItem;
+  }
+
+  async getCloseoutItems(_projectCode: string): Promise<import('../models').ICloseoutItem[]> {
+    const items = await this.sp.web.lists.getByTitle('Closeout_Items').items.filter(`ProjectCode eq '${_projectCode}'`)();
+    return items;
+  }
+
+  async updateCloseoutItem(id: number, data: Partial<import('../models').ICloseoutItem>): Promise<import('../models').ICloseoutItem> {
+    await this.sp.web.lists.getByTitle('Closeout_Items').items.getById(id).update(data);
+    return { id, ...data } as import('../models').ICloseoutItem;
+  }
+
+  async getLossAutopsy(_leadId: number): Promise<import('../models').ILossAutopsy | null> {
+    const items = await this.sp.web.lists.getByTitle('Loss_Autopsy').items.filter(`LeadID eq ${_leadId}`)();
+    return items.length > 0 ? items[0] : null;
+  }
+
+  async saveLossAutopsy(data: Partial<import('../models').ILossAutopsy>): Promise<import('../models').ILossAutopsy> {
+    const result = await this.sp.web.lists.getByTitle('Loss_Autopsy').items.add(data);
+    return result as import('../models').ILossAutopsy;
+  }
+
   // --- App Context ---
   async getAppContextConfig(siteUrl: string): Promise<{ RenderMode: string; AppTitle: string; VisibleModules: string[] } | null> {
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG).items
