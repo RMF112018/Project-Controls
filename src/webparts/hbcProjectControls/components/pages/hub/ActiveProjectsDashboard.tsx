@@ -15,6 +15,8 @@ import {
 } from 'recharts';
 import { useActiveProjects } from '../../hooks/useActiveProjects';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useAppContext } from '../../contexts/AppContext';
+import { Stage } from '../../../models/enums';
 import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
@@ -50,6 +52,7 @@ const ALERT_COLORS = {
 export const ActiveProjectsDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { isMobile, isTablet } = useResponsive();
+  const { setSelectedProject } = useAppContext();
   const {
     filteredProjects,
     summary,
@@ -578,7 +581,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
                         cursor: 'pointer',
                         boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
                       }}
-                      onClick={() => navigate(`/project/${p.projectCode}`)}
+                      onClick={() => { setSelectedProject({ projectCode: p.projectCode, projectName: p.projectName, stage: Stage.ActiveConstruction, region: p.region }); navigate('/operations/project'); }}
                     >
                       <span style={{ fontWeight: 600 }}>{p.jobNumber}</span>
                       <span style={{ marginLeft: '8px', color: HBC_COLORS.gray600 }}>{p.projectName}</span>
@@ -606,7 +609,15 @@ export const ActiveProjectsDashboard: React.FC = () => {
               columns={columns}
               items={filteredProjects}
               keyExtractor={(p) => p.id}
-              onRowClick={(p) => navigate(`/project/${p.projectCode}`)}
+              onRowClick={(p) => {
+                setSelectedProject({
+                  projectCode: p.projectCode,
+                  projectName: p.projectName,
+                  stage: Stage.ActiveConstruction,
+                  region: p.region,
+                });
+                navigate('/operations/project');
+              }}
               emptyTitle="No projects found"
               emptyDescription="Try adjusting your filters"
               pageSize={20}
@@ -691,7 +702,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
                             marginBottom: '8px',
                             cursor: 'pointer',
                           }}
-                          onClick={() => navigate(`/project/${p.projectCode}`)}
+                          onClick={() => { setSelectedProject({ projectCode: p.projectCode, projectName: p.projectName, stage: Stage.ActiveConstruction, region: p.region }); navigate('/operations/project'); }}
                         >
                           <div style={{ fontWeight: 600, color: HBC_COLORS.navy }}>{p.jobNumber}</div>
                           <div style={{ fontSize: '14px' }}>{p.projectName}</div>

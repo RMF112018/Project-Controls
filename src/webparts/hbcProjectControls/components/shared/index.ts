@@ -19,3 +19,4 @@ export { ProvisioningStatusView } from './ProvisioningStatus';
 export type { IProvisioningStatusProps } from './ProvisioningStatus';
 export { SyncStatusIndicator } from './SyncStatusIndicator';
 export { WhatsNewModal } from './WhatsNewModal';
+export { ProjectPicker } from './ProjectPicker';

@@ -58,7 +58,7 @@ export const PostBidAutopsyList: React.FC = () => {
         {rows.map(row => (
           <div
             key={row.lead.id}
-            onClick={() => navigate(`/autopsy/${row.lead.id}`)}
+            onClick={() => navigate(`/preconstruction/pursuit/${row.lead.id}/autopsy-form`)}
             style={rowStyle}
             onMouseEnter={e => (e.currentTarget.style.borderColor = HBC_COLORS.orange)}
             onMouseLeave={e => (e.currentTarget.style.borderColor = HBC_COLORS.gray200)}
@@ -117,7 +117,7 @@ export const PostBidAutopsyList: React.FC = () => {
               <button
                 onClick={e => {
                   e.stopPropagation();
-                  navigate(`/autopsy/${row.lead.id}`);
+                  navigate(`/preconstruction/pursuit/${row.lead.id}/autopsy-form`);
                 }}
                 style={{
                   padding: '6px 16px',

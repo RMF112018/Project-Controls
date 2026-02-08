@@ -12,9 +12,9 @@ const STATUS_COLORS: Record<string, string> = { Active: HBC_COLORS.error, Monito
 const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 16 };
 
 export const ProjectScheduleCriticalPath: React.FC = () => {
-  const { siteContext, hasPermission, dataService, currentUser } = useAppContext();
+  const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
   const { schedule, isLoading, error, fetchSchedule, updateSchedule, addCriticalPathItem, daysToCompletion } = useProjectSchedule();
-  const projectCode = siteContext.projectCode ?? '';
+  const projectCode = selectedProject?.projectCode ?? '';
   const canEdit = hasPermission(PERMISSIONS.SCHEDULE_EDIT);
 
   React.useEffect(() => { if (projectCode) fetchSchedule(projectCode).catch(console.error); }, [projectCode, fetchSchedule]);

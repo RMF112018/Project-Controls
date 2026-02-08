@@ -25,7 +25,7 @@ const LOSS_REASONS = Object.values(LossReason);
 
 export const WinLossRecorder: React.FC = () => {
   const navigate = useNavigate();
-  const { siteContext, dataService, currentUser } = useAppContext();
+  const { selectedProject, dataService, currentUser } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
   const { recordWin, recordLoss } = useWorkflow();
   const [project, setProject] = React.useState<ILead | null>(null);
@@ -51,7 +51,7 @@ export const WinLossRecorder: React.FC = () => {
   const [competitor, setCompetitor] = React.useState('');
   const [autopsyNotes, setAutopsyNotes] = React.useState('');
 
-  const projectCode = siteContext.projectCode ?? '';
+  const projectCode = selectedProject?.projectCode ?? '';
 
   React.useEffect(() => { fetchLeads().catch(console.error); }, [fetchLeads]);
   React.useEffect(() => {
@@ -153,7 +153,7 @@ export const WinLossRecorder: React.FC = () => {
 
     setShowScheduler(false);
     setToast('Autopsy meeting scheduled. Complete the autopsy to unlock archival.');
-    navigate('/autopsy');
+    navigate(-1);
   };
 
   const handleAutopsyCancel = (): void => {
@@ -198,7 +198,7 @@ export const WinLossRecorder: React.FC = () => {
           )}
           {!isWin && (
             <button
-              onClick={() => navigate('/autopsy')}
+              onClick={() => navigate(-1)}
               style={{
                 marginTop: 16,
                 padding: '10px 24px',

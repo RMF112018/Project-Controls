@@ -25,9 +25,9 @@ const STATUS_COLORS: Record<string, string> = {
 const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 12 };
 
 export const SafetyConcernsTracker: React.FC = () => {
-  const { siteContext, hasPermission, dataService, currentUser } = useAppContext();
+  const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
   const { concerns, isLoading, error, safetyOfficer, fetchConcerns, addConcern, updateConcern } = useSafetyConcerns();
-  const projectCode = siteContext.projectCode ?? '';
+  const projectCode = selectedProject?.projectCode ?? '';
   const canEdit = hasPermission(PERMISSIONS.SAFETY_EDIT);
 
   React.useEffect(() => { if (projectCode) fetchConcerns(projectCode).catch(console.error); }, [projectCode, fetchConcerns]);

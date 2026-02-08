@@ -21,7 +21,7 @@ import {
 } from '../../../utils/formatters';
 import { exportService } from '../../../services/ExportService';
 
-const TAB_PATHS = ['/', '/precon-tracking', '/estimate-log', '/gonogo-tracker'];
+const TAB_PATHS = ['/preconstruction', '/preconstruction/precon-tracker', '/preconstruction/estimate-log', '/preconstruction/gonogo'];
 const TAB_LABELS = ['Current Pursuits', 'Current Preconstruction', 'Estimate Log', 'Go/No-Go Tracker'];
 
 function pathToTab(pathname: string): number {
@@ -255,7 +255,7 @@ export const EstimatingDashboard: React.FC = () => {
     )},
     { key: 'Kickoff', header: 'Kick-Off', width: '90px', render: (r) => (
       <button
-        onClick={(e) => { e.stopPropagation(); if (r.ProjectCode) navigate(`/kickoff/${r.ProjectCode}`); }}
+        onClick={(e) => { e.stopPropagation(); if (r.ProjectCode) navigate(`/preconstruction/pursuit/${r.id}/kickoff`); }}
         style={{
           padding: '4px 8px',
           background: HBC_COLORS.orange,
@@ -556,7 +556,7 @@ export const EstimatingDashboard: React.FC = () => {
           columns={pursuitColumns}
           items={currentPursuits}
           keyExtractor={r => r.id}
-          onRowClick={r => navigate(`/pursuit/${r.id}`)}
+          onRowClick={r => navigate(`/preconstruction/pursuit/${r.id}`)}
           sortField={sortField}
           sortAsc={sortAsc}
           onSort={handleSort}
@@ -572,7 +572,7 @@ export const EstimatingDashboard: React.FC = () => {
             columns={preconColumns}
             items={preconEngagements}
             keyExtractor={r => r.id}
-            onRowClick={r => navigate(`/pursuit/${r.id}`)}
+            onRowClick={r => navigate(`/preconstruction/pursuit/${r.id}`)}
             sortField={sortField}
             sortAsc={sortAsc}
             onSort={handleSort}

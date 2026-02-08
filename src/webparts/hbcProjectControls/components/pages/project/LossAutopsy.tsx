@@ -23,7 +23,7 @@ interface IActionItemDraft { description: string; assignee: string; dueDate: str
 const emptyAction: IActionItemDraft = { description: '', assignee: '', dueDate: '' };
 
 export const LossAutopsy: React.FC = () => {
-  const { siteContext, dataService } = useAppContext();
+  const { selectedProject, dataService } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
   const { lossAutopsy, fetchLossAutopsy, saveLossAutopsy, scheduleAutopsyMeeting, teamMembers, fetchTeamMembers } = useWorkflow();
   const [project, setProject] = React.useState<ILead | null>(null);
@@ -36,7 +36,7 @@ export const LossAutopsy: React.FC = () => {
   const [meetingNotes, setMeetingNotes] = React.useState('');
   const [actionItems, setActionItems] = React.useState<IActionItemDraft[]>([{ ...emptyAction }]);
 
-  const projectCode = siteContext.projectCode ?? '';
+  const projectCode = selectedProject?.projectCode ?? '';
 
   React.useEffect(() => { fetchLeads().catch(console.error); }, [fetchLeads]);
   React.useEffect(() => {

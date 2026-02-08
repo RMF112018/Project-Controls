@@ -6,3 +6,4 @@ export { PermissionGate } from './PermissionGate';
 export type { IPermissionGateProps } from './PermissionGate';
 export { ProtectedRoute } from './ProtectedRoute';
 export type { IProtectedRouteProps } from './ProtectedRoute';
+export { ProjectRequiredRoute } from './ProjectRequiredRoute';

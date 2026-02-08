@@ -25,7 +25,6 @@ import { StatusBadge } from '../../shared/StatusBadge';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 import { PipelineChart } from '../../shared/PipelineChart';
 import { ExportButtons } from '../../shared/ExportButtons';
-import { FeatureGate } from '../../guards/FeatureGate';
 import { RoleGate } from '../../guards/RoleGate';
 import { ILead, IEstimatingTracker, Stage, Region, Division, GoNoGoDecision, AwardStatus, RoleName } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
@@ -268,16 +267,6 @@ export const DashboardPage: React.FC = () => {
   );
 
   return (
-    <FeatureGate featureName="ExecutiveDashboard">
-      <RoleGate
-        allowedRoles={[RoleName.ExecutiveLeadership, RoleName.BDRepresentative]}
-        fallback={
-          <div style={{ padding: '48px', textAlign: 'center', color: HBC_COLORS.gray500 }}>
-            <h3>Access Restricted</h3>
-            <p>The Executive Dashboard is restricted to Executive Leadership and BD Representatives.</p>
-          </div>
-        }
-      >
       <div id="dashboard-view">
         <PageHeader
           title="Executive Dashboard"
@@ -457,7 +446,7 @@ export const DashboardPage: React.FC = () => {
               columns={deadlineColumns}
               items={upcomingDeadlines}
               keyExtractor={r => r.id}
-              onRowClick={r => navigate(`/pursuit/${r.id}`)}
+              onRowClick={r => navigate(`/preconstruction/pursuit/${r.id}`)}
               emptyTitle="No deadlines"
               pageSize={10}
             />
@@ -474,8 +463,66 @@ export const DashboardPage: React.FC = () => {
             />
           </div>
         </div>
+
+        {/* Marketing Summary */}
+        <RoleGate allowedRoles={[RoleName.Marketing, RoleName.ExecutiveLeadership]}>
+          <div style={{ marginTop: '32px' }}>
+            {sectionTitle('Marketing')}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto', gap: '16px', alignItems: 'center' }}>
+              <KPICard title="Project Records in Progress" value={records.filter(r => !r.SubmittedDate).length} subtitle="Active marketing records" />
+              <button
+                onClick={() => navigate('/marketing')}
+                style={{
+                  padding: '8px 20px', backgroundColor: HBC_COLORS.navy, color: '#fff',
+                  border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', height: 'fit-content',
+                }}
+              >
+                View Marketing Dashboard
+              </button>
+            </div>
+          </div>
+        </RoleGate>
+
+        {/* Preconstruction Summary */}
+        <RoleGate allowedRoles={[RoleName.BDRepresentative, RoleName.EstimatingCoordinator, RoleName.PreconstructionTeam, RoleName.ExecutiveLeadership]}>
+          <div style={{ marginTop: '32px' }}>
+            {sectionTitle('Preconstruction')}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr) auto', gap: '16px', alignItems: 'center' }}>
+              <KPICard title="Active Pursuits" value={filteredLeads.filter(l => l.Stage === Stage.Pursuit || l.Stage === Stage.Opportunity).length} subtitle={formatCurrencyCompact(filteredLeads.filter(l => l.Stage === Stage.Pursuit || l.Stage === Stage.Opportunity).reduce((s, l) => s + (l.ProjectValue || 0), 0))} />
+              <KPICard title="Pending Go/No-Go" value={filteredLeads.filter(l => l.Stage === Stage.GoNoGoPending).length} subtitle="Awaiting decision" />
+              <KPICard title="Upcoming Deadlines" value={upcomingDeadlines.length} subtitle="Bids due soon" />
+              <button
+                onClick={() => navigate('/preconstruction')}
+                style={{
+                  padding: '8px 20px', backgroundColor: HBC_COLORS.navy, color: '#fff',
+                  border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', height: 'fit-content',
+                }}
+              >
+                View Preconstruction
+              </button>
+            </div>
+          </div>
+        </RoleGate>
+
+        {/* Operations Summary */}
+        <RoleGate allowedRoles={[RoleName.OperationsTeam, RoleName.ExecutiveLeadership, RoleName.RiskManagement, RoleName.QualityControl, RoleName.Safety]}>
+          <div style={{ marginTop: '32px' }}>
+            {sectionTitle('Operations')}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(2, 1fr) auto', gap: '16px', alignItems: 'center' }}>
+              <KPICard title="Active Construction" value={filteredLeads.filter(l => l.Stage === Stage.ActiveConstruction).length} subtitle="Projects in construction" />
+              <KPICard title="Projects in Closeout" value={filteredLeads.filter(l => l.Stage === Stage.Closeout).length} subtitle="Closeout phase" />
+              <button
+                onClick={() => navigate('/operations')}
+                style={{
+                  padding: '8px 20px', backgroundColor: HBC_COLORS.navy, color: '#fff',
+                  border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', height: 'fit-content',
+                }}
+              >
+                View Active Projects
+              </button>
+            </div>
+          </div>
+        </RoleGate>
       </div>
-      </RoleGate>
-    </FeatureGate>
   );
 };

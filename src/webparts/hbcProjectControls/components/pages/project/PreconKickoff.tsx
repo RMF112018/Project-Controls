@@ -39,7 +39,7 @@ const teamColumns: IDataTableColumn<ITeamMember>[] = [
 ];
 
 export const PreconKickoff: React.FC = () => {
-  const { siteContext } = useAppContext();
+  const { selectedProject } = useAppContext();
   const { leads, isLoading: leadsLoading, fetchLeads } = useLeads();
   const {
     teamMembers,
@@ -54,7 +54,7 @@ export const PreconKickoff: React.FC = () => {
   const [toastMessage, setToastMessage] = React.useState<string | null>(null);
   const [scheduleError, setScheduleError] = React.useState<string | null>(null);
 
-  const projectCode = siteContext.projectCode || '';
+  const projectCode = selectedProject?.projectCode || '';
 
   // Load leads to find the project
   React.useEffect(() => {

@@ -130,8 +130,8 @@ export const PursuitDetail: React.FC = () => {
     return (
       <div style={{ padding: '24px', textAlign: 'center' }}>
         <h2 style={{ color: HBC_COLORS.gray500 }}>Record not found</h2>
-        <button onClick={() => navigate('/')} style={{ marginTop: '12px', padding: '8px 16px', cursor: 'pointer' }}>
-          Back to Dashboard
+        <button onClick={() => navigate('/preconstruction')} style={{ marginTop: '12px', padding: '8px 16px', cursor: 'pointer' }}>
+          Back to Estimating Dashboard
         </button>
       </div>
     );
@@ -174,9 +174,9 @@ export const PursuitDetail: React.FC = () => {
         breadcrumb={
           <span
             style={{ fontSize: '13px', color: HBC_COLORS.info, cursor: 'pointer' }}
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/preconstruction')}
           >
-            &larr; Back to Dashboard
+            &larr; Back to Estimating Dashboard
           </span>
         }
         actions={
@@ -325,7 +325,7 @@ export const PursuitDetail: React.FC = () => {
             A GO decision was recorded. Use the kick-off checklist to manage proposal preparation tasks.
           </p>
           <button
-            onClick={() => record?.ProjectCode && navigate(`/kickoff/${record.ProjectCode}`)}
+            onClick={() => navigate(`/preconstruction/pursuit/${id}/kickoff`)}
             disabled={!record?.ProjectCode}
             style={{
               padding: '8px 14px',
@@ -440,6 +440,42 @@ export const PursuitDetail: React.FC = () => {
           {record.LeadID ? ` | Linked Lead: #${record.LeadID}` : ' | No linked lead'}
         </div>
       )}
+
+      {/* Tool Links */}
+      <div style={{ ...cardStyle, marginTop: '16px' }}>
+        <h3 style={{ fontSize: '15px', fontWeight: 600, color: HBC_COLORS.navy, marginBottom: '12px' }}>Pursuit Tools</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '8px' }}>
+          {[
+            { label: 'Estimating Kickoff', path: `/preconstruction/pursuit/${id}/kickoff` },
+            { label: 'Interview Prep', path: `/preconstruction/pursuit/${id}/interview` },
+            { label: 'Win/Loss', path: `/preconstruction/pursuit/${id}/winloss` },
+            { label: 'Turnover to Ops', path: `/preconstruction/pursuit/${id}/turnover` },
+            { label: 'Loss Autopsy', path: `/preconstruction/pursuit/${id}/autopsy` },
+            { label: 'Deliverables', path: `/preconstruction/pursuit/${id}/deliverables` },
+          ].map(tool => (
+            <div
+              key={tool.path}
+              onClick={() => navigate(tool.path)}
+              style={{
+                padding: '10px 12px',
+                backgroundColor: HBC_COLORS.gray50,
+                border: `1px solid ${HBC_COLORS.gray200}`,
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: HBC_COLORS.navy,
+                textAlign: 'center',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = HBC_COLORS.gray100; e.currentTarget.style.borderColor = HBC_COLORS.navy; }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = HBC_COLORS.gray50; e.currentTarget.style.borderColor = HBC_COLORS.gray200; }}
+            >
+              {tool.label}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

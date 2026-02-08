@@ -1,9 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { RenderMode } from '../../models/enums';
-import { HubNav } from './HubNav';
-import { ProjectNav } from './ProjectNav';
-import { PreconNav } from './PreconNav';
+import { NavigationSidebar } from './NavigationSidebar';
 import { LoadingSpinner } from '../shared/LoadingSpinner';
 import { SearchBar } from '../shared/SearchBar';
 import { SyncStatusIndicator } from '../shared/SyncStatusIndicator';
@@ -17,7 +14,7 @@ interface IAppShellProps {
 }
 
 export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
-  const { renderMode, isLoading, error, currentUser } = useAppContext();
+  const { isLoading, error, currentUser } = useAppContext();
   const { isMobile, isTablet } = useResponsive();
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
   const [whatsNewOpen, setWhatsNewOpen] = React.useState(false);
@@ -42,11 +39,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
     );
   }
 
-  const NavComponent = renderMode === RenderMode.Full ? HubNav
-    : renderMode === RenderMode.Project ? ProjectNav
-    : PreconNav;
-
-  const sidebarWidth = isMobile ? 0 : isTablet ? 48 : 200;
+  const sidebarWidth = isMobile ? 0 : isTablet ? 48 : 220;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
@@ -77,9 +70,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           )}
           <span style={{ fontWeight: 700, fontSize: '16px', color: HBC_COLORS.orange }}>HBC</span>
           {!isMobile && (
-            <span style={{ fontSize: '14px', opacity: 0.9 }}>
-              {renderMode === RenderMode.Standalone ? 'Estimating Tracker' : 'Project Controls'}
-            </span>
+            <span style={{ fontSize: '14px', opacity: 0.9 }}>Project Controls</span>
           )}
         </div>
 
@@ -117,10 +108,10 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
             />
             <div style={{
               position: 'fixed', top: '48px', left: 0, bottom: 0,
-              width: '240px', zIndex: 1000, backgroundColor: '#fff',
+              width: '260px', zIndex: 1000, backgroundColor: '#fff',
               boxShadow: '4px 0 16px rgba(0,0,0,0.15)', overflow: 'auto',
             }}>
-              <NavComponent />
+              <NavigationSidebar />
             </div>
           </>
         )}
@@ -128,7 +119,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
         {/* Desktop/Tablet sidebar */}
         {!isMobile && (
           <div style={{ width: `${sidebarWidth}px`, flexShrink: 0, overflow: isTablet ? 'hidden' : 'auto' }}>
-            <NavComponent />
+            <NavigationSidebar />
           </div>
         )}
 

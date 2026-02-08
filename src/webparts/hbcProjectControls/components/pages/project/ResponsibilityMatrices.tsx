@@ -6,7 +6,7 @@ import { OwnerContractMatrix } from './OwnerContractMatrix';
 import { SubContractMatrix } from './SubContractMatrix';
 import { HBC_COLORS } from '../../../theme/tokens';
 
-const TAB_PATHS = ['/responsibility', '/responsibility/owner-contract', '/responsibility/sub-contract'];
+const TAB_PATHS = ['/operations/responsibility', '/operations/responsibility/owner-contract', '/operations/responsibility/sub-contract'];
 const TAB_LABELS = ['Internal', 'Owner Contract', 'Sub-Contract'];
 
 function pathToTab(pathname: string): number {

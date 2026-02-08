@@ -6,10 +6,9 @@ import { IPropertyPaneConfiguration, PropertyPaneTextField } from '@microsoft/sp
 import { App, IAppProps } from './components/App';
 import { IDataService } from './services/IDataService';
 import { MockDataService } from './services/MockDataService';
-import { RenderMode } from './models/enums';
 
 export interface IHbcProjectControlsWebPartProps {
-  renderModeOverride?: string;
+  description?: string;
 }
 
 export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHbcProjectControlsWebPartProps> {
@@ -22,27 +21,11 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
   }
 
   public render(): void {
-    const renderMode = this._detectRenderMode();
-
     const element: React.ReactElement<IAppProps> = React.createElement(App, {
       dataService: this._dataService,
-      renderMode,
     });
 
     ReactDom.render(element, this.domElement);
-  }
-
-  private _detectRenderMode(): RenderMode {
-    // Allow override via web part property (useful for testing)
-    if (this.properties.renderModeOverride) {
-      const override = this.properties.renderModeOverride.toLowerCase();
-      if (override === 'full' || override === 'project' || override === 'standalone') {
-        return override as RenderMode;
-      }
-    }
-
-    // Default to full (hub) mode for development
-    return RenderMode.Full;
   }
 
   protected onDispose(): void {
@@ -60,11 +43,10 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
           header: { description: 'HBC Project Controls Configuration' },
           groups: [
             {
-              groupName: 'Development Settings',
+              groupName: 'Settings',
               groupFields: [
-                PropertyPaneTextField('renderModeOverride', {
-                  label: 'Render Mode Override',
-                  description: 'Override render mode: full, project, or standalone',
+                PropertyPaneTextField('description', {
+                  label: 'Description',
                 }),
               ],
             },

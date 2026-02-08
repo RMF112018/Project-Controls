@@ -22,7 +22,7 @@ const inputStyle: React.CSSProperties = {
 const CONTRACT_STEPS: ContractStatus[] = ['Draft', 'In Review', 'Executed'];
 
 export const ContractTracking: React.FC = () => {
-  const { siteContext } = useAppContext();
+  const { selectedProject } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
   const { contractInfo, fetchContractInfo, saveContractInfo, transitionStage } = useWorkflow();
   const [project, setProject] = React.useState<ILead | null>(null);
@@ -39,7 +39,7 @@ export const ContractTracking: React.FC = () => {
   const [substantialCompletion, setSubstantialCompletion] = React.useState('');
   const [finalCompletion, setFinalCompletion] = React.useState('');
 
-  const projectCode = siteContext.projectCode ?? '';
+  const projectCode = selectedProject?.projectCode ?? '';
 
   React.useEffect(() => { fetchLeads().catch(console.error); }, [fetchLeads]);
   React.useEffect(() => {

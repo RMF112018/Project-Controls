@@ -51,7 +51,7 @@ export const EstimatingKickoffList: React.FC = () => {
               <div style={{ color: HBC_COLORS.gray500 }}>{record.LeadEstimator ?? '—'}</div>
               <div style={{ textAlign: 'right' }}>
                 <button
-                  onClick={() => navigate(`/kickoff/${record.ProjectCode}`)}
+                  onClick={() => navigate(`/preconstruction/pursuit/${record.id}/kickoff`)}
                   style={{ padding: '6px 12px', background: HBC_COLORS.orange, color: '#fff', border: 'none', borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                 >
                   Open

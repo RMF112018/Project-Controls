@@ -86,7 +86,7 @@ function nextAssignment(current: MatrixAssignment): MatrixAssignment {
 
 /* ---------- Component ---------- */
 export const SubContractMatrix: React.FC = () => {
-  const { dataService, currentUser, siteContext, hasPermission } = useAppContext();
+  const { dataService, currentUser, selectedProject, hasPermission } = useAppContext();
   const {
     subClauses,
     isLoading,
@@ -98,7 +98,7 @@ export const SubContractMatrix: React.FC = () => {
   } = useResponsibilityMatrix();
 
   const canEdit = hasPermission(PERMISSIONS.MATRIX_EDIT);
-  const projectCode = siteContext.projectCode || '';
+  const projectCode = selectedProject?.projectCode || '';
 
   const [editingCell, setEditingCell] = React.useState<{ id: number; field: string } | null>(null);
   const [editValue, setEditValue] = React.useState('');

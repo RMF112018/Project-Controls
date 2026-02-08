@@ -55,7 +55,7 @@ const inlineInputStyle: React.CSSProperties = {
 
 /* ---------- Component ---------- */
 export const OwnerContractMatrix: React.FC = () => {
-  const { dataService, currentUser, siteContext, hasPermission } = useAppContext();
+  const { dataService, currentUser, selectedProject, hasPermission } = useAppContext();
   const {
     ownerArticles,
     isLoading,
@@ -67,7 +67,7 @@ export const OwnerContractMatrix: React.FC = () => {
   } = useResponsibilityMatrix();
 
   const canEdit = hasPermission(PERMISSIONS.MATRIX_EDIT);
-  const projectCode = siteContext.projectCode || '';
+  const projectCode = selectedProject?.projectCode || '';
 
   const [editingCell, setEditingCell] = React.useState<{ id: number; field: string } | null>(null);
   const [editValue, setEditValue] = React.useState('');

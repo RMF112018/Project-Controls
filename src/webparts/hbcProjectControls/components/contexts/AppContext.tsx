@@ -1,16 +1,24 @@
 import * as React from 'react';
 import { IDataService } from '../../services/IDataService';
-import { ICurrentUser, IFeatureFlag, RenderMode } from '../../models';
-import { ISiteContext, getMockSiteContext } from '../../utils/siteDetector';
+import { ICurrentUser, IFeatureFlag, Stage } from '../../models';
+
+export interface ISelectedProject {
+  projectCode: string;
+  projectName: string;
+  stage: Stage;
+  region?: string;
+  division?: string;
+  leadId?: number;
+}
 
 export interface IAppContextValue {
   dataService: IDataService;
   currentUser: ICurrentUser | null;
   featureFlags: IFeatureFlag[];
-  renderMode: RenderMode;
   isLoading: boolean;
   error: string | null;
-  siteContext: ISiteContext;
+  selectedProject: ISelectedProject | null;
+  setSelectedProject: (project: ISelectedProject | null) => void;
   hasPermission: (permission: string) => boolean;
   isFeatureEnabled: (featureName: string) => boolean;
 }
@@ -19,16 +27,15 @@ const AppContext = React.createContext<IAppContextValue | undefined>(undefined);
 
 interface IAppProviderProps {
   dataService: IDataService;
-  renderMode: RenderMode;
   children: React.ReactNode;
 }
 
-export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, renderMode, children }) => {
+export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, children }) => {
   const [currentUser, setCurrentUser] = React.useState<ICurrentUser | null>(null);
   const [featureFlags, setFeatureFlags] = React.useState<IFeatureFlag[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const siteContext = React.useMemo(() => getMockSiteContext(renderMode), [renderMode]);
+  const [selectedProject, setSelectedProject] = React.useState<ISelectedProject | null>(null);
 
   React.useEffect(() => {
     const init = async (): Promise<void> => {
@@ -68,13 +75,13 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, renderMo
     dataService,
     currentUser,
     featureFlags,
-    renderMode,
     isLoading,
     error,
-    siteContext,
+    selectedProject,
+    setSelectedProject,
     hasPermission,
     isFeatureEnabled,
-  }), [dataService, currentUser, featureFlags, renderMode, isLoading, error, siteContext, hasPermission, isFeatureEnabled]);
+  }), [dataService, currentUser, featureFlags, isLoading, error, selectedProject, hasPermission, isFeatureEnabled]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

@@ -24,3 +24,4 @@ export { useBuyoutLog } from './useBuyoutLog';
 export { useCommitmentApproval } from './useCommitmentApproval';
 export { useActiveProjects } from './useActiveProjects';
 export { useComplianceLog } from './useComplianceLog';
+export { useSelectedProject } from './useSelectedProject';

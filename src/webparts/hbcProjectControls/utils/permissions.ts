@@ -127,6 +127,14 @@ export const PERMISSIONS = {
 
 export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS];
 
+// Nav group visibility by role
+export const NAV_GROUP_ROLES: Record<string, string[]> = {
+  Marketing: ['Marketing', 'Executive Leadership'],
+  Preconstruction: ['BD Representative', 'Estimating Coordinator', 'Preconstruction Team', 'Executive Leadership', 'Legal'],
+  Operations: ['Operations Team', 'Executive Leadership', 'Risk Management', 'Quality Control', 'Safety', 'IDS'],
+  Admin: ['Executive Leadership'],
+};
+
 // Role to permissions mapping
 export const ROLE_PERMISSIONS: Record<string, string[]> = {
   'BD Representative': [
