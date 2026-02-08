@@ -119,6 +119,14 @@ export class MockDataService implements IDataService {
   private boilerplate: IPMPBoilerplateSection[];
   private nextId: number;
 
+  // Dev-only: overridable role for the RoleSwitcher toolbar
+  private _currentRole: RoleName = RoleName.OperationsTeam;
+
+  /** Set the mock user role (called by the dev RoleSwitcher). */
+  public setCurrentUserRole(role: RoleName): void {
+    this._currentRole = role;
+  }
+
   constructor() {
     this.leads = JSON.parse(JSON.stringify(mockLeads)) as ILead[];
     this.scorecards = JSON.parse(JSON.stringify(mockScorecards)) as IGoNoGoScorecard[];
@@ -525,14 +533,14 @@ export class MockDataService implements IDataService {
   public async getCurrentUser(): Promise<ICurrentUser> {
     await delay();
 
-    const roleName = RoleName.BDRepresentative;
+    const roleName = this._currentRole;
     const perms = ROLE_PERMISSIONS[roleName] ?? [];
 
     return {
       id: 5,
-      displayName: 'Karen Foster',
-      email: 'kfoster@hedrickbrothers.com',
-      loginName: 'i:0#.f|membership|kfoster@hedrickbrothers.com',
+      displayName: 'Dev User',
+      email: 'devuser@hedrickbrothers.com',
+      loginName: 'i:0#.f|membership|devuser@hedrickbrothers.com',
       roles: [roleName],
       permissions: new Set<string>(perms),
       photoUrl: undefined

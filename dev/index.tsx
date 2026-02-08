@@ -2,7 +2,9 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { App } from '@components/App';
 import { MockDataService } from '@services/MockDataService';
-import { RenderMode } from '@models/enums';
+import { RenderMode, RoleName } from '@models/enums';
+import { RoleSwitcher } from './RoleSwitcher';
+import { setMockUserRole, getMockUserRole } from './mockContext';
 
 const dataService = new MockDataService();
 
@@ -95,6 +97,7 @@ const DevToolbar: React.FC<{
 
 const DevRoot: React.FC = () => {
   const [mode, setMode] = React.useState<RenderMode>(RenderMode.Full);
+  const [role, setRole] = React.useState<RoleName>(getMockUserRole());
 
   const handleModeChange = React.useCallback(
     (newMode: RenderMode) => {
@@ -105,9 +108,21 @@ const DevRoot: React.FC = () => {
     [mode]
   );
 
+  const handleRoleChange = React.useCallback(
+    (newRole: RoleName) => {
+      if (newRole === role) return;
+      setMockUserRole(newRole);
+      dataService.setCurrentUserRole(newRole);
+      window.location.hash = '#/';
+      setRole(newRole);
+    },
+    [role]
+  );
+
   return (
     <>
-      <App key={mode} dataService={dataService} renderMode={mode} />
+      <App key={`${mode}-${role}`} dataService={dataService} renderMode={mode} />
+      <RoleSwitcher role={role} onRoleChange={handleRoleChange} />
       <DevToolbar mode={mode} onModeChange={handleModeChange} />
     </>
   );

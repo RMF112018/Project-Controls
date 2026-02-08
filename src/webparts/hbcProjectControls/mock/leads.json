@@ -703,5 +703,30 @@
     "LossReason": "Other",
     "LossNotes": "Client shelved renovation plans after Hurricane Ian insurance reassessment. Project indefinitely delayed. May re-emerge in 2027.",
     "Notes": "Full resort renovation including 200 guest rooms, spa, restaurant, pool deck. Project canceled by owner."
+  },
+  {
+    "id": 29,
+    "Title": "HBC Corporate Office Renovation",
+    "ClientName": "Hedrick Brothers Construction",
+    "AE": "SchenkelShultz Architecture",
+    "CityLocation": "West Palm Beach",
+    "Region": "West Palm Beach",
+    "Sector": "Commercial",
+    "SubSector": "Office Building",
+    "Division": "Commercial",
+    "Originator": "bfetting@hedrickbrothers.com",
+    "DepartmentOfOrigin": "Operations",
+    "DateOfEvaluation": "2025-01-15",
+    "DateSubmitted": "2025-01-10",
+    "SquareFeet": 45000,
+    "ProjectValue": 12500000,
+    "DeliveryMethod": "GMP",
+    "Stage": "Active-Construction",
+    "ProjectCode": "25-042-01",
+    "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/25-042-01",
+    "GoNoGoScore_Originator": 92,
+    "GoNoGoScore_Committee": 90,
+    "GoNoGoDecision": "GO",
+    "Notes": "Internal corporate office renovation project. Full access to all Phase 9/10 features for dev testing."
   }
 ]
