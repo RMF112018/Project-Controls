@@ -1784,8 +1784,8 @@ export class MockDataService implements IDataService {
 
     // 2. Update estimating records
     for (const rec of this.estimatingRecords) {
-      if ((rec as Record<string, unknown>).ProjectCode === oldCode) {
-        (rec as Record<string, unknown>).ProjectCode = newCode;
+      if (rec.ProjectCode === oldCode) {
+        rec.ProjectCode = newCode;
       }
     }
 
