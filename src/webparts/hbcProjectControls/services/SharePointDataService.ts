@@ -19,6 +19,7 @@ import { ISuperintendentPlan, ISuperintendentPlanSection } from '../models/ISupe
 import { ILessonLearned } from '../models/ILessonsLearned';
 import { IProjectManagementPlan, IDivisionApprover, IPMPBoilerplateSection } from '../models/IProjectManagementPlan';
 import { IMonthlyProjectReview } from '../models/IMonthlyProjectReview';
+import { IEstimatingKickoff, IEstimatingKickoffItem } from '../models/IEstimatingKickoff';
 import { IJobNumberRequest, JobNumberRequestStatus } from '../models/IJobNumberRequest';
 import { IProjectType } from '../models/IProjectType';
 import { IStandardCostCode } from '../models/IStandardCostCode';
@@ -440,6 +441,15 @@ export class SharePointDataService implements IDataService {
   async getMonthlyReview(_reviewId: number): Promise<IMonthlyProjectReview | null> { return null; }
   async updateMonthlyReview(_reviewId: number, _data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> { throw new Error('Not implemented'); }
   async createMonthlyReview(_data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> { throw new Error('Not implemented'); }
+
+  // --- Estimating Kick-Off ---
+  async getEstimatingKickoff(_projectCode: string): Promise<IEstimatingKickoff | null> { return null; }
+  async getEstimatingKickoffByLeadId(_leadId: number): Promise<IEstimatingKickoff | null> { return null; }
+  async createEstimatingKickoff(_data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> { throw new Error('Not implemented'); }
+  async updateEstimatingKickoff(_id: number, _data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> { throw new Error('Not implemented'); }
+  async updateKickoffItem(_kickoffId: number, _itemId: number, _data: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> { throw new Error('Not implemented'); }
+  async addKickoffItem(_kickoffId: number, _item: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> { throw new Error('Not implemented'); }
+  async removeKickoffItem(_kickoffId: number, _itemId: number): Promise<void> { throw new Error('Not implemented'); }
 
   // --- Job Number Requests ---
   async getJobNumberRequests(_status?: JobNumberRequestStatus): Promise<IJobNumberRequest[]> { return []; }

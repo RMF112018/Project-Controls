@@ -88,6 +88,9 @@ import mockBoilerplate from '../mock/pmpBoilerplate.json';
 import mockJobNumberRequests from '../mock/jobNumberRequests.json';
 import mockProjectTypes from '../mock/projectTypes.json';
 import mockStandardCostCodes from '../mock/standardCostCodes.json';
+import mockEstimatingKickoffs from '../mock/estimatingKickoffs.json';
+import { createEstimatingKickoffTemplate } from '../utils/estimatingKickoffTemplate';
+import { IEstimatingKickoff, IEstimatingKickoffItem } from '../models/IEstimatingKickoff';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
 
@@ -126,6 +129,7 @@ export class MockDataService implements IDataService {
   private monthlyReviews: IMonthlyProjectReview[];
   private boilerplate: IPMPBoilerplateSection[];
   private jobNumberRequests: IJobNumberRequest[];
+  private estimatingKickoffs: IEstimatingKickoff[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -172,6 +176,11 @@ export class MockDataService implements IDataService {
     this.monthlyReviews = JSON.parse(JSON.stringify(mockMonthlyReviews)) as IMonthlyProjectReview[];
     this.boilerplate = JSON.parse(JSON.stringify(mockBoilerplate)) as IPMPBoilerplateSection[];
     this.jobNumberRequests = JSON.parse(JSON.stringify(mockJobNumberRequests)) as IJobNumberRequest[];
+    const kickoffData = JSON.parse(JSON.stringify(mockEstimatingKickoffs)) as IEstimatingKickoff[];
+    this.estimatingKickoffs = kickoffData.map(k => ({
+      ...k,
+      items: k.items && k.items.length > 0 ? k.items : createEstimatingKickoffTemplate(),
+    }));
     this.nextId = 1000;
   }
 
@@ -1677,6 +1686,124 @@ export class MockDataService implements IDataService {
     }
 
     return null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Estimating Kick-Off
+  // ---------------------------------------------------------------------------
+
+  public async getEstimatingKickoff(projectCode: string): Promise<IEstimatingKickoff | null> {
+    await delay();
+    const kickoff = this.estimatingKickoffs.find(k => k.ProjectCode === projectCode);
+    return kickoff ? { ...kickoff, items: [...kickoff.items] } : null;
+  }
+
+  public async getEstimatingKickoffByLeadId(leadId: number): Promise<IEstimatingKickoff | null> {
+    await delay();
+    const kickoff = this.estimatingKickoffs.find(k => k.LeadID === leadId);
+    return kickoff ? { ...kickoff, items: [...kickoff.items] } : null;
+  }
+
+  public async createEstimatingKickoff(data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> {
+    await delay();
+    const kickoff: IEstimatingKickoff = {
+      id: this.getNextId(),
+      LeadID: data.LeadID ?? 0,
+      ProjectCode: data.ProjectCode ?? '',
+      Architect: data.Architect,
+      ProposalDueDateTime: data.ProposalDueDateTime,
+      ProposalType: data.ProposalType,
+      RFIFormat: data.RFIFormat,
+      PrimaryOwnerContact: data.PrimaryOwnerContact,
+      ProposalDeliveryMethod: data.ProposalDeliveryMethod,
+      CopiesIfHandDelivered: data.CopiesIfHandDelivered,
+      HBProposalDue: data.HBProposalDue,
+      SubcontractorProposalsDue: data.SubcontractorProposalsDue,
+      PreSubmissionReview: data.PreSubmissionReview,
+      SubcontractorSiteWalkThru: data.SubcontractorSiteWalkThru,
+      OwnerEstimateReview: data.OwnerEstimateReview,
+      items: data.items && data.items.length > 0 ? data.items : createEstimatingKickoffTemplate(),
+      KickoffMeetingId: data.KickoffMeetingId,
+      KickoffMeetingDate: data.KickoffMeetingDate,
+      CreatedBy: data.CreatedBy ?? 'system',
+      CreatedDate: data.CreatedDate ?? new Date().toISOString(),
+      ModifiedBy: data.ModifiedBy,
+      ModifiedDate: data.ModifiedDate,
+    };
+
+    this.estimatingKickoffs.push(kickoff);
+    return { ...kickoff, items: [...kickoff.items] };
+  }
+
+  public async updateEstimatingKickoff(id: number, data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> {
+    await delay();
+    const index = this.estimatingKickoffs.findIndex(k => k.id === id);
+    if (index === -1) throw new Error(`Estimating kickoff ${id} not found`);
+
+    const updated: IEstimatingKickoff = {
+      ...this.estimatingKickoffs[index],
+      ...data,
+      items: data.items ?? this.estimatingKickoffs[index].items,
+      ModifiedDate: new Date().toISOString(),
+    };
+
+    this.estimatingKickoffs[index] = updated;
+    return { ...updated, items: [...updated.items] };
+  }
+
+  public async updateKickoffItem(
+    kickoffId: number,
+    itemId: number,
+    data: Partial<IEstimatingKickoffItem>
+  ): Promise<IEstimatingKickoffItem> {
+    await delay();
+    const kickoff = this.estimatingKickoffs.find(k => k.id === kickoffId);
+    if (!kickoff) throw new Error(`Estimating kickoff ${kickoffId} not found`);
+
+    const index = kickoff.items.findIndex(i => i.id === itemId);
+    if (index === -1) throw new Error(`Kickoff item ${itemId} not found`);
+
+    const updated = { ...kickoff.items[index], ...data };
+    kickoff.items[index] = updated;
+    kickoff.ModifiedDate = new Date().toISOString();
+    return { ...updated };
+  }
+
+  public async addKickoffItem(kickoffId: number, item: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> {
+    await delay();
+    const kickoff = this.estimatingKickoffs.find(k => k.id === kickoffId);
+    if (!kickoff) throw new Error(`Estimating kickoff ${kickoffId} not found`);
+
+    const nextItemId = kickoff.items.length > 0
+      ? Math.max(...kickoff.items.map(i => i.id)) + 1
+      : 1;
+
+    const newItem: IEstimatingKickoffItem = {
+      id: nextItemId,
+      section: item.section ?? 'managing',
+      task: item.task ?? 'New Task',
+      status: item.status ?? null,
+      responsibleParty: item.responsibleParty ?? '',
+      deadline: item.deadline ?? '',
+      frequency: item.frequency ?? '',
+      notes: item.notes ?? '',
+      tabRequired: item.tabRequired,
+      isCustom: item.isCustom ?? true,
+      sortOrder: item.sortOrder ?? kickoff.items.length + 1,
+    };
+
+    kickoff.items.push(newItem);
+    kickoff.ModifiedDate = new Date().toISOString();
+    return { ...newItem };
+  }
+
+  public async removeKickoffItem(kickoffId: number, itemId: number): Promise<void> {
+    await delay();
+    const kickoff = this.estimatingKickoffs.find(k => k.id === kickoffId);
+    if (!kickoff) throw new Error(`Estimating kickoff ${kickoffId} not found`);
+
+    kickoff.items = kickoff.items.filter(i => i.id !== itemId);
+    kickoff.ModifiedDate = new Date().toISOString();
   }
 
   // ---------------------------------------------------------------------------

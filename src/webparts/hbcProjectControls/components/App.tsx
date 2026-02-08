@@ -22,6 +22,8 @@ import { AdminPanel } from './pages/hub/AdminPanel';
 import { EstimatingDashboard } from './pages/precon/EstimatingDashboard';
 import { PursuitDetail } from './pages/precon/PursuitDetail';
 import { GoNoGoTracker } from './pages/precon/GoNoGoTracker';
+import { EstimatingKickoffList } from './pages/precon/EstimatingKickoffList';
+import { EstimatingKickoffPage } from './pages/precon/EstimatingKickoffPage';
 
 // Project pages
 import { ProjectDashboard } from './pages/project/ProjectDashboard';
@@ -114,6 +116,8 @@ const PreconRoutes: React.FC = () => (
   <Routes>
     <Route path="/" element={<EstimatingDashboard />} />
     <Route path="/pursuit/:id" element={<PursuitDetail />} />
+    <Route path="/kickoff" element={<EstimatingKickoffList />} />
+    <Route path="/kickoff/:projectCode" element={<EstimatingKickoffPage />} />
     <Route path="/precon-tracking" element={<EstimatingDashboard />} />
     <Route path="/estimate-log" element={<EstimatingDashboard />} />
     <Route path="/gonogo-tracker" element={<GoNoGoTracker />} />

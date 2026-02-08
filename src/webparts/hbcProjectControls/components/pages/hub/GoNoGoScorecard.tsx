@@ -11,6 +11,7 @@ import { ScoreTierBadge } from '../../shared/ScoreTierBadge';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { ConfirmDialog } from '../../shared/ConfirmDialog';
 import { ProvisioningStatusView } from '../../shared/ProvisioningStatus';
+import { KickoffMeetingScheduler } from '../../shared/KickoffMeetingScheduler';
 import { ProvisioningService } from '../../../services/ProvisioningService';
 import {
   IGoNoGoScorecard as IScorecardModel,
@@ -84,6 +85,10 @@ export const GoNoGoScorecard: React.FC = () => {
   const [showNoGoDialog, setShowNoGoDialog] = React.useState(false);
   const [toastMessage, setToastMessage] = React.useState('');
   const [provisioningCode, setProvisioningCode] = React.useState<string | null>(null);
+  const [showKickoffScheduler, setShowKickoffScheduler] = React.useState(false);
+  const [kickoffAttendees, setKickoffAttendees] = React.useState<string[]>([]);
+  const [kickoffId, setKickoffId] = React.useState<number | null>(null);
+  const [postGoRedirect, setPostGoRedirect] = React.useState<string | null>(null);
 
   const leadId = Number(id);
 
@@ -92,6 +97,30 @@ export const GoNoGoScorecard: React.FC = () => {
   const canScoreCommittee = hasPermission(PERMISSIONS.GONOGO_SCORE_COMMITTEE);
   const canDecide = hasPermission(PERMISSIONS.GONOGO_DECIDE);
   const isSubmitted = !!scorecard?.Decision;
+
+  const handleKickoffScheduled = React.useCallback(async (meetingId: string, start: string, end: string) => {
+    if (kickoffId !== null) {
+      await dataService.updateEstimatingKickoff(kickoffId, {
+        KickoffMeetingId: meetingId,
+        KickoffMeetingDate: start,
+        ModifiedBy: currentUser?.email ?? 'system',
+      });
+    }
+    notify(NotificationEvent.EstimatingKickoffScheduled, {
+      leadTitle: lead?.Title,
+      leadId,
+      clientName: lead?.ClientName,
+      projectCode,
+      meetingDate: start,
+    }).catch(console.error);
+    setShowKickoffScheduler(false);
+    if (postGoRedirect) navigate(postGoRedirect);
+  }, [kickoffId, dataService, currentUser, notify, lead, leadId, projectCode, postGoRedirect, navigate]);
+
+  const handleKickoffCancel = React.useCallback(() => {
+    setShowKickoffScheduler(false);
+    if (postGoRedirect) navigate(postGoRedirect);
+  }, [postGoRedirect, navigate]);
 
   React.useEffect(() => {
     const load = async (): Promise<void> => {
@@ -225,12 +254,39 @@ export const GoNoGoScorecard: React.FC = () => {
         });
 
         setProvisioningCode(projectCode);
-        setToastMessage(`GO decision recorded. Project code ${projectCode} assigned. Redirecting to Job Number Request...`);
+        setToastMessage(`GO decision recorded. Project code ${projectCode} assigned. Scheduling kick-off meeting...`);
 
-        // Redirect to Job Number Request form after brief delay
-        setTimeout(() => {
-          navigate(`/job-request/${leadId}`);
-        }, 1500);
+        // Create kickoff record and launch scheduler
+        const kickoff = await dataService.createEstimatingKickoff({
+          LeadID: leadId,
+          ProjectCode: projectCode,
+          Architect: lead?.AE,
+          ProposalDueDateTime: lead?.ProposalBidDue,
+          CreatedBy: currentUser?.email ?? 'system',
+          CreatedDate: new Date().toISOString(),
+        });
+        setKickoffId(kickoff.id);
+
+        const attendees = new Set<string>();
+        const addEmail = (value?: string) => {
+          if (value && value.includes('@')) attendees.add(value);
+        };
+        addEmail(currentUser?.email);
+        addEmail(lead?.ProjectExecutive);
+        addEmail(lead?.ProjectManager);
+
+        try {
+          const estimatingRecord = await dataService.getEstimatingByLeadId(leadId);
+          addEmail(estimatingRecord?.LeadEstimator);
+          addEmail(estimatingRecord?.PX_ProjectExecutive);
+          (estimatingRecord?.Contributors || []).forEach(addEmail);
+        } catch {
+          // ignore if estimating record not found
+        }
+
+        setKickoffAttendees(Array.from(attendees));
+        setShowKickoffScheduler(true);
+        setPostGoRedirect(`/job-request/${leadId}`);
       } else if (dec === GoNoGoDecision.NoGo) {
         await updateLead(leadId, {
           Stage: Stage.ArchivedNoGo,
@@ -700,6 +756,32 @@ export const GoNoGoScorecard: React.FC = () => {
       {provisioningCode && (
         <div style={{ marginTop: '24px' }}>
           <ProvisioningStatusView projectCode={provisioningCode} pollInterval={800} />
+        </div>
+      )}
+
+      {showKickoffScheduler && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.45)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+          padding: 24,
+        }}>
+          <div style={{ maxWidth: 560, width: '100%' }}>
+            <KickoffMeetingScheduler
+              attendeeEmails={kickoffAttendees}
+              leadId={leadId}
+              projectCode={projectCode}
+              onScheduled={handleKickoffScheduled}
+              onCancel={handleKickoffCancel}
+            />
+          </div>
         </div>
       )}
 
