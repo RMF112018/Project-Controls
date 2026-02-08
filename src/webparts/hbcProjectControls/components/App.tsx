@@ -24,6 +24,8 @@ import { PursuitDetail } from './pages/precon/PursuitDetail';
 import { GoNoGoTracker } from './pages/precon/GoNoGoTracker';
 import { EstimatingKickoffList } from './pages/precon/EstimatingKickoffList';
 import { EstimatingKickoffPage } from './pages/precon/EstimatingKickoffPage';
+import { PostBidAutopsyList } from './pages/precon/PostBidAutopsyList';
+import { PostBidAutopsyForm } from './pages/precon/PostBidAutopsyForm';
 
 // Project pages
 import { ProjectDashboard } from './pages/project/ProjectDashboard';
@@ -118,6 +120,8 @@ const PreconRoutes: React.FC = () => (
     <Route path="/pursuit/:id" element={<PursuitDetail />} />
     <Route path="/kickoff" element={<EstimatingKickoffList />} />
     <Route path="/kickoff/:projectCode" element={<EstimatingKickoffPage />} />
+    <Route path="/autopsies" element={<PostBidAutopsyList />} />
+    <Route path="/autopsy/:leadId" element={<PostBidAutopsyForm />} />
     <Route path="/precon-tracking" element={<EstimatingDashboard />} />
     <Route path="/estimate-log" element={<EstimatingDashboard />} />
     <Route path="/gonogo-tracker" element={<GoNoGoTracker />} />

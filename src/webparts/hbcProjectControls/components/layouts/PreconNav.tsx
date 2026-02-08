@@ -10,6 +10,7 @@ interface INavItem {
 const NAV_ITEMS: INavItem[] = [
   { label: 'Dashboard', path: '/' },
   { label: 'Kick-Off Checklists', path: '/kickoff' },
+  { label: 'Post-Bid Autopsies', path: '/autopsies' },
   { label: 'Precon Tracking', path: '/precon-tracking' },
   { label: 'Estimate Log', path: '/estimate-log' },
   { label: 'Go/No-Go Tracker', path: '/gonogo-tracker' },

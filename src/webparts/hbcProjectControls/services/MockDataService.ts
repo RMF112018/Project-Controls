@@ -89,6 +89,7 @@ import mockJobNumberRequests from '../mock/jobNumberRequests.json';
 import mockProjectTypes from '../mock/projectTypes.json';
 import mockStandardCostCodes from '../mock/standardCostCodes.json';
 import mockEstimatingKickoffs from '../mock/estimatingKickoffs.json';
+import mockLossAutopsies from '../mock/lossAutopsies.json';
 import { createEstimatingKickoffTemplate } from '../utils/estimatingKickoffTemplate';
 import { IEstimatingKickoff, IEstimatingKickoffItem } from '../models/IEstimatingKickoff';
 
@@ -157,7 +158,7 @@ export class MockDataService implements IDataService {
     this.provisioningLogs = [];
     this.interviewPreps = [];
     this.contractInfos = [];
-    this.lossAutopsies = [];
+    this.lossAutopsies = JSON.parse(JSON.stringify(mockLossAutopsies)) as ILossAutopsy[];
     this.checklistItems = JSON.parse(JSON.stringify(mockStartupChecklist)) as IStartupChecklistItem[];
     const matrixData = JSON.parse(JSON.stringify(mockInternalMatrix)) as { tasks: IInternalMatrixTask[]; recurringItems: unknown[]; teamAssignments: ITeamRoleAssignment[] };
     this.internalMatrixTasks = matrixData.tasks;
@@ -963,9 +964,59 @@ export class MockDataService implements IDataService {
       meetingNotes: data.meetingNotes,
       completedDate: data.completedDate,
       completedBy: data.completedBy,
+      // Estimating process questions
+      realisticTimeline: data.realisticTimeline ?? null,
+      scopesBeforeProposals: data.scopesBeforeProposals ?? null,
+      threeBidsPerTrade: data.threeBidsPerTrade ?? null,
+      reasonableITBTime: data.reasonableITBTime ?? null,
+      bidsSavedProperly: data.bidsSavedProperly ?? null,
+      multipleSubCommunications: data.multipleSubCommunications ?? null,
+      vettedProposals: data.vettedProposals ?? null,
+      reasonableSpread: data.reasonableSpread ?? null,
+      pricesMatchHistorical: data.pricesMatchHistorical ?? null,
+      veOptionsOffered: data.veOptionsOffered ?? null,
+      deliverablesOnTime: data.deliverablesOnTime ?? null,
+      // Scoring & discussion
+      processScore: data.processScore ?? 0,
+      strengths: data.strengths,
+      weaknesses: data.weaknesses,
+      opportunities: data.opportunities,
+      challenges: data.challenges,
+      overallRating: data.overallRating ?? 0,
+      // Meeting & status
+      meetingScheduledDate: data.meetingScheduledDate,
+      meetingAttendees: data.meetingAttendees ?? [],
+      isFinalized: data.isFinalized ?? false,
+      finalizedDate: data.finalizedDate,
+      finalizedBy: data.finalizedBy,
     };
     this.lossAutopsies.push(newItem);
     return { ...newItem };
+  }
+
+  public async finalizeLossAutopsy(leadId: number, data: Partial<ILossAutopsy>): Promise<ILossAutopsy> {
+    await delay();
+    const index = this.lossAutopsies.findIndex(la => la.leadId === leadId);
+    if (index === -1) throw new Error(`No autopsy found for lead ${leadId}`);
+    this.lossAutopsies[index] = {
+      ...this.lossAutopsies[index],
+      ...data,
+      isFinalized: true,
+      finalizedDate: new Date().toISOString(),
+      finalizedBy: data.finalizedBy ?? 'system',
+    };
+    return { ...this.lossAutopsies[index] };
+  }
+
+  public async isAutopsyFinalized(leadId: number): Promise<boolean> {
+    await delay();
+    const autopsy = this.lossAutopsies.find(la => la.leadId === leadId);
+    return autopsy?.isFinalized ?? false;
+  }
+
+  public async getAllLossAutopsies(): Promise<ILossAutopsy[]> {
+    await delay();
+    return this.lossAutopsies.map(a => ({ ...a }));
   }
 
   // ---------------------------------------------------------------------------

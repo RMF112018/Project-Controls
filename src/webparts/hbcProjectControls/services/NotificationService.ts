@@ -16,6 +16,8 @@ export interface INotificationContext {
   scheduledBy?: string;
   jobNumber?: string;
   assignedBy?: string;
+  processScore?: number;
+  overallRating?: number;
 }
 
 interface INotificationTemplate {
@@ -133,6 +135,14 @@ function buildTemplate(
         body: `An estimating kick-off meeting has been scheduled for "${ctx.leadTitle ?? 'Untitled'}" (${ctx.projectCode ?? ''}).`,
         type: NotificationType.Both,
         recipientRoles: ['Estimating Coordinator', 'Executive Leadership'],
+      };
+
+    case NotificationEvent.AutopsyFinalized:
+      return {
+        subject: `Post-Bid Autopsy Finalized: ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `The Post-Bid Autopsy for "${ctx.leadTitle ?? 'Untitled'}" (${ctx.clientName ?? ''}) has been finalized.${ctx.processScore !== undefined ? ` Process Score: ${ctx.processScore}%.` : ''}${ctx.overallRating !== undefined ? ` Overall Rating: ${ctx.overallRating}/10.` : ''} Lessons Learned have been updated. Archive is now unlocked.`,
+        type: NotificationType.Both,
+        recipientRoles: ['BD Representative', 'Executive Leadership', 'Estimating Coordinator', 'Preconstruction Team'],
       };
 
     default:

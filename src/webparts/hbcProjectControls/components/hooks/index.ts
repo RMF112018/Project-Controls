@@ -19,3 +19,4 @@ export { useProjectManagementPlan } from './useProjectManagementPlan';
 export { useMonthlyReview } from './useMonthlyReview';
 export { useJobNumberRequest } from './useJobNumberRequest';
 export { useEstimatingKickoff } from './useEstimatingKickoff';
+export { usePostBidAutopsy } from './usePostBidAutopsy';

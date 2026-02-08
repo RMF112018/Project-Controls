@@ -6,6 +6,7 @@ import { useWorkflow } from '../../hooks/useWorkflow';
 import { PageHeader } from '../../shared/PageHeader';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 import { RoleGate } from '../../guards/RoleGate';
+import { AutopsyMeetingScheduler } from '../../shared/AutopsyMeetingScheduler';
 import { ILead, RoleName, LossReason } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { formatCurrency } from '../../../utils/formatters';
@@ -24,7 +25,7 @@ const LOSS_REASONS = Object.values(LossReason);
 
 export const WinLossRecorder: React.FC = () => {
   const navigate = useNavigate();
-  const { siteContext } = useAppContext();
+  const { siteContext, dataService, currentUser } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
   const { recordWin, recordLoss } = useWorkflow();
   const [project, setProject] = React.useState<ILead | null>(null);
@@ -32,6 +33,12 @@ export const WinLossRecorder: React.FC = () => {
   const [submitting, setSubmitting] = React.useState(false);
   const [submitted, setSubmitted] = React.useState(false);
   const [toast, setToast] = React.useState<string | null>(null);
+
+  // Autopsy meeting scheduler state
+  const [showScheduler, setShowScheduler] = React.useState(false);
+  const [schedulerAttendees, setSchedulerAttendees] = React.useState<string[]>([]);
+  const [autopsyLeadId, setAutopsyLeadId] = React.useState<number>(0);
+  const [autopsyFinalized, setAutopsyFinalized] = React.useState(false);
 
   // Win fields
   const [contractValue, setContractValue] = React.useState('');
@@ -51,9 +58,15 @@ export const WinLossRecorder: React.FC = () => {
     if (leads.length > 0 && projectCode) {
       const found = leads.find(l => l.ProjectCode === projectCode) ?? null;
       setProject(found);
-      if (found?.WinLossDecision) setSubmitted(true);
+      if (found?.WinLossDecision) {
+        setSubmitted(true);
+        // Check if autopsy is finalized for archive lock
+        if (found.WinLossDecision === 'Loss') {
+          dataService.isAutopsyFinalized(found.id).then(setAutopsyFinalized).catch(() => setAutopsyFinalized(false));
+        }
+      }
     }
-  }, [leads, projectCode]);
+  }, [leads, projectCode, dataService]);
 
   const handleWin = async (): Promise<void> => {
     if (!project) return;
@@ -80,10 +93,72 @@ export const WinLossRecorder: React.FC = () => {
         competitor: competitor || undefined,
         autopsyNotes: autopsyNotes || undefined,
       });
+
+      // Create initial autopsy record
+      await dataService.saveLossAutopsy({
+        leadId: project.id,
+        projectCode: project.ProjectCode ?? undefined,
+        rootCauseAnalysis: '',
+        lessonsLearned: '',
+        competitiveIntelligence: '',
+        actionItems: [],
+        meetingNotes: autopsyNotes || '',
+        realisticTimeline: null,
+        scopesBeforeProposals: null,
+        threeBidsPerTrade: null,
+        reasonableITBTime: null,
+        bidsSavedProperly: null,
+        multipleSubCommunications: null,
+        vettedProposals: null,
+        reasonableSpread: null,
+        pricesMatchHistorical: null,
+        veOptionsOffered: null,
+        deliverablesOnTime: null,
+        processScore: 0,
+        overallRating: 0,
+        meetingAttendees: [],
+        isFinalized: false,
+      });
+
+      // Gather attendees for autopsy meeting
+      const attendees = new Set<string>();
+      const addEmail = (value?: string): void => {
+        if (value && value.includes('@')) attendees.add(value);
+      };
+      addEmail(currentUser?.email);
+      addEmail(project.ProjectExecutive);
+      addEmail(project.ProjectManager);
+      try {
+        const estRecord = await dataService.getEstimatingByLeadId(project.id);
+        addEmail(estRecord?.LeadEstimator);
+        addEmail(estRecord?.PX_ProjectExecutive);
+        (estRecord?.Contributors || []).forEach(addEmail);
+      } catch { /* ignore */ }
+
+      setAutopsyLeadId(project.id);
+      setSchedulerAttendees(Array.from(attendees));
+      setShowScheduler(true);
       setSubmitted(true);
-      setToast('Loss recorded. Stage updated to Archived - Loss.');
+      setToast('Loss recorded. Scheduling autopsy meeting...');
     } catch (err) { setToast(err instanceof Error ? err.message : 'Failed to record loss'); }
     finally { setSubmitting(false); }
+  };
+
+  const handleAutopsyScheduled = async (meetingId: string, start: string, end: string): Promise<void> => {
+    // Update autopsy record with meeting details
+    await dataService.saveLossAutopsy({
+      leadId: autopsyLeadId,
+      meetingScheduledDate: start,
+    });
+
+    setShowScheduler(false);
+    setToast('Autopsy meeting scheduled. Complete the autopsy to unlock archival.');
+    navigate('/autopsy');
+  };
+
+  const handleAutopsyCancel = (): void => {
+    setShowScheduler(false);
+    setToast('Meeting scheduling skipped. You can complete the autopsy manually.');
   };
 
   const toggleReason = (reason: string): void => {
@@ -106,14 +181,66 @@ export const WinLossRecorder: React.FC = () => {
           </h3>
           <p style={{ fontSize: 14, color: HBC_COLORS.gray600 }}>Decision Date: {project.WinLossDate ?? new Date().toISOString().split('T')[0]}</p>
           {isWin && project.ProjectValue && <p style={{ fontSize: 14, color: HBC_COLORS.gray600 }}>Contract Value: {formatCurrency(project.ProjectValue)}</p>}
-          {!isWin && project.LossReason && <p style={{ fontSize: 14, color: HBC_COLORS.gray600 }}>Reasons: {project.LossReason.join(', ')}</p>}
+          {!isWin && project.LossReason && <p style={{ fontSize: 14, color: HBC_COLORS.gray600 }}>Reasons: {Array.isArray(project.LossReason) ? project.LossReason.join(', ') : project.LossReason}</p>}
           {!isWin && project.LossCompetitor && <p style={{ fontSize: 14, color: HBC_COLORS.gray600 }}>Competitor: {project.LossCompetitor}</p>}
+          {!isWin && !autopsyFinalized && (
+            <div style={{
+              marginTop: 16,
+              padding: '12px 16px',
+              backgroundColor: '#FEF3C7',
+              borderRadius: 6,
+              border: '1px solid #F59E0B',
+              fontSize: 13,
+              color: '#92400E',
+            }}>
+              <strong>Archive Locked:</strong> A Post-Bid Autopsy must be completed and finalized before this project can be archived.
+            </div>
+          )}
           {!isWin && (
-            <button onClick={() => navigate('/autopsy')} style={{ marginTop: 16, padding: '10px 24px', backgroundColor: HBC_COLORS.navy, color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>
-              Go to Loss Autopsy
+            <button
+              onClick={() => navigate('/autopsy')}
+              style={{
+                marginTop: 16,
+                padding: '10px 24px',
+                backgroundColor: autopsyFinalized ? HBC_COLORS.navy : '#EF4444',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 6,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: 14,
+              }}
+            >
+              {autopsyFinalized ? 'View Autopsy' : 'Complete Autopsy to Archive'}
             </button>
           )}
         </div>
+
+        {/* Autopsy Meeting Scheduler Modal */}
+        {showScheduler && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}>
+            <div style={{ maxWidth: 560, width: '100%' }}>
+              <AutopsyMeetingScheduler
+                attendeeEmails={schedulerAttendees}
+                leadId={autopsyLeadId}
+                projectCode={projectCode}
+                onScheduled={handleAutopsyScheduled}
+                onCancel={handleAutopsyCancel}
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
