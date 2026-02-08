@@ -51,7 +51,8 @@ import {
   NotificationType,
   MeetingType,
   ProvisioningStatus,
-  JobNumberRequestStatus
+  JobNumberRequestStatus,
+  ICommitmentApproval
 } from '../models';
 
 import { IJobNumberRequest } from '../models/IJobNumberRequest';
@@ -1979,6 +1980,9 @@ export class MockDataService implements IDataService {
       totalBudget: 0,
       enrolledInSDI: false,
       bondRequired: false,
+      commitmentStatus: 'Budgeted' as const,
+      waiverRequired: false,
+      approvalHistory: [],
       status: 'Not Started' as const,
       createdDate: now,
       modifiedDate: now,
@@ -2008,6 +2012,9 @@ export class MockDataService implements IDataService {
       overUnder,
       enrolledInSDI: entry.enrolledInSDI ?? false,
       bondRequired: entry.bondRequired ?? false,
+      commitmentStatus: entry.commitmentStatus || 'Budgeted',
+      waiverRequired: entry.waiverRequired ?? false,
+      approvalHistory: entry.approvalHistory ?? [],
       loiSentDate: entry.loiSentDate,
       loiReturnedDate: entry.loiReturnedDate,
       contractSentDate: entry.contractSentDate,
@@ -2046,6 +2053,125 @@ export class MockDataService implements IDataService {
     const idx = this.buyoutEntries.findIndex(e => e.id === entryId && e.projectCode === projectCode);
     if (idx === -1) throw new Error(`Buyout entry ${entryId} not found`);
     this.buyoutEntries.splice(idx, 1);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Commitment Approval
+  // ---------------------------------------------------------------------------
+
+  public async submitCommitmentForApproval(projectCode: string, entryId: number, submittedBy: string): Promise<IBuyoutEntry> {
+    await delay();
+    const idx = this.buyoutEntries.findIndex(e => e.id === entryId && e.projectCode === projectCode);
+    if (idx === -1) throw new Error(`Buyout entry ${entryId} not found`);
+
+    const entry = this.buyoutEntries[idx];
+
+    // Run risk evaluation
+    const { evaluateCommitmentRisk, determineWaiverType } = require('../utils/riskEngine');
+    const risk = evaluateCommitmentRisk(entry);
+
+    const approvalStep: ICommitmentApproval = {
+      id: this.getNextId(),
+      buyoutEntryId: entryId,
+      projectCode,
+      step: 'PX',
+      approverName: 'Kim Foster',
+      approverEmail: 'kfoster@hedrickbrothers.com',
+      status: 'Pending',
+      waiverType: risk.requiresWaiver ? determineWaiverType(entry) : undefined,
+    };
+
+    entry.waiverRequired = risk.requiresWaiver;
+    entry.waiverType = risk.requiresWaiver ? determineWaiverType(entry) : undefined;
+    entry.commitmentStatus = risk.requiresWaiver ? 'WaiverPending' : 'PendingReview';
+    entry.currentApprovalStep = 'PX';
+    entry.approvalHistory = [...(entry.approvalHistory || []), approvalStep];
+    entry.modifiedDate = new Date().toISOString();
+
+    this.buyoutEntries[idx] = entry;
+    return { ...entry };
+  }
+
+  public async respondToCommitmentApproval(
+    projectCode: string,
+    entryId: number,
+    approved: boolean,
+    comment: string,
+    escalate?: boolean
+  ): Promise<IBuyoutEntry> {
+    await delay();
+    const idx = this.buyoutEntries.findIndex(e => e.id === entryId && e.projectCode === projectCode);
+    if (idx === -1) throw new Error(`Buyout entry ${entryId} not found`);
+
+    const entry = this.buyoutEntries[idx];
+    const now = new Date().toISOString();
+
+    // Find the pending approval step
+    const pendingIdx = (entry.approvalHistory || []).findIndex(
+      a => a.status === 'Pending'
+    );
+    if (pendingIdx === -1) throw new Error('No pending approval step found');
+
+    const pendingStep = entry.approvalHistory[pendingIdx];
+    pendingStep.actionDate = now;
+    pendingStep.comment = comment;
+
+    if (!approved) {
+      // Rejected at any stage
+      pendingStep.status = 'Rejected';
+      entry.commitmentStatus = 'Rejected';
+      entry.currentApprovalStep = undefined;
+    } else if (escalate && pendingStep.step === 'ComplianceManager') {
+      // Compliance Manager escalates to CFO
+      pendingStep.status = 'Escalated';
+      const cfoStep: ICommitmentApproval = {
+        id: this.getNextId(),
+        buyoutEntryId: entryId,
+        projectCode,
+        step: 'CFO',
+        approverName: 'CFO',
+        approverEmail: 'cfo@hedrickbrothers.com',
+        status: 'Pending',
+        waiverType: entry.waiverType,
+      };
+      entry.approvalHistory.push(cfoStep);
+      entry.commitmentStatus = 'CFOReview';
+      entry.currentApprovalStep = 'CFO';
+    } else if (pendingStep.step === 'PX' && entry.waiverRequired && (entry.contractValue ?? 0) >= 250000) {
+      // PX approved but needs Compliance Manager escalation for high-value
+      pendingStep.status = 'Approved';
+      const complianceStep: ICommitmentApproval = {
+        id: this.getNextId(),
+        buyoutEntryId: entryId,
+        projectCode,
+        step: 'ComplianceManager',
+        approverName: 'Compliance Manager',
+        approverEmail: 'compliance@hedrickbrothers.com',
+        status: 'Pending',
+        waiverType: entry.waiverType,
+      };
+      entry.approvalHistory.push(complianceStep);
+      entry.commitmentStatus = 'ComplianceReview';
+      entry.currentApprovalStep = 'ComplianceManager';
+    } else {
+      // Final approval (PX for <$250k, ComplianceManager, or CFO)
+      pendingStep.status = 'Approved';
+      entry.commitmentStatus = 'Committed';
+      entry.currentApprovalStep = undefined;
+      // Sync buyout status
+      entry.status = 'Executed';
+    }
+
+    entry.modifiedDate = now;
+    this.buyoutEntries[idx] = entry;
+    return { ...entry };
+  }
+
+  public async getCommitmentApprovalHistory(projectCode: string, entryId: number): Promise<ICommitmentApproval[]> {
+    await delay();
+    const entry = this.buyoutEntries.find(e => e.id === entryId && e.projectCode === projectCode);
+    if (!entry) throw new Error(`Buyout entry ${entryId} not found`);
+    return [...(entry.approvalHistory || [])];
   }
 
   // ---------------------------------------------------------------------------

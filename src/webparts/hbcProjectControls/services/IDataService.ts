@@ -30,6 +30,7 @@ import { IJobNumberRequest, JobNumberRequestStatus } from '../models/IJobNumberR
 import { IProjectType } from '../models/IProjectType';
 import { IStandardCostCode } from '../models/IStandardCostCode';
 import { IBuyoutEntry } from '../models/IBuyoutEntry';
+import { ICommitmentApproval } from '../models/ICommitmentApproval';
 import { GoNoGoDecision, Stage } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -232,6 +233,11 @@ export interface IDataService {
   addBuyoutEntry(projectCode: string, entry: Partial<IBuyoutEntry>): Promise<IBuyoutEntry>;
   updateBuyoutEntry(projectCode: string, entryId: number, data: Partial<IBuyoutEntry>): Promise<IBuyoutEntry>;
   removeBuyoutEntry(projectCode: string, entryId: number): Promise<void>;
+
+  // Commitment Approval
+  submitCommitmentForApproval(projectCode: string, entryId: number, submittedBy: string): Promise<IBuyoutEntry>;
+  respondToCommitmentApproval(projectCode: string, entryId: number, approved: boolean, comment: string, escalate?: boolean): Promise<IBuyoutEntry>;
+  getCommitmentApprovalHistory(projectCode: string, entryId: number): Promise<ICommitmentApproval[]>;
 
   // App Context
   getAppContextConfig(siteUrl: string): Promise<{ RenderMode: string; AppTitle: string; VisibleModules: string[] } | null>;

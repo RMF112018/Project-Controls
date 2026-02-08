@@ -3,8 +3,12 @@ import { HBC_COLORS } from '../../../theme/tokens';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLeads } from '../../hooks/useLeads';
 import { useBuyoutLog } from '../../hooks/useBuyoutLog';
+import { useCommitmentApproval } from '../../hooks/useCommitmentApproval';
 import { IBuyoutEntry, BuyoutStatus } from '../../../models/IBuyoutEntry';
+import { CommitmentStatus } from '../../../models/ICommitmentApproval';
 import { PERMISSIONS } from '../../../utils/permissions';
+import { CommitmentForm } from './CommitmentForm';
+import { CommitmentApprovalPanel } from './CommitmentApprovalPanel';
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -24,17 +28,29 @@ const statusColor = (s: BuyoutStatus): string => {
   }
 };
 
+const COMMITMENT_STATUS_CONFIG: Record<CommitmentStatus, { label: string; bg: string; color: string }> = {
+  Budgeted: { label: 'Budgeted', bg: HBC_COLORS.gray200, color: HBC_COLORS.gray700 },
+  PendingReview: { label: 'Pending Review', bg: HBC_COLORS.warningLight, color: '#92400E' },
+  WaiverPending: { label: 'Waiver Pending', bg: '#FFF7ED', color: '#C2410C' },
+  PXApproved: { label: 'PX Approved', bg: '#DBEAFE', color: '#1E40AF' },
+  ComplianceReview: { label: 'Risk Review', bg: '#F3E8FF', color: '#6B21A8' },
+  CFOReview: { label: 'CFO Review', bg: HBC_COLORS.errorLight, color: '#991B1B' },
+  Committed: { label: 'Committed', bg: HBC_COLORS.successLight, color: '#065F46' },
+  Rejected: { label: 'Rejected', bg: HBC_COLORS.errorLight, color: '#991B1B' },
+};
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export const BuyoutLogPage: React.FC = () => {
-  const { siteContext, hasPermission } = useAppContext();
+  const { siteContext, hasPermission, currentUser } = useAppContext();
   const { leads, fetchLeads } = useLeads();
   const {
     entries, loading, error, metrics,
     fetchEntries, initializeLog, addEntry, updateEntry, removeEntry,
   } = useBuyoutLog();
+  const { submitForApproval, respondToApproval } = useCommitmentApproval();
 
   const projectCode = siteContext.projectCode ?? '';
   const [search, setSearch] = React.useState('');
@@ -45,8 +61,17 @@ export const BuyoutLogPage: React.FC = () => {
   const [newEntry, setNewEntry] = React.useState<Partial<IBuyoutEntry>>({ divisionCode: '', divisionDescription: '' });
   const [toast, setToast] = React.useState<string | null>(null);
 
+  // Commitment approval modal state
+  const [commitmentFormEntry, setCommitmentFormEntry] = React.useState<IBuyoutEntry | null>(null);
+  const [approvalDetailEntry, setApprovalDetailEntry] = React.useState<IBuyoutEntry | null>(null);
+
   const canEdit = hasPermission(PERMISSIONS.BUYOUT_EDIT);
   const canManage = hasPermission(PERMISSIONS.BUYOUT_MANAGE);
+  const canSubmitCommitment = hasPermission(PERMISSIONS.COMMITMENT_SUBMIT);
+  const canApprovePX = hasPermission(PERMISSIONS.COMMITMENT_APPROVE_PX);
+  const canApproveCompliance = hasPermission(PERMISSIONS.COMMITMENT_APPROVE_COMPLIANCE);
+  const canApproveCFO = hasPermission(PERMISSIONS.COMMITMENT_APPROVE_CFO);
+  const canEscalate = hasPermission(PERMISSIONS.COMMITMENT_ESCALATE);
 
   React.useEffect(() => { fetchLeads().catch(console.error); }, [fetchLeads]);
 
@@ -121,6 +146,34 @@ export const BuyoutLogPage: React.FC = () => {
     if (!confirm(`Remove "${entry.divisionCode} - ${entry.divisionDescription}"?`)) return;
     await removeEntry(projectCode, entry.id);
     setToast('Division removed.');
+  };
+
+  // ---- commitment form submit ----
+  const handleCommitmentSubmit = async (data: Partial<IBuyoutEntry>): Promise<void> => {
+    if (!commitmentFormEntry) return;
+    // Save the checklist data first
+    await updateEntry(projectCode, commitmentFormEntry.id, data);
+    // Then submit for approval
+    const updated = await submitForApproval(projectCode, commitmentFormEntry.id, currentUser?.displayName ?? 'Unknown');
+    // Refresh
+    await fetchEntries(projectCode);
+    setCommitmentFormEntry(null);
+    setToast(updated.waiverRequired ? 'Commitment submitted — waiver required.' : 'Commitment submitted for PX review.');
+  };
+
+  const handleApprovalAction = async (action: 'approve' | 'reject' | 'escalate', comment: string): Promise<void> => {
+    if (!approvalDetailEntry) return;
+    await respondToApproval(
+      projectCode,
+      approvalDetailEntry.id,
+      action !== 'reject',
+      comment,
+      action === 'escalate',
+    );
+    await fetchEntries(projectCode);
+    setApprovalDetailEntry(null);
+    const msg = action === 'approve' ? 'Commitment approved.' : action === 'reject' ? 'Commitment rejected.' : 'Escalated to CFO.';
+    setToast(msg);
   };
 
   // ---- loading / empty ----
@@ -243,6 +296,7 @@ export const BuyoutLogPage: React.FC = () => {
               <Th>Contract Exec.</Th>
               <Th>COI Received</Th>
               <Th>Status</Th>
+              <Th>Commitment</Th>
               {canEdit && <Th align="center">Actions</Th>}
             </tr>
           </thead>
@@ -372,6 +426,32 @@ export const BuyoutLogPage: React.FC = () => {
                     }
                   </Td>
 
+                  {/* Commitment Status */}
+                  <Td>
+                    {(() => {
+                      const cs = entry.commitmentStatus || 'Budgeted';
+                      const cfg = COMMITMENT_STATUS_CONFIG[cs] || COMMITMENT_STATUS_CONFIG.Budgeted;
+                      return (
+                        <span
+                          onClick={() => cs !== 'Budgeted' ? setApprovalDetailEntry(entry) : undefined}
+                          style={{
+                            display: 'inline-block',
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            backgroundColor: cfg.bg,
+                            color: cfg.color,
+                            cursor: cs !== 'Budgeted' ? 'pointer' : 'default',
+                            textDecoration: cs === 'Rejected' ? 'line-through' : 'none',
+                          }}
+                        >
+                          {cfg.label}
+                        </span>
+                      );
+                    })()}
+                  </Td>
+
                   {/* Actions */}
                   {canEdit && (
                     <Td align="center">
@@ -381,8 +461,11 @@ export const BuyoutLogPage: React.FC = () => {
                           <button onClick={cancelEdit} style={btnSmallOutline}>Cancel</button>
                         </span>
                       ) : (
-                        <span style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                        <span style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
                           <button onClick={() => startEdit(entry)} style={btnSmallOutline}>Edit</button>
+                          {canSubmitCommitment && (entry.commitmentStatus === 'Budgeted' || entry.commitmentStatus === undefined) && entry.contractValue != null && entry.contractValue > 0 && (
+                            <button onClick={() => setCommitmentFormEntry(entry)} style={btnSmallCommit}>Submit</button>
+                          )}
                           {canManage && !entry.isStandard && (
                             <button onClick={() => handleRemove(entry)} style={btnSmallDanger}>Del</button>
                           )}
@@ -401,6 +484,43 @@ export const BuyoutLogPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Commitment Form Modal */}
+      {commitmentFormEntry && (
+        <div style={modalOverlay} onClick={() => setCommitmentFormEntry(null)}>
+          <div style={modalContent} onClick={e => e.stopPropagation()}>
+            <CommitmentForm
+              entry={commitmentFormEntry}
+              onSubmit={handleCommitmentSubmit}
+              onCancel={() => setCommitmentFormEntry(null)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Approval Detail Modal */}
+      {approvalDetailEntry && (
+        <div style={modalOverlay} onClick={() => setApprovalDetailEntry(null)}>
+          <div style={modalContent} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: HBC_COLORS.navy }}>
+              Commitment Details: {approvalDetailEntry.divisionDescription}
+            </h3>
+            <CommitmentApprovalPanel
+              entry={approvalDetailEntry}
+              canApprovePX={canApprovePX}
+              canApproveCompliance={canApproveCompliance}
+              canApproveCFO={canApproveCFO}
+              canEscalate={canEscalate}
+              onApprove={comment => handleApprovalAction('approve', comment)}
+              onReject={comment => handleApprovalAction('reject', comment)}
+              onEscalate={comment => handleApprovalAction('escalate', comment)}
+            />
+            <div style={{ marginTop: 16, textAlign: 'right' }}>
+              <button onClick={() => setApprovalDetailEntry(null)} style={btnOutline}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast */}
       {toast && (
@@ -499,4 +619,21 @@ const btnSmallOutline: React.CSSProperties = {
 const btnSmallDanger: React.CSSProperties = {
   padding: '3px 10px', backgroundColor: HBC_COLORS.errorLight, color: HBC_COLORS.error,
   border: `1px solid ${HBC_COLORS.error}`, borderRadius: 4, fontWeight: 600, fontSize: 11, cursor: 'pointer',
+};
+
+const btnSmallCommit: React.CSSProperties = {
+  padding: '3px 10px', backgroundColor: HBC_COLORS.navy, color: '#fff',
+  border: 'none', borderRadius: 4, fontWeight: 600, fontSize: 11, cursor: 'pointer',
+};
+
+const modalOverlay: React.CSSProperties = {
+  position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+  backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 2000,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+
+const modalContent: React.CSSProperties = {
+  backgroundColor: '#fff', borderRadius: 12, padding: 24,
+  maxWidth: 640, width: '90%', maxHeight: '85vh', overflow: 'auto',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
 };

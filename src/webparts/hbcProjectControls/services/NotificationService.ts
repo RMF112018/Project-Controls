@@ -18,6 +18,11 @@ export interface INotificationContext {
   assignedBy?: string;
   processScore?: number;
   overallRating?: number;
+  divisionDescription?: string;
+  contractValue?: number;
+  waiverType?: string;
+  approverName?: string;
+  submittedBy?: string;
 }
 
 interface INotificationTemplate {
@@ -143,6 +148,46 @@ function buildTemplate(
         body: `The Post-Bid Autopsy for "${ctx.leadTitle ?? 'Untitled'}" (${ctx.clientName ?? ''}) has been finalized.${ctx.processScore !== undefined ? ` Process Score: ${ctx.processScore}%.` : ''}${ctx.overallRating !== undefined ? ` Overall Rating: ${ctx.overallRating}/10.` : ''} Lessons Learned have been updated. Archive is now unlocked.`,
         type: NotificationType.Both,
         recipientRoles: ['BD Representative', 'Executive Leadership', 'Estimating Coordinator', 'Preconstruction Team'],
+      };
+
+    case NotificationEvent.CommitmentSubmitted:
+      return {
+        subject: `Commitment Review Required: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
+        body: `A commitment for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has been submitted for review.${ctx.contractValue !== undefined ? ` Contract value: $${ctx.contractValue.toLocaleString()}.` : ''}`,
+        type: NotificationType.Both,
+        recipientRoles: ['Executive Leadership'],
+      };
+
+    case NotificationEvent.CommitmentWaiverRequired:
+      return {
+        subject: `Compliance Waiver Required: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
+        body: `A compliance waiver (${ctx.waiverType ?? 'Unknown'}) is required for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''}.${ctx.contractValue !== undefined ? ` Contract value: $${ctx.contractValue.toLocaleString()}.` : ''} Please review in the Buyout Log.`,
+        type: NotificationType.Both,
+        recipientRoles: ['Executive Leadership', 'Risk Management'],
+      };
+
+    case NotificationEvent.CommitmentApproved:
+      return {
+        subject: `Commitment Approved: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
+        body: `The commitment for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has been fully approved and is now Committed.${ctx.approverName ? ` Approved by: ${ctx.approverName}.` : ''}`,
+        type: NotificationType.Both,
+        recipientRoles: ['Operations Team'],
+      };
+
+    case NotificationEvent.CommitmentEscalatedToCFO:
+      return {
+        subject: `CFO Review Required: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
+        body: `A high-value compliance waiver for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has been escalated to the CFO for final review.${ctx.contractValue !== undefined ? ` Contract value: $${ctx.contractValue.toLocaleString()}.` : ''}`,
+        type: NotificationType.Both,
+        recipientRoles: ['Executive Leadership'],
+      };
+
+    case NotificationEvent.CommitmentRejected:
+      return {
+        subject: `Commitment Rejected: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
+        body: `The commitment for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has been rejected.${ctx.approverName ? ` Rejected by: ${ctx.approverName}.` : ''} Please review and resubmit if applicable.`,
+        type: NotificationType.Both,
+        recipientRoles: ['Operations Team'],
       };
 
     default:

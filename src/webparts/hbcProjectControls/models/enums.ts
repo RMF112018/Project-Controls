@@ -259,5 +259,10 @@ export enum NotificationEvent {
   JobNumberRequested = 'JobNumberRequested',
   JobNumberAssigned = 'JobNumberAssigned',
   EstimatingKickoffScheduled = 'EstimatingKickoffScheduled',
-  AutopsyFinalized = 'AutopsyFinalized'
+  AutopsyFinalized = 'AutopsyFinalized',
+  CommitmentSubmitted = 'CommitmentSubmitted',
+  CommitmentWaiverRequired = 'CommitmentWaiverRequired',
+  CommitmentApproved = 'CommitmentApproved',
+  CommitmentEscalatedToCFO = 'CommitmentEscalatedToCFO',
+  CommitmentRejected = 'CommitmentRejected'
 }
