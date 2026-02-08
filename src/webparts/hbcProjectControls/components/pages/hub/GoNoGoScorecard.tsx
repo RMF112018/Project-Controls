@@ -224,19 +224,13 @@ export const GoNoGoScorecard: React.FC = () => {
           ProjectCode: projectCode,
         });
 
-        // Trigger site provisioning
-        provisioningService.provisionSite({
-          leadId,
-          projectCode,
-          projectName: lead?.Title ?? '',
-          clientName: lead?.ClientName ?? '',
-          division: lead?.Division ?? '',
-          region: lead?.Region ?? '',
-          requestedBy: currentUser?.email ?? '',
-        }).catch(console.error);
         setProvisioningCode(projectCode);
+        setToastMessage(`GO decision recorded. Project code ${projectCode} assigned. Redirecting to Job Number Request...`);
 
-        setToastMessage(`GO decision recorded. Project code ${projectCode} assigned. Site provisioning started.`);
+        // Redirect to Job Number Request form after brief delay
+        setTimeout(() => {
+          navigate(`/job-request/${leadId}`);
+        }, 1500);
       } else if (dec === GoNoGoDecision.NoGo) {
         await updateLead(leadId, {
           Stage: Stage.ArchivedNoGo,

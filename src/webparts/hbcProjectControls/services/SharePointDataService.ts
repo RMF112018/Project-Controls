@@ -19,6 +19,9 @@ import { ISuperintendentPlan, ISuperintendentPlanSection } from '../models/ISupe
 import { ILessonLearned } from '../models/ILessonsLearned';
 import { IProjectManagementPlan, IDivisionApprover, IPMPBoilerplateSection } from '../models/IProjectManagementPlan';
 import { IMonthlyProjectReview } from '../models/IMonthlyProjectReview';
+import { IJobNumberRequest, JobNumberRequestStatus } from '../models/IJobNumberRequest';
+import { IProjectType } from '../models/IProjectType';
+import { IStandardCostCode } from '../models/IStandardCostCode';
 import { GoNoGoDecision, Stage } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 
@@ -437,4 +440,17 @@ export class SharePointDataService implements IDataService {
   async getMonthlyReview(_reviewId: number): Promise<IMonthlyProjectReview | null> { return null; }
   async updateMonthlyReview(_reviewId: number, _data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> { throw new Error('Not implemented'); }
   async createMonthlyReview(_data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> { throw new Error('Not implemented'); }
+
+  // --- Job Number Requests ---
+  async getJobNumberRequests(_status?: JobNumberRequestStatus): Promise<IJobNumberRequest[]> { return []; }
+  async getJobNumberRequestByLeadId(_leadId: number): Promise<IJobNumberRequest | null> { return null; }
+  async createJobNumberRequest(_data: Partial<IJobNumberRequest>): Promise<IJobNumberRequest> { throw new Error('Not implemented'); }
+  async finalizeJobNumber(_requestId: number, _jobNumber: string, _assignedBy: string): Promise<IJobNumberRequest> { throw new Error('Not implemented'); }
+
+  // --- Reference Data ---
+  async getProjectTypes(): Promise<IProjectType[]> { return []; }
+  async getStandardCostCodes(): Promise<IStandardCostCode[]> { return []; }
+
+  // --- Re-Key ---
+  async rekeyProjectCode(_oldCode: string, _newCode: string, _leadId: number): Promise<void> { throw new Error('Not implemented'); }
 }

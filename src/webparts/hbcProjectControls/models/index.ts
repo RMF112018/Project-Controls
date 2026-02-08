@@ -27,3 +27,6 @@ export * from './IProjectScheduleCriticalPath';
 export * from './ISuperintendentPlan';
 export * from './ILessonsLearned';
 export * from './IMonthlyProjectReview';
+export * from './IJobNumberRequest';
+export * from './IProjectType';
+export * from './IStandardCostCode';

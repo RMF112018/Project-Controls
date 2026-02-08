@@ -14,6 +14,8 @@ export interface INotificationContext {
   outcome?: string;
   siteUrl?: string;
   scheduledBy?: string;
+  jobNumber?: string;
+  assignedBy?: string;
 }
 
 interface INotificationTemplate {
@@ -106,6 +108,23 @@ function buildTemplate(
         body: `The safety folder for project ${ctx.projectCode ?? ''} has been updated.`,
         type: NotificationType.Email,
         recipientRoles: ['Safety', 'Operations Team'],
+      };
+
+    case NotificationEvent.JobNumberRequested:
+      return {
+        subject: `New Job Number Request: ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `A new job number has been requested for "${ctx.leadTitle}" (${ctx.clientName ?? ''}).${ctx.dueDate ? ` Required by: ${ctx.dueDate}.` : ''} Please review in the Accounting Queue.`,
+        type: NotificationType.Both,
+        // Standard Distribution: hardcoded to Heather Thomas + Accounting Manager role
+        recipientRoles: ['Accounting Manager'],
+      };
+
+    case NotificationEvent.JobNumberAssigned:
+      return {
+        subject: `Job Number Assigned: ${ctx.projectCode ?? ''} — ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `Official job number ${ctx.projectCode ?? ''} has been assigned to "${ctx.leadTitle}" (${ctx.clientName ?? ''}). The project code has been updated across all records.`,
+        type: NotificationType.Both,
+        recipientRoles: ['Estimating Coordinator', 'BD Representative', 'Executive Leadership'],
       };
 
     default:

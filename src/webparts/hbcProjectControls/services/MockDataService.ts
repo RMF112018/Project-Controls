@@ -50,8 +50,13 @@ import {
   EntityType,
   NotificationType,
   MeetingType,
-  ProvisioningStatus
+  ProvisioningStatus,
+  JobNumberRequestStatus
 } from '../models';
+
+import { IJobNumberRequest } from '../models/IJobNumberRequest';
+import { IProjectType } from '../models/IProjectType';
+import { IStandardCostCode } from '../models/IStandardCostCode';
 
 import { ROLE_PERMISSIONS } from '../utils/permissions';
 
@@ -80,6 +85,9 @@ import mockPMPs from '../mock/projectManagementPlans.json';
 import mockDivisionApprovers from '../mock/divisionApprovers.json';
 import mockMonthlyReviews from '../mock/monthlyProjectReviews.json';
 import mockBoilerplate from '../mock/pmpBoilerplate.json';
+import mockJobNumberRequests from '../mock/jobNumberRequests.json';
+import mockProjectTypes from '../mock/projectTypes.json';
+import mockStandardCostCodes from '../mock/standardCostCodes.json';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
 
@@ -117,6 +125,7 @@ export class MockDataService implements IDataService {
   private divisionApprovers: IDivisionApprover[];
   private monthlyReviews: IMonthlyProjectReview[];
   private boilerplate: IPMPBoilerplateSection[];
+  private jobNumberRequests: IJobNumberRequest[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -162,6 +171,7 @@ export class MockDataService implements IDataService {
     this.divisionApprovers = JSON.parse(JSON.stringify(mockDivisionApprovers)) as IDivisionApprover[];
     this.monthlyReviews = JSON.parse(JSON.stringify(mockMonthlyReviews)) as IMonthlyProjectReview[];
     this.boilerplate = JSON.parse(JSON.stringify(mockBoilerplate)) as IPMPBoilerplateSection[];
+    this.jobNumberRequests = JSON.parse(JSON.stringify(mockJobNumberRequests)) as IJobNumberRequest[];
     this.nextId = 1000;
   }
 
@@ -1667,6 +1677,250 @@ export class MockDataService implements IDataService {
     }
 
     return null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Job Number Requests
+  // ---------------------------------------------------------------------------
+
+  public async getJobNumberRequests(status?: JobNumberRequestStatus): Promise<IJobNumberRequest[]> {
+    await delay();
+    if (status) {
+      return this.jobNumberRequests.filter(r => r.RequestStatus === status);
+    }
+    return [...this.jobNumberRequests];
+  }
+
+  public async getJobNumberRequestByLeadId(leadId: number): Promise<IJobNumberRequest | null> {
+    await delay();
+    // Return the most recent request for this lead
+    const requests = this.jobNumberRequests
+      .filter(r => r.LeadID === leadId)
+      .sort((a, b) => new Date(b.RequestDate).getTime() - new Date(a.RequestDate).getTime());
+    return requests.length > 0 ? { ...requests[0] } : null;
+  }
+
+  public async createJobNumberRequest(data: Partial<IJobNumberRequest>): Promise<IJobNumberRequest> {
+    await delay();
+    const request: IJobNumberRequest = {
+      id: this.getNextId(),
+      LeadID: data.LeadID ?? 0,
+      RequestDate: data.RequestDate ?? new Date().toISOString().split('T')[0],
+      Originator: data.Originator ?? '',
+      RequiredByDate: data.RequiredByDate ?? '',
+      ProjectAddress: data.ProjectAddress ?? '',
+      ProjectExecutive: data.ProjectExecutive ?? '',
+      ProjectManager: data.ProjectManager,
+      ProjectType: data.ProjectType ?? '',
+      ProjectTypeLabel: data.ProjectTypeLabel ?? '',
+      IsEstimatingOnly: data.IsEstimatingOnly ?? false,
+      RequestedCostCodes: data.RequestedCostCodes ?? [],
+      RequestStatus: JobNumberRequestStatus.Pending,
+      SiteProvisioningHeld: data.SiteProvisioningHeld ?? true,
+      TempProjectCode: data.TempProjectCode,
+      Notes: data.Notes,
+    };
+    this.jobNumberRequests.push(request);
+
+    // Link the request to the lead
+    const leadIndex = this.leads.findIndex(l => l.id === request.LeadID);
+    if (leadIndex !== -1) {
+      this.leads[leadIndex].JobNumberRequestId = request.id;
+    }
+
+    return { ...request };
+  }
+
+  public async finalizeJobNumber(requestId: number, jobNumber: string, assignedBy: string): Promise<IJobNumberRequest> {
+    await delay();
+    const index = this.jobNumberRequests.findIndex(r => r.id === requestId);
+    if (index === -1) throw new Error(`Job number request ${requestId} not found`);
+
+    const request = this.jobNumberRequests[index];
+    request.RequestStatus = JobNumberRequestStatus.Completed;
+    request.AssignedJobNumber = jobNumber;
+    request.AssignedBy = assignedBy;
+    request.AssignedDate = new Date().toISOString().split('T')[0];
+
+    // Sync back to the lead
+    const leadIndex = this.leads.findIndex(l => l.id === request.LeadID);
+    if (leadIndex !== -1) {
+      this.leads[leadIndex].OfficialJobNumber = jobNumber;
+      this.leads[leadIndex].ProjectAddress = request.ProjectAddress;
+      this.leads[leadIndex].ProjectExecutive = request.ProjectExecutive;
+      this.leads[leadIndex].ProjectManager = request.ProjectManager;
+    }
+
+    return { ...request };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reference Data
+  // ---------------------------------------------------------------------------
+
+  public async getProjectTypes(): Promise<IProjectType[]> {
+    await delay();
+    return JSON.parse(JSON.stringify(mockProjectTypes)) as IProjectType[];
+  }
+
+  public async getStandardCostCodes(): Promise<IStandardCostCode[]> {
+    await delay();
+    return JSON.parse(JSON.stringify(mockStandardCostCodes)) as IStandardCostCode[];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Re-Key Operation
+  // ---------------------------------------------------------------------------
+
+  public async rekeyProjectCode(oldCode: string, newCode: string, leadId: number): Promise<void> {
+    await delay();
+
+    // 1. Update the lead
+    const leadIndex = this.leads.findIndex(l => l.id === leadId);
+    if (leadIndex !== -1) {
+      this.leads[leadIndex].ProjectCode = newCode;
+      this.leads[leadIndex].OfficialJobNumber = newCode;
+    }
+
+    // 2. Update estimating records
+    for (const rec of this.estimatingRecords) {
+      if (rec.ProjectCode === oldCode) {
+        rec.ProjectCode = newCode;
+      }
+    }
+
+    // 3. Update team members
+    for (const tm of this.teamMembers) {
+      if (tm.projectCode === oldCode) {
+        tm.projectCode = newCode;
+      }
+    }
+
+    // 4. Update deliverables
+    for (const d of this.deliverables) {
+      if (d.projectCode === oldCode) {
+        d.projectCode = newCode;
+      }
+    }
+
+    // 5. Update turnover items
+    for (const t of this.turnoverItems) {
+      if (t.projectCode === oldCode) {
+        t.projectCode = newCode;
+      }
+    }
+
+    // 6. Update closeout items
+    for (const c of this.closeoutItems) {
+      if (c.projectCode === oldCode) {
+        c.projectCode = newCode;
+      }
+    }
+
+    // 7. Update checklist items
+    for (const ci of this.checklistItems) {
+      if (ci.projectCode === oldCode) {
+        ci.projectCode = newCode;
+      }
+    }
+
+    // 8. Update internal matrix tasks
+    for (const mt of this.internalMatrixTasks) {
+      if (mt.projectCode === oldCode) {
+        mt.projectCode = newCode;
+      }
+    }
+
+    // 9. Update team role assignments
+    for (const tra of this.teamRoleAssignments) {
+      if (tra.projectCode === oldCode) {
+        tra.projectCode = newCode;
+      }
+    }
+
+    // 10. Update owner contract articles
+    for (const oca of this.ownerContractArticles) {
+      if (oca.projectCode === oldCode) {
+        oca.projectCode = newCode;
+      }
+    }
+
+    // 11. Update sub contract clauses
+    for (const scc of this.subContractClauses) {
+      if (scc.projectCode === oldCode) {
+        scc.projectCode = newCode;
+      }
+    }
+
+    // 12. Update marketing records
+    for (const mr of this.marketingRecords) {
+      if (mr.projectCode === oldCode) {
+        mr.projectCode = newCode;
+      }
+    }
+
+    // 13. Update risk/cost records
+    for (const rc of this.riskCostRecords) {
+      if (rc.projectCode === oldCode) {
+        rc.projectCode = newCode;
+      }
+    }
+
+    // 14. Update quality concerns
+    for (const qc of this.qualityConcerns) {
+      if (qc.projectCode === oldCode) {
+        qc.projectCode = newCode;
+      }
+    }
+
+    // 15. Update safety concerns
+    for (const sc of this.safetyConcerns) {
+      if (sc.projectCode === oldCode) {
+        sc.projectCode = newCode;
+      }
+    }
+
+    // 16. Update schedule records
+    for (const sr of this.scheduleRecords) {
+      if (sr.projectCode === oldCode) {
+        sr.projectCode = newCode;
+      }
+    }
+
+    // 17. Update superintendent plans
+    for (const sp of this.superintendentPlans) {
+      if (sp.projectCode === oldCode) {
+        sp.projectCode = newCode;
+      }
+    }
+
+    // 18. Update lessons learned
+    for (const ll of this.lessonsLearned) {
+      if (ll.projectCode === oldCode) {
+        ll.projectCode = newCode;
+      }
+    }
+
+    // 19. Update PMPs
+    for (const pmp of this.pmps) {
+      if (pmp.projectCode === oldCode) {
+        pmp.projectCode = newCode;
+      }
+    }
+
+    // 20. Update monthly reviews
+    for (const mr of this.monthlyReviews) {
+      if (mr.projectCode === oldCode) {
+        mr.projectCode = newCode;
+      }
+    }
+
+    // 21. Update provisioning logs
+    for (const pl of this.provisioningLogs) {
+      if (pl.projectCode === oldCode) {
+        pl.projectCode = newCode;
+      }
+    }
   }
 
   // -- Lookups ----------------------------------------------------------

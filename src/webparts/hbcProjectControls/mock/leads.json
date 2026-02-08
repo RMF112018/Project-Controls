@@ -727,6 +727,10 @@
     "GoNoGoScore_Originator": 92,
     "GoNoGoScore_Committee": 90,
     "GoNoGoDecision": "GO",
-    "Notes": "Internal corporate office renovation project. Full access to all Phase 9/10 features for dev testing."
+    "Notes": "Internal corporate office renovation project. Full access to all Phase 9/10 features for dev testing.",
+    "ProjectAddress": "4200 Blue Heron Blvd, West Palm Beach, FL 33404",
+    "ProjectExecutive": "bfetting@hedrickbrothers.com",
+    "ProjectManager": "jrodriguez@hedrickbrothers.com",
+    "OfficialJobNumber": "25-042-01"
   }
 ]

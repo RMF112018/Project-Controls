@@ -25,6 +25,9 @@ import { ISuperintendentPlan, ISuperintendentPlanSection } from '../models/ISupe
 import { ILessonLearned } from '../models/ILessonsLearned';
 import { IProjectManagementPlan, IDivisionApprover, IPMPBoilerplateSection } from '../models/IProjectManagementPlan';
 import { IMonthlyProjectReview } from '../models/IMonthlyProjectReview';
+import { IJobNumberRequest, JobNumberRequestStatus } from '../models/IJobNumberRequest';
+import { IProjectType } from '../models/IProjectType';
+import { IStandardCostCode } from '../models/IStandardCostCode';
 import { GoNoGoDecision, Stage } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -195,6 +198,19 @@ export interface IDataService {
   getMonthlyReview(reviewId: number): Promise<IMonthlyProjectReview | null>;
   updateMonthlyReview(reviewId: number, data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview>;
   createMonthlyReview(data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview>;
+
+  // Job Number Requests
+  getJobNumberRequests(status?: JobNumberRequestStatus): Promise<IJobNumberRequest[]>;
+  getJobNumberRequestByLeadId(leadId: number): Promise<IJobNumberRequest | null>;
+  createJobNumberRequest(data: Partial<IJobNumberRequest>): Promise<IJobNumberRequest>;
+  finalizeJobNumber(requestId: number, jobNumber: string, assignedBy: string): Promise<IJobNumberRequest>;
+
+  // Reference Data
+  getProjectTypes(): Promise<IProjectType[]>;
+  getStandardCostCodes(): Promise<IStandardCostCode[]>;
+
+  // Re-Key Operation
+  rekeyProjectCode(oldCode: string, newCode: string, leadId: number): Promise<void>;
 
   // App Context
   getAppContextConfig(siteUrl: string): Promise<{ RenderMode: string; AppTitle: string; VisibleModules: string[] } | null>;
