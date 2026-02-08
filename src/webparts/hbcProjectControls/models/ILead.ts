@@ -38,6 +38,11 @@ export interface ILead {
   LossReason?: LossReason[];
   LossCompetitor?: string;
   LossAutopsyNotes?: string;
+  ProjectAddress?: string;
+  ProjectExecutive?: string;
+  ProjectManager?: string;
+  OfficialJobNumber?: string;
+  JobNumberRequestId?: number;
 }
 
 export interface ILeadFormData extends Omit<ILead, 'id' | 'DateOfEvaluation' | 'Originator' | 'OriginatorId'> {

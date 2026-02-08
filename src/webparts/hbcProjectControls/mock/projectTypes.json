@@ -1,0 +1,21 @@
+[
+  { "code": "01-41", "label": "HB HQ - AEROSPACE", "office": "HB Headquarters" },
+  { "code": "01-42", "label": "HB HQ - AUTOMOTIVE", "office": "HB Headquarters" },
+  { "code": "01-43", "label": "HB HQ - GENERAL COMMERCIAL", "office": "HB Headquarters" },
+  { "code": "01-44", "label": "HB HQ - COUNTRY CLUBS & HOSPITALITY", "office": "HB Headquarters" },
+  { "code": "01-45", "label": "HB HQ - EDUCATIONAL & MUNICIPAL", "office": "HB Headquarters" },
+  { "code": "01-51", "label": "BROWARD - AEROSPACE", "office": "Broward Office" },
+  { "code": "01-52", "label": "BROWARD - AUTOMOTIVE", "office": "Broward Office" },
+  { "code": "01-53", "label": "BROWARD - GENERAL COMMERCIAL", "office": "Broward Office" },
+  { "code": "01-54", "label": "BROWARD - COUNTRY CLUBS & HOSPITALITY", "office": "Broward Office" },
+  { "code": "01-55", "label": "BROWARD - EDUCATIONAL & MUNICIPAL", "office": "Broward Office" },
+  { "code": "01-56", "label": "BROWARD - OVERHEAD", "office": "Broward Office" },
+  { "code": "01-31", "label": "SPACE COAST - AEROSPACE", "office": "Space Coast Office" },
+  { "code": "01-32", "label": "SPACE COAST - AUTOMOTIVE", "office": "Space Coast Office" },
+  { "code": "01-33", "label": "SPACE COAST - GENERAL COMMERCIAL", "office": "Space Coast Office" },
+  { "code": "01-34", "label": "SPACE COAST - COUNTRY CLUBS & HOSPITALITY", "office": "Space Coast Office" },
+  { "code": "01-35", "label": "SPACE COAST - EDUCATIONAL & MUNICIPAL", "office": "Space Coast Office" },
+  { "code": "01-36", "label": "SPACE COAST - OVERHEAD", "office": "Space Coast Office" },
+  { "code": "01-10", "label": "RESIDENTIAL - PARKER", "office": "Residential" },
+  { "code": "01-05", "label": "HB - HEDRICK", "office": "HB Corporate" }
+]

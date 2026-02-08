@@ -255,5 +255,7 @@ export enum NotificationEvent {
   MonthlyReviewDueNotification = 'MonthlyReviewDueNotification',
   MonthlyReviewSubmittedToPX = 'MonthlyReviewSubmittedToPX',
   MonthlyReviewReturnedToPM = 'MonthlyReviewReturnedToPM',
-  MonthlyReviewSubmittedToLeadership = 'MonthlyReviewSubmittedToLeadership'
+  MonthlyReviewSubmittedToLeadership = 'MonthlyReviewSubmittedToLeadership',
+  JobNumberRequested = 'JobNumberRequested',
+  JobNumberAssigned = 'JobNumberAssigned'
 }

@@ -10,6 +10,7 @@ export interface IProvisioningInput {
   division: string;
   region: string;
   requestedBy: string;
+  siteNameOverride?: string;
 }
 
 const STEP_DELAY_MS = 500;
@@ -61,7 +62,11 @@ export class ProvisioningService {
    */
   private async runSteps(input: IProvisioningInput): Promise<void> {
     const { projectCode } = input;
-    const siteUrl = `https://hedrickbrothers.sharepoint.com/sites/${projectCode.replace(/-/g, '')}`;
+    // Use siteNameOverride when provided (e.g., project name without code prefix)
+    const siteSuffix = input.siteNameOverride
+      ? input.siteNameOverride.replace(/[^a-zA-Z0-9-]/g, '')
+      : projectCode.replace(/-/g, '');
+    const siteUrl = `https://hedrickbrothers.sharepoint.com/sites/${siteSuffix}`;
 
     for (let step = 1; step <= TOTAL_PROVISIONING_STEPS; step++) {
       // Mark step as in-progress
@@ -185,5 +190,23 @@ export class ProvisioningService {
    */
   public static getStepLabels(): readonly { step: number; label: string }[] {
     return PROVISIONING_STEPS;
+  }
+
+  /**
+   * Update the title of an existing project site.
+   * Used during the re-key operation to reflect the official job number.
+   * In mock mode this is a no-op; in production it would call SP REST API.
+   */
+  public async updateSiteTitle(siteUrl: string, newTitle: string): Promise<void> {
+    // In mock mode, just simulate the delay
+    await new Promise(resolve => setTimeout(resolve, STEP_DELAY_MS));
+    // Log for auditing purposes
+    this.dataService.logAudit({
+      Action: AuditAction.SiteProvisioningCompleted,
+      EntityType: EntityType.Project,
+      EntityId: siteUrl,
+      Details: `Site title updated to "${newTitle}" for ${siteUrl}`,
+      User: 'system',
+    }).catch(console.error);
   }
 }

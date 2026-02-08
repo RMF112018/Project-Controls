@@ -48,6 +48,10 @@ import { MonthlyProjectReview } from './pages/project/MonthlyProjectReview';
 // Hub pages (Phase 9)
 import { MarketingDashboard } from './pages/hub/MarketingDashboard';
 
+// Hub pages (Phase 11 — Job Number Request)
+import { JobNumberRequestForm } from './pages/hub/JobNumberRequestForm';
+import { AccountingQueuePage } from './pages/hub/AccountingQueuePage';
+
 export interface IAppProps {
   dataService: IDataService;
   renderMode: RenderMode;
@@ -70,6 +74,8 @@ const HubRoutes: React.FC = () => (
     <Route path="/lead/:id/gonogo/detail" element={<GoNoGoDetail />} />
     <Route path="/lead/:id/schedule-gonogo" element={<GoNoGoMeetingScheduler />} />
     <Route path="/marketing" element={<MarketingDashboard />} />
+    <Route path="/accounting-queue" element={<AccountingQueuePage />} />
+    <Route path="/job-request/:leadId" element={<JobNumberRequestForm />} />
     <Route path="/admin" element={<AdminPanel />} />
     <Route path="*" element={<NotFoundPage />} />
   </Routes>
