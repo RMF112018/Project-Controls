@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { FluentProvider } from '@fluentui/react-components';
 import { hbcLightTheme } from '../theme/hbcTheme';
 import { AppProvider } from './contexts/AppContext';
@@ -33,11 +33,24 @@ import { LossAutopsy } from './pages/project/LossAutopsy';
 import { ContractTracking } from './pages/project/ContractTracking';
 import { TurnoverToOps } from './pages/project/TurnoverToOps';
 import { CloseoutChecklist } from './pages/project/CloseoutChecklist';
+import { ProjectStartupChecklist } from './pages/project/ProjectStartupChecklist';
+import { ResponsibilityMatrices } from './pages/project/ResponsibilityMatrices';
+import { ProjectRecord } from './pages/project/ProjectRecord';
+
+// Hub pages (Phase 9)
+import { MarketingDashboard } from './pages/hub/MarketingDashboard';
 
 export interface IAppProps {
   dataService: IDataService;
   renderMode: RenderMode;
 }
+
+const NotFoundPage: React.FC = () => (
+  <div style={{ padding: 48, textAlign: 'center' }}>
+    <h2>Page Not Found</h2>
+    <p>The page you requested does not exist.</p>
+  </div>
+);
 
 const HubRoutes: React.FC = () => (
   <Routes>
@@ -48,7 +61,9 @@ const HubRoutes: React.FC = () => (
     <Route path="/lead/:id/gonogo" element={<GoNoGoScorecard />} />
     <Route path="/lead/:id/gonogo/detail" element={<GoNoGoDetail />} />
     <Route path="/lead/:id/schedule-gonogo" element={<GoNoGoMeetingScheduler />} />
+    <Route path="/marketing" element={<MarketingDashboard />} />
     <Route path="/admin" element={<AdminPanel />} />
+    <Route path="*" element={<NotFoundPage />} />
   </Routes>
 );
 
@@ -63,6 +78,11 @@ const ProjectRoutes: React.FC = () => (
     <Route path="/contract" element={<ContractTracking />} />
     <Route path="/turnover" element={<TurnoverToOps />} />
     <Route path="/closeout" element={<CloseoutChecklist />} />
+    <Route path="/startup-checklist" element={<ProjectStartupChecklist />} />
+    <Route path="/responsibility" element={<ResponsibilityMatrices />} />
+    <Route path="/responsibility/owner-contract" element={<ResponsibilityMatrices />} />
+    <Route path="/responsibility/sub-contract" element={<ResponsibilityMatrices />} />
+    <Route path="/project-record" element={<ProjectRecord />} />
   </Routes>
 );
 
@@ -73,6 +93,7 @@ const PreconRoutes: React.FC = () => (
     <Route path="/precon-tracking" element={<EstimatingDashboard />} />
     <Route path="/estimate-log" element={<EstimatingDashboard />} />
     <Route path="/gonogo-tracker" element={<GoNoGoTracker />} />
+    <Route path="*" element={<NotFoundPage />} />
   </Routes>
 );
 

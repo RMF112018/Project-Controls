@@ -114,12 +114,20 @@ export enum AuditAction {
   EstimateCreated = 'Estimate.Created',
   EstimateStatusChanged = 'Estimate.StatusChanged',
   TurnoverInitiated = 'Turnover.Initiated',
+  TurnoverCompleted = 'Turnover.Completed',
   PermissionChanged = 'Permission.Changed',
   MeetingScheduled = 'Meeting.Scheduled',
   LossRecorded = 'Loss.Recorded',
   AutopsyCompleted = 'Autopsy.Completed',
   ConfigFeatureFlagChanged = 'Config.FeatureFlagChanged',
-  ConfigRoleChanged = 'Config.RoleChanged'
+  ConfigRoleChanged = 'Config.RoleChanged',
+  ChecklistItemUpdated = 'Checklist.ItemUpdated',
+  ChecklistItemAdded = 'Checklist.ItemAdded',
+  ChecklistSignedOff = 'Checklist.SignedOff',
+  MatrixAssignmentChanged = 'Matrix.AssignmentChanged',
+  MatrixTaskAdded = 'Matrix.TaskAdded',
+  ProjectRecordUpdated = 'ProjectRecord.Updated',
+  ProjectRecordCreated = 'ProjectRecord.Created'
 }
 
 export enum EntityType {
@@ -128,7 +136,10 @@ export enum EntityType {
   Estimate = 'Estimate',
   Project = 'Project',
   Permission = 'Permission',
-  Config = 'Config'
+  Config = 'Config',
+  Checklist = 'Checklist',
+  Matrix = 'Matrix',
+  ProjectRecord = 'ProjectRecord'
 }
 
 export enum DeliverableStatus {
@@ -189,8 +200,11 @@ export enum DeliverableType {
 
 export enum MeetingType {
   GoNoGo = 'GoNoGo',
+  Kickoff = 'Kickoff',
   PreconKickoff = 'PreconKickoff',
+  RedTeam = 'RedTeam',
   WinStrategy = 'WinStrategy',
+  Autopsy = 'Autopsy',
   LossAutopsy = 'LossAutopsy',
   Turnover = 'Turnover',
   Other = 'Other'

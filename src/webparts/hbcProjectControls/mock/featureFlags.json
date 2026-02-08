@@ -7,10 +7,15 @@
   { "id": 6, "FeatureName": "TurnoverWorkflow", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "" },
   { "id": 7, "FeatureName": "LossAutopsy", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "" },
   { "id": 8, "FeatureName": "EstimatingTracker", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "" },
-  { "id": 9, "FeatureName": "UnanetSync", "Enabled": false, "EnabledForRoles": null, "TargetDate": "2026-06-01", "Notes": "Phase 2 - Unanet ERP integration" },
-  { "id": 10, "FeatureName": "Sage300Integration", "Enabled": false, "EnabledForRoles": null, "TargetDate": "2026-06-01", "Notes": "Phase 2 - Sage 300 accounting" },
+  { "id": 9, "FeatureName": "UnanetIntegration", "Enabled": false, "EnabledForRoles": null, "TargetDate": "2026-06-01", "Notes": "Phase 2 - Unanet ERP integration" },
+  { "id": 10, "FeatureName": "SageIntegration", "Enabled": false, "EnabledForRoles": null, "TargetDate": "2026-06-01", "Notes": "Phase 2 - Sage 300 accounting" },
   { "id": 11, "FeatureName": "DocumentCrunchIntegration", "Enabled": false, "EnabledForRoles": null, "TargetDate": "2026-09-01", "Notes": "AI contract review" },
   { "id": 12, "FeatureName": "EstimatingModule", "Enabled": false, "EnabledForRoles": null, "TargetDate": "2026-12-01", "Notes": "Full estimating module" },
   { "id": 13, "FeatureName": "BudgetSync", "Enabled": false, "EnabledForRoles": null, "TargetDate": null, "Notes": "Budget sync with accounting" },
-  { "id": 14, "FeatureName": "ExecutiveDashboard", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 8 exec dashboard" }
+  { "id": 14, "FeatureName": "ExecutiveDashboard", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 8 exec dashboard" },
+  { "id": 15, "FeatureName": "DualNotifications", "Enabled": false, "EnabledForRoles": null, "TargetDate": null, "Notes": "Send both email and Teams notifications" },
+  { "id": 16, "FeatureName": "AuditTrail", "Enabled": false, "EnabledForRoles": null, "TargetDate": null, "Notes": "Detailed audit trail logging" },
+  { "id": 17, "FeatureName": "OfflineSupport", "Enabled": false, "EnabledForRoles": null, "TargetDate": null, "Notes": "Offline mode with queue sync" },
+  { "id": 18, "FeatureName": "ProjectStartup", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 9 startup checklist and responsibility matrices" },
+  { "id": 19, "FeatureName": "MarketingProjectRecord", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 9 marketing project record and dashboard" }
 ]

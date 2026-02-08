@@ -6,3 +6,6 @@ export { useMeetings } from './useMeetings';
 export { useNotifications } from './useNotifications';
 export { useResponsive } from './useResponsive';
 export { useWorkflow } from './useWorkflow';
+export { useStartupChecklist } from './useStartupChecklist';
+export { useResponsibilityMatrix } from './useResponsibilityMatrix';
+export { useMarketingRecord } from './useMarketingRecord';

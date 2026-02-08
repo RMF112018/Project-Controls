@@ -36,7 +36,57 @@ const INITIAL_CONNECTIONS: IConnectionEntry[] = [
   { id: 1, name: 'SharePoint Lists', status: 'Unknown', lastTested: null },
   { id: 2, name: 'Graph API', status: 'Unknown', lastTested: null },
   { id: 3, name: 'PnP Provisioning', status: 'Unknown', lastTested: null },
+  { id: 4, name: 'Power Automate', status: 'Unknown', lastTested: null },
+  { id: 5, name: 'Azure Functions', status: 'Unknown', lastTested: null },
 ];
+
+// Client-side error buffer (last 50)
+interface IClientError {
+  id: number;
+  timestamp: string;
+  message: string;
+  source: string;
+}
+
+class ErrorBuffer {
+  private errors: IClientError[] = [];
+  private nextId = 1;
+  private maxSize = 50;
+
+  capture(message: string, source: string): void {
+    this.errors.unshift({
+      id: this.nextId++,
+      timestamp: new Date().toISOString(),
+      message,
+      source,
+    });
+    if (this.errors.length > this.maxSize) {
+      this.errors.pop();
+    }
+  }
+
+  getErrors(): IClientError[] {
+    return [...this.errors];
+  }
+
+  clear(): void {
+    this.errors = [];
+  }
+}
+
+const errorBuffer = new ErrorBuffer();
+
+// Install global error handler
+if (typeof window !== 'undefined') {
+  const originalOnError = window.onerror;
+  window.onerror = (message, source, _line, _col, _error) => {
+    errorBuffer.capture(String(message), String(source || 'unknown'));
+    if (originalOnError) {
+      return (originalOnError as Function)(message, source, _line, _col, _error);
+    }
+    return false;
+  };
+}
 
 function getStatusBadgeColor(status: ProvisioningStatus): string {
   switch (status) {
@@ -128,6 +178,9 @@ export const AdminPanel: React.FC = () => {
   };
 
   const handleToggleFlag = async (flag: IFeatureFlag): Promise<void> => {
+    const action = flag.Enabled ? 'disable' : 'enable';
+    const confirmed = window.confirm(`Are you sure you want to ${action} "${flag.FeatureName}"?`);
+    if (!confirmed) return;
     setTogglingFlag(flag.id);
     try {
       const updated = await dataService.updateFeatureFlag(flag.id, { Enabled: !flag.Enabled });
@@ -365,6 +418,39 @@ export const AdminPanel: React.FC = () => {
             keyExtractor={c => c.id}
             emptyTitle="No connections configured"
           />
+
+          {/* Client-side Error Log */}
+          <div style={{ marginTop: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, color: HBC_COLORS.navy, margin: 0 }}>
+                Client-Side Error Log (Last 50)
+              </h3>
+              <Button size="small" appearance="subtle" onClick={() => { errorBuffer.clear(); setConnections([...connections]); }}>
+                Clear
+              </Button>
+            </div>
+            {(() => {
+              const errors = errorBuffer.getErrors();
+              if (errors.length === 0) {
+                return (
+                  <div style={{ padding: '16px', textAlign: 'center', color: HBC_COLORS.gray400, backgroundColor: HBC_COLORS.gray50, borderRadius: '6px' }}>
+                    No client-side errors captured.
+                  </div>
+                );
+              }
+              return (
+                <div style={{ maxHeight: '300px', overflowY: 'auto', border: `1px solid ${HBC_COLORS.gray200}`, borderRadius: '6px' }}>
+                  {errors.map(err => (
+                    <div key={err.id} style={{ padding: '8px 12px', borderBottom: `1px solid ${HBC_COLORS.gray100}`, fontSize: '12px' }}>
+                      <span style={{ color: HBC_COLORS.gray400, marginRight: '8px' }}>{formatDateTime(err.timestamp)}</span>
+                      <span style={{ color: HBC_COLORS.error }}>{err.message}</span>
+                      <span style={{ color: HBC_COLORS.gray300, marginLeft: '8px' }}>({err.source})</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
         </div>
       )}
 

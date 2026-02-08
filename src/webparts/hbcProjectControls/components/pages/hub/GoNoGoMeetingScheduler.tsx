@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { HBC_COLORS, SPACING } from '../../../theme/tokens';
-import { MeetingType, RoleName, ILead, IMeeting, NotificationEvent } from '../../../models';
+import { MeetingType, RoleName, ILead, IMeeting, NotificationEvent, AuditAction, EntityType } from '../../../models';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLeads } from '../../hooks/useLeads';
 import { useNotifications } from '../../hooks/useNotifications';
@@ -13,7 +13,7 @@ import { RoleGate } from '../../guards/RoleGate';
 export function GoNoGoMeetingScheduler(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { dataService } = useAppContext();
+  const { dataService, currentUser } = useAppContext();
   const { getLeadById } = useLeads();
   const { notify } = useNotifications();
   const [lead, setLead] = React.useState<ILead | null>(null);
@@ -54,9 +54,20 @@ export function GoNoGoMeetingScheduler(): React.ReactElement {
           hour: 'numeric', minute: '2-digit',
         }),
       }).catch(console.error);
+
+      // Fire-and-forget audit log for meeting scheduling
+      dataService.logAudit({
+        Action: AuditAction.MeetingScheduled,
+        EntityType: EntityType.Lead,
+        EntityId: String(lead.id),
+        ProjectCode: lead.ProjectCode,
+        User: currentUser?.displayName || 'Unknown',
+        UserId: currentUser?.id,
+        Details: `Go/No-Go meeting scheduled for "${lead.Title}" on ${new Date(meeting.startTime).toLocaleDateString()}`,
+      }).catch(console.error);
     }
     navigate(`/lead/${id}`);
-  }, [lead, id, navigate, notify]);
+  }, [lead, id, navigate, notify, dataService, currentUser]);
 
   const handleCancel = React.useCallback(() => {
     navigate(`/lead/${id}`);

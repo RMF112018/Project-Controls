@@ -41,7 +41,7 @@ export const HBC_COLORS = {
 export const BREAKPOINTS = {
   mobile: 768,
   tablet: 1024,
-  desktop: 1280,
+  desktop: 1024,
 } as const;
 
 export const SPACING = {

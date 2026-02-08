@@ -213,6 +213,7 @@ export const LeadFormPage: React.FC = () => {
                 style={{ width: '100%' }}
                 value={String(formData.ProjectValue || '')}
                 onChange={(_, d) => handleChange('ProjectValue', Number(d.value))}
+                contentBefore={<span style={{ color: HBC_COLORS.gray500 }}>$</span>}
               />
             </div>
             <div style={fieldStyle}>
@@ -230,6 +231,99 @@ export const LeadFormPage: React.FC = () => {
                 style={{ width: '100%' }}
                 value={formData.CityLocation || ''}
                 onChange={(_, d) => handleChange('CityLocation', d.value)}
+              />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Sub-Sector</label>
+              <Input
+                style={{ width: '100%' }}
+                value={formData.SubSector || ''}
+                onChange={(_, d) => handleChange('SubSector', d.value)}
+              />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Precon Duration (months)</label>
+              <Input
+                type="number"
+                style={{ width: '100%' }}
+                value={String(formData.PreconDurationMonths || '')}
+                onChange={(_, d) => handleChange('PreconDurationMonths', Number(d.value))}
+              />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Project Start Date</label>
+              <Input
+                type="date"
+                style={{ width: '100%' }}
+                value={formData.ProjectStartDate || ''}
+                onChange={(_, d) => handleChange('ProjectStartDate', d.value)}
+              />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Project Duration (months)</label>
+              <Input
+                type="number"
+                style={{ width: '100%' }}
+                value={String(formData.ProjectDurationMonths || '')}
+                onChange={(_, d) => handleChange('ProjectDurationMonths', d.value)}
+              />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Estimated Pursuit Cost ($)</label>
+              <Input
+                type="number"
+                style={{ width: '100%' }}
+                value={String(formData.EstimatedPursuitCost || '')}
+                onChange={(_, d) => handleChange('EstimatedPursuitCost', Number(d.value))}
+                contentBefore={<span style={{ color: HBC_COLORS.gray500 }}>$</span>}
+              />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Estimated Precon Budget ($)</label>
+              <Input
+                type="number"
+                style={{ width: '100%' }}
+                value={String(formData.EstimatedPreconBudget || '')}
+                onChange={(_, d) => handleChange('EstimatedPreconBudget', Number(d.value))}
+                contentBefore={<span style={{ color: HBC_COLORS.gray500 }}>$</span>}
+              />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Anticipated Fee (%)</label>
+              <Input
+                type="number"
+                style={{ width: '100%' }}
+                value={String(formData.AnticipatedFeePct || '')}
+                onChange={(_, d) => handleChange('AnticipatedFeePct', Number(d.value))}
+                contentAfter={<span style={{ color: HBC_COLORS.gray500 }}>%</span>}
+              />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Anticipated Gross Margin (%)</label>
+              <Input
+                type="number"
+                style={{ width: '100%' }}
+                value={String(formData.AnticipatedGrossMargin || '')}
+                onChange={(_, d) => handleChange('AnticipatedGrossMargin', Number(d.value))}
+                contentAfter={<span style={{ color: HBC_COLORS.gray500 }}>%</span>}
+              />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Proposal/Bid Due Date</label>
+              <Input
+                type="date"
+                style={{ width: '100%' }}
+                value={formData.ProposalBidDue || ''}
+                onChange={(_, d) => handleChange('ProposalBidDue', d.value)}
+              />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Award Date</label>
+              <Input
+                type="date"
+                style={{ width: '100%' }}
+                value={formData.AwardDate || ''}
+                onChange={(_, d) => handleChange('AwardDate', d.value)}
               />
             </div>
           </div>

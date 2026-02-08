@@ -24,6 +24,12 @@ import {
   ITurnoverItem,
   ICloseoutItem,
   ILossAutopsy,
+  IStartupChecklistItem,
+  IInternalMatrixTask,
+  ITeamRoleAssignment,
+  IOwnerContractArticle,
+  ISubContractClause,
+  IMarketingProjectRecord,
   GoNoGoDecision,
   Stage,
   RoleName,
@@ -46,6 +52,11 @@ import mockTeamMembers from '../mock/teamMembers.json';
 import mockDeliverables from '../mock/deliverables.json';
 import mockTurnoverItems from '../mock/turnoverItems.json';
 import mockCloseoutItems from '../mock/closeoutItems.json';
+import mockStartupChecklist from '../mock/startupChecklist.json';
+import mockInternalMatrix from '../mock/internalMatrix.json';
+import mockOwnerContractMatrix from '../mock/ownerContractMatrix.json';
+import mockSubContractMatrix from '../mock/subContractMatrix.json';
+import mockMarketingRecords from '../mock/marketingProjectRecords.json';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
 
@@ -67,6 +78,12 @@ export class MockDataService implements IDataService {
   private turnoverItems: ITurnoverItem[];
   private closeoutItems: ICloseoutItem[];
   private lossAutopsies: ILossAutopsy[];
+  private checklistItems: IStartupChecklistItem[];
+  private internalMatrixTasks: IInternalMatrixTask[];
+  private teamRoleAssignments: ITeamRoleAssignment[];
+  private ownerContractArticles: IOwnerContractArticle[];
+  private subContractClauses: ISubContractClause[];
+  private marketingRecords: IMarketingProjectRecord[];
   private nextId: number;
 
   constructor() {
@@ -87,6 +104,13 @@ export class MockDataService implements IDataService {
     this.interviewPreps = [];
     this.contractInfos = [];
     this.lossAutopsies = [];
+    this.checklistItems = JSON.parse(JSON.stringify(mockStartupChecklist)) as IStartupChecklistItem[];
+    const matrixData = JSON.parse(JSON.stringify(mockInternalMatrix)) as { tasks: IInternalMatrixTask[]; recurringItems: unknown[]; teamAssignments: ITeamRoleAssignment[] };
+    this.internalMatrixTasks = matrixData.tasks;
+    this.teamRoleAssignments = matrixData.teamAssignments;
+    this.ownerContractArticles = JSON.parse(JSON.stringify(mockOwnerContractMatrix)) as IOwnerContractArticle[];
+    this.subContractClauses = JSON.parse(JSON.stringify(mockSubContractMatrix)) as ISubContractClause[];
+    this.marketingRecords = JSON.parse(JSON.stringify(mockMarketingRecords)) as IMarketingProjectRecord[];
     this.nextId = 1000;
   }
 
@@ -875,6 +899,308 @@ export class MockDataService implements IDataService {
   }
 
   // ---------------------------------------------------------------------------
+  // Startup Checklist
+  // ---------------------------------------------------------------------------
+
+  public async getStartupChecklist(projectCode: string): Promise<IStartupChecklistItem[]> {
+    await delay();
+    return this.checklistItems.filter(i => i.projectCode === projectCode && !i.isHidden);
+  }
+
+  public async updateChecklistItem(projectCode: string, itemId: number, data: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> {
+    await delay();
+    const index = this.checklistItems.findIndex(i => i.id === itemId && i.projectCode === projectCode);
+    if (index === -1) throw new Error(`Checklist item ${itemId} not found`);
+    this.checklistItems[index] = { ...this.checklistItems[index], ...data };
+    return { ...this.checklistItems[index] };
+  }
+
+  public async addChecklistItem(projectCode: string, item: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> {
+    await delay();
+    const newItem: IStartupChecklistItem = {
+      id: this.getNextId(),
+      projectCode,
+      sectionNumber: item.sectionNumber ?? 2,
+      sectionName: item.sectionName ?? 'Job Start-up',
+      itemNumber: item.itemNumber ?? 'C.1',
+      label: item.label ?? 'Custom item',
+      responseType: item.responseType ?? 'yesNoNA',
+      response: null,
+      status: 'NoResponse',
+      respondedBy: null,
+      respondedDate: null,
+      assignedTo: null,
+      assignedToName: null,
+      comment: null,
+      isHidden: false,
+      isCustom: true,
+      sortOrder: item.sortOrder ?? 100,
+      activityLog: [],
+    };
+    this.checklistItems.push(newItem);
+    return { ...newItem };
+  }
+
+  public async removeChecklistItem(projectCode: string, itemId: number): Promise<void> {
+    await delay();
+    const index = this.checklistItems.findIndex(i => i.id === itemId && i.projectCode === projectCode);
+    if (index === -1) throw new Error(`Checklist item ${itemId} not found`);
+    this.checklistItems[index].isHidden = true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internal Responsibility Matrix
+  // ---------------------------------------------------------------------------
+
+  public async getInternalMatrix(projectCode: string): Promise<IInternalMatrixTask[]> {
+    await delay();
+    return this.internalMatrixTasks.filter(t => t.projectCode === projectCode && !t.isHidden);
+  }
+
+  public async updateInternalMatrixTask(projectCode: string, taskId: number, data: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask> {
+    await delay();
+    const index = this.internalMatrixTasks.findIndex(t => t.id === taskId && t.projectCode === projectCode);
+    if (index === -1) throw new Error(`Matrix task ${taskId} not found`);
+    this.internalMatrixTasks[index] = { ...this.internalMatrixTasks[index], ...data };
+    return { ...this.internalMatrixTasks[index] };
+  }
+
+  public async addInternalMatrixTask(projectCode: string, task: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask> {
+    await delay();
+    const newTask: IInternalMatrixTask = {
+      id: this.getNextId(),
+      projectCode,
+      sortOrder: task.sortOrder ?? 100,
+      taskCategory: task.taskCategory ?? 'All',
+      taskDescription: task.taskDescription ?? 'Custom task',
+      PX: task.PX ?? '',
+      SrPM: task.SrPM ?? '',
+      PM2: task.PM2 ?? '',
+      PM1: task.PM1 ?? '',
+      PA: task.PA ?? '',
+      QAQC: task.QAQC ?? '',
+      ProjAcct: task.ProjAcct ?? '',
+      isHidden: false,
+      isCustom: true,
+    };
+    this.internalMatrixTasks.push(newTask);
+    return { ...newTask };
+  }
+
+  public async removeInternalMatrixTask(projectCode: string, taskId: number): Promise<void> {
+    await delay();
+    const index = this.internalMatrixTasks.findIndex(t => t.id === taskId && t.projectCode === projectCode);
+    if (index === -1) throw new Error(`Matrix task ${taskId} not found`);
+    this.internalMatrixTasks[index].isHidden = true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Team Role Assignments
+  // ---------------------------------------------------------------------------
+
+  public async getTeamRoleAssignments(projectCode: string): Promise<ITeamRoleAssignment[]> {
+    await delay();
+    return this.teamRoleAssignments.filter(a => a.projectCode === projectCode);
+  }
+
+  public async updateTeamRoleAssignment(projectCode: string, role: string, person: string, email?: string): Promise<ITeamRoleAssignment> {
+    await delay();
+    const index = this.teamRoleAssignments.findIndex(a => a.projectCode === projectCode && a.roleAbbreviation === role);
+    if (index !== -1) {
+      this.teamRoleAssignments[index].assignedPerson = person;
+      this.teamRoleAssignments[index].assignedPersonEmail = email ?? '';
+      return { ...this.teamRoleAssignments[index] };
+    }
+    const newAssignment: ITeamRoleAssignment = { projectCode, roleAbbreviation: role, assignedPerson: person, assignedPersonEmail: email ?? '' };
+    this.teamRoleAssignments.push(newAssignment);
+    return { ...newAssignment };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Owner Contract Matrix
+  // ---------------------------------------------------------------------------
+
+  public async getOwnerContractMatrix(projectCode: string): Promise<IOwnerContractArticle[]> {
+    await delay();
+    return this.ownerContractArticles.filter(a => a.projectCode === projectCode && !a.isHidden);
+  }
+
+  public async updateOwnerContractArticle(projectCode: string, itemId: number, data: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle> {
+    await delay();
+    const index = this.ownerContractArticles.findIndex(a => a.id === itemId && a.projectCode === projectCode);
+    if (index === -1) throw new Error(`Owner contract article ${itemId} not found`);
+    this.ownerContractArticles[index] = { ...this.ownerContractArticles[index], ...data };
+    return { ...this.ownerContractArticles[index] };
+  }
+
+  public async addOwnerContractArticle(projectCode: string, item: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle> {
+    await delay();
+    const newArticle: IOwnerContractArticle = {
+      id: this.getNextId(),
+      projectCode,
+      sortOrder: item.sortOrder ?? 100,
+      articleNumber: item.articleNumber ?? '',
+      pageNumber: item.pageNumber ?? '',
+      responsibleParty: item.responsibleParty ?? '',
+      description: item.description ?? 'Custom article',
+      isHidden: false,
+      isCustom: true,
+    };
+    this.ownerContractArticles.push(newArticle);
+    return { ...newArticle };
+  }
+
+  public async removeOwnerContractArticle(projectCode: string, itemId: number): Promise<void> {
+    await delay();
+    const index = this.ownerContractArticles.findIndex(a => a.id === itemId && a.projectCode === projectCode);
+    if (index === -1) throw new Error(`Owner contract article ${itemId} not found`);
+    this.ownerContractArticles[index].isHidden = true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sub-Contract Matrix
+  // ---------------------------------------------------------------------------
+
+  public async getSubContractMatrix(projectCode: string): Promise<ISubContractClause[]> {
+    await delay();
+    return this.subContractClauses.filter(c => c.projectCode === projectCode && !c.isHidden);
+  }
+
+  public async updateSubContractClause(projectCode: string, itemId: number, data: Partial<ISubContractClause>): Promise<ISubContractClause> {
+    await delay();
+    const index = this.subContractClauses.findIndex(c => c.id === itemId && c.projectCode === projectCode);
+    if (index === -1) throw new Error(`Subcontract clause ${itemId} not found`);
+    this.subContractClauses[index] = { ...this.subContractClauses[index], ...data };
+    return { ...this.subContractClauses[index] };
+  }
+
+  public async addSubContractClause(projectCode: string, item: Partial<ISubContractClause>): Promise<ISubContractClause> {
+    await delay();
+    const newClause: ISubContractClause = {
+      id: this.getNextId(),
+      projectCode,
+      sortOrder: item.sortOrder ?? 100,
+      refNumber: item.refNumber ?? '',
+      pageNumber: item.pageNumber ?? '',
+      clauseDescription: item.clauseDescription ?? 'Custom clause',
+      ProjExec: item.ProjExec ?? '',
+      ProjMgr: item.ProjMgr ?? '',
+      AsstPM: item.AsstPM ?? '',
+      Super: item.Super ?? '',
+      ProjAdmin: item.ProjAdmin ?? '',
+      isHidden: false,
+      isCustom: true,
+    };
+    this.subContractClauses.push(newClause);
+    return { ...newClause };
+  }
+
+  public async removeSubContractClause(projectCode: string, itemId: number): Promise<void> {
+    await delay();
+    const index = this.subContractClauses.findIndex(c => c.id === itemId && c.projectCode === projectCode);
+    if (index === -1) throw new Error(`Subcontract clause ${itemId} not found`);
+    this.subContractClauses[index].isHidden = true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Marketing Project Record
+  // ---------------------------------------------------------------------------
+
+  public async getMarketingProjectRecord(projectCode: string): Promise<IMarketingProjectRecord | null> {
+    await delay();
+    return this.marketingRecords.find(r => r.projectCode === projectCode) ?? null;
+  }
+
+  public async createMarketingProjectRecord(data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> {
+    await delay();
+    const newRecord: IMarketingProjectRecord = {
+      projectName: data.projectName ?? '',
+      projectCode: data.projectCode ?? '',
+      leadId: data.leadId ?? null,
+      contractType: data.contractType ?? [],
+      deliveryMethod: data.deliveryMethod ?? '',
+      architect: data.architect ?? '',
+      landscapeArchitect: data.landscapeArchitect ?? '',
+      interiorDesigner: data.interiorDesigner ?? '',
+      engineer: data.engineer ?? '',
+      buildingSystemType: data.buildingSystemType ?? '',
+      projectDescription: data.projectDescription ?? '',
+      uniqueCharacteristics: data.uniqueCharacteristics ?? '',
+      renderingUrls: data.renderingUrls ?? [],
+      finalPhotoUrls: data.finalPhotoUrls ?? [],
+      contractBudget: data.contractBudget ?? null,
+      contractFinalCost: data.contractFinalCost ?? null,
+      totalCostPerGSF: data.totalCostPerGSF ?? null,
+      totalBudgetVariance: data.totalBudgetVariance ?? null,
+      budgetExplanation: data.budgetExplanation ?? '',
+      CO_OwnerDirected_Count: data.CO_OwnerDirected_Count ?? null,
+      CO_OwnerDirected_Value: data.CO_OwnerDirected_Value ?? null,
+      CO_MunicipalityDirected_Count: data.CO_MunicipalityDirected_Count ?? null,
+      CO_MunicipalityDirected_Value: data.CO_MunicipalityDirected_Value ?? null,
+      CO_EO_Count: data.CO_EO_Count ?? null,
+      CO_EO_Value: data.CO_EO_Value ?? null,
+      CO_ContractorDirected_Count: data.CO_ContractorDirected_Count ?? null,
+      savingsReturned: data.savingsReturned ?? null,
+      savingsReturnedPct: data.savingsReturnedPct ?? null,
+      scheduleStartAnticipated: data.scheduleStartAnticipated ?? null,
+      scheduleStartActual: data.scheduleStartActual ?? null,
+      scheduleEndAnticipated: data.scheduleEndAnticipated ?? null,
+      scheduleEndActual: data.scheduleEndActual ?? null,
+      onSchedule: data.onSchedule ?? '',
+      scheduleExplanation: data.scheduleExplanation ?? '',
+      substantialCompletionDate: data.substantialCompletionDate ?? null,
+      finalCompletionDate: data.finalCompletionDate ?? null,
+      punchListItems: data.punchListItems ?? null,
+      punchListDaysToComplete: data.punchListDaysToComplete ?? null,
+      innovativeSafetyPrograms: data.innovativeSafetyPrograms ?? '',
+      mwbeRequirement: data.mwbeRequirement ?? '',
+      mwbeAchievement: data.mwbeAchievement ?? '',
+      sbeRequirement: data.sbeRequirement ?? '',
+      sbeAchievement: data.sbeAchievement ?? '',
+      localRequirement: data.localRequirement ?? '',
+      localAchievement: data.localAchievement ?? '',
+      leedDesignation: data.leedDesignation ?? '',
+      sustainabilityFeatures: data.sustainabilityFeatures ?? '',
+      leedAdditionalCost: data.leedAdditionalCost ?? null,
+      CS_Conflicts: data.CS_Conflicts ?? '',
+      CS_CostControl: data.CS_CostControl ?? '',
+      CS_ValueEngineering: data.CS_ValueEngineering ?? '',
+      CS_QualityControl: data.CS_QualityControl ?? '',
+      CS_Schedule: data.CS_Schedule ?? '',
+      CS_Team: data.CS_Team ?? '',
+      CS_Safety: data.CS_Safety ?? '',
+      CS_LEED: data.CS_LEED ?? '',
+      CS_SupplierDiversity: data.CS_SupplierDiversity ?? '',
+      CS_Challenges: data.CS_Challenges ?? '',
+      CS_InnovativeSolutions: data.CS_InnovativeSolutions ?? '',
+      CS_ProductsSystems: data.CS_ProductsSystems ?? '',
+      CS_ClientService: data.CS_ClientService ?? '',
+      CS_LessonsLearned: data.CS_LessonsLearned ?? '',
+      sectionCompletion: data.sectionCompletion ?? {},
+      overallCompletion: data.overallCompletion ?? 0,
+      lastUpdatedBy: 'kfoster@hedrickbrothers.com',
+      lastUpdatedAt: new Date().toISOString(),
+      createdBy: 'kfoster@hedrickbrothers.com',
+      createdAt: new Date().toISOString(),
+    };
+    this.marketingRecords.push(newRecord);
+    return { ...newRecord };
+  }
+
+  public async updateMarketingProjectRecord(projectCode: string, data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> {
+    await delay();
+    const index = this.marketingRecords.findIndex(r => r.projectCode === projectCode);
+    if (index === -1) throw new Error(`Marketing record for ${projectCode} not found`);
+    this.marketingRecords[index] = { ...this.marketingRecords[index], ...data, lastUpdatedAt: new Date().toISOString() };
+    return { ...this.marketingRecords[index] };
+  }
+
+  public async getAllMarketingProjectRecords(): Promise<IMarketingProjectRecord[]> {
+    await delay();
+    return [...this.marketingRecords];
+  }
+
+  // ---------------------------------------------------------------------------
   // App Context
   // ---------------------------------------------------------------------------
 
@@ -927,5 +1253,29 @@ export class MockDataService implements IDataService {
     }
 
     return null;
+  }
+
+  // -- Lookups ----------------------------------------------------------
+
+  public async getTemplates(): Promise<Array<{ TemplateName: string; SourceURL: string; TargetFolder: string; Division: string; Active: boolean }>> {
+    await delay();
+    try {
+      const templates = require('../mock/templateRegistry.json');
+      return templates;
+    } catch {
+      return [];
+    }
+  }
+
+  public async getRegions(): Promise<string[]> {
+    await delay();
+    const { Region } = require('../models/enums');
+    return Object.values(Region) as string[];
+  }
+
+  public async getSectors(): Promise<string[]> {
+    await delay();
+    const { Sector } = require('../models/enums');
+    return Object.values(Sector) as string[];
   }
 }

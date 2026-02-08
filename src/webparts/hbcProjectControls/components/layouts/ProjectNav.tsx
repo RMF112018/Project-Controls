@@ -14,6 +14,9 @@ interface INavItem {
 
 const ALL_NAV_ITEMS: INavItem[] = [
   { label: 'Project Home', path: '/' },
+  { label: 'Startup Checklist', path: '/startup-checklist' },
+  { label: 'Responsibility', path: '/responsibility' },
+  { label: 'Project Record', path: '/project-record' },
   { label: 'Kickoff', path: '/kickoff', screenKey: 'kickoff' },
   { label: 'Deliverables', path: '/deliverables', screenKey: 'deliverables' },
   { label: 'Interview Prep', path: '/interview', screenKey: 'interview' },

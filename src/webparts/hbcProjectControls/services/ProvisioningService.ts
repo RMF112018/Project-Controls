@@ -1,5 +1,6 @@
 import { IDataService } from './IDataService';
-import { IProvisioningLog, ProvisioningStatus, PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS } from '../models';
+import { NotificationService } from './NotificationService';
+import { IProvisioningLog, ProvisioningStatus, PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS, NotificationEvent, AuditAction, EntityType } from '../models';
 
 export interface IProvisioningInput {
   leadId: number;
@@ -12,12 +13,15 @@ export interface IProvisioningInput {
 }
 
 const STEP_DELAY_MS = 500;
+const MAX_RETRIES = 3;
 
 export class ProvisioningService {
   private dataService: IDataService;
+  private notificationService: NotificationService;
 
   constructor(dataService: IDataService) {
     this.dataService = dataService;
+    this.notificationService = new NotificationService(dataService);
   }
 
   /**
@@ -34,6 +38,16 @@ export class ProvisioningService {
       input.projectName,
       input.requestedBy
     );
+
+    // Fire-and-forget audit log for provisioning trigger
+    this.dataService.logAudit({
+      Action: AuditAction.SiteProvisioningTriggered,
+      EntityType: EntityType.Project,
+      EntityId: String(input.leadId),
+      ProjectCode: input.projectCode,
+      User: input.requestedBy,
+      Details: `Site provisioning triggered for "${input.projectName}" (${input.projectCode})`,
+    }).catch(console.error);
 
     // Run steps asynchronously so the caller can poll for status
     this.runSteps(input).catch(console.error);
@@ -80,6 +94,21 @@ export class ProvisioningService {
     const log = await this.dataService.getProvisioningStatus(projectCode);
     if (log) {
       await this.dataService.updateLead(log.leadId, { ProjectSiteURL: siteUrl });
+      // Fire SiteProvisioned notification
+      this.notificationService.notify(
+        NotificationEvent.SiteProvisioned,
+        { projectCode, siteUrl, leadTitle: input.projectName },
+        input.requestedBy
+      ).catch(console.error);
+      // Fire-and-forget audit log for provisioning completion
+      this.dataService.logAudit({
+        Action: AuditAction.SiteProvisioningCompleted,
+        EntityType: EntityType.Project,
+        EntityId: String(log.leadId),
+        ProjectCode: projectCode,
+        User: input.requestedBy,
+        Details: `Site provisioning completed for "${input.projectName}" (${projectCode}). Site URL: ${siteUrl}`,
+      }).catch(console.error);
     }
   }
 
@@ -94,11 +123,16 @@ export class ProvisioningService {
    * Retry provisioning from a specific failed step.
    */
   public async retryFromStep(projectCode: string, fromStep: number): Promise<IProvisioningLog> {
+    // Check retry count before allowing retry
+    const currentLog = await this.dataService.getProvisioningStatus(projectCode);
+    if (currentLog && currentLog.retryCount >= MAX_RETRIES) {
+      throw new Error(`Maximum retries (${MAX_RETRIES}) exceeded for project ${projectCode}. Manual intervention required.`);
+    }
+
     const log = await this.dataService.retryProvisioning(projectCode, fromStep);
 
     // Resume steps from the failed step
-    const currentLog = await this.dataService.getProvisioningStatus(projectCode);
-    if (currentLog) {
+    if (log) {
       this.resumeSteps(projectCode, fromStep).catch(console.error);
     }
 

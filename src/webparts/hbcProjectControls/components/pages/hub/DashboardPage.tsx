@@ -26,7 +26,8 @@ import { LoadingSpinner } from '../../shared/LoadingSpinner';
 import { PipelineChart } from '../../shared/PipelineChart';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { FeatureGate } from '../../guards/FeatureGate';
-import { ILead, IEstimatingTracker, Stage, Region, Division, GoNoGoDecision, AwardStatus } from '../../../models';
+import { RoleGate } from '../../guards/RoleGate';
+import { ILead, IEstimatingTracker, Stage, Region, Division, GoNoGoDecision, AwardStatus, RoleName } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
 import {
   formatCurrencyCompact,
@@ -102,30 +103,40 @@ export const DashboardPage: React.FC = () => {
     const preconEngagements = records.filter(r => r.PreconFee !== undefined && r.PreconFee !== null && r.PreconFee > 0);
     const feesOutstanding = preconEngagements.reduce((s, r) => s + ((r.PreconFee || 0) - (r.FeePaidToDate || 0)), 0);
 
+    // Avg Go/No-Go Score
+    const scoredLeads = filteredLeads.filter(l => l.GoNoGoScore_Originator !== null && l.GoNoGoScore_Originator !== undefined);
+    const avgGoNoGoScore = scoredLeads.length > 0
+      ? scoredLeads.reduce((s, l) => s + (l.GoNoGoScore_Originator || 0), 0) / scoredLeads.length
+      : 0;
+
     return {
-      activeLeads: active.length,
+      activeProjects: active.length,
       totalPipelineValue,
       winRate,
-      activeEstimating,
+      pursuitsInProgress: activeEstimating,
       feesOutstanding,
-      pendingGNG: pendingGNG.length,
+      avgGoNoGoScore,
     };
   }, [filteredLeads, records]);
 
-  // Monthly trend data (trailing 12 months)
-  const monthlyTrend = React.useMemo(() => {
+  // Win Rate Trend (trailing 12 months)
+  const winRateTrend = React.useMemo(() => {
     const now = new Date();
-    const months: { month: string; count: number }[] = [];
+    const months: { month: string; winRate: number }[] = [];
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      const count = filteredLeads.filter(l => {
-        if (!l.DateOfEvaluation) return false;
-        const ld = new Date(l.DateOfEvaluation);
-        return ld.getFullYear() === d.getFullYear() && ld.getMonth() === d.getMonth();
-      }).length;
-      months.push({ month: label, count });
+      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      // Cumulative win rate up to this month
+      const decided = filteredLeads.filter(l => {
+        if (!l.GoNoGoDecisionDate && !l.DateOfEvaluation) return false;
+        const evalDate = new Date(l.GoNoGoDecisionDate || l.DateOfEvaluation);
+        return evalDate <= monthEnd && l.GoNoGoDecision;
+      });
+      const wins = decided.filter(l => l.GoNoGoDecision === GoNoGoDecision.Go).length;
+      const losses = decided.filter(l => l.GoNoGoDecision === GoNoGoDecision.NoGo).length;
+      const rate = wins + losses > 0 ? (wins / (wins + losses)) * 100 : 0;
+      months.push({ month: label, winRate: Math.round(rate * 10) / 10 });
     }
     return months;
   }, [filteredLeads]);
@@ -153,11 +164,25 @@ export const DashboardPage: React.FC = () => {
       .sort((a, b) => b.value - a.value);
   }, [filteredLeads]);
 
-  // Recent leads (last 5)
-  const recentLeads = React.useMemo(() => {
+  // Sector distribution data
+  const sectorDistribution = React.useMemo(() => {
+    const grouped: Record<string, number> = {};
+    filteredLeads.filter(l => isActiveStage(l.Stage)).forEach(l => {
+      grouped[l.Sector] = (grouped[l.Sector] || 0) + 1;
+    });
+    return Object.entries(grouped)
+      .map(([sector, count]) => ({ name: sector, value: count }))
+      .sort((a, b) => b.value - a.value);
+  }, [filteredLeads]);
+
+  const SECTOR_COLORS = [HBC_COLORS.navy, HBC_COLORS.orange, HBC_COLORS.info, HBC_COLORS.success, '#8B5CF6', '#F472B6', '#34D399', '#FBBF24', '#A78BFA', '#F87171', '#60A5FA', '#4ADE80'];
+
+  // Top pursuits (top 10 by value)
+  const topPursuits = React.useMemo(() => {
     return [...filteredLeads]
-      .sort((a, b) => new Date(b.DateOfEvaluation).getTime() - new Date(a.DateOfEvaluation).getTime())
-      .slice(0, 5);
+      .filter(l => isActiveStage(l.Stage))
+      .sort((a, b) => (b.ProjectValue || 0) - (a.ProjectValue || 0))
+      .slice(0, 10);
   }, [filteredLeads]);
 
   // Upcoming deadlines (from estimating)
@@ -165,7 +190,7 @@ export const DashboardPage: React.FC = () => {
     return records
       .filter(r => r.DueDate_OutTheDoor && getDaysUntil(r.DueDate_OutTheDoor) !== null)
       .sort((a, b) => new Date(a.DueDate_OutTheDoor!).getTime() - new Date(b.DueDate_OutTheDoor!).getTime())
-      .slice(0, 5);
+      .slice(0, 10);
   }, [records]);
 
   // Recent Go/No-Go decisions
@@ -177,7 +202,7 @@ export const DashboardPage: React.FC = () => {
         const dateB = b.GoNoGoDecisionDate || b.DateOfEvaluation;
         return new Date(dateB).getTime() - new Date(dateA).getTime();
       })
-      .slice(0, 5);
+      .slice(0, 10);
   }, [filteredLeads]);
 
   // Table columns
@@ -244,6 +269,15 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <FeatureGate featureName="ExecutiveDashboard">
+      <RoleGate
+        allowedRoles={[RoleName.ExecutiveLeadership, RoleName.BDRepresentative]}
+        fallback={
+          <div style={{ padding: '48px', textAlign: 'center', color: HBC_COLORS.gray500 }}>
+            <h3>Access Restricted</h3>
+            <p>The Executive Dashboard is restricted to Executive Leadership and BD Representatives.</p>
+          </div>
+        }
+      >
       <div id="dashboard-view">
         <PageHeader
           title="Executive Dashboard"
@@ -279,12 +313,12 @@ export const DashboardPage: React.FC = () => {
 
         {/* KPI Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: kpiGridCols, gap: '16px', marginBottom: '32px' }}>
-          <KPICard title="Active Leads" value={kpis.activeLeads} subtitle="Across all stages" onClick={() => navigate('/')} />
-          <KPICard title="Total Pipeline Value" value={formatCurrencyCompact(kpis.totalPipelineValue)} subtitle={`${kpis.activeLeads} active projects`} />
+          <KPICard title="Active Projects" value={kpis.activeProjects} subtitle="Across all stages" onClick={() => navigate('/')} />
+          <KPICard title="Total Pipeline Value" value={formatCurrencyCompact(kpis.totalPipelineValue)} subtitle={`${kpis.activeProjects} active projects`} />
           <KPICard title="Win Rate" value={formatPercent(kpis.winRate)} subtitle="Awarded / (Awarded + Lost)" />
-          <KPICard title="Active Estimating" value={kpis.activeEstimating} subtitle="Current pursuits" />
+          <KPICard title="Pursuits in Progress" value={kpis.pursuitsInProgress} subtitle="Current active estimates" />
           <KPICard title="Precon Fees Outstanding" value={formatCurrencyCompact(kpis.feesOutstanding)} subtitle="PreconFee - FeePaidToDate" />
-          <KPICard title="Pending Go/No-Go" value={kpis.pendingGNG} subtitle="Awaiting committee review" />
+          <KPICard title="Avg Go/No-Go Score" value={kpis.avgGoNoGoScore > 0 ? kpis.avgGoNoGoScore.toFixed(1) : '-'} subtitle={`Out of 92 possible`} />
         </div>
 
         {/* Charts Grid */}
@@ -295,16 +329,16 @@ export const DashboardPage: React.FC = () => {
             <PipelineChart leads={filteredLeads} mode={chartMode} />
           </div>
 
-          {/* Monthly Trend */}
+          {/* Win Rate Trend */}
           <div>
-            {sectionTitle('Monthly Lead Trend')}
+            {sectionTitle('Win Rate Trend (12-Month)')}
             <div style={chartCardStyle}>
               <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={monthlyTrend} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+                <LineChart data={winRateTrend} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: HBC_COLORS.gray500 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: HBC_COLORS.gray500 }} />
-                  <Tooltip contentStyle={{ borderRadius: '6px', border: `1px solid ${HBC_COLORS.gray200}`, fontSize: '13px' }} />
-                  <Line type="monotone" dataKey="count" stroke={HBC_COLORS.navy} strokeWidth={2} dot={{ fill: HBC_COLORS.navy, r: 3 }} name="New Leads" />
+                  <YAxis domain={[0, 100]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 11, fill: HBC_COLORS.gray500 }} />
+                  <Tooltip formatter={(v: number) => [`${v}%`, 'Win Rate']} contentStyle={{ borderRadius: '6px', border: `1px solid ${HBC_COLORS.gray200}`, fontSize: '13px' }} />
+                  <Line type="monotone" dataKey="winRate" stroke={HBC_COLORS.navy} strokeWidth={2} dot={{ fill: HBC_COLORS.navy, r: 3 }} name="Win Rate" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -343,6 +377,38 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Sector Distribution */}
+          <div>
+            {sectionTitle('Sector Distribution')}
+            <div style={chartCardStyle}>
+              {sectorDistribution.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={sectorDistribution}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      dataKey="value"
+                      nameKey="name"
+                      label={({ name, value }) => `${name}: ${value}`}
+                    >
+                      {sectorDistribution.map((_, idx) => (
+                        <Cell key={idx} fill={SECTOR_COLORS[idx % SECTOR_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ borderRadius: '6px', border: `1px solid ${HBC_COLORS.gray200}`, fontSize: '13px' }} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ height: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: HBC_COLORS.gray400 }}>
+                  No active pipeline data
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Region Pipeline */}
           <div style={{ gridColumn: isMobile ? undefined : '1 / -1' }}>
             {sectionTitle('Pipeline Value by Region')}
@@ -375,14 +441,14 @@ export const DashboardPage: React.FC = () => {
         {/* Summary Tables */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '16px' }}>
           <div>
-            {sectionTitle('Recent Leads')}
+            {sectionTitle('Top Pursuits')}
             <DataTable<ILead>
               columns={recentLeadColumns}
-              items={recentLeads}
+              items={topPursuits}
               keyExtractor={l => l.id}
               onRowClick={l => navigate(`/lead/${l.id}`)}
-              emptyTitle="No leads"
-              pageSize={5}
+              emptyTitle="No active pursuits"
+              pageSize={10}
             />
           </div>
           <div>
@@ -393,7 +459,7 @@ export const DashboardPage: React.FC = () => {
               keyExtractor={r => r.id}
               onRowClick={r => navigate(`/pursuit/${r.id}`)}
               emptyTitle="No deadlines"
-              pageSize={5}
+              pageSize={10}
             />
           </div>
           <div>
@@ -404,11 +470,12 @@ export const DashboardPage: React.FC = () => {
               keyExtractor={l => l.id}
               onRowClick={l => navigate(`/lead/${l.id}/gonogo/detail`)}
               emptyTitle="No decisions"
-              pageSize={5}
+              pageSize={10}
             />
           </div>
         </div>
       </div>
+      </RoleGate>
     </FeatureGate>
   );
 };
