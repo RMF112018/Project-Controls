@@ -25,6 +25,7 @@ import { ISuperintendentPlan, ISuperintendentPlanSection } from '../models/ISupe
 import { ILessonLearned } from '../models/ILessonsLearned';
 import { IProjectManagementPlan, IDivisionApprover, IPMPBoilerplateSection } from '../models/IProjectManagementPlan';
 import { IMonthlyProjectReview } from '../models/IMonthlyProjectReview';
+import { IEstimatingKickoff, IEstimatingKickoffItem } from '../models/IEstimatingKickoff';
 import { IJobNumberRequest, JobNumberRequestStatus } from '../models/IJobNumberRequest';
 import { IProjectType } from '../models/IProjectType';
 import { IStandardCostCode } from '../models/IStandardCostCode';
@@ -198,6 +199,15 @@ export interface IDataService {
   getMonthlyReview(reviewId: number): Promise<IMonthlyProjectReview | null>;
   updateMonthlyReview(reviewId: number, data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview>;
   createMonthlyReview(data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview>;
+
+  // Estimating Kick-Off
+  getEstimatingKickoff(projectCode: string): Promise<IEstimatingKickoff | null>;
+  getEstimatingKickoffByLeadId(leadId: number): Promise<IEstimatingKickoff | null>;
+  createEstimatingKickoff(data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff>;
+  updateEstimatingKickoff(id: number, data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff>;
+  updateKickoffItem(kickoffId: number, itemId: number, data: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem>;
+  addKickoffItem(kickoffId: number, item: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem>;
+  removeKickoffItem(kickoffId: number, itemId: number): Promise<void>;
 
   // Job Number Requests
   getJobNumberRequests(status?: JobNumberRequestStatus): Promise<IJobNumberRequest[]>;

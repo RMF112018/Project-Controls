@@ -6,7 +6,7 @@ import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { IEstimatingTracker, AwardStatus, EstimateSource, DeliverableType, WinLossDecision, AuditAction, EntityType } from '../../../models';
+import { IEstimatingTracker, AwardStatus, EstimateSource, DeliverableType, WinLossDecision, GoNoGoDecision, AuditAction, EntityType } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { formatCurrency, formatDate, getDaysUntil, getUrgencyColor } from '../../../utils/formatters';
 import { PERMISSIONS } from '../../../utils/permissions';
@@ -53,9 +53,10 @@ export const PursuitDetail: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser, dataService } = useAppContext();
   const { getRecordById, updateRecord } = useEstimating();
-  const { updateLead } = useLeads();
+  const { updateLead, getLeadById } = useLeads();
 
   const [record, setRecord] = React.useState<IEstimatingTracker | null>(null);
+  const [lead, setLead] = React.useState<import('../../../models').ILead | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   const [formData, setFormData] = React.useState<Partial<IEstimatingTracker>>({});
@@ -70,11 +71,15 @@ export const PursuitDetail: React.FC = () => {
       if (rec) {
         setRecord(rec);
         setFormData({ ...rec });
+        if (rec.LeadID) {
+          const leadRecord = await getLeadById(rec.LeadID);
+          setLead(leadRecord);
+        }
       }
       setIsLoading(false);
     };
     load().catch(console.error);
-  }, [id, getRecordById]);
+  }, [id, getRecordById, getLeadById]);
 
   const handleFieldChange = (field: keyof IEstimatingTracker, value: unknown): void => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -312,6 +317,32 @@ export const PursuitDetail: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {lead?.GoNoGoDecision === GoNoGoDecision.Go && (
+        <div style={cardStyle}>
+          {sectionTitle('Estimating Kick-Off Checklist')}
+          <p style={{ marginTop: 0, fontSize: 13, color: HBC_COLORS.gray600 }}>
+            A GO decision was recorded. Use the kick-off checklist to manage proposal preparation tasks.
+          </p>
+          <button
+            onClick={() => record?.ProjectCode && navigate(`/kickoff/${record.ProjectCode}`)}
+            disabled={!record?.ProjectCode}
+            style={{
+              padding: '8px 14px',
+              background: HBC_COLORS.orange,
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: record?.ProjectCode ? 'pointer' : 'not-allowed',
+              opacity: record?.ProjectCode ? 1 : 0.6,
+            }}
+          >
+            Open Kick-Off Checklist
+          </button>
+        </div>
+      )}
 
       {/* Precon Fee Tracking */}
       <div style={cardStyle}>

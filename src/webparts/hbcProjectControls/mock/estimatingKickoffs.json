@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "LeadID": 29,
+    "ProjectCode": "25-042-01",
+    "Architect": "SchenkelShultz Architecture",
+    "ProposalDueDateTime": "2026-03-01T17:00:00.000Z",
+    "ProposalType": "GMP",
+    "RFIFormat": "Procore",
+    "PrimaryOwnerContact": "owner@hedrickbrothers.com",
+    "ProposalDeliveryMethod": "Email",
+    "CopiesIfHandDelivered": 0,
+    "HBProposalDue": "2026-03-01",
+    "SubcontractorProposalsDue": "2026-02-15",
+    "PreSubmissionReview": "2026-02-20",
+    "SubcontractorSiteWalkThru": "2026-02-10",
+    "OwnerEstimateReview": "2026-02-25",
+    "items": [],
+    "KickoffMeetingId": "",
+    "KickoffMeetingDate": "",
+    "CreatedBy": "jsmith@hedrickbrothers.com",
+    "CreatedDate": "2026-02-01T14:00:00.000Z",
+    "ModifiedBy": "jsmith@hedrickbrothers.com",
+    "ModifiedDate": "2026-02-01T14:00:00.000Z"
+  }
+]

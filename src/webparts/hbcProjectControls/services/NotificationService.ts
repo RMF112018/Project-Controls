@@ -127,6 +127,14 @@ function buildTemplate(
         recipientRoles: ['Estimating Coordinator', 'BD Representative', 'Executive Leadership'],
       };
 
+    case NotificationEvent.EstimatingKickoffScheduled:
+      return {
+        subject: `Estimating Kick-Off Scheduled: ${ctx.projectCode ?? ''}`,
+        body: `An estimating kick-off meeting has been scheduled for "${ctx.leadTitle ?? 'Untitled'}" (${ctx.projectCode ?? ''}).`,
+        type: NotificationType.Both,
+        recipientRoles: ['Estimating Coordinator', 'Executive Leadership'],
+      };
+
     default:
       return {
         subject: `Notification: ${event}`,

@@ -253,7 +253,26 @@ export const EstimatingDashboard: React.FC = () => {
     { key: 'EstimatedCostValue', header: 'Est. Value', sortable: true, width: '100px', render: (r) => (
       <span style={{ fontWeight: 500 }}>{formatCurrencyCompact(r.EstimatedCostValue)}</span>
     )},
-  ], [handleCheckToggle]);
+    { key: 'Kickoff', header: 'Kick-Off', width: '90px', render: (r) => (
+      <button
+        onClick={(e) => { e.stopPropagation(); if (r.ProjectCode) navigate(`/kickoff/${r.ProjectCode}`); }}
+        style={{
+          padding: '4px 8px',
+          background: HBC_COLORS.orange,
+          color: '#fff',
+          border: 'none',
+          borderRadius: 4,
+          fontSize: '11px',
+          fontWeight: 600,
+          cursor: r.ProjectCode ? 'pointer' : 'not-allowed',
+          opacity: r.ProjectCode ? 1 : 0.5,
+        }}
+        disabled={!r.ProjectCode}
+      >
+        Open
+      </button>
+    )},
+  ], [handleCheckToggle, navigate]);
 
   // Precon Engagements columns
   const preconColumns: IDataTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
