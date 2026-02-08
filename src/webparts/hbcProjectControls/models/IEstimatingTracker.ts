@@ -2,6 +2,7 @@ import { AwardStatus, EstimateSource, DeliverableType } from './enums';
 
 export interface IEstimatingTracker {
   id: number;
+  /** @denormalized — source: Leads_Master.Title */
   Title: string;
   LeadID: number;
   ProjectCode: string;

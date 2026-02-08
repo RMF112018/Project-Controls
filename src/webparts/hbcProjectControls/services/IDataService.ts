@@ -97,7 +97,8 @@ export interface IDataService {
 
   // Audit Log
   logAudit(entry: Partial<IAuditEntry>): Promise<void>;
-  getAuditLog(entityType?: string, entityId?: string): Promise<IAuditEntry[]>;
+  getAuditLog(entityType?: string, entityId?: string, startDate?: string, endDate?: string): Promise<IAuditEntry[]>;
+  purgeOldAuditEntries(olderThanDays: number): Promise<number>;
 
   // Provisioning
   triggerProvisioning(leadId: number, projectCode: string, projectName: string, requestedBy: string): Promise<IProvisioningLog>;
@@ -259,6 +260,12 @@ export interface IDataService {
   getPortfolioSummary(filters?: IActiveProjectsFilter): Promise<IPortfolioSummary>;
   getPersonnelWorkload(role?: 'PX' | 'PM' | 'Super'): Promise<IPersonnelWorkload[]>;
   triggerPortfolioSync(): Promise<void>;
+
+  // Data Integrity — sync denormalized fields when lead is updated
+  syncDenormalizedFields(leadId: number): Promise<void>;
+
+  // Closeout Promotion — copy lessons learned to hub and update closeout data
+  promoteToHub(projectCode: string): Promise<void>;
 }
 
 export interface IActiveProjectsQueryOptions extends IListQueryOptions {

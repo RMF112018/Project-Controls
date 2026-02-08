@@ -11,6 +11,8 @@ export type MonthlyReviewStatus =
 
 export interface IMonthlyChecklistItem {
   id: number;
+  /** FK to parent Monthly_Reviews.id */
+  reviewId?: number;
   sectionKey: string;
   sectionTitle: string;
   itemKey: string;
@@ -22,6 +24,8 @@ export interface IMonthlyChecklistItem {
 
 export interface IMonthlyFollowUp {
   id: number;
+  /** FK to parent Monthly_Reviews.id */
+  reviewId?: number;
   question: string;
   requestedBy: string;
   requestedDate: string;

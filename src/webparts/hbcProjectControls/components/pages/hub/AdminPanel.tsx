@@ -127,6 +127,12 @@ export const AdminPanel: React.FC = () => {
   const [auditLoading, setAuditLoading] = React.useState(false);
   const [auditEntityFilter, setAuditEntityFilter] = React.useState('All');
   const [auditActionFilter, setAuditActionFilter] = React.useState('All');
+  const [auditStartDate, setAuditStartDate] = React.useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [auditEndDate, setAuditEndDate] = React.useState(() => new Date().toISOString().split('T')[0]);
 
   const provisioningService = React.useMemo(
     () => new ProvisioningService(dataService),
@@ -146,9 +152,10 @@ export const AdminPanel: React.FC = () => {
       dataService.getProvisioningLogs().then(setLogs).catch(console.error).finally(() => setProvLoading(false));
     } else if (activeTab === 4 && auditEntries.length === 0) {
       setAuditLoading(true);
-      dataService.getAuditLog().then(setAuditEntries).catch(console.error).finally(() => setAuditLoading(false));
+      dataService.getAuditLog(undefined, undefined, auditStartDate, auditEndDate)
+        .then(setAuditEntries).catch(console.error).finally(() => setAuditLoading(false));
     }
-  }, [activeTab, dataService, roles.length, flags.length, logs.length, auditEntries.length]);
+  }, [activeTab, dataService, roles.length, flags.length, logs.length, auditEntries.length, auditStartDate, auditEndDate]);
 
   // Provisioning polling
   React.useEffect(() => {
@@ -220,7 +227,7 @@ export const AdminPanel: React.FC = () => {
   const refreshAudit = async (): Promise<void> => {
     setAuditLoading(true);
     try {
-      const entries = await dataService.getAuditLog();
+      const entries = await dataService.getAuditLog(undefined, undefined, auditStartDate, auditEndDate);
       setAuditEntries(entries);
     } finally {
       setAuditLoading(false);
@@ -531,8 +538,27 @@ export const AdminPanel: React.FC = () => {
       {/* Tab 5: Audit Log */}
       {activeTab === 4 && (
         <div>
+          {auditEntries.length > 5000 && (
+            <div style={{
+              padding: '10px 16px', marginBottom: '12px', borderRadius: '6px',
+              backgroundColor: '#FEF3C7', border: '1px solid #F59E0B',
+              fontSize: '13px', color: '#92400E',
+            }}>
+              Showing filtered results. Archive older entries to maintain performance.
+            </div>
+          )}
           <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <label style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
+                From:
+                <input type="date" style={{ ...selectStyle, marginLeft: '6px' }} value={auditStartDate}
+                  onChange={e => { setAuditStartDate(e.target.value); setAuditEntries([]); }} />
+              </label>
+              <label style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
+                To:
+                <input type="date" style={{ ...selectStyle, marginLeft: '6px' }} value={auditEndDate}
+                  onChange={e => { setAuditEndDate(e.target.value); setAuditEntries([]); }} />
+              </label>
               <label style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
                 Entity:
                 <select style={{ ...selectStyle, marginLeft: '6px' }} value={auditEntityFilter} onChange={e => setAuditEntityFilter(e.target.value)}>

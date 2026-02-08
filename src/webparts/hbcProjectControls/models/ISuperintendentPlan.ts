@@ -1,5 +1,9 @@
 export interface ISuperintendentPlanSection {
   id: number;
+  /** FK to parent Superintendent_Plan.id */
+  superintendentPlanId?: number;
+  /** FK to project — enables direct queries */
+  projectCode?: string;
   sectionKey: string;
   sectionTitle: string;
   content: string;

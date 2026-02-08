@@ -10,20 +10,33 @@ export const CACHE_KEYS = {
   LEADS: 'hbc_leads',
 } as const;
 
-export const LIST_NAMES = {
+export const HUB_LISTS = {
   LEADS_MASTER: 'Leads_Master',
   APP_ROLES: 'App_Roles',
   FEATURE_FLAGS: 'Feature_Flags',
+  APP_CONTEXT_CONFIG: 'App_Context_Config',
+  AUDIT_LOG: 'Audit_Log',
+  AUDIT_LOG_ARCHIVE: 'Audit_Log_Archive',
+  PROVISIONING_LOG: 'Provisioning_Log',
   ESTIMATING_TRACKER: 'Estimating_Tracker',
+  GONOGO_SCORECARD: 'GoNoGo_Scorecard',
   GNG_COMMITTEE: 'GNG_Committee',
-  AUTOPSY_ATTENDEES: 'Autopsy_Attendees',
+  ACTIVE_PROJECTS_PORTFOLIO: 'Active_Projects_Portfolio',
   TEMPLATE_REGISTRY: 'Template_Registry',
   REGIONS: 'Regions',
   SECTORS: 'Sectors',
-  AUDIT_LOG: 'Audit_Log',
-  PROVISIONING_LOG: 'Provisioning_Log',
-  APP_CONTEXT_CONFIG: 'App_Context_Config',
-  GONOGO_SCORECARD: 'GoNoGo_Scorecard',
+  AUTOPSY_ATTENDEES: 'Autopsy_Attendees',
+  JOB_NUMBER_REQUESTS: 'Job_Number_Requests',
+  ESTIMATING_KICKOFFS: 'Estimating_Kickoffs',
+  ESTIMATING_KICKOFF_ITEMS: 'Estimating_Kickoff_Items',
+  LOSS_AUTOPSIES: 'Loss_Autopsies',
+  MARKETING_PROJECT_RECORDS: 'Marketing_Project_Records',
+  LESSONS_LEARNED_HUB: 'Lessons_Learned_Hub',
+  PROJECT_TYPES: 'Project_Types',
+  STANDARD_COST_CODES: 'Standard_Cost_Codes',
+} as const;
+
+export const PROJECT_LISTS = {
   PROJECT_INFO: 'Project_Info',
   TEAM_MEMBERS: 'Team_Members',
   DELIVERABLES: 'Deliverables',
@@ -31,8 +44,34 @@ export const LIST_NAMES = {
   TURNOVER_CHECKLIST: 'Turnover_Checklist',
   BUYOUT_LOG: 'Buyout_Log',
   COMMITMENT_APPROVALS: 'Commitment_Approvals',
-  ACTIVE_PROJECTS_PORTFOLIO: 'Active_Projects_Portfolio',
+  STARTUP_CHECKLIST: 'Startup_Checklist',
+  CHECKLIST_ACTIVITY_LOG: 'Checklist_Activity_Log',
+  INTERNAL_MATRIX: 'Internal_Matrix',
+  OWNER_CONTRACT_MATRIX: 'Owner_Contract_Matrix',
+  SUB_CONTRACT_MATRIX: 'Sub_Contract_Matrix',
+  RISK_COST_MANAGEMENT: 'Risk_Cost_Management',
+  RISK_COST_ITEMS: 'Risk_Cost_Items',
+  QUALITY_CONCERNS: 'Quality_Concerns',
+  SAFETY_CONCERNS: 'Safety_Concerns',
+  PROJECT_SCHEDULE: 'Project_Schedule',
+  CRITICAL_PATH_ITEMS: 'Critical_Path_Items',
+  SUPERINTENDENT_PLAN: 'Superintendent_Plan',
+  SUPERINTENDENT_PLAN_SECTIONS: 'Superintendent_Plan_Sections',
+  LESSONS_LEARNED: 'Lessons_Learned',
+  PMP: 'Project_Management_Plans',
+  PMP_SIGNATURES: 'PMP_Signatures',
+  PMP_APPROVAL_CYCLES: 'PMP_Approval_Cycles',
+  PMP_APPROVAL_STEPS: 'PMP_Approval_Steps',
+  MONTHLY_REVIEWS: 'Monthly_Reviews',
+  MONTHLY_CHECKLIST_ITEMS: 'Monthly_Checklist_Items',
+  MONTHLY_FOLLOW_UPS: 'Monthly_Follow_Ups',
+  CLOSEOUT_ITEMS: 'Closeout_Items',
+  MARKETING_PROJECT_RECORD: 'Marketing_Project_Record',
+  CONTRACT_INFO: 'Contract_Info',
+  INTERVIEW_PREP: 'Interview_Prep',
 } as const;
+
+export const LIST_NAMES = { ...HUB_LISTS, ...PROJECT_LISTS } as const;
 
 export const ROUTES = {
   // Hub routes

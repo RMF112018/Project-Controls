@@ -355,6 +355,354 @@
           { "name": "CompletedDate", "type": "DateTime" },
           { "name": "CompletedBy", "type": "Person" }
         ]
+      },
+      {
+        "title": "Buyout_Log",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "DivisionCode", "type": "Text" },
+          { "name": "DivisionDescription", "type": "Text" },
+          { "name": "OriginalBudget", "type": "Currency" },
+          { "name": "ContractValue", "type": "Currency" },
+          { "name": "SubcontractorName", "type": "Text" },
+          { "name": "CommitmentStatus", "type": "Choice" },
+          { "name": "Status", "type": "Choice" }
+        ]
+      },
+      {
+        "title": "Commitment_Approvals",
+        "template": "GenericList",
+        "fields": [
+          { "name": "BuyoutEntryId", "type": "Number" },
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "Step", "type": "Choice" },
+          { "name": "ApproverName", "type": "Text" },
+          { "name": "Status", "type": "Choice" },
+          { "name": "ActionDate", "type": "DateTime" },
+          { "name": "Comment", "type": "Note" }
+        ]
+      },
+      {
+        "title": "Startup_Checklist",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "SectionNumber", "type": "Number" },
+          { "name": "SectionName", "type": "Text" },
+          { "name": "ItemNumber", "type": "Text" },
+          { "name": "Label", "type": "Text" },
+          { "name": "ResponseType", "type": "Choice" },
+          { "name": "Response", "type": "Text" },
+          { "name": "Status", "type": "Choice" },
+          { "name": "RespondedBy", "type": "Text" },
+          { "name": "RespondedDate", "type": "DateTime" }
+        ]
+      },
+      {
+        "title": "Checklist_Activity_Log",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ChecklistItemId", "type": "Number", "indexed": true },
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "Timestamp", "type": "DateTime" },
+          { "name": "User", "type": "Text" },
+          { "name": "PreviousValue", "type": "Text" },
+          { "name": "NewValue", "type": "Text" },
+          { "name": "Comment", "type": "Note" }
+        ]
+      },
+      {
+        "title": "Internal_Matrix",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "Category", "type": "Text" },
+          { "name": "Task", "type": "Text" },
+          { "name": "ProjectManager", "type": "Choice" },
+          { "name": "Superintendent", "type": "Choice" },
+          { "name": "ProjectEngineer", "type": "Choice" }
+        ]
+      },
+      {
+        "title": "Owner_Contract_Matrix",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "ArticleNumber", "type": "Text" },
+          { "name": "ArticleTitle", "type": "Text" },
+          { "name": "ResponsibleParty", "type": "Choice" },
+          { "name": "Notes", "type": "Note" }
+        ]
+      },
+      {
+        "title": "Sub_Contract_Matrix",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "ClauseNumber", "type": "Text" },
+          { "name": "ClauseTitle", "type": "Text" },
+          { "name": "ResponsibleParty", "type": "Choice" },
+          { "name": "Notes", "type": "Note" }
+        ]
+      },
+      {
+        "title": "Risk_Cost_Management",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "ContractType", "type": "Text" },
+          { "name": "ContractAmount", "type": "Currency" },
+          { "name": "CreatedBy", "type": "Text" },
+          { "name": "LastUpdatedBy", "type": "Text" }
+        ]
+      },
+      {
+        "title": "Risk_Cost_Items",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "RiskCostId", "type": "Number", "indexed": true },
+          { "name": "Category", "type": "Choice" },
+          { "name": "Letter", "type": "Text" },
+          { "name": "Description", "type": "Note" },
+          { "name": "EstimatedValue", "type": "Currency" },
+          { "name": "Status", "type": "Choice" },
+          { "name": "Notes", "type": "Note" }
+        ]
+      },
+      {
+        "title": "Quality_Concerns",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "Description", "type": "Note" },
+          { "name": "Status", "type": "Choice" },
+          { "name": "Priority", "type": "Choice" },
+          { "name": "ReportedBy", "type": "Text" },
+          { "name": "ReportedDate", "type": "DateTime" }
+        ]
+      },
+      {
+        "title": "Safety_Concerns",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "Description", "type": "Note" },
+          { "name": "Status", "type": "Choice" },
+          { "name": "Severity", "type": "Choice" },
+          { "name": "ReportedBy", "type": "Text" },
+          { "name": "ReportedDate", "type": "DateTime" }
+        ]
+      },
+      {
+        "title": "Project_Schedule",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "StartDate", "type": "DateTime" },
+          { "name": "SubstantialCompletionDate", "type": "DateTime" },
+          { "name": "NTPDate", "type": "DateTime" },
+          { "name": "NOCDate", "type": "DateTime" },
+          { "name": "ContractCalendarDays", "type": "Number" },
+          { "name": "ContractBasisType", "type": "Text" },
+          { "name": "HasLiquidatedDamages", "type": "Boolean" }
+        ]
+      },
+      {
+        "title": "Critical_Path_Items",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "ScheduleId", "type": "Number", "indexed": true },
+          { "name": "Letter", "type": "Text" },
+          { "name": "Description", "type": "Note" },
+          { "name": "ImpactDescription", "type": "Note" },
+          { "name": "Status", "type": "Choice" },
+          { "name": "MitigationPlan", "type": "Note" }
+        ]
+      },
+      {
+        "title": "Superintendent_Plan",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "SuperintendentName", "type": "Text" },
+          { "name": "CreatedBy", "type": "Text" },
+          { "name": "LastUpdatedBy", "type": "Text" }
+        ]
+      },
+      {
+        "title": "Superintendent_Plan_Sections",
+        "template": "GenericList",
+        "fields": [
+          { "name": "SuperintendentPlanId", "type": "Number", "indexed": true },
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "SectionKey", "type": "Text" },
+          { "name": "SectionTitle", "type": "Text" },
+          { "name": "Content", "type": "Note" },
+          { "name": "IsComplete", "type": "Boolean" }
+        ]
+      },
+      {
+        "title": "Lessons_Learned",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "Category", "type": "Choice" },
+          { "name": "Impact", "type": "Choice" },
+          { "name": "Description", "type": "Note" },
+          { "name": "Recommendation", "type": "Note" },
+          { "name": "RaisedBy", "type": "Text" },
+          { "name": "RaisedDate", "type": "DateTime" },
+          { "name": "IsIncludedInFinalRecord", "type": "Boolean" }
+        ]
+      },
+      {
+        "title": "Project_Management_Plans",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "ProjectName", "type": "Text" },
+          { "name": "JobNumber", "type": "Text" },
+          { "name": "Status", "type": "Choice" },
+          { "name": "CurrentCycleNumber", "type": "Number" },
+          { "name": "Division", "type": "Text" },
+          { "name": "SuperintendentPlan", "type": "Note" },
+          { "name": "PreconMeetingNotes", "type": "Note" },
+          { "name": "SiteManagementNotes", "type": "Note" }
+        ]
+      },
+      {
+        "title": "PMP_Signatures",
+        "template": "GenericList",
+        "fields": [
+          { "name": "PMPId", "type": "Number", "indexed": true },
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "SignatureType", "type": "Choice" },
+          { "name": "Role", "type": "Text" },
+          { "name": "PersonName", "type": "Text" },
+          { "name": "PersonEmail", "type": "Text" },
+          { "name": "Status", "type": "Choice" },
+          { "name": "SignedDate", "type": "DateTime" },
+          { "name": "Comment", "type": "Note" }
+        ]
+      },
+      {
+        "title": "PMP_Approval_Cycles",
+        "template": "GenericList",
+        "fields": [
+          { "name": "PMPId", "type": "Number", "indexed": true },
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "CycleNumber", "type": "Number" },
+          { "name": "SubmittedBy", "type": "Text" },
+          { "name": "SubmittedDate", "type": "DateTime" },
+          { "name": "Status", "type": "Choice" }
+        ]
+      },
+      {
+        "title": "PMP_Approval_Steps",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ApprovalCycleId", "type": "Number", "indexed": true },
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "StepOrder", "type": "Number" },
+          { "name": "ApproverRole", "type": "Text" },
+          { "name": "ApproverName", "type": "Text" },
+          { "name": "ApproverEmail", "type": "Text" },
+          { "name": "Status", "type": "Choice" },
+          { "name": "ActionDate", "type": "DateTime" },
+          { "name": "Comment", "type": "Note" },
+          { "name": "ApprovalCycleNumber", "type": "Number" }
+        ]
+      },
+      {
+        "title": "Monthly_Reviews",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "ReviewMonth", "type": "Text" },
+          { "name": "Status", "type": "Choice" },
+          { "name": "DueDate", "type": "DateTime" },
+          { "name": "MeetingDate", "type": "DateTime" },
+          { "name": "PMSubmittedDate", "type": "DateTime" },
+          { "name": "PXReviewDate", "type": "DateTime" }
+        ]
+      },
+      {
+        "title": "Monthly_Checklist_Items",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ReviewId", "type": "Number", "indexed": true },
+          { "name": "SectionKey", "type": "Text" },
+          { "name": "SectionTitle", "type": "Text" },
+          { "name": "ItemKey", "type": "Text" },
+          { "name": "ItemDescription", "type": "Text" },
+          { "name": "PMComment", "type": "Note" },
+          { "name": "PXComment", "type": "Note" },
+          { "name": "PXInitial", "type": "Text" }
+        ]
+      },
+      {
+        "title": "Monthly_Follow_Ups",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ReviewId", "type": "Number", "indexed": true },
+          { "name": "Question", "type": "Note" },
+          { "name": "RequestedBy", "type": "Text" },
+          { "name": "RequestedDate", "type": "DateTime" },
+          { "name": "PMResponse", "type": "Note" },
+          { "name": "ResponseDate", "type": "DateTime" },
+          { "name": "Status", "type": "Choice" }
+        ]
+      },
+      {
+        "title": "Closeout_Items",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "Category", "type": "Text" },
+          { "name": "Description", "type": "Text" },
+          { "name": "Status", "type": "Choice" },
+          { "name": "AssignedTo", "type": "Text" },
+          { "name": "DueDate", "type": "DateTime" },
+          { "name": "CompletedDate", "type": "DateTime" }
+        ]
+      },
+      {
+        "title": "Marketing_Project_Record",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "ProjectName", "type": "Text" },
+          { "name": "CompletionPercentage", "type": "Number" },
+          { "name": "LastUpdatedBy", "type": "Text" },
+          { "name": "LastUpdatedAt", "type": "DateTime" }
+        ]
+      },
+      {
+        "title": "Contract_Info",
+        "template": "GenericList",
+        "fields": [
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "ContractType", "type": "Choice" },
+          { "name": "ContractAmount", "type": "Currency" },
+          { "name": "ContractDate", "type": "DateTime" },
+          { "name": "OwnerName", "type": "Text" },
+          { "name": "ArchitectName", "type": "Text" }
+        ]
+      },
+      {
+        "title": "Interview_Prep",
+        "template": "GenericList",
+        "fields": [
+          { "name": "LeadId", "type": "Number", "indexed": true },
+          { "name": "ProjectCode", "type": "Text", "indexed": true },
+          { "name": "InterviewDate", "type": "DateTime" },
+          { "name": "InterviewLocation", "type": "Text" },
+          { "name": "Attendees", "type": "Note" },
+          { "name": "Notes", "type": "Note" }
+        ]
       }
     ]
   }

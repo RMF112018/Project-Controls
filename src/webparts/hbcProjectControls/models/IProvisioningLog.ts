@@ -15,6 +15,7 @@ export const TOTAL_PROVISIONING_STEPS = 7;
 export interface IProvisioningLog {
   id: number;
   projectCode: string;
+  /** @denormalized — source: Leads_Master.Title */
   projectName: string;
   leadId: number;
   status: ProvisioningStatus;
