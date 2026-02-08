@@ -1,0 +1,133 @@
+[
+  {
+    "id": 1,
+    "projectCode": "25-042-01",
+    "projectName": "Clematis Mixed-Use Tower",
+    "jobNumber": "25-042",
+    "status": "Approved",
+    "currentCycleNumber": 1,
+    "division": "Commercial",
+    "superintendentPlan": "",
+    "preconMeetingNotes": "Pre-construction meeting held Oct 22, 2025. Owner, A/E team, and HBC leadership attended. Key topics: phasing, site access, community impact. Meeting minutes distributed Oct 23.",
+    "siteManagementNotes": "Urban site with limited laydown. Coordinate with city for lane closures during major deliveries. Noise restrictions per city ordinance 7AM-6PM.",
+    "projectAdminBuyoutDate": "2026-03-15",
+    "attachmentUrls": [
+      "https://hedrickbrothers.sharepoint.com/sites/25-042-01/Shared%20Documents/PMP/org-chart.pdf",
+      "https://hedrickbrothers.sharepoint.com/sites/25-042-01/Shared%20Documents/PMP/site-plan.pdf"
+    ],
+    "riskCostData": { "contractType": "GMP", "contractAmount": 48500000 },
+    "qualityConcerns": [],
+    "safetyConcerns": [],
+    "scheduleData": { "startDate": "2025-10-15", "completionDate": "2027-04-30" },
+    "superintendentPlanData": { "completionPercentage": 100 },
+    "lessonsLearned": [],
+    "teamAssignments": [],
+    "startupSignatures": [
+      { "id": 1, "projectCode": "25-042-01", "signatureType": "Startup", "role": "Project Manager", "personName": "John Thompson", "personEmail": "jthompson@hedrickbrothers.com", "isRequired": true, "isLead": true, "status": "Signed", "signedDate": "2025-11-01T09:00:00.000Z", "affidavitText": "I have reviewed and commit to this Project Management Plan.", "comment": "" },
+      { "id": 2, "projectCode": "25-042-01", "signatureType": "Startup", "role": "Superintendent", "personName": "Dan Martin", "personEmail": "dmartin@hedrickbrothers.com", "isRequired": true, "isLead": false, "status": "Signed", "signedDate": "2025-11-01T10:30:00.000Z", "affidavitText": "I have reviewed and commit to this Project Management Plan.", "comment": "" },
+      { "id": 3, "projectCode": "25-042-01", "signatureType": "Startup", "role": "Project Executive", "personName": "Kim Foster", "personEmail": "kfoster@hedrickbrothers.com", "isRequired": false, "isLead": false, "status": "Signed", "signedDate": "2025-11-02T08:00:00.000Z", "affidavitText": "I have reviewed and commit to this Project Management Plan.", "comment": "Good plan. Proceed." }
+    ],
+    "completionSignatures": [],
+    "approvalCycles": [
+      {
+        "cycleNumber": 1,
+        "submittedBy": "jthompson@hedrickbrothers.com",
+        "submittedDate": "2025-11-03T09:00:00.000Z",
+        "status": "Approved",
+        "steps": [
+          { "id": 1, "projectCode": "25-042-01", "stepOrder": 1, "approverRole": "Project Executive", "approverName": "Kim Foster", "approverEmail": "kfoster@hedrickbrothers.com", "status": "Approved", "comment": "Comprehensive plan. Approved.", "actionDate": "2025-11-04T14:00:00.000Z", "approvalCycleNumber": 1 },
+          { "id": 2, "projectCode": "25-042-01", "stepOrder": 2, "approverRole": "Division Head", "approverName": "Arthur Miller", "approverEmail": "amiller@hedrickbrothers.com", "status": "Approved", "comment": "Good to go.", "actionDate": "2025-11-05T10:00:00.000Z", "approvalCycleNumber": 1 }
+        ],
+        "changesFromPrevious": []
+      }
+    ],
+    "boilerplate": [],
+    "createdBy": "jthompson@hedrickbrothers.com",
+    "createdAt": "2025-10-25T08:00:00.000Z",
+    "lastUpdatedBy": "jthompson@hedrickbrothers.com",
+    "lastUpdatedAt": "2025-11-05T10:00:00.000Z"
+  },
+  {
+    "id": 2,
+    "projectCode": "25-115-01",
+    "projectName": "Ocean Blvd Residence",
+    "jobNumber": "25-115",
+    "status": "Draft",
+    "currentCycleNumber": 0,
+    "division": "Luxury Residential",
+    "superintendentPlan": "",
+    "preconMeetingNotes": "",
+    "siteManagementNotes": "",
+    "projectAdminBuyoutDate": null,
+    "attachmentUrls": [],
+    "riskCostData": { "contractType": "Lump Sum", "contractAmount": 12200000 },
+    "qualityConcerns": [],
+    "safetyConcerns": [],
+    "scheduleData": { "startDate": "2026-01-06", "completionDate": "2027-01-15" },
+    "superintendentPlanData": { "completionPercentage": 40 },
+    "lessonsLearned": [],
+    "teamAssignments": [],
+    "startupSignatures": [
+      { "id": 4, "projectCode": "25-115-01", "signatureType": "Startup", "role": "Project Manager", "personName": "Maria Rodriguez", "personEmail": "mrodriguez@hedrickbrothers.com", "isRequired": true, "isLead": true, "status": "Pending", "signedDate": null, "affidavitText": "I have reviewed and commit to this Project Management Plan.", "comment": "" },
+      { "id": 5, "projectCode": "25-115-01", "signatureType": "Startup", "role": "Superintendent", "personName": "Carlos Rivera", "personEmail": "crivera@hedrickbrothers.com", "isRequired": true, "isLead": false, "status": "Pending", "signedDate": null, "affidavitText": "I have reviewed and commit to this Project Management Plan.", "comment": "" }
+    ],
+    "completionSignatures": [],
+    "approvalCycles": [],
+    "boilerplate": [],
+    "createdBy": "mrodriguez@hedrickbrothers.com",
+    "createdAt": "2026-01-10T09:00:00.000Z",
+    "lastUpdatedBy": "mrodriguez@hedrickbrothers.com",
+    "lastUpdatedAt": "2026-01-20T11:00:00.000Z"
+  },
+  {
+    "id": 3,
+    "projectCode": "24-089-01",
+    "projectName": "Palm Beach Gardens Office Complex",
+    "jobNumber": "24-089",
+    "status": "Closed",
+    "currentCycleNumber": 2,
+    "division": "Commercial",
+    "superintendentPlan": "",
+    "preconMeetingNotes": "Pre-construction meeting held June 2024. Full team present.",
+    "siteManagementNotes": "Suburban site with ample staging. Standard access controls.",
+    "projectAdminBuyoutDate": "2024-09-01",
+    "attachmentUrls": [],
+    "riskCostData": { "contractType": "GMP", "contractAmount": 22000000 },
+    "qualityConcerns": [],
+    "safetyConcerns": [],
+    "scheduleData": { "startDate": "2024-06-15", "completionDate": "2025-10-30" },
+    "superintendentPlanData": { "completionPercentage": 100 },
+    "lessonsLearned": [],
+    "teamAssignments": [],
+    "startupSignatures": [],
+    "completionSignatures": [],
+    "approvalCycles": [
+      {
+        "cycleNumber": 1,
+        "submittedBy": "kfoster@hedrickbrothers.com",
+        "submittedDate": "2024-07-01T09:00:00.000Z",
+        "status": "Returned",
+        "steps": [
+          { "id": 3, "projectCode": "24-089-01", "stepOrder": 1, "approverRole": "Project Executive", "approverName": "Kim Foster", "approverEmail": "kfoster@hedrickbrothers.com", "status": "Returned", "comment": "Need more detail on underground risk mitigation.", "actionDate": "2024-07-03T14:00:00.000Z", "approvalCycleNumber": 1 }
+        ],
+        "changesFromPrevious": []
+      },
+      {
+        "cycleNumber": 2,
+        "submittedBy": "kfoster@hedrickbrothers.com",
+        "submittedDate": "2024-07-10T09:00:00.000Z",
+        "status": "Approved",
+        "steps": [
+          { "id": 4, "projectCode": "24-089-01", "stepOrder": 1, "approverRole": "Project Executive", "approverName": "Kim Foster", "approverEmail": "kfoster@hedrickbrothers.com", "status": "Approved", "comment": "Revised plan addresses concerns.", "actionDate": "2024-07-12T10:00:00.000Z", "approvalCycleNumber": 2 },
+          { "id": 5, "projectCode": "24-089-01", "stepOrder": 2, "approverRole": "Division Head", "approverName": "Arthur Miller", "approverEmail": "amiller@hedrickbrothers.com", "status": "Approved", "comment": "", "actionDate": "2024-07-13T09:00:00.000Z", "approvalCycleNumber": 2 }
+        ],
+        "changesFromPrevious": ["Added underground risk contingency plan", "Updated environmental controls section"]
+      }
+    ],
+    "boilerplate": [],
+    "createdBy": "kfoster@hedrickbrothers.com",
+    "createdAt": "2024-06-20T08:00:00.000Z",
+    "lastUpdatedBy": "kfoster@hedrickbrothers.com",
+    "lastUpdatedAt": "2025-10-30T16:00:00.000Z"
+  }
+]

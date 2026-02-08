@@ -23,6 +23,14 @@ const SCREEN_META: Record<string, { label: string; path: string; description: st
   contract: { label: 'Contract', path: '/contract', description: 'Contract administration and execution', color: '#10B981' },
   turnover: { label: 'Turnover', path: '/turnover', description: 'Handoff from precon to operations', color: '#059669' },
   closeout: { label: 'Closeout', path: '/closeout', description: 'Project closeout checklist', color: '#6B7280' },
+  'risk-cost': { label: 'Risk & Cost', path: '/risk-cost', description: 'Contract, buyout, risks & savings', color: '#DC2626' },
+  quality: { label: 'Quality Concerns', path: '/quality-concerns', description: 'Track quality control concerns', color: '#7C3AED' },
+  safety: { label: 'Safety Concerns', path: '/safety-concerns', description: 'Safety officer & concern tracking', color: '#EA580C' },
+  schedule: { label: 'Schedule', path: '/schedule-critical-path', description: 'Dates, milestones & critical path', color: '#0891B2' },
+  superintendent: { label: "Super's Plan", path: '/superintendent-plan', description: "Superintendent's 10-section plan", color: '#4F46E5' },
+  'lessons-learned': { label: 'Lessons Learned', path: '/lessons-learned', description: 'Capture project lessons & insights', color: '#CA8A04' },
+  pmp: { label: 'PMP', path: '/pmp', description: 'Project Management Plan', color: HBC_COLORS.navy },
+  'monthly-review': { label: 'Monthly Review', path: '/monthly-review', description: 'PX monthly project review', color: '#059669' },
 };
 
 const ACTIVE_STAGES: string[] = [Stage.ActiveConstruction, Stage.Closeout];

@@ -11,6 +11,14 @@ import { IProvisioningLog } from '../models/IProvisioningLog';
 import { IStartupChecklistItem } from '../models/IStartupChecklist';
 import { IInternalMatrixTask, ITeamRoleAssignment, IOwnerContractArticle, ISubContractClause } from '../models/IResponsibilityMatrix';
 import { IMarketingProjectRecord } from '../models/IMarketingProjectRecord';
+import { IRiskCostManagement, IRiskCostItem } from '../models/IRiskCostManagement';
+import { IQualityConcern } from '../models/IQualityConcerns';
+import { ISafetyConcern } from '../models/ISafetyConcerns';
+import { IProjectScheduleCriticalPath, ICriticalPathItem } from '../models/IProjectScheduleCriticalPath';
+import { ISuperintendentPlan, ISuperintendentPlanSection } from '../models/ISuperintendentPlan';
+import { ILessonLearned } from '../models/ILessonsLearned';
+import { IProjectManagementPlan, IDivisionApprover, IPMPBoilerplateSection } from '../models/IProjectManagementPlan';
+import { IMonthlyProjectReview } from '../models/IMonthlyProjectReview';
 import { GoNoGoDecision, Stage } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 
@@ -383,4 +391,50 @@ export class SharePointDataService implements IDataService {
   async createMarketingProjectRecord(_data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> { throw new Error('Not implemented'); }
   async updateMarketingProjectRecord(_projectCode: string, _data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> { throw new Error('Not implemented'); }
   async getAllMarketingProjectRecords(): Promise<IMarketingProjectRecord[]> { return []; }
+
+  // --- Risk & Cost ---
+  async getRiskCostManagement(_projectCode: string): Promise<IRiskCostManagement | null> { return null; }
+  async updateRiskCostManagement(_projectCode: string, _data: Partial<IRiskCostManagement>): Promise<IRiskCostManagement> { throw new Error('Not implemented'); }
+  async addRiskCostItem(_projectCode: string, _item: Partial<IRiskCostItem>): Promise<IRiskCostItem> { throw new Error('Not implemented'); }
+  async updateRiskCostItem(_projectCode: string, _itemId: number, _data: Partial<IRiskCostItem>): Promise<IRiskCostItem> { throw new Error('Not implemented'); }
+
+  // --- Quality Concerns ---
+  async getQualityConcerns(_projectCode: string): Promise<IQualityConcern[]> { return []; }
+  async addQualityConcern(_projectCode: string, _concern: Partial<IQualityConcern>): Promise<IQualityConcern> { throw new Error('Not implemented'); }
+  async updateQualityConcern(_projectCode: string, _concernId: number, _data: Partial<IQualityConcern>): Promise<IQualityConcern> { throw new Error('Not implemented'); }
+
+  // --- Safety Concerns ---
+  async getSafetyConcerns(_projectCode: string): Promise<ISafetyConcern[]> { return []; }
+  async addSafetyConcern(_projectCode: string, _concern: Partial<ISafetyConcern>): Promise<ISafetyConcern> { throw new Error('Not implemented'); }
+  async updateSafetyConcern(_projectCode: string, _concernId: number, _data: Partial<ISafetyConcern>): Promise<ISafetyConcern> { throw new Error('Not implemented'); }
+
+  // --- Schedule & Critical Path ---
+  async getProjectSchedule(_projectCode: string): Promise<IProjectScheduleCriticalPath | null> { return null; }
+  async updateProjectSchedule(_projectCode: string, _data: Partial<IProjectScheduleCriticalPath>): Promise<IProjectScheduleCriticalPath> { throw new Error('Not implemented'); }
+  async addCriticalPathItem(_projectCode: string, _item: Partial<ICriticalPathItem>): Promise<ICriticalPathItem> { throw new Error('Not implemented'); }
+
+  // --- Superintendent Plan ---
+  async getSuperintendentPlan(_projectCode: string): Promise<ISuperintendentPlan | null> { return null; }
+  async updateSuperintendentPlanSection(_projectCode: string, _sectionId: number, _data: Partial<ISuperintendentPlanSection>): Promise<ISuperintendentPlanSection> { throw new Error('Not implemented'); }
+  async createSuperintendentPlan(_projectCode: string, _data: Partial<ISuperintendentPlan>): Promise<ISuperintendentPlan> { throw new Error('Not implemented'); }
+
+  // --- Lessons Learned ---
+  async getLessonsLearned(_projectCode: string): Promise<ILessonLearned[]> { return []; }
+  async addLessonLearned(_projectCode: string, _lesson: Partial<ILessonLearned>): Promise<ILessonLearned> { throw new Error('Not implemented'); }
+  async updateLessonLearned(_projectCode: string, _lessonId: number, _data: Partial<ILessonLearned>): Promise<ILessonLearned> { throw new Error('Not implemented'); }
+
+  // --- Project Management Plan ---
+  async getProjectManagementPlan(_projectCode: string): Promise<IProjectManagementPlan | null> { return null; }
+  async updateProjectManagementPlan(_projectCode: string, _data: Partial<IProjectManagementPlan>): Promise<IProjectManagementPlan> { throw new Error('Not implemented'); }
+  async submitPMPForApproval(_projectCode: string, _submittedBy: string): Promise<IProjectManagementPlan> { throw new Error('Not implemented'); }
+  async respondToPMPApproval(_projectCode: string, _stepId: number, _approved: boolean, _comment: string): Promise<IProjectManagementPlan> { throw new Error('Not implemented'); }
+  async signPMP(_projectCode: string, _signatureId: number, _comment: string): Promise<IProjectManagementPlan> { throw new Error('Not implemented'); }
+  async getDivisionApprovers(): Promise<IDivisionApprover[]> { return []; }
+  async getPMPBoilerplate(): Promise<IPMPBoilerplateSection[]> { return []; }
+
+  // --- Monthly Review ---
+  async getMonthlyReviews(_projectCode: string): Promise<IMonthlyProjectReview[]> { return []; }
+  async getMonthlyReview(_reviewId: number): Promise<IMonthlyProjectReview | null> { return null; }
+  async updateMonthlyReview(_reviewId: number, _data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> { throw new Error('Not implemented'); }
+  async createMonthlyReview(_data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> { throw new Error('Not implemented'); }
 }

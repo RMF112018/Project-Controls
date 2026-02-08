@@ -1,0 +1,54 @@
+import * as React from 'react';
+import { useAppContext } from '../contexts/AppContext';
+import { ISuperintendentPlan, ISuperintendentPlanSection } from '../../models/ISuperintendentPlan';
+
+interface IUseSuperintendentPlanResult {
+  plan: ISuperintendentPlan | null;
+  isLoading: boolean;
+  error: string | null;
+  fetchPlan: (projectCode: string) => Promise<void>;
+  updateSection: (projectCode: string, sectionId: number, data: Partial<ISuperintendentPlanSection>) => Promise<void>;
+  completionPercentage: number;
+  incompleteSections: string[];
+}
+
+export function useSuperintendentPlan(): IUseSuperintendentPlanResult {
+  const { dataService } = useAppContext();
+  const [plan, setPlan] = React.useState<ISuperintendentPlan | null>(null);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const fetchPlan = React.useCallback(async (projectCode: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const result = await dataService.getSuperintendentPlan(projectCode);
+      setPlan(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch superintendent plan');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [dataService]);
+
+  const updateSection = React.useCallback(async (projectCode: string, sectionId: number, data: Partial<ISuperintendentPlanSection>) => {
+    const updated = await dataService.updateSuperintendentPlanSection(projectCode, sectionId, data);
+    setPlan(prev => {
+      if (!prev) return prev;
+      return { ...prev, sections: prev.sections.map(s => s.id === sectionId ? { ...s, ...updated } : s) };
+    });
+  }, [dataService]);
+
+  const completionPercentage = React.useMemo(() => {
+    if (!plan || plan.sections.length === 0) return 0;
+    const complete = plan.sections.filter(s => s.isComplete).length;
+    return Math.round((complete / plan.sections.length) * 100);
+  }, [plan]);
+
+  const incompleteSections = React.useMemo(() => {
+    if (!plan) return [];
+    return plan.sections.filter(s => !s.isComplete).map(s => s.sectionTitle);
+  }, [plan]);
+
+  return { plan, isLoading, error, fetchPlan, updateSection, completionPercentage, incompleteSections };
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "projectCode": "25-042-01",
+    "startDate": "2025-10-15",
+    "substantialCompletionDate": "2027-04-30",
+    "ntpDate": "2025-10-01",
+    "nocDate": null,
+    "contractCalendarDays": 562,
+    "contractBasisType": "Calendar Days",
+    "teamGoalDaysAhead": 30,
+    "teamGoalDescription": "Achieve substantial completion 30 days ahead of contract date to allow for owner move-in preparation",
+    "hasLiquidatedDamages": true,
+    "liquidatedDamagesAmount": 5000,
+    "liquidatedDamagesTerms": "$5,000 per calendar day beyond substantial completion date",
+    "criticalPathConcerns": [
+      { "id": 101, "letter": "A", "description": "Curtain wall fabrication and delivery", "impactDescription": "22-week lead time drives exterior enclosure milestone; delays cascade to interior finishes", "status": "Active", "mitigationPlan": "Weekly calls with manufacturer; early release of shop drawings for fabrication", "createdDate": "2025-11-15", "updatedDate": "2026-01-10" },
+      { "id": 102, "letter": "B", "description": "Elevator installation and inspection", "impactDescription": "14-week installation window required; state inspection backlog adding 3-4 weeks", "status": "Active", "mitigationPlan": "Pre-filed inspection request; consider third-party inspector option", "createdDate": "2025-12-01", "updatedDate": "2025-12-01" },
+      { "id": 103, "letter": "C", "description": "Fire alarm system testing and acceptance", "impactDescription": "Full building test required for TCO; 2-week testing window needed", "status": "Monitoring", "mitigationPlan": "Phased testing approach to verify systems floor-by-floor", "createdDate": "2026-01-05", "updatedDate": "2026-01-05" },
+      { "id": 104, "letter": "D", "description": "Permit processing for structural steel revisions", "impactDescription": "Revised connection details require re-review; 3-week permit turnaround", "status": "Active", "mitigationPlan": "Expedited review request submitted; pre-construction meeting with building official", "createdDate": "2026-01-12", "updatedDate": "2026-01-12" },
+      { "id": 105, "letter": "E", "description": "Underground utility relocation coordination with FPL", "impactDescription": "FPL transformer relocation drives site work sequence", "status": "Resolved", "mitigationPlan": "FPL completed relocation ahead of schedule on Dec 20", "createdDate": "2025-11-20", "updatedDate": "2025-12-22" }
+    ],
+    "createdBy": "jthompson@hedrickbrothers.com",
+    "createdAt": "2025-11-01T08:00:00.000Z",
+    "lastUpdatedBy": "jthompson@hedrickbrothers.com",
+    "lastUpdatedAt": "2026-01-12T16:00:00.000Z"
+  },
+  {
+    "id": 2,
+    "projectCode": "25-115-01",
+    "startDate": "2026-01-06",
+    "substantialCompletionDate": "2027-01-15",
+    "ntpDate": "2025-12-20",
+    "nocDate": null,
+    "contractCalendarDays": 375,
+    "contractBasisType": "Calendar Days",
+    "teamGoalDaysAhead": 14,
+    "teamGoalDescription": "Two-week early completion buffer for owner landscaping and furnishing",
+    "hasLiquidatedDamages": false,
+    "liquidatedDamagesAmount": null,
+    "liquidatedDamagesTerms": "",
+    "criticalPathConcerns": [
+      { "id": 201, "letter": "A", "description": "Custom window and door fabrication", "impactDescription": "28-week lead time for impact-rated custom windows; must order by Feb 1", "status": "Active", "mitigationPlan": "Owner deposit received; shop drawings in final review", "createdDate": "2026-01-06", "updatedDate": "2026-01-20" },
+      { "id": 202, "letter": "B", "description": "Pool construction sequencing with main structure", "impactDescription": "Pool shell must be poured before backfill of rear foundation; 3-week window", "status": "Active", "mitigationPlan": "Pool sub mobilizing week of Feb 10; concrete schedule coordinated", "createdDate": "2026-01-10", "updatedDate": "2026-01-10" },
+      { "id": 203, "letter": "C", "description": "Custom stone import from Italy for master bath and kitchen", "impactDescription": "16-week fabrication and shipping; selection must be finalized by Feb 15", "status": "Monitoring", "mitigationPlan": "Owner visiting stone yard in Miami next week for final selection", "createdDate": "2026-01-15", "updatedDate": "2026-01-15" }
+    ],
+    "createdBy": "mrodriguez@hedrickbrothers.com",
+    "createdAt": "2026-01-06T09:00:00.000Z",
+    "lastUpdatedBy": "mrodriguez@hedrickbrothers.com",
+    "lastUpdatedAt": "2026-01-20T10:00:00.000Z"
+  }
+]

@@ -1,0 +1,99 @@
+[
+  {
+    "id": 1,
+    "projectCode": "25-042-01",
+    "reviewMonth": "2025-12",
+    "status": "Complete",
+    "dueDate": "2026-01-10",
+    "meetingDate": "2026-01-08",
+    "pmSubmittedDate": "2026-01-05T09:00:00.000Z",
+    "pxReviewDate": "2026-01-07T14:00:00.000Z",
+    "pxValidationDate": "2026-01-09T10:00:00.000Z",
+    "leadershipSubmitDate": "2026-01-09T11:00:00.000Z",
+    "completedDate": "2026-01-10T09:00:00.000Z",
+    "checklistItems": [
+      { "id": 1, "sectionKey": "schedule", "sectionTitle": "Schedule", "itemKey": "schedule-status", "itemDescription": "Current schedule status and critical path review", "pmComment": "On track. Curtain wall delivery confirmed for Feb 15.", "pxComment": "Confirmed with manufacturer.", "pxInitial": "KF" },
+      { "id": 2, "sectionKey": "schedule", "sectionTitle": "Schedule", "itemKey": "schedule-updates", "itemDescription": "Schedule updates and look-ahead review", "pmComment": "3-week look-ahead distributed. Steel erection 85% complete.", "pxComment": "Good progress.", "pxInitial": "KF" },
+      { "id": 3, "sectionKey": "budget", "sectionTitle": "Budget & Cost", "itemKey": "budget-status", "itemDescription": "Current budget status and cost report review", "pmComment": "Budget tracking within 1.5% of GMP. No concerns.", "pxComment": "Review cost report in detail at next meeting.", "pxInitial": "KF" },
+      { "id": 4, "sectionKey": "budget", "sectionTitle": "Budget & Cost", "itemKey": "cost-forecast", "itemDescription": "Cost-to-complete forecast accuracy", "pmComment": "CTC updated through December billing cycle.", "pxComment": "", "pxInitial": "KF" },
+      { "id": 5, "sectionKey": "safety", "sectionTitle": "Safety", "itemKey": "safety-incidents", "itemDescription": "Safety incident review and near-miss reports", "pmComment": "Zero recordable incidents in December. 2 near-miss reports filed.", "pxComment": "Excellent safety record.", "pxInitial": "KF" }
+    ],
+    "followUps": [
+      { "id": 1, "question": "Provide updated curtain wall delivery schedule from manufacturer", "requestedBy": "kfoster@hedrickbrothers.com", "requestedDate": "2026-01-08", "pmResponse": "Updated schedule received Jan 12. On track for Feb 15 first delivery.", "responseDate": "2026-01-12", "pxForwardedDate": null, "status": "Closed" }
+    ],
+    "reportDocumentUrls": ["https://hedrickbrothers.sharepoint.com/sites/25-042-01/Shared%20Documents/Monthly/Dec-2025-Review.pdf"],
+    "createdBy": "jthompson@hedrickbrothers.com",
+    "createdAt": "2026-01-02T09:00:00.000Z",
+    "lastUpdatedBy": "kfoster@hedrickbrothers.com",
+    "lastUpdatedAt": "2026-01-10T09:00:00.000Z"
+  },
+  {
+    "id": 2,
+    "projectCode": "25-042-01",
+    "reviewMonth": "2026-01",
+    "status": "InProgress",
+    "dueDate": "2026-02-10",
+    "meetingDate": null,
+    "pmSubmittedDate": null,
+    "pxReviewDate": null,
+    "pxValidationDate": null,
+    "leadershipSubmitDate": null,
+    "completedDate": null,
+    "checklistItems": [
+      { "id": 6, "sectionKey": "schedule", "sectionTitle": "Schedule", "itemKey": "schedule-status", "itemDescription": "Current schedule status and critical path review", "pmComment": "Steel complete. Starting exterior enclosure.", "pxComment": "", "pxInitial": "" },
+      { "id": 7, "sectionKey": "budget", "sectionTitle": "Budget & Cost", "itemKey": "budget-status", "itemDescription": "Current budget status and cost report review", "pmComment": "", "pxComment": "", "pxInitial": "" }
+    ],
+    "followUps": [],
+    "reportDocumentUrls": [],
+    "createdBy": "jthompson@hedrickbrothers.com",
+    "createdAt": "2026-02-01T09:00:00.000Z",
+    "lastUpdatedBy": "jthompson@hedrickbrothers.com",
+    "lastUpdatedAt": "2026-02-05T14:00:00.000Z"
+  },
+  {
+    "id": 3,
+    "projectCode": "25-115-01",
+    "reviewMonth": "2026-01",
+    "status": "PendingPXReview",
+    "dueDate": "2026-02-10",
+    "meetingDate": null,
+    "pmSubmittedDate": "2026-02-03T09:00:00.000Z",
+    "pxReviewDate": null,
+    "pxValidationDate": null,
+    "leadershipSubmitDate": null,
+    "completedDate": null,
+    "checklistItems": [
+      { "id": 8, "sectionKey": "schedule", "sectionTitle": "Schedule", "itemKey": "schedule-status", "itemDescription": "Current schedule status and critical path review", "pmComment": "Foundation work 60% complete. On schedule.", "pxComment": "", "pxInitial": "" },
+      { "id": 9, "sectionKey": "budget", "sectionTitle": "Budget & Cost", "itemKey": "budget-status", "itemDescription": "Current budget status and cost report review", "pmComment": "First billing submitted. Budget on track.", "pxComment": "", "pxInitial": "" },
+      { "id": 10, "sectionKey": "safety", "sectionTitle": "Safety", "itemKey": "safety-incidents", "itemDescription": "Safety incident review and near-miss reports", "pmComment": "Zero incidents in January. Trench safety issue resolved same day.", "pxComment": "", "pxInitial": "" }
+    ],
+    "followUps": [],
+    "reportDocumentUrls": [],
+    "createdBy": "mrodriguez@hedrickbrothers.com",
+    "createdAt": "2026-02-01T09:00:00.000Z",
+    "lastUpdatedBy": "mrodriguez@hedrickbrothers.com",
+    "lastUpdatedAt": "2026-02-03T09:00:00.000Z"
+  },
+  {
+    "id": 4,
+    "projectCode": "25-115-01",
+    "reviewMonth": "2025-12",
+    "status": "Complete",
+    "dueDate": "2026-01-10",
+    "meetingDate": "2026-01-09",
+    "pmSubmittedDate": "2026-01-06T09:00:00.000Z",
+    "pxReviewDate": "2026-01-08T10:00:00.000Z",
+    "pxValidationDate": "2026-01-09T15:00:00.000Z",
+    "leadershipSubmitDate": "2026-01-09T16:00:00.000Z",
+    "completedDate": "2026-01-10T09:00:00.000Z",
+    "checklistItems": [
+      { "id": 11, "sectionKey": "schedule", "sectionTitle": "Schedule", "itemKey": "schedule-status", "itemDescription": "Current schedule status and critical path review", "pmComment": "Mobilization complete. Demo finished ahead of schedule.", "pxComment": "Good start to project.", "pxInitial": "KF" }
+    ],
+    "followUps": [],
+    "reportDocumentUrls": ["https://hedrickbrothers.sharepoint.com/sites/25-115-01/Shared%20Documents/Monthly/Dec-2025-Review.pdf"],
+    "createdBy": "mrodriguez@hedrickbrothers.com",
+    "createdAt": "2026-01-02T09:00:00.000Z",
+    "lastUpdatedBy": "kfoster@hedrickbrothers.com",
+    "lastUpdatedAt": "2026-01-10T09:00:00.000Z"
+  }
+]

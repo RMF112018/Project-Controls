@@ -17,6 +17,14 @@ import { ILossAutopsy } from '../models/ILossAutopsy';
 import { IStartupChecklistItem } from '../models/IStartupChecklist';
 import { IInternalMatrixTask, ITeamRoleAssignment, IOwnerContractArticle, ISubContractClause } from '../models/IResponsibilityMatrix';
 import { IMarketingProjectRecord } from '../models/IMarketingProjectRecord';
+import { IRiskCostManagement, IRiskCostItem } from '../models/IRiskCostManagement';
+import { IQualityConcern } from '../models/IQualityConcerns';
+import { ISafetyConcern } from '../models/ISafetyConcerns';
+import { IProjectScheduleCriticalPath, ICriticalPathItem } from '../models/IProjectScheduleCriticalPath';
+import { ISuperintendentPlan, ISuperintendentPlanSection } from '../models/ISuperintendentPlan';
+import { ILessonLearned } from '../models/ILessonsLearned';
+import { IProjectManagementPlan, IDivisionApprover, IPMPBoilerplateSection } from '../models/IProjectManagementPlan';
+import { IMonthlyProjectReview } from '../models/IMonthlyProjectReview';
 import { GoNoGoDecision, Stage } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -139,6 +147,54 @@ export interface IDataService {
   createMarketingProjectRecord(data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord>;
   updateMarketingProjectRecord(projectCode: string, data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord>;
   getAllMarketingProjectRecords(): Promise<IMarketingProjectRecord[]>;
+
+  // Risk & Cost Management
+  getRiskCostManagement(projectCode: string): Promise<IRiskCostManagement | null>;
+  updateRiskCostManagement(projectCode: string, data: Partial<IRiskCostManagement>): Promise<IRiskCostManagement>;
+  addRiskCostItem(projectCode: string, item: Partial<IRiskCostItem>): Promise<IRiskCostItem>;
+  updateRiskCostItem(projectCode: string, itemId: number, data: Partial<IRiskCostItem>): Promise<IRiskCostItem>;
+
+  // Quality Concerns
+  getQualityConcerns(projectCode: string): Promise<IQualityConcern[]>;
+  addQualityConcern(projectCode: string, concern: Partial<IQualityConcern>): Promise<IQualityConcern>;
+  updateQualityConcern(projectCode: string, concernId: number, data: Partial<IQualityConcern>): Promise<IQualityConcern>;
+
+  // Safety Concerns
+  getSafetyConcerns(projectCode: string): Promise<ISafetyConcern[]>;
+  addSafetyConcern(projectCode: string, concern: Partial<ISafetyConcern>): Promise<ISafetyConcern>;
+  updateSafetyConcern(projectCode: string, concernId: number, data: Partial<ISafetyConcern>): Promise<ISafetyConcern>;
+
+  // Project Schedule & Critical Path
+  getProjectSchedule(projectCode: string): Promise<IProjectScheduleCriticalPath | null>;
+  updateProjectSchedule(projectCode: string, data: Partial<IProjectScheduleCriticalPath>): Promise<IProjectScheduleCriticalPath>;
+  addCriticalPathItem(projectCode: string, item: Partial<ICriticalPathItem>): Promise<ICriticalPathItem>;
+
+  // Superintendent Plan
+  getSuperintendentPlan(projectCode: string): Promise<ISuperintendentPlan | null>;
+  updateSuperintendentPlanSection(projectCode: string, sectionId: number, data: Partial<ISuperintendentPlanSection>): Promise<ISuperintendentPlanSection>;
+  createSuperintendentPlan(projectCode: string, data: Partial<ISuperintendentPlan>): Promise<ISuperintendentPlan>;
+
+  // Lessons Learned
+  getLessonsLearned(projectCode: string): Promise<ILessonLearned[]>;
+  addLessonLearned(projectCode: string, lesson: Partial<ILessonLearned>): Promise<ILessonLearned>;
+  updateLessonLearned(projectCode: string, lessonId: number, data: Partial<ILessonLearned>): Promise<ILessonLearned>;
+
+  // Project Management Plan
+  getProjectManagementPlan(projectCode: string): Promise<IProjectManagementPlan | null>;
+  updateProjectManagementPlan(projectCode: string, data: Partial<IProjectManagementPlan>): Promise<IProjectManagementPlan>;
+  submitPMPForApproval(projectCode: string, submittedBy: string): Promise<IProjectManagementPlan>;
+  respondToPMPApproval(projectCode: string, stepId: number, approved: boolean, comment: string): Promise<IProjectManagementPlan>;
+
+  // PMP Signatures & Division Approvers
+  signPMP(projectCode: string, signatureId: number, comment: string): Promise<IProjectManagementPlan>;
+  getDivisionApprovers(): Promise<IDivisionApprover[]>;
+  getPMPBoilerplate(): Promise<IPMPBoilerplateSection[]>;
+
+  // Monthly Project Review
+  getMonthlyReviews(projectCode: string): Promise<IMonthlyProjectReview[]>;
+  getMonthlyReview(reviewId: number): Promise<IMonthlyProjectReview | null>;
+  updateMonthlyReview(reviewId: number, data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview>;
+  createMonthlyReview(data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview>;
 
   // App Context
   getAppContextConfig(siteUrl: string): Promise<{ RenderMode: string; AppTitle: string; VisibleModules: string[] } | null>;
