@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "projectCode": "25-042-01",
+    "contractType": "GMP",
+    "contractAmount": 48500000,
+    "buyoutOpportunities": [
+      { "id": 101, "category": "Buyout", "letter": "A", "description": "Structural steel - competitive bid environment may yield savings", "estimatedValue": 350000, "status": "Open", "notes": "3 qualified bidders identified", "createdDate": "2025-11-15", "updatedDate": "2025-11-15" },
+      { "id": 102, "category": "Buyout", "letter": "B", "description": "Mechanical HVAC - value engineering alternate accepted", "estimatedValue": 275000, "status": "Realized", "notes": "VE alternate approved by owner", "createdDate": "2025-11-20", "updatedDate": "2026-01-10" },
+      { "id": 103, "category": "Buyout", "letter": "C", "description": "Electrical - LED fixture package substitution", "estimatedValue": 125000, "status": "Open", "notes": "Pending A/E approval", "createdDate": "2025-12-01", "updatedDate": "2025-12-01" }
+    ],
+    "potentialRisks": [
+      { "id": 201, "category": "Risk", "letter": "A", "description": "Unforeseen soil conditions - potential rock excavation", "estimatedValue": 500000, "status": "Open", "notes": "Geotech report indicates potential rock at -8ft", "createdDate": "2025-11-10", "updatedDate": "2025-11-10" },
+      { "id": 202, "category": "Risk", "letter": "B", "description": "Supply chain delays on curtain wall system", "estimatedValue": 200000, "status": "Monitoring", "notes": "Lead time extended from 16 to 22 weeks", "createdDate": "2025-11-25", "updatedDate": "2026-01-05" },
+      { "id": 203, "category": "Risk", "letter": "C", "description": "Hurricane season schedule impact", "estimatedValue": 150000, "status": "Open", "notes": "Dry-in target before June 1", "createdDate": "2025-12-10", "updatedDate": "2025-12-10" },
+      { "id": 204, "category": "Risk", "letter": "D", "description": "Owner-directed scope additions not yet formalized", "estimatedValue": 300000, "status": "Open", "notes": "Lobby redesign discussions ongoing", "createdDate": "2026-01-08", "updatedDate": "2026-01-08" }
+    ],
+    "potentialSavings": [
+      { "id": 301, "category": "Savings", "letter": "A", "description": "Self-perform concrete foundations", "estimatedValue": 180000, "status": "Open", "notes": "Crew available from 25-039 project completion", "createdDate": "2025-11-15", "updatedDate": "2025-11-15" },
+      { "id": 302, "category": "Savings", "letter": "B", "description": "Bulk material purchase with 25-115 project", "estimatedValue": 95000, "status": "Realized", "notes": "Combined rebar order placed", "createdDate": "2025-12-05", "updatedDate": "2026-01-12" },
+      { "id": 303, "category": "Savings", "letter": "C", "description": "Early payment discount from key suppliers", "estimatedValue": 45000, "status": "Open", "notes": "2% net 10 terms available", "createdDate": "2026-01-15", "updatedDate": "2026-01-15" }
+    ],
+    "createdBy": "jthompson@hedrickbrothers.com",
+    "createdAt": "2025-11-10T09:00:00.000Z",
+    "lastUpdatedBy": "jthompson@hedrickbrothers.com",
+    "lastUpdatedAt": "2026-01-15T14:30:00.000Z"
+  },
+  {
+    "id": 2,
+    "projectCode": "25-115-01",
+    "contractType": "Lump Sum",
+    "contractAmount": 12200000,
+    "buyoutOpportunities": [
+      { "id": 401, "category": "Buyout", "letter": "A", "description": "Landscape package - owner may delete pool feature", "estimatedValue": 85000, "status": "Open", "notes": "Owner reviewing revised plans", "createdDate": "2026-01-05", "updatedDate": "2026-01-05" },
+      { "id": 402, "category": "Buyout", "letter": "B", "description": "Interior millwork - alternate wood species", "estimatedValue": 42000, "status": "Mitigated", "notes": "Designer approved white oak substitute", "createdDate": "2026-01-10", "updatedDate": "2026-01-20" }
+    ],
+    "potentialRisks": [
+      { "id": 501, "category": "Risk", "letter": "A", "description": "Custom window lead time exceeds schedule allowance", "estimatedValue": 75000, "status": "Open", "notes": "28-week lead time, only 24 weeks in schedule", "createdDate": "2026-01-05", "updatedDate": "2026-01-05" },
+      { "id": 502, "category": "Risk", "letter": "B", "description": "Adjacent property construction interference", "estimatedValue": 35000, "status": "Monitoring", "notes": "Neighbor starting foundation work Q2", "createdDate": "2026-01-12", "updatedDate": "2026-01-12" }
+    ],
+    "potentialSavings": [
+      { "id": 601, "category": "Savings", "letter": "A", "description": "Roof tile direct-from-manufacturer purchase", "estimatedValue": 28000, "status": "Open", "notes": "Eliminating distributor markup", "createdDate": "2026-01-08", "updatedDate": "2026-01-08" },
+      { "id": 602, "category": "Savings", "letter": "B", "description": "Self-perform site work and grading", "estimatedValue": 55000, "status": "Open", "notes": "Equipment available from fleet", "createdDate": "2026-01-15", "updatedDate": "2026-01-15" }
+    ],
+    "createdBy": "mrodriguez@hedrickbrothers.com",
+    "createdAt": "2026-01-05T10:00:00.000Z",
+    "lastUpdatedBy": "mrodriguez@hedrickbrothers.com",
+    "lastUpdatedAt": "2026-01-20T11:00:00.000Z"
+  }
+]

@@ -128,9 +128,9 @@ export function getStageScreens(stage: Stage): string[] {
     case Stage.WonContractPending:
       return ['kickoff', 'deliverables', 'contract', 'turnover'];
     case Stage.ActiveConstruction:
-      return ['deliverables', 'contract', 'turnover', 'closeout'];
+      return ['deliverables', 'contract', 'turnover', 'closeout', 'risk-cost', 'quality', 'safety', 'schedule', 'superintendent', 'lessons-learned', 'pmp', 'monthly-review'];
     case Stage.Closeout:
-      return ['closeout'];
+      return ['closeout', 'risk-cost', 'quality', 'safety', 'schedule', 'lessons-learned', 'pmp', 'monthly-review'];
     case Stage.ArchivedLoss:
       return ['autopsy'];
     default:

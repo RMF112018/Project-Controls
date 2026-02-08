@@ -127,7 +127,19 @@ export enum AuditAction {
   MatrixAssignmentChanged = 'Matrix.AssignmentChanged',
   MatrixTaskAdded = 'Matrix.TaskAdded',
   ProjectRecordUpdated = 'ProjectRecord.Updated',
-  ProjectRecordCreated = 'ProjectRecord.Created'
+  ProjectRecordCreated = 'ProjectRecord.Created',
+  PMPSubmitted = 'PMP.Submitted',
+  PMPApproved = 'PMP.Approved',
+  PMPReturned = 'PMP.Returned',
+  PMPSigned = 'PMP.Signed',
+  RiskItemUpdated = 'Risk.ItemUpdated',
+  QualityConcernUpdated = 'Quality.ConcernUpdated',
+  SafetyConcernUpdated = 'Safety.ConcernUpdated',
+  ScheduleUpdated = 'Schedule.Updated',
+  SuperPlanUpdated = 'SuperPlan.Updated',
+  LessonAdded = 'Lesson.Added',
+  MonthlyReviewSubmitted = 'MonthlyReview.Submitted',
+  MonthlyReviewAdvanced = 'MonthlyReview.Advanced'
 }
 
 export enum EntityType {
@@ -139,7 +151,15 @@ export enum EntityType {
   Config = 'Config',
   Checklist = 'Checklist',
   Matrix = 'Matrix',
-  ProjectRecord = 'ProjectRecord'
+  ProjectRecord = 'ProjectRecord',
+  RiskCost = 'RiskCost',
+  Quality = 'Quality',
+  Safety = 'Safety',
+  Schedule = 'Schedule',
+  SuperintendentPlan = 'SuperintendentPlan',
+  LessonLearned = 'LessonLearned',
+  PMP = 'PMP',
+  MonthlyReview = 'MonthlyReview'
 }
 
 export enum DeliverableStatus {
@@ -226,5 +246,14 @@ export enum NotificationEvent {
   WinLossRecorded = 'WinLossRecorded',
   AutopsyScheduled = 'AutopsyScheduled',
   TurnoverCompleted = 'TurnoverCompleted',
-  SafetyFolderChanged = 'SafetyFolderChanged'
+  SafetyFolderChanged = 'SafetyFolderChanged',
+  PMPSignatureRequested = 'PMPSignatureRequested',
+  PMPSubmittedForApproval = 'PMPSubmittedForApproval',
+  PMPApprovalRequired = 'PMPApprovalRequired',
+  PMPApproved = 'PMPApproved',
+  PMPReturnedForRevision = 'PMPReturnedForRevision',
+  MonthlyReviewDueNotification = 'MonthlyReviewDueNotification',
+  MonthlyReviewSubmittedToPX = 'MonthlyReviewSubmittedToPX',
+  MonthlyReviewReturnedToPM = 'MonthlyReviewReturnedToPM',
+  MonthlyReviewSubmittedToLeadership = 'MonthlyReviewSubmittedToLeadership'
 }

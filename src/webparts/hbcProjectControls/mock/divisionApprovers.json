@@ -1,0 +1,4 @@
+[
+  { "id": 1, "division": "Commercial", "approverName": "Arthur Miller", "approverEmail": "amiller@hedrickbrothers.com", "approverTitle": "Division Head - Commercial" },
+  { "id": 2, "division": "Luxury Residential", "approverName": "Joe Morrin", "approverEmail": "jmorrin@hedrickbrothers.com", "approverTitle": "Division Head - Luxury Residential" }
+]

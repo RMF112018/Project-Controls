@@ -1,0 +1,65 @@
+[
+  {
+    "sectionNumber": "I",
+    "sectionTitle": "Project Team Philosophy",
+    "content": "Hedrick Brothers Construction (HBC) is committed to delivering every project safely, on time, and within budget while exceeding our client's expectations. Our project team operates under the following principles:\n\n1. Safety First — Every team member has the authority and responsibility to stop work if unsafe conditions exist.\n2. Quality Built In — We build it right the first time through proactive planning and quality control.\n3. Open Communication — Transparent communication with our owner, design team, and trade partners is essential.\n4. Collaborative Problem Solving — We approach challenges as a team, leveraging the expertise of all project stakeholders.\n5. Continuous Improvement — We learn from every project and apply those lessons to improve our processes.",
+    "sourceDocumentUrl": "https://hedrickbrothers.sharepoint.com/sites/HBCHub/Shared%20Documents/Templates/PMP/Section-I-Philosophy.docx",
+    "lastSourceUpdate": "2025-06-15"
+  },
+  {
+    "sectionNumber": "III",
+    "sectionTitle": "Quality Control",
+    "content": "HBC's Quality Control Program ensures that all work meets or exceeds the requirements of the contract documents. The following quality control measures are implemented on every project:\n\n1. Pre-Installation Conferences — Held with each trade contractor before beginning their scope of work.\n2. Material Verification — All materials verified against submittals before installation.\n3. First-Work-in-Place Inspections — Initial installation inspected and approved before proceeding.\n4. Mock-Up Requirements — Full-scale mock-ups for critical assemblies as required by specifications.\n5. Quality Concerns — [See live data from Quality Concerns module]\n6. Inspection Documentation — Digital inspection reports filed daily.\n7. Non-Conformance Tracking — NCRs tracked in project management system with corrective actions.\n8. Third-Party Testing — Testing labs engaged per specification requirements.\n9. Commissioning Coordination — Cx agent integrated into construction process.\n10. Punch List Management — Systematic walk-throughs at 50%, 75%, and 100% completion.",
+    "sourceDocumentUrl": "https://hedrickbrothers.sharepoint.com/sites/HBCHub/Shared%20Documents/Templates/PMP/Section-III-QC.docx",
+    "lastSourceUpdate": "2025-06-15"
+  },
+  {
+    "sectionNumber": "IV",
+    "sectionTitle": "Preconstruction Meeting",
+    "content": "A preconstruction meeting shall be held within 10 business days of Notice to Proceed. The meeting agenda includes:\n\n1. Introductions and project team organization\n2. Communication protocols and points of contact\n3. Submittal and RFI procedures\n4. Pay application process and schedule of values\n5. Change order procedures\n6. Safety requirements and site-specific plans\n7. Schedule review and milestone dates\n8. Site logistics and access plan\n9. Quality control requirements\n10. Document management procedures",
+    "sourceDocumentUrl": "https://hedrickbrothers.sharepoint.com/sites/HBCHub/Shared%20Documents/Templates/PMP/Section-IV-Precon.docx",
+    "lastSourceUpdate": "2025-06-15"
+  },
+  {
+    "sectionNumber": "V",
+    "sectionTitle": "Safety",
+    "content": "HBC's Safety Program is designed to protect every person on our jobsites. Our safety program includes:\n\n1. Site-Specific Safety Plan developed for each project\n2. Weekly toolbox talks conducted by superintendent\n3. Daily Job Hazard Analyses (JHAs) for all high-risk activities\n4. Safety orientation required for all workers before site access\n5. Personal Protective Equipment (PPE) requirements enforced\n6. Substance abuse policy — zero tolerance\n7. Fall protection plan for all work above 6 feet\n8. Confined space entry procedures\n9. Hot work permit program\n10. Crane and rigging safety program\n11. Electrical safety / LOTO procedures\n12. Emergency action plan and evacuation routes\n13. First aid stations and AED locations posted\n14. Safety Concerns — [See live data from Safety Concerns module]\n15. Incident investigation and reporting procedures\n16. Monthly safety audits by Safety Director",
+    "sourceDocumentUrl": "https://hedrickbrothers.sharepoint.com/sites/HBCHub/Shared%20Documents/Templates/PMP/Section-V-Safety.docx",
+    "lastSourceUpdate": "2025-06-15"
+  },
+  {
+    "sectionNumber": "VI",
+    "sectionTitle": "Maintaining Cost Control",
+    "content": "HBC maintains strict cost control through the following procedures:\n\n1. Monthly cost reports prepared and reviewed with Project Executive\n2. Cost-to-complete forecasts updated monthly\n3. Change order management — all potential changes logged immediately\n4. Contingency tracking and drawdown monitoring\n5. [See live data from Risk & Cost Management module for buyout, risks, and savings]\n6. Subcontractor payment certification process\n7. Material cost tracking and procurement coordination\n8. Self-perform work cost monitoring\n9. Value engineering opportunities evaluated continuously\n10. Back-charge documentation and enforcement\n11. Insurance claim documentation procedures",
+    "sourceDocumentUrl": "https://hedrickbrothers.sharepoint.com/sites/HBCHub/Shared%20Documents/Templates/PMP/Section-VI-CostControl.docx",
+    "lastSourceUpdate": "2025-06-15"
+  },
+  {
+    "sectionNumber": "VIII",
+    "sectionTitle": "Team Responsibilities",
+    "content": "Each team member has defined responsibilities as outlined in the Internal Responsibility Matrix. Key roles include:\n\n• Project Executive (PX) — Overall project oversight, client relationship, financial accountability\n• Senior Project Manager (Sr. PM) — Day-to-day project management, scheduling, cost control\n• Project Manager (PM) — Subcontract administration, submittals, RFIs, pay applications\n• Assistant Project Manager (APM) — Support PM with document control, meetings, correspondence\n• Project Administrator (PA) — Administrative support, filing, correspondence tracking\n• Superintendent — Field operations, safety, quality, schedule execution\n• Project Accountant — Billing, cost reporting, budget management\n• QA/QC Manager — Quality control inspections, mock-ups, testing coordination\n\nDetailed assignments are maintained in the Responsibility Matrix module.",
+    "sourceDocumentUrl": "https://hedrickbrothers.sharepoint.com/sites/HBCHub/Shared%20Documents/Templates/PMP/Section-VIII-Responsibilities.docx",
+    "lastSourceUpdate": "2025-06-15"
+  },
+  {
+    "sectionNumber": "IX",
+    "sectionTitle": "Site Management",
+    "content": "Effective site management is critical to project success. HBC's site management approach includes:\n\n1. Site logistics plan reviewed and updated monthly\n2. Material delivery coordination — 2-week rolling schedule\n3. Subcontractor coordination meetings weekly\n4. 3-week look-ahead schedule distributed weekly\n5. Daily reports completed by superintendent\n6. Photo documentation — daily and milestone\n7. Visitor management and site access control\n8. Environmental compliance monitoring",
+    "sourceDocumentUrl": "https://hedrickbrothers.sharepoint.com/sites/HBCHub/Shared%20Documents/Templates/PMP/Section-IX-SiteMgmt.docx",
+    "lastSourceUpdate": "2025-06-15"
+  },
+  {
+    "sectionNumber": "XI",
+    "sectionTitle": "Project Administration",
+    "content": "Project administration procedures ensure consistent and thorough documentation:\n\n1. Buyout Schedule — [See PMP-specific buyout target date]\n2. Pay Application Process — Monthly billing per AIA format, submitted by 25th of each month\n3. Lien Release Tracking — Conditional and unconditional waivers tracked for every pay period\n4. Insurance Certificate Management — All subcontractor certificates verified and tracked",
+    "sourceDocumentUrl": "https://hedrickbrothers.sharepoint.com/sites/HBCHub/Shared%20Documents/Templates/PMP/Section-XI-Admin.docx",
+    "lastSourceUpdate": "2025-06-15"
+  },
+  {
+    "sectionNumber": "XV",
+    "sectionTitle": "Pre-Work Meeting Agenda",
+    "content": "Before each trade contractor begins work, a Pre-Work Meeting is conducted covering:\n\n1. Scope of work review and clarification\n2. Schedule requirements and milestones\n3. Safety requirements and site-specific hazards\n4. Quality expectations and inspection hold points\n5. Material storage and handling requirements\n6. Coordination with other trades\n7. Clean-up responsibilities\n8. Communication protocols\n9. Change order procedures\n10. Payment terms and billing procedures",
+    "sourceDocumentUrl": "https://hedrickbrothers.sharepoint.com/sites/HBCHub/Shared%20Documents/Templates/PMP/Section-XV-PreWork.docx",
+    "lastSourceUpdate": "2025-06-15"
+  }
+]

@@ -10,6 +10,7 @@ interface INavItem {
   label: string;
   path: string;
   screenKey?: string;
+  group?: string;
 }
 
 const ALL_NAV_ITEMS: INavItem[] = [
@@ -25,6 +26,15 @@ const ALL_NAV_ITEMS: INavItem[] = [
   { label: 'Contract', path: '/contract', screenKey: 'contract' },
   { label: 'Turnover', path: '/turnover', screenKey: 'turnover' },
   { label: 'Closeout', path: '/closeout', screenKey: 'closeout' },
+  // Phase 10 — Project Management group
+  { label: 'Risk & Cost', path: '/risk-cost', screenKey: 'risk-cost', group: 'Project Management' },
+  { label: 'Quality Concerns', path: '/quality-concerns', screenKey: 'quality', group: 'Project Management' },
+  { label: 'Safety Concerns', path: '/safety-concerns', screenKey: 'safety', group: 'Project Management' },
+  { label: 'Schedule', path: '/schedule-critical-path', screenKey: 'schedule', group: 'Project Management' },
+  { label: "Super's Plan", path: '/superintendent-plan', screenKey: 'superintendent', group: 'Project Management' },
+  { label: 'Lessons Learned', path: '/lessons-learned', screenKey: 'lessons-learned', group: 'Project Management' },
+  { label: 'PMP', path: '/pmp', screenKey: 'pmp', group: 'Project Management' },
+  { label: 'Monthly Review', path: '/monthly-review', screenKey: 'monthly-review', group: 'Project Management' },
 ];
 
 export const ProjectNav: React.FC = () => {
@@ -51,6 +61,8 @@ export const ProjectNav: React.FC = () => {
     return activeScreens.includes(item.screenKey);
   });
 
+  let lastGroup: string | undefined;
+
   return (
     <nav style={{
       width: '200px',
@@ -68,25 +80,33 @@ export const ProjectNav: React.FC = () => {
       {visibleItems.map(item => {
         const isActive = location.pathname === item.path ||
           (item.path !== '/' && location.pathname.startsWith(item.path));
+        const showGroupHeader = item.group && item.group !== lastGroup;
+        lastGroup = item.group;
         return (
-          <div
-            key={item.path}
-            onClick={() => navigate(item.path)}
-            style={{
-              padding: '10px 24px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: isActive ? 600 : 400,
-              color: isActive ? HBC_COLORS.navy : HBC_COLORS.gray600,
-              backgroundColor: isActive ? HBC_COLORS.gray100 : 'transparent',
-              borderLeft: isActive ? `3px solid ${HBC_COLORS.orange}` : '3px solid transparent',
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={e => !isActive && ((e.currentTarget as HTMLElement).style.backgroundColor = HBC_COLORS.gray50)}
-            onMouseLeave={e => !isActive && ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
-          >
-            {item.label}
-          </div>
+          <React.Fragment key={item.path}>
+            {showGroupHeader && (
+              <div style={{ padding: '12px 24px 4px', fontSize: '10px', fontWeight: 700, color: HBC_COLORS.gray400, textTransform: 'uppercase', letterSpacing: '0.5px', borderTop: `1px solid ${HBC_COLORS.gray200}`, marginTop: 4 }}>
+                {item.group}
+              </div>
+            )}
+            <div
+              onClick={() => navigate(item.path)}
+              style={{
+                padding: '10px 24px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: isActive ? 600 : 400,
+                color: isActive ? HBC_COLORS.navy : HBC_COLORS.gray600,
+                backgroundColor: isActive ? HBC_COLORS.gray100 : 'transparent',
+                borderLeft: isActive ? `3px solid ${HBC_COLORS.orange}` : '3px solid transparent',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => !isActive && ((e.currentTarget as HTMLElement).style.backgroundColor = HBC_COLORS.gray50)}
+              onMouseLeave={e => !isActive && ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
+            >
+              {item.label}
+            </div>
+          </React.Fragment>
         );
       })}
     </nav>

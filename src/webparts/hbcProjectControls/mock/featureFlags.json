@@ -17,5 +17,7 @@
   { "id": 16, "FeatureName": "AuditTrail", "Enabled": false, "EnabledForRoles": null, "TargetDate": null, "Notes": "Detailed audit trail logging" },
   { "id": 17, "FeatureName": "OfflineSupport", "Enabled": false, "EnabledForRoles": null, "TargetDate": null, "Notes": "Offline mode with queue sync" },
   { "id": 18, "FeatureName": "ProjectStartup", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 9 startup checklist and responsibility matrices" },
-  { "id": 19, "FeatureName": "MarketingProjectRecord", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 9 marketing project record and dashboard" }
+  { "id": 19, "FeatureName": "MarketingProjectRecord", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 9 marketing project record and dashboard" },
+  { "id": 20, "FeatureName": "ProjectManagementPlan", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 10 PMP and operational modules" },
+  { "id": 21, "FeatureName": "MonthlyProjectReview", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 10 monthly project review" }
 ]

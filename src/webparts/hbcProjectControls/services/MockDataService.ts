@@ -30,6 +30,19 @@ import {
   IOwnerContractArticle,
   ISubContractClause,
   IMarketingProjectRecord,
+  IRiskCostManagement,
+  IRiskCostItem,
+  IQualityConcern,
+  ISafetyConcern,
+  IProjectScheduleCriticalPath,
+  ICriticalPathItem,
+  ISuperintendentPlan,
+  ISuperintendentPlanSection,
+  ILessonLearned,
+  IProjectManagementPlan,
+  IDivisionApprover,
+  IPMPBoilerplateSection,
+  IMonthlyProjectReview,
   GoNoGoDecision,
   Stage,
   RoleName,
@@ -57,6 +70,16 @@ import mockInternalMatrix from '../mock/internalMatrix.json';
 import mockOwnerContractMatrix from '../mock/ownerContractMatrix.json';
 import mockSubContractMatrix from '../mock/subContractMatrix.json';
 import mockMarketingRecords from '../mock/marketingProjectRecords.json';
+import mockRiskCost from '../mock/riskCostManagement.json';
+import mockQualityConcerns from '../mock/qualityConcerns.json';
+import mockSafetyConcerns from '../mock/safetyConcerns.json';
+import mockSchedules from '../mock/projectScheduleCriticalPath.json';
+import mockSuperPlan from '../mock/superintendentPlan.json';
+import mockLessonsLearned from '../mock/lessonsLearned.json';
+import mockPMPs from '../mock/projectManagementPlans.json';
+import mockDivisionApprovers from '../mock/divisionApprovers.json';
+import mockMonthlyReviews from '../mock/monthlyProjectReviews.json';
+import mockBoilerplate from '../mock/pmpBoilerplate.json';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
 
@@ -84,6 +107,16 @@ export class MockDataService implements IDataService {
   private ownerContractArticles: IOwnerContractArticle[];
   private subContractClauses: ISubContractClause[];
   private marketingRecords: IMarketingProjectRecord[];
+  private riskCostRecords: IRiskCostManagement[];
+  private qualityConcerns: IQualityConcern[];
+  private safetyConcerns: ISafetyConcern[];
+  private scheduleRecords: IProjectScheduleCriticalPath[];
+  private superintendentPlans: ISuperintendentPlan[];
+  private lessonsLearned: ILessonLearned[];
+  private pmps: IProjectManagementPlan[];
+  private divisionApprovers: IDivisionApprover[];
+  private monthlyReviews: IMonthlyProjectReview[];
+  private boilerplate: IPMPBoilerplateSection[];
   private nextId: number;
 
   constructor() {
@@ -111,6 +144,16 @@ export class MockDataService implements IDataService {
     this.ownerContractArticles = JSON.parse(JSON.stringify(mockOwnerContractMatrix)) as IOwnerContractArticle[];
     this.subContractClauses = JSON.parse(JSON.stringify(mockSubContractMatrix)) as ISubContractClause[];
     this.marketingRecords = JSON.parse(JSON.stringify(mockMarketingRecords)) as IMarketingProjectRecord[];
+    this.riskCostRecords = JSON.parse(JSON.stringify(mockRiskCost)) as IRiskCostManagement[];
+    this.qualityConcerns = JSON.parse(JSON.stringify(mockQualityConcerns)) as IQualityConcern[];
+    this.safetyConcerns = JSON.parse(JSON.stringify(mockSafetyConcerns)) as ISafetyConcern[];
+    this.scheduleRecords = JSON.parse(JSON.stringify(mockSchedules)) as IProjectScheduleCriticalPath[];
+    this.superintendentPlans = JSON.parse(JSON.stringify(mockSuperPlan)) as ISuperintendentPlan[];
+    this.lessonsLearned = JSON.parse(JSON.stringify(mockLessonsLearned)) as ILessonLearned[];
+    this.pmps = JSON.parse(JSON.stringify(mockPMPs)) as IProjectManagementPlan[];
+    this.divisionApprovers = JSON.parse(JSON.stringify(mockDivisionApprovers)) as IDivisionApprover[];
+    this.monthlyReviews = JSON.parse(JSON.stringify(mockMonthlyReviews)) as IMonthlyProjectReview[];
+    this.boilerplate = JSON.parse(JSON.stringify(mockBoilerplate)) as IPMPBoilerplateSection[];
     this.nextId = 1000;
   }
 
@@ -1198,6 +1241,369 @@ export class MockDataService implements IDataService {
   public async getAllMarketingProjectRecords(): Promise<IMarketingProjectRecord[]> {
     await delay();
     return [...this.marketingRecords];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Risk & Cost Management
+  // ---------------------------------------------------------------------------
+
+  public async getRiskCostManagement(projectCode: string): Promise<IRiskCostManagement | null> {
+    await delay();
+    return this.riskCostRecords.find(r => r.projectCode === projectCode) ?? null;
+  }
+
+  public async updateRiskCostManagement(projectCode: string, data: Partial<IRiskCostManagement>): Promise<IRiskCostManagement> {
+    await delay();
+    const index = this.riskCostRecords.findIndex(r => r.projectCode === projectCode);
+    if (index === -1) throw new Error(`Risk/Cost record for ${projectCode} not found`);
+    this.riskCostRecords[index] = { ...this.riskCostRecords[index], ...data, lastUpdatedAt: new Date().toISOString() };
+    return { ...this.riskCostRecords[index] };
+  }
+
+  public async addRiskCostItem(projectCode: string, item: Partial<IRiskCostItem>): Promise<IRiskCostItem> {
+    await delay();
+    const record = this.riskCostRecords.find(r => r.projectCode === projectCode);
+    if (!record) throw new Error(`Risk/Cost record for ${projectCode} not found`);
+    const newItem: IRiskCostItem = {
+      id: this.getNextId(),
+      category: item.category ?? 'Risk',
+      letter: item.letter ?? 'A',
+      description: item.description ?? '',
+      estimatedValue: item.estimatedValue ?? 0,
+      status: item.status ?? 'Open',
+      notes: item.notes ?? '',
+      createdDate: new Date().toISOString().split('T')[0],
+      updatedDate: new Date().toISOString().split('T')[0],
+    };
+    if (newItem.category === 'Buyout') record.buyoutOpportunities.push(newItem);
+    else if (newItem.category === 'Risk') record.potentialRisks.push(newItem);
+    else record.potentialSavings.push(newItem);
+    record.lastUpdatedAt = new Date().toISOString();
+    return { ...newItem };
+  }
+
+  public async updateRiskCostItem(projectCode: string, itemId: number, data: Partial<IRiskCostItem>): Promise<IRiskCostItem> {
+    await delay();
+    const record = this.riskCostRecords.find(r => r.projectCode === projectCode);
+    if (!record) throw new Error(`Risk/Cost record for ${projectCode} not found`);
+    const allItems = [...record.buyoutOpportunities, ...record.potentialRisks, ...record.potentialSavings];
+    const item = allItems.find(i => i.id === itemId);
+    if (!item) throw new Error(`Risk/Cost item ${itemId} not found`);
+    Object.assign(item, data, { updatedDate: new Date().toISOString().split('T')[0] });
+    record.lastUpdatedAt = new Date().toISOString();
+    return { ...item };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Quality Concerns
+  // ---------------------------------------------------------------------------
+
+  public async getQualityConcerns(projectCode: string): Promise<IQualityConcern[]> {
+    await delay();
+    return this.qualityConcerns.filter(c => c.projectCode === projectCode);
+  }
+
+  public async addQualityConcern(projectCode: string, concern: Partial<IQualityConcern>): Promise<IQualityConcern> {
+    await delay();
+    const newConcern: IQualityConcern = {
+      id: this.getNextId(),
+      projectCode,
+      letter: concern.letter ?? 'A',
+      description: concern.description ?? '',
+      raisedBy: concern.raisedBy ?? '',
+      raisedDate: concern.raisedDate ?? new Date().toISOString().split('T')[0],
+      status: concern.status ?? 'Open',
+      resolution: concern.resolution ?? '',
+      resolvedDate: null,
+      notes: concern.notes ?? '',
+    };
+    this.qualityConcerns.push(newConcern);
+    return { ...newConcern };
+  }
+
+  public async updateQualityConcern(projectCode: string, concernId: number, data: Partial<IQualityConcern>): Promise<IQualityConcern> {
+    await delay();
+    const index = this.qualityConcerns.findIndex(c => c.id === concernId && c.projectCode === projectCode);
+    if (index === -1) throw new Error(`Quality concern ${concernId} not found`);
+    this.qualityConcerns[index] = { ...this.qualityConcerns[index], ...data };
+    return { ...this.qualityConcerns[index] };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Safety Concerns
+  // ---------------------------------------------------------------------------
+
+  public async getSafetyConcerns(projectCode: string): Promise<ISafetyConcern[]> {
+    await delay();
+    return this.safetyConcerns.filter(c => c.projectCode === projectCode);
+  }
+
+  public async addSafetyConcern(projectCode: string, concern: Partial<ISafetyConcern>): Promise<ISafetyConcern> {
+    await delay();
+    const newConcern: ISafetyConcern = {
+      id: this.getNextId(),
+      projectCode,
+      safetyOfficerName: concern.safetyOfficerName ?? '',
+      safetyOfficerEmail: concern.safetyOfficerEmail ?? '',
+      letter: concern.letter ?? 'A',
+      description: concern.description ?? '',
+      severity: concern.severity ?? 'Medium',
+      raisedBy: concern.raisedBy ?? '',
+      raisedDate: concern.raisedDate ?? new Date().toISOString().split('T')[0],
+      status: concern.status ?? 'Open',
+      resolution: concern.resolution ?? '',
+      resolvedDate: null,
+      notes: concern.notes ?? '',
+    };
+    this.safetyConcerns.push(newConcern);
+    return { ...newConcern };
+  }
+
+  public async updateSafetyConcern(projectCode: string, concernId: number, data: Partial<ISafetyConcern>): Promise<ISafetyConcern> {
+    await delay();
+    const index = this.safetyConcerns.findIndex(c => c.id === concernId && c.projectCode === projectCode);
+    if (index === -1) throw new Error(`Safety concern ${concernId} not found`);
+    this.safetyConcerns[index] = { ...this.safetyConcerns[index], ...data };
+    return { ...this.safetyConcerns[index] };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Project Schedule & Critical Path
+  // ---------------------------------------------------------------------------
+
+  public async getProjectSchedule(projectCode: string): Promise<IProjectScheduleCriticalPath | null> {
+    await delay();
+    return this.scheduleRecords.find(s => s.projectCode === projectCode) ?? null;
+  }
+
+  public async updateProjectSchedule(projectCode: string, data: Partial<IProjectScheduleCriticalPath>): Promise<IProjectScheduleCriticalPath> {
+    await delay();
+    const index = this.scheduleRecords.findIndex(s => s.projectCode === projectCode);
+    if (index === -1) throw new Error(`Schedule for ${projectCode} not found`);
+    this.scheduleRecords[index] = { ...this.scheduleRecords[index], ...data, lastUpdatedAt: new Date().toISOString() };
+    return { ...this.scheduleRecords[index] };
+  }
+
+  public async addCriticalPathItem(projectCode: string, item: Partial<ICriticalPathItem>): Promise<ICriticalPathItem> {
+    await delay();
+    const record = this.scheduleRecords.find(s => s.projectCode === projectCode);
+    if (!record) throw new Error(`Schedule for ${projectCode} not found`);
+    const newItem: ICriticalPathItem = {
+      id: this.getNextId(),
+      letter: item.letter ?? 'A',
+      description: item.description ?? '',
+      impactDescription: item.impactDescription ?? '',
+      status: item.status ?? 'Active',
+      mitigationPlan: item.mitigationPlan ?? '',
+      createdDate: new Date().toISOString().split('T')[0],
+      updatedDate: new Date().toISOString().split('T')[0],
+    };
+    record.criticalPathConcerns.push(newItem);
+    record.lastUpdatedAt = new Date().toISOString();
+    return { ...newItem };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Superintendent Plan
+  // ---------------------------------------------------------------------------
+
+  public async getSuperintendentPlan(projectCode: string): Promise<ISuperintendentPlan | null> {
+    await delay();
+    return this.superintendentPlans.find(p => p.projectCode === projectCode) ?? null;
+  }
+
+  public async updateSuperintendentPlanSection(projectCode: string, sectionId: number, data: Partial<ISuperintendentPlanSection>): Promise<ISuperintendentPlanSection> {
+    await delay();
+    const plan = this.superintendentPlans.find(p => p.projectCode === projectCode);
+    if (!plan) throw new Error(`Superintendent plan for ${projectCode} not found`);
+    const section = plan.sections.find(s => s.id === sectionId);
+    if (!section) throw new Error(`Section ${sectionId} not found`);
+    Object.assign(section, data);
+    plan.lastUpdatedAt = new Date().toISOString();
+    return { ...section };
+  }
+
+  public async createSuperintendentPlan(projectCode: string, data: Partial<ISuperintendentPlan>): Promise<ISuperintendentPlan> {
+    await delay();
+    const newPlan: ISuperintendentPlan = {
+      id: this.getNextId(),
+      projectCode,
+      superintendentName: data.superintendentName ?? '',
+      sections: data.sections ?? [],
+      createdBy: 'kfoster@hedrickbrothers.com',
+      createdAt: new Date().toISOString(),
+      lastUpdatedBy: 'kfoster@hedrickbrothers.com',
+      lastUpdatedAt: new Date().toISOString(),
+    };
+    this.superintendentPlans.push(newPlan);
+    return { ...newPlan };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Lessons Learned
+  // ---------------------------------------------------------------------------
+
+  public async getLessonsLearned(projectCode: string): Promise<ILessonLearned[]> {
+    await delay();
+    return this.lessonsLearned.filter(l => l.projectCode === projectCode);
+  }
+
+  public async addLessonLearned(projectCode: string, lesson: Partial<ILessonLearned>): Promise<ILessonLearned> {
+    await delay();
+    const newLesson: ILessonLearned = {
+      id: this.getNextId(),
+      projectCode,
+      title: lesson.title ?? '',
+      category: lesson.category ?? 'Other',
+      impact: lesson.impact ?? 'Neutral',
+      description: lesson.description ?? '',
+      recommendation: lesson.recommendation ?? '',
+      raisedBy: lesson.raisedBy ?? '',
+      raisedDate: lesson.raisedDate ?? new Date().toISOString().split('T')[0],
+      phase: lesson.phase ?? 'Construction',
+      isIncludedInFinalRecord: lesson.isIncludedInFinalRecord ?? false,
+      tags: lesson.tags ?? [],
+    };
+    this.lessonsLearned.push(newLesson);
+    return { ...newLesson };
+  }
+
+  public async updateLessonLearned(projectCode: string, lessonId: number, data: Partial<ILessonLearned>): Promise<ILessonLearned> {
+    await delay();
+    const index = this.lessonsLearned.findIndex(l => l.id === lessonId && l.projectCode === projectCode);
+    if (index === -1) throw new Error(`Lesson ${lessonId} not found`);
+    this.lessonsLearned[index] = { ...this.lessonsLearned[index], ...data };
+    return { ...this.lessonsLearned[index] };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Project Management Plan
+  // ---------------------------------------------------------------------------
+
+  public async getProjectManagementPlan(projectCode: string): Promise<IProjectManagementPlan | null> {
+    await delay();
+    return this.pmps.find(p => p.projectCode === projectCode) ?? null;
+  }
+
+  public async updateProjectManagementPlan(projectCode: string, data: Partial<IProjectManagementPlan>): Promise<IProjectManagementPlan> {
+    await delay();
+    const index = this.pmps.findIndex(p => p.projectCode === projectCode);
+    if (index === -1) throw new Error(`PMP for ${projectCode} not found`);
+    this.pmps[index] = { ...this.pmps[index], ...data, lastUpdatedAt: new Date().toISOString() };
+    return { ...this.pmps[index] };
+  }
+
+  public async submitPMPForApproval(projectCode: string, submittedBy: string): Promise<IProjectManagementPlan> {
+    await delay();
+    const pmp = this.pmps.find(p => p.projectCode === projectCode);
+    if (!pmp) throw new Error(`PMP for ${projectCode} not found`);
+    const newCycle = pmp.currentCycleNumber + 1;
+    const divApprover = this.divisionApprovers.find(d => d.division === pmp.division);
+    const steps = [
+      { id: this.getNextId(), projectCode, stepOrder: 1, approverRole: 'Project Executive', approverName: 'Kim Foster', approverEmail: 'kfoster@hedrickbrothers.com', status: 'Pending' as const, comment: '', actionDate: null, approvalCycleNumber: newCycle },
+      ...(divApprover ? [{ id: this.getNextId(), projectCode, stepOrder: 2, approverRole: 'Division Head', approverName: divApprover.approverName, approverEmail: divApprover.approverEmail, status: 'Pending' as const, comment: '', actionDate: null, approvalCycleNumber: newCycle }] : []),
+    ];
+    const cycle = { cycleNumber: newCycle, submittedBy, submittedDate: new Date().toISOString(), status: 'InProgress' as const, steps, changesFromPrevious: [] as string[] };
+    pmp.approvalCycles.push(cycle);
+    pmp.currentCycleNumber = newCycle;
+    pmp.status = 'PendingApproval';
+    pmp.lastUpdatedAt = new Date().toISOString();
+    return { ...pmp };
+  }
+
+  public async respondToPMPApproval(projectCode: string, stepId: number, approved: boolean, comment: string): Promise<IProjectManagementPlan> {
+    await delay();
+    const pmp = this.pmps.find(p => p.projectCode === projectCode);
+    if (!pmp) throw new Error(`PMP for ${projectCode} not found`);
+    const currentCycle = pmp.approvalCycles.find(c => c.cycleNumber === pmp.currentCycleNumber);
+    if (!currentCycle) throw new Error('No active approval cycle');
+    const step = currentCycle.steps.find(s => s.id === stepId);
+    if (!step) throw new Error(`Approval step ${stepId} not found`);
+    step.status = approved ? 'Approved' : 'Returned';
+    step.comment = comment;
+    step.actionDate = new Date().toISOString();
+    if (!approved) {
+      currentCycle.status = 'Returned';
+      pmp.status = 'Returned';
+    } else if (currentCycle.steps.every(s => s.status === 'Approved')) {
+      currentCycle.status = 'Approved';
+      pmp.status = 'Approved';
+    }
+    pmp.lastUpdatedAt = new Date().toISOString();
+    return { ...pmp };
+  }
+
+  public async signPMP(projectCode: string, signatureId: number, comment: string): Promise<IProjectManagementPlan> {
+    await delay();
+    const pmp = this.pmps.find(p => p.projectCode === projectCode);
+    if (!pmp) throw new Error(`PMP for ${projectCode} not found`);
+    const allSigs = [...pmp.startupSignatures, ...pmp.completionSignatures];
+    const sig = allSigs.find(s => s.id === signatureId);
+    if (!sig) throw new Error(`Signature ${signatureId} not found`);
+    sig.status = 'Signed';
+    sig.signedDate = new Date().toISOString();
+    sig.comment = comment;
+    pmp.lastUpdatedAt = new Date().toISOString();
+    return { ...pmp };
+  }
+
+  public async getDivisionApprovers(): Promise<IDivisionApprover[]> {
+    await delay();
+    return [...this.divisionApprovers];
+  }
+
+  public async getPMPBoilerplate(): Promise<IPMPBoilerplateSection[]> {
+    await delay();
+    return [...this.boilerplate];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Monthly Project Review
+  // ---------------------------------------------------------------------------
+
+  public async getMonthlyReviews(projectCode: string): Promise<IMonthlyProjectReview[]> {
+    await delay();
+    return this.monthlyReviews.filter(r => r.projectCode === projectCode)
+      .sort((a, b) => b.reviewMonth.localeCompare(a.reviewMonth));
+  }
+
+  public async getMonthlyReview(reviewId: number): Promise<IMonthlyProjectReview | null> {
+    await delay();
+    return this.monthlyReviews.find(r => r.id === reviewId) ?? null;
+  }
+
+  public async updateMonthlyReview(reviewId: number, data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> {
+    await delay();
+    const index = this.monthlyReviews.findIndex(r => r.id === reviewId);
+    if (index === -1) throw new Error(`Monthly review ${reviewId} not found`);
+    this.monthlyReviews[index] = { ...this.monthlyReviews[index], ...data, lastUpdatedAt: new Date().toISOString() };
+    return { ...this.monthlyReviews[index] };
+  }
+
+  public async createMonthlyReview(data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> {
+    await delay();
+    const newReview: IMonthlyProjectReview = {
+      id: this.getNextId(),
+      projectCode: data.projectCode ?? '',
+      reviewMonth: data.reviewMonth ?? '',
+      status: 'NotStarted',
+      dueDate: data.dueDate ?? '',
+      meetingDate: data.meetingDate ?? null,
+      pmSubmittedDate: null,
+      pxReviewDate: null,
+      pxValidationDate: null,
+      leadershipSubmitDate: null,
+      completedDate: null,
+      checklistItems: data.checklistItems ?? [],
+      followUps: [],
+      reportDocumentUrls: [],
+      createdBy: 'kfoster@hedrickbrothers.com',
+      createdAt: new Date().toISOString(),
+      lastUpdatedBy: 'kfoster@hedrickbrothers.com',
+      lastUpdatedAt: new Date().toISOString(),
+    };
+    this.monthlyReviews.push(newReview);
+    return { ...newReview };
   }
 
   // ---------------------------------------------------------------------------

@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "projectCode": "25-042-01",
+    "superintendentName": "Dan Martin",
+    "sections": [
+      { "id": 1, "sectionKey": "siteLogistics", "sectionTitle": "Site Logistics", "content": "Primary access via NW 2nd Ave gate. Material staging in east lot (Zones A-C marked on site plan). Tower crane positioned per structural engineer layout at grid D-5. Concrete pump setup area designated at south entry. Laydown area capacity: 200 tons structural steel, 50 CY formwork.", "attachmentUrls": ["https://hedrickbrothers.sharepoint.com/sites/25-042-01/Shared%20Documents/Plans/site-logistics-v3.pdf"], "isComplete": true },
+      { "id": 2, "sectionKey": "safetyPlan", "sectionTitle": "Safety Plan", "content": "Weekly toolbox talks every Monday 6:30 AM. Safety orientation required for all new workers. Daily JHA reviews for high-risk activities. Designated safety officer: David Chen. Emergency assembly point at NE corner parking lot. First aid station in trailer #2.", "attachmentUrls": [], "isComplete": true },
+      { "id": 3, "sectionKey": "utilityServices", "sectionTitle": "Utility Services", "content": "Temporary power: 400A service from FPL transformer at east boundary. Temp water: 2\" tap from city main on NW 2nd Ave (meter installed). Sanitary: 4 portable units per floor during active work, cleaned 2x weekly.", "attachmentUrls": [], "isComplete": true },
+      { "id": 4, "sectionKey": "trafficPedestrian", "sectionTitle": "Traffic & Pedestrian", "content": "MOT plan approved by City of West Palm Beach (Permit #MOT-2025-4421). Sidewalk closure on south side of Clematis St, 7AM-5PM weekdays. Flag person required during crane operations over street. Pedestrian detour signs at both intersection corners.", "attachmentUrls": ["https://hedrickbrothers.sharepoint.com/sites/25-042-01/Shared%20Documents/Permits/mot-plan-approved.pdf"], "isComplete": true },
+      { "id": 5, "sectionKey": "siteSecurity", "sectionTitle": "Site Security", "content": "8-ft chain link fence with privacy screening on all sides. Electronic gate access (keypad + card reader) at NW 2nd Ave entry. 4 PTZ cameras covering perimeter and material storage. After-hours security patrol Fri-Sun 6PM-6AM.", "attachmentUrls": [], "isComplete": true },
+      { "id": 6, "sectionKey": "environmentalControls", "sectionTitle": "Environmental Controls", "content": "SWPPP posted at site entry. Silt fence perimeter installed and inspected weekly. Concrete washout area: designated pit in NE corner with pH monitoring. Dust control: water truck on-site during earthwork. Noise restrictions: 7AM-6PM per city ordinance.", "attachmentUrls": [], "isComplete": true },
+      { "id": 7, "sectionKey": "existingConditions", "sectionTitle": "Existing Conditions", "content": "Pre-construction survey completed Nov 2025. Existing 8\" sanitary line crossing site at grid B (to be relocated). Known groundwater at -6ft. Adjacent building (3-story office) within 15ft of south foundation - vibration monitoring installed.", "attachmentUrls": [], "isComplete": true },
+      { "id": 8, "sectionKey": "phasingPlan", "sectionTitle": "Phasing Plan", "content": "Phase 1 (Oct-Dec 2025): Demolition, site prep, foundations. Phase 2 (Jan-Apr 2026): Structural frame, core walls. Phase 3 (May-Aug 2026): Exterior enclosure, MEP rough-in. Phase 4 (Sep-Dec 2026): Interior finishes, commissioning. Phase 5 (Jan-Apr 2027): Punch list, closeout.", "attachmentUrls": [], "isComplete": true },
+      { "id": 9, "sectionKey": "crewCoordination", "sectionTitle": "Crew Coordination", "content": "Self-perform: Concrete (20-person crew), general labor (8-person crew). Peak manpower: 120 workers (Month 8). Subcontractor coordination meetings: Wednesdays 2PM. 3-week look-ahead distributed every Monday.", "attachmentUrls": [], "isComplete": true },
+      { "id": 10, "sectionKey": "additionalPlans", "sectionTitle": "Additional Plans", "content": "Hurricane preparedness plan: secure all loose materials when storm within 72 hours; crane to be weathervaned. Hot weather concreting plan for summer pours: ice in mix, early morning placement, curing compound.", "attachmentUrls": [], "isComplete": true }
+    ],
+    "createdBy": "dmartin@hedrickbrothers.com",
+    "createdAt": "2025-11-01T07:00:00.000Z",
+    "lastUpdatedBy": "dmartin@hedrickbrothers.com",
+    "lastUpdatedAt": "2026-01-18T15:00:00.000Z"
+  },
+  {
+    "id": 2,
+    "projectCode": "25-115-01",
+    "superintendentName": "Carlos Rivera",
+    "sections": [
+      { "id": 11, "sectionKey": "siteLogistics", "sectionTitle": "Site Logistics", "content": "Single point of access from Ocean Blvd. Material deliveries restricted to 7AM-4PM per HOA agreement. Staging area limited to front yard zone; rear access via temporary construction road (gravel).", "attachmentUrls": [], "isComplete": true },
+      { "id": 12, "sectionKey": "safetyPlan", "sectionTitle": "Safety Plan", "content": "Weekly safety meetings Monday 7AM. Safety officer: Maria Santos. All workers must complete HBC safety orientation plus site-specific training.", "attachmentUrls": [], "isComplete": true },
+      { "id": 13, "sectionKey": "utilityServices", "sectionTitle": "Utility Services", "content": "Temporary 200A service from FPL pole. Temporary water from neighbor's tap (owner arranged). Generator backup for concrete pump operations.", "attachmentUrls": [], "isComplete": false },
+      { "id": 14, "sectionKey": "trafficPedestrian", "sectionTitle": "Traffic & Pedestrian", "content": "", "attachmentUrls": [], "isComplete": false },
+      { "id": 15, "sectionKey": "siteSecurity", "sectionTitle": "Site Security", "content": "6-ft temporary fencing around property. Camera system with remote monitoring. Gate locked after hours.", "attachmentUrls": [], "isComplete": true },
+      { "id": 16, "sectionKey": "environmentalControls", "sectionTitle": "Environmental Controls", "content": "", "attachmentUrls": [], "isComplete": false },
+      { "id": 17, "sectionKey": "existingConditions", "sectionTitle": "Existing Conditions", "content": "Existing single-family home demolished Dec 2025. Survey pins set by Johnson Land Surveying. No known underground tanks or hazardous materials.", "attachmentUrls": [], "isComplete": true },
+      { "id": 18, "sectionKey": "phasingPlan", "sectionTitle": "Phasing Plan", "content": "", "attachmentUrls": [], "isComplete": false },
+      { "id": 19, "sectionKey": "crewCoordination", "sectionTitle": "Crew Coordination", "content": "", "attachmentUrls": [], "isComplete": false },
+      { "id": 20, "sectionKey": "additionalPlans", "sectionTitle": "Additional Plans", "content": "", "attachmentUrls": [], "isComplete": false }
+    ],
+    "createdBy": "crivera@hedrickbrothers.com",
+    "createdAt": "2026-01-06T08:00:00.000Z",
+    "lastUpdatedBy": "crivera@hedrickbrothers.com",
+    "lastUpdatedAt": "2026-01-20T12:00:00.000Z"
+  }
+]

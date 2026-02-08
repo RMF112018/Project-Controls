@@ -107,6 +107,14 @@ function buildTemplate(
         type: NotificationType.Email,
         recipientRoles: ['Safety', 'Operations Team'],
       };
+
+    default:
+      return {
+        subject: `Notification: ${event}`,
+        body: `A notification event (${event}) occurred for project ${ctx.projectCode ?? ''}.`,
+        type: NotificationType.Email,
+        recipientRoles: ['Operations Team'],
+      };
   }
 }
 

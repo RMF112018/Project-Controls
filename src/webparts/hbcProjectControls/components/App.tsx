@@ -36,6 +36,14 @@ import { CloseoutChecklist } from './pages/project/CloseoutChecklist';
 import { ProjectStartupChecklist } from './pages/project/ProjectStartupChecklist';
 import { ResponsibilityMatrices } from './pages/project/ResponsibilityMatrices';
 import { ProjectRecord } from './pages/project/ProjectRecord';
+import { RiskCostManagement } from './pages/project/RiskCostManagement';
+import { QualityConcernsTracker } from './pages/project/QualityConcernsTracker';
+import { SafetyConcernsTracker } from './pages/project/SafetyConcernsTracker';
+import { ProjectScheduleCriticalPath } from './pages/project/ProjectScheduleCriticalPath';
+import { SuperintendentPlanPage } from './pages/project/SuperintendentPlanPage';
+import { LessonsLearnedPage } from './pages/project/LessonsLearnedPage';
+import { ProjectManagementPlan } from './pages/project/pmp/ProjectManagementPlan';
+import { MonthlyProjectReview } from './pages/project/MonthlyProjectReview';
 
 // Hub pages (Phase 9)
 import { MarketingDashboard } from './pages/hub/MarketingDashboard';
@@ -83,6 +91,15 @@ const ProjectRoutes: React.FC = () => (
     <Route path="/responsibility/owner-contract" element={<ResponsibilityMatrices />} />
     <Route path="/responsibility/sub-contract" element={<ResponsibilityMatrices />} />
     <Route path="/project-record" element={<ProjectRecord />} />
+    <Route path="/risk-cost" element={<RiskCostManagement />} />
+    <Route path="/quality-concerns" element={<QualityConcernsTracker />} />
+    <Route path="/safety-concerns" element={<SafetyConcernsTracker />} />
+    <Route path="/schedule-critical-path" element={<ProjectScheduleCriticalPath />} />
+    <Route path="/superintendent-plan" element={<SuperintendentPlanPage />} />
+    <Route path="/lessons-learned" element={<LessonsLearnedPage />} />
+    <Route path="/pmp" element={<ProjectManagementPlan />} />
+    <Route path="/monthly-review" element={<MonthlyProjectReview />} />
+    <Route path="*" element={<NotFoundPage />} />
   </Routes>
 );
 
