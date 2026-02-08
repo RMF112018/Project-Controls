@@ -31,6 +31,7 @@ export const LIST_NAMES = {
   TURNOVER_CHECKLIST: 'Turnover_Checklist',
   BUYOUT_LOG: 'Buyout_Log',
   COMMITMENT_APPROVALS: 'Commitment_Approvals',
+  ACTIVE_PROJECTS_PORTFOLIO: 'Active_Projects_Portfolio',
 } as const;
 
 export const ROUTES = {

@@ -1,7 +1,9 @@
 import {
   IDataService,
   IListQueryOptions,
-  IPagedResult
+  IPagedResult,
+  IActiveProjectsQueryOptions,
+  IActiveProjectsFilter
 } from './IDataService';
 
 import {
@@ -52,7 +54,13 @@ import {
   MeetingType,
   ProvisioningStatus,
   JobNumberRequestStatus,
-  ICommitmentApproval
+  ICommitmentApproval,
+  IActiveProject,
+  IPortfolioSummary,
+  IPersonnelWorkload,
+  ProjectStatus,
+  SectorType,
+  DEFAULT_ALERT_THRESHOLDS
 } from '../models';
 
 import { IJobNumberRequest } from '../models/IJobNumberRequest';
@@ -136,6 +144,7 @@ export class MockDataService implements IDataService {
   private jobNumberRequests: IJobNumberRequest[];
   private estimatingKickoffs: IEstimatingKickoff[];
   private buyoutEntries: IBuyoutEntry[];
+  private activeProjects: IActiveProject[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -188,7 +197,627 @@ export class MockDataService implements IDataService {
       items: k.items && k.items.length > 0 ? k.items : createEstimatingKickoffTemplate(),
     }));
     this.buyoutEntries = JSON.parse(JSON.stringify(mockBuyoutEntries)) as IBuyoutEntry[];
+    this.activeProjects = this.generateMockActiveProjects();
     this.nextId = 1000;
+  }
+
+  /**
+   * Generate mock active projects data based on the Excel template
+   */
+  private generateMockActiveProjects(): IActiveProject[] {
+    const mockData: IActiveProject[] = [
+      {
+        id: 1,
+        jobNumber: '22-140-01',
+        projectCode: '22-140-01',
+        projectName: 'Caretta',
+        status: 'Construction',
+        sector: 'Commercial',
+        region: 'West Palm Beach',
+        personnel: {
+          projectExecutive: 'Bob Cashin',
+          leadPM: 'Matt Cox',
+          additionalPM: 'Ashlie Larson, Pawan Wadhwani',
+          projectAccountant: 'Tacara Hickman',
+          projectAssistant: 'Yolanda Donado',
+          leadSuper: 'JT Torres',
+          superintendent: 'Ronnie Poliseo, Chris Carr, Francois DePreist',
+          assistantSuper: 'Mardiel Cuesta',
+        },
+        financials: {
+          originalContract: 45000000,
+          changeOrders: 2500000,
+          currentContractValue: 47500000,
+          billingsToDate: 32000000,
+          unbilled: 4500000,
+          projectedFee: 2375000,
+          projectedFeePct: 5.0,
+          remainingValue: 15500000,
+        },
+        schedule: {
+          startDate: '2024-02-01',
+          substantialCompletionDate: '2026-08-31',
+          nocExpiration: '2026-06-28',
+          currentPhase: 'Vertical Construction',
+          percentComplete: 67,
+        },
+        riskMetrics: {
+          averageQScore: 85,
+          openWaiverCount: 1,
+          pendingCommitments: 3,
+          complianceStatus: 'Green',
+        },
+        statusComments: 'On track for August completion',
+        hasUnbilledAlert: false,
+        hasScheduleAlert: false,
+        hasFeeErosionAlert: false,
+        lastSyncDate: new Date().toISOString(),
+      },
+      {
+        id: 2,
+        jobNumber: '20-174-01',
+        projectCode: '20-174-01',
+        projectName: 'P&W Olympus',
+        status: 'Construction',
+        sector: 'Commercial',
+        region: 'Orlando',
+        personnel: {
+          projectExecutive: 'Arthur Miller',
+          leadPM: 'Shligton Estime',
+          projectAccountant: 'Tyler Everett',
+          projectAssistant: 'Monica Crowley',
+          leadSuper: 'Eric Carlson Jr.',
+        },
+        financials: {
+          originalContract: 78000000,
+          changeOrders: 5200000,
+          currentContractValue: 83200000,
+          billingsToDate: 71000000,
+          unbilled: 8500000,
+          projectedFee: 4160000,
+          projectedFeePct: 5.0,
+          remainingValue: 12200000,
+        },
+        schedule: {
+          startDate: '2022-03-01',
+          substantialCompletionDate: '2025-11-30',
+          nocExpiration: '2026-12-31',
+          currentPhase: 'Final Finishes',
+          percentComplete: 85,
+        },
+        riskMetrics: {
+          averageQScore: 78,
+          openWaiverCount: 0,
+          pendingCommitments: 1,
+          complianceStatus: 'Yellow',
+        },
+        statusComments: 'Nearing completion, punch list in progress',
+        hasUnbilledAlert: true,
+        hasScheduleAlert: false,
+        hasFeeErosionAlert: false,
+        lastSyncDate: new Date().toISOString(),
+      },
+      {
+        id: 3,
+        jobNumber: '23-435-01',
+        projectCode: '23-435-01',
+        projectName: 'Tropical World Nursery',
+        status: 'Construction',
+        sector: 'Commercial',
+        region: 'Miami',
+        personnel: {
+          projectExecutive: 'Bobby Fetting',
+          leadPM: 'James Jackson',
+          assistantPM: 'Milan Mistry',
+          projectAccountant: 'Betty Jo Yorio',
+          leadSuper: 'Fred Mangum',
+          superintendent: 'Jesus Avila, Anthony Lilly, Mike Morris',
+          assistantSuper: 'Rameau Morency',
+        },
+        financials: {
+          originalContract: 12500000,
+          changeOrders: 850000,
+          currentContractValue: 13350000,
+          billingsToDate: 6200000,
+          unbilled: 1200000,
+          projectedFee: 667500,
+          projectedFeePct: 5.0,
+          remainingValue: 7150000,
+        },
+        schedule: {
+          startDate: '2024-10-01',
+          substantialCompletionDate: '2026-05-31',
+          nocExpiration: '2026-10-15',
+          currentPhase: 'Structural',
+          percentComplete: 46,
+        },
+        riskMetrics: {
+          averageQScore: 92,
+          openWaiverCount: 0,
+          pendingCommitments: 5,
+          complianceStatus: 'Green',
+        },
+        statusComments: 'Progressing well',
+        hasUnbilledAlert: false,
+        hasScheduleAlert: false,
+        hasFeeErosionAlert: false,
+        lastSyncDate: new Date().toISOString(),
+      },
+      {
+        id: 4,
+        jobNumber: '25-745-01',
+        projectCode: '25-745-01',
+        projectName: 'Rybovich Safe Harbor',
+        status: 'Construction',
+        sector: 'Commercial',
+        region: 'West Palm Beach',
+        personnel: {
+          projectExecutive: 'Paul Fulks',
+          leadPM: 'Bob Joy',
+          assistantPM: 'Justin Molina',
+          projectAccountant: 'Michelle Carlson',
+          projectAssistant: 'Ashley Kronshage',
+          leadSuper: 'Rene Fernandez',
+          superintendent: 'Kevin Watterud, Adam Headrick',
+        },
+        financials: {
+          originalContract: 8500000,
+          changeOrders: 320000,
+          currentContractValue: 8820000,
+          billingsToDate: 2100000,
+          unbilled: 650000,
+          projectedFee: 441000,
+          projectedFeePct: 5.0,
+          remainingValue: 6720000,
+        },
+        schedule: {
+          startDate: '2025-06-01',
+          substantialCompletionDate: '2026-03-31',
+          nocExpiration: '2026-12-31',
+          currentPhase: 'Foundation',
+          percentComplete: 24,
+        },
+        riskMetrics: {
+          averageQScore: 88,
+          openWaiverCount: 0,
+          pendingCommitments: 8,
+          complianceStatus: 'Green',
+        },
+        statusComments: 'Early stage, on schedule',
+        hasUnbilledAlert: false,
+        hasScheduleAlert: false,
+        hasFeeErosionAlert: false,
+        lastSyncDate: new Date().toISOString(),
+      },
+      {
+        id: 5,
+        jobNumber: '21-456-01',
+        projectCode: '21-456-01',
+        projectName: 'Hanging Moss',
+        status: 'Construction',
+        sector: 'Residential',
+        region: 'Orlando',
+        personnel: {
+          projectExecutive: 'Jay Monaghan',
+          leadPM: 'Dan Miller',
+          additionalPM: 'Jim Pearce',
+          assistantPM: 'Clayton Kolar',
+          projectAccountant: 'Lori Shanks',
+          leadSuper: 'Chris Lineberger',
+          superintendent: 'Lucio Salcedo',
+        },
+        financials: {
+          originalContract: 35000000,
+          changeOrders: 1800000,
+          currentContractValue: 36800000,
+          billingsToDate: 8500000,
+          unbilled: 2100000,
+          projectedFee: 1840000,
+          projectedFeePct: 5.0,
+          remainingValue: 28300000,
+        },
+        schedule: {
+          startDate: '2025-06-01',
+          substantialCompletionDate: '2027-03-31',
+          currentPhase: 'Site Work',
+          percentComplete: 23,
+        },
+        riskMetrics: {
+          averageQScore: 82,
+          openWaiverCount: 2,
+          pendingCommitments: 12,
+          complianceStatus: 'Yellow',
+        },
+        statusComments: 'In Permitting phase',
+        hasUnbilledAlert: false,
+        hasScheduleAlert: false,
+        hasFeeErosionAlert: false,
+        lastSyncDate: new Date().toISOString(),
+      },
+      {
+        id: 6,
+        jobNumber: '23-145-01',
+        projectCode: '23-145-01',
+        projectName: 'Perla',
+        status: 'Construction',
+        sector: 'Residential',
+        region: 'Miami',
+        personnel: {
+          projectExecutive: 'Jay Monaghan',
+          leadPM: 'Jeff Malone',
+          additionalPM: 'Steve Wackes, Fred Young',
+          assistantPM: 'Kim Spivey, Patrick Rapport',
+          projectAccountant: 'Lori Shanks',
+          leadSuper: 'Joe Caliendo',
+          superintendent: 'Frank Bobko, Jake Cowan, Michele Wortham',
+          assistantSuper: 'Matthew Balkom',
+        },
+        financials: {
+          originalContract: 125000000,
+          changeOrders: 8500000,
+          currentContractValue: 133500000,
+          billingsToDate: 15000000,
+          unbilled: 5200000,
+          projectedFee: 6675000,
+          projectedFeePct: 5.0,
+          remainingValue: 118500000,
+        },
+        schedule: {
+          startDate: '2026-07-01',
+          substantialCompletionDate: '2028-09-01',
+          nocExpiration: '2026-09-01',
+          currentPhase: 'Pre-Construction',
+          percentComplete: 11,
+        },
+        riskMetrics: {
+          averageQScore: 90,
+          openWaiverCount: 0,
+          pendingCommitments: 4,
+          complianceStatus: 'Green',
+        },
+        statusComments: 'Mobilizing for start',
+        hasUnbilledAlert: false,
+        hasScheduleAlert: false,
+        hasFeeErosionAlert: false,
+        lastSyncDate: new Date().toISOString(),
+      },
+      {
+        id: 7,
+        jobNumber: '20-535-01',
+        projectCode: '20-535-01',
+        projectName: 'PBC MDC PH IV West Tower',
+        status: 'Construction',
+        sector: 'Commercial',
+        region: 'West Palm Beach',
+        personnel: {
+          projectExecutive: 'Jack Ullrich',
+          leadPM: 'John Richardson',
+          assistantPM: 'Yasser Ghareeb',
+          projectAccountant: 'Monica Crowley',
+          leadSuper: 'John Varney',
+        },
+        financials: {
+          originalContract: 95000000,
+          changeOrders: 12000000,
+          currentContractValue: 107000000,
+          billingsToDate: 28000000,
+          unbilled: 9500000,
+          projectedFee: 5350000,
+          projectedFeePct: 5.0,
+          remainingValue: 79000000,
+        },
+        schedule: {
+          startDate: '2025-04-01',
+          substantialCompletionDate: '2029-04-30',
+          currentPhase: 'Foundation',
+          percentComplete: 26,
+        },
+        riskMetrics: {
+          averageQScore: 75,
+          openWaiverCount: 3,
+          pendingCommitments: 6,
+          complianceStatus: 'Yellow',
+        },
+        statusComments: 'Long-term project, progressing',
+        hasUnbilledAlert: false,
+        hasScheduleAlert: false,
+        hasFeeErosionAlert: false,
+        lastSyncDate: new Date().toISOString(),
+      },
+      {
+        id: 8,
+        jobNumber: '24-183-01',
+        projectCode: '24-183-01',
+        projectName: "El's Rec & Aquatics",
+        status: 'Construction',
+        sector: 'Commercial',
+        region: 'West Palm Beach',
+        personnel: {
+          projectExecutive: 'Bob Cashin',
+          leadPM: 'Amber Wangle',
+          additionalPM: 'Andrew Covel',
+          projectAccountant: 'Craig Nelson',
+          leadSuper: 'Andy Gutierrez',
+        },
+        financials: {
+          originalContract: 18500000,
+          changeOrders: 950000,
+          currentContractValue: 19450000,
+          billingsToDate: 4200000,
+          unbilled: 1800000,
+          projectedFee: 972500,
+          projectedFeePct: 5.0,
+          remainingValue: 15250000,
+        },
+        schedule: {
+          startDate: '2025-10-01',
+          substantialCompletionDate: '2026-12-31',
+          nocExpiration: '2026-06-26',
+          currentPhase: 'Site Work',
+          percentComplete: 22,
+        },
+        riskMetrics: {
+          averageQScore: 86,
+          openWaiverCount: 0,
+          pendingCommitments: 7,
+          complianceStatus: 'Green',
+        },
+        statusComments: 'New project, ramping up',
+        hasUnbilledAlert: false,
+        hasScheduleAlert: false,
+        hasFeeErosionAlert: false,
+        lastSyncDate: new Date().toISOString(),
+      },
+      {
+        id: 9,
+        jobNumber: '21-801-01',
+        projectCode: '21-801-01',
+        projectName: 'NoRa',
+        status: 'Construction',
+        sector: 'Residential',
+        region: 'Miami',
+        personnel: {
+          projectExecutive: 'Bob Cashin',
+          leadPM: 'Bill West',
+          additionalPM: 'Laura Ratliff',
+          assistantPM: 'Jill Voorhees',
+          projectAccountant: 'Brad Harrison',
+          leadSuper: 'Eric Hudson',
+        },
+        financials: {
+          originalContract: 52000000,
+          changeOrders: 3800000,
+          currentContractValue: 55800000,
+          billingsToDate: 48500000,
+          unbilled: 3200000,
+          projectedFee: 2790000,
+          projectedFeePct: 5.0,
+          remainingValue: 7300000,
+        },
+        schedule: {
+          startDate: '2023-07-01',
+          substantialCompletionDate: '2025-08-31',
+          nocExpiration: '2026-06-06',
+          currentPhase: 'Final Finishes',
+          percentComplete: 87,
+        },
+        riskMetrics: {
+          averageQScore: 81,
+          openWaiverCount: 1,
+          pendingCommitments: 2,
+          complianceStatus: 'Green',
+        },
+        statusComments: 'Nearing substantial completion',
+        hasUnbilledAlert: false,
+        hasScheduleAlert: false,
+        hasFeeErosionAlert: false,
+        lastSyncDate: new Date().toISOString(),
+      },
+      {
+        id: 10,
+        jobNumber: '24-011-01',
+        projectCode: '24-011-01',
+        projectName: 'Family Church',
+        status: 'Construction',
+        sector: 'Commercial',
+        region: 'West Palm Beach',
+        personnel: {
+          projectExecutive: 'Paul Fulks',
+          leadPM: 'Boris Lopez',
+          assistantPM: 'Jill Voorhees',
+          leadSuper: 'Vinny Viaggio',
+          superintendent: 'Sam Platovsky',
+        },
+        financials: {
+          originalContract: 6200000,
+          changeOrders: 280000,
+          currentContractValue: 6480000,
+          billingsToDate: 4800000,
+          unbilled: 850000,
+          projectedFee: 324000,
+          projectedFeePct: 5.0,
+          remainingValue: 1680000,
+        },
+        schedule: {
+          startDate: '2025-06-01',
+          substantialCompletionDate: '2025-12-31',
+          nocExpiration: '2026-05-30',
+          currentPhase: 'Interior Finishes',
+          percentComplete: 74,
+        },
+        riskMetrics: {
+          averageQScore: 94,
+          openWaiverCount: 0,
+          pendingCommitments: 1,
+          complianceStatus: 'Green',
+        },
+        statusComments: 'On track for year-end completion',
+        hasUnbilledAlert: false,
+        hasScheduleAlert: false,
+        hasFeeErosionAlert: false,
+        lastSyncDate: new Date().toISOString(),
+      },
+      // Precon projects
+      {
+        id: 11,
+        jobNumber: '24-606-01',
+        projectCode: '24-606-01',
+        projectName: 'Hilltop Gardens',
+        status: 'Precon',
+        sector: 'Residential',
+        region: 'West Palm Beach',
+        personnel: {
+          projectExecutive: 'Bobby Fetting',
+        },
+        financials: {
+          originalContract: 28000000,
+          projectedFee: 1400000,
+          projectedFeePct: 5.0,
+        },
+        schedule: {
+          currentPhase: 'Estimating',
+          percentComplete: 0,
+        },
+        riskMetrics: {
+          complianceStatus: 'Green',
+        },
+        statusComments: 'In preconstruction',
+        hasUnbilledAlert: false,
+        hasScheduleAlert: false,
+        hasFeeErosionAlert: false,
+        lastSyncDate: new Date().toISOString(),
+      },
+      {
+        id: 12,
+        jobNumber: '25-445-01',
+        projectCode: '25-445-01',
+        projectName: 'Keiser Student Housing',
+        status: 'Precon',
+        sector: 'Commercial',
+        region: 'West Palm Beach',
+        personnel: {
+          projectExecutive: 'Joe Keating',
+          leadPM: 'Bill West',
+          additionalPM: 'Tony Mish, Ben Coats',
+          projectAccountant: 'Betty Jo Yorio',
+          projectAssistant: 'Stacey Helmes',
+          leadSuper: 'Ronnie Poliseo',
+        },
+        financials: {
+          originalContract: 42000000,
+          projectedFee: 2100000,
+          projectedFeePct: 5.0,
+        },
+        schedule: {
+          currentPhase: 'GMP Development',
+          percentComplete: 0,
+        },
+        riskMetrics: {
+          complianceStatus: 'Green',
+        },
+        statusComments: 'GMP in development',
+        hasUnbilledAlert: false,
+        hasScheduleAlert: false,
+        hasFeeErosionAlert: false,
+        lastSyncDate: new Date().toISOString(),
+      },
+      // Final Payment projects
+      {
+        id: 13,
+        jobNumber: '21-575-01',
+        projectCode: '21-575-01',
+        projectName: 'Stuart Middle School - Phase 1',
+        status: 'Final Payment',
+        sector: 'Commercial',
+        region: 'Martin County',
+        personnel: {
+          projectExecutive: 'Joe Keating',
+          leadPM: 'Ben Coats',
+          projectAccountant: 'Tacara Hickman',
+        },
+        financials: {
+          originalContract: 15800000,
+          changeOrders: 1200000,
+          currentContractValue: 17000000,
+          billingsToDate: 16850000,
+          unbilled: 150000,
+          projectedFee: 850000,
+          projectedFeePct: 5.0,
+          remainingValue: 150000,
+        },
+        schedule: {
+          startDate: '2022-06-01',
+          substantialCompletionDate: '2024-08-31',
+          currentPhase: 'Closeout',
+          percentComplete: 99,
+        },
+        riskMetrics: {
+          averageQScore: 88,
+          openWaiverCount: 0,
+          pendingCommitments: 0,
+          complianceStatus: 'Green',
+        },
+        statusComments: 'Awaiting final payment',
+        hasUnbilledAlert: false,
+        hasScheduleAlert: false,
+        hasFeeErosionAlert: false,
+        lastSyncDate: new Date().toISOString(),
+      },
+      {
+        id: 14,
+        jobNumber: '18-789-01',
+        projectCode: '18-789-01',
+        projectName: 'YMCA of the Palm Beaches',
+        status: 'Construction',
+        sector: 'Commercial',
+        region: 'West Palm Beach',
+        personnel: {
+          projectExecutive: 'Joe Keating',
+          leadPM: 'Dave Rawdon',
+          projectAccountant: 'Tanya Stiles',
+          leadSuper: 'Tom Holt',
+        },
+        financials: {
+          originalContract: 22000000,
+          changeOrders: 1500000,
+          currentContractValue: 23500000,
+          billingsToDate: 5200000,
+          unbilled: 1800000,
+          projectedFee: 1175000,
+          projectedFeePct: 5.0,
+          remainingValue: 18300000,
+        },
+        schedule: {
+          startDate: '2025-07-01',
+          nocExpiration: '2026-12-31',
+          currentPhase: 'Foundation',
+          percentComplete: 22,
+        },
+        riskMetrics: {
+          averageQScore: 83,
+          openWaiverCount: 1,
+          pendingCommitments: 9,
+          complianceStatus: 'Green',
+        },
+        statusComments: 'New construction underway',
+        hasUnbilledAlert: false,
+        hasScheduleAlert: false,
+        hasFeeErosionAlert: false,
+        lastSyncDate: new Date().toISOString(),
+      },
+    ];
+
+    // Apply alert thresholds
+    return mockData.map(project => {
+      const unbilledPct = project.financials.currentContractValue
+        ? ((project.financials.unbilled || 0) / project.financials.currentContractValue) * 100
+        : 0;
+      
+      return {
+        ...project,
+        hasUnbilledAlert: unbilledPct >= DEFAULT_ALERT_THRESHOLDS.unbilledWarningPct,
+      };
+    });
   }
 
   private getNextId(): number {
@@ -2358,5 +2987,216 @@ export class MockDataService implements IDataService {
     await delay();
     const { Sector } = require('../models/enums');
     return Object.values(Sector) as string[];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Active Projects Portfolio
+  // ---------------------------------------------------------------------------
+
+  public async getActiveProjects(options?: IActiveProjectsQueryOptions): Promise<IActiveProject[]> {
+    await delay();
+    let filtered = [...this.activeProjects];
+
+    // Apply filters
+    if (options?.status) {
+      filtered = filtered.filter(p => p.status === options.status);
+    }
+    if (options?.sector) {
+      filtered = filtered.filter(p => p.sector === options.sector);
+    }
+    if (options?.projectExecutive) {
+      filtered = filtered.filter(p => p.personnel.projectExecutive === options.projectExecutive);
+    }
+    if (options?.projectManager) {
+      filtered = filtered.filter(p => p.personnel.leadPM === options.projectManager);
+    }
+    if (options?.region) {
+      filtered = filtered.filter(p => p.region === options.region);
+    }
+    if (options?.hasAlerts) {
+      filtered = filtered.filter(p => p.hasUnbilledAlert || p.hasScheduleAlert || p.hasFeeErosionAlert);
+    }
+
+    // Apply sorting
+    if (options?.orderBy) {
+      const key = options.orderBy as keyof IActiveProject;
+      const asc = options.orderAscending !== false;
+      filtered.sort((a, b) => {
+        const aVal = a[key];
+        const bVal = b[key];
+        if (aVal === undefined || aVal === null) return 1;
+        if (bVal === undefined || bVal === null) return -1;
+        if (aVal < bVal) return asc ? -1 : 1;
+        if (aVal > bVal) return asc ? 1 : -1;
+        return 0;
+      });
+    }
+
+    // Apply pagination
+    const skip = options?.skip ?? 0;
+    const top = options?.top ?? filtered.length;
+    return filtered.slice(skip, skip + top);
+  }
+
+  public async getActiveProjectById(id: number): Promise<IActiveProject | null> {
+    await delay();
+    return this.activeProjects.find(p => p.id === id) ?? null;
+  }
+
+  public async syncActiveProject(projectCode: string): Promise<IActiveProject> {
+    await delay();
+    const existing = this.activeProjects.find(p => p.projectCode === projectCode);
+    if (existing) {
+      existing.lastSyncDate = new Date().toISOString();
+      return { ...existing };
+    }
+    throw new Error(`Project ${projectCode} not found`);
+  }
+
+  public async updateActiveProject(id: number, data: Partial<IActiveProject>): Promise<IActiveProject> {
+    await delay();
+    const index = this.activeProjects.findIndex(p => p.id === id);
+    if (index === -1) throw new Error(`Active project ${id} not found`);
+    
+    this.activeProjects[index] = {
+      ...this.activeProjects[index],
+      ...data,
+      lastModified: new Date().toISOString(),
+    };
+    return { ...this.activeProjects[index] };
+  }
+
+  public async getPortfolioSummary(filters?: IActiveProjectsFilter): Promise<IPortfolioSummary> {
+    await delay();
+    let projects = [...this.activeProjects];
+
+    // Apply filters
+    if (filters?.status) {
+      projects = projects.filter(p => p.status === filters.status);
+    }
+    if (filters?.sector) {
+      projects = projects.filter(p => p.sector === filters.sector);
+    }
+    if (filters?.projectExecutive) {
+      projects = projects.filter(p => p.personnel.projectExecutive === filters.projectExecutive);
+    }
+    if (filters?.projectManager) {
+      projects = projects.filter(p => p.personnel.leadPM === filters.projectManager);
+    }
+    if (filters?.region) {
+      projects = projects.filter(p => p.region === filters.region);
+    }
+
+    // Calculate summary metrics
+    const totalBacklog = projects.reduce((sum, p) => sum + (p.financials.remainingValue || 0), 0);
+    const totalOriginalContract = projects.reduce((sum, p) => sum + (p.financials.originalContract || 0), 0);
+    const totalBillingsToDate = projects.reduce((sum, p) => sum + (p.financials.billingsToDate || 0), 0);
+    const totalUnbilled = projects.reduce((sum, p) => sum + (p.financials.unbilled || 0), 0);
+    
+    const projectsWithFee = projects.filter(p => p.financials.projectedFeePct != null);
+    const averageFeePct = projectsWithFee.length > 0
+      ? projectsWithFee.reduce((sum, p) => sum + (p.financials.projectedFeePct || 0), 0) / projectsWithFee.length
+      : 0;
+
+    // Monthly burn rate (simplified: total billings / months active)
+    const monthlyBurnRate = totalBillingsToDate / 12; // Simplified calculation
+
+    // Count by status
+    const projectsByStatus: Record<ProjectStatus, number> = {
+      'Precon': projects.filter(p => p.status === 'Precon').length,
+      'Construction': projects.filter(p => p.status === 'Construction').length,
+      'Final Payment': projects.filter(p => p.status === 'Final Payment').length,
+    };
+
+    // Count by sector
+    const projectsBySector: Record<SectorType, number> = {
+      'Commercial': projects.filter(p => p.sector === 'Commercial').length,
+      'Residential': projects.filter(p => p.sector === 'Residential').length,
+    };
+
+    const projectsWithAlerts = projects.filter(
+      p => p.hasUnbilledAlert || p.hasScheduleAlert || p.hasFeeErosionAlert
+    ).length;
+
+    return {
+      totalBacklog,
+      totalOriginalContract,
+      totalBillingsToDate,
+      totalUnbilled,
+      averageFeePct,
+      monthlyBurnRate,
+      projectCount: projects.length,
+      projectsByStatus,
+      projectsBySector,
+      projectsWithAlerts,
+    };
+  }
+
+  public async getPersonnelWorkload(role?: 'PX' | 'PM' | 'Super'): Promise<IPersonnelWorkload[]> {
+    await delay();
+    const workloadMap = new Map<string, IPersonnelWorkload>();
+
+    for (const project of this.activeProjects) {
+      // Process PX
+      if ((!role || role === 'PX') && project.personnel.projectExecutive) {
+        const name = project.personnel.projectExecutive;
+        const existing = workloadMap.get(`PX-${name}`) || {
+          name,
+          email: project.personnel.projectExecutiveEmail,
+          role: 'PX' as const,
+          projectCount: 0,
+          totalContractValue: 0,
+          projects: [],
+        };
+        existing.projectCount++;
+        existing.totalContractValue += project.financials.currentContractValue || project.financials.originalContract || 0;
+        existing.projects.push(project);
+        workloadMap.set(`PX-${name}`, existing);
+      }
+
+      // Process PM
+      if ((!role || role === 'PM') && project.personnel.leadPM) {
+        const name = project.personnel.leadPM;
+        const existing = workloadMap.get(`PM-${name}`) || {
+          name,
+          email: project.personnel.leadPMEmail,
+          role: 'PM' as const,
+          projectCount: 0,
+          totalContractValue: 0,
+          projects: [],
+        };
+        existing.projectCount++;
+        existing.totalContractValue += project.financials.currentContractValue || project.financials.originalContract || 0;
+        existing.projects.push(project);
+        workloadMap.set(`PM-${name}`, existing);
+      }
+
+      // Process Super
+      if ((!role || role === 'Super') && project.personnel.leadSuper) {
+        const name = project.personnel.leadSuper;
+        const existing = workloadMap.get(`Super-${name}`) || {
+          name,
+          role: 'Super' as const,
+          projectCount: 0,
+          totalContractValue: 0,
+          projects: [],
+        };
+        existing.projectCount++;
+        existing.totalContractValue += project.financials.currentContractValue || project.financials.originalContract || 0;
+        existing.projects.push(project);
+        workloadMap.set(`Super-${name}`, existing);
+      }
+    }
+
+    return Array.from(workloadMap.values()).sort((a, b) => b.projectCount - a.projectCount);
+  }
+
+  public async triggerPortfolioSync(): Promise<void> {
+    await delay();
+    // In mock, just update all lastSyncDate
+    const now = new Date().toISOString();
+    for (const project of this.activeProjects) {
+      project.lastSyncDate = now;
+    }
   }
 }

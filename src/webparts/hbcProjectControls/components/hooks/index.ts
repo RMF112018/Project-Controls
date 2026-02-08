@@ -22,3 +22,4 @@ export { useEstimatingKickoff } from './useEstimatingKickoff';
 export { usePostBidAutopsy } from './usePostBidAutopsy';
 export { useBuyoutLog } from './useBuyoutLog';
 export { useCommitmentApproval } from './useCommitmentApproval';
+export { useActiveProjects } from './useActiveProjects';

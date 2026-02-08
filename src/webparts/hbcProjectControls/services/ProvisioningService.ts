@@ -227,4 +227,43 @@ export class ProvisioningService {
       User: 'system',
     }).catch(console.error);
   }
+
+  /**
+   * Create the Active_Projects_Portfolio list on the Hub site.
+   * This list aggregates data from all project sites for executive dashboard.
+   * In production, this uses PnP JS to create the list schema with all required columns.
+   */
+  public async createActiveProjectsPortfolioList(hubSiteUrl: string): Promise<void> {
+    // In mock mode, simulate the delay
+    await new Promise(resolve => setTimeout(resolve, STEP_DELAY_MS));
+
+    // In production, this would create the list with the following schema:
+    // - Title (ProjectName)
+    // - JobNumber (Text)
+    // - ProjectCode (Text, Indexed)
+    // - Status (Choice: Precon, Construction, Final Payment)
+    // - Sector (Choice: Commercial, Residential)
+    // - Region (Text)
+    // - ProjectExecutive, LeadPM, AdditionalPM, AssistantPM (Text)
+    // - ProjectAccountant, ProjectAssistant, LeadSuper, Superintendent, AssistantSuper (Text)
+    // - OriginalContract, ChangeOrders, CurrentContractValue, BillingsToDate, Unbilled (Currency)
+    // - ProjectedFee, ProjectedFeePct, ProjectedCost, RemainingValue (Number)
+    // - StartDate, SubstantialCompletionDate, NOCExpiration (DateTime)
+    // - CurrentPhase (Text)
+    // - PercentComplete (Number)
+    // - AverageQScore, OpenWaiverCount, PendingCommitments (Number)
+    // - ComplianceStatus (Choice: Green, Yellow, Red)
+    // - StatusComments (Note)
+    // - ProjectSiteUrl (Hyperlink)
+    // - LastSyncDate, LastModified (DateTime)
+    // - HasUnbilledAlert, HasScheduleAlert, HasFeeErosionAlert (Yes/No)
+
+    this.dataService.logAudit({
+      Action: AuditAction.SiteProvisioningCompleted,
+      EntityType: EntityType.Config,
+      EntityId: hubSiteUrl,
+      Details: `Active_Projects_Portfolio list created for ${hubSiteUrl}`,
+      User: 'system',
+    }).catch(console.error);
+  }
 }

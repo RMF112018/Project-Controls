@@ -58,6 +58,10 @@ import { MarketingDashboard } from './pages/hub/MarketingDashboard';
 // Hub pages (Phase 11 — Job Number Request)
 import { JobNumberRequestForm } from './pages/hub/JobNumberRequestForm';
 import { AccountingQueuePage } from './pages/hub/AccountingQueuePage';
+
+// Hub pages (Phase 12 — Active Projects Dashboard)
+import { ActiveProjectsDashboard } from './pages/hub/ActiveProjectsDashboard';
+
 import { PERMISSIONS } from '../utils/permissions';
 
 export interface IAppProps {
@@ -96,6 +100,11 @@ const HubRoutes: React.FC = () => (
     <Route path="/admin" element={(
       <ProtectedRoute permission={PERMISSIONS.ADMIN_CONFIG}>
         <AdminPanel />
+      </ProtectedRoute>
+    )} />
+    <Route path="/active-projects" element={(
+      <ProtectedRoute permission={PERMISSIONS.ACTIVE_PROJECTS_VIEW}>
+        <ActiveProjectsDashboard />
       </ProtectedRoute>
     )} />
     <Route path="/access-denied" element={<AccessDeniedPage />} />

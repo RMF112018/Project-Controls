@@ -1,4 +1,4 @@
-import { IDataService, IListQueryOptions, IPagedResult } from './IDataService';
+import { IDataService, IListQueryOptions, IPagedResult, IActiveProjectsQueryOptions, IActiveProjectsFilter } from './IDataService';
 import { ILead, ILeadFormData } from '../models/ILead';
 import { IGoNoGoScorecard } from '../models/IGoNoGoScorecard';
 import { IEstimatingTracker } from '../models/IEstimatingTracker';
@@ -25,6 +25,7 @@ import { IProjectType } from '../models/IProjectType';
 import { IStandardCostCode } from '../models/IStandardCostCode';
 import { IBuyoutEntry, BuyoutStatus } from '../models/IBuyoutEntry';
 import { ICommitmentApproval, CommitmentStatus, WaiverType, ApprovalStep } from '../models/ICommitmentApproval';
+import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType, DEFAULT_ALERT_THRESHOLDS } from '../models/IActiveProject';
 import { GoNoGoDecision, Stage } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
@@ -763,4 +764,318 @@ export class SharePointDataService implements IDataService {
 
   // --- Re-Key ---
   async rekeyProjectCode(_oldCode: string, _newCode: string, _leadId: number): Promise<void> { throw new Error('Not implemented'); }
+
+  // --- Active Projects Portfolio ---
+
+  async getActiveProjects(options?: IActiveProjectsQueryOptions): Promise<IActiveProject[]> {
+    let filterParts: string[] = [];
+
+    if (options?.status) {
+      filterParts.push(`Status eq '${options.status}'`);
+    }
+    if (options?.sector) {
+      filterParts.push(`Sector eq '${options.sector}'`);
+    }
+    if (options?.projectExecutive) {
+      filterParts.push(`ProjectExecutive eq '${options.projectExecutive}'`);
+    }
+    if (options?.projectManager) {
+      filterParts.push(`LeadPM eq '${options.projectManager}'`);
+    }
+    if (options?.region) {
+      filterParts.push(`Region eq '${options.region}'`);
+    }
+
+    let query = this.sp.web.lists
+      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+      .items
+      .top(options?.top || 500);
+
+    if (filterParts.length > 0) {
+      query = query.filter(filterParts.join(' and '));
+    }
+
+    if (options?.orderBy) {
+      query = query.orderBy(options.orderBy, options.orderAscending !== false);
+    }
+
+    const items = await query();
+    return items.map((item: Record<string, unknown>) => this.mapToActiveProject(item));
+  }
+
+  async getActiveProjectById(id: number): Promise<IActiveProject | null> {
+    try {
+      const item = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+        .items
+        .getById(id)();
+      return this.mapToActiveProject(item);
+    } catch {
+      return null;
+    }
+  }
+
+  async syncActiveProject(projectCode: string): Promise<IActiveProject> {
+    // Find the project in the portfolio list
+    const items = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+      .items
+      .filter(`ProjectCode eq '${projectCode}'`)();
+
+    if (items.length === 0) {
+      throw new Error(`Project ${projectCode} not found in portfolio`);
+    }
+
+    const projectId = items[0].Id;
+
+    // Update last sync date
+    await this.sp.web.lists
+      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+      .items
+      .getById(projectId)
+      .update({ LastSyncDate: new Date().toISOString() });
+
+    const updated = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+      .items
+      .getById(projectId)();
+
+    return this.mapToActiveProject(updated);
+  }
+
+  async updateActiveProject(id: number, data: Partial<IActiveProject>): Promise<IActiveProject> {
+    const updateData: Record<string, unknown> = {};
+
+    if (data.projectName !== undefined) updateData.Title = data.projectName;
+    if (data.status !== undefined) updateData.Status = data.status;
+    if (data.sector !== undefined) updateData.Sector = data.sector;
+    if (data.region !== undefined) updateData.Region = data.region;
+    if (data.statusComments !== undefined) updateData.StatusComments = data.statusComments;
+
+    // Personnel
+    if (data.personnel) {
+      if (data.personnel.projectExecutive !== undefined) updateData.ProjectExecutive = data.personnel.projectExecutive;
+      if (data.personnel.leadPM !== undefined) updateData.LeadPM = data.personnel.leadPM;
+      if (data.personnel.additionalPM !== undefined) updateData.AdditionalPM = data.personnel.additionalPM;
+      if (data.personnel.assistantPM !== undefined) updateData.AssistantPM = data.personnel.assistantPM;
+      if (data.personnel.projectAccountant !== undefined) updateData.ProjectAccountant = data.personnel.projectAccountant;
+      if (data.personnel.leadSuper !== undefined) updateData.LeadSuper = data.personnel.leadSuper;
+    }
+
+    // Financials
+    if (data.financials) {
+      if (data.financials.originalContract !== undefined) updateData.OriginalContract = data.financials.originalContract;
+      if (data.financials.changeOrders !== undefined) updateData.ChangeOrders = data.financials.changeOrders;
+      if (data.financials.currentContractValue !== undefined) updateData.CurrentContractValue = data.financials.currentContractValue;
+      if (data.financials.billingsToDate !== undefined) updateData.BillingsToDate = data.financials.billingsToDate;
+      if (data.financials.unbilled !== undefined) updateData.Unbilled = data.financials.unbilled;
+      if (data.financials.projectedFee !== undefined) updateData.ProjectedFee = data.financials.projectedFee;
+      if (data.financials.projectedFeePct !== undefined) updateData.ProjectedFeePct = data.financials.projectedFeePct;
+    }
+
+    // Schedule
+    if (data.schedule) {
+      if (data.schedule.startDate !== undefined) updateData.StartDate = data.schedule.startDate;
+      if (data.schedule.substantialCompletionDate !== undefined) updateData.SubstantialCompletionDate = data.schedule.substantialCompletionDate;
+      if (data.schedule.currentPhase !== undefined) updateData.CurrentPhase = data.schedule.currentPhase;
+      if (data.schedule.percentComplete !== undefined) updateData.PercentComplete = data.schedule.percentComplete;
+    }
+
+    updateData.LastModified = new Date().toISOString();
+
+    await this.sp.web.lists
+      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+      .items
+      .getById(id)
+      .update(updateData);
+
+    const updated = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+      .items
+      .getById(id)();
+
+    return this.mapToActiveProject(updated);
+  }
+
+  async getPortfolioSummary(filters?: IActiveProjectsFilter): Promise<IPortfolioSummary> {
+    const projects = await this.getActiveProjects(filters as IActiveProjectsQueryOptions);
+
+    const totalBacklog = projects.reduce((sum, p) => sum + (p.financials.remainingValue || 0), 0);
+    const totalOriginalContract = projects.reduce((sum, p) => sum + (p.financials.originalContract || 0), 0);
+    const totalBillingsToDate = projects.reduce((sum, p) => sum + (p.financials.billingsToDate || 0), 0);
+    const totalUnbilled = projects.reduce((sum, p) => sum + (p.financials.unbilled || 0), 0);
+
+    const projectsWithFee = projects.filter(p => p.financials.projectedFeePct != null);
+    const averageFeePct = projectsWithFee.length > 0
+      ? projectsWithFee.reduce((sum, p) => sum + (p.financials.projectedFeePct || 0), 0) / projectsWithFee.length
+      : 0;
+
+    const monthlyBurnRate = totalBillingsToDate / 12;
+
+    const projectsByStatus: Record<ProjectStatus, number> = {
+      'Precon': projects.filter(p => p.status === 'Precon').length,
+      'Construction': projects.filter(p => p.status === 'Construction').length,
+      'Final Payment': projects.filter(p => p.status === 'Final Payment').length,
+    };
+
+    const projectsBySector: Record<SectorType, number> = {
+      'Commercial': projects.filter(p => p.sector === 'Commercial').length,
+      'Residential': projects.filter(p => p.sector === 'Residential').length,
+    };
+
+    const projectsWithAlerts = projects.filter(
+      p => p.hasUnbilledAlert || p.hasScheduleAlert || p.hasFeeErosionAlert
+    ).length;
+
+    return {
+      totalBacklog,
+      totalOriginalContract,
+      totalBillingsToDate,
+      totalUnbilled,
+      averageFeePct,
+      monthlyBurnRate,
+      projectCount: projects.length,
+      projectsByStatus,
+      projectsBySector,
+      projectsWithAlerts,
+    };
+  }
+
+  async getPersonnelWorkload(role?: 'PX' | 'PM' | 'Super'): Promise<IPersonnelWorkload[]> {
+    const projects = await this.getActiveProjects();
+    const workloadMap = new Map<string, IPersonnelWorkload>();
+
+    for (const project of projects) {
+      if ((!role || role === 'PX') && project.personnel.projectExecutive) {
+        const name = project.personnel.projectExecutive;
+        const existing = workloadMap.get(`PX-${name}`) || {
+          name,
+          email: project.personnel.projectExecutiveEmail,
+          role: 'PX' as const,
+          projectCount: 0,
+          totalContractValue: 0,
+          projects: [],
+        };
+        existing.projectCount++;
+        existing.totalContractValue += project.financials.currentContractValue || project.financials.originalContract || 0;
+        existing.projects.push(project);
+        workloadMap.set(`PX-${name}`, existing);
+      }
+
+      if ((!role || role === 'PM') && project.personnel.leadPM) {
+        const name = project.personnel.leadPM;
+        const existing = workloadMap.get(`PM-${name}`) || {
+          name,
+          email: project.personnel.leadPMEmail,
+          role: 'PM' as const,
+          projectCount: 0,
+          totalContractValue: 0,
+          projects: [],
+        };
+        existing.projectCount++;
+        existing.totalContractValue += project.financials.currentContractValue || project.financials.originalContract || 0;
+        existing.projects.push(project);
+        workloadMap.set(`PM-${name}`, existing);
+      }
+
+      if ((!role || role === 'Super') && project.personnel.leadSuper) {
+        const name = project.personnel.leadSuper;
+        const existing = workloadMap.get(`Super-${name}`) || {
+          name,
+          role: 'Super' as const,
+          projectCount: 0,
+          totalContractValue: 0,
+          projects: [],
+        };
+        existing.projectCount++;
+        existing.totalContractValue += project.financials.currentContractValue || project.financials.originalContract || 0;
+        existing.projects.push(project);
+        workloadMap.set(`Super-${name}`, existing);
+      }
+    }
+
+    return Array.from(workloadMap.values()).sort((a, b) => b.projectCount - a.projectCount);
+  }
+
+  async triggerPortfolioSync(): Promise<void> {
+    // In a real implementation, this would trigger a Power Automate flow
+    // or Azure Function to aggregate data from all project sites
+    const now = new Date().toISOString();
+    const items = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+      .items
+      .select('Id')();
+
+    // Batch update all projects' LastSyncDate
+    const batch = this.sp.web.createBatch();
+    for (const item of items) {
+      this.sp.web.lists
+        .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+        .items
+        .getById(item.Id)
+        .inBatch(batch)
+        .update({ LastSyncDate: now });
+    }
+    await batch.execute();
+  }
+
+  private mapToActiveProject(item: Record<string, unknown>): IActiveProject {
+    const currentContractValue = (item.CurrentContractValue as number) || (item.OriginalContract as number) || 0;
+    const unbilled = (item.Unbilled as number) || 0;
+    const unbilledPct = currentContractValue > 0 ? (unbilled / currentContractValue) * 100 : 0;
+
+    return {
+      id: item.Id as number,
+      jobNumber: item.JobNumber as string,
+      projectCode: item.ProjectCode as string,
+      projectName: item.Title as string,
+      status: item.Status as ProjectStatus,
+      sector: item.Sector as SectorType,
+      region: item.Region as string,
+      personnel: {
+        projectExecutive: item.ProjectExecutive as string,
+        projectExecutiveEmail: item.ProjectExecutiveEmail as string,
+        leadPM: item.LeadPM as string,
+        leadPMEmail: item.LeadPMEmail as string,
+        additionalPM: item.AdditionalPM as string,
+        assistantPM: item.AssistantPM as string,
+        projectAccountant: item.ProjectAccountant as string,
+        projectAssistant: item.ProjectAssistant as string,
+        leadSuper: item.LeadSuper as string,
+        superintendent: item.Superintendent as string,
+        assistantSuper: item.AssistantSuper as string,
+      },
+      financials: {
+        originalContract: item.OriginalContract as number,
+        changeOrders: item.ChangeOrders as number,
+        currentContractValue: currentContractValue,
+        billingsToDate: item.BillingsToDate as number,
+        unbilled: unbilled,
+        projectedFee: item.ProjectedFee as number,
+        projectedFeePct: item.ProjectedFeePct as number,
+        projectedCost: item.ProjectedCost as number,
+        remainingValue: item.RemainingValue as number,
+      },
+      schedule: {
+        startDate: item.StartDate as string,
+        substantialCompletionDate: item.SubstantialCompletionDate as string,
+        nocExpiration: item.NOCExpiration as string,
+        currentPhase: item.CurrentPhase as string,
+        percentComplete: item.PercentComplete as number,
+      },
+      riskMetrics: {
+        averageQScore: item.AverageQScore as number,
+        openWaiverCount: item.OpenWaiverCount as number,
+        pendingCommitments: item.PendingCommitments as number,
+        complianceStatus: item.ComplianceStatus as 'Green' | 'Yellow' | 'Red',
+      },
+      statusComments: item.StatusComments as string,
+      projectSiteUrl: item.ProjectSiteUrl as string,
+      lastSyncDate: item.LastSyncDate as string,
+      lastModified: item.Modified as string,
+      hasUnbilledAlert: unbilledPct >= DEFAULT_ALERT_THRESHOLDS.unbilledWarningPct,
+      hasScheduleAlert: item.HasScheduleAlert as boolean,
+      hasFeeErosionAlert: item.HasFeeErosionAlert as boolean,
+    };
+  }
 }

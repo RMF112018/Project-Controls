@@ -236,6 +236,12 @@ export enum NotificationType {
   Both = 'Both'
 }
 
+export enum ActiveProjectStatus {
+  Precon = 'Precon',
+  Construction = 'Construction',
+  FinalPayment = 'Final Payment'
+}
+
 export enum NotificationEvent {
   LeadSubmitted = 'LeadSubmitted',
   GoNoGoScoringRequested = 'GoNoGoScoringRequested',

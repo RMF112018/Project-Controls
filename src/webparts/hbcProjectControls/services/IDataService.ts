@@ -31,6 +31,7 @@ import { IProjectType } from '../models/IProjectType';
 import { IStandardCostCode } from '../models/IStandardCostCode';
 import { IBuyoutEntry } from '../models/IBuyoutEntry';
 import { ICommitmentApproval } from '../models/ICommitmentApproval';
+import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType } from '../models/IActiveProject';
 import { GoNoGoDecision, Stage } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -241,4 +242,30 @@ export interface IDataService {
 
   // App Context
   getAppContextConfig(siteUrl: string): Promise<{ RenderMode: string; AppTitle: string; VisibleModules: string[] } | null>;
+
+  // Active Projects Portfolio
+  getActiveProjects(options?: IActiveProjectsQueryOptions): Promise<IActiveProject[]>;
+  getActiveProjectById(id: number): Promise<IActiveProject | null>;
+  syncActiveProject(projectCode: string): Promise<IActiveProject>;
+  updateActiveProject(id: number, data: Partial<IActiveProject>): Promise<IActiveProject>;
+  getPortfolioSummary(filters?: IActiveProjectsFilter): Promise<IPortfolioSummary>;
+  getPersonnelWorkload(role?: 'PX' | 'PM' | 'Super'): Promise<IPersonnelWorkload[]>;
+  triggerPortfolioSync(): Promise<void>;
+}
+
+export interface IActiveProjectsQueryOptions extends IListQueryOptions {
+  status?: ProjectStatus;
+  sector?: SectorType;
+  projectExecutive?: string;
+  projectManager?: string;
+  region?: string;
+  hasAlerts?: boolean;
+}
+
+export interface IActiveProjectsFilter {
+  status?: ProjectStatus;
+  sector?: SectorType;
+  projectExecutive?: string;
+  projectManager?: string;
+  region?: string;
 }
