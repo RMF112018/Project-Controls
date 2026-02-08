@@ -4,6 +4,8 @@ export type BuyoutStatus = 'Not Started' | 'In Progress' | 'Awarded' | 'Executed
 
 export type CompassPreQualStatus = 'Approved' | 'Pending' | 'Expired' | 'Not Registered';
 
+export type EVerifyStatus = 'Not Sent' | 'Sent' | 'Reminder Sent' | 'Received' | 'Overdue';
+
 export interface IBuyoutEntry {
   id: number;
   projectCode: string;
@@ -43,6 +45,15 @@ export interface IBuyoutEntry {
 
   // Compiled Commitment Document
   compiledCommitmentPdfUrl?: string;
+  compiledCommitmentFileId?: string;
+  compiledCommitmentFileName?: string;
+
+  // E-Verify Compliance
+  eVerifyContractNumber?: string;
+  eVerifySentDate?: string;
+  eVerifyReminderDate?: string;
+  eVerifyReceivedDate?: string;
+  eVerifyStatus?: EVerifyStatus;
 
   // Approval Tracking
   currentApprovalStep?: ApprovalStep;

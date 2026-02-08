@@ -103,7 +103,8 @@ import mockBuyoutEntries from '../mock/buyoutEntries.json';
 import { createEstimatingKickoffTemplate } from '../utils/estimatingKickoffTemplate';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 import { IEstimatingKickoff, IEstimatingKickoffItem } from '../models/IEstimatingKickoff';
-import { IBuyoutEntry } from '../models/IBuyoutEntry';
+import { IBuyoutEntry, EVerifyStatus } from '../models/IBuyoutEntry';
+import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
 
@@ -196,7 +197,9 @@ export class MockDataService implements IDataService {
       ...k,
       items: k.items && k.items.length > 0 ? k.items : createEstimatingKickoffTemplate(),
     }));
-    this.buyoutEntries = JSON.parse(JSON.stringify(mockBuyoutEntries)) as IBuyoutEntry[];
+    this.buyoutEntries = this.enrichBuyoutEntriesWithEVerify(
+      JSON.parse(JSON.stringify(mockBuyoutEntries)) as IBuyoutEntry[]
+    );
     this.activeProjects = this.generateMockActiveProjects();
     this.nextId = 1000;
   }
@@ -2801,6 +2804,156 @@ export class MockDataService implements IDataService {
     const entry = this.buyoutEntries.find(e => e.id === entryId && e.projectCode === projectCode);
     if (!entry) throw new Error(`Buyout entry ${entryId} not found`);
     return [...(entry.approvalHistory || [])];
+  }
+
+  // ---------------------------------------------------------------------------
+  // File Upload (Mock)
+  // ---------------------------------------------------------------------------
+
+  public async uploadCommitmentDocument(projectCode: string, entryId: number, file: File): Promise<{ fileId: string; fileName: string; fileUrl: string }> {
+    await delay();
+    const entry = this.buyoutEntries.find(e => e.id === entryId && e.projectCode === projectCode);
+    if (!entry) throw new Error(`Buyout entry ${entryId} not found`);
+
+    const fileId = `file-${Date.now()}`;
+    const fileName = `${projectCode}_${entryId}_${file.name}`;
+    const fileUrl = `/sites/${projectCode}/Shared Documents/Commitments/${fileName}`;
+
+    entry.compiledCommitmentFileId = fileId;
+    entry.compiledCommitmentFileName = fileName;
+    entry.compiledCommitmentPdfUrl = fileUrl;
+    entry.modifiedDate = new Date().toISOString();
+
+    return { fileId, fileName, fileUrl };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Compliance Log
+  // ---------------------------------------------------------------------------
+
+  public async getComplianceLog(filters?: IComplianceLogFilter): Promise<IComplianceEntry[]> {
+    await delay();
+
+    // Get all buyout entries with a subcontractor assigned
+    let entries = this.buyoutEntries.filter(e => !!e.subcontractorName);
+
+    if (filters?.projectCode) {
+      entries = entries.filter(e => e.projectCode === filters.projectCode);
+    }
+    if (filters?.commitmentStatus) {
+      entries = entries.filter(e => e.commitmentStatus === filters.commitmentStatus);
+    }
+    if (filters?.eVerifyStatus) {
+      entries = entries.filter(e => (e.eVerifyStatus || 'Not Sent') === filters.eVerifyStatus);
+    }
+    if (filters?.searchQuery) {
+      const q = filters.searchQuery.toLowerCase();
+      entries = entries.filter(e =>
+        (e.subcontractorName || '').toLowerCase().includes(q) ||
+        e.projectCode.toLowerCase().includes(q) ||
+        e.divisionDescription.toLowerCase().includes(q)
+      );
+    }
+
+    return entries.map(e => this.mapBuyoutToComplianceEntry(e));
+  }
+
+  public async getComplianceSummary(): Promise<IComplianceSummary> {
+    await delay();
+    const entries = await this.getComplianceLog();
+
+    return {
+      totalCommitments: entries.length,
+      fullyCompliant: entries.filter(e => e.overallCompliant).length,
+      eVerifyPending: entries.filter(e => e.eVerifyStatus === 'Sent' || e.eVerifyStatus === 'Reminder Sent' || e.eVerifyStatus === 'Not Sent').length,
+      eVerifyOverdue: entries.filter(e => e.eVerifyStatus === 'Overdue').length,
+      waiversPending: entries.filter(e => e.commitmentStatus === 'WaiverPending').length,
+      documentsMissing: entries.filter(e => !e.documentsCompliant).length,
+    };
+  }
+
+  private mapBuyoutToComplianceEntry(entry: IBuyoutEntry): IComplianceEntry {
+    const riskCompliant = (entry.qScore != null && entry.qScore >= 70) &&
+      (entry.compassPreQualStatus === 'Approved');
+
+    const documentsCompliant =
+      (entry.scopeMatchesBudget === true) &&
+      (entry.exhibitCInsuranceConfirmed === true) &&
+      (entry.exhibitDScheduleConfirmed === true) &&
+      (entry.exhibitESafetyConfirmed === true);
+
+    const hasDoc = !!(entry.compiledCommitmentPdfUrl || entry.compiledCommitmentFileId);
+
+    const insuranceCompliant = entry.enrolledInSDI && !!entry.insuranceCOIReceivedDate;
+
+    const eVerifyCompliant = entry.eVerifyStatus === 'Received';
+
+    const overallCompliant = riskCompliant && documentsCompliant && hasDoc && insuranceCompliant && eVerifyCompliant;
+
+    // Use lead lookup to try to get a project name
+    const lead = this.leads.find(l => l.ProjectCode === entry.projectCode);
+
+    return {
+      id: entry.id,
+      projectCode: entry.projectCode,
+      projectName: lead?.Title || entry.projectCode,
+      divisionCode: entry.divisionCode,
+      divisionDescription: entry.divisionDescription,
+      subcontractorName: entry.subcontractorName || '',
+      contractValue: entry.contractValue || 0,
+      riskCompliant,
+      qScore: entry.qScore,
+      compassStatus: entry.compassPreQualStatus,
+      documentsCompliant,
+      scopeMatch: entry.scopeMatchesBudget === true,
+      exhibitC: entry.exhibitCInsuranceConfirmed === true,
+      exhibitD: entry.exhibitDScheduleConfirmed === true,
+      exhibitE: entry.exhibitESafetyConfirmed === true,
+      hasCommitmentDocument: hasDoc,
+      insuranceCompliant,
+      sdiEnrolled: entry.enrolledInSDI,
+      bondRequired: entry.bondRequired,
+      coiReceived: !!entry.insuranceCOIReceivedDate,
+      eVerifyCompliant,
+      eVerifyStatus: entry.eVerifyStatus || 'Not Sent',
+      eVerifyContractNumber: entry.eVerifyContractNumber,
+      eVerifySentDate: entry.eVerifySentDate,
+      eVerifyReminderDate: entry.eVerifyReminderDate,
+      eVerifyReceivedDate: entry.eVerifyReceivedDate,
+      commitmentStatus: entry.commitmentStatus,
+      overallCompliant,
+    };
+  }
+
+  private enrichBuyoutEntriesWithEVerify(entries: IBuyoutEntry[]): IBuyoutEntry[] {
+    const eVerifyStatuses: EVerifyStatus[] = ['Received', 'Sent', 'Reminder Sent', 'Not Sent', 'Overdue'];
+    const compassStatuses: ('Approved' | 'Pending' | 'Expired')[] = ['Approved', 'Approved', 'Approved', 'Pending', 'Expired'];
+
+    return entries.map((entry, idx) => {
+      const hasSubcontractor = !!entry.subcontractorName;
+      if (!hasSubcontractor) return entry;
+
+      const evStatus = eVerifyStatuses[idx % eVerifyStatuses.length];
+      const compassStatus = compassStatuses[idx % compassStatuses.length];
+
+      return {
+        ...entry,
+        qScore: entry.qScore ?? (60 + Math.floor(Math.random() * 35)),
+        compassPreQualStatus: entry.compassPreQualStatus ?? compassStatus,
+        scopeMatchesBudget: entry.scopeMatchesBudget ?? (idx % 4 !== 3),
+        exhibitCInsuranceConfirmed: entry.exhibitCInsuranceConfirmed ?? (idx % 5 !== 4),
+        exhibitDScheduleConfirmed: entry.exhibitDScheduleConfirmed ?? (idx % 6 !== 5),
+        exhibitESafetyConfirmed: entry.exhibitESafetyConfirmed ?? (idx % 7 !== 6),
+        compiledCommitmentPdfUrl: entry.compiledCommitmentPdfUrl ?? (idx % 3 !== 2 ? `/sites/${entry.projectCode}/Shared Documents/Commitments/${entry.divisionCode}_commitment.pdf` : undefined),
+        compiledCommitmentFileId: entry.compiledCommitmentPdfUrl ? `file-${entry.id}` : undefined,
+        compiledCommitmentFileName: entry.compiledCommitmentPdfUrl ? `${entry.divisionCode}_commitment.pdf` : undefined,
+        eVerifyContractNumber: hasSubcontractor ? `SC-${entry.projectCode}-${entry.divisionCode}` : undefined,
+        eVerifySentDate: evStatus !== 'Not Sent' ? '2025-11-01' : undefined,
+        eVerifyReminderDate: evStatus === 'Reminder Sent' || evStatus === 'Received' || evStatus === 'Overdue' ? '2025-11-15' : undefined,
+        eVerifyReceivedDate: evStatus === 'Received' ? '2025-11-20' : undefined,
+        eVerifyStatus: evStatus,
+      };
+    });
   }
 
   // ---------------------------------------------------------------------------

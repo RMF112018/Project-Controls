@@ -44,7 +44,7 @@ const COMMITMENT_STATUS_CONFIG: Record<CommitmentStatus, { label: string; bg: st
 // ---------------------------------------------------------------------------
 
 export const BuyoutLogPage: React.FC = () => {
-  const { siteContext, hasPermission, currentUser } = useAppContext();
+  const { siteContext, hasPermission, currentUser, dataService } = useAppContext();
   const { leads, fetchLeads } = useLeads();
   const {
     entries, loading, error, metrics,
@@ -149,8 +149,19 @@ export const BuyoutLogPage: React.FC = () => {
   };
 
   // ---- commitment form submit ----
-  const handleCommitmentSubmit = async (data: Partial<IBuyoutEntry>): Promise<void> => {
+  const handleCommitmentSubmit = async (data: Partial<IBuyoutEntry>, file?: File): Promise<void> => {
     if (!commitmentFormEntry) return;
+    // Upload file if provided
+    if (file) {
+      try {
+        const result = await dataService.uploadCommitmentDocument(projectCode, commitmentFormEntry.id, file);
+        data.compiledCommitmentPdfUrl = result.fileUrl;
+        data.compiledCommitmentFileId = result.fileId;
+        data.compiledCommitmentFileName = result.fileName;
+      } catch (err) {
+        console.error('File upload failed:', err);
+      }
+    }
     // Save the checklist data first
     await updateEntry(projectCode, commitmentFormEntry.id, data);
     // Then submit for approval

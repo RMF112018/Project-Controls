@@ -34,3 +34,4 @@ export * from './IEstimatingKickoff';
 export * from './IBuyoutEntry';
 export * from './ICommitmentApproval';
 export * from './IActiveProject';
+export * from './IComplianceSummary';
