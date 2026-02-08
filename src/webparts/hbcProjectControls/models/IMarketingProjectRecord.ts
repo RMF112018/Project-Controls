@@ -23,6 +23,7 @@ export const PROJECT_RECORD_DELIVERY_METHODS = [
 
 export interface IMarketingProjectRecord {
   // Section 1: Project Info
+  /** @denormalized — source: Leads_Master.Title */
   projectName: string;
   projectCode: string;
   leadId: number | null;
@@ -41,6 +42,7 @@ export interface IMarketingProjectRecord {
   finalPhotoUrls: string[];
 
   // Section 3: Budget
+  /** @denormalized — source: Leads_Master.ProjectValue */
   contractBudget: number | null;
   contractFinalCost: number | null;
   totalCostPerGSF: number | null;

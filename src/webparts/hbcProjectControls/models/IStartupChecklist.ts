@@ -3,6 +3,12 @@ export type ChecklistResponseType = 'yesNoNA' | 'yesNoWithComment' | 'textInput'
 export type ChecklistStatus = 'Conforming' | 'Deficient' | 'NA' | 'Neutral' | 'NoResponse';
 
 export interface IChecklistActivityEntry {
+  /** Auto-generated ID for flat storage */
+  id?: number;
+  /** FK to parent Startup_Checklist item */
+  checklistItemId?: number;
+  /** FK to project — enables direct queries */
+  projectCode?: string;
   timestamp: string;
   user: string;
   previousValue: string | null;

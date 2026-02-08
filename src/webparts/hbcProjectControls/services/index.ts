@@ -14,3 +14,4 @@ export { NotificationService } from './NotificationService';
 export type { INotificationContext } from './NotificationService';
 export { ProvisioningService } from './ProvisioningService';
 export type { IProvisioningInput } from './ProvisioningService';
+export * from './columnMappings';

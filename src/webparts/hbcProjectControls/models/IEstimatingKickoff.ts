@@ -4,6 +4,10 @@ export type EstimatingKickoffStatus = 'yes' | 'no' | 'na' | null;
 
 export interface IEstimatingKickoffItem {
   id: number;
+  /** FK to parent Estimating_Kickoffs.id */
+  kickoffId?: number;
+  /** FK to project — enables direct queries */
+  projectCode?: string;
   section: EstimatingKickoffSection;
   task: string;
   status: EstimatingKickoffStatus;

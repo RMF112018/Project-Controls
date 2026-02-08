@@ -45,6 +45,12 @@ import {
   IDivisionApprover,
   IPMPBoilerplateSection,
   IMonthlyProjectReview,
+  IMonthlyChecklistItem,
+  IMonthlyFollowUp,
+  IChecklistActivityEntry,
+  IPMPSignature,
+  IPMPApprovalCycle,
+  IPMPApprovalStep,
   GoNoGoDecision,
   Stage,
   RoleName,
@@ -133,17 +139,28 @@ export class MockDataService implements IDataService {
   private subContractClauses: ISubContractClause[];
   private marketingRecords: IMarketingProjectRecord[];
   private riskCostRecords: IRiskCostManagement[];
+  private riskCostItems: IRiskCostItem[];
   private qualityConcerns: IQualityConcern[];
   private safetyConcerns: ISafetyConcern[];
   private scheduleRecords: IProjectScheduleCriticalPath[];
+  private criticalPathItems: ICriticalPathItem[];
   private superintendentPlans: ISuperintendentPlan[];
+  private superintendentPlanSections: ISuperintendentPlanSection[];
   private lessonsLearned: ILessonLearned[];
+  private lessonsLearnedHub: ILessonLearned[];
   private pmps: IProjectManagementPlan[];
+  private pmpSignatures: IPMPSignature[];
+  private pmpApprovalCycles: IPMPApprovalCycle[];
+  private pmpApprovalSteps: IPMPApprovalStep[];
   private divisionApprovers: IDivisionApprover[];
   private monthlyReviews: IMonthlyProjectReview[];
+  private monthlyChecklistItems: IMonthlyChecklistItem[];
+  private monthlyFollowUps: IMonthlyFollowUp[];
   private boilerplate: IPMPBoilerplateSection[];
   private jobNumberRequests: IJobNumberRequest[];
   private estimatingKickoffs: IEstimatingKickoff[];
+  private estimatingKickoffItems: IEstimatingKickoffItem[];
+  private checklistActivityLog: IChecklistActivityEntry[];
   private buyoutEntries: IBuyoutEntry[];
   private activeProjects: IActiveProject[];
   private nextId: number;
@@ -181,22 +198,98 @@ export class MockDataService implements IDataService {
     this.ownerContractArticles = JSON.parse(JSON.stringify(mockOwnerContractMatrix)) as IOwnerContractArticle[];
     this.subContractClauses = JSON.parse(JSON.stringify(mockSubContractMatrix)) as ISubContractClause[];
     this.marketingRecords = JSON.parse(JSON.stringify(mockMarketingRecords)) as IMarketingProjectRecord[];
-    this.riskCostRecords = JSON.parse(JSON.stringify(mockRiskCost)) as IRiskCostManagement[];
+    // Risk Cost — flatten items from parent records
+    const rawRiskCost = JSON.parse(JSON.stringify(mockRiskCost)) as IRiskCostManagement[];
+    this.riskCostItems = [];
+    for (const rc of rawRiskCost) {
+      for (const item of [...rc.buyoutOpportunities, ...rc.potentialRisks, ...rc.potentialSavings]) {
+        this.riskCostItems.push({ ...item, projectCode: rc.projectCode, riskCostId: rc.id });
+      }
+    }
+    this.riskCostRecords = rawRiskCost;
+
     this.qualityConcerns = JSON.parse(JSON.stringify(mockQualityConcerns)) as IQualityConcern[];
     this.safetyConcerns = JSON.parse(JSON.stringify(mockSafetyConcerns)) as ISafetyConcern[];
-    this.scheduleRecords = JSON.parse(JSON.stringify(mockSchedules)) as IProjectScheduleCriticalPath[];
-    this.superintendentPlans = JSON.parse(JSON.stringify(mockSuperPlan)) as ISuperintendentPlan[];
+
+    // Schedule — flatten critical path items
+    const rawSchedules = JSON.parse(JSON.stringify(mockSchedules)) as IProjectScheduleCriticalPath[];
+    this.criticalPathItems = [];
+    for (const s of rawSchedules) {
+      for (const item of s.criticalPathConcerns) {
+        this.criticalPathItems.push({ ...item, projectCode: s.projectCode, scheduleId: s.id });
+      }
+    }
+    this.scheduleRecords = rawSchedules;
+
+    // Superintendent Plan — flatten sections
+    const rawSuperPlans = JSON.parse(JSON.stringify(mockSuperPlan)) as ISuperintendentPlan[];
+    this.superintendentPlanSections = [];
+    for (const p of rawSuperPlans) {
+      for (const sec of p.sections) {
+        this.superintendentPlanSections.push({ ...sec, superintendentPlanId: p.id, projectCode: p.projectCode });
+      }
+    }
+    this.superintendentPlans = rawSuperPlans;
+
     this.lessonsLearned = JSON.parse(JSON.stringify(mockLessonsLearned)) as ILessonLearned[];
-    this.pmps = JSON.parse(JSON.stringify(mockPMPs)) as IProjectManagementPlan[];
+    this.lessonsLearnedHub = [];
+
+    // PMP — flatten signatures, approval cycles, approval steps
+    const rawPMPs = JSON.parse(JSON.stringify(mockPMPs)) as IProjectManagementPlan[];
+    this.pmpSignatures = [];
+    this.pmpApprovalCycles = [];
+    this.pmpApprovalSteps = [];
+    for (const pmp of rawPMPs) {
+      for (const sig of [...pmp.startupSignatures, ...pmp.completionSignatures]) {
+        this.pmpSignatures.push({ ...sig, pmpId: pmp.id });
+      }
+      for (const cycle of pmp.approvalCycles) {
+        const cycleId = cycle.id ?? pmp.id * 100 + cycle.cycleNumber;
+        this.pmpApprovalCycles.push({ ...cycle, id: cycleId, pmpId: pmp.id, projectCode: pmp.projectCode });
+        for (const step of cycle.steps) {
+          this.pmpApprovalSteps.push({ ...step, approvalCycleId: cycleId });
+        }
+      }
+    }
+    this.pmps = rawPMPs;
+
     this.divisionApprovers = JSON.parse(JSON.stringify(mockDivisionApprovers)) as IDivisionApprover[];
-    this.monthlyReviews = JSON.parse(JSON.stringify(mockMonthlyReviews)) as IMonthlyProjectReview[];
+
+    // Monthly Reviews — flatten checklist items and follow-ups
+    const rawMonthlyReviews = JSON.parse(JSON.stringify(mockMonthlyReviews)) as IMonthlyProjectReview[];
+    this.monthlyChecklistItems = [];
+    this.monthlyFollowUps = [];
+    for (const r of rawMonthlyReviews) {
+      for (const item of r.checklistItems) {
+        this.monthlyChecklistItems.push({ ...item, reviewId: r.id });
+      }
+      for (const fu of r.followUps) {
+        this.monthlyFollowUps.push({ ...fu, reviewId: r.id });
+      }
+    }
+    this.monthlyReviews = rawMonthlyReviews;
+
     this.boilerplate = JSON.parse(JSON.stringify(mockBoilerplate)) as IPMPBoilerplateSection[];
     this.jobNumberRequests = JSON.parse(JSON.stringify(mockJobNumberRequests)) as IJobNumberRequest[];
+    // Estimating Kickoff — flatten items
     const kickoffData = JSON.parse(JSON.stringify(mockEstimatingKickoffs)) as IEstimatingKickoff[];
-    this.estimatingKickoffs = kickoffData.map(k => ({
-      ...k,
-      items: k.items && k.items.length > 0 ? k.items : createEstimatingKickoffTemplate(),
-    }));
+    this.estimatingKickoffItems = [];
+    this.estimatingKickoffs = kickoffData.map(k => {
+      const items = k.items && k.items.length > 0 ? k.items : createEstimatingKickoffTemplate();
+      for (const item of items) {
+        this.estimatingKickoffItems.push({ ...item, kickoffId: k.id, projectCode: k.ProjectCode });
+      }
+      return { ...k, items };
+    });
+
+    // Checklist activity log — flatten from checklist items
+    this.checklistActivityLog = [];
+    let activityLogId = 5000;
+    for (const ci of this.checklistItems) {
+      for (const entry of ci.activityLog) {
+        this.checklistActivityLog.push({ ...entry, id: activityLogId++, checklistItemId: ci.id, projectCode: ci.projectCode });
+      }
+    }
     this.buyoutEntries = this.enrichBuyoutEntriesWithEVerify(
       JSON.parse(JSON.stringify(mockBuyoutEntries)) as IBuyoutEntry[]
     );
@@ -1362,7 +1455,7 @@ export class MockDataService implements IDataService {
     this.auditLog.push(auditEntry);
   }
 
-  public async getAuditLog(entityType?: string, entityId?: string): Promise<IAuditEntry[]> {
+  public async getAuditLog(entityType?: string, entityId?: string, startDate?: string, endDate?: string): Promise<IAuditEntry[]> {
     await delay();
 
     let results = [...this.auditLog];
@@ -1372,6 +1465,14 @@ export class MockDataService implements IDataService {
     }
     if (entityId) {
       results = results.filter(e => e.EntityId === entityId);
+    }
+    if (startDate) {
+      const start = new Date(startDate).getTime();
+      results = results.filter(e => new Date(e.Timestamp).getTime() >= start);
+    }
+    if (endDate) {
+      const end = new Date(endDate).getTime();
+      results = results.filter(e => new Date(e.Timestamp).getTime() <= end);
     }
 
     // Return in reverse chronological order
@@ -1963,9 +2064,20 @@ export class MockDataService implements IDataService {
   // Risk & Cost Management
   // ---------------------------------------------------------------------------
 
+  private assembleRiskCostRecord(record: IRiskCostManagement): IRiskCostManagement {
+    const items = this.riskCostItems.filter(i => i.projectCode === record.projectCode);
+    return {
+      ...record,
+      buyoutOpportunities: items.filter(i => i.category === 'Buyout'),
+      potentialRisks: items.filter(i => i.category === 'Risk'),
+      potentialSavings: items.filter(i => i.category === 'Savings'),
+    };
+  }
+
   public async getRiskCostManagement(projectCode: string): Promise<IRiskCostManagement | null> {
     await delay();
-    return this.riskCostRecords.find(r => r.projectCode === projectCode) ?? null;
+    const record = this.riskCostRecords.find(r => r.projectCode === projectCode);
+    return record ? this.assembleRiskCostRecord(record) : null;
   }
 
   public async updateRiskCostManagement(projectCode: string, data: Partial<IRiskCostManagement>): Promise<IRiskCostManagement> {
@@ -1973,7 +2085,7 @@ export class MockDataService implements IDataService {
     const index = this.riskCostRecords.findIndex(r => r.projectCode === projectCode);
     if (index === -1) throw new Error(`Risk/Cost record for ${projectCode} not found`);
     this.riskCostRecords[index] = { ...this.riskCostRecords[index], ...data, lastUpdatedAt: new Date().toISOString() };
-    return { ...this.riskCostRecords[index] };
+    return this.assembleRiskCostRecord(this.riskCostRecords[index]);
   }
 
   public async addRiskCostItem(projectCode: string, item: Partial<IRiskCostItem>): Promise<IRiskCostItem> {
@@ -1982,6 +2094,8 @@ export class MockDataService implements IDataService {
     if (!record) throw new Error(`Risk/Cost record for ${projectCode} not found`);
     const newItem: IRiskCostItem = {
       id: this.getNextId(),
+      projectCode,
+      riskCostId: record.id,
       category: item.category ?? 'Risk',
       letter: item.letter ?? 'A',
       description: item.description ?? '',
@@ -1991,9 +2105,7 @@ export class MockDataService implements IDataService {
       createdDate: new Date().toISOString().split('T')[0],
       updatedDate: new Date().toISOString().split('T')[0],
     };
-    if (newItem.category === 'Buyout') record.buyoutOpportunities.push(newItem);
-    else if (newItem.category === 'Risk') record.potentialRisks.push(newItem);
-    else record.potentialSavings.push(newItem);
+    this.riskCostItems.push(newItem);
     record.lastUpdatedAt = new Date().toISOString();
     return { ...newItem };
   }
@@ -2002,12 +2114,11 @@ export class MockDataService implements IDataService {
     await delay();
     const record = this.riskCostRecords.find(r => r.projectCode === projectCode);
     if (!record) throw new Error(`Risk/Cost record for ${projectCode} not found`);
-    const allItems = [...record.buyoutOpportunities, ...record.potentialRisks, ...record.potentialSavings];
-    const item = allItems.find(i => i.id === itemId);
-    if (!item) throw new Error(`Risk/Cost item ${itemId} not found`);
-    Object.assign(item, data, { updatedDate: new Date().toISOString().split('T')[0] });
+    const idx = this.riskCostItems.findIndex(i => i.id === itemId);
+    if (idx === -1) throw new Error(`Risk/Cost item ${itemId} not found`);
+    this.riskCostItems[idx] = { ...this.riskCostItems[idx], ...data, updatedDate: new Date().toISOString().split('T')[0] };
     record.lastUpdatedAt = new Date().toISOString();
-    return { ...item };
+    return { ...this.riskCostItems[idx] };
   }
 
   // ---------------------------------------------------------------------------
@@ -2087,9 +2198,17 @@ export class MockDataService implements IDataService {
   // Project Schedule & Critical Path
   // ---------------------------------------------------------------------------
 
+  private assembleScheduleRecord(record: IProjectScheduleCriticalPath): IProjectScheduleCriticalPath {
+    return {
+      ...record,
+      criticalPathConcerns: this.criticalPathItems.filter(i => i.projectCode === record.projectCode),
+    };
+  }
+
   public async getProjectSchedule(projectCode: string): Promise<IProjectScheduleCriticalPath | null> {
     await delay();
-    return this.scheduleRecords.find(s => s.projectCode === projectCode) ?? null;
+    const record = this.scheduleRecords.find(s => s.projectCode === projectCode);
+    return record ? this.assembleScheduleRecord(record) : null;
   }
 
   public async updateProjectSchedule(projectCode: string, data: Partial<IProjectScheduleCriticalPath>): Promise<IProjectScheduleCriticalPath> {
@@ -2097,7 +2216,7 @@ export class MockDataService implements IDataService {
     const index = this.scheduleRecords.findIndex(s => s.projectCode === projectCode);
     if (index === -1) throw new Error(`Schedule for ${projectCode} not found`);
     this.scheduleRecords[index] = { ...this.scheduleRecords[index], ...data, lastUpdatedAt: new Date().toISOString() };
-    return { ...this.scheduleRecords[index] };
+    return this.assembleScheduleRecord(this.scheduleRecords[index]);
   }
 
   public async addCriticalPathItem(projectCode: string, item: Partial<ICriticalPathItem>): Promise<ICriticalPathItem> {
@@ -2106,6 +2225,8 @@ export class MockDataService implements IDataService {
     if (!record) throw new Error(`Schedule for ${projectCode} not found`);
     const newItem: ICriticalPathItem = {
       id: this.getNextId(),
+      projectCode,
+      scheduleId: record.id,
       letter: item.letter ?? 'A',
       description: item.description ?? '',
       impactDescription: item.impactDescription ?? '',
@@ -2114,7 +2235,7 @@ export class MockDataService implements IDataService {
       createdDate: new Date().toISOString().split('T')[0],
       updatedDate: new Date().toISOString().split('T')[0],
     };
-    record.criticalPathConcerns.push(newItem);
+    this.criticalPathItems.push(newItem);
     record.lastUpdatedAt = new Date().toISOString();
     return { ...newItem };
   }
@@ -2123,36 +2244,51 @@ export class MockDataService implements IDataService {
   // Superintendent Plan
   // ---------------------------------------------------------------------------
 
+  private assembleSuperintendentPlan(plan: ISuperintendentPlan): ISuperintendentPlan {
+    return {
+      ...plan,
+      sections: this.superintendentPlanSections.filter(s => s.superintendentPlanId === plan.id),
+    };
+  }
+
   public async getSuperintendentPlan(projectCode: string): Promise<ISuperintendentPlan | null> {
     await delay();
-    return this.superintendentPlans.find(p => p.projectCode === projectCode) ?? null;
+    const plan = this.superintendentPlans.find(p => p.projectCode === projectCode);
+    return plan ? this.assembleSuperintendentPlan(plan) : null;
   }
 
   public async updateSuperintendentPlanSection(projectCode: string, sectionId: number, data: Partial<ISuperintendentPlanSection>): Promise<ISuperintendentPlanSection> {
     await delay();
     const plan = this.superintendentPlans.find(p => p.projectCode === projectCode);
     if (!plan) throw new Error(`Superintendent plan for ${projectCode} not found`);
-    const section = plan.sections.find(s => s.id === sectionId);
-    if (!section) throw new Error(`Section ${sectionId} not found`);
-    Object.assign(section, data);
+    const idx = this.superintendentPlanSections.findIndex(s => s.id === sectionId && s.superintendentPlanId === plan.id);
+    if (idx === -1) throw new Error(`Section ${sectionId} not found`);
+    this.superintendentPlanSections[idx] = { ...this.superintendentPlanSections[idx], ...data };
     plan.lastUpdatedAt = new Date().toISOString();
-    return { ...section };
+    return { ...this.superintendentPlanSections[idx] };
   }
 
   public async createSuperintendentPlan(projectCode: string, data: Partial<ISuperintendentPlan>): Promise<ISuperintendentPlan> {
     await delay();
+    const planId = this.getNextId();
     const newPlan: ISuperintendentPlan = {
-      id: this.getNextId(),
+      id: planId,
       projectCode,
       superintendentName: data.superintendentName ?? '',
-      sections: data.sections ?? [],
+      sections: [],
       createdBy: 'kfoster@hedrickbrothers.com',
       createdAt: new Date().toISOString(),
       lastUpdatedBy: 'kfoster@hedrickbrothers.com',
       lastUpdatedAt: new Date().toISOString(),
     };
+    // Flatten sections into the flat array
+    if (data.sections) {
+      for (const sec of data.sections) {
+        this.superintendentPlanSections.push({ ...sec, superintendentPlanId: planId, projectCode });
+      }
+    }
     this.superintendentPlans.push(newPlan);
-    return { ...newPlan };
+    return this.assembleSuperintendentPlan(newPlan);
   }
 
   // ---------------------------------------------------------------------------
@@ -2196,9 +2332,26 @@ export class MockDataService implements IDataService {
   // Project Management Plan
   // ---------------------------------------------------------------------------
 
+  private assemblePMP(pmp: IProjectManagementPlan): IProjectManagementPlan {
+    const sigs = this.pmpSignatures.filter(s => s.pmpId === pmp.id);
+    const cycles = this.pmpApprovalCycles
+      .filter(c => c.pmpId === pmp.id)
+      .map(c => ({
+        ...c,
+        steps: this.pmpApprovalSteps.filter(s => s.approvalCycleId === c.id),
+      }));
+    return {
+      ...pmp,
+      startupSignatures: sigs.filter(s => s.signatureType === 'Startup'),
+      completionSignatures: sigs.filter(s => s.signatureType === 'Completion'),
+      approvalCycles: cycles,
+    };
+  }
+
   public async getProjectManagementPlan(projectCode: string): Promise<IProjectManagementPlan | null> {
     await delay();
-    return this.pmps.find(p => p.projectCode === projectCode) ?? null;
+    const pmp = this.pmps.find(p => p.projectCode === projectCode);
+    return pmp ? this.assemblePMP(pmp) : null;
   }
 
   public async updateProjectManagementPlan(projectCode: string, data: Partial<IProjectManagementPlan>): Promise<IProjectManagementPlan> {
@@ -2206,7 +2359,7 @@ export class MockDataService implements IDataService {
     const index = this.pmps.findIndex(p => p.projectCode === projectCode);
     if (index === -1) throw new Error(`PMP for ${projectCode} not found`);
     this.pmps[index] = { ...this.pmps[index], ...data, lastUpdatedAt: new Date().toISOString() };
-    return { ...this.pmps[index] };
+    return this.assemblePMP(this.pmps[index]);
   }
 
   public async submitPMPForApproval(projectCode: string, submittedBy: string): Promise<IProjectManagementPlan> {
@@ -2215,52 +2368,57 @@ export class MockDataService implements IDataService {
     if (!pmp) throw new Error(`PMP for ${projectCode} not found`);
     const newCycle = pmp.currentCycleNumber + 1;
     const divApprover = this.divisionApprovers.find(d => d.division === pmp.division);
-    const steps = [
-      { id: this.getNextId(), projectCode, stepOrder: 1, approverRole: 'Project Executive', approverName: 'Kim Foster', approverEmail: 'kfoster@hedrickbrothers.com', status: 'Pending' as const, comment: '', actionDate: null, approvalCycleNumber: newCycle },
-      ...(divApprover ? [{ id: this.getNextId(), projectCode, stepOrder: 2, approverRole: 'Division Head', approverName: divApprover.approverName, approverEmail: divApprover.approverEmail, status: 'Pending' as const, comment: '', actionDate: null, approvalCycleNumber: newCycle }] : []),
+    const cycleId = this.getNextId();
+    const steps: IPMPApprovalStep[] = [
+      { id: this.getNextId(), approvalCycleId: cycleId, projectCode, stepOrder: 1, approverRole: 'Project Executive', approverName: 'Kim Foster', approverEmail: 'kfoster@hedrickbrothers.com', status: 'Pending' as const, comment: '', actionDate: null, approvalCycleNumber: newCycle },
+      ...(divApprover ? [{ id: this.getNextId(), approvalCycleId: cycleId, projectCode, stepOrder: 2, approverRole: 'Division Head', approverName: divApprover.approverName, approverEmail: divApprover.approverEmail, status: 'Pending' as const, comment: '', actionDate: null, approvalCycleNumber: newCycle } as IPMPApprovalStep] : []),
     ];
-    const cycle = { cycleNumber: newCycle, submittedBy, submittedDate: new Date().toISOString(), status: 'InProgress' as const, steps, changesFromPrevious: [] as string[] };
-    pmp.approvalCycles.push(cycle);
+    const cycle: IPMPApprovalCycle = { id: cycleId, pmpId: pmp.id, projectCode, cycleNumber: newCycle, submittedBy, submittedDate: new Date().toISOString(), status: 'InProgress' as const, steps, changesFromPrevious: [] as string[] };
+    this.pmpApprovalCycles.push(cycle);
+    for (const step of steps) { this.pmpApprovalSteps.push(step); }
     pmp.currentCycleNumber = newCycle;
     pmp.status = 'PendingApproval';
     pmp.lastUpdatedAt = new Date().toISOString();
-    return { ...pmp };
+    return this.assemblePMP(pmp);
   }
 
   public async respondToPMPApproval(projectCode: string, stepId: number, approved: boolean, comment: string): Promise<IProjectManagementPlan> {
     await delay();
     const pmp = this.pmps.find(p => p.projectCode === projectCode);
     if (!pmp) throw new Error(`PMP for ${projectCode} not found`);
-    const currentCycle = pmp.approvalCycles.find(c => c.cycleNumber === pmp.currentCycleNumber);
-    if (!currentCycle) throw new Error('No active approval cycle');
-    const step = currentCycle.steps.find(s => s.id === stepId);
-    if (!step) throw new Error(`Approval step ${stepId} not found`);
-    step.status = approved ? 'Approved' : 'Returned';
-    step.comment = comment;
-    step.actionDate = new Date().toISOString();
-    if (!approved) {
-      currentCycle.status = 'Returned';
-      pmp.status = 'Returned';
-    } else if (currentCycle.steps.every(s => s.status === 'Approved')) {
-      currentCycle.status = 'Approved';
-      pmp.status = 'Approved';
+    const stepIdx = this.pmpApprovalSteps.findIndex(s => s.id === stepId);
+    if (stepIdx === -1) throw new Error(`Approval step ${stepId} not found`);
+    this.pmpApprovalSteps[stepIdx].status = approved ? 'Approved' : 'Returned';
+    this.pmpApprovalSteps[stepIdx].comment = comment;
+    this.pmpApprovalSteps[stepIdx].actionDate = new Date().toISOString();
+    // Update cycle status based on all steps in cycle
+    const cycleId = this.pmpApprovalSteps[stepIdx].approvalCycleId;
+    const cycleIdx = this.pmpApprovalCycles.findIndex(c => c.id === cycleId);
+    if (cycleIdx !== -1) {
+      const cycleSteps = this.pmpApprovalSteps.filter(s => s.approvalCycleId === cycleId);
+      if (!approved) {
+        this.pmpApprovalCycles[cycleIdx].status = 'Returned';
+        pmp.status = 'Returned';
+      } else if (cycleSteps.every(s => s.status === 'Approved')) {
+        this.pmpApprovalCycles[cycleIdx].status = 'Approved';
+        pmp.status = 'Approved';
+      }
     }
     pmp.lastUpdatedAt = new Date().toISOString();
-    return { ...pmp };
+    return this.assemblePMP(pmp);
   }
 
   public async signPMP(projectCode: string, signatureId: number, comment: string): Promise<IProjectManagementPlan> {
     await delay();
     const pmp = this.pmps.find(p => p.projectCode === projectCode);
     if (!pmp) throw new Error(`PMP for ${projectCode} not found`);
-    const allSigs = [...pmp.startupSignatures, ...pmp.completionSignatures];
-    const sig = allSigs.find(s => s.id === signatureId);
-    if (!sig) throw new Error(`Signature ${signatureId} not found`);
-    sig.status = 'Signed';
-    sig.signedDate = new Date().toISOString();
-    sig.comment = comment;
+    const sigIdx = this.pmpSignatures.findIndex(s => s.id === signatureId && s.pmpId === pmp.id);
+    if (sigIdx === -1) throw new Error(`Signature ${signatureId} not found`);
+    this.pmpSignatures[sigIdx].status = 'Signed';
+    this.pmpSignatures[sigIdx].signedDate = new Date().toISOString();
+    this.pmpSignatures[sigIdx].comment = comment;
     pmp.lastUpdatedAt = new Date().toISOString();
-    return { ...pmp };
+    return this.assemblePMP(pmp);
   }
 
   public async getDivisionApprovers(): Promise<IDivisionApprover[]> {
@@ -2277,29 +2435,53 @@ export class MockDataService implements IDataService {
   // Monthly Project Review
   // ---------------------------------------------------------------------------
 
+  private assembleMonthlyReview(review: IMonthlyProjectReview): IMonthlyProjectReview {
+    return {
+      ...review,
+      checklistItems: this.monthlyChecklistItems.filter(i => i.reviewId === review.id),
+      followUps: this.monthlyFollowUps.filter(f => f.reviewId === review.id),
+    };
+  }
+
   public async getMonthlyReviews(projectCode: string): Promise<IMonthlyProjectReview[]> {
     await delay();
     return this.monthlyReviews.filter(r => r.projectCode === projectCode)
-      .sort((a, b) => b.reviewMonth.localeCompare(a.reviewMonth));
+      .sort((a, b) => b.reviewMonth.localeCompare(a.reviewMonth))
+      .map(r => this.assembleMonthlyReview(r));
   }
 
   public async getMonthlyReview(reviewId: number): Promise<IMonthlyProjectReview | null> {
     await delay();
-    return this.monthlyReviews.find(r => r.id === reviewId) ?? null;
+    const review = this.monthlyReviews.find(r => r.id === reviewId);
+    return review ? this.assembleMonthlyReview(review) : null;
   }
 
   public async updateMonthlyReview(reviewId: number, data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> {
     await delay();
     const index = this.monthlyReviews.findIndex(r => r.id === reviewId);
     if (index === -1) throw new Error(`Monthly review ${reviewId} not found`);
+    // If checklist items or follow-ups are passed, update the flat arrays
+    if (data.checklistItems) {
+      this.monthlyChecklistItems = this.monthlyChecklistItems.filter(i => i.reviewId !== reviewId);
+      for (const item of data.checklistItems) {
+        this.monthlyChecklistItems.push({ ...item, reviewId });
+      }
+    }
+    if (data.followUps) {
+      this.monthlyFollowUps = this.monthlyFollowUps.filter(f => f.reviewId !== reviewId);
+      for (const fu of data.followUps) {
+        this.monthlyFollowUps.push({ ...fu, reviewId });
+      }
+    }
     this.monthlyReviews[index] = { ...this.monthlyReviews[index], ...data, lastUpdatedAt: new Date().toISOString() };
-    return { ...this.monthlyReviews[index] };
+    return this.assembleMonthlyReview(this.monthlyReviews[index]);
   }
 
   public async createMonthlyReview(data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> {
     await delay();
+    const reviewId = this.getNextId();
     const newReview: IMonthlyProjectReview = {
-      id: this.getNextId(),
+      id: reviewId,
       projectCode: data.projectCode ?? '',
       reviewMonth: data.reviewMonth ?? '',
       status: 'NotStarted',
@@ -2310,7 +2492,7 @@ export class MockDataService implements IDataService {
       pxValidationDate: null,
       leadershipSubmitDate: null,
       completedDate: null,
-      checklistItems: data.checklistItems ?? [],
+      checklistItems: [],
       followUps: [],
       reportDocumentUrls: [],
       createdBy: 'kfoster@hedrickbrothers.com',
@@ -2318,8 +2500,14 @@ export class MockDataService implements IDataService {
       lastUpdatedBy: 'kfoster@hedrickbrothers.com',
       lastUpdatedAt: new Date().toISOString(),
     };
+    // Flatten checklist items
+    if (data.checklistItems) {
+      for (const item of data.checklistItems) {
+        this.monthlyChecklistItems.push({ ...item, reviewId });
+      }
+    }
     this.monthlyReviews.push(newReview);
-    return { ...newReview };
+    return this.assembleMonthlyReview(newReview);
   }
 
   // ---------------------------------------------------------------------------
@@ -2381,22 +2569,31 @@ export class MockDataService implements IDataService {
   // Estimating Kick-Off
   // ---------------------------------------------------------------------------
 
+  private assembleEstimatingKickoff(kickoff: IEstimatingKickoff): IEstimatingKickoff {
+    return {
+      ...kickoff,
+      items: this.estimatingKickoffItems.filter(i => i.kickoffId === kickoff.id),
+    };
+  }
+
   public async getEstimatingKickoff(projectCode: string): Promise<IEstimatingKickoff | null> {
     await delay();
     const kickoff = this.estimatingKickoffs.find(k => k.ProjectCode === projectCode);
-    return kickoff ? { ...kickoff, items: [...kickoff.items] } : null;
+    return kickoff ? this.assembleEstimatingKickoff(kickoff) : null;
   }
 
   public async getEstimatingKickoffByLeadId(leadId: number): Promise<IEstimatingKickoff | null> {
     await delay();
     const kickoff = this.estimatingKickoffs.find(k => k.LeadID === leadId);
-    return kickoff ? { ...kickoff, items: [...kickoff.items] } : null;
+    return kickoff ? this.assembleEstimatingKickoff(kickoff) : null;
   }
 
   public async createEstimatingKickoff(data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> {
     await delay();
+    const kickoffId = this.getNextId();
+    const items = data.items && data.items.length > 0 ? data.items : createEstimatingKickoffTemplate();
     const kickoff: IEstimatingKickoff = {
-      id: this.getNextId(),
+      id: kickoffId,
       LeadID: data.LeadID ?? 0,
       ProjectCode: data.ProjectCode ?? '',
       Architect: data.Architect,
@@ -2411,7 +2608,7 @@ export class MockDataService implements IDataService {
       PreSubmissionReview: data.PreSubmissionReview,
       SubcontractorSiteWalkThru: data.SubcontractorSiteWalkThru,
       OwnerEstimateReview: data.OwnerEstimateReview,
-      items: data.items && data.items.length > 0 ? data.items : createEstimatingKickoffTemplate(),
+      items,
       KickoffMeetingId: data.KickoffMeetingId,
       KickoffMeetingDate: data.KickoffMeetingDate,
       CreatedBy: data.CreatedBy ?? 'system',
@@ -2419,9 +2616,12 @@ export class MockDataService implements IDataService {
       ModifiedBy: data.ModifiedBy,
       ModifiedDate: data.ModifiedDate,
     };
-
+    // Flatten items into flat array
+    for (const item of items) {
+      this.estimatingKickoffItems.push({ ...item, kickoffId, projectCode: kickoff.ProjectCode });
+    }
     this.estimatingKickoffs.push(kickoff);
-    return { ...kickoff, items: [...kickoff.items] };
+    return this.assembleEstimatingKickoff(kickoff);
   }
 
   public async updateEstimatingKickoff(id: number, data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> {
@@ -2429,15 +2629,21 @@ export class MockDataService implements IDataService {
     const index = this.estimatingKickoffs.findIndex(k => k.id === id);
     if (index === -1) throw new Error(`Estimating kickoff ${id} not found`);
 
-    const updated: IEstimatingKickoff = {
+    if (data.items) {
+      // Replace flat items for this kickoff
+      this.estimatingKickoffItems = this.estimatingKickoffItems.filter(i => i.kickoffId !== id);
+      for (const item of data.items) {
+        this.estimatingKickoffItems.push({ ...item, kickoffId: id, projectCode: this.estimatingKickoffs[index].ProjectCode });
+      }
+    }
+
+    this.estimatingKickoffs[index] = {
       ...this.estimatingKickoffs[index],
       ...data,
-      items: data.items ?? this.estimatingKickoffs[index].items,
       ModifiedDate: new Date().toISOString(),
     };
 
-    this.estimatingKickoffs[index] = updated;
-    return { ...updated, items: [...updated.items] };
+    return this.assembleEstimatingKickoff(this.estimatingKickoffs[index]);
   }
 
   public async updateKickoffItem(
@@ -2449,13 +2655,12 @@ export class MockDataService implements IDataService {
     const kickoff = this.estimatingKickoffs.find(k => k.id === kickoffId);
     if (!kickoff) throw new Error(`Estimating kickoff ${kickoffId} not found`);
 
-    const index = kickoff.items.findIndex(i => i.id === itemId);
-    if (index === -1) throw new Error(`Kickoff item ${itemId} not found`);
+    const idx = this.estimatingKickoffItems.findIndex(i => i.id === itemId && i.kickoffId === kickoffId);
+    if (idx === -1) throw new Error(`Kickoff item ${itemId} not found`);
 
-    const updated = { ...kickoff.items[index], ...data };
-    kickoff.items[index] = updated;
+    this.estimatingKickoffItems[idx] = { ...this.estimatingKickoffItems[idx], ...data };
     kickoff.ModifiedDate = new Date().toISOString();
-    return { ...updated };
+    return { ...this.estimatingKickoffItems[idx] };
   }
 
   public async addKickoffItem(kickoffId: number, item: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> {
@@ -2463,12 +2668,15 @@ export class MockDataService implements IDataService {
     const kickoff = this.estimatingKickoffs.find(k => k.id === kickoffId);
     if (!kickoff) throw new Error(`Estimating kickoff ${kickoffId} not found`);
 
-    const nextItemId = kickoff.items.length > 0
-      ? Math.max(...kickoff.items.map(i => i.id)) + 1
+    const kickoffItems = this.estimatingKickoffItems.filter(i => i.kickoffId === kickoffId);
+    const nextItemId = kickoffItems.length > 0
+      ? Math.max(...kickoffItems.map(i => i.id)) + 1
       : 1;
 
     const newItem: IEstimatingKickoffItem = {
       id: nextItemId,
+      kickoffId,
+      projectCode: kickoff.ProjectCode,
       section: item.section ?? 'managing',
       task: item.task ?? 'New Task',
       status: item.status ?? null,
@@ -2478,10 +2686,10 @@ export class MockDataService implements IDataService {
       notes: item.notes ?? '',
       tabRequired: item.tabRequired,
       isCustom: item.isCustom ?? true,
-      sortOrder: item.sortOrder ?? kickoff.items.length + 1,
+      sortOrder: item.sortOrder ?? kickoffItems.length + 1,
     };
 
-    kickoff.items.push(newItem);
+    this.estimatingKickoffItems.push(newItem);
     kickoff.ModifiedDate = new Date().toISOString();
     return { ...newItem };
   }
@@ -2491,7 +2699,7 @@ export class MockDataService implements IDataService {
     const kickoff = this.estimatingKickoffs.find(k => k.id === kickoffId);
     if (!kickoff) throw new Error(`Estimating kickoff ${kickoffId} not found`);
 
-    kickoff.items = kickoff.items.filter(i => i.id !== itemId);
+    this.estimatingKickoffItems = this.estimatingKickoffItems.filter(i => !(i.id === itemId && i.kickoffId === kickoffId));
     kickoff.ModifiedDate = new Date().toISOString();
   }
 
@@ -3350,6 +3558,86 @@ export class MockDataService implements IDataService {
     const now = new Date().toISOString();
     for (const project of this.activeProjects) {
       project.lastSyncDate = now;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Audit Log Scalability
+  // ---------------------------------------------------------------------------
+
+  public async purgeOldAuditEntries(olderThanDays: number): Promise<number> {
+    await delay();
+    const cutoff = Date.now() - olderThanDays * 24 * 60 * 60 * 1000;
+    const before = this.auditLog.length;
+    this.auditLog = this.auditLog.filter(e => new Date(e.Timestamp).getTime() >= cutoff);
+    return before - this.auditLog.length;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Denormalized Field Sync
+  // ---------------------------------------------------------------------------
+
+  public async syncDenormalizedFields(leadId: number): Promise<void> {
+    await delay();
+    const lead = this.leads.find(l => l.id === leadId);
+    if (!lead) return;
+
+    // Sync Title → denormalized projectName fields
+    for (const est of this.estimatingRecords) {
+      if (est.LeadID === leadId) {
+        est.Title = lead.Title;
+      }
+    }
+    for (const pmp of this.pmps) {
+      if (pmp.projectCode === lead.ProjectCode) {
+        pmp.projectName = lead.Title;
+      }
+    }
+    for (const mr of this.marketingRecords) {
+      if (mr.projectCode === lead.ProjectCode) {
+        mr.projectName = lead.Title;
+      }
+    }
+    for (const pl of this.provisioningLogs) {
+      if (pl.projectCode === lead.ProjectCode) {
+        pl.projectName = lead.Title;
+      }
+    }
+
+    // Sync ProjectExecutive, ProjectManager → job number requests
+    for (const jnr of this.jobNumberRequests) {
+      if (jnr.LeadID === leadId) {
+        jnr.ProjectExecutive = lead.ProjectExecutive ?? jnr.ProjectExecutive;
+        jnr.ProjectManager = lead.ProjectManager ?? jnr.ProjectManager;
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Closeout Promotion — copy lessons to hub
+  // ---------------------------------------------------------------------------
+
+  public async promoteToHub(projectCode: string): Promise<void> {
+    await delay();
+
+    // 1. Copy lessons learned flagged for final record to hub-level array
+    const projectLessons = this.lessonsLearned.filter(
+      l => l.projectCode === projectCode && l.isIncludedInFinalRecord
+    );
+    for (const lesson of projectLessons) {
+      const exists = this.lessonsLearnedHub.some(
+        l => l.projectCode === lesson.projectCode && l.id === lesson.id
+      );
+      if (!exists) {
+        this.lessonsLearnedHub.push({ ...lesson });
+      }
+    }
+
+    // 2. Update PMP status to Closed if exists
+    const pmpIndex = this.pmps.findIndex(p => p.projectCode === projectCode);
+    if (pmpIndex !== -1 && this.pmps[pmpIndex].status !== 'Closed') {
+      this.pmps[pmpIndex].status = 'Closed';
+      this.pmps[pmpIndex].lastUpdatedAt = new Date().toISOString();
     }
   }
 }

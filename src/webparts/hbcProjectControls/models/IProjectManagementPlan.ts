@@ -4,6 +4,8 @@ export type PMPSignatureType = 'Startup' | 'Completion';
 
 export interface IPMPSignature {
   id: number;
+  /** FK to parent Project_Management_Plans.id */
+  pmpId?: number;
   projectCode: string;
   signatureType: PMPSignatureType;
   role: string;
@@ -19,6 +21,8 @@ export interface IPMPSignature {
 
 export interface IPMPApprovalStep {
   id: number;
+  /** FK to parent PMP_Approval_Cycles.id */
+  approvalCycleId?: number;
   projectCode: string;
   stepOrder: number;
   approverRole: string;
@@ -31,6 +35,12 @@ export interface IPMPApprovalStep {
 }
 
 export interface IPMPApprovalCycle {
+  /** Auto-generated ID for flat storage */
+  id?: number;
+  /** FK to parent Project_Management_Plans.id */
+  pmpId?: number;
+  /** FK to project */
+  projectCode?: string;
   cycleNumber: number;
   submittedBy: string;
   submittedDate: string;
@@ -58,6 +68,7 @@ export interface IDivisionApprover {
 export interface IProjectManagementPlan {
   id: number;
   projectCode: string;
+  /** @denormalized — source: Leads_Master.Title */
   projectName: string;
   jobNumber: string;
   status: PMPStatus;

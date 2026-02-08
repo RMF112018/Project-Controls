@@ -222,14 +222,20 @@ export class SharePointDataService implements IDataService {
     await this.sp.web.lists.getByTitle(LIST_NAMES.AUDIT_LOG).items.add(entry);
   }
 
-  async getAuditLog(entityType?: string, entityId?: string): Promise<IAuditEntry[]> {
+  async getAuditLog(entityType?: string, entityId?: string, startDate?: string, endDate?: string): Promise<IAuditEntry[]> {
     let query = this.sp.web.lists.getByTitle(LIST_NAMES.AUDIT_LOG).items;
     const filters: string[] = [];
     if (entityType) filters.push(`EntityType eq '${entityType}'`);
     if (entityId) filters.push(`EntityId eq '${entityId}'`);
+    if (startDate) filters.push(`Timestamp ge datetime'${startDate}'`);
+    if (endDate) filters.push(`Timestamp le datetime'${endDate}'`);
     if (filters.length > 0) query = query.filter(filters.join(' and '));
     const items = await query.orderBy('Timestamp', false).top(100)();
     return items as IAuditEntry[];
+  }
+
+  async purgeOldAuditEntries(_olderThanDays: number): Promise<number> {
+    throw new Error('Not implemented — use Power Automate scheduled flow for production archive');
   }
 
   // --- Provisioning ---
@@ -1228,5 +1234,17 @@ export class SharePointDataService implements IDataService {
       hasScheduleAlert: item.HasScheduleAlert as boolean,
       hasFeeErosionAlert: item.HasFeeErosionAlert as boolean,
     };
+  }
+
+  // --- Data Integrity ---
+  async syncDenormalizedFields(_leadId: number): Promise<void> {
+    // TODO: Implement via batch update across SP lists when lead fields change
+    throw new Error('Not implemented');
+  }
+
+  // --- Closeout Promotion ---
+  async promoteToHub(_projectCode: string): Promise<void> {
+    // TODO: Copy lessons learned to hub Lessons_Learned_Hub list, update PMP status
+    throw new Error('Not implemented');
   }
 }

@@ -2,6 +2,10 @@ export type CriticalPathStatus = 'Active' | 'Monitoring' | 'Resolved';
 
 export interface ICriticalPathItem {
   id: number;
+  /** FK to parent Project_Schedule record */
+  projectCode?: string;
+  /** FK to parent IProjectScheduleCriticalPath.id */
+  scheduleId?: number;
   letter: string;
   description: string;
   impactDescription: string;

@@ -10,7 +10,9 @@ export interface IJobNumberRequest {
   Originator: string;
   RequiredByDate: string;
   ProjectAddress: string;
+  /** @denormalized — source: Leads_Master.ProjectExecutive */
   ProjectExecutive: string;
+  /** @denormalized — source: Leads_Master.ProjectManager */
   ProjectManager?: string;
   ProjectType: string;
   ProjectTypeLabel: string;
