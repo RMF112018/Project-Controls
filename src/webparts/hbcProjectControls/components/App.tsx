@@ -62,6 +62,9 @@ import { AccountingQueuePage } from './pages/hub/AccountingQueuePage';
 // Hub pages (Phase 12 — Active Projects Dashboard)
 import { ActiveProjectsDashboard } from './pages/hub/ActiveProjectsDashboard';
 
+// Hub pages (Phase 13 — Compliance Log)
+import { ComplianceLog } from './pages/hub/ComplianceLog';
+
 import { PERMISSIONS } from '../utils/permissions';
 
 export interface IAppProps {
@@ -105,6 +108,11 @@ const HubRoutes: React.FC = () => (
     <Route path="/active-projects" element={(
       <ProtectedRoute permission={PERMISSIONS.ACTIVE_PROJECTS_VIEW}>
         <ActiveProjectsDashboard />
+      </ProtectedRoute>
+    )} />
+    <Route path="/compliance-log" element={(
+      <ProtectedRoute permission={PERMISSIONS.COMPLIANCE_LOG_VIEW}>
+        <ComplianceLog />
       </ProtectedRoute>
     )} />
     <Route path="/access-denied" element={<AccessDeniedPage />} />

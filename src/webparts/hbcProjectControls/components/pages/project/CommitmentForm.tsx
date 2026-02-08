@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { IBuyoutEntry, CompassPreQualStatus } from '../../../models/IBuyoutEntry';
+import { IBuyoutEntry, CompassPreQualStatus, EVerifyStatus } from '../../../models/IBuyoutEntry';
 import { evaluateCommitmentRisk } from '../../../utils/riskEngine';
 import { HBC_COLORS } from '../../../theme/tokens';
 
 export interface ICommitmentFormProps {
   entry: IBuyoutEntry;
-  onSubmit: (data: Partial<IBuyoutEntry>) => void;
+  onSubmit: (data: Partial<IBuyoutEntry>, file?: File) => void;
   onCancel: () => void;
 }
 
@@ -43,6 +43,27 @@ const checkboxRowStyle: React.CSSProperties = {
   padding: '6px 0',
 };
 
+const EVERIFY_STATUS_COLORS: Record<EVerifyStatus, { bg: string; color: string }> = {
+  'Not Sent': { bg: HBC_COLORS.gray200, color: HBC_COLORS.gray700 },
+  'Sent': { bg: HBC_COLORS.infoLight, color: '#1E40AF' },
+  'Reminder Sent': { bg: HBC_COLORS.warningLight, color: '#92400E' },
+  'Received': { bg: HBC_COLORS.successLight, color: '#065F46' },
+  'Overdue': { bg: HBC_COLORS.errorLight, color: '#991B1B' },
+};
+
+function computeEVerifyStatus(sent?: string, reminder?: string, received?: string): EVerifyStatus {
+  if (received) return 'Received';
+  if (sent) {
+    const sentDate = new Date(sent);
+    const now = new Date();
+    const daysSinceSent = Math.floor((now.getTime() - sentDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysSinceSent > 30) return 'Overdue';
+    if (reminder) return 'Reminder Sent';
+    return 'Sent';
+  }
+  return 'Not Sent';
+}
+
 export const CommitmentForm: React.FC<ICommitmentFormProps> = ({ entry, onSubmit, onCancel }) => {
   const [qScore, setQScore] = React.useState<number | undefined>(entry.qScore);
   const [compassStatus, setCompassStatus] = React.useState<CompassPreQualStatus | undefined>(entry.compassPreQualStatus);
@@ -50,8 +71,24 @@ export const CommitmentForm: React.FC<ICommitmentFormProps> = ({ entry, onSubmit
   const [exhibitC, setExhibitC] = React.useState(entry.exhibitCInsuranceConfirmed ?? false);
   const [exhibitD, setExhibitD] = React.useState(entry.exhibitDScheduleConfirmed ?? false);
   const [exhibitE, setExhibitE] = React.useState(entry.exhibitESafetyConfirmed ?? false);
-  const [pdfUrl, setPdfUrl] = React.useState(entry.compiledCommitmentPdfUrl ?? '');
   const [errors, setErrors] = React.useState<string[]>([]);
+
+  // File upload state
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [existingFileName] = React.useState(entry.compiledCommitmentFileName ?? '');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // E-Verify state
+  const [eVerifyContractNumber, setEVerifyContractNumber] = React.useState(entry.eVerifyContractNumber ?? '');
+  const [eVerifySentDate, setEVerifySentDate] = React.useState(entry.eVerifySentDate ?? '');
+  const [eVerifyReminderDate, setEVerifyReminderDate] = React.useState(entry.eVerifyReminderDate ?? '');
+  const [eVerifyReceivedDate, setEVerifyReceivedDate] = React.useState(entry.eVerifyReceivedDate ?? '');
+
+  // Computed E-Verify status
+  const eVerifyStatus = React.useMemo(
+    () => computeEVerifyStatus(eVerifySentDate, eVerifyReminderDate, eVerifyReceivedDate),
+    [eVerifySentDate, eVerifyReminderDate, eVerifyReceivedDate]
+  );
 
   // Live risk assessment
   const riskAssessment = React.useMemo(() => {
@@ -66,7 +103,7 @@ export const CommitmentForm: React.FC<ICommitmentFormProps> = ({ entry, onSubmit
     if (!exhibitC) errs.push('Exhibit C (Insurance) confirmation is required');
     if (!exhibitD) errs.push('Exhibit D (Schedule) confirmation is required');
     if (!exhibitE) errs.push('Exhibit E (Safety) confirmation is required');
-    if (!pdfUrl.trim()) errs.push('Compiled Commitment PDF is required');
+    if (!selectedFile && !existingFileName) errs.push('Compiled Commitment PDF is required');
     return errs;
   };
 
@@ -84,8 +121,27 @@ export const CommitmentForm: React.FC<ICommitmentFormProps> = ({ entry, onSubmit
       exhibitCInsuranceConfirmed: exhibitC,
       exhibitDScheduleConfirmed: exhibitD,
       exhibitESafetyConfirmed: exhibitE,
-      compiledCommitmentPdfUrl: pdfUrl,
-    });
+      eVerifyContractNumber,
+      eVerifySentDate: eVerifySentDate || undefined,
+      eVerifyReminderDate: eVerifyReminderDate || undefined,
+      eVerifyReceivedDate: eVerifyReceivedDate || undefined,
+      eVerifyStatus,
+    }, selectedFile ?? undefined);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        setErrors(prev => [...prev, 'Only PDF files are accepted']);
+        return;
+      }
+      if (file.size > 25 * 1024 * 1024) {
+        setErrors(prev => [...prev, 'File size must be less than 25MB']);
+        return;
+      }
+      setSelectedFile(file);
+    }
   };
 
   return (
@@ -180,20 +236,167 @@ export const CommitmentForm: React.FC<ICommitmentFormProps> = ({ entry, onSubmit
         </div>
       </div>
 
+      {/* E-Verify Compliance */}
+      <div style={sectionStyle}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: HBC_COLORS.navy }}>E-Verify Affidavit Tracking</div>
+          <span style={{
+            padding: '2px 10px',
+            borderRadius: 12,
+            fontSize: 11,
+            fontWeight: 600,
+            backgroundColor: EVERIFY_STATUS_COLORS[eVerifyStatus].bg,
+            color: EVERIFY_STATUS_COLORS[eVerifyStatus].color,
+          }}>
+            {eVerifyStatus}
+          </span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label style={labelStyle}>Contract Number</label>
+            <input
+              type="text"
+              value={eVerifyContractNumber}
+              onChange={e => setEVerifyContractNumber(e.target.value)}
+              style={inputStyle}
+              placeholder="e.g., SC-25-042-01-05-120"
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>E-Verify Sent Date</label>
+            <input
+              type="date"
+              value={eVerifySentDate}
+              onChange={e => setEVerifySentDate(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Reminder Sent Date</label>
+            <input
+              type="date"
+              value={eVerifyReminderDate}
+              onChange={e => setEVerifyReminderDate(e.target.value)}
+              style={inputStyle}
+              disabled={!eVerifySentDate}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>E-Verify Received Date</label>
+            <input
+              type="date"
+              value={eVerifyReceivedDate}
+              onChange={e => setEVerifyReceivedDate(e.target.value)}
+              style={inputStyle}
+              disabled={!eVerifySentDate}
+            />
+          </div>
+        </div>
+        {eVerifyStatus === 'Overdue' && (
+          <div style={{ fontSize: 11, color: HBC_COLORS.error, marginTop: 8, fontWeight: 600 }}>
+            E-Verify affidavit is overdue. More than 30 days since sent without receipt.
+          </div>
+        )}
+      </div>
+
       {/* Document Upload */}
       <div style={sectionStyle}>
         <div style={{ fontSize: 13, fontWeight: 700, color: HBC_COLORS.navy, marginBottom: 12 }}>Compiled Commitment Document</div>
-        <label style={labelStyle}>PDF URL or File Reference</label>
+
+        {existingFileName && !selectedFile && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 12px',
+            backgroundColor: HBC_COLORS.successLight,
+            borderRadius: 6,
+            marginBottom: 8,
+          }}>
+            <span style={{ fontSize: 16 }}>&#128196;</span>
+            <span style={{ fontSize: 12, color: '#065F46', flex: 1 }}>{existingFileName}</span>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                padding: '4px 8px',
+                fontSize: 11,
+                border: `1px solid ${HBC_COLORS.gray300}`,
+                borderRadius: 4,
+                backgroundColor: '#fff',
+                cursor: 'pointer',
+                color: HBC_COLORS.gray700,
+              }}
+            >
+              Replace
+            </button>
+          </div>
+        )}
+
+        {selectedFile && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 12px',
+            backgroundColor: HBC_COLORS.infoLight,
+            borderRadius: 6,
+            marginBottom: 8,
+          }}>
+            <span style={{ fontSize: 16 }}>&#128196;</span>
+            <span style={{ fontSize: 12, color: '#1E40AF', flex: 1 }}>
+              {selectedFile.name} ({(selectedFile.size / 1024).toFixed(0)} KB)
+            </span>
+            <button
+              type="button"
+              onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+              style={{
+                padding: '4px 8px',
+                fontSize: 11,
+                border: `1px solid ${HBC_COLORS.error}`,
+                borderRadius: 4,
+                backgroundColor: '#fff',
+                cursor: 'pointer',
+                color: HBC_COLORS.error,
+              }}
+            >
+              Remove
+            </button>
+          </div>
+        )}
+
+        {!existingFileName && !selectedFile && (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              border: `2px dashed ${HBC_COLORS.gray300}`,
+              borderRadius: 8,
+              padding: '20px 16px',
+              textAlign: 'center',
+              cursor: 'pointer',
+              backgroundColor: '#fff',
+              transition: 'border-color 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = HBC_COLORS.info)}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = HBC_COLORS.gray300)}
+          >
+            <div style={{ fontSize: 24, marginBottom: 4 }}>&#128194;</div>
+            <div style={{ fontSize: 12, color: HBC_COLORS.gray600, fontWeight: 600 }}>
+              Click to upload compiled commitment PDF
+            </div>
+            <div style={{ fontSize: 11, color: HBC_COLORS.gray400, marginTop: 2 }}>
+              PDF files only, max 25MB
+            </div>
+          </div>
+        )}
+
         <input
-          type="text"
-          value={pdfUrl}
-          onChange={e => setPdfUrl(e.target.value)}
-          style={inputStyle}
-          placeholder="Enter document URL or path"
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,application/pdf"
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
         />
-        <div style={{ fontSize: 11, color: HBC_COLORS.gray400, marginTop: 4 }}>
-          Upload the compiled commitment PDF to the project site and paste the URL here.
-        </div>
       </div>
 
       {/* Validation Errors */}

@@ -32,6 +32,7 @@ import { IStandardCostCode } from '../models/IStandardCostCode';
 import { IBuyoutEntry } from '../models/IBuyoutEntry';
 import { ICommitmentApproval } from '../models/ICommitmentApproval';
 import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType } from '../models/IActiveProject';
+import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { GoNoGoDecision, Stage } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -239,6 +240,13 @@ export interface IDataService {
   submitCommitmentForApproval(projectCode: string, entryId: number, submittedBy: string): Promise<IBuyoutEntry>;
   respondToCommitmentApproval(projectCode: string, entryId: number, approved: boolean, comment: string, escalate?: boolean): Promise<IBuyoutEntry>;
   getCommitmentApprovalHistory(projectCode: string, entryId: number): Promise<ICommitmentApproval[]>;
+
+  // File Upload
+  uploadCommitmentDocument(projectCode: string, entryId: number, file: File): Promise<{ fileId: string; fileName: string; fileUrl: string }>;
+
+  // Compliance Log
+  getComplianceLog(filters?: IComplianceLogFilter): Promise<IComplianceEntry[]>;
+  getComplianceSummary(): Promise<IComplianceSummary>;
 
   // App Context
   getAppContextConfig(siteUrl: string): Promise<{ RenderMode: string; AppTitle: string; VisibleModules: string[] } | null>;

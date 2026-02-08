@@ -157,6 +157,10 @@ export const DIRECTORY_STRUCTURE = [
   '60_Media',
 ];
 
+export const EVERIFY_STATUS_OPTIONS = [
+  'Not Sent', 'Sent', 'Reminder Sent', 'Received', 'Overdue',
+] as const;
+
 export const OFFLINE_RETRY_INTERVAL_MS = 30000; // 30 seconds
 export const MAX_OFFLINE_QUEUE_SIZE = 100;
 export const FILE_CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks

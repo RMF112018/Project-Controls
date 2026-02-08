@@ -23,9 +23,10 @@ import { IEstimatingKickoff, IEstimatingKickoffItem } from '../models/IEstimatin
 import { IJobNumberRequest, JobNumberRequestStatus } from '../models/IJobNumberRequest';
 import { IProjectType } from '../models/IProjectType';
 import { IStandardCostCode } from '../models/IStandardCostCode';
-import { IBuyoutEntry, BuyoutStatus } from '../models/IBuyoutEntry';
+import { IBuyoutEntry, BuyoutStatus, EVerifyStatus } from '../models/IBuyoutEntry';
 import { ICommitmentApproval, CommitmentStatus, WaiverType, ApprovalStep } from '../models/ICommitmentApproval';
 import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType, DEFAULT_ALERT_THRESHOLDS } from '../models/IActiveProject';
+import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { GoNoGoDecision, Stage } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
@@ -583,6 +584,14 @@ export class SharePointDataService implements IDataService {
     if (data.insuranceCOIReceivedDate !== undefined) updateData.InsuranceCOIReceivedDate = data.insuranceCOIReceivedDate;
     if (data.status !== undefined) updateData.Status = data.status;
     if (data.notes !== undefined) updateData.Notes = data.notes;
+    if (data.compiledCommitmentPdfUrl !== undefined) updateData.CompiledCommitmentPdfUrl = data.compiledCommitmentPdfUrl;
+    if (data.compiledCommitmentFileId !== undefined) updateData.CompiledCommitmentFileId = data.compiledCommitmentFileId;
+    if (data.compiledCommitmentFileName !== undefined) updateData.CompiledCommitmentFileName = data.compiledCommitmentFileName;
+    if (data.eVerifyContractNumber !== undefined) updateData.EVerifyContractNumber = data.eVerifyContractNumber;
+    if (data.eVerifySentDate !== undefined) updateData.EVerifySentDate = data.eVerifySentDate;
+    if (data.eVerifyReminderDate !== undefined) updateData.EVerifyReminderDate = data.eVerifyReminderDate;
+    if (data.eVerifyReceivedDate !== undefined) updateData.EVerifyReceivedDate = data.eVerifyReceivedDate;
+    if (data.eVerifyStatus !== undefined) updateData.EVerifyStatus = data.eVerifyStatus;
 
     updateData.TotalBudget = totalBudget;
     if (overUnder !== undefined) updateData.OverUnder = overUnder;
@@ -635,6 +644,13 @@ export class SharePointDataService implements IDataService {
       waiverType: item.WaiverType as WaiverType | undefined,
       waiverReason: item.WaiverReason as string | undefined,
       compiledCommitmentPdfUrl: item.CompiledCommitmentPdfUrl as string | undefined,
+      compiledCommitmentFileId: item.CompiledCommitmentFileId as string | undefined,
+      compiledCommitmentFileName: item.CompiledCommitmentFileName as string | undefined,
+      eVerifyContractNumber: item.EVerifyContractNumber as string | undefined,
+      eVerifySentDate: item.EVerifySentDate as string | undefined,
+      eVerifyReminderDate: item.EVerifyReminderDate as string | undefined,
+      eVerifyReceivedDate: item.EVerifyReceivedDate as string | undefined,
+      eVerifyStatus: (item.EVerifyStatus as EVerifyStatus) || undefined,
       currentApprovalStep: item.CurrentApprovalStep as ApprovalStep | undefined,
       approvalHistory: [],
       loiSentDate: item.LOISentDate as string | undefined,
@@ -760,6 +776,141 @@ export class SharePointDataService implements IDataService {
       actionDate: item.ActionDate as string | undefined,
       waiverType: item.WaiverType as WaiverType | undefined,
     }));
+  }
+
+  // --- File Upload ---
+  async uploadCommitmentDocument(projectCode: string, entryId: number, file: File): Promise<{ fileId: string; fileName: string; fileUrl: string }> {
+    const folderPath = `Shared Documents/Commitments`;
+
+    // Ensure folder exists
+    try {
+      await this.sp.web.getFolderByServerRelativePath(folderPath).select('Exists')();
+    } catch {
+      await this.sp.web.folders.addUsingPath(folderPath);
+    }
+
+    const fileName = `${projectCode}_${entryId}_${file.name}`;
+    const result = await this.sp.web
+      .getFolderByServerRelativePath(folderPath)
+      .files.addUsingPath(fileName, file, { Overwrite: true });
+
+    const fileUrl = (result.data as Record<string, unknown>).ServerRelativeUrl as string;
+    const fileId = (result.data as Record<string, unknown>).UniqueId as string || `file-${Date.now()}`;
+
+    // Update the buyout entry with file reference
+    await this.sp.web.lists
+      .getByTitle(LIST_NAMES.BUYOUT_LOG)
+      .items
+      .getById(entryId)
+      .update({
+        CompiledCommitmentPdfUrl: fileUrl,
+        CompiledCommitmentFileId: fileId,
+        CompiledCommitmentFileName: fileName,
+      });
+
+    return { fileId, fileName, fileUrl };
+  }
+
+  // --- Compliance Log ---
+  async getComplianceLog(filters?: IComplianceLogFilter): Promise<IComplianceEntry[]> {
+    // Fetch all buyout entries that have a subcontractor assigned (active commitments)
+    let filterStr = `SubcontractorName ne null`;
+    if (filters?.projectCode) {
+      filterStr += ` and ProjectCode eq '${filters.projectCode}'`;
+    }
+    if (filters?.commitmentStatus) {
+      filterStr += ` and CommitmentStatus eq '${filters.commitmentStatus}'`;
+    }
+    if (filters?.eVerifyStatus) {
+      filterStr += ` and EVerifyStatus eq '${filters.eVerifyStatus}'`;
+    }
+
+    const items = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.BUYOUT_LOG)
+      .items
+      .filter(filterStr)
+      .orderBy('ProjectCode', true)
+      .top(500)();
+
+    let entries: IComplianceEntry[] = items.map((item: Record<string, unknown>) => {
+      const buyout = this.mapToBuyoutEntry(item);
+      return this.mapToComplianceEntry(buyout);
+    });
+
+    // Apply search filter in-memory
+    if (filters?.searchQuery) {
+      const q = filters.searchQuery.toLowerCase();
+      entries = entries.filter((e: IComplianceEntry) =>
+        e.subcontractorName.toLowerCase().includes(q) ||
+        e.projectCode.toLowerCase().includes(q) ||
+        e.divisionDescription.toLowerCase().includes(q)
+      );
+    }
+
+    return entries;
+  }
+
+  async getComplianceSummary(): Promise<IComplianceSummary> {
+    const entries = await this.getComplianceLog();
+
+    return {
+      totalCommitments: entries.length,
+      fullyCompliant: entries.filter(e => e.overallCompliant).length,
+      eVerifyPending: entries.filter(e => e.eVerifyStatus === 'Sent' || e.eVerifyStatus === 'Reminder Sent' || e.eVerifyStatus === 'Not Sent').length,
+      eVerifyOverdue: entries.filter(e => e.eVerifyStatus === 'Overdue').length,
+      waiversPending: entries.filter(e => e.commitmentStatus === 'WaiverPending').length,
+      documentsMissing: entries.filter(e => !e.documentsCompliant).length,
+    };
+  }
+
+  private mapToComplianceEntry(entry: IBuyoutEntry): IComplianceEntry {
+    const riskCompliant = (entry.qScore != null && entry.qScore >= 70) &&
+      (entry.compassPreQualStatus === 'Approved');
+
+    const documentsCompliant =
+      (entry.scopeMatchesBudget === true) &&
+      (entry.exhibitCInsuranceConfirmed === true) &&
+      (entry.exhibitDScheduleConfirmed === true) &&
+      (entry.exhibitESafetyConfirmed === true);
+
+    const hasDoc = !!(entry.compiledCommitmentPdfUrl || entry.compiledCommitmentFileId);
+
+    const insuranceCompliant = entry.enrolledInSDI && !!entry.insuranceCOIReceivedDate;
+
+    const eVerifyCompliant = entry.eVerifyStatus === 'Received';
+
+    const overallCompliant = riskCompliant && documentsCompliant && hasDoc && insuranceCompliant && eVerifyCompliant;
+
+    return {
+      id: entry.id,
+      projectCode: entry.projectCode,
+      projectName: entry.projectCode, // Will be enriched by project lookup if available
+      divisionCode: entry.divisionCode,
+      divisionDescription: entry.divisionDescription,
+      subcontractorName: entry.subcontractorName || '',
+      contractValue: entry.contractValue || 0,
+      riskCompliant,
+      qScore: entry.qScore,
+      compassStatus: entry.compassPreQualStatus,
+      documentsCompliant,
+      scopeMatch: entry.scopeMatchesBudget === true,
+      exhibitC: entry.exhibitCInsuranceConfirmed === true,
+      exhibitD: entry.exhibitDScheduleConfirmed === true,
+      exhibitE: entry.exhibitESafetyConfirmed === true,
+      hasCommitmentDocument: hasDoc,
+      insuranceCompliant,
+      sdiEnrolled: entry.enrolledInSDI,
+      bondRequired: entry.bondRequired,
+      coiReceived: !!entry.insuranceCOIReceivedDate,
+      eVerifyCompliant,
+      eVerifyStatus: entry.eVerifyStatus || 'Not Sent',
+      eVerifyContractNumber: entry.eVerifyContractNumber,
+      eVerifySentDate: entry.eVerifySentDate,
+      eVerifyReminderDate: entry.eVerifyReminderDate,
+      eVerifyReceivedDate: entry.eVerifyReceivedDate,
+      commitmentStatus: entry.commitmentStatus,
+      overallCompliant,
+    };
   }
 
   // --- Re-Key ---
