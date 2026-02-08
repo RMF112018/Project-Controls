@@ -19,14 +19,14 @@ function formatCategory(cat: string): string {
 }
 
 export const CloseoutChecklist: React.FC = () => {
-  const { siteContext, dataService } = useAppContext();
+  const { selectedProject, dataService } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
   const { closeoutItems, fetchCloseoutItems, updateCloseoutItem, transitionStage } = useWorkflow();
   const [project, setProject] = React.useState<ILead | null>(null);
   const [toast, setToast] = React.useState<string | null>(null);
   const [completing, setCompleting] = React.useState(false);
 
-  const projectCode = siteContext.projectCode ?? '';
+  const projectCode = selectedProject?.projectCode ?? '';
 
   React.useEffect(() => { fetchLeads().catch(console.error); }, [fetchLeads]);
   React.useEffect(() => {

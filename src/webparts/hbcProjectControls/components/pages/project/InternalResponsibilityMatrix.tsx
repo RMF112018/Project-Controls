@@ -89,7 +89,7 @@ function getOrderedCategories(tasks: IInternalMatrixTask[]): string[] {
 
 /* ---------- Component ---------- */
 export const InternalResponsibilityMatrix: React.FC = () => {
-  const { dataService, currentUser, siteContext, hasPermission } = useAppContext();
+  const { dataService, currentUser, selectedProject, hasPermission } = useAppContext();
   const {
     internalTasks,
     teamAssignments,
@@ -104,7 +104,7 @@ export const InternalResponsibilityMatrix: React.FC = () => {
   } = useResponsibilityMatrix();
 
   const canEdit = hasPermission(PERMISSIONS.MATRIX_EDIT);
-  const projectCode = siteContext.projectCode || '';
+  const projectCode = selectedProject?.projectCode || '';
 
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [newCategory, setNewCategory] = React.useState('');

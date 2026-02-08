@@ -11,9 +11,9 @@ import { SUPERINTENDENT_PLAN_SECTIONS } from '../../../models/ISuperintendentPla
 const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 12, overflow: 'hidden' };
 
 export const SuperintendentPlanPage: React.FC = () => {
-  const { siteContext, hasPermission, dataService, currentUser } = useAppContext();
+  const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
   const { plan, isLoading, error, fetchPlan, updateSection, completionPercentage, incompleteSections } = useSuperintendentPlan();
-  const projectCode = siteContext.projectCode ?? '';
+  const projectCode = selectedProject?.projectCode ?? '';
   const canEdit = hasPermission(PERMISSIONS.SUPERINTENDENT_PLAN_EDIT);
   const [expandedSections, setExpandedSections] = React.useState<Set<string>>(new Set());
 

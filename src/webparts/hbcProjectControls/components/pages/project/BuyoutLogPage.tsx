@@ -44,7 +44,7 @@ const COMMITMENT_STATUS_CONFIG: Record<CommitmentStatus, { label: string; bg: st
 // ---------------------------------------------------------------------------
 
 export const BuyoutLogPage: React.FC = () => {
-  const { siteContext, hasPermission, currentUser, dataService } = useAppContext();
+  const { selectedProject, hasPermission, currentUser, dataService } = useAppContext();
   const { leads, fetchLeads } = useLeads();
   const {
     entries, loading, error, metrics,
@@ -52,7 +52,7 @@ export const BuyoutLogPage: React.FC = () => {
   } = useBuyoutLog();
   const { submitForApproval, respondToApproval } = useCommitmentApproval();
 
-  const projectCode = siteContext.projectCode ?? '';
+  const projectCode = selectedProject?.projectCode ?? '';
   const [search, setSearch] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<string>('all');
   const [editingId, setEditingId] = React.useState<number | null>(null);

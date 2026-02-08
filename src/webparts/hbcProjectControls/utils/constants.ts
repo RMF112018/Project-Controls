@@ -74,33 +74,68 @@ export const PROJECT_LISTS = {
 export const LIST_NAMES = { ...HUB_LISTS, ...PROJECT_LISTS } as const;
 
 export const ROUTES = {
-  // Hub routes
-  HUB_PIPELINE: '/',
-  HUB_LEAD_NEW: '/lead/new',
-  HUB_LEAD_EDIT: '/lead/:id',
-  HUB_DASHBOARD: '/dashboard',
-  HUB_ADMIN: '/admin',
+  // Dashboard
+  DASHBOARD: '/',
 
-  // Project routes
-  PROJECT_HOME: '/',
-  PROJECT_GONOGO: '/gonogo',
-  PROJECT_GONOGO_MEETING: '/gonogo/meeting',
-  PROJECT_KICKOFF: '/kickoff',
-  PROJECT_DELIVERABLES: '/deliverables',
-  PROJECT_INTERVIEW: '/interview',
-  PROJECT_WINLOSS: '/winloss',
-  PROJECT_LOSS_AUTOPSY: '/loss-autopsy',
-  PROJECT_CONTRACT: '/contract',
-  PROJECT_TURNOVER: '/turnover',
-  PROJECT_DASHBOARD: '/project-dashboard',
-  PROJECT_CLOSEOUT: '/closeout',
+  // Marketing
+  MARKETING: '/marketing',
 
-  // Precon routes
-  PRECON_DASHBOARD: '/',
-  PRECON_PURSUIT: '/pursuit/:id',
-  PRECON_TRACKING: '/precon-tracking',
-  PRECON_ESTIMATE_LOG: '/estimate-log',
-  PRECON_GONOGO_TRACKER: '/gonogo-tracker',
+  // Preconstruction
+  PRECON: '/preconstruction',
+  PRECON_GONOGO: '/preconstruction/gonogo',
+  PRECON_PIPELINE: '/preconstruction/pipeline',
+  PRECON_TRACKING: '/preconstruction/precon-tracker',
+  PRECON_ESTIMATE_LOG: '/preconstruction/estimate-log',
+  PRECON_KICKOFF_LIST: '/preconstruction/kickoff-list',
+  PRECON_AUTOPSY_LIST: '/preconstruction/autopsy-list',
+  PRECON_PURSUIT: '/preconstruction/pursuit/:id',
+  PRECON_PURSUIT_KICKOFF: '/preconstruction/pursuit/:id/kickoff',
+  PRECON_PURSUIT_INTERVIEW: '/preconstruction/pursuit/:id/interview',
+  PRECON_PURSUIT_WINLOSS: '/preconstruction/pursuit/:id/winloss',
+  PRECON_PURSUIT_TURNOVER: '/preconstruction/pursuit/:id/turnover',
+  PRECON_PURSUIT_AUTOPSY: '/preconstruction/pursuit/:id/autopsy',
+  PRECON_PURSUIT_AUTOPSY_FORM: '/preconstruction/pursuit/:id/autopsy-form',
+  PRECON_PURSUIT_DELIVERABLES: '/preconstruction/pursuit/:id/deliverables',
+
+  // Lead
+  LEAD_NEW: '/lead/new',
+  LEAD_DETAIL: '/lead/:id',
+  LEAD_GONOGO: '/lead/:id/gonogo',
+  LEAD_GONOGO_DETAIL: '/lead/:id/gonogo/detail',
+  LEAD_SCHEDULE_GONOGO: '/lead/:id/schedule-gonogo',
+
+  // Operations
+  OPERATIONS: '/operations',
+  OPS_PROJECT: '/operations/project',
+  OPS_STARTUP_CHECKLIST: '/operations/startup-checklist',
+  OPS_MANAGEMENT_PLAN: '/operations/management-plan',
+  OPS_SUPERINTENDENT_PLAN: '/operations/superintendent-plan',
+  OPS_RESPONSIBILITY: '/operations/responsibility',
+  OPS_CLOSEOUT: '/operations/closeout-checklist',
+  OPS_BUYOUT: '/operations/buyout-log',
+  OPS_CONTRACT: '/operations/contract-tracking',
+  OPS_COMPLIANCE: '/operations/compliance-log',
+  OPS_RISK_COST: '/operations/risk-cost',
+  OPS_SCHEDULE: '/operations/schedule',
+  OPS_QUALITY: '/operations/quality-concerns',
+  OPS_SAFETY: '/operations/safety-concerns',
+  OPS_MONTHLY_REVIEW: '/operations/monthly-review',
+  OPS_PROJECT_RECORD: '/operations/project-record',
+  OPS_LESSONS: '/operations/lessons-learned',
+  OPS_GONOGO: '/operations/gonogo',
+
+  // Job Request
+  JOB_REQUEST: '/job-request',
+  JOB_REQUEST_LEAD: '/job-request/:leadId',
+
+  // Accounting
+  ACCOUNTING_QUEUE: '/accounting-queue',
+
+  // Admin
+  ADMIN: '/admin',
+
+  // System
+  ACCESS_DENIED: '/access-denied',
 } as const;
 
 export const STAGE_ORDER: string[] = [

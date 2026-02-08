@@ -20,7 +20,7 @@ const inputStyle: React.CSSProperties = {
 const textareaStyle: React.CSSProperties = { ...inputStyle, minHeight: 80, resize: 'vertical' as const };
 
 export const InterviewPrep: React.FC = () => {
-  const { siteContext } = useAppContext();
+  const { selectedProject } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
   const { interviewPrep, fetchInterviewPrep, saveInterviewPrep, scheduleRedTeamReview, teamMembers, fetchTeamMembers } = useWorkflow();
   const [project, setProject] = React.useState<ILead | null>(null);
@@ -35,7 +35,7 @@ export const InterviewPrep: React.FC = () => {
   const [teamAssignments, setTeamAssignments] = React.useState('');
   const [rehearsalDate, setRehearsalDate] = React.useState('');
 
-  const projectCode = siteContext.projectCode ?? '';
+  const projectCode = selectedProject?.projectCode ?? '';
 
   React.useEffect(() => { fetchLeads().catch(console.error); }, [fetchLeads]);
   React.useEffect(() => {

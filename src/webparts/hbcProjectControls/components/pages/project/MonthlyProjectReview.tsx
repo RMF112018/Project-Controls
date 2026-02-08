@@ -17,9 +17,9 @@ const STATUS_LABELS: Record<string, string> = {
 const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 12 };
 
 export const MonthlyProjectReview: React.FC = () => {
-  const { siteContext, hasPermission, dataService, currentUser } = useAppContext();
+  const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
   const { reviews, currentReview, isLoading, error, fetchReviews, createReview, updateReview, advanceStatus, addFollowUp, selectReview } = useMonthlyReview();
-  const projectCode = siteContext.projectCode ?? '';
+  const projectCode = selectedProject?.projectCode ?? '';
   const isPM = hasPermission(PERMISSIONS.MONTHLY_REVIEW_PM);
   const isPX = hasPermission(PERMISSIONS.MONTHLY_REVIEW_PX);
   const canCreate = hasPermission(PERMISSIONS.MONTHLY_REVIEW_CREATE);

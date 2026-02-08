@@ -19,9 +19,9 @@ const ALL_IMPACTS: LessonImpact[] = ['Positive', 'Negative', 'Neutral'];
 const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 12 };
 
 export const LessonsLearnedPage: React.FC = () => {
-  const { siteContext, hasPermission, dataService, currentUser } = useAppContext();
+  const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
   const { lessons, isLoading, error, fetchLessons, addLesson, updateLesson } = useLessonsLearned();
-  const projectCode = siteContext.projectCode ?? '';
+  const projectCode = selectedProject?.projectCode ?? '';
   const canEdit = hasPermission(PERMISSIONS.LESSONS_EDIT);
   const [filterCategory, setFilterCategory] = React.useState<string>('');
   const [filterImpact, setFilterImpact] = React.useState<string>('');

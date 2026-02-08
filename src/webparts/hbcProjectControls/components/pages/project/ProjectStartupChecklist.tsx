@@ -88,7 +88,7 @@ const SummaryBadges: React.FC<{ summary: IStartupChecklistSummary; small?: boole
 
 /* ---------- Main Component ---------- */
 export const ProjectStartupChecklist: React.FC = () => {
-  const { siteContext, hasPermission, currentUser, dataService } = useAppContext();
+  const { selectedProject, hasPermission, currentUser, dataService } = useAppContext();
   const {
     items,
     isLoading,
@@ -117,10 +117,10 @@ export const ProjectStartupChecklist: React.FC = () => {
 
   /* Fetch on mount */
   React.useEffect(() => {
-    if (siteContext.projectCode) {
-      fetchChecklist(siteContext.projectCode).catch(console.error);
+    if (selectedProject?.projectCode) {
+      fetchChecklist(selectedProject?.projectCode).catch(console.error);
     }
-  }, [siteContext.projectCode, fetchChecklist]);
+  }, [selectedProject?.projectCode, fetchChecklist]);
 
   /* ---------- Handlers ---------- */
   const toggleSection = (sectionNumber: number): void => {
@@ -140,7 +140,7 @@ export const ProjectStartupChecklist: React.FC = () => {
     response: string | number | null,
     status: ChecklistStatus,
   ): Promise<void> => {
-    if (!siteContext.projectCode || !currentUser) return;
+    if (!selectedProject?.projectCode || !currentUser) return;
 
     const activityEntry: IChecklistActivityEntry = {
       timestamp: new Date().toISOString(),
@@ -149,7 +149,7 @@ export const ProjectStartupChecklist: React.FC = () => {
       newValue: response !== null && response !== undefined ? String(response) : null,
     };
 
-    await updateItem(siteContext.projectCode, item.id, {
+    await updateItem(selectedProject?.projectCode, item.id, {
       response,
       status,
       respondedBy: currentUser.email,
@@ -161,37 +161,37 @@ export const ProjectStartupChecklist: React.FC = () => {
       Action: AuditAction.ChecklistItemUpdated,
       EntityType: EntityType.Checklist,
       EntityId: String(item.id),
-      ProjectCode: siteContext.projectCode,
+      ProjectCode: selectedProject?.projectCode,
       User: currentUser.email,
       Details: `Response changed to "${response}" (${status}) for item ${item.itemNumber}`,
     }).catch(console.error);
   };
 
   const handleCommentChange = async (item: IStartupChecklistItem, comment: string): Promise<void> => {
-    if (!siteContext.projectCode) return;
-    await updateItem(siteContext.projectCode, item.id, { comment });
+    if (!selectedProject?.projectCode) return;
+    await updateItem(selectedProject?.projectCode, item.id, { comment });
   };
 
   const handleAssignToChange = async (item: IStartupChecklistItem, assignedToName: string): Promise<void> => {
-    if (!siteContext.projectCode) return;
-    await updateItem(siteContext.projectCode, item.id, { assignedToName });
+    if (!selectedProject?.projectCode) return;
+    await updateItem(selectedProject?.projectCode, item.id, { assignedToName });
   };
 
   const handleRemoveItem = async (item: IStartupChecklistItem): Promise<void> => {
-    if (!siteContext.projectCode) return;
-    await removeItem(siteContext.projectCode, item.id);
+    if (!selectedProject?.projectCode) return;
+    await removeItem(selectedProject?.projectCode, item.id);
   };
 
   const handleAddItem = async (sectionNumber: number): Promise<void> => {
-    if (!siteContext.projectCode || !newItemLabel.trim()) return;
+    if (!selectedProject?.projectCode || !newItemLabel.trim()) return;
 
     const sectionItems = items.filter(i => i.sectionNumber === sectionNumber);
     const maxSort = sectionItems.length > 0 ? Math.max(...sectionItems.map(i => i.sortOrder)) : 0;
     const section = CHECKLIST_SECTIONS.find(s => s.number === sectionNumber);
     const itemNumber = `${sectionNumber}.${sectionItems.length + 1}`;
 
-    const created = await addItem(siteContext.projectCode, {
-      projectCode: siteContext.projectCode,
+    const created = await addItem(selectedProject?.projectCode, {
+      projectCode: selectedProject?.projectCode,
       sectionNumber,
       sectionName: section ? section.name : `Section ${sectionNumber}`,
       itemNumber,
@@ -215,7 +215,7 @@ export const ProjectStartupChecklist: React.FC = () => {
         Action: AuditAction.ChecklistItemAdded,
         EntityType: EntityType.Checklist,
         EntityId: String(created.id),
-        ProjectCode: siteContext.projectCode,
+        ProjectCode: selectedProject?.projectCode,
         User: currentUser.email,
         Details: `Custom item "${newItemLabel.trim()}" added to section ${sectionNumber}`,
       }).catch(console.error);
@@ -227,12 +227,12 @@ export const ProjectStartupChecklist: React.FC = () => {
   };
 
   const handleSignOff = (): void => {
-    if (!currentUser || !siteContext.projectCode) return;
+    if (!currentUser || !selectedProject?.projectCode) return;
     dataService.logAudit({
       Action: AuditAction.ChecklistSignedOff,
       EntityType: EntityType.Checklist,
-      EntityId: siteContext.projectCode,
-      ProjectCode: siteContext.projectCode,
+      EntityId: selectedProject?.projectCode,
+      ProjectCode: selectedProject?.projectCode,
       User: currentUser.email,
       Details: `Checklist signed off by ${currentUser.displayName}`,
     }).catch(console.error);
@@ -577,7 +577,7 @@ export const ProjectStartupChecklist: React.FC = () => {
     <div>
       <PageHeader
         title="Project Startup Checklist"
-        subtitle={siteContext.projectCode ? `Project: ${siteContext.projectCode}` : undefined}
+        subtitle={selectedProject?.projectCode ? `Project: ${selectedProject?.projectCode}` : undefined}
         actions={
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {canSignOff && (

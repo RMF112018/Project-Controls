@@ -21,7 +21,7 @@ import { useLeads } from '../../../hooks/useLeads';
 
 export const ProjectManagementPlan: React.FC = () => {
   const navigate = useNavigate();
-  const { siteContext, hasPermission, dataService, currentUser } = useAppContext();
+  const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
   const { pmp, boilerplate, isLoading, error, fetchPlan, updatePlan, submitForApproval, respondToApproval, signPlan, canSubmit } = useProjectManagementPlan();
   const riskCost = useRiskCostManagement();
   const quality = useQualityConcerns();
@@ -30,7 +30,7 @@ export const ProjectManagementPlan: React.FC = () => {
   const superPlan = useSuperintendentPlan();
   const lessons = useLessonsLearned();
   const { leads, fetchLeads } = useLeads();
-  const projectCode = siteContext.projectCode ?? '';
+  const projectCode = selectedProject?.projectCode ?? '';
   const canEdit = hasPermission(PERMISSIONS.PMP_EDIT);
   const canApprove = hasPermission(PERMISSIONS.PMP_APPROVE) || hasPermission(PERMISSIONS.PMP_FINAL_APPROVE);
   const canSign = hasPermission(PERMISSIONS.PMP_SIGN);

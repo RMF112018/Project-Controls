@@ -436,7 +436,7 @@ export const PostBidAutopsyForm: React.FC = () => {
       {isReadOnly && (
         <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
           <button
-            onClick={() => navigate('/autopsies')}
+            onClick={() => navigate('/preconstruction/autopsy-list')}
             style={{
               padding: '10px 24px',
               backgroundColor: HBC_COLORS.navy,

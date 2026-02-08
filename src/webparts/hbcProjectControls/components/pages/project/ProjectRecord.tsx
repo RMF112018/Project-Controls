@@ -219,7 +219,7 @@ const CompletionCircle: React.FC<{ pct: number }> = ({ pct }) => {
 // Main Component
 // ---------------------------------------------------------------------------
 export const ProjectRecord: React.FC = () => {
-  const { siteContext, hasPermission, currentUser, dataService } = useAppContext();
+  const { selectedProject, hasPermission, currentUser, dataService } = useAppContext();
   const { record, isLoading, fetchRecord, updateRecord, createRecord } = useMarketingRecord();
 
   const [localRecord, setLocalRecord] = React.useState<IMarketingProjectRecord | null>(null);
@@ -236,10 +236,10 @@ export const ProjectRecord: React.FC = () => {
 
   // Fetch on mount
   React.useEffect(() => {
-    if (siteContext.projectCode) {
-      fetchRecord(siteContext.projectCode).catch(console.error);
+    if (selectedProject?.projectCode) {
+      fetchRecord(selectedProject?.projectCode).catch(console.error);
     }
-  }, [siteContext.projectCode, fetchRecord]);
+  }, [selectedProject?.projectCode, fetchRecord]);
 
   // Sync fetched record to local state
   React.useEffect(() => {
@@ -257,25 +257,25 @@ export const ProjectRecord: React.FC = () => {
   };
 
   const handleBlurSave = async (field: keyof IMarketingProjectRecord): Promise<void> => {
-    if (!localRecord || !siteContext.projectCode) return;
+    if (!localRecord || !selectedProject?.projectCode) return;
     const currentVal = (localRecord as unknown as Record<string, unknown>)[field];
     const origVal = record ? (record as unknown as Record<string, unknown>)[field] : undefined;
     if (JSON.stringify(currentVal) === JSON.stringify(origVal)) return;
 
     try {
       setIsSaving(true);
-      await updateRecord(siteContext.projectCode, { [field]: currentVal } as Partial<IMarketingProjectRecord>);
+      await updateRecord(selectedProject?.projectCode, { [field]: currentVal } as Partial<IMarketingProjectRecord>);
       // Fire-and-forget audit
       dataService.logAudit({
         Action: AuditAction.ProjectRecordUpdated,
         EntityType: EntityType.ProjectRecord,
-        EntityId: siteContext.projectCode,
-        ProjectCode: siteContext.projectCode,
+        EntityId: selectedProject?.projectCode,
+        ProjectCode: selectedProject?.projectCode,
         User: currentUser?.displayName || 'Unknown',
         UserId: currentUser?.id,
         FieldChanged: field,
         NewValue: String(currentVal ?? ''),
-        Details: `Updated ${field} on project record ${siteContext.projectCode}`,
+        Details: `Updated ${field} on project record ${selectedProject?.projectCode}`,
       }).catch(console.error);
     } catch (err) {
       console.error('Auto-save failed:', err);
@@ -285,22 +285,22 @@ export const ProjectRecord: React.FC = () => {
   };
 
   const handleCreateRecord = async (): Promise<void> => {
-    if (!siteContext.projectCode) return;
+    if (!selectedProject?.projectCode) return;
     try {
       setIsCreating(true);
       const created = await createRecord({
-        projectName: siteContext.projectCode,
-        projectCode: siteContext.projectCode,
+        projectName: selectedProject?.projectCode,
+        projectCode: selectedProject?.projectCode,
       });
       setLocalRecord({ ...created });
       dataService.logAudit({
         Action: AuditAction.ProjectRecordCreated,
         EntityType: EntityType.ProjectRecord,
-        EntityId: siteContext.projectCode,
-        ProjectCode: siteContext.projectCode,
+        EntityId: selectedProject?.projectCode,
+        ProjectCode: selectedProject?.projectCode,
         User: currentUser?.displayName || 'Unknown',
         UserId: currentUser?.id,
-        Details: `Project record created for ${siteContext.projectCode}`,
+        Details: `Project record created for ${selectedProject?.projectCode}`,
       }).catch(console.error);
     } catch (err) {
       console.error('Failed to create record:', err);
@@ -500,7 +500,7 @@ export const ProjectRecord: React.FC = () => {
   if (!localRecord && !record) {
     return (
       <div style={{ padding: '48px', textAlign: 'center' }}>
-        <PageHeader title="Marketing Project Record" subtitle={siteContext.projectCode || ''} />
+        <PageHeader title="Marketing Project Record" subtitle={selectedProject?.projectCode || ''} />
         <div style={cardStyle}>
           <h3 style={{ color: HBC_COLORS.gray500, marginBottom: '16px' }}>No Project Record Found</h3>
           <p style={{ color: HBC_COLORS.gray400, marginBottom: '24px' }}>

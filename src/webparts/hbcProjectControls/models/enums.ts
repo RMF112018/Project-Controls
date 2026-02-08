@@ -98,12 +98,6 @@ export enum ProvisioningStatus {
   Failed = 'Failed'
 }
 
-export enum RenderMode {
-  Standalone = 'standalone',
-  Full = 'full',
-  Project = 'project'
-}
-
 export enum AuditAction {
   LeadCreated = 'Lead.Created',
   LeadEdited = 'Lead.Edited',

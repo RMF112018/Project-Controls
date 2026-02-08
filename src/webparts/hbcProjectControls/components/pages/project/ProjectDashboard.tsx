@@ -15,22 +15,23 @@ import { formatCurrency, formatDate, formatSquareFeet } from '../../../utils/for
 import { getStageScreens, getStageLabel } from '../../../utils/stageEngine';
 
 const SCREEN_META: Record<string, { label: string; path: string; description: string; color: string }> = {
-  kickoff: { label: 'Precon Kickoff', path: '/kickoff', description: 'Team, dates, and kickoff meeting', color: '#3B82F6' },
-  deliverables: { label: 'Deliverables', path: '/deliverables', description: 'Track preconstruction deliverables', color: '#8B5CF6' },
-  interview: { label: 'Interview Prep', path: '/interview', description: 'Presentation and interview preparation', color: '#6366F1' },
-  winloss: { label: 'Win/Loss', path: '/winloss', description: 'Record award outcome', color: '#F59E0B' },
-  autopsy: { label: 'Loss Autopsy', path: '/autopsy', description: 'Post-loss review and analysis', color: '#EF4444' },
-  contract: { label: 'Contract', path: '/contract', description: 'Contract administration and execution', color: '#10B981' },
-  turnover: { label: 'Turnover', path: '/turnover', description: 'Handoff from precon to operations', color: '#059669' },
-  closeout: { label: 'Closeout', path: '/closeout', description: 'Project closeout checklist', color: '#6B7280' },
-  'risk-cost': { label: 'Risk & Cost', path: '/risk-cost', description: 'Contract, buyout, risks & savings', color: '#DC2626' },
-  quality: { label: 'Quality Concerns', path: '/quality-concerns', description: 'Track quality control concerns', color: '#7C3AED' },
-  safety: { label: 'Safety Concerns', path: '/safety-concerns', description: 'Safety officer & concern tracking', color: '#EA580C' },
-  schedule: { label: 'Schedule', path: '/schedule-critical-path', description: 'Dates, milestones & critical path', color: '#0891B2' },
-  superintendent: { label: "Super's Plan", path: '/superintendent-plan', description: "Superintendent's 10-section plan", color: '#4F46E5' },
-  'lessons-learned': { label: 'Lessons Learned', path: '/lessons-learned', description: 'Capture project lessons & insights', color: '#CA8A04' },
-  pmp: { label: 'PMP', path: '/pmp', description: 'Project Management Plan', color: HBC_COLORS.navy },
-  'monthly-review': { label: 'Monthly Review', path: '/monthly-review', description: 'PX monthly project review', color: '#059669' },
+  kickoff: { label: 'Precon Kickoff', path: '/operations/startup-checklist', description: 'Team, dates, and kickoff meeting', color: '#3B82F6' },
+  deliverables: { label: 'Deliverables', path: '/operations/project', description: 'Track preconstruction deliverables', color: '#8B5CF6' },
+  interview: { label: 'Interview Prep', path: '/operations/project', description: 'Presentation and interview preparation', color: '#6366F1' },
+  winloss: { label: 'Win/Loss', path: '/operations/project', description: 'Record award outcome', color: '#F59E0B' },
+  autopsy: { label: 'Loss Autopsy', path: '/operations/project', description: 'Post-loss review and analysis', color: '#EF4444' },
+  contract: { label: 'Contract', path: '/operations/contract-tracking', description: 'Contract administration and execution', color: '#10B981' },
+  turnover: { label: 'Turnover', path: '/operations/project', description: 'Handoff from precon to operations', color: '#059669' },
+  closeout: { label: 'Closeout', path: '/operations/closeout-checklist', description: 'Project closeout checklist', color: '#6B7280' },
+  'risk-cost': { label: 'Risk & Cost', path: '/operations/risk-cost', description: 'Contract, buyout, risks & savings', color: '#DC2626' },
+  quality: { label: 'Quality Concerns', path: '/operations/quality-concerns', description: 'Track quality control concerns', color: '#7C3AED' },
+  safety: { label: 'Safety Concerns', path: '/operations/safety-concerns', description: 'Safety officer & concern tracking', color: '#EA580C' },
+  schedule: { label: 'Schedule', path: '/operations/schedule', description: 'Dates, milestones & critical path', color: '#0891B2' },
+  superintendent: { label: "Super's Plan", path: '/operations/superintendent-plan', description: "Superintendent's 10-section plan", color: '#4F46E5' },
+  'lessons-learned': { label: 'Lessons Learned', path: '/operations/lessons-learned', description: 'Capture project lessons & insights', color: '#CA8A04' },
+  pmp: { label: 'PMP', path: '/operations/management-plan', description: 'Project Management Plan', color: HBC_COLORS.navy },
+  'monthly-review': { label: 'Monthly Review', path: '/operations/monthly-review', description: 'PX monthly project review', color: '#059669' },
+  buyout: { label: 'Buyout Log', path: '/operations/buyout-log', description: 'Track subcontractor buyout status', color: '#2563EB' },
 };
 
 const ACTIVE_STAGES: string[] = [Stage.ActiveConstruction, Stage.Closeout];
@@ -47,7 +48,7 @@ const quickActionCardStyle: React.CSSProperties = {
 
 export const ProjectDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { siteContext, hasPermission } = useAppContext();
+  const { selectedProject: selectedProjectCtx, hasPermission } = useAppContext();
   const { leads, isLoading, fetchLeads } = useLeads();
   const { items: checklistItems, fetchChecklist } = useStartupChecklist();
   const [project, setProject] = React.useState<ILead | null>(null);
@@ -57,17 +58,17 @@ export const ProjectDashboard: React.FC = () => {
   }, [fetchLeads]);
 
   React.useEffect(() => {
-    if (siteContext.projectCode) {
-      fetchChecklist(siteContext.projectCode).catch(console.error);
+    if (selectedProjectCtx?.projectCode) {
+      fetchChecklist(selectedProjectCtx?.projectCode).catch(console.error);
     }
-  }, [siteContext.projectCode, fetchChecklist]);
+  }, [selectedProjectCtx?.projectCode, fetchChecklist]);
 
   React.useEffect(() => {
-    if (leads.length > 0 && siteContext.projectCode) {
-      const found = leads.find(l => l.ProjectCode === siteContext.projectCode);
+    if (leads.length > 0 && selectedProjectCtx?.projectCode) {
+      const found = leads.find(l => l.ProjectCode === selectedProjectCtx?.projectCode);
       setProject(found || null);
     }
-  }, [leads, siteContext.projectCode]);
+  }, [leads, selectedProjectCtx?.projectCode]);
 
   if (isLoading) return <LoadingSpinner label="Loading project..." />;
 
@@ -75,7 +76,7 @@ export const ProjectDashboard: React.FC = () => {
     return (
       <div style={{ padding: '48px', textAlign: 'center' }}>
         <h2 style={{ color: HBC_COLORS.gray500 }}>Project not found</h2>
-        <p style={{ color: HBC_COLORS.gray400 }}>No project matches code: {siteContext.projectCode || 'unknown'}</p>
+        <p style={{ color: HBC_COLORS.gray400 }}>No project matches code: {selectedProjectCtx?.projectCode || 'unknown'}</p>
       </div>
     );
   }
@@ -153,7 +154,7 @@ export const ProjectDashboard: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
             <div
               style={quickActionCardStyle}
-              onClick={() => navigate('/startup-checklist')}
+              onClick={() => navigate('/operations/startup-checklist')}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }}
             >
@@ -181,7 +182,7 @@ export const ProjectDashboard: React.FC = () => {
 
             <div
               style={quickActionCardStyle}
-              onClick={() => navigate('/responsibility')}
+              onClick={() => navigate('/operations/responsibility')}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }}
             >
@@ -194,7 +195,7 @@ export const ProjectDashboard: React.FC = () => {
             {(hasPermission(PERMISSIONS.PROJECT_RECORD_EDIT) || hasPermission(PERMISSIONS.PROJECT_RECORD_OPS_EDIT)) && (
               <div
                 style={quickActionCardStyle}
-                onClick={() => navigate('/project-record')}
+                onClick={() => navigate('/operations/project-record')}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }}
               >

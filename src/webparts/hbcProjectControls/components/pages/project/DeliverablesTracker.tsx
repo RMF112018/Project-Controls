@@ -44,7 +44,7 @@ const emptyForm: INewDeliverableForm = {
 };
 
 export const DeliverablesTracker: React.FC = () => {
-  const { siteContext } = useAppContext();
+  const { selectedProject } = useAppContext();
   const {
     deliverables,
     isLoading,
@@ -60,7 +60,7 @@ export const DeliverablesTracker: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
 
-  const projectCode = siteContext.projectCode || '';
+  const projectCode = selectedProject?.projectCode || '';
 
   // Load deliverables
   React.useEffect(() => {

@@ -118,7 +118,7 @@ export const SearchBar: React.FC<ISearchBarProps> = ({ placeholder = 'Search pro
             title: r.Title,
             subtitle: `${r.LeadEstimator || 'Unassigned'}${r.EstimatedCostValue ? ` — ${formatCurrencyCompact(r.EstimatedCostValue)}` : ''}`,
             extra: r.ProjectCode || undefined,
-            navigateTo: `/pursuit/${r.id}`,
+            navigateTo: `/preconstruction/pursuit/${r.id}`,
           }));
 
         // Filter scorecards client-side
