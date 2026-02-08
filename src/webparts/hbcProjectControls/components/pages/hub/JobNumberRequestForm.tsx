@@ -14,11 +14,11 @@ const ESTIMATING_DEFAULT_CODES = ['01-01-413', '01-01-025', '01-01-311', '01-01-
 
 export const JobNumberRequestForm: React.FC = () => {
   const { leadId: leadIdParam } = useParams<{ leadId: string }>();
-  const leadId = Number(leadIdParam);
+  const leadId = leadIdParam ? Number(leadIdParam) : Number.NaN;
   const navigate = useNavigate();
   const { dataService, currentUser } = useAppContext();
   const { projectTypes, costCodes, fetchReferenceData, createRequest, fetchRequestByLeadId } = useJobNumberRequest();
-  const { getLeadById } = useLeads();
+  const { leads, fetchLeads, getLeadById } = useLeads();
 
   const [lead, setLead] = React.useState<{ Title: string; ClientName: string; ProjectCode?: string; Division: string; Region: string } | null>(null);
   const [existingRequest, setExistingRequest] = React.useState<boolean>(false);
@@ -26,6 +26,7 @@ export const JobNumberRequestForm: React.FC = () => {
   const [isSaving, setIsSaving] = React.useState(false);
   const [toastMessage, setToastMessage] = React.useState('');
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [leadSearch, setLeadSearch] = React.useState('');
 
   // Form state
   const [requiredByDate, setRequiredByDate] = React.useState('');
@@ -43,6 +44,10 @@ export const JobNumberRequestForm: React.FC = () => {
     const init = async (): Promise<void> => {
       try {
         setIsLoading(true);
+        if (!Number.isFinite(leadId)) {
+          await fetchLeads();
+          return;
+        }
         await fetchReferenceData();
         const leadData = await getLeadById(leadId);
         if (leadData) {
@@ -57,7 +62,7 @@ export const JobNumberRequestForm: React.FC = () => {
       }
     };
     init().catch(console.error);
-  }, [leadId, fetchReferenceData, getLeadById, fetchRequestByLeadId]);
+  }, [leadId, fetchReferenceData, fetchLeads, getLeadById, fetchRequestByLeadId]);
 
   // Auto-add estimating codes when toggle changes
   React.useEffect(() => {
@@ -159,6 +164,15 @@ export const JobNumberRequestForm: React.FC = () => {
     !costCodeSearch || c.description.toLowerCase().includes(costCodeSearch.toLowerCase()) || c.id.includes(costCodeSearch)
   );
 
+  const isLeadSelection = !Number.isFinite(leadId);
+  const filteredLeads = leads.filter(l => {
+    if (!leadSearch) return true;
+    const query = leadSearch.toLowerCase();
+    return l.Title.toLowerCase().includes(query)
+      || l.ClientName.toLowerCase().includes(query)
+      || (l.ProjectCode ?? '').toLowerCase().includes(query);
+  });
+
   // Group project types by office
   const groupedTypes: Record<string, IProjectType[]> = {};
   for (const pt of filteredProjectTypes) {
@@ -168,6 +182,56 @@ export const JobNumberRequestForm: React.FC = () => {
 
   if (isLoading) {
     return <div style={{ padding: 40, textAlign: 'center', color: HBC_COLORS.gray500 }}>Loading...</div>;
+  }
+
+  if (isLeadSelection) {
+    return (
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: 24 }}>
+        <div style={{ marginBottom: 16 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: HBC_COLORS.navy, margin: 0 }}>Start a Job Number Request</h1>
+          <p style={{ fontSize: 13, color: HBC_COLORS.gray500, marginTop: 4 }}>
+            Select a lead to begin the request form.
+          </p>
+        </div>
+
+        <input
+          type="text"
+          placeholder="Search by lead title, client, or project code..."
+          value={leadSearch}
+          onChange={e => setLeadSearch(e.target.value)}
+          style={{ ...inputStyle, marginBottom: 16 }}
+        />
+
+        <div style={{ border: `1px solid ${HBC_COLORS.gray200}`, borderRadius: 8, overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 120px', padding: '10px 16px', background: HBC_COLORS.gray50, borderBottom: `1px solid ${HBC_COLORS.gray200}`, fontSize: 11, fontWeight: 700, color: HBC_COLORS.gray500, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <span>Lead</span>
+            <span>Client</span>
+            <span>Stage</span>
+            <span></span>
+          </div>
+          {filteredLeads.map(l => (
+            <div key={l.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 120px', padding: '12px 16px', alignItems: 'center', borderBottom: `1px solid ${HBC_COLORS.gray100}` }}>
+              <div style={{ fontWeight: 600, color: HBC_COLORS.navy }}>{l.Title}</div>
+              <div style={{ color: HBC_COLORS.gray600 }}>{l.ClientName}</div>
+              <div style={{ color: HBC_COLORS.gray500, fontSize: 12 }}>{l.Stage}</div>
+              <div style={{ textAlign: 'right' }}>
+                <button
+                  onClick={() => navigate(`/job-request/${l.id}`)}
+                  style={{ padding: '6px 12px', background: HBC_COLORS.orange, color: '#fff', border: 'none', borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Start
+                </button>
+              </div>
+            </div>
+          ))}
+          {filteredLeads.length === 0 && (
+            <div style={{ padding: 24, textAlign: 'center', color: HBC_COLORS.gray500 }}>
+              No leads match your search.
+            </div>
+          )}
+        </div>
+      </div>
+    );
   }
 
   if (!lead) {

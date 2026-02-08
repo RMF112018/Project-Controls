@@ -13,6 +13,7 @@ interface INavItem {
 const NAV_ITEMS: INavItem[] = [
   { label: 'Pipeline', path: '/' },
   { label: 'Dashboard', path: '/dashboard' },
+  { label: 'Job Number Request', path: '/job-request', permission: PERMISSIONS.JOB_NUMBER_REQUEST_CREATE },
   { label: 'Accounting Queue', path: '/accounting-queue', permission: PERMISSIONS.ACCOUNTING_QUEUE_VIEW },
   { label: 'Marketing', path: '/marketing', permission: PERMISSIONS.MARKETING_DASHBOARD_VIEW },
   { label: 'Admin', path: '/admin', permission: PERMISSIONS.ADMIN_CONFIG },

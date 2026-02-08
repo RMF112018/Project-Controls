@@ -75,6 +75,7 @@ const HubRoutes: React.FC = () => (
     <Route path="/lead/:id/schedule-gonogo" element={<GoNoGoMeetingScheduler />} />
     <Route path="/marketing" element={<MarketingDashboard />} />
     <Route path="/accounting-queue" element={<AccountingQueuePage />} />
+    <Route path="/job-request" element={<JobNumberRequestForm />} />
     <Route path="/job-request/:leadId" element={<JobNumberRequestForm />} />
     <Route path="/admin" element={<AdminPanel />} />
     <Route path="*" element={<NotFoundPage />} />
