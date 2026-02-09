@@ -173,7 +173,7 @@ export const WorkflowStepCard: React.FC<IWorkflowStepCardProps> = ({
                 <AzureADPeoplePicker
                   label="Default Assignee"
                   selectedUser={step.defaultAssignee || null}
-                  onSelect={user => onUpdateStep({ defaultAssignee: user })}
+                  onSelect={user => onUpdateStep({ defaultAssignee: user || undefined })}
                   disabled={disabled}
                 />
               </div>

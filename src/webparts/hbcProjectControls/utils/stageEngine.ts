@@ -14,10 +14,12 @@ const STAGE_TRANSITIONS: IStageTransition[] = [
   },
   {
     from: Stage.GoNoGoPending,
+    /** @deprecated Phase 16: GoNoGoWait retained for backward compatibility with historical SP data */
     to: [Stage.GoNoGoWait, Stage.Opportunity, Stage.ArchivedNoGo],
     prerequisites: ['Originator scorecard must be completed'],
   },
   {
+    /** @deprecated Phase 16: Wait replaced by Conditional Go. GoNoGoWait is a dead path. */
     from: Stage.GoNoGoWait,
     to: [Stage.GoNoGoPending, Stage.ArchivedNoGo],
   },

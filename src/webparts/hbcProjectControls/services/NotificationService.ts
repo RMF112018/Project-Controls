@@ -23,6 +23,10 @@ export interface INotificationContext {
   waiverType?: string;
   approverName?: string;
   submittedBy?: string;
+  returnComment?: string;
+  committeeTotal?: number;
+  unlockedBy?: string;
+  reason?: string;
 }
 
 interface INotificationTemplate {
@@ -188,6 +192,46 @@ function buildTemplate(
         body: `The commitment for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has been rejected.${ctx.approverName ? ` Rejected by: ${ctx.approverName}.` : ''} Please review and resubmit if applicable.`,
         type: NotificationType.Both,
         recipientRoles: ['Operations Team'],
+      };
+
+    case NotificationEvent.ScorecardSubmittedForReview:
+      return {
+        subject: `Go/No-Go Scorecard Ready for Review: ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `A Go/No-Go scorecard for "${ctx.leadTitle}" (${ctx.clientName ?? ''}) has been submitted for review by ${ctx.submittedBy ?? 'Unknown'}.`,
+        type: NotificationType.Both,
+        recipientRoles: ['Executive Leadership'],
+      };
+
+    case NotificationEvent.ScorecardReturnedForRevision:
+      return {
+        subject: `Go/No-Go Scorecard Returned: ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `The Go/No-Go scorecard for "${ctx.leadTitle}" has been returned for revision.${ctx.returnComment ? ` Comments: "${ctx.returnComment}"` : ''}`,
+        type: NotificationType.Both,
+        recipientRoles: ['BD Representative'],
+      };
+
+    case NotificationEvent.ScorecardCommitteeScoresFinalized:
+      return {
+        subject: `Committee Scores Finalized: ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `Committee scoring for "${ctx.leadTitle}" (${ctx.clientName ?? ''}) has been finalized.${ctx.committeeTotal !== undefined ? ` Committee total: ${ctx.committeeTotal}/92.` : ''} The scorecard is now pending a final decision.`,
+        type: NotificationType.Both,
+        recipientRoles: ['Executive Leadership', 'BD Representative'],
+      };
+
+    case NotificationEvent.ScorecardDecisionRecorded:
+      return {
+        subject: `Go/No-Go Decision Recorded: ${ctx.decision ?? 'Pending'} — ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `A final "${ctx.decision}" decision has been recorded for "${ctx.leadTitle}" (${ctx.clientName ?? ''}).${ctx.score !== undefined ? ` Committee score: ${ctx.score}/92.` : ''}${ctx.projectCode ? ` Project code: ${ctx.projectCode}.` : ''}`,
+        type: NotificationType.Both,
+        recipientRoles: ['BD Representative', 'Executive Leadership', 'Estimating Coordinator', 'Preconstruction Team'],
+      };
+
+    case NotificationEvent.ScorecardUnlockedForEditing:
+      return {
+        subject: `Go/No-Go Scorecard Unlocked: ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `The Go/No-Go scorecard for "${ctx.leadTitle}" has been unlocked for editing by ${ctx.unlockedBy ?? 'Unknown'}.${ctx.reason ? ` Reason: ${ctx.reason}` : ''}`,
+        type: NotificationType.Both,
+        recipientRoles: ['BD Representative', 'Executive Leadership'],
       };
 
     default:

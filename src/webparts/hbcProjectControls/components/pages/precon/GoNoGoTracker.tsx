@@ -56,8 +56,8 @@ export const GoNoGoTracker: React.FC = () => {
       render: (l) => l.GoNoGoDecision === GoNoGoDecision.Go ? <CheckIcon /> : null },
     { key: 'Declined', header: 'Declined', width: '80px',
       render: (l) => l.GoNoGoDecision === GoNoGoDecision.NoGo ? <CheckIcon /> : null },
-    { key: 'OnHold', header: 'On Hold', width: '80px',
-      render: (l) => l.GoNoGoDecision === GoNoGoDecision.Wait ? <CheckIcon /> : null },
+    { key: 'Conditional', header: 'Conditional', width: '80px',
+      render: (l) => l.GoNoGoDecision === GoNoGoDecision.ConditionalGo ? <CheckIcon /> : null },
     { key: 'Score', header: 'Score (Orig / Cmte)', width: '140px',
       render: (l) => <span>{l.GoNoGoScore_Originator ?? '-'} / {l.GoNoGoScore_Committee ?? '-'}</span> },
   ], []);

@@ -343,7 +343,7 @@ export const EstimatingDashboard: React.FC = () => {
     { key: 'Region', header: 'Region', sortable: true, width: '120px', render: (l) => l.Region },
     { key: 'Approved', header: 'Approved', width: '70px', render: (l) => l.GoNoGoDecision === GoNoGoDecision.Go ? <CheckIcon /> : null },
     { key: 'Declined', header: 'Declined', width: '70px', render: (l) => l.GoNoGoDecision === GoNoGoDecision.NoGo ? <CheckIcon /> : null },
-    { key: 'OnHold', header: 'On Hold', width: '70px', render: (l) => l.GoNoGoDecision === GoNoGoDecision.Wait ? <CheckIcon /> : null },
+    { key: 'Conditional', header: 'Conditional', width: '70px', render: (l) => l.GoNoGoDecision === GoNoGoDecision.ConditionalGo ? <CheckIcon /> : null },
     { key: 'Score', header: 'Score (Orig / Cmte)', width: '140px', render: (l) => {
       const orig = l.GoNoGoScore_Originator;
       const cmte = l.GoNoGoScore_Committee;

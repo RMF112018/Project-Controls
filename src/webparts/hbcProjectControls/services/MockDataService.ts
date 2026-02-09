@@ -10,6 +10,10 @@ import {
   ILead,
   ILeadFormData,
   IGoNoGoScorecard,
+  IScorecardApprovalCycle,
+  IScorecardApprovalStep,
+  IScorecardVersion,
+  IPersonAssignment,
   IEstimatingTracker,
   IRole,
   ICurrentUser,
@@ -52,6 +56,7 @@ import {
   IPMPApprovalCycle,
   IPMPApprovalStep,
   GoNoGoDecision,
+  ScorecardStatus,
   Stage,
   RoleName,
   AuditAction,
@@ -74,6 +79,7 @@ import { IProjectType } from '../models/IProjectType';
 import { IStandardCostCode } from '../models/IStandardCostCode';
 
 import { ROLE_PERMISSIONS } from '../utils/permissions';
+import { getRecommendedDecision, calculateTotalScore } from '../utils/scoreCalculator';
 
 import mockLeads from '../mock/leads.json';
 import mockScorecards from '../mock/scorecards.json';
@@ -171,6 +177,9 @@ export class MockDataService implements IDataService {
   private checklistActivityLog: IChecklistActivityEntry[];
   private buyoutEntries: IBuyoutEntry[];
   private activeProjects: IActiveProject[];
+  private scorecardApprovalCycles: IScorecardApprovalCycle[];
+  private scorecardApprovalSteps: IScorecardApprovalStep[];
+  private scorecardVersions: IScorecardVersion[];
   private workflowDefinitions: IWorkflowDefinition[];
   private workflowStepOverrides: IWorkflowStepOverride[];
   private turnoverAgendas: ITurnoverAgenda[];
@@ -195,7 +204,18 @@ export class MockDataService implements IDataService {
 
   constructor() {
     this.leads = JSON.parse(JSON.stringify(mockLeads)) as ILead[];
-    this.scorecards = JSON.parse(JSON.stringify(mockScorecards)) as IGoNoGoScorecard[];
+    // Scorecards — new Phase 16 format with flat child arrays
+    const rawScorecardsData = JSON.parse(JSON.stringify(mockScorecards)) as {
+      scorecards: IGoNoGoScorecard[];
+      scorecardApprovalCycles: IScorecardApprovalCycle[];
+      scorecardApprovalSteps: IScorecardApprovalStep[];
+      scorecardVersions: IScorecardVersion[];
+    };
+    this.scorecardApprovalCycles = rawScorecardsData.scorecardApprovalCycles || [];
+    this.scorecardApprovalSteps = rawScorecardsData.scorecardApprovalSteps || [];
+    this.scorecardVersions = rawScorecardsData.scorecardVersions || [];
+    // Assemble nested objects onto each scorecard
+    this.scorecards = rawScorecardsData.scorecards.map(sc => this.assembleScorecard(sc));
     this.estimatingRecords = JSON.parse(JSON.stringify(mockEstimating)) as IEstimatingTracker[];
     this.users = JSON.parse(JSON.stringify(mockUsers));
     this.featureFlags = JSON.parse(JSON.stringify(mockFeatureFlags)) as IFeatureFlag[];
@@ -1076,6 +1096,60 @@ export class MockDataService implements IDataService {
   }
 
   // ---------------------------------------------------------------------------
+  // Go/No-Go Scorecards — Helpers
+  // ---------------------------------------------------------------------------
+
+  private assembleScorecard(sc: IGoNoGoScorecard): IGoNoGoScorecard {
+    const cycles = this.scorecardApprovalCycles
+      .filter(c => c.scorecardId === sc.id)
+      .map(c => ({
+        ...c,
+        steps: this.scorecardApprovalSteps.filter(s => s.cycleId === c.id),
+      }));
+    const versions = this.scorecardVersions.filter(v => v.scorecardId === sc.id);
+    return {
+      ...sc,
+      scorecardStatus: (sc.scorecardStatus as ScorecardStatus) || ScorecardStatus.Draft,
+      approvalCycles: cycles,
+      versions,
+      currentVersion: sc.currentVersion || 1,
+      isLocked: sc.isLocked ?? false,
+    };
+  }
+
+  private findScorecardOrThrow(id: number): { scorecard: IGoNoGoScorecard; index: number } {
+    const index = this.scorecards.findIndex(s => s.id === id);
+    if (index === -1) throw new Error(`Scorecard with id ${id} not found`);
+    return { scorecard: this.scorecards[index], index };
+  }
+
+  private createVersionSnapshot(sc: IGoNoGoScorecard, reason: string, createdBy: string): IScorecardVersion {
+    const origScores: Record<string, number> = {};
+    const cmteScores: Record<string, number> = {};
+    for (const [key, val] of Object.entries(sc.scores)) {
+      if (val.originator !== undefined) origScores[key] = val.originator;
+      if (val.committee !== undefined) cmteScores[key] = val.committee;
+    }
+    const version: IScorecardVersion = {
+      id: this.getNextId(),
+      scorecardId: sc.id,
+      versionNumber: sc.currentVersion,
+      createdDate: new Date().toISOString().split('T')[0],
+      createdBy,
+      reason,
+      originalScores: origScores,
+      committeeScores: cmteScores,
+      totalOriginal: sc.TotalScore_Orig,
+      totalCommittee: sc.TotalScore_Cmte,
+      decision: sc.finalDecision,
+      conditions: sc.conditionalGoConditions,
+    };
+    this.scorecardVersions.push(version);
+    sc.versions.push(version);
+    return version;
+  }
+
+  // ---------------------------------------------------------------------------
   // Go/No-Go Scorecards
   // ---------------------------------------------------------------------------
 
@@ -1115,7 +1189,13 @@ export class MockDataService implements IDataService {
       Decision: data.Decision,
       DecisionDate: data.DecisionDate,
       ScoredBy_Orig: data.ScoredBy_Orig,
-      ScoredBy_Cmte: data.ScoredBy_Cmte
+      ScoredBy_Cmte: data.ScoredBy_Cmte,
+      // Phase 16 fields
+      scorecardStatus: ScorecardStatus.Draft,
+      approvalCycles: [],
+      currentVersion: 1,
+      versions: [],
+      isLocked: false,
     };
 
     this.scorecards.push(newScorecard);
@@ -1171,11 +1251,250 @@ export class MockDataService implements IDataService {
         case GoNoGoDecision.NoGo:
           lead.Stage = Stage.ArchivedNoGo;
           break;
-        case GoNoGoDecision.Wait:
-          lead.Stage = Stage.GoNoGoWait;
+        case GoNoGoDecision.ConditionalGo:
+          lead.Stage = Stage.Opportunity;
           break;
       }
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Scorecard Workflow (Phase 16)
+  // ---------------------------------------------------------------------------
+
+  public async submitScorecard(
+    scorecardId: number,
+    submittedBy: string,
+    approverOverride?: IPersonAssignment
+  ): Promise<IGoNoGoScorecard> {
+    await delay();
+    const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
+
+    // Default 2-step approval chain
+    const directorAssignee = approverOverride || {
+      displayName: 'David Park',
+      email: 'dpark@hedrickbrothers.com',
+    };
+
+    const cycleId = this.getNextId();
+    const cycle: IScorecardApprovalCycle = {
+      id: cycleId,
+      scorecardId,
+      cycleNumber: (scorecard.approvalCycles?.length ?? 0) + 1,
+      version: scorecard.currentVersion,
+      steps: [],
+      startedDate: new Date().toISOString().split('T')[0],
+      status: 'Active',
+    };
+
+    const step1: IScorecardApprovalStep = {
+      id: this.getNextId(),
+      cycleId,
+      stepOrder: 1,
+      name: 'BD Rep Submission',
+      assigneeEmail: submittedBy,
+      assigneeName: submittedBy,
+      assignmentSource: 'Default',
+      status: 'Approved',
+      actionDate: new Date().toISOString().split('T')[0],
+    };
+
+    const step2: IScorecardApprovalStep = {
+      id: this.getNextId(),
+      cycleId,
+      stepOrder: 2,
+      name: 'Director of Precon Review',
+      assigneeEmail: directorAssignee.email,
+      assigneeName: directorAssignee.displayName,
+      assignmentSource: approverOverride ? 'Override' : 'Default',
+      status: 'Pending',
+    };
+
+    cycle.steps = [step1, step2];
+    this.scorecardApprovalCycles.push(cycle);
+    this.scorecardApprovalSteps.push(step1, step2);
+
+    scorecard.scorecardStatus = ScorecardStatus.Submitted;
+    scorecard.currentApprovalStep = 1;
+    scorecard.approvalCycles = [...(scorecard.approvalCycles || []), cycle];
+
+    // Create initial version snapshot if version 1 and no versions exist
+    if (scorecard.currentVersion === 1 && scorecard.versions.length === 0) {
+      this.createVersionSnapshot(scorecard, 'Submitted for review', submittedBy);
+    }
+
+    this.scorecards[index] = scorecard;
+    return { ...scorecard };
+  }
+
+  public async respondToScorecardSubmission(
+    scorecardId: number,
+    approved: boolean,
+    comment: string
+  ): Promise<IGoNoGoScorecard> {
+    await delay();
+    const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
+
+    const activeCycle = scorecard.approvalCycles?.find(c => c.status === 'Active');
+    if (!activeCycle) throw new Error('No active approval cycle found');
+
+    const pendingStep = activeCycle.steps.find(s => s.status === 'Pending');
+    if (!pendingStep) throw new Error('No pending approval step found');
+
+    if (approved) {
+      pendingStep.status = 'Approved';
+      pendingStep.actionDate = new Date().toISOString().split('T')[0];
+      pendingStep.comment = comment || undefined;
+      scorecard.scorecardStatus = ScorecardStatus.InCommitteeReview;
+      scorecard.currentApprovalStep = 2;
+    } else {
+      pendingStep.status = 'Returned';
+      pendingStep.actionDate = new Date().toISOString().split('T')[0];
+      pendingStep.comment = comment;
+      scorecard.scorecardStatus = ScorecardStatus.ReturnedForRevision;
+    }
+
+    // Update flat arrays
+    const stepIdx = this.scorecardApprovalSteps.findIndex(s => s.id === pendingStep.id);
+    if (stepIdx !== -1) this.scorecardApprovalSteps[stepIdx] = pendingStep;
+
+    this.scorecards[index] = scorecard;
+    return { ...scorecard };
+  }
+
+  public async enterCommitteeScores(
+    scorecardId: number,
+    scores: Record<string, number>,
+    enteredBy: string
+  ): Promise<IGoNoGoScorecard> {
+    await delay();
+    const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
+
+    // Apply committee scores
+    for (const [criterionId, value] of Object.entries(scores)) {
+      if (!scorecard.scores[Number(criterionId)]) {
+        scorecard.scores[Number(criterionId)] = {};
+      }
+      scorecard.scores[Number(criterionId)].committee = value;
+    }
+
+    scorecard.TotalScore_Cmte = calculateTotalScore(scorecard.scores, 'committee');
+    scorecard.committeeScoresEnteredBy = enteredBy;
+    scorecard.committeeScoresEnteredDate = new Date().toISOString().split('T')[0];
+
+    // Compute recommended decision
+    if (scorecard.TotalScore_Cmte) {
+      const rec = getRecommendedDecision(scorecard.TotalScore_Cmte);
+      scorecard.recommendedDecision = rec.decision;
+    }
+
+    scorecard.scorecardStatus = ScorecardStatus.PendingDecision;
+
+    this.scorecards[index] = scorecard;
+    return { ...scorecard };
+  }
+
+  public async recordFinalDecision(
+    scorecardId: number,
+    decision: GoNoGoDecision,
+    conditions?: string,
+    decidedBy?: string
+  ): Promise<IGoNoGoScorecard> {
+    await delay();
+    const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
+
+    const now = new Date().toISOString().split('T')[0];
+    scorecard.finalDecision = decision;
+    scorecard.finalDecisionBy = decidedBy;
+    scorecard.finalDecisionDate = now;
+    scorecard.Decision = decision;
+    scorecard.DecisionDate = now;
+
+    if (decision === GoNoGoDecision.ConditionalGo && conditions) {
+      scorecard.conditionalGoConditions = conditions;
+    }
+
+    scorecard.scorecardStatus = ScorecardStatus.Locked;
+    scorecard.isLocked = true;
+
+    // Complete active approval cycle
+    const activeCycle = scorecard.approvalCycles?.find(c => c.status === 'Active');
+    if (activeCycle) {
+      activeCycle.status = 'Completed';
+      activeCycle.completedDate = now;
+    }
+
+    // Create version snapshot
+    this.createVersionSnapshot(scorecard, `Decision recorded: ${decision}`, decidedBy || 'system');
+
+    // Update lead stage
+    const leadIndex = this.leads.findIndex(l => l.id === scorecard.LeadID);
+    if (leadIndex !== -1) {
+      const lead = this.leads[leadIndex];
+      lead.GoNoGoDecision = decision;
+      lead.GoNoGoDecisionDate = now;
+      lead.GoNoGoScore_Originator = scorecard.TotalScore_Orig;
+      lead.GoNoGoScore_Committee = scorecard.TotalScore_Cmte;
+
+      switch (decision) {
+        case GoNoGoDecision.Go:
+        case GoNoGoDecision.ConditionalGo:
+          lead.Stage = Stage.Opportunity;
+          break;
+        case GoNoGoDecision.NoGo:
+          lead.Stage = Stage.ArchivedNoGo;
+          break;
+      }
+    }
+
+    this.scorecards[index] = scorecard;
+    return { ...scorecard };
+  }
+
+  public async unlockScorecard(
+    scorecardId: number,
+    reason: string
+  ): Promise<IGoNoGoScorecard> {
+    await delay();
+    const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
+
+    // Create version snapshot before unlock
+    this.createVersionSnapshot(scorecard, `Unlocked: ${reason}`, scorecard.finalDecisionBy || 'system');
+
+    scorecard.isLocked = false;
+    scorecard.scorecardStatus = ScorecardStatus.Unlocked;
+    scorecard.currentVersion = (scorecard.currentVersion || 1) + 1;
+    scorecard.unlockedBy = scorecard.finalDecisionBy;
+    scorecard.unlockedDate = new Date().toISOString().split('T')[0];
+    scorecard.unlockReason = reason;
+
+    this.scorecards[index] = scorecard;
+    return { ...scorecard };
+  }
+
+  public async relockScorecard(
+    scorecardId: number,
+    startNewCycle: boolean
+  ): Promise<IGoNoGoScorecard> {
+    await delay();
+    const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
+
+    if (startNewCycle) {
+      scorecard.scorecardStatus = ScorecardStatus.Submitted;
+      // Will create a new approval cycle via submitScorecard
+    } else {
+      scorecard.scorecardStatus = ScorecardStatus.Locked;
+      scorecard.isLocked = true;
+      this.createVersionSnapshot(scorecard, 'Re-locked without re-approval', scorecard.finalDecisionBy || 'system');
+    }
+
+    this.scorecards[index] = scorecard;
+    return { ...scorecard };
+  }
+
+  public async getScorecardVersions(scorecardId: number): Promise<IScorecardVersion[]> {
+    await delay();
+    return this.scorecardVersions.filter(v => v.scorecardId === scorecardId);
   }
 
   // ---------------------------------------------------------------------------

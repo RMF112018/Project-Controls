@@ -5,7 +5,7 @@ import mockUsers from '../../mock/users.json';
 
 interface IAzureADPeoplePickerProps {
   selectedUser: IPersonAssignment | null;
-  onSelect: (user: IPersonAssignment) => void;
+  onSelect: (user: IPersonAssignment | null) => void;
   label?: string;
   placeholder?: string;
   disabled?: boolean;
@@ -53,7 +53,7 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = ({
 
   const handleClear = (e: React.MouseEvent): void => {
     e.stopPropagation();
-    onSelect({ userId: '', displayName: '', email: '' });
+    onSelect(null);
     setQuery('');
   };
 

@@ -1,4 +1,5 @@
 import { SCORECARD_CRITERIA, IGoNoGoScorecard } from '../models/IGoNoGoScorecard';
+import { GoNoGoDecision } from '../models/enums';
 import { SCORE_THRESHOLDS } from './constants';
 
 export function calculateTotalScore(scores: IGoNoGoScorecard['scores'], column: 'originator' | 'committee'): number {
@@ -64,4 +65,30 @@ export function getCompletionPercentage(scores: IGoNoGoScorecard['scores'], colu
     }
   }
   return Math.round((completed / SCORECARD_CRITERIA.length) * 100);
+}
+
+export function getRecommendedDecision(committeeTotal: number): {
+  decision: GoNoGoDecision;
+  confidence: 'Strong' | 'Moderate' | 'Weak';
+  reasoning: string;
+} {
+  if (committeeTotal >= SCORE_THRESHOLDS.HIGH) {
+    return {
+      decision: GoNoGoDecision.Go,
+      confidence: 'Strong',
+      reasoning: `Committee score of ${committeeTotal} exceeds the Go threshold of ${SCORE_THRESHOLDS.HIGH}`,
+    };
+  } else if (committeeTotal >= SCORE_THRESHOLDS.MID) {
+    return {
+      decision: GoNoGoDecision.ConditionalGo,
+      confidence: 'Moderate',
+      reasoning: `Committee score of ${committeeTotal} falls between thresholds (${SCORE_THRESHOLDS.MID}\u2013${SCORE_THRESHOLDS.HIGH}). Consider conditional approval.`,
+    };
+  } else {
+    return {
+      decision: GoNoGoDecision.NoGo,
+      confidence: 'Strong',
+      reasoning: `Committee score of ${committeeTotal} is below the minimum threshold of ${SCORE_THRESHOLDS.MID}`,
+    };
+  }
 }

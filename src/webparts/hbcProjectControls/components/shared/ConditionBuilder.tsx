@@ -155,7 +155,7 @@ export const ConditionBuilder: React.FC<IConditionBuilderProps> = ({
         </span>
         <AzureADPeoplePicker
           selectedUser={assignment.assignee}
-          onSelect={user => onChange({ ...assignment, assignee: user })}
+          onSelect={user => { if (user) onChange({ ...assignment, assignee: user }); }}
           disabled={disabled}
         />
       </div>

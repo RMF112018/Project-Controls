@@ -56,9 +56,20 @@ export enum DeliveryMethod {
 }
 
 export enum GoNoGoDecision {
-  Go = 'GO',
-  NoGo = 'NO GO',
-  Wait = 'WAIT'
+  Go = 'Go',
+  NoGo = 'No-Go',
+  ConditionalGo = 'Conditional Go'
+}
+
+export enum ScorecardStatus {
+  Draft = 'Draft',
+  Submitted = 'Submitted',
+  ReturnedForRevision = 'Returned for Revision',
+  InCommitteeReview = 'In Committee Review',
+  PendingDecision = 'Pending Decision',
+  Decided = 'Decided',
+  Locked = 'Locked',
+  Unlocked = 'Unlocked'
 }
 
 export enum WinLossDecision {
@@ -134,6 +145,13 @@ export enum AuditAction {
   LessonAdded = 'Lesson.Added',
   MonthlyReviewSubmitted = 'MonthlyReview.Submitted',
   MonthlyReviewAdvanced = 'MonthlyReview.Advanced',
+  ScorecardSubmitted = 'Scorecard.Submitted',
+  ScorecardReturned = 'Scorecard.Returned',
+  ScorecardCommitteeScored = 'Scorecard.CommitteeScored',
+  ScorecardDecisionMade = 'Scorecard.DecisionMade',
+  ScorecardUnlocked = 'Scorecard.Unlocked',
+  ScorecardRelocked = 'Scorecard.Relocked',
+  ScorecardVersionCreated = 'Scorecard.VersionCreated',
   WorkflowStepUpdated = 'Workflow.StepUpdated',
   WorkflowConditionAdded = 'Workflow.ConditionAdded',
   WorkflowConditionRemoved = 'Workflow.ConditionRemoved',
@@ -286,7 +304,12 @@ export enum NotificationEvent {
   CommitmentWaiverRequired = 'CommitmentWaiverRequired',
   CommitmentApproved = 'CommitmentApproved',
   CommitmentEscalatedToCFO = 'CommitmentEscalatedToCFO',
-  CommitmentRejected = 'CommitmentRejected'
+  CommitmentRejected = 'CommitmentRejected',
+  ScorecardSubmittedForReview = 'ScorecardSubmittedForReview',
+  ScorecardReturnedForRevision = 'ScorecardReturnedForRevision',
+  ScorecardCommitteeScoresFinalized = 'ScorecardCommitteeScoresFinalized',
+  ScorecardDecisionRecorded = 'ScorecardDecisionRecorded',
+  ScorecardUnlockedForEditing = 'ScorecardUnlockedForEditing'
 }
 
 export enum TurnoverStatus {

@@ -41,7 +41,7 @@ import { isActiveStage } from '../../../utils/stageEngine';
 const PIE_COLORS = {
   [GoNoGoDecision.Go]: HBC_COLORS.success,
   [GoNoGoDecision.NoGo]: HBC_COLORS.error,
-  [GoNoGoDecision.Wait]: HBC_COLORS.warning,
+  [GoNoGoDecision.ConditionalGo]: HBC_COLORS.warning,
 };
 const REGION_COLORS = [HBC_COLORS.navy, HBC_COLORS.orange, HBC_COLORS.info, HBC_COLORS.success, '#8B5CF6'];
 
@@ -140,15 +140,15 @@ export const DashboardPage: React.FC = () => {
     return months;
   }, [filteredLeads]);
 
-  // Win/Loss/Wait pie data
+  // Go/No-Go/Conditional pie data
   const gonogoDistribution = React.useMemo(() => {
     const goLeads = filteredLeads.filter(l => l.GoNoGoDecision === GoNoGoDecision.Go);
     const noGoLeads = filteredLeads.filter(l => l.GoNoGoDecision === GoNoGoDecision.NoGo);
-    const waitLeads = filteredLeads.filter(l => l.GoNoGoDecision === GoNoGoDecision.Wait);
+    const conditionalLeads = filteredLeads.filter(l => l.GoNoGoDecision === GoNoGoDecision.ConditionalGo);
     return [
       { name: 'Go', value: goLeads.length, color: PIE_COLORS[GoNoGoDecision.Go] },
       { name: 'No Go', value: noGoLeads.length, color: PIE_COLORS[GoNoGoDecision.NoGo] },
-      { name: 'Wait', value: waitLeads.length, color: PIE_COLORS[GoNoGoDecision.Wait] },
+      { name: 'Conditional Go', value: conditionalLeads.length, color: PIE_COLORS[GoNoGoDecision.ConditionalGo] },
     ].filter(d => d.value > 0);
   }, [filteredLeads]);
 

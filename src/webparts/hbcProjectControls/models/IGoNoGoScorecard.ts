@@ -1,4 +1,4 @@
-import { GoNoGoDecision } from './enums';
+import { GoNoGoDecision, ScorecardStatus } from './enums';
 
 export interface IScorecardCriterion {
   id: number;
@@ -59,4 +59,67 @@ export interface IGoNoGoScorecard {
   DecisionDate?: string;
   ScoredBy_Orig?: string;
   ScoredBy_Cmte?: string[];
+  // Workflow status (Phase 16)
+  scorecardStatus: ScorecardStatus;
+  currentApprovalStep?: number;
+  approvalCycles: IScorecardApprovalCycle[];
+  // Committee scoring metadata
+  committeeScoresEnteredBy?: string;
+  committeeScoresEnteredDate?: string;
+  committeeMeetingDate?: string;
+  // Decision
+  recommendedDecision?: GoNoGoDecision;
+  finalDecision?: GoNoGoDecision;
+  finalDecisionBy?: string;
+  finalDecisionDate?: string;
+  conditionalGoConditions?: string;
+  // Version tracking
+  currentVersion: number;
+  versions: IScorecardVersion[];
+  // Lock state
+  isLocked: boolean;
+  unlockedBy?: string;
+  unlockedDate?: string;
+  unlockReason?: string;
+}
+
+// IPersonAssignment is defined in IWorkflowDefinition.ts and re-exported from barrel
+
+export interface IScorecardApprovalCycle {
+  id: number;
+  scorecardId: number;
+  cycleNumber: number;
+  version: number;
+  steps: IScorecardApprovalStep[];
+  startedDate: string;
+  completedDate?: string;
+  status: 'Active' | 'Completed' | 'Cancelled';
+}
+
+export interface IScorecardApprovalStep {
+  id: number;
+  cycleId: number;
+  stepOrder: number;
+  name: string;
+  assigneeEmail: string;
+  assigneeName: string;
+  assignmentSource: 'ProjectRole' | 'Condition' | 'Default' | 'Override';
+  status: 'Pending' | 'Approved' | 'Returned' | 'Skipped';
+  actionDate?: string;
+  comment?: string;
+}
+
+export interface IScorecardVersion {
+  id: number;
+  scorecardId: number;
+  versionNumber: number;
+  createdDate: string;
+  createdBy: string;
+  reason?: string;
+  originalScores: Record<string, number>;
+  committeeScores: Record<string, number>;
+  totalOriginal?: number;
+  totalCommittee?: number;
+  decision?: GoNoGoDecision;
+  conditions?: string;
 }
