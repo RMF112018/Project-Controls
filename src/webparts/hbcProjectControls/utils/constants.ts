@@ -254,3 +254,5 @@ export const SCORE_THRESHOLDS = {
   HIGH: 69,
   MID: 55,
 } as const;
+
+export const DEFAULT_HUB_SITE_URL = 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral';

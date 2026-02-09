@@ -9,6 +9,7 @@ import { IJobNumberRequest, JobNumberRequestStatus } from '../../../models/IJobN
 import { ILead } from '../../../models/ILead';
 import { NotificationService } from '../../../services/NotificationService';
 import { ProvisioningService } from '../../../services/ProvisioningService';
+import { MockHubNavigationService } from '../../../services/HubNavigationService';
 
 const PROJECT_CODE_REGEX = /^\d{2}-\d{3}-\d{2}$/;
 
@@ -90,7 +91,8 @@ const AccountingQueueContent: React.FC = () => {
       // 3. Update site title if site exists
       const lead = leadsMap[request.LeadID];
       if (lead?.ProjectSiteURL) {
-        const provisioningService = new ProvisioningService(dataService);
+        const hubNavSvc = new MockHubNavigationService();
+        const provisioningService = new ProvisioningService(dataService, hubNavSvc);
         await provisioningService.updateSiteTitle(
           lead.ProjectSiteURL,
           `${jobNumber} — ${lead.Title}`
@@ -99,7 +101,8 @@ const AccountingQueueContent: React.FC = () => {
 
       // 4. If provisioning was held, trigger it now
       if (request.SiteProvisioningHeld && lead) {
-        const provisioningService = new ProvisioningService(dataService);
+        const hubNavSvc = new MockHubNavigationService();
+        const provisioningService = new ProvisioningService(dataService, hubNavSvc);
         provisioningService.provisionSite({
           leadId: request.LeadID,
           projectCode: jobNumber,
