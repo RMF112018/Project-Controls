@@ -20,3 +20,7 @@ export type { IProvisioningStatusProps } from './ProvisioningStatus';
 export { SyncStatusIndicator } from './SyncStatusIndicator';
 export { WhatsNewModal } from './WhatsNewModal';
 export { ProjectPicker } from './ProjectPicker';
+export { AzureADPeoplePicker } from './AzureADPeoplePicker';
+export { WorkflowStepCard } from './WorkflowStepCard';
+export { ConditionBuilder } from './ConditionBuilder';
+export { WorkflowPreview } from './WorkflowPreview';

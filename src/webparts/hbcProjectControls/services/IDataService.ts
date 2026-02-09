@@ -33,7 +33,8 @@ import { IBuyoutEntry } from '../models/IBuyoutEntry';
 import { ICommitmentApproval } from '../models/ICommitmentApproval';
 import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType } from '../models/IActiveProject';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
-import { GoNoGoDecision, Stage } from '../models/enums';
+import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
+import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 
 export interface IListQueryOptions {
   filter?: string;
@@ -266,6 +267,18 @@ export interface IDataService {
 
   // Closeout Promotion — copy lessons learned to hub and update closeout data
   promoteToHub(projectCode: string): Promise<void>;
+
+  // Workflow Definitions
+  getWorkflowDefinitions(): Promise<IWorkflowDefinition[]>;
+  getWorkflowDefinition(workflowKey: WorkflowKey): Promise<IWorkflowDefinition | null>;
+  updateWorkflowStep(workflowId: number, stepId: number, data: Partial<IWorkflowStep>): Promise<IWorkflowStep>;
+  addConditionalAssignment(stepId: number, assignment: Partial<IConditionalAssignment>): Promise<IConditionalAssignment>;
+  updateConditionalAssignment(assignmentId: number, data: Partial<IConditionalAssignment>): Promise<IConditionalAssignment>;
+  removeConditionalAssignment(assignmentId: number): Promise<void>;
+  getWorkflowOverrides(projectCode: string): Promise<IWorkflowStepOverride[]>;
+  setWorkflowStepOverride(override: Partial<IWorkflowStepOverride>): Promise<IWorkflowStepOverride>;
+  removeWorkflowStepOverride(overrideId: number): Promise<void>;
+  resolveWorkflowChain(workflowKey: WorkflowKey, projectCode: string): Promise<IResolvedWorkflowStep[]>;
 }
 
 export interface IActiveProjectsQueryOptions extends IListQueryOptions {

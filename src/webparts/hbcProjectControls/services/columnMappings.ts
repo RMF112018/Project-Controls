@@ -1264,3 +1264,67 @@ export const INTERVIEW_PREP_COLUMNS = {
   rehearsalDate: 'rehearsalDate',              // SP: DateTime
   documents: 'documents',                      // SP: Multiple Lines of Text (JSON array of URLs)
 } as const;
+
+// ════════════════════════════════════════════════════════════════════════════
+// ──── Workflow Definition Lists ────
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * List: Workflow_Definitions
+ * Interface: IWorkflowDefinition
+ */
+export const WORKFLOW_DEFINITIONS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  workflowKey: 'WorkflowKey',                  // SP: Choice (GO_NO_GO, PMP_APPROVAL, MONTHLY_REVIEW, COMMITMENT_APPROVAL)
+  name: 'Title',                               // SP: Single Line of Text (default)
+  description: 'Description',                  // SP: Multiple Lines of Text
+  isActive: 'IsActive',                        // SP: Yes/No
+  lastModifiedBy: 'LastModifiedBy',            // SP: Single Line of Text
+  lastModifiedDate: 'LastModifiedDate',        // SP: DateTime
+} as const;
+
+/**
+ * List: Workflow_Steps
+ * Interface: IWorkflowStep
+ */
+export const WORKFLOW_STEPS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  workflowId: 'WorkflowId',                   // SP: Number (lookup ID to Workflow_Definitions)
+  stepOrder: 'StepOrder',                      // SP: Number
+  name: 'Title',                               // SP: Single Line of Text (default)
+  description: 'Description',                  // SP: Multiple Lines of Text
+  assignmentType: 'AssignmentType',            // SP: Choice (ProjectRole, NamedPerson)
+  projectRole: 'ProjectRole',                  // SP: Choice (RoleName values)
+  defaultAssignee: 'DefaultAssignee',          // SP: Multiple Lines of Text (JSON: IPersonAssignment)
+  isConditional: 'IsConditional',              // SP: Yes/No
+  conditionDescription: 'ConditionDescription',// SP: Single Line of Text
+  actionLabel: 'ActionLabel',                  // SP: Single Line of Text
+  canChairMeeting: 'CanChairMeeting',          // SP: Yes/No
+} as const;
+
+/**
+ * List: Workflow_Conditional_Assignments
+ * Interface: IConditionalAssignment
+ */
+export const WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  stepId: 'StepId',                            // SP: Number (lookup ID to Workflow_Steps)
+  conditions: 'Conditions',                    // SP: Multiple Lines of Text (JSON: IAssignmentCondition[])
+  assignee: 'Assignee',                        // SP: Multiple Lines of Text (JSON: IPersonAssignment)
+  priority: 'Priority',                        // SP: Number
+} as const;
+
+/**
+ * List: Workflow_Step_Overrides
+ * Interface: IWorkflowStepOverride
+ */
+export const WORKFLOW_STEP_OVERRIDES_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  projectCode: 'ProjectCode',                 // SP: Single Line of Text
+  workflowKey: 'WorkflowKey',                 // SP: Choice
+  stepId: 'StepId',                            // SP: Number (lookup ID to Workflow_Steps)
+  overrideAssignee: 'OverrideAssignee',        // SP: Multiple Lines of Text (JSON: IPersonAssignment)
+  overrideReason: 'OverrideReason',            // SP: Single Line of Text
+  overriddenBy: 'OverriddenBy',                // SP: Single Line of Text
+  overriddenDate: 'OverriddenDate',            // SP: DateTime
+} as const;

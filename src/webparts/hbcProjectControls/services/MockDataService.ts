@@ -111,6 +111,10 @@ import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 import { IEstimatingKickoff, IEstimatingKickoffItem } from '../models/IEstimatingKickoff';
 import { IBuyoutEntry, EVerifyStatus } from '../models/IBuyoutEntry';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
+import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
+import { WorkflowKey, StepAssignmentType, ConditionField } from '../models/enums';
+import mockWorkflowDefinitions from '../mock/workflowDefinitions.json';
+import mockWorkflowStepOverrides from '../mock/workflowStepOverrides.json';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
 
@@ -163,6 +167,8 @@ export class MockDataService implements IDataService {
   private checklistActivityLog: IChecklistActivityEntry[];
   private buyoutEntries: IBuyoutEntry[];
   private activeProjects: IActiveProject[];
+  private workflowDefinitions: IWorkflowDefinition[];
+  private workflowStepOverrides: IWorkflowStepOverride[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -294,6 +300,8 @@ export class MockDataService implements IDataService {
       JSON.parse(JSON.stringify(mockBuyoutEntries)) as IBuyoutEntry[]
     );
     this.activeProjects = this.generateMockActiveProjects();
+    this.workflowDefinitions = JSON.parse(JSON.stringify(mockWorkflowDefinitions)) as IWorkflowDefinition[];
+    this.workflowStepOverrides = JSON.parse(JSON.stringify(mockWorkflowStepOverrides)) as IWorkflowStepOverride[];
     this.nextId = 1000;
   }
 
@@ -3638,6 +3646,227 @@ export class MockDataService implements IDataService {
     if (pmpIndex !== -1 && this.pmps[pmpIndex].status !== 'Closed') {
       this.pmps[pmpIndex].status = 'Closed';
       this.pmps[pmpIndex].lastUpdatedAt = new Date().toISOString();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Workflow Definitions
+  // ---------------------------------------------------------------------------
+
+  public async getWorkflowDefinitions(): Promise<IWorkflowDefinition[]> {
+    await delay();
+    return JSON.parse(JSON.stringify(this.workflowDefinitions));
+  }
+
+  public async getWorkflowDefinition(workflowKey: WorkflowKey): Promise<IWorkflowDefinition | null> {
+    await delay();
+    const def = this.workflowDefinitions.find(w => w.workflowKey === workflowKey);
+    return def ? JSON.parse(JSON.stringify(def)) : null;
+  }
+
+  public async updateWorkflowStep(workflowId: number, stepId: number, data: Partial<IWorkflowStep>): Promise<IWorkflowStep> {
+    await delay();
+    const workflow = this.workflowDefinitions.find(w => w.id === workflowId);
+    if (!workflow) throw new Error(`Workflow ${workflowId} not found`);
+    const stepIndex = workflow.steps.findIndex(s => s.id === stepId);
+    if (stepIndex === -1) throw new Error(`Step ${stepId} not found`);
+    workflow.steps[stepIndex] = { ...workflow.steps[stepIndex], ...data, id: stepId, workflowId };
+    workflow.lastModifiedDate = new Date().toISOString();
+    return JSON.parse(JSON.stringify(workflow.steps[stepIndex]));
+  }
+
+  public async addConditionalAssignment(stepId: number, assignment: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> {
+    await delay();
+    for (const workflow of this.workflowDefinitions) {
+      const step = workflow.steps.find(s => s.id === stepId);
+      if (step) {
+        const newAssignment: IConditionalAssignment = {
+          id: this.getNextId(),
+          stepId,
+          conditions: assignment.conditions || [],
+          assignee: assignment.assignee || { userId: '', displayName: '', email: '' },
+          priority: assignment.priority || step.conditionalAssignees.length + 1,
+        };
+        step.conditionalAssignees.push(newAssignment);
+        workflow.lastModifiedDate = new Date().toISOString();
+        return JSON.parse(JSON.stringify(newAssignment));
+      }
+    }
+    throw new Error(`Step ${stepId} not found`);
+  }
+
+  public async updateConditionalAssignment(assignmentId: number, data: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> {
+    await delay();
+    for (const workflow of this.workflowDefinitions) {
+      for (const step of workflow.steps) {
+        const idx = step.conditionalAssignees.findIndex(a => a.id === assignmentId);
+        if (idx !== -1) {
+          step.conditionalAssignees[idx] = { ...step.conditionalAssignees[idx], ...data, id: assignmentId };
+          workflow.lastModifiedDate = new Date().toISOString();
+          return JSON.parse(JSON.stringify(step.conditionalAssignees[idx]));
+        }
+      }
+    }
+    throw new Error(`Conditional assignment ${assignmentId} not found`);
+  }
+
+  public async removeConditionalAssignment(assignmentId: number): Promise<void> {
+    await delay();
+    for (const workflow of this.workflowDefinitions) {
+      for (const step of workflow.steps) {
+        const idx = step.conditionalAssignees.findIndex(a => a.id === assignmentId);
+        if (idx !== -1) {
+          step.conditionalAssignees.splice(idx, 1);
+          workflow.lastModifiedDate = new Date().toISOString();
+          return;
+        }
+      }
+    }
+    throw new Error(`Conditional assignment ${assignmentId} not found`);
+  }
+
+  public async getWorkflowOverrides(projectCode: string): Promise<IWorkflowStepOverride[]> {
+    await delay();
+    return JSON.parse(JSON.stringify(this.workflowStepOverrides.filter(o => o.projectCode === projectCode)));
+  }
+
+  public async setWorkflowStepOverride(override: Partial<IWorkflowStepOverride>): Promise<IWorkflowStepOverride> {
+    await delay();
+    // Remove existing override for this project+step combination
+    this.workflowStepOverrides = this.workflowStepOverrides.filter(
+      o => !(o.projectCode === override.projectCode && o.stepId === override.stepId)
+    );
+    const newOverride: IWorkflowStepOverride = {
+      id: this.getNextId(),
+      projectCode: override.projectCode || '',
+      workflowKey: override.workflowKey || WorkflowKey.GO_NO_GO,
+      stepId: override.stepId || 0,
+      overrideAssignee: override.overrideAssignee || { userId: '', displayName: '', email: '' },
+      overrideReason: override.overrideReason,
+      overriddenBy: override.overriddenBy || '',
+      overriddenDate: new Date().toISOString(),
+    };
+    this.workflowStepOverrides.push(newOverride);
+    return JSON.parse(JSON.stringify(newOverride));
+  }
+
+  public async removeWorkflowStepOverride(overrideId: number): Promise<void> {
+    await delay();
+    const idx = this.workflowStepOverrides.findIndex(o => o.id === overrideId);
+    if (idx === -1) throw new Error(`Override ${overrideId} not found`);
+    this.workflowStepOverrides.splice(idx, 1);
+  }
+
+  public async resolveWorkflowChain(workflowKey: WorkflowKey, projectCode: string): Promise<IResolvedWorkflowStep[]> {
+    await delay();
+    const workflow = this.workflowDefinitions.find(w => w.workflowKey === workflowKey);
+    if (!workflow) return [];
+
+    const overrides = this.workflowStepOverrides.filter(
+      o => o.projectCode === projectCode && o.workflowKey === workflowKey
+    );
+    const teamMembers = this.teamMembers.filter(tm => tm.projectCode === projectCode);
+    const lead = this.leads.find(l => l.ProjectCode === projectCode);
+
+    const resolved: IResolvedWorkflowStep[] = [];
+
+    for (const step of workflow.steps) {
+      // 1. Check overrides first
+      const override = overrides.find(o => o.stepId === step.id);
+      if (override) {
+        resolved.push({
+          stepId: step.id,
+          stepOrder: step.stepOrder,
+          name: step.name,
+          assignee: override.overrideAssignee,
+          assignmentSource: 'Override',
+          isConditional: step.isConditional,
+          conditionMet: true,
+          actionLabel: step.actionLabel,
+          canChairMeeting: step.canChairMeeting || false,
+        });
+        continue;
+      }
+
+      // 2. ProjectRole: lookup from team members
+      if (step.assignmentType === StepAssignmentType.ProjectRole && step.projectRole) {
+        const member = teamMembers.find(tm => tm.role === step.projectRole);
+        if (member) {
+          resolved.push({
+            stepId: step.id,
+            stepOrder: step.stepOrder,
+            name: step.name,
+            assignee: { userId: String(member.id), displayName: member.name, email: member.email },
+            assignmentSource: 'ProjectRole',
+            isConditional: step.isConditional,
+            conditionMet: true,
+            actionLabel: step.actionLabel,
+            canChairMeeting: step.canChairMeeting || false,
+          });
+        } else {
+          // Unresolvable — no team member with that role
+          resolved.push({
+            stepId: step.id,
+            stepOrder: step.stepOrder,
+            name: step.name,
+            assignee: { userId: '', displayName: `(No ${step.projectRole} assigned)`, email: '' },
+            assignmentSource: 'ProjectRole',
+            isConditional: step.isConditional,
+            conditionMet: false,
+            actionLabel: step.actionLabel,
+            canChairMeeting: step.canChairMeeting || false,
+          });
+        }
+        continue;
+      }
+
+      // 3. NamedPerson: evaluate conditional assignments
+      if (step.assignmentType === StepAssignmentType.NamedPerson) {
+        let assignee = step.defaultAssignee;
+        let source: 'Condition' | 'Default' = 'Default';
+        let conditionMet = !step.isConditional; // Non-conditional steps are always met
+
+        if (step.conditionalAssignees.length > 0 && lead) {
+          const sorted = [...step.conditionalAssignees].sort((a, b) => a.priority - b.priority);
+          for (const ca of sorted) {
+            const allMatch = ca.conditions.every(cond => {
+              const fieldValue = this.getLeadFieldValue(lead, cond.field);
+              return fieldValue === cond.value;
+            });
+            if (allMatch) {
+              assignee = ca.assignee;
+              source = 'Condition';
+              conditionMet = true;
+              break;
+            }
+          }
+        }
+
+        resolved.push({
+          stepId: step.id,
+          stepOrder: step.stepOrder,
+          name: step.name,
+          assignee: assignee || { userId: '', displayName: '(Unassigned)', email: '' },
+          assignmentSource: source,
+          isConditional: step.isConditional,
+          conditionMet,
+          actionLabel: step.actionLabel,
+          canChairMeeting: step.canChairMeeting || false,
+        });
+        continue;
+      }
+    }
+
+    return resolved;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private getLeadFieldValue(lead: any, field: ConditionField): string {
+    switch (field) {
+      case ConditionField.Division: return lead.Division || '';
+      case ConditionField.Region: return lead.Region || '';
+      case ConditionField.Sector: return lead.Sector || '';
+      default: return '';
     }
   }
 }

@@ -19,11 +19,13 @@ import {
   EntityType,
 } from '../../../models';
 import { ProvisioningService } from '../../../services/ProvisioningService';
+import { FeatureGate } from '../../guards/FeatureGate';
+import { WorkflowDefinitionsPanel } from './WorkflowDefinitionsPanel';
 import { HBC_COLORS, SPACING } from '../../../theme/tokens';
 import { formatDateTime } from '../../../utils/formatters';
 import { PERMISSIONS } from '../../../utils/permissions';
 
-const TABS = ['Connections', 'Roles', 'Feature Flags', 'Provisioning', 'Audit Log'] as const;
+const TABS = ['Connections', 'Roles', 'Feature Flags', 'Provisioning', 'Workflows', 'Audit Log'] as const;
 
 interface IConnectionEntry {
   id: number;
@@ -150,7 +152,7 @@ export const AdminPanel: React.FC = () => {
     } else if (activeTab === 3 && logs.length === 0) {
       setProvLoading(true);
       dataService.getProvisioningLogs().then(setLogs).catch(console.error).finally(() => setProvLoading(false));
-    } else if (activeTab === 4 && auditEntries.length === 0) {
+    } else if (activeTab === 5 && auditEntries.length === 0) {
       setAuditLoading(true);
       dataService.getAuditLog(undefined, undefined, auditStartDate, auditEndDate)
         .then(setAuditEntries).catch(console.error).finally(() => setAuditLoading(false));
@@ -535,8 +537,21 @@ export const AdminPanel: React.FC = () => {
         )
       )}
 
-      {/* Tab 5: Audit Log */}
+      {/* Tab 5: Workflows */}
       {activeTab === 4 && (
+        hasPermission(PERMISSIONS.WORKFLOW_MANAGE) ? (
+          <FeatureGate featureName="WorkflowDefinitions">
+            <WorkflowDefinitionsPanel />
+          </FeatureGate>
+        ) : (
+          <div style={{ padding: '24px', textAlign: 'center', color: HBC_COLORS.gray400 }}>
+            You do not have permission to manage workflow definitions.
+          </div>
+        )
+      )}
+
+      {/* Tab 6: Audit Log */}
+      {activeTab === 5 && (
         <div>
           {auditEntries.length > 5000 && (
             <div style={{
