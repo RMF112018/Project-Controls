@@ -340,3 +340,20 @@ export enum ConditionField {
   Region = 'Region',
   Sector = 'Sector'
 }
+
+export enum WorkflowActionType {
+  GoNoGoReview = 'GoNoGoReview',
+  GoNoGoRevision = 'GoNoGoRevision',
+  PMPApproval = 'PMPApproval',
+  PMPSignature = 'PMPSignature',
+  MonthlyReviewInput = 'MonthlyReviewInput',
+  MonthlyReviewValidation = 'MonthlyReviewValidation',
+  CommitmentApproval = 'CommitmentApproval',
+  TurnoverSignature = 'TurnoverSignature'
+}
+
+export enum ActionPriority {
+  Urgent = 'Urgent',
+  Normal = 'Normal',
+  New = 'New'
+}

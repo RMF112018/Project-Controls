@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-09 — Phase 16: Hub Site Navigation Link Provisioning
+**Last Updated:** 2026-02-09 — Phase 17: Scorecard Unlock Fix, Director Role & Action Inbox
 
 ---
 
@@ -109,7 +109,8 @@ src/webparts/hbcProjectControls/
 │   │   ├── ProjectRequiredRoute.tsx      # Shows "No Project Selected" if no selectedProject
 │   │   ├── RoleGate.tsx                  # Renders children only if user has allowed role
 │   │   └── index.ts
-│   ├── hooks/                             # 29 custom hooks (see §7 for service method mapping)
+│   ├── hooks/                             # 30 custom hooks (see §7 for service method mapping)
+│   │   ├── useActionInbox.ts             # Action inbox aggregation with auto-refresh
 │   │   ├── useActiveProjects.ts          # Active projects portfolio
 │   │   ├── useBuyoutLog.ts              # Buyout log CRUD
 │   │   ├── useCommitmentApproval.ts     # Commitment approval workflow
@@ -232,16 +233,16 @@ src/webparts/hbcProjectControls/
 │       ├── WorkflowStepCard.tsx
 │       └── index.ts
 ├── mock/                                  # 36 JSON mock data files (see §12)
-├── models/                                # 40 TypeScript model files (see §6)
-│   ├── enums.ts                          # All shared enums (29 enums)
+├── models/                                # 41 TypeScript model files (see §6)
+│   ├── enums.ts                          # All shared enums (31 enums)
 │   ├── I*.ts                             # Interface files (one per entity)
 │   └── index.ts                          # Barrel export
 ├── provisioning/
 │   └── site-template.json                # SP site template definition
 ├── services/
-│   ├── IDataService.ts                   # Service interface (171 methods)
-│   ├── MockDataService.ts               # Mock implementation (all 171 implemented)
-│   ├── SharePointDataService.ts         # SP implementation (49 implemented, 122 stubs)
+│   ├── IDataService.ts                   # Service interface (172 methods)
+│   ├── MockDataService.ts               # Mock implementation (all 172 implemented)
+│   ├── SharePointDataService.ts         # SP implementation (49 implemented, 123 stubs)
 │   ├── AuditService.ts                  # Fire-and-forget audit queue with 2s debounce
 │   ├── CacheService.ts                  # Two-tier cache (memory + sessionStorage), 15min TTL
 │   ├── columnMappings.ts                # SP column name mappings for all lists (1267 lines)
@@ -453,6 +454,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | IPortfolioSummary | models/IActiveProject.ts | totalBacklog, totalOriginalContract, projectCount, projectsByStatus, projectsWithAlerts | — | — |
 | IPersonnelWorkload | models/IActiveProject.ts | name, email?, role, projectCount, totalContractValue, projects | — | — |
 | IAlertThresholds | models/IActiveProject.ts | unbilledWarningPct, feeErosionPct, scheduleDelayDays | — | — |
+| IActionInboxItem | models/IActionInbox.ts | id, workflowType: WorkflowActionType, actionLabel, projectCode, projectName, entityId, requestedBy, requestedDate, waitingDays, routePath, priority: ActionPriority | — (aggregated) | — |
 | IRole | models/IRole.ts | id, Title: RoleName, UserOrGroup, Permissions, IsActive | App_Roles | Hub |
 | ICurrentUser | models/IRole.ts | id, displayName, email, loginName, roles: RoleName[], permissions: Set<string> | — | — |
 | IFeatureFlag | models/IFeatureFlag.ts | id, FeatureName, Enabled, EnabledForRoles?, TargetDate?, Notes? | Feature_Flags | Hub |
@@ -556,6 +558,8 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | WorkflowKey | GO_NO_GO, PMP_APPROVAL, MONTHLY_REVIEW, COMMITMENT_APPROVAL, TURNOVER_APPROVAL |
 | StepAssignmentType | ProjectRole, NamedPerson |
 | ConditionField | Division, Region, Sector |
+| WorkflowActionType | GoNoGoReview, GoNoGoRevision, PMPApproval, PMPSignature, MonthlyReviewInput, MonthlyReviewValidation, CommitmentApproval, TurnoverSignature |
+| ActionPriority | Urgent, Normal, New |
 
 ### Type Aliases
 
@@ -598,7 +602,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 
 ## §7 Service Methods
 
-171 methods on IDataService. Source: `services/IDataService.ts`
+172 methods on IDataService. Source: `services/IDataService.ts`
 
 | # | Method | Signature | Mock | SP | Hook Caller | Mock JSON |
 |---|--------|-----------|------|-----|-------------|-----------|
@@ -773,6 +777,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 169 | getTurnoverAgendaByLeadId | (leadId: number) → Promise<ITurnoverAgenda \| null> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
 | 170 | getHubSiteUrl | () → Promise<string> | Impl | Impl | AdminPanel | in-memory |
 | 171 | setHubSiteUrl | (url: string) → Promise<void> | Impl | Stub | AdminPanel | in-memory |
+| 172 | getActionItems | (userEmail: string) → Promise<IActionInboxItem[]> | Impl | Stub | useActionInbox | aggregated |
 
 ---
 
@@ -1305,9 +1310,11 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 | 15 | Turnover to Ops Meeting Agenda — Two-tab TurnoverToOps rewrite (Meeting Agenda + Follow-Up Checklist), formal meeting procedure with prerequisites, estimate overview, 10 discussion items, subcontractor table, 10 exhibits, 4-party signature block with affidavit, workflow-driven signer resolution | ITurnoverAgenda.ts, turnoverAgendaTemplate.ts, turnoverAgendas.json, useTurnoverAgenda.ts | TurnoverToOps.tsx (rewrite), IDataService (169 methods), MockDataService, SharePointDataService, columnMappings.ts (+7 mappings), enums.ts (+TurnoverStatus, +10 AuditAction, +1 EntityType, +1 WorkflowKey), permissions.ts (+turnover:agenda:edit, +turnover:sign), constants.ts (+7 PROJECT_LISTS), workflowDefinitions.json (+TURNOVER_APPROVAL) |
 | 16 | Hub Site Navigation Link Provisioning — Post-provisioning hub nav link creation under year-based labels, HubNavigationService (Mock + SP stub), IDataService hub URL config, AdminPanel hub URL editor + nav link status column + retry, ProvisioningService integration | HubNavigationService.ts | IProvisioningLog.ts (+HubNavLinkStatus), enums.ts (+5 AuditAction), IDataService.ts (+2 methods, 171 total), MockDataService.ts, SharePointDataService.ts, ProvisioningService.ts, constants.ts (+DEFAULT_HUB_SITE_URL), AdminPanel.tsx, GoNoGoScorecard.tsx, JobNumberRequestForm.tsx, AccountingQueuePage.tsx |
 
+| 17 | Scorecard Unlock Fix, Director Role & Action Inbox — Bug fix: canUnlock now checks approval chain participants + Executive Leadership (not just GONOGO_DECIDE). New Action Inbox: aggregation widget on DashboardPage showing pending workflow items across 5 workflow types for current user. | IActionInbox.ts, useActionInbox.ts | useGoNoGo.ts (canUnlock fix), enums.ts (+2 enums), models/index.ts, IDataService.ts (+1 method, 172 total), MockDataService.ts (+getActionItems aggregation), SharePointDataService.ts (+1 stub), hooks/index.ts, DashboardPage.tsx (+Action Inbox section) |
+
 ### Known Stubs / Placeholders
 
-- **SharePointDataService**: 122 of 171 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
+- **SharePointDataService**: 123 of 172 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
 - **HubNavigationService**: SharePointHubNavigationService is a stub (all 3 methods throw).
 - **Column Mappings**: `columnMappings.ts` has mappings for all lists but SP service stubs don't use them yet.
 - **Offline Support**: `OfflineQueueService.ts` exists but feature flag `OfflineSupport` is disabled.
@@ -1319,7 +1326,7 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 ### SharePointDataService Status
 
 - **Implemented (49)**: Leads CRUD, Go/No-Go CRUD, Estimating CRUD, Roles/Flags CRUD, Audit log/read, Provisioning read, Phase 6 workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read
-- **Stubbed (122)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff, all job number requests, all workflow definitions, all turnover agenda, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers, hub site URL write
+- **Stubbed (123)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff, all job number requests, all workflow definitions, all turnover agenda, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers, hub site URL write, action inbox (SP)
 
 ---
 
@@ -1359,3 +1366,4 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 | 2026-02-09 | §2, §3, §5, §6, §7, §10, §11, §12, §13, §15 | Phase 13: Added workflow definition configuration. 4 new workflows (Go/No-Go, PMP, Monthly Review, Commitment) with 14 steps. AdminPanel expanded to 6 tabs. 10 new IDataService methods (152 total). 3 new enums, 6 new enum values. 4 new shared components, 1 new hook, 1 new page. |
 | 2026-02-09 | §2, §6, §7, §10, §12, §13, §15 | Phase 15: Turnover to Ops Meeting Agenda. TurnoverToOps.tsx rewritten as two-tab module (Meeting Agenda + Follow-Up Checklist). 9 new interfaces (ITurnoverAgenda + 8 sub-interfaces). 17 new IDataService methods (169 total). 1 new enum (TurnoverStatus), 10 AuditAction values, 1 EntityType, 1 WorkflowKey. 2 new permissions (turnover:agenda:edit, turnover:sign). 7 new PROJECT_LISTS. 7 new column mappings. 5th workflow (TURNOVER_APPROVAL). New files: ITurnoverAgenda.ts, turnoverAgendaTemplate.ts, turnoverAgendas.json, useTurnoverAgenda.ts. |
 | 2026-02-09 | §2, §6, §7, §13, §15 | Phase 16: Hub Site Navigation Link Provisioning. Added HubNavigationService.ts to services. IProvisioningLog updated with hubNavLinkStatus field. 1 new type alias (HubNavLinkStatus). 5 new AuditAction enum values (HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated). 2 new IDataService methods (171 total): getHubSiteUrl (implemented), setHubSiteUrl (stub). Added DEFAULT_HUB_SITE_URL constant. SharePointDataService: 49 implemented, 122 stubs. HubNavigationService SP stub added to known stubs. |
+| 2026-02-09 | §2, §6, §7, §15 | Phase 17: Scorecard Unlock Fix, Director Role & Action Inbox. Bug fix: useGoNoGo canUnlock now checks approval chain participants OR Executive Leadership (was GONOGO_DECIDE only). New model: IActionInboxItem (models/IActionInbox.ts). 2 new enums: WorkflowActionType (8 values), ActionPriority (3 values). 1 new IDataService method (172 total): getActionItems. New hook: useActionInbox (auto-refresh 5min). DashboardPage: Action Inbox section between filters and KPI cards. SharePointDataService: 49 implemented, 123 stubs. |

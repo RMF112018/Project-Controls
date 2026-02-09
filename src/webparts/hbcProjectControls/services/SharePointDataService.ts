@@ -29,6 +29,7 @@ import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, S
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
+import { IActionInboxItem } from '../models/IActionInbox';
 import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
@@ -1301,4 +1302,6 @@ export class SharePointDataService implements IDataService {
     }
   }
   async setHubSiteUrl(_url: string): Promise<void> { throw new Error('Not implemented'); }
+
+  async getActionItems(_userEmail: string): Promise<IActionInboxItem[]> { return []; }
 }

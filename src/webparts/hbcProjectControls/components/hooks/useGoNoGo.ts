@@ -6,6 +6,7 @@ import {
   ScorecardStatus,
   IScorecardVersion,
   IPersonAssignment,
+  RoleName,
 } from '../../models';
 import { PERMISSIONS } from '../../utils/permissions';
 import { getRecommendedDecision } from '../../utils/scoreCalculator';
@@ -204,12 +205,15 @@ export function useGoNoGo(): IUseGoNoGoResult {
   }, [activeScorecard, hasPermission]);
 
   const canUnlock = React.useMemo(() => {
-    if (!activeScorecard) return false;
-    return (
-      activeScorecard.isLocked &&
-      hasPermission(PERMISSIONS.GONOGO_DECIDE)
-    );
-  }, [activeScorecard, hasPermission]);
+    if (!activeScorecard || !activeScorecard.isLocked) return false;
+    const userEmail = currentUser?.email?.toLowerCase();
+    if (!userEmail) return false;
+    const isInApprovalChain = activeScorecard.approvalCycles?.some(cycle =>
+      cycle.steps?.some(step => step.assigneeEmail?.toLowerCase() === userEmail)
+    ) || false;
+    const isExecLeadership = currentUser?.roles?.includes(RoleName.ExecutiveLeadership) || false;
+    return isInApprovalChain || isExecLeadership;
+  }, [activeScorecard, currentUser]);
 
   const recommendedDecision = React.useMemo(() => {
     if (!activeScorecard?.TotalScore_Cmte) return null;

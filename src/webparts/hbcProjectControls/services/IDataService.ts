@@ -36,6 +36,7 @@ import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, S
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
+import { IActionInboxItem } from '../models/IActionInbox';
 import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -324,6 +325,9 @@ export interface IDataService {
   // Hub Site URL Configuration
   getHubSiteUrl(): Promise<string>;
   setHubSiteUrl(url: string): Promise<void>;
+
+  // Action Inbox aggregation
+  getActionItems(userEmail: string): Promise<IActionInboxItem[]>;
 }
 
 export interface IActiveProjectsQueryOptions extends IListQueryOptions {
