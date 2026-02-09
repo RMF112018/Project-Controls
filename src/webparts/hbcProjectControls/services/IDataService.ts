@@ -34,6 +34,7 @@ import { ICommitmentApproval } from '../models/ICommitmentApproval';
 import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType } from '../models/IActiveProject';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
+import { ITurnoverAgenda, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
 import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -279,6 +280,36 @@ export interface IDataService {
   setWorkflowStepOverride(override: Partial<IWorkflowStepOverride>): Promise<IWorkflowStepOverride>;
   removeWorkflowStepOverride(overrideId: number): Promise<void>;
   resolveWorkflowChain(workflowKey: WorkflowKey, projectCode: string): Promise<IResolvedWorkflowStep[]>;
+
+  // Turnover Agenda
+  getTurnoverAgenda(projectCode: string): Promise<ITurnoverAgenda | null>;
+  createTurnoverAgenda(projectCode: string, leadId: number): Promise<ITurnoverAgenda>;
+  updateTurnoverAgenda(projectCode: string, data: Partial<ITurnoverAgenda>): Promise<ITurnoverAgenda>;
+
+  // Turnover Prerequisites
+  updateTurnoverPrerequisite(prerequisiteId: number, data: Partial<ITurnoverPrerequisite>): Promise<ITurnoverPrerequisite>;
+
+  // Turnover Discussion Items
+  updateTurnoverDiscussionItem(itemId: number, data: Partial<ITurnoverDiscussionItem>): Promise<ITurnoverDiscussionItem>;
+  addTurnoverDiscussionAttachment(itemId: number, file: File): Promise<ITurnoverAttachment>;
+  removeTurnoverDiscussionAttachment(attachmentId: number): Promise<void>;
+
+  // Turnover Subcontractors
+  addTurnoverSubcontractor(turnoverAgendaId: number, data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor>;
+  updateTurnoverSubcontractor(subId: number, data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor>;
+  removeTurnoverSubcontractor(subId: number): Promise<void>;
+
+  // Turnover Exhibits
+  updateTurnoverExhibit(exhibitId: number, data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit>;
+  addTurnoverExhibit(turnoverAgendaId: number, data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit>;
+  removeTurnoverExhibit(exhibitId: number): Promise<void>;
+  uploadTurnoverExhibitFile(exhibitId: number, file: File): Promise<{ fileUrl: string; fileName: string }>;
+
+  // Turnover Signatures
+  signTurnoverAgenda(signatureId: number, comment?: string): Promise<ITurnoverSignature>;
+
+  // Turnover Estimate Overview
+  updateTurnoverEstimateOverview(projectCode: string, data: Partial<ITurnoverEstimateOverview>): Promise<ITurnoverEstimateOverview>;
 }
 
 export interface IActiveProjectsQueryOptions extends IListQueryOptions {

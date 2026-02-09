@@ -112,9 +112,12 @@ import { IEstimatingKickoff, IEstimatingKickoffItem } from '../models/IEstimatin
 import { IBuyoutEntry, EVerifyStatus } from '../models/IBuyoutEntry';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
-import { WorkflowKey, StepAssignmentType, ConditionField } from '../models/enums';
+import { ITurnoverAgenda, ITurnoverProjectHeader, ITurnoverPrerequisite, ITurnoverEstimateOverview, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverAttachment } from '../models/ITurnoverAgenda';
+import { WorkflowKey, StepAssignmentType, ConditionField, TurnoverStatus } from '../models/enums';
 import mockWorkflowDefinitions from '../mock/workflowDefinitions.json';
 import mockWorkflowStepOverrides from '../mock/workflowStepOverrides.json';
+import mockTurnoverAgendas from '../mock/turnoverAgendas.json';
+import { DEFAULT_PREREQUISITES, DEFAULT_DISCUSSION_ITEMS, DEFAULT_EXHIBITS, DEFAULT_SIGNATURES, TURNOVER_SIGNATURE_AFFIDAVIT } from '../utils/turnoverAgendaTemplate';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
 
@@ -169,6 +172,15 @@ export class MockDataService implements IDataService {
   private activeProjects: IActiveProject[];
   private workflowDefinitions: IWorkflowDefinition[];
   private workflowStepOverrides: IWorkflowStepOverride[];
+  private turnoverAgendas: ITurnoverAgenda[];
+  private turnoverHeaders: ITurnoverProjectHeader[];
+  private turnoverEstimateOverviews: ITurnoverEstimateOverview[];
+  private turnoverPrerequisites: ITurnoverPrerequisite[];
+  private turnoverDiscussionItems: ITurnoverDiscussionItem[];
+  private turnoverSubcontractors: ITurnoverSubcontractor[];
+  private turnoverExhibits: ITurnoverExhibit[];
+  private turnoverSignatures: ITurnoverSignature[];
+  private turnoverAttachments: ITurnoverAttachment[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -302,6 +314,19 @@ export class MockDataService implements IDataService {
     this.activeProjects = this.generateMockActiveProjects();
     this.workflowDefinitions = JSON.parse(JSON.stringify(mockWorkflowDefinitions)) as IWorkflowDefinition[];
     this.workflowStepOverrides = JSON.parse(JSON.stringify(mockWorkflowStepOverrides)) as IWorkflowStepOverride[];
+
+    // Turnover Agendas — flatten child collections
+    const rawTurnoverData = JSON.parse(JSON.stringify(mockTurnoverAgendas));
+    this.turnoverAgendas = rawTurnoverData.agendas as ITurnoverAgenda[];
+    this.turnoverHeaders = rawTurnoverData.headers as ITurnoverProjectHeader[];
+    this.turnoverEstimateOverviews = rawTurnoverData.estimateOverviews as ITurnoverEstimateOverview[];
+    this.turnoverPrerequisites = rawTurnoverData.prerequisites as ITurnoverPrerequisite[];
+    this.turnoverDiscussionItems = rawTurnoverData.discussionItems as ITurnoverDiscussionItem[];
+    this.turnoverSubcontractors = rawTurnoverData.subcontractors as ITurnoverSubcontractor[];
+    this.turnoverExhibits = rawTurnoverData.exhibits as ITurnoverExhibit[];
+    this.turnoverSignatures = rawTurnoverData.signatures as ITurnoverSignature[];
+    this.turnoverAttachments = rawTurnoverData.attachments as ITurnoverAttachment[];
+
     this.nextId = 1000;
   }
 
@@ -3868,5 +3893,324 @@ export class MockDataService implements IDataService {
       case ConditionField.Sector: return lead.Sector || '';
       default: return '';
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ──── Turnover Agenda ────
+  // ═══════════════════════════════════════════════════════════════════
+
+  private assembleTurnoverAgenda(agendaId: number): ITurnoverAgenda | null {
+    const agenda = this.turnoverAgendas.find(a => a.id === agendaId);
+    if (!agenda) return null;
+    const header = this.turnoverHeaders.find(h => h.turnoverAgendaId === agendaId);
+    const overview = this.turnoverEstimateOverviews.find(e => e.turnoverAgendaId === agendaId);
+    const prereqs = this.turnoverPrerequisites.filter(p => p.turnoverAgendaId === agendaId).sort((a, b) => a.sortOrder - b.sortOrder);
+    const items = this.turnoverDiscussionItems.filter(d => d.turnoverAgendaId === agendaId).sort((a, b) => a.sortOrder - b.sortOrder);
+    const subs = this.turnoverSubcontractors.filter(s => s.turnoverAgendaId === agendaId);
+    const exhibits = this.turnoverExhibits.filter(e => e.turnoverAgendaId === agendaId).sort((a, b) => a.sortOrder - b.sortOrder);
+    const sigs = this.turnoverSignatures.filter(s => s.turnoverAgendaId === agendaId).sort((a, b) => a.sortOrder - b.sortOrder);
+
+    // Attach attachments to discussion items
+    const itemsWithAttachments = items.map(item => ({
+      ...item,
+      attachments: this.turnoverAttachments.filter(a => a.discussionItemId === item.id),
+    }));
+
+    return JSON.parse(JSON.stringify({
+      ...agenda,
+      header: header || {} as ITurnoverProjectHeader,
+      estimateOverview: overview || {} as ITurnoverEstimateOverview,
+      prerequisites: prereqs,
+      discussionItems: itemsWithAttachments,
+      subcontractors: subs,
+      exhibits,
+      signatures: sigs,
+    }));
+  }
+
+  async getTurnoverAgenda(projectCode: string): Promise<ITurnoverAgenda | null> {
+    await delay();
+    const agenda = this.turnoverAgendas.find(a => a.projectCode === projectCode);
+    if (!agenda) return null;
+    return this.assembleTurnoverAgenda(agenda.id);
+  }
+
+  async createTurnoverAgenda(projectCode: string, leadId: number): Promise<ITurnoverAgenda> {
+    await delay();
+    const lead = this.leads.find(l => l.id === leadId);
+    const agendaId = ++this.nextId;
+
+    const newAgenda: ITurnoverAgenda = {
+      id: agendaId,
+      projectCode,
+      leadId,
+      status: TurnoverStatus.Draft,
+      projectName: lead?.Title || '',
+      header: {} as ITurnoverProjectHeader,
+      estimateOverview: {} as ITurnoverEstimateOverview,
+      prerequisites: [],
+      discussionItems: [],
+      subcontractors: [],
+      exhibits: [],
+      signatures: [],
+      createdBy: 'Current User',
+      createdDate: new Date().toISOString(),
+    };
+    this.turnoverAgendas.push(newAgenda);
+
+    // Create header from lead data
+    const headerId = ++this.nextId;
+    this.turnoverHeaders.push({
+      id: headerId,
+      turnoverAgendaId: agendaId,
+      projectName: lead?.Title || '',
+      projectCode,
+      clientName: lead?.ClientName || '',
+      projectValue: lead?.ProjectValue || 0,
+      deliveryMethod: lead?.DeliveryMethod || '',
+      projectExecutive: lead?.ProjectExecutive || '',
+      projectManager: lead?.ProjectManager || '',
+      leadEstimator: '',
+      overrides: {},
+    });
+
+    // Create estimate overview from lead data
+    const overviewId = ++this.nextId;
+    const projectValue = lead?.ProjectValue || 0;
+    const feePct = lead?.AnticipatedFeePct || 5;
+    this.turnoverEstimateOverviews.push({
+      id: overviewId,
+      turnoverAgendaId: agendaId,
+      contractAmount: projectValue,
+      originalEstimate: projectValue,
+      buyoutTarget: Math.round(projectValue * 0.9),
+      estimatedFee: Math.round(projectValue * (feePct / 100)),
+      estimatedGrossMargin: lead?.AnticipatedGrossMargin || 0,
+      contingency: Math.round(projectValue * 0.015),
+      notes: '',
+      overrides: {},
+    });
+
+    // Create default prerequisites
+    for (const prereq of DEFAULT_PREREQUISITES) {
+      this.turnoverPrerequisites.push({
+        id: ++this.nextId,
+        turnoverAgendaId: agendaId,
+        sortOrder: prereq.sortOrder,
+        label: prereq.label,
+        description: prereq.description,
+        completed: false,
+      });
+    }
+
+    // Create default discussion items
+    for (const item of DEFAULT_DISCUSSION_ITEMS) {
+      this.turnoverDiscussionItems.push({
+        id: ++this.nextId,
+        turnoverAgendaId: agendaId,
+        sortOrder: item.sortOrder,
+        label: item.label,
+        description: item.description,
+        discussed: false,
+        notes: '',
+        attachments: [],
+      });
+    }
+
+    // Create default exhibits
+    for (const exhibit of DEFAULT_EXHIBITS) {
+      this.turnoverExhibits.push({
+        id: ++this.nextId,
+        turnoverAgendaId: agendaId,
+        sortOrder: exhibit.sortOrder,
+        label: exhibit.label,
+        isDefault: exhibit.isDefault,
+        reviewed: false,
+      });
+    }
+
+    // Create default signatures — resolve names from team members
+    const teamMembers = this.teamMembers.filter(tm => tm.projectCode === projectCode);
+    for (const sig of DEFAULT_SIGNATURES) {
+      let signerName = '';
+      let signerEmail = '';
+      if (sig.role === 'Lead Estimator') {
+        const estCoord = teamMembers.find(tm => tm.role === RoleName.EstimatingCoordinator);
+        signerName = estCoord?.name || '';
+        signerEmail = estCoord?.email || '';
+      } else if (sig.role === 'Project Executive') {
+        signerName = lead?.ProjectExecutive || '';
+        const px = teamMembers.find(tm => tm.role === RoleName.ExecutiveLeadership);
+        signerEmail = px?.email || '';
+      } else if (sig.role === 'Project Manager') {
+        signerName = lead?.ProjectManager || '';
+        const pm = teamMembers.find(tm => tm.role === RoleName.OperationsTeam && tm.department === 'Project Management');
+        signerEmail = pm?.email || '';
+      } else if (sig.role === 'Superintendent') {
+        const super_ = teamMembers.find(tm => tm.role === RoleName.OperationsTeam && tm.department === 'Field Operations');
+        signerName = super_?.name || '';
+        signerEmail = super_?.email || '';
+      }
+      this.turnoverSignatures.push({
+        id: ++this.nextId,
+        turnoverAgendaId: agendaId,
+        sortOrder: sig.sortOrder,
+        role: sig.role,
+        signerName,
+        signerEmail,
+        affidavitText: TURNOVER_SIGNATURE_AFFIDAVIT,
+        signed: false,
+      });
+    }
+
+    return this.assembleTurnoverAgenda(agendaId)!;
+  }
+
+  async updateTurnoverAgenda(projectCode: string, data: Partial<ITurnoverAgenda>): Promise<ITurnoverAgenda> {
+    await delay();
+    const idx = this.turnoverAgendas.findIndex(a => a.projectCode === projectCode);
+    if (idx === -1) throw new Error('Turnover agenda not found');
+    this.turnoverAgendas[idx] = { ...this.turnoverAgendas[idx], ...data, lastModifiedDate: new Date().toISOString() };
+    return this.assembleTurnoverAgenda(this.turnoverAgendas[idx].id)!;
+  }
+
+  async updateTurnoverPrerequisite(prerequisiteId: number, data: Partial<ITurnoverPrerequisite>): Promise<ITurnoverPrerequisite> {
+    await delay();
+    const idx = this.turnoverPrerequisites.findIndex(p => p.id === prerequisiteId);
+    if (idx === -1) throw new Error('Prerequisite not found');
+    this.turnoverPrerequisites[idx] = { ...this.turnoverPrerequisites[idx], ...data };
+    return JSON.parse(JSON.stringify(this.turnoverPrerequisites[idx]));
+  }
+
+  async updateTurnoverDiscussionItem(itemId: number, data: Partial<ITurnoverDiscussionItem>): Promise<ITurnoverDiscussionItem> {
+    await delay();
+    const idx = this.turnoverDiscussionItems.findIndex(d => d.id === itemId);
+    if (idx === -1) throw new Error('Discussion item not found');
+    this.turnoverDiscussionItems[idx] = { ...this.turnoverDiscussionItems[idx], ...data };
+    const item = this.turnoverDiscussionItems[idx];
+    return JSON.parse(JSON.stringify({
+      ...item,
+      attachments: this.turnoverAttachments.filter(a => a.discussionItemId === item.id),
+    }));
+  }
+
+  async addTurnoverDiscussionAttachment(itemId: number, _file: File): Promise<ITurnoverAttachment> {
+    await delay();
+    const attachment: ITurnoverAttachment = {
+      id: ++this.nextId,
+      discussionItemId: itemId,
+      fileName: _file.name,
+      fileUrl: `https://hedrickbrothers.sharepoint.com/sites/mock/Turnover/${_file.name}`,
+      uploadedBy: 'Current User',
+      uploadedDate: new Date().toISOString(),
+    };
+    this.turnoverAttachments.push(attachment);
+    return JSON.parse(JSON.stringify(attachment));
+  }
+
+  async removeTurnoverDiscussionAttachment(attachmentId: number): Promise<void> {
+    await delay();
+    const idx = this.turnoverAttachments.findIndex(a => a.id === attachmentId);
+    if (idx !== -1) this.turnoverAttachments.splice(idx, 1);
+  }
+
+  async addTurnoverSubcontractor(turnoverAgendaId: number, data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor> {
+    await delay();
+    const sub: ITurnoverSubcontractor = {
+      id: ++this.nextId,
+      turnoverAgendaId,
+      trade: data.trade || '',
+      subcontractorName: data.subcontractorName || '',
+      contactName: data.contactName || '',
+      contactPhone: data.contactPhone || '',
+      contactEmail: data.contactEmail || '',
+      qScore: data.qScore ?? null,
+      isPreferred: data.isPreferred ?? false,
+      isRequired: data.isRequired ?? false,
+      notes: data.notes || '',
+    };
+    this.turnoverSubcontractors.push(sub);
+    return JSON.parse(JSON.stringify(sub));
+  }
+
+  async updateTurnoverSubcontractor(subId: number, data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor> {
+    await delay();
+    const idx = this.turnoverSubcontractors.findIndex(s => s.id === subId);
+    if (idx === -1) throw new Error('Subcontractor not found');
+    this.turnoverSubcontractors[idx] = { ...this.turnoverSubcontractors[idx], ...data };
+    return JSON.parse(JSON.stringify(this.turnoverSubcontractors[idx]));
+  }
+
+  async removeTurnoverSubcontractor(subId: number): Promise<void> {
+    await delay();
+    const idx = this.turnoverSubcontractors.findIndex(s => s.id === subId);
+    if (idx !== -1) this.turnoverSubcontractors.splice(idx, 1);
+  }
+
+  async updateTurnoverExhibit(exhibitId: number, data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit> {
+    await delay();
+    const idx = this.turnoverExhibits.findIndex(e => e.id === exhibitId);
+    if (idx === -1) throw new Error('Exhibit not found');
+    this.turnoverExhibits[idx] = { ...this.turnoverExhibits[idx], ...data };
+    return JSON.parse(JSON.stringify(this.turnoverExhibits[idx]));
+  }
+
+  async addTurnoverExhibit(turnoverAgendaId: number, data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit> {
+    await delay();
+    const existing = this.turnoverExhibits.filter(e => e.turnoverAgendaId === turnoverAgendaId);
+    const maxOrder = existing.length > 0 ? Math.max(...existing.map(e => e.sortOrder)) : 0;
+    const exhibit: ITurnoverExhibit = {
+      id: ++this.nextId,
+      turnoverAgendaId,
+      sortOrder: maxOrder + 1,
+      label: data.label || 'Custom Exhibit',
+      isDefault: false,
+      reviewed: false,
+      ...data,
+    };
+    this.turnoverExhibits.push(exhibit);
+    return JSON.parse(JSON.stringify(exhibit));
+  }
+
+  async removeTurnoverExhibit(exhibitId: number): Promise<void> {
+    await delay();
+    const idx = this.turnoverExhibits.findIndex(e => e.id === exhibitId);
+    if (idx !== -1) this.turnoverExhibits.splice(idx, 1);
+  }
+
+  async uploadTurnoverExhibitFile(exhibitId: number, _file: File): Promise<{ fileUrl: string; fileName: string }> {
+    await delay();
+    const idx = this.turnoverExhibits.findIndex(e => e.id === exhibitId);
+    if (idx === -1) throw new Error('Exhibit not found');
+    const fileUrl = `https://hedrickbrothers.sharepoint.com/sites/mock/Turnover/${_file.name}`;
+    this.turnoverExhibits[idx] = {
+      ...this.turnoverExhibits[idx],
+      uploadedFileName: _file.name,
+      uploadedFileUrl: fileUrl,
+    };
+    return { fileUrl, fileName: _file.name };
+  }
+
+  async signTurnoverAgenda(signatureId: number, comment?: string): Promise<ITurnoverSignature> {
+    await delay();
+    const idx = this.turnoverSignatures.findIndex(s => s.id === signatureId);
+    if (idx === -1) throw new Error('Signature not found');
+    this.turnoverSignatures[idx] = {
+      ...this.turnoverSignatures[idx],
+      signed: true,
+      signedDate: new Date().toISOString(),
+      comment: comment || '',
+    };
+    return JSON.parse(JSON.stringify(this.turnoverSignatures[idx]));
+  }
+
+  async updateTurnoverEstimateOverview(projectCode: string, data: Partial<ITurnoverEstimateOverview>): Promise<ITurnoverEstimateOverview> {
+    await delay();
+    const agenda = this.turnoverAgendas.find(a => a.projectCode === projectCode);
+    if (!agenda) throw new Error('Turnover agenda not found');
+    const idx = this.turnoverEstimateOverviews.findIndex(e => e.turnoverAgendaId === agenda.id);
+    if (idx === -1) throw new Error('Estimate overview not found');
+    this.turnoverEstimateOverviews[idx] = { ...this.turnoverEstimateOverviews[idx], ...data };
+    return JSON.parse(JSON.stringify(this.turnoverEstimateOverviews[idx]));
   }
 }
