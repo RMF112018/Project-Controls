@@ -310,6 +310,10 @@ export interface IDataService {
 
   // Turnover Estimate Overview
   updateTurnoverEstimateOverview(projectCode: string, data: Partial<ITurnoverEstimateOverview>): Promise<ITurnoverEstimateOverview>;
+
+  // Hub Site URL Configuration
+  getHubSiteUrl(): Promise<string>;
+  setHubSiteUrl(url: string): Promise<void>;
 }
 
 export interface IActiveProjectsQueryOptions extends IListQueryOptions {

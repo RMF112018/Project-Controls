@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-09 — Phase 15: Turnover to Ops Meeting Agenda
+**Last Updated:** 2026-02-09 — Phase 16: Hub Site Navigation Link Provisioning
 
 ---
 
@@ -239,14 +239,15 @@ src/webparts/hbcProjectControls/
 ├── provisioning/
 │   └── site-template.json                # SP site template definition
 ├── services/
-│   ├── IDataService.ts                   # Service interface (169 methods)
-│   ├── MockDataService.ts               # Mock implementation (all 169 implemented)
-│   ├── SharePointDataService.ts         # SP implementation (48 implemented, 121 stubs)
+│   ├── IDataService.ts                   # Service interface (171 methods)
+│   ├── MockDataService.ts               # Mock implementation (all 171 implemented)
+│   ├── SharePointDataService.ts         # SP implementation (49 implemented, 122 stubs)
 │   ├── AuditService.ts                  # Fire-and-forget audit queue with 2s debounce
 │   ├── CacheService.ts                  # Two-tier cache (memory + sessionStorage), 15min TTL
 │   ├── columnMappings.ts                # SP column name mappings for all lists (1267 lines)
 │   ├── ExportService.ts                 # PDF/Excel/CSV export with branded headers
 │   ├── GraphService.ts                  # MS Graph: users, photos, calendar, mail, Teams
+│   ├── HubNavigationService.ts          # Hub site nav link management (Mock + SP stub)
 │   ├── NotificationService.ts           # Event-driven notification builder (20+ event types)
 │   ├── OfflineQueueService.ts           # Offline write queue, auto-retry 30s, max 100 items
 │   ├── PowerAutomateService.ts          # HTTP triggers: provisioning, notification, archive flows
@@ -456,7 +457,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | ICurrentUser | models/IRole.ts | id, displayName, email, loginName, roles: RoleName[], permissions: Set<string> | — | — |
 | IFeatureFlag | models/IFeatureFlag.ts | id, FeatureName, Enabled, EnabledForRoles?, TargetDate?, Notes? | Feature_Flags | Hub |
 | IAuditEntry | models/IAuditEntry.ts | id, Timestamp, User, Action: AuditAction, EntityType, EntityId, ProjectCode?, FieldChanged?, Details | Audit_Log | Hub |
-| IProvisioningLog | models/IProvisioningLog.ts | id, projectCode, projectName (@denormalized), status: ProvisioningStatus, currentStep, siteUrl? | Provisioning_Log | Hub |
+| IProvisioningLog | models/IProvisioningLog.ts | id, projectCode, projectName (@denormalized), status: ProvisioningStatus, currentStep, siteUrl?, hubNavLinkStatus? | Provisioning_Log | Hub |
 | INotification | models/INotification.ts | id, type: NotificationType, subject, body, recipients, status | — | — |
 | IMeeting | models/IMeeting.ts | id, subject, type: MeetingType, startTime, endTime, attendees, teamsLink? | — | — |
 | ITimeSlot | models/IMeeting.ts | start, end, available | — | — |
@@ -539,7 +540,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | RoleName | BDRepresentative, EstimatingCoordinator, AccountingManager, PreconstructionTeam, OperationsTeam, ExecutiveLeadership, Legal, RiskManagement, Marketing, QualityControl, Safety, IDS |
 | ProvisioningStatus | Queued, InProgress, Completed, PartialFailure, Failed |
 | TurnoverStatus | Draft, PrerequisitesInProgress, MeetingScheduled, MeetingComplete, PendingSignatures, Signed, Complete |
-| AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved, TurnoverAgendaCreated, TurnoverPrerequisiteCompleted, TurnoverItemDiscussed, TurnoverSubcontractorAdded, TurnoverSubcontractorRemoved, TurnoverExhibitReviewed, TurnoverExhibitAdded, TurnoverExhibitRemoved, TurnoverSigned, TurnoverAgendaCompleted |
+| AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved, TurnoverAgendaCreated, TurnoverPrerequisiteCompleted, TurnoverItemDiscussed, TurnoverSubcontractorAdded, TurnoverSubcontractorRemoved, TurnoverExhibitReviewed, TurnoverExhibitAdded, TurnoverExhibitRemoved, TurnoverSigned, TurnoverAgendaCompleted, HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated |
 | EntityType | Lead, Scorecard, Estimate, Project, Permission, Config, Checklist, Matrix, ProjectRecord, RiskCost, Quality, Safety, Schedule, SuperintendentPlan, LessonLearned, PMP, MonthlyReview, WorkflowDefinition, TurnoverAgenda |
 | DeliverableStatus | NotStarted, InProgress, InReview, Complete |
 | ActionItemStatus | Open, InProgress, Complete |
@@ -591,12 +592,13 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | EstimatingKickoffSection | models/IEstimatingKickoff.ts | 'managing' \| 'deliverables_standard' \| 'deliverables_nonstandard' |
 | EstimatingKickoffStatus | models/IEstimatingKickoff.ts | 'yes' \| 'no' \| 'na' \| null |
 | AutopsyAnswer | models/ILossAutopsy.ts | boolean \| null |
+| HubNavLinkStatus | models/IProvisioningLog.ts | 'success' \| 'failed' \| 'not_applicable' |
 
 ---
 
 ## §7 Service Methods
 
-169 methods on IDataService. Source: `services/IDataService.ts`
+171 methods on IDataService. Source: `services/IDataService.ts`
 
 | # | Method | Signature | Mock | SP | Hook Caller | Mock JSON |
 |---|--------|-----------|------|-----|-------------|-----------|
@@ -769,6 +771,8 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 167 | signTurnoverAgenda | (signatureId: number, comment?: string) → Promise<ITurnoverSignature> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
 | 168 | updateTurnoverEstimateOverview | (projectCode: string, data: Partial<ITurnoverEstimateOverview>) → Promise<ITurnoverEstimateOverview> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
 | 169 | getTurnoverAgendaByLeadId | (leadId: number) → Promise<ITurnoverAgenda \| null> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 170 | getHubSiteUrl | () → Promise<string> | Impl | Impl | AdminPanel | in-memory |
+| 171 | setHubSiteUrl | (url: string) → Promise<void> | Impl | Stub | AdminPanel | in-memory |
 
 ---
 
@@ -1236,6 +1240,7 @@ Source: `utils/constants.ts`, `theme/tokens.ts`
 APP_VERSION = '1.0.0'
 CACHE_TTL_MS = 900000  // 15 minutes
 SCORE_THRESHOLDS = { HIGH: 69, MID: 55 }
+DEFAULT_HUB_SITE_URL = 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral'
 OFFLINE_RETRY_INTERVAL_MS = 30000
 MAX_OFFLINE_QUEUE_SIZE = 100
 FILE_CHUNK_SIZE = 10485760  // 10MB
@@ -1298,10 +1303,12 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 | 13 | Active projects portfolio enhancements, project dashboard | ProjectDashboard, useActiveProjects enhancements | App.tsx |
 | 14 | Admin Panel Workflow Definitions — 4 configurable approval-chain workflows (Go/No-Go, PMP, Monthly Review, Commitment), AdminPanel Workflows tab, workflow step editor, conditional assignment builder, people picker, preview/resolution engine | IWorkflowDefinition, WorkflowDefinitionsPanel, WorkflowStepCard, ConditionBuilder, AzureADPeoplePicker, WorkflowPreview, useWorkflowDefinitions, workflowDefinitions.json, workflowStepOverrides.json | App.tsx (no route changes), AdminPanel.tsx (6 tabs), IDataService (152 methods), MockDataService, SharePointDataService, enums.ts (+3 enums, +6 values), permissions.ts (+workflow:manage), constants.ts (+4 HUB_LISTS), columnMappings.ts (+4 mappings), featureFlags.json (+WorkflowDefinitions) |
 | 15 | Turnover to Ops Meeting Agenda — Two-tab TurnoverToOps rewrite (Meeting Agenda + Follow-Up Checklist), formal meeting procedure with prerequisites, estimate overview, 10 discussion items, subcontractor table, 10 exhibits, 4-party signature block with affidavit, workflow-driven signer resolution | ITurnoverAgenda.ts, turnoverAgendaTemplate.ts, turnoverAgendas.json, useTurnoverAgenda.ts | TurnoverToOps.tsx (rewrite), IDataService (169 methods), MockDataService, SharePointDataService, columnMappings.ts (+7 mappings), enums.ts (+TurnoverStatus, +10 AuditAction, +1 EntityType, +1 WorkflowKey), permissions.ts (+turnover:agenda:edit, +turnover:sign), constants.ts (+7 PROJECT_LISTS), workflowDefinitions.json (+TURNOVER_APPROVAL) |
+| 16 | Hub Site Navigation Link Provisioning — Post-provisioning hub nav link creation under year-based labels, HubNavigationService (Mock + SP stub), IDataService hub URL config, AdminPanel hub URL editor + nav link status column + retry, ProvisioningService integration | HubNavigationService.ts | IProvisioningLog.ts (+HubNavLinkStatus), enums.ts (+5 AuditAction), IDataService.ts (+2 methods, 171 total), MockDataService.ts, SharePointDataService.ts, ProvisioningService.ts, constants.ts (+DEFAULT_HUB_SITE_URL), AdminPanel.tsx, GoNoGoScorecard.tsx, JobNumberRequestForm.tsx, AccountingQueuePage.tsx |
 
 ### Known Stubs / Placeholders
 
-- **SharePointDataService**: 121 of 169 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
+- **SharePointDataService**: 122 of 171 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
+- **HubNavigationService**: SharePointHubNavigationService is a stub (all 3 methods throw).
 - **Column Mappings**: `columnMappings.ts` has mappings for all lists but SP service stubs don't use them yet.
 - **Offline Support**: `OfflineQueueService.ts` exists but feature flag `OfflineSupport` is disabled.
 - **Dual Notifications**: `DualNotifications` feature flag exists but is disabled.
@@ -1311,8 +1318,8 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 
 ### SharePointDataService Status
 
-- **Implemented (48)**: Leads CRUD, Go/No-Go CRUD, Estimating CRUD, Roles/Flags CRUD, Audit log/read, Provisioning read, Phase 6 workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig
-- **Stubbed (121)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff, all job number requests, all workflow definitions, all turnover agenda, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers
+- **Implemented (49)**: Leads CRUD, Go/No-Go CRUD, Estimating CRUD, Roles/Flags CRUD, Audit log/read, Provisioning read, Phase 6 workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read
+- **Stubbed (122)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff, all job number requests, all workflow definitions, all turnover agenda, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers, hub site URL write
 
 ---
 
@@ -1351,3 +1358,4 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 | 2026-02-09 | §3, §15 | §3: Fixed route count from 47 to 48 (App.tsx has 48 Route elements). §15: Merged monthly review into Phase 10 summary (it was built alongside other operational modules, not as a separate phase). Relabeled Phase 11 from "Monthly project review" to "Data Strategy Refactor" (flattened mock data, columnMappings.ts, DATA_ARCHITECTURE.md, PERMISSION_STRATEGY.md). Added known gap: NavigationSidebar.tsx does not yet reflect Phase 12 design (Closeout under Project Manual, Project Record sub-group). All other sections (§1-§2, §4-§14, §16) validated against source files with no discrepancies found. |
 | 2026-02-09 | §2, §3, §5, §6, §7, §10, §11, §12, §13, §15 | Phase 13: Added workflow definition configuration. 4 new workflows (Go/No-Go, PMP, Monthly Review, Commitment) with 14 steps. AdminPanel expanded to 6 tabs. 10 new IDataService methods (152 total). 3 new enums, 6 new enum values. 4 new shared components, 1 new hook, 1 new page. |
 | 2026-02-09 | §2, §6, §7, §10, §12, §13, §15 | Phase 15: Turnover to Ops Meeting Agenda. TurnoverToOps.tsx rewritten as two-tab module (Meeting Agenda + Follow-Up Checklist). 9 new interfaces (ITurnoverAgenda + 8 sub-interfaces). 17 new IDataService methods (169 total). 1 new enum (TurnoverStatus), 10 AuditAction values, 1 EntityType, 1 WorkflowKey. 2 new permissions (turnover:agenda:edit, turnover:sign). 7 new PROJECT_LISTS. 7 new column mappings. 5th workflow (TURNOVER_APPROVAL). New files: ITurnoverAgenda.ts, turnoverAgendaTemplate.ts, turnoverAgendas.json, useTurnoverAgenda.ts. |
+| 2026-02-09 | §2, §6, §7, §13, §15 | Phase 16: Hub Site Navigation Link Provisioning. Added HubNavigationService.ts to services. IProvisioningLog updated with hubNavLinkStatus field. 1 new type alias (HubNavLinkStatus). 5 new AuditAction enum values (HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated). 2 new IDataService methods (171 total): getHubSiteUrl (implemented), setHubSiteUrl (stub). Added DEFAULT_HUB_SITE_URL constant. SharePointDataService: 49 implemented, 122 stubs. HubNavigationService SP stub added to known stubs. |

@@ -1279,4 +1279,17 @@ export class SharePointDataService implements IDataService {
   async uploadTurnoverExhibitFile(_exhibitId: number, _file: File): Promise<{ fileUrl: string; fileName: string }> { throw new Error('Not implemented'); }
   async signTurnoverAgenda(_signatureId: number, _comment?: string): Promise<ITurnoverSignature> { throw new Error('Not implemented'); }
   async updateTurnoverEstimateOverview(_projectCode: string, _data: Partial<ITurnoverEstimateOverview>): Promise<ITurnoverEstimateOverview> { throw new Error('Not implemented'); }
+
+  // --- Hub Site URL Configuration ---
+  async getHubSiteUrl(): Promise<string> {
+    if (!this.sp) return 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral';
+    try {
+      const items = await this.sp.web.lists.getByTitle('App_Context_Config')
+        .items.filter("SiteURL eq 'HUB_SITE_URL'").select('AppTitle').top(1)();
+      return items.length > 0 ? items[0].AppTitle : 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral';
+    } catch {
+      return 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral';
+    }
+  }
+  async setHubSiteUrl(_url: string): Promise<void> { throw new Error('Not implemented'); }
 }

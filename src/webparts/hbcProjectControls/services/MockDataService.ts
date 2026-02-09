@@ -108,6 +108,7 @@ import mockLossAutopsies from '../mock/lossAutopsies.json';
 import mockBuyoutEntries from '../mock/buyoutEntries.json';
 import { createEstimatingKickoffTemplate } from '../utils/estimatingKickoffTemplate';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
+import { DEFAULT_HUB_SITE_URL } from '../utils/constants';
 import { IEstimatingKickoff, IEstimatingKickoffItem } from '../models/IEstimatingKickoff';
 import { IBuyoutEntry, EVerifyStatus } from '../models/IBuyoutEntry';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
@@ -181,6 +182,7 @@ export class MockDataService implements IDataService {
   private turnoverExhibits: ITurnoverExhibit[];
   private turnoverSignatures: ITurnoverSignature[];
   private turnoverAttachments: ITurnoverAttachment[];
+  private hubSiteUrl: string;
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -206,6 +208,7 @@ export class MockDataService implements IDataService {
     this.notifications = [];
     this.auditLog = [];
     this.provisioningLogs = [];
+    this.hubSiteUrl = DEFAULT_HUB_SITE_URL;
     this.interviewPreps = [];
     this.contractInfos = [];
     this.lossAutopsies = JSON.parse(JSON.stringify(mockLossAutopsies)) as ILossAutopsy[];
@@ -4212,5 +4215,16 @@ export class MockDataService implements IDataService {
     if (idx === -1) throw new Error('Estimate overview not found');
     this.turnoverEstimateOverviews[idx] = { ...this.turnoverEstimateOverviews[idx], ...data };
     return JSON.parse(JSON.stringify(this.turnoverEstimateOverviews[idx]));
+  }
+
+  // --- Hub Site URL Configuration ---
+  async getHubSiteUrl(): Promise<string> {
+    await delay();
+    return this.hubSiteUrl;
+  }
+
+  async setHubSiteUrl(url: string): Promise<void> {
+    await delay();
+    this.hubSiteUrl = url;
   }
 }

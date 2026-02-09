@@ -148,7 +148,12 @@ export enum AuditAction {
   TurnoverExhibitAdded = 'Turnover.ExhibitAdded',
   TurnoverExhibitRemoved = 'Turnover.ExhibitRemoved',
   TurnoverSigned = 'Turnover.Signed',
-  TurnoverAgendaCompleted = 'Turnover.AgendaCompleted'
+  TurnoverAgendaCompleted = 'Turnover.AgendaCompleted',
+  HubNavLinkCreated = 'HubNav.LinkCreated',
+  HubNavLinkFailed = 'HubNav.LinkFailed',
+  HubNavLinkRetried = 'HubNav.LinkRetried',
+  HubNavLinkRemoved = 'HubNav.LinkRemoved',
+  HubSiteUrlUpdated = 'HubNav.SiteUrlUpdated'
 }
 
 export enum EntityType {
