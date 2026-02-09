@@ -220,9 +220,9 @@ export const LeadDetailPage: React.FC = () => {
                   <span style={{
                     ...valueStyle,
                     fontWeight: 700,
-                    color: lead.GoNoGoDecision === 'GO'
+                    color: lead.GoNoGoDecision === GoNoGoDecision.Go
                       ? HBC_COLORS.success
-                      : lead.GoNoGoDecision === 'NO GO'
+                      : lead.GoNoGoDecision === GoNoGoDecision.NoGo
                         ? HBC_COLORS.error
                         : HBC_COLORS.warning,
                   }}>

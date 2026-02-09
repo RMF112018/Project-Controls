@@ -222,6 +222,75 @@ export const GONOGO_SCORECARD_COLUMNS = {
   DecisionDate: 'DecisionDate',                // SP: DateTime
   ScoredBy_Orig: 'ScoredBy_Orig',              // SP: Single Line of Text
   ScoredBy_Cmte: 'ScoredBy_Cmte',              // SP: Multiple Lines of Text (JSON array)
+  // Phase 16 — Workflow fields
+  scorecardStatus: 'scorecardStatus',          // SP: Choice (ScorecardStatus enum)
+  currentApprovalStep: 'currentApprovalStep',  // SP: Number
+  committeeScoresEnteredBy: 'committeeScoresEnteredBy', // SP: Single Line of Text
+  committeeScoresEnteredDate: 'committeeScoresEnteredDate', // SP: DateTime
+  committeeMeetingDate: 'committeeMeetingDate', // SP: DateTime
+  recommendedDecision: 'recommendedDecision',  // SP: Choice (GoNoGoDecision enum)
+  finalDecision: 'finalDecision',              // SP: Choice (GoNoGoDecision enum)
+  finalDecisionBy: 'finalDecisionBy',          // SP: Single Line of Text
+  finalDecisionDate: 'finalDecisionDate',      // SP: DateTime
+  conditionalGoConditions: 'conditionalGoConditions', // SP: Multiple Lines of Text
+  currentVersion: 'currentVersion',            // SP: Number
+  isLocked: 'isLocked',                        // SP: Yes/No
+  unlockedBy: 'unlockedBy',                    // SP: Single Line of Text
+  unlockedDate: 'unlockedDate',                // SP: DateTime
+  unlockReason: 'unlockReason',                // SP: Multiple Lines of Text
+} as const;
+
+/**
+ * List: Scorecard_Approval_Cycles
+ * Interface: IScorecardApprovalCycle
+ * Child list of GoNoGo_Scorecard
+ */
+export const SCORECARD_APPROVAL_CYCLES_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  scorecardId: 'scorecardId',                  // SP: Number (FK to GoNoGo_Scorecard.ID)
+  cycleNumber: 'cycleNumber',                  // SP: Number
+  version: 'version',                          // SP: Number
+  startedDate: 'startedDate',                  // SP: DateTime
+  completedDate: 'completedDate',              // SP: DateTime
+  status: 'status',                            // SP: Choice (Active/Completed/Cancelled)
+} as const;
+
+/**
+ * List: Scorecard_Approval_Steps
+ * Interface: IScorecardApprovalStep
+ * Child list of Scorecard_Approval_Cycles
+ */
+export const SCORECARD_APPROVAL_STEPS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  cycleId: 'cycleId',                          // SP: Number (FK to Scorecard_Approval_Cycles.ID)
+  stepOrder: 'stepOrder',                      // SP: Number
+  name: 'name',                                // SP: Single Line of Text
+  assigneeEmail: 'assigneeEmail',              // SP: Single Line of Text
+  assigneeName: 'assigneeName',                // SP: Single Line of Text
+  assignmentSource: 'assignmentSource',        // SP: Choice (ProjectRole/Condition/Default/Override)
+  status: 'status',                            // SP: Choice (Pending/Approved/Returned/Skipped)
+  actionDate: 'actionDate',                    // SP: DateTime
+  comment: 'comment',                          // SP: Multiple Lines of Text
+} as const;
+
+/**
+ * List: Scorecard_Versions
+ * Interface: IScorecardVersion
+ * Child list of GoNoGo_Scorecard
+ */
+export const SCORECARD_VERSIONS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  scorecardId: 'scorecardId',                  // SP: Number (FK to GoNoGo_Scorecard.ID)
+  versionNumber: 'versionNumber',              // SP: Number
+  createdDate: 'createdDate',                  // SP: DateTime
+  createdBy: 'createdBy',                      // SP: Single Line of Text
+  reason: 'reason',                            // SP: Multiple Lines of Text
+  originalScores: 'originalScores',            // SP: Multiple Lines of Text (JSON Record<string, number>)
+  committeeScores: 'committeeScores',          // SP: Multiple Lines of Text (JSON Record<string, number>)
+  totalOriginal: 'totalOriginal',              // SP: Number
+  totalCommittee: 'totalCommittee',            // SP: Number
+  decision: 'decision',                        // SP: Choice (GoNoGoDecision enum)
+  conditions: 'conditions',                    // SP: Multiple Lines of Text
 } as const;
 
 /**

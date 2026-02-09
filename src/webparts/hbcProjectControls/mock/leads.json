@@ -266,12 +266,12 @@
     "SquareFeet": 110000,
     "ProjectValue": 85000000,
     "DeliveryMethod": "GMP",
-    "Stage": "GoNoGo-Wait",
+    "Stage": "Opportunity",
     "ProjectCode": null,
     "SiteURL": null,
     "GoNoGoScore_Originator": 62,
     "GoNoGoScore_Committee": 55,
-    "GoNoGoDecision": "WAIT",
+    "GoNoGoDecision": "Conditional Go",
     "Notes": "175-key boutique hotel on Atlantic Ave. Zoning appeal in progress. Committee wants to see resolution before committing resources."
   },
   {
@@ -291,12 +291,12 @@
     "SquareFeet": 155000,
     "ProjectValue": 62000000,
     "DeliveryMethod": "GMP",
-    "Stage": "GoNoGo-Wait",
+    "Stage": "Opportunity",
     "ProjectCode": null,
     "SiteURL": null,
     "GoNoGoScore_Originator": 56,
     "GoNoGoScore_Committee": 48,
-    "GoNoGoDecision": "WAIT",
+    "GoNoGoDecision": "Conditional Go",
     "Notes": "New K-8 school for 1,200 students. District bond approved but school board delaying timeline. Revisit Q2 2026."
   },
   {
@@ -321,7 +321,7 @@
     "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/25-038-01-FlaglerMixedUse",
     "GoNoGoScore_Originator": 73,
     "GoNoGoScore_Committee": 71,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "Notes": "Flagship pursuit. 42-story tower with 350 condos, 120K SF office, ground-floor retail. RFP response due March 2026."
   },
   {
@@ -346,7 +346,7 @@
     "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/25-035-01-FPLSolarOps",
     "GoNoGoScore_Originator": 79,
     "GoNoGoScore_Committee": 75,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "Notes": "Control center for FPL solar farm network. Repeat client. Strong relationship with facilities team. Shortlisted to final 3."
   },
   {
@@ -371,7 +371,7 @@
     "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/25-041-01-CoralGablesSenior",
     "GoNoGoScore_Originator": 64,
     "GoNoGoScore_Committee": 61,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "Notes": "200-unit senior living. Negotiated contract with Belmont. Previous work for this client in Texas market."
   },
   {
@@ -396,7 +396,7 @@
     "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/25-039-01-KissimmeeHangar",
     "GoNoGoScore_Originator": 67,
     "GoNoGoScore_Committee": 63,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "Notes": "Three new corporate hangars with FBO office space. FAA funding component. Interview scheduled Feb 2026."
   },
   {
@@ -421,7 +421,7 @@
     "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/25-033-01-PBGMedPavilion",
     "GoNoGoScore_Originator": 78,
     "GoNoGoScore_Committee": 74,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "Notes": "Outpatient surgery and imaging center. Awarded Dec 2025. Contract in legal review. GMP development in progress."
   },
   {
@@ -446,7 +446,7 @@
     "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/25-030-01-ManalapanEstate",
     "GoNoGoScore_Originator": 81,
     "GoNoGoScore_Committee": 75,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "Notes": "Ultra-luxury oceanfront estate. Ocean-to-Intracoastal property. Contract finalization with client's attorney. Notice to proceed expected Feb 2026."
   },
   {
@@ -471,7 +471,7 @@
     "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/25-028-01-LasOlasParking",
     "GoNoGoScore_Originator": 70,
     "GoNoGoScore_Committee": 66,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "Notes": "6-level parking garage with 850 spaces. Ground-floor retail liner. Contract approved by city commission, awaiting execution."
   },
   {
@@ -496,7 +496,7 @@
     "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/25-012-01-NortonExpansion",
     "GoNoGoScore_Originator": 83,
     "GoNoGoScore_Committee": 79,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "Notes": "New contemporary wing and sculpture garden. Construction started Aug 2025. On schedule, under budget. 35% complete."
   },
   {
@@ -521,7 +521,7 @@
     "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/24-078-01-DoralLogistics",
     "GoNoGoScore_Originator": 75,
     "GoNoGoScore_Committee": 72,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "Notes": "Tilt-wall distribution center with 40-ft clear height. Construction started March 2025. 65% complete. Turnover scheduled Oct 2026."
   },
   {
@@ -546,7 +546,7 @@
     "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/24-052-01-PBCConvention",
     "GoNoGoScore_Originator": 79,
     "GoNoGoScore_Committee": 75,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "Notes": "Major renovation and expansion. New ballroom, exhibit halls, waterfront terrace. Phase 1 substantially complete. Phase 2 underway. 55% overall."
   },
   {
@@ -571,7 +571,7 @@
     "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/24-042-01-CoconutGroveRes",
     "GoNoGoScore_Originator": 77,
     "GoNoGoScore_Committee": 74,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "Notes": "Twin 38-story luxury towers. 410 units total. Deep foundation work complete. Vertical construction on Tower A at level 22. 40% complete."
   },
   {
@@ -596,7 +596,7 @@
     "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/24-008-01-IRSCLibrary",
     "GoNoGoScore_Originator": 73,
     "GoNoGoScore_Committee": 69,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "Notes": "New learning commons and library. Substantial completion achieved Jan 2026. Punch list 95% complete. Final retainage release pending."
   },
   {
@@ -621,7 +621,7 @@
     "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/23-065-01-BoyntonTownSq",
     "GoNoGoScore_Originator": 76,
     "GoNoGoScore_Committee": 73,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "Notes": "Mixed-use: 240 apartments, 30K SF retail, 500-space garage. Substantially complete Nov 2025. Close-out in progress."
   },
   {
@@ -646,7 +646,7 @@
     "SiteURL": null,
     "GoNoGoScore_Originator": 52,
     "GoNoGoScore_Committee": 38,
-    "GoNoGoDecision": "NO GO",
+    "GoNoGoDecision": "No-Go",
     "Notes": "Complex design with high-risk structural elements. Client has unrealistic budget expectations. Committee declined to pursue."
   },
   {
@@ -671,7 +671,7 @@
     "SiteURL": null,
     "GoNoGoScore_Originator": 74,
     "GoNoGoScore_Committee": 69,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "LossReason": "Price",
     "LossCompetitor": "Brasfield & Gorrie",
     "LossNotes": "Final two. Lost on GMP by $4.2M. B&G had existing MSA with Orlando Health system. Consider JV partnership for future healthcare pursuits in Orlando.",
@@ -699,7 +699,7 @@
     "SiteURL": null,
     "GoNoGoScore_Originator": 56,
     "GoNoGoScore_Committee": 50,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "LossReason": "Other",
     "LossNotes": "Client shelved renovation plans after Hurricane Ian insurance reassessment. Project indefinitely delayed. May re-emerge in 2027.",
     "Notes": "Full resort renovation including 200 guest rooms, spa, restaurant, pool deck. Project canceled by owner."
@@ -726,7 +726,7 @@
     "SiteURL": "https://hedrickbrothers.sharepoint.com/sites/25-042-01",
     "GoNoGoScore_Originator": 92,
     "GoNoGoScore_Committee": 90,
-    "GoNoGoDecision": "GO",
+    "GoNoGoDecision": "Go",
     "Notes": "Internal corporate office renovation project. Full access to all Phase 9/10 features for dev testing.",
     "ProjectAddress": "4200 Blue Heron Blvd, West Palm Beach, FL 33404",
     "ProjectExecutive": "bfetting@hedrickbrothers.com",

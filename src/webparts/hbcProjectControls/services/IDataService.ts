@@ -1,5 +1,5 @@
 import { ILead, ILeadFormData } from '../models/ILead';
-import { IGoNoGoScorecard } from '../models/IGoNoGoScorecard';
+import { IGoNoGoScorecard, IScorecardVersion, IPersonAssignment } from '../models/IGoNoGoScorecard';
 import { IEstimatingTracker } from '../models/IEstimatingTracker';
 import { IRole, ICurrentUser } from '../models/IRole';
 import { IFeatureFlag } from '../models/IFeatureFlag';
@@ -66,6 +66,15 @@ export interface IDataService {
   createScorecard(data: Partial<IGoNoGoScorecard>): Promise<IGoNoGoScorecard>;
   updateScorecard(id: number, data: Partial<IGoNoGoScorecard>): Promise<IGoNoGoScorecard>;
   submitGoNoGoDecision(scorecardId: number, decision: GoNoGoDecision, projectCode?: string): Promise<void>;
+
+  // Scorecard workflow (Phase 16)
+  submitScorecard(scorecardId: number, submittedBy: string, approverOverride?: IPersonAssignment): Promise<IGoNoGoScorecard>;
+  respondToScorecardSubmission(scorecardId: number, approved: boolean, comment: string): Promise<IGoNoGoScorecard>;
+  enterCommitteeScores(scorecardId: number, scores: Record<string, number>, enteredBy: string): Promise<IGoNoGoScorecard>;
+  recordFinalDecision(scorecardId: number, decision: GoNoGoDecision, conditions?: string, decidedBy?: string): Promise<IGoNoGoScorecard>;
+  unlockScorecard(scorecardId: number, reason: string): Promise<IGoNoGoScorecard>;
+  relockScorecard(scorecardId: number, startNewCycle: boolean): Promise<IGoNoGoScorecard>;
+  getScorecardVersions(scorecardId: number): Promise<IScorecardVersion[]>;
 
   // Estimating Tracker
   getEstimatingRecords(options?: IListQueryOptions): Promise<IPagedResult<IEstimatingTracker>>;

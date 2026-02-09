@@ -12,13 +12,17 @@ import { ExportButtons } from '../../shared/ExportButtons';
 import { ConfirmDialog } from '../../shared/ConfirmDialog';
 import { ProvisioningStatusView } from '../../shared/ProvisioningStatus';
 import { KickoffMeetingScheduler } from '../../shared/KickoffMeetingScheduler';
+import { AzureADPeoplePicker } from '../../shared/AzureADPeoplePicker';
 import { ProvisioningService } from '../../../services/ProvisioningService';
 import {
   IGoNoGoScorecard as IScorecardModel,
   SCORECARD_CRITERIA,
   IScorecardCriterion,
+  IScorecardVersion,
+  IPersonAssignment,
   ILead,
   GoNoGoDecision,
+  ScorecardStatus,
   RoleName,
   Stage,
   NotificationEvent,
@@ -63,11 +67,30 @@ const TIER_DESCRIPTORS: Record<number, Record<ScoreLevel, string>> = {
 
 const PROJECT_CODE_REGEX = /^\d{2}-\d{3}-\d{2}$/;
 
+const STATUS_COLORS: Record<ScorecardStatus, { bg: string; color: string }> = {
+  [ScorecardStatus.Draft]: { bg: HBC_COLORS.gray100, color: HBC_COLORS.gray700 },
+  [ScorecardStatus.Submitted]: { bg: '#DBEAFE', color: '#1D4ED8' },
+  [ScorecardStatus.ReturnedForRevision]: { bg: '#FEF3C7', color: '#92400E' },
+  [ScorecardStatus.InCommitteeReview]: { bg: '#EDE9FE', color: '#6D28D9' },
+  [ScorecardStatus.PendingDecision]: { bg: '#FEF3C7', color: '#92400E' },
+  [ScorecardStatus.Decided]: { bg: HBC_COLORS.successLight, color: '#065F46' },
+  [ScorecardStatus.Locked]: { bg: HBC_COLORS.successLight, color: '#065F46' },
+  [ScorecardStatus.Unlocked]: { bg: '#FED7AA', color: '#9A3412' },
+};
+
 export const GoNoGoScorecard: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { dataService, currentUser, hasPermission } = useAppContext();
-  const { getScorecardByLeadId, createScorecard, updateScorecard, submitDecision } = useGoNoGo();
+  const {
+    getScorecardByLeadId, createScorecard, updateScorecard,
+    submitScorecard, respondToSubmission,
+    enterCommitteeScores, recommendedDecision, computeRecommendation,
+    recordDecision,
+    canUnlock, unlockScorecard, relockScorecard,
+    versions, currentVersion, loadVersions,
+    scorecardStatus, isLocked, canEdit, canSubmit, canReview, canEnterCommitteeScores, canDecide,
+  } = useGoNoGo();
   const { getLeadById, updateLead } = useLeads();
   const { notify } = useNotifications();
   const provisioningService = React.useMemo(() => new ProvisioningService(dataService), [dataService]);
@@ -76,29 +99,40 @@ export const GoNoGoScorecard: React.FC = () => {
   const [scorecard, setScorecard] = React.useState<IScorecardModel | null>(null);
   const [scores, setScores] = React.useState<IScorecardModel['scores']>({});
   const [qualFields, setQualFields] = React.useState<Record<string, string | number>>({});
-  const [decision, setDecision] = React.useState<GoNoGoDecision | ''>('');
-  const [projectCode, setProjectCode] = React.useState('');
-  const [projectCodeError, setProjectCodeError] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
-  const [showGoDialog, setShowGoDialog] = React.useState(false);
-  const [showNoGoDialog, setShowNoGoDialog] = React.useState(false);
   const [toastMessage, setToastMessage] = React.useState('');
+  const [toastType, setToastType] = React.useState<'success' | 'warning' | 'error'>('success');
   const [provisioningCode, setProvisioningCode] = React.useState<string | null>(null);
   const [showKickoffScheduler, setShowKickoffScheduler] = React.useState(false);
   const [kickoffAttendees, setKickoffAttendees] = React.useState<string[]>([]);
   const [kickoffId, setKickoffId] = React.useState<number | null>(null);
   const [postGoRedirect, setPostGoRedirect] = React.useState<string | null>(null);
 
+  // Workflow dialogs
+  const [showSubmitModal, setShowSubmitModal] = React.useState(false);
+  const [submitApproverOverride, setSubmitApproverOverride] = React.useState<IPersonAssignment | null>(null);
+  const [showReturnDialog, setShowReturnDialog] = React.useState(false);
+  const [returnComment, setReturnComment] = React.useState('');
+  const [showDecisionPanel, setShowDecisionPanel] = React.useState(false);
+  const [decisionChoice, setDecisionChoice] = React.useState<GoNoGoDecision | ''>('');
+  const [conditionalConditions, setConditionalConditions] = React.useState('');
+  const [projectCode, setProjectCode] = React.useState('');
+  const [projectCodeError, setProjectCodeError] = React.useState('');
+  const [showUnlockDialog, setShowUnlockDialog] = React.useState(false);
+  const [unlockReason, setUnlockReason] = React.useState('');
+  const [showRelockOptions, setShowRelockOptions] = React.useState(false);
+  const [showVersionHistory, setShowVersionHistory] = React.useState(false);
+  const [showNoGoConfirm, setShowNoGoConfirm] = React.useState(false);
+  const [showGoConfirm, setShowGoConfirm] = React.useState(false);
+
   const leadId = Number(id);
 
   // Determine user roles for RBAC
   const canScoreOriginator = hasPermission(PERMISSIONS.GONOGO_SCORE_ORIGINATOR);
   const canScoreCommittee = hasPermission(PERMISSIONS.GONOGO_SCORE_COMMITTEE);
-  const canDecide = hasPermission(PERMISSIONS.GONOGO_DECIDE);
-  const isSubmitted = !!scorecard?.Decision;
 
-  const handleKickoffScheduled = React.useCallback(async (meetingId: string, start: string, end: string) => {
+  const handleKickoffScheduled = React.useCallback(async (meetingId: string, start: string, _end: string) => {
     if (kickoffId !== null) {
       await dataService.updateEstimatingKickoff(kickoffId, {
         KickoffMeetingId: meetingId,
@@ -149,8 +183,11 @@ export const GoNoGoScorecard: React.FC = () => {
             StrategicPursuit: existing.StrategicPursuit || '',
             DecisionMakerAdvocate: existing.DecisionMakerAdvocate || '',
           });
-          if (existing.Decision) setDecision(existing.Decision);
           if (existing.ProjectCode) setProjectCode(existing.ProjectCode);
+          // Load versions for locked/decided scorecards
+          if (existing.versions?.length > 0) {
+            loadVersions(existing.id).catch(console.error);
+          }
         }
       } catch (err) {
         console.error('Failed to load scorecard data:', err);
@@ -159,12 +196,14 @@ export const GoNoGoScorecard: React.FC = () => {
       }
     };
     load().catch(console.error);
-  }, [leadId, getLeadById, getScorecardByLeadId]);
+  }, [leadId, getLeadById, getScorecardByLeadId, loadVersions]);
 
   const handleScore = (criterionId: number, column: 'originator' | 'committee', value: number): void => {
-    if (isSubmitted) return;
+    if (!canEdit && column === 'originator') return;
     if (column === 'originator' && !canScoreOriginator) return;
     if (column === 'committee' && !canScoreCommittee) return;
+    // Committee scores only editable during InCommitteeReview or Unlocked
+    if (column === 'committee' && !canEnterCommitteeScores && scorecardStatus !== ScorecardStatus.Unlocked) return;
 
     setScores(prev => ({
       ...prev,
@@ -176,7 +215,7 @@ export const GoNoGoScorecard: React.FC = () => {
   };
 
   const handleQualChange = (field: string, value: string | number): void => {
-    if (isSubmitted) return;
+    if (!canEdit) return;
     setQualFields(prev => ({ ...prev, [field]: value }));
   };
 
@@ -187,9 +226,15 @@ export const GoNoGoScorecard: React.FC = () => {
   const origPct = getCompletionPercentage(scores, 'originator');
   const cmtePct = getCompletionPercentage(scores, 'committee');
 
-  const handleSave = async (): Promise<void> => {
+  const showToast = (message: string, type: 'success' | 'warning' | 'error' = 'success'): void => {
+    setToastMessage(message);
+    setToastType(type);
+    setTimeout(() => setToastMessage(''), 5000);
+  };
+
+  const handleSave = async (): Promise<IScorecardModel> => {
+    setIsSaving(true);
     try {
-      setIsSaving(true);
       const data: Partial<IScorecardModel> = {
         LeadID: leadId,
         scores,
@@ -198,35 +243,111 @@ export const GoNoGoScorecard: React.FC = () => {
         ScoredBy_Orig: canScoreOriginator ? currentUser?.email : scorecard?.ScoredBy_Orig,
         ...qualFields,
       };
+      let saved: IScorecardModel;
       if (scorecard) {
-        const updated = await updateScorecard(scorecard.id, data);
-        setScorecard(updated);
+        saved = await updateScorecard(scorecard.id, data);
       } else {
-        const created = await createScorecard(data);
-        setScorecard(created);
+        saved = await createScorecard(data);
       }
-      // Fire-and-forget audit log for scorecard submission
+      setScorecard(saved);
       dataService.logAudit({
         Action: AuditAction.GoNoGoScoreSubmitted,
         EntityType: EntityType.Scorecard,
-        EntityId: String(scorecard ? scorecard.id : 'new'),
+        EntityId: String(saved.id),
         ProjectCode: lead?.ProjectCode,
         User: currentUser?.displayName || 'Unknown',
         UserId: currentUser?.id,
         Details: `Scorecard saved for "${lead?.Title}" (Originator: ${origTotal}, Committee: ${cmteTotal})`,
       }).catch(console.error);
-
-      setToastMessage('Scorecard saved successfully');
-      setTimeout(() => setToastMessage(''), 3000);
-    } catch (err) {
-      console.error('Failed to save scorecard:', err);
+      showToast('Scorecard saved successfully');
+      return saved;
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDecision = async (dec: GoNoGoDecision): Promise<void> => {
-    if (dec === GoNoGoDecision.Go) {
+  const handleSubmitForReview = async (): Promise<void> => {
+    try {
+      setIsSaving(true);
+      // Save first
+      const saved = await handleSave();
+      // Submit for approval
+      const updated = await submitScorecard(saved.id, submitApproverOverride ?? undefined);
+      setScorecard(updated);
+      setShowSubmitModal(false);
+
+      notify(NotificationEvent.ScorecardSubmittedForReview, {
+        leadTitle: lead?.Title,
+        leadId,
+        clientName: lead?.ClientName,
+        submittedBy: currentUser?.displayName,
+      }).catch(console.error);
+
+      showToast('Scorecard submitted for Director review');
+    } catch (err) {
+      console.error('Failed to submit scorecard:', err);
+      showToast('Failed to submit scorecard', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRespondToSubmission = async (approved: boolean): Promise<void> => {
+    try {
+      setIsSaving(true);
+      const updated = await respondToSubmission(scorecard!.id, approved, returnComment);
+      setScorecard(updated);
+      setShowReturnDialog(false);
+      setReturnComment('');
+
+      if (approved) {
+        showToast('Scorecard accepted. Committee scoring is now open.');
+      } else {
+        notify(NotificationEvent.ScorecardReturnedForRevision, {
+          leadTitle: lead?.Title,
+          leadId,
+          returnComment,
+        }).catch(console.error);
+        showToast('Scorecard returned for revision', 'warning');
+      }
+    } catch (err) {
+      console.error('Failed to respond to submission:', err);
+      showToast('Failed to process response', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveCommitteeScores = async (): Promise<void> => {
+    try {
+      setIsSaving(true);
+      // Extract committee scores from the scores state
+      const committeeScoreMap: Record<string, number> = {};
+      for (const criterion of SCORECARD_CRITERIA) {
+        const val = scores[criterion.id]?.committee;
+        if (val !== undefined) committeeScoreMap[String(criterion.id)] = val;
+      }
+      const updated = await enterCommitteeScores(scorecard!.id, committeeScoreMap);
+      setScorecard(updated);
+
+      notify(NotificationEvent.ScorecardCommitteeScoresFinalized, {
+        leadTitle: lead?.Title,
+        leadId,
+        committeeTotal: cmteTotal,
+      }).catch(console.error);
+
+      showToast('Committee scores finalized. Ready for decision.');
+    } catch (err) {
+      console.error('Failed to save committee scores:', err);
+      showToast('Failed to save committee scores', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRecordDecision = async (): Promise<void> => {
+    if (!decisionChoice) return;
+    if (decisionChoice === GoNoGoDecision.Go) {
       if (!PROJECT_CODE_REGEX.test(projectCode)) {
         setProjectCodeError('Format must be yy-nnn-0m (e.g. 26-042-01)');
         return;
@@ -236,58 +357,66 @@ export const GoNoGoScorecard: React.FC = () => {
 
     try {
       setIsSaving(true);
-      // Save scorecard first with latest data
-      await handleSave();
+      const updated = await recordDecision(
+        scorecard!.id,
+        decisionChoice,
+        decisionChoice === GoNoGoDecision.ConditionalGo ? conditionalConditions : undefined,
+      );
+      setScorecard(updated);
+      setShowDecisionPanel(false);
+      setShowGoConfirm(false);
+      setShowNoGoConfirm(false);
 
-      if (!scorecard) return;
-      await submitDecision(scorecard.id, dec, dec === GoNoGoDecision.Go ? projectCode : undefined);
-
-      // Update lead stage
-      if (dec === GoNoGoDecision.Go) {
+      // Update lead stage based on decision
+      if (decisionChoice === GoNoGoDecision.Go || decisionChoice === GoNoGoDecision.ConditionalGo) {
         await updateLead(leadId, {
           Stage: Stage.Opportunity,
-          GoNoGoDecision: GoNoGoDecision.Go,
+          GoNoGoDecision: decisionChoice,
           GoNoGoDecisionDate: new Date().toISOString(),
           GoNoGoScore_Originator: origTotal,
           GoNoGoScore_Committee: cmteTotal,
           ProjectCode: projectCode,
         });
 
-        setProvisioningCode(projectCode);
-        setToastMessage(`GO decision recorded. Project code ${projectCode} assigned. Scheduling kick-off meeting...`);
+        if (decisionChoice === GoNoGoDecision.Go) {
+          setProvisioningCode(projectCode);
 
-        // Create kickoff record and launch scheduler
-        const kickoff = await dataService.createEstimatingKickoff({
-          LeadID: leadId,
-          ProjectCode: projectCode,
-          Architect: lead?.AE,
-          ProposalDueDateTime: lead?.ProposalBidDue,
-          CreatedBy: currentUser?.email ?? 'system',
-          CreatedDate: new Date().toISOString(),
-        });
-        setKickoffId(kickoff.id);
+          // Create kickoff record
+          const kickoff = await dataService.createEstimatingKickoff({
+            LeadID: leadId,
+            ProjectCode: projectCode,
+            Architect: lead?.AE,
+            ProposalDueDateTime: lead?.ProposalBidDue,
+            CreatedBy: currentUser?.email ?? 'system',
+            CreatedDate: new Date().toISOString(),
+          });
+          setKickoffId(kickoff.id);
 
-        const attendees = new Set<string>();
-        const addEmail = (value?: string) => {
-          if (value && value.includes('@')) attendees.add(value);
-        };
-        addEmail(currentUser?.email);
-        addEmail(lead?.ProjectExecutive);
-        addEmail(lead?.ProjectManager);
+          const attendees = new Set<string>();
+          const addEmail = (value?: string): void => {
+            if (value && value.includes('@')) attendees.add(value);
+          };
+          addEmail(currentUser?.email);
+          addEmail(lead?.ProjectExecutive);
+          addEmail(lead?.ProjectManager);
+          try {
+            const estimatingRecord = await dataService.getEstimatingByLeadId(leadId);
+            addEmail(estimatingRecord?.LeadEstimator);
+            addEmail(estimatingRecord?.PX_ProjectExecutive);
+            (estimatingRecord?.Contributors || []).forEach(addEmail);
+          } catch { /* ignore */ }
 
-        try {
-          const estimatingRecord = await dataService.getEstimatingByLeadId(leadId);
-          addEmail(estimatingRecord?.LeadEstimator);
-          addEmail(estimatingRecord?.PX_ProjectExecutive);
-          (estimatingRecord?.Contributors || []).forEach(addEmail);
-        } catch {
-          // ignore if estimating record not found
+          setKickoffAttendees(Array.from(attendees));
+          setShowKickoffScheduler(true);
+          setPostGoRedirect(`/job-request/${leadId}`);
         }
 
-        setKickoffAttendees(Array.from(attendees));
-        setShowKickoffScheduler(true);
-        setPostGoRedirect(`/job-request/${leadId}`);
-      } else if (dec === GoNoGoDecision.NoGo) {
+        showToast(
+          decisionChoice === GoNoGoDecision.Go
+            ? `GO decision recorded. Project code ${projectCode} assigned.`
+            : `CONDITIONAL GO decision recorded. Conditions documented.`
+        );
+      } else {
         await updateLead(leadId, {
           Stage: Stage.ArchivedNoGo,
           GoNoGoDecision: GoNoGoDecision.NoGo,
@@ -295,46 +424,72 @@ export const GoNoGoScorecard: React.FC = () => {
           GoNoGoScore_Originator: origTotal,
           GoNoGoScore_Committee: cmteTotal,
         });
-        setToastMessage('NO GO decision recorded. Lead archived.');
-      } else {
-        await updateLead(leadId, {
-          Stage: Stage.GoNoGoWait,
-          GoNoGoDecision: GoNoGoDecision.Wait,
-          GoNoGoDecisionDate: new Date().toISOString(),
-          GoNoGoScore_Originator: origTotal,
-          GoNoGoScore_Committee: cmteTotal,
-        });
-        console.log('[Mock] Reminder notification scheduled for WAIT decision');
-        setToastMessage('WAIT decision recorded. Reminder notification scheduled.');
+        showToast('NO GO decision recorded. Lead archived.', 'warning');
       }
 
-      // Fire-and-forget audit log
-      dataService.logAudit({
-        Action: AuditAction.GoNoGoDecisionMade,
-        EntityType: EntityType.Scorecard,
-        EntityId: String(scorecard.id),
-        ProjectCode: dec === GoNoGoDecision.Go ? projectCode : undefined,
-        User: currentUser?.displayName || 'Unknown',
-        UserId: currentUser?.id,
-        Details: `Go/No-Go decision: ${dec} for "${lead?.Title}" (Score: ${cmteTotal || origTotal})`,
-      }).catch(console.error);
-
-      // Fire-and-forget notification
-      notify(NotificationEvent.GoNoGoDecisionMade, {
+      notify(NotificationEvent.ScorecardDecisionRecorded, {
         leadTitle: lead?.Title,
         leadId,
-        clientName: lead?.ClientName,
-        decision: dec,
+        decision: decisionChoice,
         score: cmteTotal || origTotal,
-        projectCode: dec === GoNoGoDecision.Go ? projectCode : undefined,
+        projectCode: decisionChoice === GoNoGoDecision.Go ? projectCode : undefined,
       }).catch(console.error);
 
-      setDecision(dec);
-      setShowGoDialog(false);
-      setShowNoGoDialog(false);
-      setTimeout(() => setToastMessage(''), 5000);
+      dataService.logAudit({
+        Action: AuditAction.ScorecardDecisionMade,
+        EntityType: EntityType.Scorecard,
+        EntityId: String(scorecard!.id),
+        ProjectCode: decisionChoice === GoNoGoDecision.Go ? projectCode : undefined,
+        User: currentUser?.displayName || 'Unknown',
+        UserId: currentUser?.id,
+        Details: `Final decision: ${decisionChoice} for "${lead?.Title}" (Committee: ${cmteTotal})`,
+      }).catch(console.error);
     } catch (err) {
-      console.error('Failed to submit decision:', err);
+      console.error('Failed to record decision:', err);
+      showToast('Failed to record decision', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUnlock = async (): Promise<void> => {
+    if (!unlockReason.trim()) return;
+    try {
+      setIsSaving(true);
+      const updated = await unlockScorecard(scorecard!.id, unlockReason);
+      setScorecard(updated);
+      setShowUnlockDialog(false);
+      setUnlockReason('');
+
+      notify(NotificationEvent.ScorecardUnlockedForEditing, {
+        leadTitle: lead?.Title,
+        leadId,
+        unlockedBy: currentUser?.displayName,
+        reason: unlockReason,
+      }).catch(console.error);
+
+      showToast('Scorecard unlocked for editing', 'warning');
+    } catch (err) {
+      console.error('Failed to unlock scorecard:', err);
+      showToast('Failed to unlock scorecard', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRelock = async (startNewCycle: boolean): Promise<void> => {
+    try {
+      setIsSaving(true);
+      if (startNewCycle) {
+        await handleSave();
+      }
+      const updated = await relockScorecard(scorecard!.id, startNewCycle);
+      setScorecard(updated);
+      setShowRelockOptions(false);
+      showToast(startNewCycle ? 'Scorecard submitted for re-approval' : 'Scorecard re-locked');
+    } catch (err) {
+      console.error('Failed to re-lock scorecard:', err);
+      showToast('Failed to re-lock scorecard', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -357,6 +512,14 @@ export const GoNoGoScorecard: React.FC = () => {
 
   const labelStyle: React.CSSProperties = { fontSize: '13px', fontWeight: 500, color: HBC_COLORS.gray700, marginBottom: '4px', display: 'block' };
   const fieldStyle: React.CSSProperties = { marginBottom: '16px' };
+  const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: '8px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' };
+
+  // Get return comments from latest approval cycle
+  const activeCycle = scorecard?.approvalCycles?.find(c => c.status === 'Active');
+  const returnedStep = activeCycle?.steps?.find(s => s.status === 'Returned');
+
+  const currentStatus = scorecard?.scorecardStatus ?? ScorecardStatus.Draft;
+  const statusColors = STATUS_COLORS[currentStatus];
 
   return (
     <div id="scorecard-view">
@@ -365,6 +528,19 @@ export const GoNoGoScorecard: React.FC = () => {
         subtitle={`${lead.Title} — ${lead.ClientName}`}
         actions={
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {/* Status Badge */}
+            <span style={{
+              display: 'inline-block',
+              padding: '4px 12px',
+              borderRadius: '12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              backgroundColor: statusColors.bg,
+              color: statusColors.color,
+            }}>
+              {currentStatus}
+              {scorecard?.currentVersion && scorecard.currentVersion > 1 ? ` (v${scorecard.currentVersion})` : ''}
+            </span>
             <ExportButtons
               data={exportData}
               pdfElementId="scorecard-view"
@@ -381,13 +557,125 @@ export const GoNoGoScorecard: React.FC = () => {
         <div style={{
           padding: '12px 16px',
           marginBottom: '16px',
-          backgroundColor: HBC_COLORS.successLight,
-          color: '#065F46',
+          backgroundColor: toastType === 'success' ? HBC_COLORS.successLight
+            : toastType === 'warning' ? '#FEF3C7'
+            : '#FEE2E2',
+          color: toastType === 'success' ? '#065F46'
+            : toastType === 'warning' ? '#92400E'
+            : '#991B1B',
           borderRadius: '6px',
           fontSize: '13px',
           fontWeight: 500,
         }}>
           {toastMessage}
+        </div>
+      )}
+
+      {/* Status-specific Banners */}
+      {currentStatus === ScorecardStatus.ReturnedForRevision && returnedStep && (
+        <div style={{
+          padding: '12px 16px',
+          marginBottom: '16px',
+          backgroundColor: '#FEF3C7',
+          border: '1px solid #F59E0B',
+          borderRadius: '6px',
+          fontSize: '13px',
+        }}>
+          <div style={{ fontWeight: 600, color: '#92400E', marginBottom: '4px' }}>Returned for Revision</div>
+          <div style={{ color: '#92400E' }}>
+            Returned by {returnedStep.assigneeName} on {returnedStep.actionDate ? new Date(returnedStep.actionDate).toLocaleDateString() : 'N/A'}
+          </div>
+          {returnedStep.comment && (
+            <div style={{ marginTop: '8px', padding: '8px 12px', backgroundColor: '#fff', borderRadius: '4px', color: HBC_COLORS.gray700 }}>
+              "{returnedStep.comment}"
+            </div>
+          )}
+        </div>
+      )}
+
+      {currentStatus === ScorecardStatus.Submitted && canReview && (
+        <div style={{
+          padding: '12px 16px',
+          marginBottom: '16px',
+          backgroundColor: '#DBEAFE',
+          border: '1px solid #3B82F6',
+          borderRadius: '6px',
+          fontSize: '13px',
+        }}>
+          <div style={{ fontWeight: 600, color: '#1D4ED8', marginBottom: '4px' }}>Awaiting Your Review</div>
+          <div style={{ color: '#1D4ED8' }}>
+            Submitted by {scorecard?.ScoredBy_Orig || 'BD Rep'} — Please review and accept or return for revision.
+          </div>
+        </div>
+      )}
+
+      {currentStatus === ScorecardStatus.Unlocked && (
+        <div style={{
+          padding: '12px 16px',
+          marginBottom: '16px',
+          backgroundColor: '#FED7AA',
+          border: '1px solid #F97316',
+          borderRadius: '6px',
+          fontSize: '13px',
+        }}>
+          <div style={{ fontWeight: 600, color: '#9A3412', marginBottom: '4px' }}>Scorecard Unlocked</div>
+          <div style={{ color: '#9A3412' }}>
+            Unlocked by {scorecard?.unlockedBy || 'Unknown'} on {scorecard?.unlockedDate ? new Date(scorecard.unlockedDate).toLocaleDateString() : 'N/A'}
+            {scorecard?.unlockReason && ` — Reason: ${scorecard.unlockReason}`}
+          </div>
+        </div>
+      )}
+
+      {(currentStatus === ScorecardStatus.Locked || currentStatus === ScorecardStatus.Decided) && (
+        <div style={{
+          padding: '12px 16px',
+          marginBottom: '16px',
+          backgroundColor: HBC_COLORS.successLight,
+          border: '1px solid #10B981',
+          borderRadius: '6px',
+          fontSize: '13px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <span style={{
+              display: 'inline-block',
+              padding: '6px 20px',
+              borderRadius: '6px',
+              fontWeight: 700,
+              fontSize: '15px',
+              color: '#fff',
+              backgroundColor: scorecard?.finalDecision === GoNoGoDecision.Go ? HBC_COLORS.success
+                : scorecard?.finalDecision === GoNoGoDecision.NoGo ? HBC_COLORS.error
+                : HBC_COLORS.warning,
+            }}>
+              {scorecard?.finalDecision || scorecard?.Decision || 'Decided'}
+            </span>
+            {scorecard?.finalDecisionDate && (
+              <span style={{ color: '#065F46' }}>
+                Decided on {new Date(scorecard.finalDecisionDate).toLocaleDateString()}
+                {scorecard.finalDecisionBy && ` by ${scorecard.finalDecisionBy}`}
+              </span>
+            )}
+            {scorecard?.ProjectCode && (
+              <span style={{ fontWeight: 600, color: HBC_COLORS.navy }}>
+                Project Code: {scorecard.ProjectCode}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Conditional Go Conditions Card */}
+      {scorecard?.finalDecision === GoNoGoDecision.ConditionalGo && scorecard.conditionalGoConditions && (
+        <div style={{
+          ...cardStyle,
+          borderLeft: `4px solid ${HBC_COLORS.warning}`,
+        }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#92400E', margin: '0 0 8px 0' }}>
+            Conditional Go — Required Conditions
+          </h3>
+          <div style={{ fontSize: '13px', color: HBC_COLORS.gray700, whiteSpace: 'pre-wrap' }}>
+            {scorecard.conditionalGoConditions}
+          </div>
         </div>
       )}
 
@@ -441,8 +729,8 @@ export const GoNoGoScorecard: React.FC = () => {
                 criterion={criterion}
                 scores={scores[criterion.id]}
                 onScore={handleScore}
-                canScoreOriginator={canScoreOriginator && !isSubmitted}
-                canScoreCommittee={canScoreCommittee && !isSubmitted}
+                canScoreOriginator={canScoreOriginator && canEdit}
+                canScoreCommittee={canScoreCommittee && (canEnterCommitteeScores || scorecardStatus === ScorecardStatus.Unlocked)}
                 isEven={idx % 2 === 0}
               />
             ))}
@@ -498,13 +786,7 @@ export const GoNoGoScorecard: React.FC = () => {
       </div>
 
       {/* Qualitative Fields */}
-      <div style={{
-        backgroundColor: '#fff',
-        borderRadius: '8px',
-        padding: '24px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        marginBottom: '24px',
-      }}>
+      <div style={cardStyle}>
         <h3 style={{ fontSize: '16px', fontWeight: 600, color: HBC_COLORS.navy, margin: '0 0 16px 0' }}>
           Qualitative Assessment
         </h3>
@@ -516,7 +798,7 @@ export const GoNoGoScorecard: React.FC = () => {
               rows={3}
               value={String(qualFields.OriginatorComments || '')}
               onChange={(_, d) => handleQualChange('OriginatorComments', d.value)}
-              disabled={isSubmitted || !canScoreOriginator}
+              disabled={!canEdit || !canScoreOriginator}
             />
           </div>
           <div style={fieldStyle}>
@@ -526,7 +808,7 @@ export const GoNoGoScorecard: React.FC = () => {
               rows={3}
               value={String(qualFields.CommitteeComments || '')}
               onChange={(_, d) => handleQualChange('CommitteeComments', d.value)}
-              disabled={isSubmitted || !canScoreCommittee}
+              disabled={!canEdit || !canScoreCommittee}
             />
           </div>
           <div style={fieldStyle}>
@@ -536,7 +818,7 @@ export const GoNoGoScorecard: React.FC = () => {
               rows={2}
               value={String(qualFields.ProposalMarketingComments || '')}
               onChange={(_, d) => handleQualChange('ProposalMarketingComments', d.value)}
-              disabled={isSubmitted}
+              disabled={!canEdit}
             />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -546,7 +828,7 @@ export const GoNoGoScorecard: React.FC = () => {
                 style={{ width: '100%' }}
                 value={String(qualFields.ProposalMarketingResources || '')}
                 onChange={(_, d) => handleQualChange('ProposalMarketingResources', d.value)}
-                disabled={isSubmitted}
+                disabled={!canEdit}
               />
             </div>
             <div style={fieldStyle}>
@@ -556,7 +838,7 @@ export const GoNoGoScorecard: React.FC = () => {
                 style={{ width: '100%' }}
                 value={String(qualFields.ProposalMarketingHours || '')}
                 onChange={(_, d) => handleQualChange('ProposalMarketingHours', Number(d.value))}
-                disabled={isSubmitted}
+                disabled={!canEdit}
               />
             </div>
           </div>
@@ -567,7 +849,7 @@ export const GoNoGoScorecard: React.FC = () => {
               rows={2}
               value={String(qualFields.EstimatingComments || '')}
               onChange={(_, d) => handleQualChange('EstimatingComments', d.value)}
-              disabled={isSubmitted}
+              disabled={!canEdit}
             />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -577,7 +859,7 @@ export const GoNoGoScorecard: React.FC = () => {
                 style={{ width: '100%' }}
                 value={String(qualFields.EstimatingResources || '')}
                 onChange={(_, d) => handleQualChange('EstimatingResources', d.value)}
-                disabled={isSubmitted}
+                disabled={!canEdit}
               />
             </div>
             <div style={fieldStyle}>
@@ -587,7 +869,7 @@ export const GoNoGoScorecard: React.FC = () => {
                 style={{ width: '100%' }}
                 value={String(qualFields.EstimatingHours || '')}
                 onChange={(_, d) => handleQualChange('EstimatingHours', Number(d.value))}
-                disabled={isSubmitted}
+                disabled={!canEdit}
               />
             </div>
           </div>
@@ -598,7 +880,7 @@ export const GoNoGoScorecard: React.FC = () => {
               rows={2}
               value={String(qualFields.DecisionMakingProcess || '')}
               onChange={(_, d) => handleQualChange('DecisionMakingProcess', d.value)}
-              disabled={isSubmitted}
+              disabled={!canEdit}
             />
           </div>
           <div style={fieldStyle}>
@@ -608,7 +890,7 @@ export const GoNoGoScorecard: React.FC = () => {
               rows={2}
               value={String(qualFields.HBDifferentiators || '')}
               onChange={(_, d) => handleQualChange('HBDifferentiators', d.value)}
-              disabled={isSubmitted}
+              disabled={!canEdit}
             />
           </div>
           <div style={fieldStyle}>
@@ -618,7 +900,7 @@ export const GoNoGoScorecard: React.FC = () => {
               rows={2}
               value={String(qualFields.WinStrategy || '')}
               onChange={(_, d) => handleQualChange('WinStrategy', d.value)}
-              disabled={isSubmitted}
+              disabled={!canEdit}
             />
           </div>
           <div style={fieldStyle}>
@@ -627,7 +909,7 @@ export const GoNoGoScorecard: React.FC = () => {
               style={{ width: '100%' }}
               value={String(qualFields.StrategicPursuit || '')}
               onChange={(_, d) => handleQualChange('StrategicPursuit', d.value)}
-              disabled={isSubmitted}
+              disabled={!canEdit}
             />
           </div>
           <div style={fieldStyle}>
@@ -636,119 +918,335 @@ export const GoNoGoScorecard: React.FC = () => {
               style={{ width: '100%' }}
               value={String(qualFields.DecisionMakerAdvocate || '')}
               onChange={(_, d) => handleQualChange('DecisionMakerAdvocate', d.value)}
-              disabled={isSubmitted}
+              disabled={!canEdit}
             />
           </div>
         </div>
       </div>
 
-      {/* Decision Section */}
-      <div style={{
-        backgroundColor: '#fff',
-        borderRadius: '8px',
-        padding: '24px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        marginBottom: '24px',
-      }}>
-        <h3 style={{ fontSize: '16px', fontWeight: 600, color: HBC_COLORS.navy, margin: '0 0 16px 0' }}>
-          Decision
-        </h3>
-        {isSubmitted ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      {/* Recommendation Card — only in PendingDecision */}
+      {currentStatus === ScorecardStatus.PendingDecision && recommendedDecision && (
+        <div style={{
+          ...cardStyle,
+          borderLeft: `4px solid ${
+            recommendedDecision.decision === GoNoGoDecision.Go ? HBC_COLORS.success
+            : recommendedDecision.decision === GoNoGoDecision.NoGo ? HBC_COLORS.error
+            : HBC_COLORS.warning
+          }`,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: '11px', color: HBC_COLORS.gray400, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                System Recommendation — not the final decision
+              </div>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: HBC_COLORS.gray800, marginBottom: '4px' }}>
+                {recommendedDecision.decision}
+              </div>
+              <div style={{ fontSize: '13px', color: HBC_COLORS.gray600 }}>
+                {recommendedDecision.reasoning}
+              </div>
+            </div>
             <span style={{
-              display: 'inline-block',
-              padding: '8px 24px',
-              borderRadius: '6px',
-              fontWeight: 700,
-              fontSize: '16px',
-              color: '#fff',
-              backgroundColor: decision === GoNoGoDecision.Go ? HBC_COLORS.success
-                : decision === GoNoGoDecision.NoGo ? HBC_COLORS.error
-                : HBC_COLORS.warning,
+              padding: '4px 10px',
+              borderRadius: '12px',
+              fontSize: '11px',
+              fontWeight: 600,
+              backgroundColor: recommendedDecision.confidence === 'Strong' ? '#D1FAE5' : '#FEF3C7',
+              color: recommendedDecision.confidence === 'Strong' ? '#065F46' : '#92400E',
             }}>
-              {decision}
+              {recommendedDecision.confidence} confidence
             </span>
-            {scorecard?.DecisionDate && (
-              <span style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
-                Decided on {new Date(scorecard.DecisionDate).toLocaleDateString()}
-              </span>
-            )}
-            {scorecard?.ProjectCode && (
-              <span style={{ fontSize: '13px', color: HBC_COLORS.navy, fontWeight: 600 }}>
-                Project Code: {scorecard.ProjectCode}
-              </span>
+          </div>
+        </div>
+      )}
+
+      {/* Action Bar — context-sensitive based on status */}
+      <div style={cardStyle}>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: HBC_COLORS.navy, margin: '0 0 16px 0' }}>
+          {currentStatus === ScorecardStatus.Draft || currentStatus === ScorecardStatus.ReturnedForRevision
+            ? 'Actions'
+            : currentStatus === ScorecardStatus.Submitted ? 'Review Actions'
+            : currentStatus === ScorecardStatus.InCommitteeReview ? 'Committee Scoring'
+            : currentStatus === ScorecardStatus.PendingDecision ? 'Final Decision'
+            : currentStatus === ScorecardStatus.Unlocked ? 'Unlocked Actions'
+            : 'Status'}
+        </h3>
+
+        {/* Draft / ReturnedForRevision: Cancel, Save, Save & Submit */}
+        {(currentStatus === ScorecardStatus.Draft || currentStatus === ScorecardStatus.ReturnedForRevision) && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Button appearance="secondary" onClick={() => navigate(`/lead/${leadId}`)}>Cancel</Button>
+            <Button appearance="secondary" onClick={() => handleSave()} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Draft'}
+            </Button>
+            {canSubmit && (
+              <Button appearance="primary" onClick={() => setShowSubmitModal(true)} disabled={isSaving}>
+                Save & Submit for Review
+              </Button>
             )}
           </div>
-        ) : canDecide ? (
+        )}
+
+        {/* Submitted: Return or Accept (for reviewer) */}
+        {currentStatus === ScorecardStatus.Submitted && canReview && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Button
+              appearance="secondary"
+              style={{ borderColor: HBC_COLORS.warning, color: '#92400E' }}
+              onClick={() => setShowReturnDialog(true)}
+              disabled={isSaving}
+            >
+              Return for Revision
+            </Button>
+            <Button
+              appearance="primary"
+              onClick={() => handleRespondToSubmission(true)}
+              disabled={isSaving}
+            >
+              Accept & Proceed to Committee
+            </Button>
+          </div>
+        )}
+
+        {currentStatus === ScorecardStatus.Submitted && !canReview && (
+          <div style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
+            Submitted for review. Waiting for Director approval.
+          </div>
+        )}
+
+        {/* InCommitteeReview: Save Committee Scores / Finalize */}
+        {currentStatus === ScorecardStatus.InCommitteeReview && (
           <div>
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-              <Button
-                appearance="primary"
-                style={{ backgroundColor: HBC_COLORS.success }}
-                disabled={isSaving}
-                onClick={() => setShowGoDialog(true)}
-              >
-                GO
-              </Button>
-              <Button
-                appearance="primary"
-                style={{ backgroundColor: HBC_COLORS.error }}
-                disabled={isSaving}
-                onClick={() => setShowNoGoDialog(true)}
-              >
-                NO GO
-              </Button>
-              <Button
-                appearance="primary"
-                style={{ backgroundColor: HBC_COLORS.warning }}
-                disabled={isSaving}
-                onClick={() => handleDecision(GoNoGoDecision.Wait)}
-              >
-                WAIT
-              </Button>
-            </div>
-            {showGoDialog && (
-              <div style={{
-                padding: '16px',
-                backgroundColor: HBC_COLORS.successLight,
-                borderRadius: '6px',
-                marginBottom: '12px',
-              }}>
-                <label style={labelStyle}>Project Code (format: yy-nnn-0m) *</label>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  <div>
-                    <Input
-                      value={projectCode}
-                      onChange={(_, d) => { setProjectCode(d.value); setProjectCodeError(''); }}
-                      placeholder="26-042-01"
-                      style={{ width: '160px' }}
-                    />
-                    {projectCodeError && (
-                      <div style={{ color: HBC_COLORS.error, fontSize: '12px', marginTop: '4px' }}>{projectCodeError}</div>
-                    )}
-                  </div>
-                  <Button appearance="primary" onClick={() => handleDecision(GoNoGoDecision.Go)} disabled={isSaving}>
-                    Confirm GO
-                  </Button>
-                  <Button appearance="secondary" onClick={() => setShowGoDialog(false)}>Cancel</Button>
-                </div>
+            {canEnterCommitteeScores ? (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <Button
+                  appearance="secondary"
+                  onClick={() => { handleSave().catch(console.error); }}
+                  disabled={isSaving}
+                >
+                  Save Committee Scores
+                </Button>
+                <Button
+                  appearance="primary"
+                  onClick={handleSaveCommitteeScores}
+                  disabled={isSaving || !cmteComplete}
+                >
+                  Finalize Committee Scores
+                </Button>
+                {!cmteComplete && (
+                  <span style={{ fontSize: '12px', color: HBC_COLORS.gray400, alignSelf: 'center' }}>
+                    All 19 committee scores required to finalize
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
+                Committee scoring in progress. Only Executive Leadership can enter scores.
               </div>
             )}
           </div>
-        ) : (
-          <div style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
-            Decision can only be made by Executive Leadership.
+        )}
+
+        {/* PendingDecision: Decision buttons */}
+        {currentStatus === ScorecardStatus.PendingDecision && (
+          <div>
+            {canDecide ? (
+              <div>
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                  <Button
+                    appearance="primary"
+                    style={{ backgroundColor: HBC_COLORS.success }}
+                    disabled={isSaving}
+                    onClick={() => { setDecisionChoice(GoNoGoDecision.Go); setShowGoConfirm(true); }}
+                  >
+                    GO
+                  </Button>
+                  <Button
+                    appearance="primary"
+                    style={{ backgroundColor: HBC_COLORS.error }}
+                    disabled={isSaving}
+                    onClick={() => { setDecisionChoice(GoNoGoDecision.NoGo); setShowNoGoConfirm(true); }}
+                  >
+                    NO GO
+                  </Button>
+                  <Button
+                    appearance="primary"
+                    style={{ backgroundColor: HBC_COLORS.warning }}
+                    disabled={isSaving}
+                    onClick={() => { setDecisionChoice(GoNoGoDecision.ConditionalGo); setShowDecisionPanel(true); }}
+                  >
+                    CONDITIONAL GO
+                  </Button>
+                </div>
+
+                {/* GO confirm panel with project code */}
+                {showGoConfirm && (
+                  <div style={{
+                    padding: '16px',
+                    backgroundColor: HBC_COLORS.successLight,
+                    borderRadius: '6px',
+                    marginBottom: '12px',
+                  }}>
+                    <label style={labelStyle}>Project Code (format: yy-nnn-0m) *</label>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                      <div>
+                        <Input
+                          value={projectCode}
+                          onChange={(_, d) => { setProjectCode(d.value); setProjectCodeError(''); }}
+                          placeholder="26-042-01"
+                          style={{ width: '160px' }}
+                        />
+                        {projectCodeError && (
+                          <div style={{ color: HBC_COLORS.error, fontSize: '12px', marginTop: '4px' }}>{projectCodeError}</div>
+                        )}
+                      </div>
+                      <Button appearance="primary" onClick={handleRecordDecision} disabled={isSaving}>
+                        Confirm GO
+                      </Button>
+                      <Button appearance="secondary" onClick={() => setShowGoConfirm(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Conditional Go panel with conditions */}
+                {showDecisionPanel && decisionChoice === GoNoGoDecision.ConditionalGo && (
+                  <div style={{
+                    padding: '16px',
+                    backgroundColor: '#FEF3C7',
+                    borderRadius: '6px',
+                    marginBottom: '12px',
+                  }}>
+                    <label style={labelStyle}>Conditions for Approval *</label>
+                    <Textarea
+                      style={{ width: '100%', marginBottom: '12px' }}
+                      rows={3}
+                      value={conditionalConditions}
+                      onChange={(_, d) => setConditionalConditions(d.value)}
+                      placeholder="Describe the conditions that must be met..."
+                    />
+                    <label style={labelStyle}>Project Code (format: yy-nnn-0m) *</label>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                      <div>
+                        <Input
+                          value={projectCode}
+                          onChange={(_, d) => { setProjectCode(d.value); setProjectCodeError(''); }}
+                          placeholder="26-042-01"
+                          style={{ width: '160px' }}
+                        />
+                        {projectCodeError && (
+                          <div style={{ color: HBC_COLORS.error, fontSize: '12px', marginTop: '4px' }}>{projectCodeError}</div>
+                        )}
+                      </div>
+                      <Button
+                        appearance="primary"
+                        style={{ backgroundColor: HBC_COLORS.warning }}
+                        onClick={handleRecordDecision}
+                        disabled={isSaving || !conditionalConditions.trim()}
+                      >
+                        Confirm Conditional Go
+                      </Button>
+                      <Button appearance="secondary" onClick={() => setShowDecisionPanel(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
+                Decision can only be made by Executive Leadership.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Locked: Unlock button */}
+        {(currentStatus === ScorecardStatus.Locked || currentStatus === ScorecardStatus.Decided) && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {canUnlock && (
+              <Button
+                appearance="secondary"
+                style={{ borderColor: '#F97316', color: '#9A3412' }}
+                onClick={() => setShowUnlockDialog(true)}
+              >
+                Unlock for Editing
+              </Button>
+            )}
+            <Button appearance="secondary" onClick={() => setShowVersionHistory(!showVersionHistory)}>
+              {showVersionHistory ? 'Hide' : 'Show'} Version History ({scorecard?.versions?.length || 0})
+            </Button>
+          </div>
+        )}
+
+        {/* Unlocked: Save/Lock/Submit */}
+        {currentStatus === ScorecardStatus.Unlocked && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Button appearance="secondary" onClick={() => handleSave().catch(console.error)} disabled={isSaving}>
+              Save
+            </Button>
+            <Button
+              appearance="secondary"
+              style={{ borderColor: HBC_COLORS.success, color: '#065F46' }}
+              onClick={() => handleRelock(false)}
+              disabled={isSaving}
+            >
+              Lock Without Re-approval
+            </Button>
+            <Button
+              appearance="primary"
+              onClick={() => handleRelock(true)}
+              disabled={isSaving}
+            >
+              Save & Submit for Re-approval
+            </Button>
           </div>
         )}
       </div>
 
-      {/* Save Button */}
-      {!isSubmitted && (
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-          <Button appearance="secondary" onClick={() => navigate(`/lead/${leadId}`)}>Cancel</Button>
-          <Button appearance="primary" onClick={handleSave} disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Save Scorecard'}
-          </Button>
+      {/* Version History Panel */}
+      {showVersionHistory && scorecard?.versions && scorecard.versions.length > 0 && (
+        <div style={cardStyle}>
+          <h3 style={{ fontSize: '16px', fontWeight: 600, color: HBC_COLORS.navy, margin: '0 0 16px 0' }}>
+            Version History
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {[...scorecard.versions].reverse().map((ver) => (
+              <div key={ver.id} style={{
+                padding: '12px 16px',
+                backgroundColor: HBC_COLORS.gray50,
+                borderRadius: '6px',
+                border: `1px solid ${HBC_COLORS.gray200}`,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '14px', color: HBC_COLORS.gray800 }}>
+                    Version {ver.versionNumber}
+                  </span>
+                  <span style={{ fontSize: '12px', color: HBC_COLORS.gray500 }}>
+                    {new Date(ver.createdDate).toLocaleString()} by {ver.createdBy}
+                  </span>
+                </div>
+                {ver.reason && (
+                  <div style={{ fontSize: '12px', color: HBC_COLORS.gray600, marginBottom: '8px' }}>
+                    Reason: {ver.reason}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
+                  <span>Originator: <strong>{ver.totalOriginal ?? 'N/A'}</strong></span>
+                  <span>Committee: <strong>{ver.totalCommittee ?? 'N/A'}</strong></span>
+                  {ver.decision && (
+                    <span>Decision: <strong style={{
+                      color: ver.decision === GoNoGoDecision.Go ? HBC_COLORS.success
+                        : ver.decision === GoNoGoDecision.NoGo ? HBC_COLORS.error
+                        : HBC_COLORS.warning,
+                    }}>{ver.decision}</strong></span>
+                  )}
+                </div>
+                {ver.conditions && (
+                  <div style={{ fontSize: '12px', color: '#92400E', marginTop: '4px' }}>
+                    Conditions: {ver.conditions}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -785,14 +1283,151 @@ export const GoNoGoScorecard: React.FC = () => {
         </div>
       )}
 
+      {/* Submit for Review Modal */}
+      {showSubmitModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.45)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+          padding: 24,
+        }}>
+          <div style={{
+            backgroundColor: '#fff',
+            borderRadius: '8px',
+            padding: '24px',
+            maxWidth: '480px',
+            width: '100%',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+          }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 600, color: HBC_COLORS.navy, margin: '0 0 16px 0' }}>
+              Submit Scorecard for Review
+            </h3>
+            <p style={{ fontSize: '13px', color: HBC_COLORS.gray600, marginBottom: '16px' }}>
+              This will submit the scorecard for Director of Preconstruction review. You can optionally override the approver below.
+            </p>
+            <AzureADPeoplePicker
+              selectedUser={submitApproverOverride}
+              onSelect={setSubmitApproverOverride}
+              label="Approver (defaults to Director of Precon)"
+              placeholder="Override approver..."
+            />
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <Button appearance="secondary" onClick={() => setShowSubmitModal(false)}>Cancel</Button>
+              <Button appearance="primary" onClick={handleSubmitForReview} disabled={isSaving}>
+                {isSaving ? 'Submitting...' : 'Submit for Review'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Return for Revision Dialog */}
+      {showReturnDialog && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.45)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+          padding: 24,
+        }}>
+          <div style={{
+            backgroundColor: '#fff',
+            borderRadius: '8px',
+            padding: '24px',
+            maxWidth: '480px',
+            width: '100%',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+          }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#92400E', margin: '0 0 16px 0' }}>
+              Return for Revision
+            </h3>
+            <label style={labelStyle}>Comments / Reason for Return *</label>
+            <Textarea
+              style={{ width: '100%' }}
+              rows={3}
+              value={returnComment}
+              onChange={(_, d) => setReturnComment(d.value)}
+              placeholder="Explain what needs to be revised..."
+            />
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <Button appearance="secondary" onClick={() => { setShowReturnDialog(false); setReturnComment(''); }}>Cancel</Button>
+              <Button
+                appearance="primary"
+                style={{ backgroundColor: HBC_COLORS.warning }}
+                onClick={() => handleRespondToSubmission(false)}
+                disabled={isSaving || !returnComment.trim()}
+              >
+                Return
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unlock Dialog */}
+      {showUnlockDialog && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.45)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+          padding: 24,
+        }}>
+          <div style={{
+            backgroundColor: '#fff',
+            borderRadius: '8px',
+            padding: '24px',
+            maxWidth: '480px',
+            width: '100%',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+          }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#9A3412', margin: '0 0 16px 0' }}>
+              Unlock Scorecard
+            </h3>
+            <p style={{ fontSize: '13px', color: HBC_COLORS.gray600, marginBottom: '16px' }}>
+              This will create a version snapshot and unlock the scorecard for editing. A reason is required.
+            </p>
+            <label style={labelStyle}>Reason for Unlock *</label>
+            <Textarea
+              style={{ width: '100%' }}
+              rows={2}
+              value={unlockReason}
+              onChange={(_, d) => setUnlockReason(d.value)}
+              placeholder="Why does this scorecard need to be unlocked?"
+            />
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <Button appearance="secondary" onClick={() => { setShowUnlockDialog(false); setUnlockReason(''); }}>Cancel</Button>
+              <Button
+                appearance="primary"
+                style={{ backgroundColor: '#F97316' }}
+                onClick={handleUnlock}
+                disabled={isSaving || !unlockReason.trim()}
+              >
+                Unlock
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirm Dialogs */}
       <ConfirmDialog
-        open={showNoGoDialog}
+        open={showNoGoConfirm}
         title="Confirm NO GO"
         message={`This will archive "${lead.Title}" as No-Go. This action cannot be undone.`}
         confirmLabel="Confirm NO GO"
-        onConfirm={() => handleDecision(GoNoGoDecision.NoGo)}
-        onCancel={() => setShowNoGoDialog(false)}
+        onConfirm={handleRecordDecision}
+        onCancel={() => setShowNoGoConfirm(false)}
         danger
       />
     </div>
@@ -825,13 +1460,13 @@ const CriterionRow: React.FC<ICriterionRowProps> = ({
     column: 'originator' | 'committee',
     level: ScoreLevel,
     value: number,
-    canEdit: boolean,
+    canEditCol: boolean,
   ): React.ReactElement => {
     const isSelected = scores?.[column] === value;
     return (
       <button
-        onClick={() => canEdit && onScore(criterion.id, column, value)}
-        disabled={!canEdit}
+        onClick={() => canEditCol && onScore(criterion.id, column, value)}
+        disabled={!canEditCol}
         style={{
           width: '36px',
           height: '28px',
@@ -841,8 +1476,8 @@ const CriterionRow: React.FC<ICriterionRowProps> = ({
           color: isSelected ? '#fff' : HBC_COLORS.gray700,
           fontWeight: isSelected ? 700 : 400,
           fontSize: '12px',
-          cursor: canEdit ? 'pointer' : 'not-allowed',
-          opacity: canEdit ? 1 : 0.5,
+          cursor: canEditCol ? 'pointer' : 'not-allowed',
+          opacity: canEditCol ? 1 : 0.5,
         }}
       >
         {value}

@@ -8,7 +8,7 @@ import { KPICard } from '../../shared/KPICard';
 import { StageBadge } from '../../shared/StageBadge';
 import { StageIndicator } from '../../shared/StageIndicator';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { ILead, Stage } from '../../../models';
+import { ILead, Stage, GoNoGoDecision } from '../../../models';
 import { PERMISSIONS } from '../../../utils/permissions';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { formatCurrency, formatDate, formatSquareFeet } from '../../../utils/formatters';
@@ -143,7 +143,7 @@ export const ProjectDashboard: React.FC = () => {
           <div style={fieldStyle}><span style={labelStyle}>Originator</span><span style={valueStyle}>{project.Originator}</span></div>
           <div style={fieldStyle}><span style={labelStyle}>Department</span><span style={valueStyle}>{project.DepartmentOfOrigin}</span></div>
           <div style={fieldStyle}><span style={labelStyle}>Date Submitted</span><span style={valueStyle}>{formatDate(project.DateOfEvaluation)}</span></div>
-          {project.GoNoGoDecision && <div style={fieldStyle}><span style={labelStyle}>Go/No-Go Decision</span><span style={{ ...valueStyle, fontWeight: 700, color: project.GoNoGoDecision === 'GO' ? HBC_COLORS.success : HBC_COLORS.error }}>{project.GoNoGoDecision}</span></div>}
+          {project.GoNoGoDecision && <div style={fieldStyle}><span style={labelStyle}>Go/No-Go Decision</span><span style={{ ...valueStyle, fontWeight: 700, color: project.GoNoGoDecision === GoNoGoDecision.Go ? HBC_COLORS.success : project.GoNoGoDecision === GoNoGoDecision.NoGo ? HBC_COLORS.error : HBC_COLORS.warning }}>{project.GoNoGoDecision}</span></div>}
         </div>
       </div>
 

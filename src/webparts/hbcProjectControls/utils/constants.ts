@@ -34,6 +34,9 @@ export const HUB_LISTS = {
   LESSONS_LEARNED_HUB: 'Lessons_Learned_Hub',
   PROJECT_TYPES: 'Project_Types',
   STANDARD_COST_CODES: 'Standard_Cost_Codes',
+  SCORECARD_APPROVAL_CYCLES: 'Scorecard_Approval_Cycles',
+  SCORECARD_APPROVAL_STEPS: 'Scorecard_Approval_Steps',
+  SCORECARD_VERSIONS: 'Scorecard_Versions',
 } as const;
 
 export const PROJECT_LISTS = {

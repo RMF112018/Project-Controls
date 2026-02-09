@@ -1,6 +1,6 @@
 import { IDataService, IListQueryOptions, IPagedResult, IActiveProjectsQueryOptions, IActiveProjectsFilter } from './IDataService';
 import { ILead, ILeadFormData } from '../models/ILead';
-import { IGoNoGoScorecard } from '../models/IGoNoGoScorecard';
+import { IGoNoGoScorecard, IScorecardVersion } from '../models/IGoNoGoScorecard';
 import { IEstimatingTracker } from '../models/IEstimatingTracker';
 import { IRole, ICurrentUser } from '../models/IRole';
 import { IFeatureFlag } from '../models/IFeatureFlag';
@@ -1247,4 +1247,13 @@ export class SharePointDataService implements IDataService {
     // TODO: Copy lessons learned to hub Lessons_Learned_Hub list, update PMP status
     throw new Error('Not implemented');
   }
+
+  // --- Scorecard Workflow (Phase 16) ---
+  async submitScorecard(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending'); }
+  async respondToScorecardSubmission(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending'); }
+  async enterCommitteeScores(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending'); }
+  async recordFinalDecision(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending'); }
+  async unlockScorecard(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending'); }
+  async relockScorecard(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending'); }
+  async getScorecardVersions(): Promise<IScorecardVersion[]> { throw new Error('SharePoint implementation pending'); }
 }

@@ -12,7 +12,7 @@ import { LoadingSpinner } from '../../shared/LoadingSpinner';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { FeatureGate } from '../../guards/FeatureGate';
-import { ILead, Stage, Region, Sector, Division, AwardStatus } from '../../../models';
+import { ILead, Stage, Region, Sector, Division, AwardStatus, GoNoGoDecision } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { formatCurrencyCompact, formatDate, formatPercent } from '../../../utils/formatters';
 import { isActiveStage } from '../../../utils/stageEngine';
@@ -152,7 +152,7 @@ export const PipelinePage: React.FC = () => {
       const d = new Date(l.DateOfEvaluation);
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
     }).length;
-    const won = filteredLeads.filter(l => l.GoNoGoDecision === 'GO' && l.Stage !== Stage.ArchivedNoGo).length;
+    const won = filteredLeads.filter(l => l.GoNoGoDecision === GoNoGoDecision.Go && l.Stage !== Stage.ArchivedNoGo).length;
     const lost = filteredLeads.filter(l => l.Stage === Stage.ArchivedLoss || l.Stage === Stage.ArchivedNoGo).length;
     const winRate = won + lost > 0 ? (won / (won + lost)) * 100 : 0;
     return { totalPipelineValue, activePursuits, thisMonth, winRate };
