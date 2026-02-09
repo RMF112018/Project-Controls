@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-09 — Phase 13: Admin Panel Workflow Definitions
+**Last Updated:** 2026-02-09 — Phase 15: Turnover to Ops Meeting Agenda
 
 ---
 
@@ -109,7 +109,7 @@ src/webparts/hbcProjectControls/
 │   │   ├── ProjectRequiredRoute.tsx      # Shows "No Project Selected" if no selectedProject
 │   │   ├── RoleGate.tsx                  # Renders children only if user has allowed role
 │   │   └── index.ts
-│   ├── hooks/                             # 28 custom hooks (see §7 for service method mapping)
+│   ├── hooks/                             # 29 custom hooks (see §7 for service method mapping)
 │   │   ├── useActiveProjects.ts          # Active projects portfolio
 │   │   ├── useBuyoutLog.ts              # Buyout log CRUD
 │   │   ├── useCommitmentApproval.ts     # Commitment approval workflow
@@ -136,6 +136,7 @@ src/webparts/hbcProjectControls/
 │   │   ├── useSelectedProject.ts        # Selected project from context
 │   │   ├── useStartupChecklist.ts       # Startup checklist CRUD
 │   │   ├── useSuperintendentPlan.ts     # Superintendent plan sections
+│   │   ├── useTurnoverAgenda.ts       # Turnover meeting agenda CRUD + computed state + workflow
 │   │   ├── useWorkflow.ts              # Composite workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy, stage transitions)
 │   │   ├── useWorkflowDefinitions.ts  # Workflow definition CRUD + resolution
 │   │   └── index.ts
@@ -230,17 +231,17 @@ src/webparts/hbcProjectControls/
 │       ├── WorkflowPreview.tsx
 │       ├── WorkflowStepCard.tsx
 │       └── index.ts
-├── mock/                                  # 35 JSON mock data files (see §12)
-├── models/                                # 39 TypeScript model files (see §6)
-│   ├── enums.ts                          # All shared enums (28 enums)
+├── mock/                                  # 36 JSON mock data files (see §12)
+├── models/                                # 40 TypeScript model files (see §6)
+│   ├── enums.ts                          # All shared enums (29 enums)
 │   ├── I*.ts                             # Interface files (one per entity)
 │   └── index.ts                          # Barrel export
 ├── provisioning/
 │   └── site-template.json                # SP site template definition
 ├── services/
-│   ├── IDataService.ts                   # Service interface (152 methods)
-│   ├── MockDataService.ts               # Mock implementation (all 152 implemented)
-│   ├── SharePointDataService.ts         # SP implementation (48 implemented, 104 stubs)
+│   ├── IDataService.ts                   # Service interface (169 methods)
+│   ├── MockDataService.ts               # Mock implementation (all 169 implemented)
+│   ├── SharePointDataService.ts         # SP implementation (48 implemented, 121 stubs)
 │   ├── AuditService.ts                  # Fire-and-forget audit queue with 2s debounce
 │   ├── CacheService.ts                  # Two-tier cache (memory + sessionStorage), 15min TTL
 │   ├── columnMappings.ts                # SP column name mappings for all lists (1267 lines)
@@ -259,6 +260,7 @@ src/webparts/hbcProjectControls/
     ├── buyoutTemplate.ts                 # 20 standard buyout divisions (CSI MasterFormat)
     ├── constants.ts                      # HUB_LISTS, PROJECT_LISTS, ROUTES, STAGE_ORDER, STAGE_COLORS, etc.
     ├── estimatingKickoffTemplate.ts     # 3 sections, 58 template items
+    ├── turnoverAgendaTemplate.ts        # Default prerequisites, discussion items, exhibits, signatures
     ├── formatters.ts                     # Currency, date, number, percentage, relative time formatters
     ├── permissions.ts                    # PERMISSIONS, ROLE_PERMISSIONS, NAV_GROUP_ROLES
     ├── riskEngine.ts                     # Commitment risk assessment ($50k bond, $250k escalation)
@@ -511,6 +513,15 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | IAssignmentCondition | models/IWorkflowDefinition.ts | field, operator, value | — | — |
 | IWorkflowStepOverride | models/IWorkflowDefinition.ts | id, projectCode, workflowKey, stepId, overrideAssignee, overrideReason?, overriddenBy, overriddenDate | Workflow_Step_Overrides | Hub |
 | IResolvedWorkflowStep | models/IWorkflowDefinition.ts | stepId, stepOrder, name, assignee, assignmentSource, isConditional, conditionMet, actionLabel, canChairMeeting | — | — |
+| ITurnoverAgenda | models/ITurnoverAgenda.ts | id, projectCode, leadId, status: TurnoverStatus, header, estimateOverview, prerequisites, discussionItems, subcontractors, exhibits, signatures | Turnover_Agendas | Project |
+| ITurnoverProjectHeader | models/ITurnoverAgenda.ts | projectName, clientName, projectValue, region, sector, division, deliveryMethod, projectCode, overrides | Turnover_Agendas | Project |
+| ITurnoverEstimateOverview | models/ITurnoverAgenda.ts | id, turnoverAgendaId, estimatedCost, contractAmount, contingency, allowances, designBudget, overrides | Turnover_Estimate_Overviews | Project |
+| ITurnoverPrerequisite | models/ITurnoverAgenda.ts | id, turnoverAgendaId, sortOrder, label, description, completed, completedBy?, completedDate? | Turnover_Prerequisites | Project |
+| ITurnoverDiscussionItem | models/ITurnoverAgenda.ts | id, turnoverAgendaId, sortOrder, label, description, discussed, notes, attachments | Turnover_Discussion_Items | Project |
+| ITurnoverSubcontractor | models/ITurnoverAgenda.ts | id, turnoverAgendaId, trade, companyName, contactName, contactPhone, contactEmail, qScore, isPreferred, isRequired | Turnover_Subcontractors | Project |
+| ITurnoverExhibit | models/ITurnoverAgenda.ts | id, turnoverAgendaId, sortOrder, label, reviewed, fileUrl?, fileName?, linkedDocumentUrl?, isCustom | Turnover_Exhibits | Project |
+| ITurnoverSignature | models/ITurnoverAgenda.ts | id, turnoverAgendaId, role, personName, personEmail, signed, signedDate?, comment?, affidavitText, sortOrder | Turnover_Signatures | Project |
+| ITurnoverAttachment | models/ITurnoverAgenda.ts | id, discussionItemId, fileName, fileUrl, uploadedBy, uploadedDate, fileSize | Turnover_Attachments | Project |
 
 ### Enums (models/enums.ts)
 
@@ -527,8 +538,9 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | LossReason | Price, Relationship, Experience, Schedule, Competition, Other |
 | RoleName | BDRepresentative, EstimatingCoordinator, AccountingManager, PreconstructionTeam, OperationsTeam, ExecutiveLeadership, Legal, RiskManagement, Marketing, QualityControl, Safety, IDS |
 | ProvisioningStatus | Queued, InProgress, Completed, PartialFailure, Failed |
-| AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved |
-| EntityType | Lead, Scorecard, Estimate, Project, Permission, Config, Checklist, Matrix, ProjectRecord, RiskCost, Quality, Safety, Schedule, SuperintendentPlan, LessonLearned, PMP, MonthlyReview, WorkflowDefinition |
+| TurnoverStatus | Draft, PrerequisitesInProgress, MeetingScheduled, MeetingComplete, PendingSignatures, Signed, Complete |
+| AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved, TurnoverAgendaCreated, TurnoverPrerequisiteCompleted, TurnoverItemDiscussed, TurnoverSubcontractorAdded, TurnoverSubcontractorRemoved, TurnoverExhibitReviewed, TurnoverExhibitAdded, TurnoverExhibitRemoved, TurnoverSigned, TurnoverAgendaCompleted |
+| EntityType | Lead, Scorecard, Estimate, Project, Permission, Config, Checklist, Matrix, ProjectRecord, RiskCost, Quality, Safety, Schedule, SuperintendentPlan, LessonLearned, PMP, MonthlyReview, WorkflowDefinition, TurnoverAgenda |
 | DeliverableStatus | NotStarted, InProgress, InReview, Complete |
 | ActionItemStatus | Open, InProgress, Complete |
 | Priority | Low, Medium, High, Critical |
@@ -540,7 +552,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | NotificationType | Email, Teams, Both |
 | ActiveProjectStatus | Precon, Construction, FinalPayment |
 | NotificationEvent | LeadSubmitted, GoNoGoScoringRequested, GoNoGoDecisionMade, SiteProvisioned, PreconKickoff, DeliverableDueApproaching, WinLossRecorded, AutopsyScheduled, TurnoverCompleted, SafetyFolderChanged, PMPSignatureRequested, PMPSubmittedForApproval, PMPApprovalRequired, PMPApproved, PMPReturnedForRevision, MonthlyReviewDueNotification, MonthlyReviewSubmittedToPX, MonthlyReviewReturnedToPM, MonthlyReviewSubmittedToLeadership, JobNumberRequested, JobNumberAssigned, EstimatingKickoffScheduled, AutopsyFinalized, CommitmentSubmitted, CommitmentWaiverRequired, CommitmentApproved, CommitmentEscalatedToCFO, CommitmentRejected |
-| WorkflowKey | GO_NO_GO, PMP_APPROVAL, MONTHLY_REVIEW, COMMITMENT_APPROVAL |
+| WorkflowKey | GO_NO_GO, PMP_APPROVAL, MONTHLY_REVIEW, COMMITMENT_APPROVAL, TURNOVER_APPROVAL |
 | StepAssignmentType | ProjectRole, NamedPerson |
 | ConditionField | Division, Region, Sector |
 
@@ -584,7 +596,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 
 ## §7 Service Methods
 
-152 methods on IDataService. Source: `services/IDataService.ts`
+169 methods on IDataService. Source: `services/IDataService.ts`
 
 | # | Method | Signature | Mock | SP | Hook Caller | Mock JSON |
 |---|--------|-----------|------|-----|-------------|-----------|
@@ -740,6 +752,23 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 150 | setWorkflowStepOverride | (override: Partial<IWorkflowStepOverride>) → Promise<IWorkflowStepOverride> | Impl | Stub | useWorkflowDefinitions | workflowStepOverrides.json |
 | 151 | removeWorkflowStepOverride | (overrideId: number) → Promise<void> | Impl | Stub | useWorkflowDefinitions | workflowStepOverrides.json |
 | 152 | resolveWorkflowChain | (workflowKey: WorkflowKey, projectCode: string) → Promise<IResolvedWorkflowStep[]> | Impl | Stub | useWorkflowDefinitions | workflowDefinitions.json |
+| 153 | getTurnoverAgenda | (projectCode: string) → Promise<ITurnoverAgenda \| null> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 154 | createTurnoverAgenda | (projectCode: string, leadId: number) → Promise<ITurnoverAgenda> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 155 | updateTurnoverAgenda | (projectCode: string, data: Partial<ITurnoverAgenda>) → Promise<ITurnoverAgenda> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 156 | updateTurnoverPrerequisite | (prerequisiteId: number, data: Partial<ITurnoverPrerequisite>) → Promise<ITurnoverPrerequisite> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 157 | updateTurnoverDiscussionItem | (itemId: number, data: Partial<ITurnoverDiscussionItem>) → Promise<ITurnoverDiscussionItem> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 158 | addTurnoverDiscussionAttachment | (itemId: number, file: File) → Promise<ITurnoverAttachment> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 159 | removeTurnoverDiscussionAttachment | (attachmentId: number) → Promise<void> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 160 | addTurnoverSubcontractor | (turnoverAgendaId: number, data: Partial<ITurnoverSubcontractor>) → Promise<ITurnoverSubcontractor> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 161 | updateTurnoverSubcontractor | (subId: number, data: Partial<ITurnoverSubcontractor>) → Promise<ITurnoverSubcontractor> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 162 | removeTurnoverSubcontractor | (subId: number) → Promise<void> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 163 | updateTurnoverExhibit | (exhibitId: number, data: Partial<ITurnoverExhibit>) → Promise<ITurnoverExhibit> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 164 | addTurnoverExhibit | (turnoverAgendaId: number, data: Partial<ITurnoverExhibit>) → Promise<ITurnoverExhibit> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 165 | removeTurnoverExhibit | (exhibitId: number) → Promise<void> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 166 | uploadTurnoverExhibitFile | (exhibitId: number, file: File) → Promise<{ fileUrl: string; fileName: string }> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 167 | signTurnoverAgenda | (signatureId: number, comment?: string) → Promise<ITurnoverSignature> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 168 | updateTurnoverEstimateOverview | (projectCode: string, data: Partial<ITurnoverEstimateOverview>) → Promise<ITurnoverEstimateOverview> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
+| 169 | getTurnoverAgendaByLeadId | (leadId: number) → Promise<ITurnoverAgenda \| null> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
 
 ---
 
@@ -935,6 +964,8 @@ Legend: **X** = has permission
 | active_projects:sync | | | | | | X | | | | | | |
 | compliance_log:view | | | | | X | X | | X | | | | |
 | workflow:manage | | | | | | X | | | | | | |
+| turnover:agenda:edit | | X | | X | X | X | | | | | | |
+| turnover:sign | | X | | | X | X | | | | | | |
 
 ### NAV_GROUP_ROLES
 
@@ -1015,9 +1046,10 @@ Source: `mock/`
 | superintendentPlan.json | ISuperintendentPlan | 2 | 25-042-01, 25-115-01 |
 | teamMembers.json | ITeamMember | 10 | 25-042-01 |
 | templateRegistry.json | Template definitions | 12 | N/A |
+| turnoverAgendas.json | ITurnoverAgenda (flat) | 2 agendas + child arrays | 25-042-01, 25-115-01 |
 | turnoverItems.json | ITurnoverItem | 14 | 25-042-01 |
 | users.json | IRole + ICurrentUser | 24 | N/A |
-| workflowDefinitions.json | IWorkflowDefinition | 4 | N/A |
+| workflowDefinitions.json | IWorkflowDefinition | 5 | N/A |
 | workflowStepOverrides.json | IWorkflowStepOverride | 0 | N/A |
 
 ---
@@ -1096,6 +1128,13 @@ Source: `utils/constants.ts`, `theme/tokens.ts`
   MARKETING_PROJECT_RECORD: 'Marketing_Project_Record',
   CONTRACT_INFO: 'Contract_Info',
   INTERVIEW_PREP: 'Interview_Prep',
+  TURNOVER_AGENDAS: 'Turnover_Agendas',
+  TURNOVER_PREREQUISITES: 'Turnover_Prerequisites',
+  TURNOVER_DISCUSSION_ITEMS: 'Turnover_Discussion_Items',
+  TURNOVER_SUBCONTRACTORS: 'Turnover_Subcontractors',
+  TURNOVER_EXHIBITS: 'Turnover_Exhibits',
+  TURNOVER_SIGNATURES: 'Turnover_Signatures',
+  TURNOVER_ATTACHMENTS: 'Turnover_Attachments',
 }
 ```
 
@@ -1258,10 +1297,11 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 | 12 | Buyout log, commitment approval, compliance log | IBuyoutEntry, ICommitmentApproval, IComplianceSummary, BuyoutLogPage, CommitmentApprovalPanel, CommitmentForm, ComplianceLog, ContractTracking | App.tsx, NavigationSidebar, IDataService, MockDataService, permissions.ts, riskEngine.ts |
 | 13 | Active projects portfolio enhancements, project dashboard | ProjectDashboard, useActiveProjects enhancements | App.tsx |
 | 14 | Admin Panel Workflow Definitions — 4 configurable approval-chain workflows (Go/No-Go, PMP, Monthly Review, Commitment), AdminPanel Workflows tab, workflow step editor, conditional assignment builder, people picker, preview/resolution engine | IWorkflowDefinition, WorkflowDefinitionsPanel, WorkflowStepCard, ConditionBuilder, AzureADPeoplePicker, WorkflowPreview, useWorkflowDefinitions, workflowDefinitions.json, workflowStepOverrides.json | App.tsx (no route changes), AdminPanel.tsx (6 tabs), IDataService (152 methods), MockDataService, SharePointDataService, enums.ts (+3 enums, +6 values), permissions.ts (+workflow:manage), constants.ts (+4 HUB_LISTS), columnMappings.ts (+4 mappings), featureFlags.json (+WorkflowDefinitions) |
+| 15 | Turnover to Ops Meeting Agenda — Two-tab TurnoverToOps rewrite (Meeting Agenda + Follow-Up Checklist), formal meeting procedure with prerequisites, estimate overview, 10 discussion items, subcontractor table, 10 exhibits, 4-party signature block with affidavit, workflow-driven signer resolution | ITurnoverAgenda.ts, turnoverAgendaTemplate.ts, turnoverAgendas.json, useTurnoverAgenda.ts | TurnoverToOps.tsx (rewrite), IDataService (169 methods), MockDataService, SharePointDataService, columnMappings.ts (+7 mappings), enums.ts (+TurnoverStatus, +10 AuditAction, +1 EntityType, +1 WorkflowKey), permissions.ts (+turnover:agenda:edit, +turnover:sign), constants.ts (+7 PROJECT_LISTS), workflowDefinitions.json (+TURNOVER_APPROVAL) |
 
 ### Known Stubs / Placeholders
 
-- **SharePointDataService**: 104 of 152 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
+- **SharePointDataService**: 121 of 169 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
 - **Column Mappings**: `columnMappings.ts` has mappings for all lists but SP service stubs don't use them yet.
 - **Offline Support**: `OfflineQueueService.ts` exists but feature flag `OfflineSupport` is disabled.
 - **Dual Notifications**: `DualNotifications` feature flag exists but is disabled.
@@ -1272,7 +1312,7 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 ### SharePointDataService Status
 
 - **Implemented (48)**: Leads CRUD, Go/No-Go CRUD, Estimating CRUD, Roles/Flags CRUD, Audit log/read, Provisioning read, Phase 6 workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig
-- **Stubbed (104)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff, all job number requests, all workflow definitions, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers
+- **Stubbed (121)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff, all job number requests, all workflow definitions, all turnover agenda, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers
 
 ---
 
@@ -1310,3 +1350,4 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 |------|-----------------|--------------|
 | 2026-02-09 | §3, §15 | §3: Fixed route count from 47 to 48 (App.tsx has 48 Route elements). §15: Merged monthly review into Phase 10 summary (it was built alongside other operational modules, not as a separate phase). Relabeled Phase 11 from "Monthly project review" to "Data Strategy Refactor" (flattened mock data, columnMappings.ts, DATA_ARCHITECTURE.md, PERMISSION_STRATEGY.md). Added known gap: NavigationSidebar.tsx does not yet reflect Phase 12 design (Closeout under Project Manual, Project Record sub-group). All other sections (§1-§2, §4-§14, §16) validated against source files with no discrepancies found. |
 | 2026-02-09 | §2, §3, §5, §6, §7, §10, §11, §12, §13, §15 | Phase 13: Added workflow definition configuration. 4 new workflows (Go/No-Go, PMP, Monthly Review, Commitment) with 14 steps. AdminPanel expanded to 6 tabs. 10 new IDataService methods (152 total). 3 new enums, 6 new enum values. 4 new shared components, 1 new hook, 1 new page. |
+| 2026-02-09 | §2, §6, §7, §10, §12, §13, §15 | Phase 15: Turnover to Ops Meeting Agenda. TurnoverToOps.tsx rewritten as two-tab module (Meeting Agenda + Follow-Up Checklist). 9 new interfaces (ITurnoverAgenda + 8 sub-interfaces). 17 new IDataService methods (169 total). 1 new enum (TurnoverStatus), 10 AuditAction values, 1 EntityType, 1 WorkflowKey. 2 new permissions (turnover:agenda:edit, turnover:sign). 7 new PROJECT_LISTS. 7 new column mappings. 5th workflow (TURNOVER_APPROVAL). New files: ITurnoverAgenda.ts, turnoverAgendaTemplate.ts, turnoverAgendas.json, useTurnoverAgenda.ts. |

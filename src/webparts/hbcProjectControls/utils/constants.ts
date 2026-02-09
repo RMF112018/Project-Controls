@@ -73,6 +73,13 @@ export const PROJECT_LISTS = {
   MARKETING_PROJECT_RECORD: 'Marketing_Project_Record',
   CONTRACT_INFO: 'Contract_Info',
   INTERVIEW_PREP: 'Interview_Prep',
+  TURNOVER_AGENDAS: 'Turnover_Agendas',
+  TURNOVER_PREREQUISITES: 'Turnover_Prerequisites',
+  TURNOVER_DISCUSSION_ITEMS: 'Turnover_Discussion_Items',
+  TURNOVER_SUBCONTRACTORS: 'Turnover_Subcontractors',
+  TURNOVER_EXHIBITS: 'Turnover_Exhibits',
+  TURNOVER_SIGNATURES: 'Turnover_Signatures',
+  TURNOVER_ATTACHMENTS: 'Turnover_Attachments',
 } as const;
 
 export const LIST_NAMES = { ...HUB_LISTS, ...PROJECT_LISTS } as const;

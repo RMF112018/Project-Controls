@@ -242,5 +242,68 @@
         "canChairMeeting": false
       }
     ]
+  },
+  {
+    "id": 5,
+    "workflowKey": "TURNOVER_APPROVAL",
+    "name": "Turnover to Operations",
+    "description": "Signature chain for the estimating-to-operations turnover meeting agenda.",
+    "isActive": true,
+    "lastModifiedBy": "Mike Hedrick",
+    "lastModifiedDate": "2026-02-09T10:00:00.000Z",
+    "steps": [
+      {
+        "id": 15,
+        "workflowId": 5,
+        "stepOrder": 1,
+        "name": "Lead Estimator Signs",
+        "description": "Lead Estimator certifies the accuracy of the estimate and turnover package.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Estimating Coordinator",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Sign as Lead Estimator",
+        "canChairMeeting": false
+      },
+      {
+        "id": 16,
+        "workflowId": 5,
+        "stepOrder": 2,
+        "name": "Project Executive Signs",
+        "description": "Project Executive reviews and signs the turnover package.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Executive Leadership",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Sign as Project Executive",
+        "canChairMeeting": false
+      },
+      {
+        "id": 17,
+        "workflowId": 5,
+        "stepOrder": 3,
+        "name": "Project Manager Signs",
+        "description": "Project Manager accepts the turnover and confirms readiness to execute.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Operations Team",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Sign as Project Manager",
+        "canChairMeeting": false
+      },
+      {
+        "id": 18,
+        "workflowId": 5,
+        "stepOrder": 4,
+        "name": "Superintendent Signs",
+        "description": "Superintendent confirms field readiness and site logistics review.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Operations Team",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Sign as Superintendent",
+        "canChairMeeting": false
+      }
+    ]
   }
 ]
