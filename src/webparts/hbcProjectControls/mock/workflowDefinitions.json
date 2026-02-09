@@ -1,0 +1,309 @@
+[
+  {
+    "id": 1,
+    "workflowKey": "GO_NO_GO",
+    "name": "Go/No-Go Decision",
+    "description": "Approval chain for evaluating whether to pursue a lead opportunity.",
+    "isActive": true,
+    "lastModifiedBy": "Mike Hedrick",
+    "lastModifiedDate": "2026-01-15T10:00:00.000Z",
+    "steps": [
+      {
+        "id": 1,
+        "workflowId": 1,
+        "stepOrder": 1,
+        "name": "BD Rep Submits",
+        "description": "Business Development representative submits the lead for Go/No-Go evaluation.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "BD Representative",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Submit for Evaluation",
+        "canChairMeeting": false
+      },
+      {
+        "id": 2,
+        "workflowId": 1,
+        "stepOrder": 2,
+        "name": "Precon Director Review",
+        "description": "Preconstruction Director reviews the submission and prepares for committee meeting.",
+        "assignmentType": "NamedPerson",
+        "defaultAssignee": { "userId": "12", "displayName": "David Park", "email": "dpark@hedrickbrothers.com" },
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Review & Schedule Meeting",
+        "canChairMeeting": true
+      },
+      {
+        "id": 3,
+        "workflowId": 1,
+        "stepOrder": 3,
+        "name": "Committee Scoring Meeting",
+        "description": "Go/No-Go committee meets to score and decide on the opportunity.",
+        "assignmentType": "NamedPerson",
+        "defaultAssignee": { "userId": "12", "displayName": "David Park", "email": "dpark@hedrickbrothers.com" },
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Score & Decide",
+        "canChairMeeting": true
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "workflowKey": "PMP_APPROVAL",
+    "name": "PMP Approval",
+    "description": "Approval chain for the Project Management Plan review and sign-off.",
+    "isActive": true,
+    "lastModifiedBy": "Mike Hedrick",
+    "lastModifiedDate": "2026-01-15T10:00:00.000Z",
+    "steps": [
+      {
+        "id": 4,
+        "workflowId": 2,
+        "stepOrder": 1,
+        "name": "PM Prepares",
+        "description": "Project Manager prepares the PMP document and collects startup signatures.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Operations Team",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Submit for Review",
+        "canChairMeeting": false
+      },
+      {
+        "id": 5,
+        "workflowId": 2,
+        "stepOrder": 2,
+        "name": "PX Review",
+        "description": "Project Executive reviews the PMP and provides feedback.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Executive Leadership",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Approve or Return",
+        "canChairMeeting": false
+      },
+      {
+        "id": 6,
+        "workflowId": 2,
+        "stepOrder": 3,
+        "name": "Division Head Approval",
+        "description": "Division head provides final approval based on project division.",
+        "assignmentType": "NamedPerson",
+        "defaultAssignee": { "userId": "1", "displayName": "Mike Hedrick", "email": "mhedrick@hedrickbrothers.com" },
+        "conditionalAssignees": [
+          {
+            "id": 1,
+            "stepId": 6,
+            "conditions": [{ "field": "Division", "operator": "equals", "value": "Commercial" }],
+            "assignee": { "userId": "1", "displayName": "Mike Hedrick", "email": "mhedrick@hedrickbrothers.com" },
+            "priority": 1
+          },
+          {
+            "id": 2,
+            "stepId": 6,
+            "conditions": [{ "field": "Division", "operator": "equals", "value": "Luxury Residential" }],
+            "assignee": { "userId": "2", "displayName": "Tom Hedrick", "email": "thedrick@hedrickbrothers.com" },
+            "priority": 2
+          }
+        ],
+        "isConditional": true,
+        "conditionDescription": "Assigned based on project Division",
+        "actionLabel": "Final Approve",
+        "canChairMeeting": false
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "workflowKey": "MONTHLY_REVIEW",
+    "name": "Monthly Project Review",
+    "description": "Monthly review cycle for project health assessment and leadership reporting.",
+    "isActive": true,
+    "lastModifiedBy": "Mike Hedrick",
+    "lastModifiedDate": "2026-01-15T10:00:00.000Z",
+    "steps": [
+      {
+        "id": 7,
+        "workflowId": 3,
+        "stepOrder": 1,
+        "name": "Director Initiates",
+        "description": "Director initiates the monthly review cycle and sends notifications.",
+        "assignmentType": "NamedPerson",
+        "defaultAssignee": { "userId": "12", "displayName": "David Park", "email": "dpark@hedrickbrothers.com" },
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Initiate Review",
+        "canChairMeeting": false
+      },
+      {
+        "id": 8,
+        "workflowId": 3,
+        "stepOrder": 2,
+        "name": "PM Compiles",
+        "description": "Project Manager compiles project data and completes checklist items.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Operations Team",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Submit to PX",
+        "canChairMeeting": false
+      },
+      {
+        "id": 9,
+        "workflowId": 3,
+        "stepOrder": 3,
+        "name": "PX Reviews",
+        "description": "Project Executive reviews PM submissions and adds PX comments.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Executive Leadership",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Approve or Return",
+        "canChairMeeting": false
+      },
+      {
+        "id": 10,
+        "workflowId": 3,
+        "stepOrder": 4,
+        "name": "Leadership Meeting",
+        "description": "Director presents monthly review summary to leadership team.",
+        "assignmentType": "NamedPerson",
+        "defaultAssignee": { "userId": "12", "displayName": "David Park", "email": "dpark@hedrickbrothers.com" },
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Present to Leadership",
+        "canChairMeeting": true
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "workflowKey": "COMMITMENT_APPROVAL",
+    "name": "Commitment Approval",
+    "description": "Risk-based approval chain for subcontractor commitments and buyout entries.",
+    "isActive": true,
+    "lastModifiedBy": "Mike Hedrick",
+    "lastModifiedDate": "2026-01-15T10:00:00.000Z",
+    "steps": [
+      {
+        "id": 11,
+        "workflowId": 4,
+        "stepOrder": 1,
+        "name": "PM Submits",
+        "description": "Project Manager submits the commitment for approval.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Operations Team",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Submit for Approval",
+        "canChairMeeting": false
+      },
+      {
+        "id": 12,
+        "workflowId": 4,
+        "stepOrder": 2,
+        "name": "PX Approval",
+        "description": "Project Executive reviews and approves the commitment.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Executive Leadership",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Approve or Reject",
+        "canChairMeeting": false
+      },
+      {
+        "id": 13,
+        "workflowId": 4,
+        "stepOrder": 3,
+        "name": "Compliance Review",
+        "description": "Compliance manager reviews if compliance flags are triggered.",
+        "assignmentType": "NamedPerson",
+        "defaultAssignee": { "userId": "15", "displayName": "Jennifer Adams", "email": "jadams@hedrickbrothers.com" },
+        "conditionalAssignees": [],
+        "isConditional": true,
+        "conditionDescription": "Only if compliance flagged (e.g., missing E-Verify, bond waiver)",
+        "actionLabel": "Review Compliance",
+        "canChairMeeting": false
+      },
+      {
+        "id": 14,
+        "workflowId": 4,
+        "stepOrder": 4,
+        "name": "CFO Approval",
+        "description": "CFO reviews commitments exceeding $250K threshold.",
+        "assignmentType": "NamedPerson",
+        "defaultAssignee": { "userId": "1", "displayName": "Mike Hedrick", "email": "mhedrick@hedrickbrothers.com" },
+        "conditionalAssignees": [],
+        "isConditional": true,
+        "conditionDescription": "Only if commitment exceeds $250K",
+        "actionLabel": "Final Approve",
+        "canChairMeeting": false
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "workflowKey": "TURNOVER_APPROVAL",
+    "name": "Turnover to Operations",
+    "description": "Signature chain for the estimating-to-operations turnover meeting agenda.",
+    "isActive": true,
+    "lastModifiedBy": "Mike Hedrick",
+    "lastModifiedDate": "2026-02-09T10:00:00.000Z",
+    "steps": [
+      {
+        "id": 15,
+        "workflowId": 5,
+        "stepOrder": 1,
+        "name": "Lead Estimator Signs",
+        "description": "Lead Estimator certifies the accuracy of the estimate and turnover package.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Estimating Coordinator",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Sign as Lead Estimator",
+        "canChairMeeting": false
+      },
+      {
+        "id": 16,
+        "workflowId": 5,
+        "stepOrder": 2,
+        "name": "Project Executive Signs",
+        "description": "Project Executive reviews and signs the turnover package.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Executive Leadership",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Sign as Project Executive",
+        "canChairMeeting": false
+      },
+      {
+        "id": 17,
+        "workflowId": 5,
+        "stepOrder": 3,
+        "name": "Project Manager Signs",
+        "description": "Project Manager accepts the turnover and confirms readiness to execute.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Operations Team",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Sign as Project Manager",
+        "canChairMeeting": false
+      },
+      {
+        "id": 18,
+        "workflowId": 5,
+        "stepOrder": 4,
+        "name": "Superintendent Signs",
+        "description": "Superintendent confirms field readiness and site logistics review.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Operations Team",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Sign as Superintendent",
+        "canChairMeeting": false
+      }
+    ]
+  }
+]

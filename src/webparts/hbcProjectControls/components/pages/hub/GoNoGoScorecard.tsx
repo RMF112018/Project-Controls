@@ -14,6 +14,7 @@ import { ProvisioningStatusView } from '../../shared/ProvisioningStatus';
 import { KickoffMeetingScheduler } from '../../shared/KickoffMeetingScheduler';
 import { AzureADPeoplePicker } from '../../shared/AzureADPeoplePicker';
 import { ProvisioningService } from '../../../services/ProvisioningService';
+import { MockHubNavigationService } from '../../../services/HubNavigationService';
 import {
   IGoNoGoScorecard as IScorecardModel,
   SCORECARD_CRITERIA,
@@ -93,7 +94,8 @@ export const GoNoGoScorecard: React.FC = () => {
   } = useGoNoGo();
   const { getLeadById, updateLead } = useLeads();
   const { notify } = useNotifications();
-  const provisioningService = React.useMemo(() => new ProvisioningService(dataService), [dataService]);
+  const hubNavService = React.useMemo(() => new MockHubNavigationService(), []);
+  const provisioningService = React.useMemo(() => new ProvisioningService(dataService, hubNavService), [dataService, hubNavService]);
 
   const [lead, setLead] = React.useState<ILead | null>(null);
   const [scorecard, setScorecard] = React.useState<IScorecardModel | null>(null);

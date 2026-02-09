@@ -1,5 +1,7 @@
 import { ProvisioningStatus } from './enums';
 
+export type HubNavLinkStatus = 'success' | 'failed' | 'not_applicable';
+
 export const PROVISIONING_STEPS = [
   { step: 1, label: 'Create SharePoint Site' },
   { step: 2, label: 'Apply PnP Template' },
@@ -28,4 +30,5 @@ export interface IProvisioningLog {
   requestedBy: string;
   requestedAt: string;
   completedAt?: string;
+  hubNavLinkStatus?: HubNavLinkStatus;
 }

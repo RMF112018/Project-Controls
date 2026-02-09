@@ -1,6 +1,8 @@
 import { IDataService } from './IDataService';
 import { NotificationService } from './NotificationService';
+import { IHubNavigationService } from './HubNavigationService';
 import { IProvisioningLog, ProvisioningStatus, PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS, NotificationEvent, AuditAction, EntityType } from '../models';
+import { HubNavLinkStatus } from '../models/IProvisioningLog';
 
 export interface IProvisioningInput {
   leadId: number;
@@ -19,10 +21,12 @@ const MAX_RETRIES = 3;
 export class ProvisioningService {
   private dataService: IDataService;
   private notificationService: NotificationService;
+  private hubNavService?: IHubNavigationService;
 
-  constructor(dataService: IDataService) {
+  constructor(dataService: IDataService, hubNavService?: IHubNavigationService) {
     this.dataService = dataService;
     this.notificationService = new NotificationService(dataService);
+    this.hubNavService = hubNavService;
   }
 
   /**
@@ -114,6 +118,10 @@ export class ProvisioningService {
         User: input.requestedBy,
         Details: `Site provisioning completed for "${input.projectName}" (${projectCode}). Site URL: ${siteUrl}`,
       }).catch(console.error);
+
+      // Hub Navigation Link (independent, non-blocking)
+      this.addHubNavLink(projectCode, input.projectName, siteUrl, input.requestedBy)
+        .catch(console.error);
     }
   }
 
@@ -175,6 +183,10 @@ export class ProvisioningService {
     const log = await this.dataService.getProvisioningStatus(projectCode);
     if (log) {
       await this.dataService.updateLead(log.leadId, { ProjectSiteURL: siteUrl });
+
+      // Hub Navigation Link (independent, non-blocking)
+      this.addHubNavLink(projectCode, log.projectName, siteUrl, log.requestedBy)
+        .catch(console.error);
     }
   }
 
@@ -190,6 +202,85 @@ export class ProvisioningService {
    */
   public static getStepLabels(): readonly { step: number; label: string }[] {
     return PROVISIONING_STEPS;
+  }
+
+  /**
+   * Add a hub navigation link for a provisioned project.
+   * Independent and non-blocking — nav link failure never blocks provisioning.
+   */
+  private async addHubNavLink(
+    projectCode: string,
+    projectName: string,
+    siteUrl: string,
+    requestedBy: string
+  ): Promise<void> {
+    if (!this.hubNavService) return;
+    let hubNavStatus: HubNavLinkStatus = 'not_applicable';
+    try {
+      const hubSiteUrl = await this.dataService.getHubSiteUrl();
+      const result = await this.hubNavService.addProjectNavigationLink(
+        hubSiteUrl, projectCode, projectName, siteUrl
+      );
+      hubNavStatus = result.success ? 'success' : 'failed';
+      this.dataService.logAudit({
+        Action: AuditAction.HubNavLinkCreated,
+        EntityType: EntityType.Project,
+        EntityId: projectCode,
+        ProjectCode: projectCode,
+        User: requestedBy,
+        Details: `Hub nav link ${result.action} for "${projectName}" under "${result.yearLabel}"`,
+      }).catch(console.error);
+    } catch (err) {
+      hubNavStatus = 'failed';
+      this.dataService.logAudit({
+        Action: AuditAction.HubNavLinkFailed,
+        EntityType: EntityType.Project,
+        EntityId: projectCode,
+        ProjectCode: projectCode,
+        User: requestedBy,
+        Details: `Hub nav link failed for "${projectName}": ${err instanceof Error ? err.message : String(err)}`,
+      }).catch(console.error);
+    }
+    this.dataService.updateProvisioningLog(projectCode, { hubNavLinkStatus: hubNavStatus })
+      .catch(console.error);
+  }
+
+  /**
+   * Retry adding a hub navigation link for a completed provisioning.
+   * For use by AdminPanel retry button.
+   */
+  public async retryHubNavLink(projectCode: string, requestedBy: string): Promise<void> {
+    if (!this.hubNavService) throw new Error('Hub navigation service not available');
+    const log = await this.dataService.getProvisioningStatus(projectCode);
+    if (!log) throw new Error(`No provisioning log found for ${projectCode}`);
+    if (!log.siteUrl) throw new Error(`No site URL found for ${projectCode}`);
+
+    let hubNavStatus: HubNavLinkStatus = 'failed';
+    try {
+      const hubSiteUrl = await this.dataService.getHubSiteUrl();
+      const result = await this.hubNavService.addProjectNavigationLink(
+        hubSiteUrl, projectCode, log.projectName, log.siteUrl
+      );
+      hubNavStatus = result.success ? 'success' : 'failed';
+      this.dataService.logAudit({
+        Action: AuditAction.HubNavLinkRetried,
+        EntityType: EntityType.Project,
+        EntityId: projectCode,
+        ProjectCode: projectCode,
+        User: requestedBy,
+        Details: `Hub nav link retry ${result.action} for "${log.projectName}" under "${result.yearLabel}"`,
+      }).catch(console.error);
+    } catch (err) {
+      this.dataService.logAudit({
+        Action: AuditAction.HubNavLinkFailed,
+        EntityType: EntityType.Project,
+        EntityId: projectCode,
+        ProjectCode: projectCode,
+        User: requestedBy,
+        Details: `Hub nav link retry failed for "${log.projectName}": ${err instanceof Error ? err.message : String(err)}`,
+      }).catch(console.error);
+    }
+    await this.dataService.updateProvisioningLog(projectCode, { hubNavLinkStatus: hubNavStatus });
   }
 
   /**

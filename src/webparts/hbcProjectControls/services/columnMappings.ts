@@ -1333,3 +1333,188 @@ export const INTERVIEW_PREP_COLUMNS = {
   rehearsalDate: 'rehearsalDate',              // SP: DateTime
   documents: 'documents',                      // SP: Multiple Lines of Text (JSON array of URLs)
 } as const;
+
+// ════════════════════════════════════════════════════════════════════════════
+// ──── Workflow Definition Lists ────
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * List: Workflow_Definitions
+ * Interface: IWorkflowDefinition
+ */
+export const WORKFLOW_DEFINITIONS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  workflowKey: 'WorkflowKey',                  // SP: Choice (GO_NO_GO, PMP_APPROVAL, MONTHLY_REVIEW, COMMITMENT_APPROVAL)
+  name: 'Title',                               // SP: Single Line of Text (default)
+  description: 'Description',                  // SP: Multiple Lines of Text
+  isActive: 'IsActive',                        // SP: Yes/No
+  lastModifiedBy: 'LastModifiedBy',            // SP: Single Line of Text
+  lastModifiedDate: 'LastModifiedDate',        // SP: DateTime
+} as const;
+
+/**
+ * List: Workflow_Steps
+ * Interface: IWorkflowStep
+ */
+export const WORKFLOW_STEPS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  workflowId: 'WorkflowId',                   // SP: Number (lookup ID to Workflow_Definitions)
+  stepOrder: 'StepOrder',                      // SP: Number
+  name: 'Title',                               // SP: Single Line of Text (default)
+  description: 'Description',                  // SP: Multiple Lines of Text
+  assignmentType: 'AssignmentType',            // SP: Choice (ProjectRole, NamedPerson)
+  projectRole: 'ProjectRole',                  // SP: Choice (RoleName values)
+  defaultAssignee: 'DefaultAssignee',          // SP: Multiple Lines of Text (JSON: IPersonAssignment)
+  isConditional: 'IsConditional',              // SP: Yes/No
+  conditionDescription: 'ConditionDescription',// SP: Single Line of Text
+  actionLabel: 'ActionLabel',                  // SP: Single Line of Text
+  canChairMeeting: 'CanChairMeeting',          // SP: Yes/No
+} as const;
+
+/**
+ * List: Workflow_Conditional_Assignments
+ * Interface: IConditionalAssignment
+ */
+export const WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  stepId: 'StepId',                            // SP: Number (lookup ID to Workflow_Steps)
+  conditions: 'Conditions',                    // SP: Multiple Lines of Text (JSON: IAssignmentCondition[])
+  assignee: 'Assignee',                        // SP: Multiple Lines of Text (JSON: IPersonAssignment)
+  priority: 'Priority',                        // SP: Number
+} as const;
+
+/**
+ * List: Workflow_Step_Overrides
+ * Interface: IWorkflowStepOverride
+ */
+export const WORKFLOW_STEP_OVERRIDES_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  projectCode: 'ProjectCode',                 // SP: Single Line of Text
+  workflowKey: 'WorkflowKey',                 // SP: Choice
+  stepId: 'StepId',                            // SP: Number (lookup ID to Workflow_Steps)
+  overrideAssignee: 'OverrideAssignee',        // SP: Multiple Lines of Text (JSON: IPersonAssignment)
+  overrideReason: 'OverrideReason',            // SP: Single Line of Text
+  overriddenBy: 'OverriddenBy',                // SP: Single Line of Text
+  overriddenDate: 'OverriddenDate',            // SP: DateTime
+} as const;
+
+// ════════════════════════════════════════════════════════════════════════════
+// ──── Turnover Agenda Lists ────
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * List: Turnover_Agendas
+ * Interface: ITurnoverAgenda
+ */
+export const TURNOVER_AGENDAS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  projectCode: 'ProjectCode',                 // SP: Single Line of Text
+  leadId: 'LeadId',                            // SP: Number (lookup ID to Leads_Master)
+  status: 'Status',                            // SP: Choice (TurnoverStatus)
+  projectName: 'Title',                        // SP: Single Line of Text (default) @denormalized
+  meetingDate: 'MeetingDate',                  // SP: DateTime
+  recordingUrl: 'RecordingUrl',                // SP: Hyperlink
+  turnoverFolderUrl: 'TurnoverFolderUrl',      // SP: Hyperlink
+  bcPublished: 'BCPublished',                  // SP: Yes/No
+  pmName: 'PMName',                            // SP: Single Line of Text
+  apmName: 'APMName',                          // SP: Single Line of Text
+  createdBy: 'CreatedBy',                      // SP: Single Line of Text
+  createdDate: 'CreatedDate',                  // SP: DateTime
+  lastModifiedBy: 'LastModifiedBy',            // SP: Single Line of Text
+  lastModifiedDate: 'LastModifiedDate',        // SP: DateTime
+} as const;
+
+/**
+ * List: Turnover_Prerequisites
+ * Interface: ITurnoverPrerequisite
+ */
+export const TURNOVER_PREREQUISITES_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  turnoverAgendaId: 'TurnoverAgendaId',        // SP: Number (lookup ID)
+  sortOrder: 'SortOrder',                      // SP: Number
+  label: 'Title',                              // SP: Single Line of Text (default)
+  description: 'Description',                  // SP: Multiple Lines of Text
+  completed: 'Completed',                      // SP: Yes/No
+  completedBy: 'CompletedBy',                  // SP: Single Line of Text
+  completedDate: 'CompletedDate',              // SP: DateTime
+} as const;
+
+/**
+ * List: Turnover_Discussion_Items
+ * Interface: ITurnoverDiscussionItem
+ */
+export const TURNOVER_DISCUSSION_ITEMS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  turnoverAgendaId: 'TurnoverAgendaId',        // SP: Number (lookup ID)
+  sortOrder: 'SortOrder',                      // SP: Number
+  label: 'Title',                              // SP: Single Line of Text (default)
+  description: 'Description',                  // SP: Multiple Lines of Text
+  discussed: 'Discussed',                      // SP: Yes/No
+  notes: 'Notes',                              // SP: Multiple Lines of Text
+} as const;
+
+/**
+ * List: Turnover_Subcontractors
+ * Interface: ITurnoverSubcontractor
+ */
+export const TURNOVER_SUBCONTRACTORS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  turnoverAgendaId: 'TurnoverAgendaId',        // SP: Number (lookup ID)
+  trade: 'Trade',                              // SP: Single Line of Text
+  subcontractorName: 'Title',                  // SP: Single Line of Text (default)
+  contactName: 'ContactName',                  // SP: Single Line of Text
+  contactPhone: 'ContactPhone',                // SP: Single Line of Text
+  contactEmail: 'ContactEmail',                // SP: Single Line of Text
+  qScore: 'QScore',                            // SP: Number
+  isPreferred: 'IsPreferred',                  // SP: Yes/No
+  isRequired: 'IsRequired',                    // SP: Yes/No
+  notes: 'Notes',                              // SP: Multiple Lines of Text
+} as const;
+
+/**
+ * List: Turnover_Exhibits
+ * Interface: ITurnoverExhibit
+ */
+export const TURNOVER_EXHIBITS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  turnoverAgendaId: 'TurnoverAgendaId',        // SP: Number (lookup ID)
+  sortOrder: 'SortOrder',                      // SP: Number
+  label: 'Title',                              // SP: Single Line of Text (default)
+  isDefault: 'IsDefault',                      // SP: Yes/No
+  reviewed: 'Reviewed',                        // SP: Yes/No
+  reviewedBy: 'ReviewedBy',                    // SP: Single Line of Text
+  reviewedDate: 'ReviewedDate',                // SP: DateTime
+  linkedDocumentUrl: 'LinkedDocumentUrl',       // SP: Hyperlink
+  uploadedFileName: 'UploadedFileName',        // SP: Single Line of Text
+  uploadedFileUrl: 'UploadedFileUrl',          // SP: Hyperlink
+} as const;
+
+/**
+ * List: Turnover_Signatures
+ * Interface: ITurnoverSignature
+ */
+export const TURNOVER_SIGNATURES_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  turnoverAgendaId: 'TurnoverAgendaId',        // SP: Number (lookup ID)
+  sortOrder: 'SortOrder',                      // SP: Number
+  role: 'Role',                                // SP: Single Line of Text
+  signerName: 'SignerName',                    // SP: Single Line of Text
+  signerEmail: 'SignerEmail',                  // SP: Single Line of Text
+  affidavitText: 'AffidavitText',              // SP: Multiple Lines of Text
+  signed: 'Signed',                            // SP: Yes/No
+  signedDate: 'SignedDate',                    // SP: DateTime
+  comment: 'Comment',                          // SP: Multiple Lines of Text
+} as const;
+
+/**
+ * List: Turnover_Attachments
+ * Interface: ITurnoverAttachment
+ */
+export const TURNOVER_ATTACHMENTS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  discussionItemId: 'DiscussionItemId',        // SP: Number (lookup ID)
+  fileName: 'Title',                           // SP: Single Line of Text (default)
+  fileUrl: 'FileUrl',                          // SP: Hyperlink
+  uploadedBy: 'UploadedBy',                    // SP: Single Line of Text
+  uploadedDate: 'UploadedDate',                // SP: DateTime
+} as const;

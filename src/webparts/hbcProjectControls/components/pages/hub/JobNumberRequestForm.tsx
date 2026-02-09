@@ -9,6 +9,7 @@ import { IStandardCostCode } from '../../../models/IStandardCostCode';
 import { NotificationEvent } from '../../../models/enums';
 import { NotificationService } from '../../../services/NotificationService';
 import { ProvisioningService } from '../../../services/ProvisioningService';
+import { MockHubNavigationService } from '../../../services/HubNavigationService';
 
 const ESTIMATING_DEFAULT_CODES = ['01-01-413', '01-01-025', '01-01-311', '01-01-302'];
 
@@ -125,7 +126,8 @@ export const JobNumberRequestForm: React.FC = () => {
 
       // If not holding provisioning, trigger site creation
       if (!holdProvisioning && lead.ProjectCode) {
-        const provisioningService = new ProvisioningService(dataService);
+        const hubNavSvc = new MockHubNavigationService();
+        const provisioningService = new ProvisioningService(dataService, hubNavSvc);
         provisioningService.provisionSite({
           leadId,
           projectCode: lead.ProjectCode,

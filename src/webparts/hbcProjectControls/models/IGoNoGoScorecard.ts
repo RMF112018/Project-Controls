@@ -83,11 +83,7 @@ export interface IGoNoGoScorecard {
   unlockReason?: string;
 }
 
-export interface IPersonAssignment {
-  userId?: string;
-  displayName: string;
-  email: string;
-}
+// IPersonAssignment is defined in IWorkflowDefinition.ts and re-exported from barrel
 
 export interface IScorecardApprovalCycle {
   id: number;

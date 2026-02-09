@@ -1,5 +1,6 @@
 import { ILead, ILeadFormData } from '../models/ILead';
-import { IGoNoGoScorecard, IScorecardVersion, IPersonAssignment } from '../models/IGoNoGoScorecard';
+import { IGoNoGoScorecard, IScorecardVersion } from '../models/IGoNoGoScorecard';
+import { IPersonAssignment } from '../models/IWorkflowDefinition';
 import { IEstimatingTracker } from '../models/IEstimatingTracker';
 import { IRole, ICurrentUser } from '../models/IRole';
 import { IFeatureFlag } from '../models/IFeatureFlag';
@@ -33,7 +34,9 @@ import { IBuyoutEntry } from '../models/IBuyoutEntry';
 import { ICommitmentApproval } from '../models/ICommitmentApproval';
 import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType } from '../models/IActiveProject';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
-import { GoNoGoDecision, Stage } from '../models/enums';
+import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
+import { ITurnoverAgenda, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
+import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 
 export interface IListQueryOptions {
   filter?: string;
@@ -275,6 +278,52 @@ export interface IDataService {
 
   // Closeout Promotion — copy lessons learned to hub and update closeout data
   promoteToHub(projectCode: string): Promise<void>;
+
+  // Workflow Definitions
+  getWorkflowDefinitions(): Promise<IWorkflowDefinition[]>;
+  getWorkflowDefinition(workflowKey: WorkflowKey): Promise<IWorkflowDefinition | null>;
+  updateWorkflowStep(workflowId: number, stepId: number, data: Partial<IWorkflowStep>): Promise<IWorkflowStep>;
+  addConditionalAssignment(stepId: number, assignment: Partial<IConditionalAssignment>): Promise<IConditionalAssignment>;
+  updateConditionalAssignment(assignmentId: number, data: Partial<IConditionalAssignment>): Promise<IConditionalAssignment>;
+  removeConditionalAssignment(assignmentId: number): Promise<void>;
+  getWorkflowOverrides(projectCode: string): Promise<IWorkflowStepOverride[]>;
+  setWorkflowStepOverride(override: Partial<IWorkflowStepOverride>): Promise<IWorkflowStepOverride>;
+  removeWorkflowStepOverride(overrideId: number): Promise<void>;
+  resolveWorkflowChain(workflowKey: WorkflowKey, projectCode: string): Promise<IResolvedWorkflowStep[]>;
+
+  // Turnover Agenda
+  getTurnoverAgenda(projectCode: string): Promise<ITurnoverAgenda | null>;
+  createTurnoverAgenda(projectCode: string, leadId: number): Promise<ITurnoverAgenda>;
+  updateTurnoverAgenda(projectCode: string, data: Partial<ITurnoverAgenda>): Promise<ITurnoverAgenda>;
+
+  // Turnover Prerequisites
+  updateTurnoverPrerequisite(prerequisiteId: number, data: Partial<ITurnoverPrerequisite>): Promise<ITurnoverPrerequisite>;
+
+  // Turnover Discussion Items
+  updateTurnoverDiscussionItem(itemId: number, data: Partial<ITurnoverDiscussionItem>): Promise<ITurnoverDiscussionItem>;
+  addTurnoverDiscussionAttachment(itemId: number, file: File): Promise<ITurnoverAttachment>;
+  removeTurnoverDiscussionAttachment(attachmentId: number): Promise<void>;
+
+  // Turnover Subcontractors
+  addTurnoverSubcontractor(turnoverAgendaId: number, data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor>;
+  updateTurnoverSubcontractor(subId: number, data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor>;
+  removeTurnoverSubcontractor(subId: number): Promise<void>;
+
+  // Turnover Exhibits
+  updateTurnoverExhibit(exhibitId: number, data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit>;
+  addTurnoverExhibit(turnoverAgendaId: number, data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit>;
+  removeTurnoverExhibit(exhibitId: number): Promise<void>;
+  uploadTurnoverExhibitFile(exhibitId: number, file: File): Promise<{ fileUrl: string; fileName: string }>;
+
+  // Turnover Signatures
+  signTurnoverAgenda(signatureId: number, comment?: string): Promise<ITurnoverSignature>;
+
+  // Turnover Estimate Overview
+  updateTurnoverEstimateOverview(projectCode: string, data: Partial<ITurnoverEstimateOverview>): Promise<ITurnoverEstimateOverview>;
+
+  // Hub Site URL Configuration
+  getHubSiteUrl(): Promise<string>;
+  setHubSiteUrl(url: string): Promise<void>;
 }
 
 export interface IActiveProjectsQueryOptions extends IListQueryOptions {

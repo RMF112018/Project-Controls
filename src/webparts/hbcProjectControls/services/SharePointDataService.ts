@@ -27,7 +27,9 @@ import { IBuyoutEntry, BuyoutStatus, EVerifyStatus } from '../models/IBuyoutEntr
 import { ICommitmentApproval, CommitmentStatus, WaiverType, ApprovalStep } from '../models/ICommitmentApproval';
 import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType, DEFAULT_ALERT_THRESHOLDS } from '../models/IActiveProject';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
-import { GoNoGoDecision, Stage } from '../models/enums';
+import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
+import { ITurnoverAgenda, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
+import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 
@@ -1256,4 +1258,47 @@ export class SharePointDataService implements IDataService {
   async unlockScorecard(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending'); }
   async relockScorecard(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending'); }
   async getScorecardVersions(): Promise<IScorecardVersion[]> { throw new Error('SharePoint implementation pending'); }
+
+  // --- Workflow Definitions ---
+  async getWorkflowDefinitions(): Promise<IWorkflowDefinition[]> { return []; }
+  async getWorkflowDefinition(_workflowKey: WorkflowKey): Promise<IWorkflowDefinition | null> { return null; }
+  async updateWorkflowStep(_workflowId: number, _stepId: number, _data: Partial<IWorkflowStep>): Promise<IWorkflowStep> { throw new Error('Not implemented'); }
+  async addConditionalAssignment(_stepId: number, _assignment: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> { throw new Error('Not implemented'); }
+  async updateConditionalAssignment(_assignmentId: number, _data: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> { throw new Error('Not implemented'); }
+  async removeConditionalAssignment(_assignmentId: number): Promise<void> { throw new Error('Not implemented'); }
+  async getWorkflowOverrides(_projectCode: string): Promise<IWorkflowStepOverride[]> { return []; }
+  async setWorkflowStepOverride(_override: Partial<IWorkflowStepOverride>): Promise<IWorkflowStepOverride> { throw new Error('Not implemented'); }
+  async removeWorkflowStepOverride(_overrideId: number): Promise<void> { throw new Error('Not implemented'); }
+  async resolveWorkflowChain(_workflowKey: WorkflowKey, _projectCode: string): Promise<IResolvedWorkflowStep[]> { return []; }
+
+  // --- Turnover Agenda ---
+  async getTurnoverAgenda(_projectCode: string): Promise<ITurnoverAgenda | null> { return null; }
+  async createTurnoverAgenda(_projectCode: string, _leadId: number): Promise<ITurnoverAgenda> { throw new Error('Not implemented'); }
+  async updateTurnoverAgenda(_projectCode: string, _data: Partial<ITurnoverAgenda>): Promise<ITurnoverAgenda> { throw new Error('Not implemented'); }
+  async updateTurnoverPrerequisite(_prerequisiteId: number, _data: Partial<ITurnoverPrerequisite>): Promise<ITurnoverPrerequisite> { throw new Error('Not implemented'); }
+  async updateTurnoverDiscussionItem(_itemId: number, _data: Partial<ITurnoverDiscussionItem>): Promise<ITurnoverDiscussionItem> { throw new Error('Not implemented'); }
+  async addTurnoverDiscussionAttachment(_itemId: number, _file: File): Promise<ITurnoverAttachment> { throw new Error('Not implemented'); }
+  async removeTurnoverDiscussionAttachment(_attachmentId: number): Promise<void> { throw new Error('Not implemented'); }
+  async addTurnoverSubcontractor(_turnoverAgendaId: number, _data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor> { throw new Error('Not implemented'); }
+  async updateTurnoverSubcontractor(_subId: number, _data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor> { throw new Error('Not implemented'); }
+  async removeTurnoverSubcontractor(_subId: number): Promise<void> { throw new Error('Not implemented'); }
+  async updateTurnoverExhibit(_exhibitId: number, _data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit> { throw new Error('Not implemented'); }
+  async addTurnoverExhibit(_turnoverAgendaId: number, _data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit> { throw new Error('Not implemented'); }
+  async removeTurnoverExhibit(_exhibitId: number): Promise<void> { throw new Error('Not implemented'); }
+  async uploadTurnoverExhibitFile(_exhibitId: number, _file: File): Promise<{ fileUrl: string; fileName: string }> { throw new Error('Not implemented'); }
+  async signTurnoverAgenda(_signatureId: number, _comment?: string): Promise<ITurnoverSignature> { throw new Error('Not implemented'); }
+  async updateTurnoverEstimateOverview(_projectCode: string, _data: Partial<ITurnoverEstimateOverview>): Promise<ITurnoverEstimateOverview> { throw new Error('Not implemented'); }
+
+  // --- Hub Site URL Configuration ---
+  async getHubSiteUrl(): Promise<string> {
+    if (!this.sp) return 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral';
+    try {
+      const items = await this.sp.web.lists.getByTitle('App_Context_Config')
+        .items.filter("SiteURL eq 'HUB_SITE_URL'").select('AppTitle').top(1)();
+      return items.length > 0 ? items[0].AppTitle : 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral';
+    } catch {
+      return 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral';
+    }
+  }
+  async setHubSiteUrl(_url: string): Promise<void> { throw new Error('Not implemented'); }
 }

@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Input } from '@fluentui/react-components';
-import { IPersonAssignment } from '../../models/IGoNoGoScorecard';
+import { IPersonAssignment } from '../../models/IWorkflowDefinition';
 import { HBC_COLORS } from '../../theme/tokens';
+import mockUsers from '../../mock/users.json';
 
 interface IAzureADPeoplePickerProps {
   selectedUser: IPersonAssignment | null;
@@ -11,17 +11,6 @@ interface IAzureADPeoplePickerProps {
   disabled?: boolean;
 }
 
-const MOCK_USERS: IPersonAssignment[] = [
-  { displayName: 'Mike Hedrick', email: 'mhedrick@hedrickbrothers.com' },
-  { displayName: 'Todd Hedrick', email: 'thedrick@hedrickbrothers.com' },
-  { displayName: 'David Park', email: 'dpark@hedrickbrothers.com' },
-  { displayName: 'Katie Foster', email: 'kfoster@hedrickbrothers.com' },
-  { displayName: 'Sarah Mitchell', email: 'smitchell@hedrickbrothers.com' },
-  { displayName: 'Jorge Rodriguez', email: 'jrodriguez@hedrickbrothers.com' },
-  { displayName: 'Brian Torres', email: 'btorres@hedrickbrothers.com' },
-  { displayName: 'Rachel Chen', email: 'rchen@hedrickbrothers.com' },
-];
-
 export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = ({
   selectedUser,
   onSelect,
@@ -29,88 +18,172 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = ({
   placeholder = 'Search people...',
   disabled = false,
 }) => {
-  const [query, setQuery] = React.useState(selectedUser?.displayName || '');
-  const [showDropdown, setShowDropdown] = React.useState(false);
+  const [query, setQuery] = React.useState('');
+  const [isOpen, setIsOpen] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
+  React.useEffect(() => {
+    const handleClick = (e: MouseEvent): void => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
   const filtered = React.useMemo(() => {
-    if (!query.trim()) return MOCK_USERS;
+    if (!query.trim()) return mockUsers;
     const q = query.toLowerCase();
-    return MOCK_USERS.filter(
-      u => u.displayName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+    return mockUsers.filter(u =>
+      u.displayName.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q)
     );
   }, [query]);
 
-  React.useEffect(() => {
-    const handler = (e: MouseEvent): void => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  const handleSelect = (user: typeof mockUsers[0]): void => {
+    onSelect({
+      userId: String(user.id),
+      displayName: user.displayName,
+      email: user.email,
+    });
+    setQuery('');
+    setIsOpen(false);
+  };
 
-  React.useEffect(() => {
-    setQuery(selectedUser?.displayName || '');
-  }, [selectedUser]);
+  const handleClear = (e: React.MouseEvent): void => {
+    e.stopPropagation();
+    onSelect(null);
+    setQuery('');
+  };
 
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
       {label && (
-        <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: HBC_COLORS.gray700, marginBottom: '4px' }}>
+        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: HBC_COLORS.gray600, marginBottom: '4px' }}>
           {label}
         </label>
       )}
-      <Input
-        style={{ width: '100%' }}
-        value={query}
-        placeholder={placeholder}
-        disabled={disabled}
-        onChange={(_, d) => {
-          setQuery(d.value);
-          setShowDropdown(true);
-          if (!d.value.trim()) onSelect(null);
-        }}
-        onFocus={() => setShowDropdown(true)}
-      />
-      {showDropdown && filtered.length > 0 && !disabled && (
+
+      {selectedUser && selectedUser.userId ? (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '6px 10px',
+          borderRadius: '6px',
+          border: `1px solid ${HBC_COLORS.gray200}`,
+          backgroundColor: HBC_COLORS.gray50,
+        }}>
+          <div style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            backgroundColor: HBC_COLORS.navy,
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '11px',
+            fontWeight: 600,
+            flexShrink: 0,
+          }}>
+            {selectedUser.displayName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '13px', fontWeight: 500, color: HBC_COLORS.navy }}>{selectedUser.displayName}</div>
+            <div style={{ fontSize: '11px', color: HBC_COLORS.gray400 }}>{selectedUser.email}</div>
+          </div>
+          {!disabled && (
+            <span
+              onClick={handleClear}
+              style={{ color: HBC_COLORS.gray400, cursor: 'pointer', fontSize: '16px', lineHeight: 1, flexShrink: 0 }}
+              title="Clear"
+            >
+              &times;
+            </span>
+          )}
+        </div>
+      ) : (
+        <input
+          value={query}
+          onChange={e => { setQuery(e.target.value); setIsOpen(true); }}
+          onFocus={() => setIsOpen(true)}
+          placeholder={placeholder}
+          disabled={disabled}
+          style={{
+            width: '100%',
+            padding: '6px 10px',
+            borderRadius: '6px',
+            border: `1px solid ${isOpen ? HBC_COLORS.navy : HBC_COLORS.gray300}`,
+            fontSize: '13px',
+            outline: 'none',
+            boxSizing: 'border-box',
+            backgroundColor: disabled ? HBC_COLORS.gray100 : '#fff',
+          }}
+        />
+      )}
+
+      {isOpen && !selectedUser?.userId && (
         <div style={{
           position: 'absolute',
           top: '100%',
           left: 0,
           right: 0,
+          zIndex: 1000,
           backgroundColor: '#fff',
           border: `1px solid ${HBC_COLORS.gray200}`,
-          borderRadius: '4px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-          maxHeight: '200px',
-          overflowY: 'auto',
-          zIndex: 1000,
+          borderRadius: '6px',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+          maxHeight: '240px',
+          overflow: 'auto',
+          marginTop: '2px',
         }}>
-          {filtered.map(user => (
-            <button
-              key={user.email}
-              onClick={() => {
-                onSelect(user);
-                setQuery(user.displayName);
-                setShowDropdown(false);
-              }}
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                backgroundColor: selectedUser?.email === user.email ? HBC_COLORS.gray50 : '#fff',
-                cursor: 'pointer',
-                textAlign: 'left',
-                fontSize: '13px',
-              }}
-            >
-              <div style={{ fontWeight: 500, color: HBC_COLORS.gray800 }}>{user.displayName}</div>
-              <div style={{ fontSize: '11px', color: HBC_COLORS.gray500 }}>{user.email}</div>
-            </button>
-          ))}
+          {filtered.length === 0 ? (
+            <div style={{ padding: '12px', textAlign: 'center', color: HBC_COLORS.gray400, fontSize: '13px' }}>
+              No matching people
+            </div>
+          ) : (
+            filtered.map(user => (
+              <div
+                key={user.id}
+                onClick={() => handleSelect(user)}
+                style={{
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '13px',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = HBC_COLORS.gray50)}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <div style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  backgroundColor: HBC_COLORS.lightNavy,
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  flexShrink: 0,
+                }}>
+                  {user.displayName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{user.displayName}</div>
+                  <div style={{ fontSize: '11px', color: HBC_COLORS.gray400 }}>{user.email}</div>
+                </div>
+                <span style={{ fontSize: '11px', color: HBC_COLORS.gray400 }}>
+                  {user.department}
+                </span>
+              </div>
+            ))
+          )}
         </div>
       )}
     </div>

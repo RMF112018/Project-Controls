@@ -37,6 +37,10 @@ export const HUB_LISTS = {
   SCORECARD_APPROVAL_CYCLES: 'Scorecard_Approval_Cycles',
   SCORECARD_APPROVAL_STEPS: 'Scorecard_Approval_Steps',
   SCORECARD_VERSIONS: 'Scorecard_Versions',
+  WORKFLOW_DEFINITIONS: 'Workflow_Definitions',
+  WORKFLOW_STEPS: 'Workflow_Steps',
+  WORKFLOW_CONDITIONAL_ASSIGNMENTS: 'Workflow_Conditional_Assignments',
+  WORKFLOW_STEP_OVERRIDES: 'Workflow_Step_Overrides',
 } as const;
 
 export const PROJECT_LISTS = {
@@ -72,6 +76,13 @@ export const PROJECT_LISTS = {
   MARKETING_PROJECT_RECORD: 'Marketing_Project_Record',
   CONTRACT_INFO: 'Contract_Info',
   INTERVIEW_PREP: 'Interview_Prep',
+  TURNOVER_AGENDAS: 'Turnover_Agendas',
+  TURNOVER_PREREQUISITES: 'Turnover_Prerequisites',
+  TURNOVER_DISCUSSION_ITEMS: 'Turnover_Discussion_Items',
+  TURNOVER_SUBCONTRACTORS: 'Turnover_Subcontractors',
+  TURNOVER_EXHIBITS: 'Turnover_Exhibits',
+  TURNOVER_SIGNATURES: 'Turnover_Signatures',
+  TURNOVER_ATTACHMENTS: 'Turnover_Attachments',
 } as const;
 
 export const LIST_NAMES = { ...HUB_LISTS, ...PROJECT_LISTS } as const;
@@ -246,3 +257,5 @@ export const SCORE_THRESHOLDS = {
   HIGH: 69,
   MID: 55,
 } as const;
+
+export const DEFAULT_HUB_SITE_URL = 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral';

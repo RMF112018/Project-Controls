@@ -1,0 +1,436 @@
+{
+  "agendas": [
+    {
+      "id": 1,
+      "projectCode": "25-042-01",
+      "leadId": 14,
+      "status": "Complete",
+      "projectName": "Palm Beach County Convention Center Expansion",
+      "meetingDate": "2026-01-10T14:00:00.000Z",
+      "recordingUrl": "https://teams.microsoft.com/recording/turnover-25-042-01",
+      "turnoverFolderUrl": "https://hedrickbrothers.sharepoint.com/sites/25-042-01/00_Project_Admin/Turnover",
+      "bcPublished": true,
+      "pmName": "Carlos Rivera",
+      "apmName": "Sarah Mitchell",
+      "createdBy": "Rachel Kim",
+      "createdDate": "2025-12-15T09:00:00.000Z",
+      "lastModifiedBy": "Mike Hedrick",
+      "lastModifiedDate": "2026-01-10T16:30:00.000Z"
+    },
+    {
+      "id": 2,
+      "projectCode": "25-115-01",
+      "leadId": 7,
+      "status": "PrerequisitesInProgress",
+      "projectName": "Tallahassee State Office Complex",
+      "meetingDate": "2026-02-20T10:00:00.000Z",
+      "createdBy": "David Park",
+      "createdDate": "2026-02-01T08:00:00.000Z"
+    }
+  ],
+  "headers": [
+    {
+      "id": 1,
+      "turnoverAgendaId": 1,
+      "projectName": "Palm Beach County Convention Center Expansion",
+      "projectCode": "25-042-01",
+      "clientName": "Palm Beach County",
+      "projectValue": 42000000,
+      "deliveryMethod": "GMP",
+      "projectExecutive": "Mike Hedrick",
+      "projectManager": "Carlos Rivera",
+      "leadEstimator": "Rachel Kim",
+      "overrides": {}
+    },
+    {
+      "id": 2,
+      "turnoverAgendaId": 2,
+      "projectName": "Tallahassee State Office Complex",
+      "projectCode": "25-115-01",
+      "clientName": "State of Florida DMS",
+      "projectValue": 28500000,
+      "deliveryMethod": "Precon w/ GMP Amend",
+      "projectExecutive": "Tom Hedrick",
+      "projectManager": "",
+      "leadEstimator": "David Park",
+      "overrides": {}
+    }
+  ],
+  "estimateOverviews": [
+    {
+      "id": 1,
+      "turnoverAgendaId": 1,
+      "contractAmount": 42000000,
+      "originalEstimate": 41250000,
+      "buyoutTarget": 38000000,
+      "estimatedFee": 2100000,
+      "estimatedGrossMargin": 3150000,
+      "contingency": 630000,
+      "notes": "Fee at 5%. Buyout target reflects aggressive sub pricing from BC coverage.",
+      "overrides": {}
+    },
+    {
+      "id": 2,
+      "turnoverAgendaId": 2,
+      "contractAmount": 28500000,
+      "originalEstimate": 27800000,
+      "buyoutTarget": 25500000,
+      "estimatedFee": 1425000,
+      "estimatedGrossMargin": 2137500,
+      "contingency": 427500,
+      "notes": "",
+      "overrides": {}
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": 1,
+      "turnoverAgendaId": 1,
+      "sortOrder": 1,
+      "label": "Estimate File Complete",
+      "description": "Estimate file has been reviewed and finalized by the Lead Estimator.",
+      "completed": true,
+      "completedBy": "Rachel Kim",
+      "completedDate": "2025-12-20T10:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "turnoverAgendaId": 1,
+      "sortOrder": 2,
+      "label": "Contract Executed",
+      "description": "Owner contract has been fully executed and filed.",
+      "completed": true,
+      "completedBy": "Legal Team",
+      "completedDate": "2025-12-22T14:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "turnoverAgendaId": 1,
+      "sortOrder": 3,
+      "label": "Job Number Assigned",
+      "description": "Official job number has been issued by Accounting.",
+      "completed": true,
+      "completedBy": "Accounting",
+      "completedDate": "2025-12-18T09:00:00.000Z"
+    },
+    {
+      "id": 4,
+      "turnoverAgendaId": 1,
+      "sortOrder": 4,
+      "label": "Site Visit Completed",
+      "description": "Operations team has completed an initial site visit.",
+      "completed": true,
+      "completedBy": "Carlos Rivera",
+      "completedDate": "2026-01-05T16:00:00.000Z"
+    },
+    {
+      "id": 5,
+      "turnoverAgendaId": 2,
+      "sortOrder": 1,
+      "label": "Estimate File Complete",
+      "description": "Estimate file has been reviewed and finalized by the Lead Estimator.",
+      "completed": true,
+      "completedBy": "David Park",
+      "completedDate": "2026-01-28T11:00:00.000Z"
+    },
+    {
+      "id": 6,
+      "turnoverAgendaId": 2,
+      "sortOrder": 2,
+      "label": "Contract Executed",
+      "description": "Owner contract has been fully executed and filed.",
+      "completed": true,
+      "completedBy": "Legal Team",
+      "completedDate": "2026-01-30T10:00:00.000Z"
+    },
+    {
+      "id": 7,
+      "turnoverAgendaId": 2,
+      "sortOrder": 3,
+      "label": "Job Number Assigned",
+      "description": "Official job number has been issued by Accounting.",
+      "completed": true,
+      "completedBy": "Accounting",
+      "completedDate": "2026-01-29T09:00:00.000Z"
+    },
+    {
+      "id": 8,
+      "turnoverAgendaId": 2,
+      "sortOrder": 4,
+      "label": "Site Visit Completed",
+      "description": "Operations team has completed an initial site visit.",
+      "completed": false
+    }
+  ],
+  "discussionItems": [
+    {
+      "id": 1, "turnoverAgendaId": 1, "sortOrder": 1,
+      "label": "Scope of Work",
+      "description": "Review the full scope of work, inclusions, and exclusions.",
+      "discussed": true,
+      "notes": "Full scope reviewed including 150,000 SF expansion, new ballroom, and parking structure. Self-perform concrete and site work."
+    },
+    {
+      "id": 2, "turnoverAgendaId": 1, "sortOrder": 2,
+      "label": "Budget & Cost Review",
+      "description": "Walk through the estimate, GC costs, contingencies, and fee structure.",
+      "discussed": true,
+      "notes": "GMP at $42M. GC costs at 8.2%. Contingency at 1.5%. Fee locked at 5%."
+    },
+    {
+      "id": 3, "turnoverAgendaId": 1, "sortOrder": 3,
+      "label": "Schedule Overview",
+      "description": "Review project milestones, critical dates, and long-lead items.",
+      "discussed": true,
+      "notes": "18-month construction schedule. Long-lead: curtain wall (16 weeks), elevators (20 weeks). Substantial completion by Q3 2027."
+    },
+    {
+      "id": 4, "turnoverAgendaId": 1, "sortOrder": 4,
+      "label": "Subcontractor Strategy",
+      "description": "Discuss subcontractor selections, bid coverage, and procurement plan.",
+      "discussed": true,
+      "notes": "6 major trades identified. MEP package going to 3 bidders each. Concrete self-perform confirmed."
+    },
+    {
+      "id": 5, "turnoverAgendaId": 1, "sortOrder": 5,
+      "label": "Risk Items",
+      "description": "Identify known risks, allowances, exclusions, and potential change orders.",
+      "discussed": true,
+      "notes": "Soil conditions flagged — geotech report shows potential dewatering needs. $350K allowance for unforeseen conditions."
+    },
+    {
+      "id": 6, "turnoverAgendaId": 1, "sortOrder": 6,
+      "label": "Contract Requirements",
+      "description": "Review key contract terms, insurance, bonding, and compliance requirements.",
+      "discussed": true,
+      "notes": "100% P&P bond required. CCIP program in place. Liquidated damages at $5K/day."
+    },
+    {
+      "id": 7, "turnoverAgendaId": 1, "sortOrder": 7,
+      "label": "Safety Considerations",
+      "description": "Discuss site-specific safety concerns and safety plan requirements.",
+      "discussed": true,
+      "notes": "Active convention center adjacent — need full perimeter fencing and separate construction entrance. Noise restrictions after 6PM."
+    },
+    {
+      "id": 8, "turnoverAgendaId": 1, "sortOrder": 8,
+      "label": "Quality Requirements",
+      "description": "Review quality standards, special inspections, and testing requirements.",
+      "discussed": true,
+      "notes": "County-mandated third-party inspections for structural steel. LEED Silver target."
+    },
+    {
+      "id": 9, "turnoverAgendaId": 1, "sortOrder": 9,
+      "label": "Client Expectations",
+      "description": "Discuss client communication preferences, reporting, and relationship dynamics.",
+      "discussed": true,
+      "notes": "Monthly OAC meetings. Weekly progress reports to County PM. Client prefers email over Teams."
+    },
+    {
+      "id": 10, "turnoverAgendaId": 1, "sortOrder": 10,
+      "label": "Open Items & Action Items",
+      "description": "Capture outstanding questions, open items, and next steps for the team.",
+      "discussed": true,
+      "notes": "1) Finalize dewatering scope by 1/20. 2) Confirm curtain wall vendor by 1/25. 3) Schedule pre-con meeting with County."
+    },
+    {
+      "id": 11, "turnoverAgendaId": 2, "sortOrder": 1,
+      "label": "Scope of Work",
+      "description": "Review the full scope of work, inclusions, and exclusions.",
+      "discussed": false, "notes": ""
+    },
+    {
+      "id": 12, "turnoverAgendaId": 2, "sortOrder": 2,
+      "label": "Budget & Cost Review",
+      "description": "Walk through the estimate, GC costs, contingencies, and fee structure.",
+      "discussed": false, "notes": ""
+    },
+    {
+      "id": 13, "turnoverAgendaId": 2, "sortOrder": 3,
+      "label": "Schedule Overview",
+      "description": "Review project milestones, critical dates, and long-lead items.",
+      "discussed": false, "notes": ""
+    },
+    {
+      "id": 14, "turnoverAgendaId": 2, "sortOrder": 4,
+      "label": "Subcontractor Strategy",
+      "description": "Discuss subcontractor selections, bid coverage, and procurement plan.",
+      "discussed": false, "notes": ""
+    },
+    {
+      "id": 15, "turnoverAgendaId": 2, "sortOrder": 5,
+      "label": "Risk Items",
+      "description": "Identify known risks, allowances, exclusions, and potential change orders.",
+      "discussed": false, "notes": ""
+    },
+    {
+      "id": 16, "turnoverAgendaId": 2, "sortOrder": 6,
+      "label": "Contract Requirements",
+      "description": "Review key contract terms, insurance, bonding, and compliance requirements.",
+      "discussed": false, "notes": ""
+    },
+    {
+      "id": 17, "turnoverAgendaId": 2, "sortOrder": 7,
+      "label": "Safety Considerations",
+      "description": "Discuss site-specific safety concerns and safety plan requirements.",
+      "discussed": false, "notes": ""
+    },
+    {
+      "id": 18, "turnoverAgendaId": 2, "sortOrder": 8,
+      "label": "Quality Requirements",
+      "description": "Review quality standards, special inspections, and testing requirements.",
+      "discussed": false, "notes": ""
+    },
+    {
+      "id": 19, "turnoverAgendaId": 2, "sortOrder": 9,
+      "label": "Client Expectations",
+      "description": "Discuss client communication preferences, reporting, and relationship dynamics.",
+      "discussed": false, "notes": ""
+    },
+    {
+      "id": 20, "turnoverAgendaId": 2, "sortOrder": 10,
+      "label": "Open Items & Action Items",
+      "description": "Capture outstanding questions, open items, and next steps for the team.",
+      "discussed": false, "notes": ""
+    }
+  ],
+  "subcontractors": [
+    {
+      "id": 1, "turnoverAgendaId": 1, "trade": "Mechanical/HVAC",
+      "subcontractorName": "Southeast Mechanical", "contactName": "John Torres",
+      "contactPhone": "561-555-0101", "contactEmail": "jtorres@southeastmech.com",
+      "qScore": 92, "isPreferred": true, "isRequired": false, "notes": "Long-standing relationship"
+    },
+    {
+      "id": 2, "turnoverAgendaId": 1, "trade": "Electrical",
+      "subcontractorName": "Palm Coast Electric", "contactName": "Maria Santos",
+      "contactPhone": "561-555-0102", "contactEmail": "msantos@palmcoastelec.com",
+      "qScore": 88, "isPreferred": true, "isRequired": false, "notes": ""
+    },
+    {
+      "id": 3, "turnoverAgendaId": 1, "trade": "Plumbing",
+      "subcontractorName": "All-Florida Plumbing", "contactName": "Robert Chen",
+      "contactPhone": "561-555-0103", "contactEmail": "rchen@allfloridaplumb.com",
+      "qScore": 85, "isPreferred": false, "isRequired": false, "notes": ""
+    },
+    {
+      "id": 4, "turnoverAgendaId": 1, "trade": "Structural Steel",
+      "subcontractorName": "Atlantic Steel Fabricators", "contactName": "David Wilson",
+      "contactPhone": "561-555-0104", "contactEmail": "dwilson@atlanticsteel.com",
+      "qScore": 90, "isPreferred": false, "isRequired": true, "notes": "Owner-specified per contract"
+    },
+    {
+      "id": 5, "turnoverAgendaId": 1, "trade": "Curtain Wall",
+      "subcontractorName": "Glass Solutions Inc", "contactName": "Lisa Park",
+      "contactPhone": "561-555-0105", "contactEmail": "lpark@glasssolutions.com",
+      "qScore": 87, "isPreferred": false, "isRequired": false, "notes": "16-week lead time"
+    },
+    {
+      "id": 6, "turnoverAgendaId": 1, "trade": "Fire Protection",
+      "subcontractorName": "Guardian Fire Systems", "contactName": "James Brown",
+      "contactPhone": "561-555-0106", "contactEmail": "jbrown@guardianfire.com",
+      "qScore": 91, "isPreferred": true, "isRequired": false, "notes": ""
+    },
+    {
+      "id": 7, "turnoverAgendaId": 2, "trade": "Mechanical/HVAC",
+      "subcontractorName": "Capital City Mechanical", "contactName": "Andy Reed",
+      "contactPhone": "850-555-0201", "contactEmail": "areed@capitalcitymech.com",
+      "qScore": 84, "isPreferred": false, "isRequired": false, "notes": ""
+    },
+    {
+      "id": 8, "turnoverAgendaId": 2, "trade": "Electrical",
+      "subcontractorName": "Tallahassee Electric Co", "contactName": "Nina Cruz",
+      "contactPhone": "850-555-0202", "contactEmail": "ncruz@tallyelec.com",
+      "qScore": 86, "isPreferred": true, "isRequired": false, "notes": ""
+    }
+  ],
+  "exhibits": [
+    { "id": 1, "turnoverAgendaId": 1, "sortOrder": 1, "label": "Executed Contract", "isDefault": true, "reviewed": true, "reviewedBy": "Rachel Kim", "reviewedDate": "2026-01-10T14:15:00.000Z", "linkedDocumentUrl": "https://hedrickbrothers.sharepoint.com/sites/25-042-01/Contracts/Executed_Contract.pdf" },
+    { "id": 2, "turnoverAgendaId": 1, "sortOrder": 2, "label": "Final Estimate / GMP", "isDefault": true, "reviewed": true, "reviewedBy": "Rachel Kim", "reviewedDate": "2026-01-10T14:20:00.000Z", "linkedDocumentUrl": "https://hedrickbrothers.sharepoint.com/sites/25-042-01/Estimates/GMP_Final.xlsx" },
+    { "id": 3, "turnoverAgendaId": 1, "sortOrder": 3, "label": "Project Schedule", "isDefault": true, "reviewed": true, "reviewedBy": "Carlos Rivera", "reviewedDate": "2026-01-10T14:25:00.000Z" },
+    { "id": 4, "turnoverAgendaId": 1, "sortOrder": 4, "label": "Subcontractor Bid Tabulation", "isDefault": true, "reviewed": true, "reviewedBy": "Rachel Kim", "reviewedDate": "2026-01-10T14:30:00.000Z" },
+    { "id": 5, "turnoverAgendaId": 1, "sortOrder": 5, "label": "Allowance Log", "isDefault": true, "reviewed": true, "reviewedBy": "Rachel Kim", "reviewedDate": "2026-01-10T14:35:00.000Z" },
+    { "id": 6, "turnoverAgendaId": 1, "sortOrder": 6, "label": "Value Engineering Log", "isDefault": true, "reviewed": true, "reviewedBy": "Rachel Kim", "reviewedDate": "2026-01-10T14:40:00.000Z" },
+    { "id": 7, "turnoverAgendaId": 1, "sortOrder": 7, "label": "Insurance & Bonding Docs", "isDefault": true, "reviewed": true, "reviewedBy": "Legal Team", "reviewedDate": "2026-01-10T14:45:00.000Z" },
+    { "id": 8, "turnoverAgendaId": 1, "sortOrder": 8, "label": "Site Logistics Plan", "isDefault": true, "reviewed": true, "reviewedBy": "Carlos Rivera", "reviewedDate": "2026-01-10T14:50:00.000Z" },
+    { "id": 9, "turnoverAgendaId": 1, "sortOrder": 9, "label": "Permit & NOC Status", "isDefault": true, "reviewed": true, "reviewedBy": "Sarah Mitchell", "reviewedDate": "2026-01-10T14:55:00.000Z" },
+    { "id": 10, "turnoverAgendaId": 1, "sortOrder": 10, "label": "Project Directory", "isDefault": true, "reviewed": true, "reviewedBy": "Sarah Mitchell", "reviewedDate": "2026-01-10T15:00:00.000Z" },
+    { "id": 11, "turnoverAgendaId": 1, "sortOrder": 11, "label": "Geotech Report Addendum", "isDefault": false, "reviewed": true, "reviewedBy": "Carlos Rivera", "reviewedDate": "2026-01-10T15:05:00.000Z", "uploadedFileName": "Geotech_Addendum_Dec2025.pdf", "uploadedFileUrl": "https://hedrickbrothers.sharepoint.com/sites/25-042-01/Turnover/Geotech_Addendum_Dec2025.pdf" },
+    { "id": 12, "turnoverAgendaId": 2, "sortOrder": 1, "label": "Executed Contract", "isDefault": true, "reviewed": false },
+    { "id": 13, "turnoverAgendaId": 2, "sortOrder": 2, "label": "Final Estimate / GMP", "isDefault": true, "reviewed": false },
+    { "id": 14, "turnoverAgendaId": 2, "sortOrder": 3, "label": "Project Schedule", "isDefault": true, "reviewed": false },
+    { "id": 15, "turnoverAgendaId": 2, "sortOrder": 4, "label": "Subcontractor Bid Tabulation", "isDefault": true, "reviewed": false },
+    { "id": 16, "turnoverAgendaId": 2, "sortOrder": 5, "label": "Allowance Log", "isDefault": true, "reviewed": false },
+    { "id": 17, "turnoverAgendaId": 2, "sortOrder": 6, "label": "Value Engineering Log", "isDefault": true, "reviewed": false },
+    { "id": 18, "turnoverAgendaId": 2, "sortOrder": 7, "label": "Insurance & Bonding Docs", "isDefault": true, "reviewed": false },
+    { "id": 19, "turnoverAgendaId": 2, "sortOrder": 8, "label": "Site Logistics Plan", "isDefault": true, "reviewed": false },
+    { "id": 20, "turnoverAgendaId": 2, "sortOrder": 9, "label": "Permit & NOC Status", "isDefault": true, "reviewed": false },
+    { "id": 21, "turnoverAgendaId": 2, "sortOrder": 10, "label": "Project Directory", "isDefault": true, "reviewed": false }
+  ],
+  "signatures": [
+    {
+      "id": 1, "turnoverAgendaId": 1, "sortOrder": 1, "role": "Lead Estimator",
+      "signerName": "Rachel Kim", "signerEmail": "rkim@hedrickbrothers.com",
+      "affidavitText": "I certify that I have reviewed the turnover package and accept responsibility for the information transferred. I understand that any discrepancies or omissions should be reported immediately.",
+      "signed": true, "signedDate": "2026-01-10T15:30:00.000Z", "comment": "All estimate data verified."
+    },
+    {
+      "id": 2, "turnoverAgendaId": 1, "sortOrder": 2, "role": "Project Executive",
+      "signerName": "Mike Hedrick", "signerEmail": "mhedrick@hedrickbrothers.com",
+      "affidavitText": "I certify that I have reviewed the turnover package and accept responsibility for the information transferred. I understand that any discrepancies or omissions should be reported immediately.",
+      "signed": true, "signedDate": "2026-01-10T15:45:00.000Z", "comment": "Approved."
+    },
+    {
+      "id": 3, "turnoverAgendaId": 1, "sortOrder": 3, "role": "Project Manager",
+      "signerName": "Carlos Rivera", "signerEmail": "crivera@hedrickbrothers.com",
+      "affidavitText": "I certify that I have reviewed the turnover package and accept responsibility for the information transferred. I understand that any discrepancies or omissions should be reported immediately.",
+      "signed": true, "signedDate": "2026-01-10T16:00:00.000Z", "comment": "Ready to mobilize."
+    },
+    {
+      "id": 4, "turnoverAgendaId": 1, "sortOrder": 4, "role": "Superintendent",
+      "signerName": "James Rodriguez", "signerEmail": "jrodriguez@hedrickbrothers.com",
+      "affidavitText": "I certify that I have reviewed the turnover package and accept responsibility for the information transferred. I understand that any discrepancies or omissions should be reported immediately.",
+      "signed": true, "signedDate": "2026-01-10T16:15:00.000Z", "comment": "Site plan reviewed."
+    },
+    {
+      "id": 5, "turnoverAgendaId": 2, "sortOrder": 1, "role": "Lead Estimator",
+      "signerName": "David Park", "signerEmail": "dpark@hedrickbrothers.com",
+      "affidavitText": "I certify that I have reviewed the turnover package and accept responsibility for the information transferred. I understand that any discrepancies or omissions should be reported immediately.",
+      "signed": false
+    },
+    {
+      "id": 6, "turnoverAgendaId": 2, "sortOrder": 2, "role": "Project Executive",
+      "signerName": "Tom Hedrick", "signerEmail": "thedrick@hedrickbrothers.com",
+      "affidavitText": "I certify that I have reviewed the turnover package and accept responsibility for the information transferred. I understand that any discrepancies or omissions should be reported immediately.",
+      "signed": false
+    },
+    {
+      "id": 7, "turnoverAgendaId": 2, "sortOrder": 3, "role": "Project Manager",
+      "signerName": "", "signerEmail": "",
+      "affidavitText": "I certify that I have reviewed the turnover package and accept responsibility for the information transferred. I understand that any discrepancies or omissions should be reported immediately.",
+      "signed": false
+    },
+    {
+      "id": 8, "turnoverAgendaId": 2, "sortOrder": 4, "role": "Superintendent",
+      "signerName": "", "signerEmail": "",
+      "affidavitText": "I certify that I have reviewed the turnover package and accept responsibility for the information transferred. I understand that any discrepancies or omissions should be reported immediately.",
+      "signed": false
+    }
+  ],
+  "attachments": [
+    {
+      "id": 1, "discussionItemId": 5,
+      "fileName": "Risk_Register_25-042-01.xlsx",
+      "fileUrl": "https://hedrickbrothers.sharepoint.com/sites/25-042-01/Turnover/Risk_Register.xlsx",
+      "uploadedBy": "Rachel Kim",
+      "uploadedDate": "2026-01-08T11:00:00.000Z"
+    },
+    {
+      "id": 2, "discussionItemId": 3,
+      "fileName": "Master_Schedule_v3.mpp",
+      "fileUrl": "https://hedrickbrothers.sharepoint.com/sites/25-042-01/Turnover/Master_Schedule_v3.mpp",
+      "uploadedBy": "Carlos Rivera",
+      "uploadedDate": "2026-01-09T14:00:00.000Z"
+    }
+  ]
+}

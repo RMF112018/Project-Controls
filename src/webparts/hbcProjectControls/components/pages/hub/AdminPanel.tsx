@@ -19,11 +19,15 @@ import {
   EntityType,
 } from '../../../models';
 import { ProvisioningService } from '../../../services/ProvisioningService';
+import { MockHubNavigationService } from '../../../services/HubNavigationService';
+import { HubNavLinkStatus } from '../../../models/IProvisioningLog';
+import { FeatureGate } from '../../guards/FeatureGate';
+import { WorkflowDefinitionsPanel } from './WorkflowDefinitionsPanel';
 import { HBC_COLORS, SPACING } from '../../../theme/tokens';
 import { formatDateTime } from '../../../utils/formatters';
 import { PERMISSIONS } from '../../../utils/permissions';
 
-const TABS = ['Connections', 'Roles', 'Feature Flags', 'Provisioning', 'Audit Log'] as const;
+const TABS = ['Connections', 'Roles', 'Feature Flags', 'Provisioning', 'Workflows', 'Audit Log'] as const;
 
 interface IConnectionEntry {
   id: number;
@@ -116,10 +120,19 @@ export const AdminPanel: React.FC = () => {
   const [flagsLoading, setFlagsLoading] = React.useState(false);
   const [togglingFlag, setTogglingFlag] = React.useState<number | null>(null);
 
+  // -- Hub Site URL state --
+  const [hubSiteUrl, setHubSiteUrl] = React.useState('');
+  const [hubSiteUrlLoading, setHubSiteUrlLoading] = React.useState(false);
+  const [hubSiteUrlSaving, setHubSiteUrlSaving] = React.useState(false);
+  const [hubSiteUrlTesting, setHubSiteUrlTesting] = React.useState(false);
+  const [hubSiteUrlTestResult, setHubSiteUrlTestResult] = React.useState<'success' | 'failed' | null>(null);
+  const [hubSiteUrlSaveResult, setHubSiteUrlSaveResult] = React.useState<'success' | 'failed' | null>(null);
+
   // -- Provisioning state --
   const [logs, setLogs] = React.useState<IProvisioningLog[]>([]);
   const [provLoading, setProvLoading] = React.useState(false);
   const [retrying, setRetrying] = React.useState<string | null>(null);
+  const [retryingNavLink, setRetryingNavLink] = React.useState<string | null>(null);
   const [expandedCode, setExpandedCode] = React.useState<string | null>(null);
 
   // -- Audit Log state --
@@ -134,10 +147,20 @@ export const AdminPanel: React.FC = () => {
   });
   const [auditEndDate, setAuditEndDate] = React.useState(() => new Date().toISOString().split('T')[0]);
 
+  const hubNavService = React.useMemo(() => new MockHubNavigationService(), []);
   const provisioningService = React.useMemo(
-    () => new ProvisioningService(dataService),
-    [dataService]
+    () => new ProvisioningService(dataService, hubNavService),
+    [dataService, hubNavService]
   );
+
+  // Load hub site URL on mount
+  React.useEffect(() => {
+    setHubSiteUrlLoading(true);
+    dataService.getHubSiteUrl()
+      .then(url => setHubSiteUrl(url))
+      .catch(console.error)
+      .finally(() => setHubSiteUrlLoading(false));
+  }, [dataService]);
 
   // Load data based on active tab
   React.useEffect(() => {
@@ -150,7 +173,7 @@ export const AdminPanel: React.FC = () => {
     } else if (activeTab === 3 && logs.length === 0) {
       setProvLoading(true);
       dataService.getProvisioningLogs().then(setLogs).catch(console.error).finally(() => setProvLoading(false));
-    } else if (activeTab === 4 && auditEntries.length === 0) {
+    } else if (activeTab === 5 && auditEntries.length === 0) {
       setAuditLoading(true);
       dataService.getAuditLog(undefined, undefined, auditStartDate, auditEndDate)
         .then(setAuditEntries).catch(console.error).finally(() => setAuditLoading(false));
@@ -221,6 +244,47 @@ export const AdminPanel: React.FC = () => {
       console.error('Retry failed:', err);
     } finally {
       setRetrying(null);
+    }
+  };
+
+  const handleTestHubSiteUrl = async (): Promise<void> => {
+    setHubSiteUrlTesting(true);
+    setHubSiteUrlTestResult(null);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setHubSiteUrlTestResult(hubSiteUrl.startsWith('https://') ? 'success' : 'failed');
+    setHubSiteUrlTesting(false);
+  };
+
+  const handleSaveHubSiteUrl = async (): Promise<void> => {
+    setHubSiteUrlSaving(true);
+    setHubSiteUrlSaveResult(null);
+    try {
+      await dataService.setHubSiteUrl(hubSiteUrl);
+      setHubSiteUrlSaveResult('success');
+      dataService.logAudit({
+        Action: AuditAction.HubSiteUrlUpdated,
+        EntityType: EntityType.Config,
+        EntityId: 'HUB_SITE_URL',
+        User: currentUser?.displayName || 'Unknown',
+        Details: `Hub site URL updated to "${hubSiteUrl}"`,
+      }).catch(console.error);
+    } catch {
+      setHubSiteUrlSaveResult('failed');
+    } finally {
+      setHubSiteUrlSaving(false);
+    }
+  };
+
+  const handleRetryNavLink = async (log: IProvisioningLog): Promise<void> => {
+    setRetryingNavLink(log.projectCode);
+    try {
+      await provisioningService.retryHubNavLink(log.projectCode, currentUser?.displayName || 'Unknown');
+      const updated = await dataService.getProvisioningLogs();
+      setLogs(updated);
+    } catch (err) {
+      console.error('Nav link retry failed:', err);
+    } finally {
+      setRetryingNavLink(null);
     }
   };
 
@@ -311,8 +375,16 @@ export const AdminPanel: React.FC = () => {
       </span>
     )},
     { key: 'requestedAt', header: 'Requested', width: '160px', render: (item) => formatDateTime(item.requestedAt) },
-    { key: 'actions', header: '', width: '120px', render: (item) => {
+    { key: 'navLink', header: 'Nav Link', width: '100px', render: (item) => {
+      const status = item.hubNavLinkStatus;
+      if (!status || status === 'not_applicable') return <span style={{ color: HBC_COLORS.gray400 }}>-</span>;
+      const color = status === 'success' ? '#065F46' : '#991B1B';
+      const bg = status === 'success' ? HBC_COLORS.successLight : HBC_COLORS.errorLight;
+      return <StatusBadge label={status === 'success' ? 'Success' : 'Failed'} color={color} backgroundColor={bg} />;
+    }},
+    { key: 'actions', header: '', width: '160px', render: (item) => {
       const canRetry = item.status === ProvisioningStatus.Failed || item.status === ProvisioningStatus.PartialFailure;
+      const canRetryNav = item.status === ProvisioningStatus.Completed && item.hubNavLinkStatus === 'failed';
       return (
         <div style={{ display: 'flex', gap: '4px' }}>
           {canRetry && (
@@ -321,6 +393,14 @@ export const AdminPanel: React.FC = () => {
               onClick={(e) => { e.stopPropagation(); handleRetry(item).catch(console.error); }}
             >
               {retrying === item.projectCode ? 'Retrying...' : 'Retry'}
+            </Button>
+          )}
+          {canRetryNav && (
+            <Button size="small" appearance="subtle" style={{ fontSize: '11px' }}
+              disabled={retryingNavLink === item.projectCode}
+              onClick={(e) => { e.stopPropagation(); handleRetryNavLink(item).catch(console.error); }}
+            >
+              {retryingNavLink === item.projectCode ? '...' : 'Retry Nav'}
             </Button>
           )}
           <Button size="small" appearance="subtle"
@@ -458,6 +538,64 @@ export const AdminPanel: React.FC = () => {
               );
             })()}
           </div>
+
+          {/* Hub Site URL Config */}
+          <div style={{ marginTop: '24px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 600, color: HBC_COLORS.navy, margin: '0 0 4px 0' }}>
+              Hub Site URL
+            </h3>
+            <p style={{ fontSize: '13px', color: HBC_COLORS.gray500, margin: '0 0 12px 0' }}>
+              The URL of the HB Central hub site. Used for adding project navigation links after provisioning.
+            </p>
+            {hubSiteUrlLoading ? (
+              <LoadingSpinner label="Loading hub site URL..." size="small" />
+            ) : (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  type="text"
+                  value={hubSiteUrl}
+                  onChange={(e) => { setHubSiteUrl(e.target.value); setHubSiteUrlTestResult(null); setHubSiteUrlSaveResult(null); }}
+                  style={{
+                    flex: '1 1 300px', padding: '8px 12px', borderRadius: '6px',
+                    border: `1px solid ${HBC_COLORS.gray200}`, fontSize: '13px',
+                    fontFamily: 'monospace', color: HBC_COLORS.gray800,
+                  }}
+                  placeholder="https://tenant.sharepoint.com/sites/HBCentral"
+                />
+                <Button size="small" appearance="subtle"
+                  disabled={hubSiteUrlTesting || !hubSiteUrl}
+                  onClick={() => { handleTestHubSiteUrl().catch(console.error); }}
+                >
+                  {hubSiteUrlTesting ? 'Testing...' : 'Test'}
+                </Button>
+                <Button size="small" appearance="primary"
+                  style={{ backgroundColor: HBC_COLORS.navy }}
+                  disabled={hubSiteUrlSaving || !hubSiteUrl}
+                  onClick={() => { handleSaveHubSiteUrl().catch(console.error); }}
+                >
+                  {hubSiteUrlSaving ? 'Saving...' : 'Save'}
+                </Button>
+              </div>
+            )}
+            {hubSiteUrlTestResult && (
+              <div style={{
+                marginTop: '8px', padding: '8px 12px', borderRadius: '6px', fontSize: '13px',
+                backgroundColor: hubSiteUrlTestResult === 'success' ? HBC_COLORS.successLight : HBC_COLORS.errorLight,
+                color: hubSiteUrlTestResult === 'success' ? '#065F46' : '#991B1B',
+              }}>
+                {hubSiteUrlTestResult === 'success' ? 'Connection test passed.' : 'Connection test failed. Verify the URL.'}
+              </div>
+            )}
+            {hubSiteUrlSaveResult && (
+              <div style={{
+                marginTop: '8px', padding: '8px 12px', borderRadius: '6px', fontSize: '13px',
+                backgroundColor: hubSiteUrlSaveResult === 'success' ? HBC_COLORS.successLight : HBC_COLORS.errorLight,
+                color: hubSiteUrlSaveResult === 'success' ? '#065F46' : '#991B1B',
+              }}>
+                {hubSiteUrlSaveResult === 'success' ? 'Hub site URL saved successfully.' : 'Failed to save hub site URL.'}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -535,8 +673,21 @@ export const AdminPanel: React.FC = () => {
         )
       )}
 
-      {/* Tab 5: Audit Log */}
+      {/* Tab 5: Workflows */}
       {activeTab === 4 && (
+        hasPermission(PERMISSIONS.WORKFLOW_MANAGE) ? (
+          <FeatureGate featureName="WorkflowDefinitions">
+            <WorkflowDefinitionsPanel />
+          </FeatureGate>
+        ) : (
+          <div style={{ padding: '24px', textAlign: 'center', color: HBC_COLORS.gray400 }}>
+            You do not have permission to manage workflow definitions.
+          </div>
+        )
+      )}
+
+      {/* Tab 6: Audit Log */}
+      {activeTab === 5 && (
         <div>
           {auditEntries.length > 5000 && (
             <div style={{
