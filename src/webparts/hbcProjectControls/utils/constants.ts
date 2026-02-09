@@ -34,6 +34,10 @@ export const HUB_LISTS = {
   LESSONS_LEARNED_HUB: 'Lessons_Learned_Hub',
   PROJECT_TYPES: 'Project_Types',
   STANDARD_COST_CODES: 'Standard_Cost_Codes',
+  WORKFLOW_DEFINITIONS: 'Workflow_Definitions',
+  WORKFLOW_STEPS: 'Workflow_Steps',
+  WORKFLOW_CONDITIONAL_ASSIGNMENTS: 'Workflow_Conditional_Assignments',
+  WORKFLOW_STEP_OVERRIDES: 'Workflow_Step_Overrides',
 } as const;
 
 export const PROJECT_LISTS = {

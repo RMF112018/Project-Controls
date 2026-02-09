@@ -133,7 +133,12 @@ export enum AuditAction {
   SuperPlanUpdated = 'SuperPlan.Updated',
   LessonAdded = 'Lesson.Added',
   MonthlyReviewSubmitted = 'MonthlyReview.Submitted',
-  MonthlyReviewAdvanced = 'MonthlyReview.Advanced'
+  MonthlyReviewAdvanced = 'MonthlyReview.Advanced',
+  WorkflowStepUpdated = 'Workflow.StepUpdated',
+  WorkflowConditionAdded = 'Workflow.ConditionAdded',
+  WorkflowConditionRemoved = 'Workflow.ConditionRemoved',
+  WorkflowOverrideSet = 'Workflow.OverrideSet',
+  WorkflowOverrideRemoved = 'Workflow.OverrideRemoved'
 }
 
 export enum EntityType {
@@ -153,7 +158,8 @@ export enum EntityType {
   SuperintendentPlan = 'SuperintendentPlan',
   LessonLearned = 'LessonLearned',
   PMP = 'PMP',
-  MonthlyReview = 'MonthlyReview'
+  MonthlyReview = 'MonthlyReview',
+  WorkflowDefinition = 'WorkflowDefinition'
 }
 
 export enum DeliverableStatus {
@@ -265,4 +271,22 @@ export enum NotificationEvent {
   CommitmentApproved = 'CommitmentApproved',
   CommitmentEscalatedToCFO = 'CommitmentEscalatedToCFO',
   CommitmentRejected = 'CommitmentRejected'
+}
+
+export enum WorkflowKey {
+  GO_NO_GO = 'GO_NO_GO',
+  PMP_APPROVAL = 'PMP_APPROVAL',
+  MONTHLY_REVIEW = 'MONTHLY_REVIEW',
+  COMMITMENT_APPROVAL = 'COMMITMENT_APPROVAL'
+}
+
+export enum StepAssignmentType {
+  ProjectRole = 'ProjectRole',
+  NamedPerson = 'NamedPerson'
+}
+
+export enum ConditionField {
+  Division = 'Division',
+  Region = 'Region',
+  Sector = 'Sector'
 }

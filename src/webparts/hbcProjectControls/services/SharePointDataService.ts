@@ -27,7 +27,8 @@ import { IBuyoutEntry, BuyoutStatus, EVerifyStatus } from '../models/IBuyoutEntr
 import { ICommitmentApproval, CommitmentStatus, WaiverType, ApprovalStep } from '../models/ICommitmentApproval';
 import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType, DEFAULT_ALERT_THRESHOLDS } from '../models/IActiveProject';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
-import { GoNoGoDecision, Stage } from '../models/enums';
+import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
+import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 
@@ -1247,4 +1248,16 @@ export class SharePointDataService implements IDataService {
     // TODO: Copy lessons learned to hub Lessons_Learned_Hub list, update PMP status
     throw new Error('Not implemented');
   }
+
+  // --- Workflow Definitions ---
+  async getWorkflowDefinitions(): Promise<IWorkflowDefinition[]> { return []; }
+  async getWorkflowDefinition(_workflowKey: WorkflowKey): Promise<IWorkflowDefinition | null> { return null; }
+  async updateWorkflowStep(_workflowId: number, _stepId: number, _data: Partial<IWorkflowStep>): Promise<IWorkflowStep> { throw new Error('Not implemented'); }
+  async addConditionalAssignment(_stepId: number, _assignment: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> { throw new Error('Not implemented'); }
+  async updateConditionalAssignment(_assignmentId: number, _data: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> { throw new Error('Not implemented'); }
+  async removeConditionalAssignment(_assignmentId: number): Promise<void> { throw new Error('Not implemented'); }
+  async getWorkflowOverrides(_projectCode: string): Promise<IWorkflowStepOverride[]> { return []; }
+  async setWorkflowStepOverride(_override: Partial<IWorkflowStepOverride>): Promise<IWorkflowStepOverride> { throw new Error('Not implemented'); }
+  async removeWorkflowStepOverride(_overrideId: number): Promise<void> { throw new Error('Not implemented'); }
+  async resolveWorkflowChain(_workflowKey: WorkflowKey, _projectCode: string): Promise<IResolvedWorkflowStep[]> { return []; }
 }
