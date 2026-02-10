@@ -30,6 +30,7 @@ import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../m
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
 import { IActionInboxItem } from '../models/IActionInbox';
+import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions } from '../models/IPermissionTemplate';
 import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
@@ -1304,4 +1305,36 @@ export class SharePointDataService implements IDataService {
   async setHubSiteUrl(_url: string): Promise<void> { throw new Error('Not implemented'); }
 
   async getActionItems(_userEmail: string): Promise<IActionInboxItem[]> { return []; }
+
+  // --- Permission Templates ---
+  async getPermissionTemplates(): Promise<IPermissionTemplate[]> { return []; }
+  async getPermissionTemplate(_id: number): Promise<IPermissionTemplate | null> { return null; }
+  async createPermissionTemplate(_data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> { throw new Error('Not implemented'); }
+  async updatePermissionTemplate(_id: number, _data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> { throw new Error('Not implemented'); }
+  async deletePermissionTemplate(_id: number): Promise<void> { throw new Error('Not implemented'); }
+
+  // --- Security Group Mappings ---
+  async getSecurityGroupMappings(): Promise<ISecurityGroupMapping[]> { return []; }
+  async createSecurityGroupMapping(_data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> { throw new Error('Not implemented'); }
+  async updateSecurityGroupMapping(_id: number, _data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> { throw new Error('Not implemented'); }
+
+  // --- Project Team Assignments ---
+  async getProjectTeamAssignments(_projectCode: string): Promise<IProjectTeamAssignment[]> { return []; }
+  async getMyProjectAssignments(_userEmail: string): Promise<IProjectTeamAssignment[]> { return []; }
+  async createProjectTeamAssignment(_data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> { throw new Error('Not implemented'); }
+  async updateProjectTeamAssignment(_id: number, _data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> { throw new Error('Not implemented'); }
+  async removeProjectTeamAssignment(_id: number): Promise<void> { throw new Error('Not implemented'); }
+
+  // --- Permission Resolution ---
+  async resolveUserPermissions(_userEmail: string, _projectCode: string | null): Promise<IResolvedPermissions> { throw new Error('Not implemented'); }
+  async getAccessibleProjects(_userEmail: string): Promise<string[]> { return []; }
+
+  // --- Environment Configuration ---
+  async getEnvironmentConfig(): Promise<import('../models/IEnvironmentConfig').IEnvironmentConfig> { throw new Error('Not implemented'); }
+  async promoteTemplates(_fromTier: import('../models/IEnvironmentConfig').EnvironmentTier, _toTier: import('../models/IEnvironmentConfig').EnvironmentTier, _promotedBy: string): Promise<void> { throw new Error('Not implemented'); }
+
+  // --- Sector Definitions ---
+  async getSectorDefinitions(): Promise<import('../models/ISectorDefinition').ISectorDefinition[]> { return []; }
+  async createSectorDefinition(_data: Partial<import('../models/ISectorDefinition').ISectorDefinition>): Promise<import('../models/ISectorDefinition').ISectorDefinition> { throw new Error('Not implemented'); }
+  async updateSectorDefinition(_id: number, _data: Partial<import('../models/ISectorDefinition').ISectorDefinition>): Promise<import('../models/ISectorDefinition').ISectorDefinition> { throw new Error('Not implemented'); }
 }

@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-10 — UI Enhancement: Visual Polish, SkeletonLoader, Breadcrumbs, Toast, Deep Linking, Accessibility
+**Last Updated:** 2026-02-10 — Phase 19D: Flexible Sectors + Identity (dynamic sector definitions, identityType on ICurrentUser)
 
 ---
 
@@ -109,7 +109,7 @@ src/webparts/hbcProjectControls/
 │   │   ├── ProjectRequiredRoute.tsx      # Shows "No Project Selected" if no selectedProject
 │   │   ├── RoleGate.tsx                  # Renders children only if user has allowed role
 │   │   └── index.ts
-│   ├── hooks/                             # 33 custom hooks (see §7 for service method mapping)
+│   ├── hooks/                             # 35 custom hooks (see §7 for service method mapping)
 │   │   ├── useActionInbox.ts             # Action inbox aggregation with auto-refresh
 │   │   ├── useActiveProjects.ts          # Active projects portfolio
 │   │   ├── useBuyoutLog.ts              # Buyout log CRUD
@@ -136,12 +136,14 @@ src/webparts/hbcProjectControls/
 │   │   ├── useResponsive.ts             # Responsive breakpoint detection
 │   │   ├── useRiskCostManagement.ts     # Risk/cost management CRUD
 │   │   ├── useSafetyConcerns.ts         # Safety concerns CRUD
+│   │   ├── useSectorDefinitions.ts     # Dynamic sector definitions CRUD
 │   │   ├── useSelectedProject.ts        # Selected project from context
 │   │   ├── useStartupChecklist.ts       # Startup checklist CRUD
 │   │   ├── useSuperintendentPlan.ts     # Superintendent plan sections
 │   │   ├── useTabFromUrl.ts            # URL-synced tab state for deep linking
 │   │   ├── useTurnoverAgenda.ts       # Turnover meeting agenda CRUD + computed state + workflow
 │   │   ├── useWorkflow.ts              # Composite workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy, stage transitions)
+│   │   ├── usePermissionEngine.ts     # Permission engine hook
 │   │   ├── useWorkflowDefinitions.ts  # Workflow definition CRUD + resolution
 │   │   └── index.ts
 │   ├── layouts/
@@ -162,6 +164,7 @@ src/webparts/hbcProjectControls/
 │   │   │   ├── LeadDetailPage.tsx
 │   │   │   ├── LeadFormPage.tsx
 │   │   │   ├── MarketingDashboard.tsx
+│   │   │   ├── PermissionTemplateEditor.tsx
 │   │   │   ├── PipelinePage.tsx
 │   │   │   ├── WorkflowDefinitionsPanel.tsx
 │   │   │   └── index.ts
@@ -194,6 +197,7 @@ src/webparts/hbcProjectControls/
 │   │   │   │   └── ProjectManagementPlan.tsx
 │   │   │   ├── PreconKickoff.tsx
 │   │   │   ├── ProjectDashboard.tsx
+│   │   │   ├── ProjectTeamPanel.tsx
 │   │   │   ├── ProjectRecord.tsx
 │   │   │   ├── ProjectScheduleCriticalPath.tsx
 │   │   │   ├── ProjectStartupChecklist.tsx
@@ -208,7 +212,7 @@ src/webparts/hbcProjectControls/
 │   │   │   └── index.ts
 │   │   └── shared/
 │   │       └── AccessDeniedPage.tsx
-│   └── shared/                           # 31 reusable components (see §5)
+│   └── shared/                           # 33 reusable components (see §5)
 │       ├── ActivityTimeline.tsx
 │       ├── AutopsyMeetingScheduler.tsx
 │       ├── AzureADPeoplePicker.tsx
@@ -220,6 +224,7 @@ src/webparts/hbcProjectControls/
 │       ├── EmptyState.tsx
 │       ├── ErrorBoundary.tsx
 │       ├── ExportButtons.tsx
+│       ├── GranularFlagEditor.tsx
 │       ├── KickoffMeetingScheduler.tsx
 │       ├── KPICard.tsx
 │       ├── LoadingSpinner.tsx
@@ -237,21 +242,22 @@ src/webparts/hbcProjectControls/
 │       ├── StatusBadge.tsx
 │       ├── SyncStatusIndicator.tsx
 │       ├── ToastContainer.tsx
+│       ├── ToolPermissionMatrix.tsx
 │       ├── WhatsNewModal.tsx
 │       ├── WorkflowPreview.tsx
 │       ├── WorkflowStepCard.tsx
 │       └── index.ts
-├── mock/                                  # 36 JSON mock data files (see §12)
-├── models/                                # 41 TypeScript model files (see §6)
+├── mock/                                  # 40 JSON mock data files (see §12)
+├── models/                                # 44 TypeScript model files (see §6)
 │   ├── enums.ts                          # All shared enums (31 enums)
 │   ├── I*.ts                             # Interface files (one per entity)
 │   └── index.ts                          # Barrel export
 ├── provisioning/
 │   └── site-template.json                # SP site template definition
 ├── services/
-│   ├── IDataService.ts                   # Service interface (172 methods)
-│   ├── MockDataService.ts               # Mock implementation (all 172 implemented)
-│   ├── SharePointDataService.ts         # SP implementation (49 implemented, 123 stubs)
+│   ├── IDataService.ts                   # Service interface (192 methods)
+│   ├── MockDataService.ts               # Mock implementation (all 192 implemented)
+│   ├── SharePointDataService.ts         # SP implementation (49 implemented, 143 stubs)
 │   ├── AuditService.ts                  # Fire-and-forget audit queue with 2s debounce
 │   ├── CacheService.ts                  # Two-tier cache (memory + sessionStorage), 15min TTL
 │   ├── columnMappings.ts                # SP column name mappings for all lists (1267 lines)
@@ -279,6 +285,7 @@ src/webparts/hbcProjectControls/
     ├── scoreCalculator.ts               # Go/No-Go score totals and tier calculation
     ├── siteDetector.ts                  # Hub vs project site detection from URL
     ├── stageEngine.ts                   # Stage transition state machine (11 stages)
+    ├── toolPermissionMap.ts             # Tool permission map: 23 tool definitions, resolveToolPermissions()
     └── validators.ts                    # Lead form, project code (yy-nnn-0m), email validation
 ```
 
@@ -422,6 +429,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | EmptyState | components/shared/EmptyState.tsx | title, description?, icon?, action? | internal (DataTable) |
 | ErrorBoundary | components/shared/ErrorBoundary.tsx | children, fallback? | 1 (App.tsx root) |
 | ExportButtons | components/shared/ExportButtons.tsx | pdfElementId?, data?, filename, title? | ~10 |
+| GranularFlagEditor | components/shared/GranularFlagEditor.tsx | flags: IGranularFlagDef[], selectedFlags: string[], onChange, disabled? | ~1 (ToolPermissionMatrix) |
 | KickoffMeetingScheduler | components/shared/KickoffMeetingScheduler.tsx | attendeeEmails, leadId?, projectCode?, onScheduled?, onCancel? | ~1 |
 | KPICard | components/shared/KPICard.tsx | title, value, subtitle?, icon?, trend?, onClick? | ~8 |
 | LoadingSpinner | components/shared/LoadingSpinner.tsx | label?, size? ('tiny'\|'small'\|'medium'\|'large') | ~30+ |
@@ -439,6 +447,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | StatusBadge | components/shared/StatusBadge.tsx | label, color, backgroundColor, size? | ~5 |
 | SyncStatusIndicator | components/shared/SyncStatusIndicator.tsx | (none) | 1 (AppShell) |
 | ToastProvider/useToast | components/shared/ToastContainer.tsx | children (provider), addToast(message, type?, duration?) (hook) | 1 (App.tsx) + 5 pages |
+| ToolPermissionMatrix | components/shared/ToolPermissionMatrix.tsx | toolAccess: IToolAccess[], onChange, disabled? | ~1 (PermissionTemplateEditor) |
 | WhatsNewModal | components/shared/WhatsNewModal.tsx | isOpen, onClose | 1 (AppShell) |
 | WorkflowPreview | components/shared/WorkflowPreview.tsx | workflowKey, onClose | ~1 |
 | WorkflowStepCard | components/shared/WorkflowStepCard.tsx | step, isExpanded, onToggle, onUpdateStep, onAddCondition, onUpdateCondition, onRemoveCondition, disabled? | ~1 |
@@ -472,7 +481,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | IAlertThresholds | models/IActiveProject.ts | unbilledWarningPct, feeErosionPct, scheduleDelayDays | — | — |
 | IActionInboxItem | models/IActionInbox.ts | id, workflowType: WorkflowActionType, actionLabel, projectCode, projectName, entityId, requestedBy, requestedDate, waitingDays, routePath, priority: ActionPriority | — (aggregated) | — |
 | IRole | models/IRole.ts | id, Title: RoleName, UserOrGroup, Permissions, IsActive | App_Roles | Hub |
-| ICurrentUser | models/IRole.ts | id, displayName, email, loginName, roles: RoleName[], permissions: Set<string> | — | — |
+| ICurrentUser | models/IRole.ts | id, displayName, email, loginName, roles: RoleName[], permissions: Set<string>, identityType?: 'Internal' \| 'External' | — | — |
 | IFeatureFlag | models/IFeatureFlag.ts | id, FeatureName, Enabled, EnabledForRoles?, TargetDate?, Notes? | Feature_Flags | Hub |
 | IAuditEntry | models/IAuditEntry.ts | id, Timestamp, User, Action: AuditAction, EntityType, EntityId, ProjectCode?, FieldChanged?, Details | Audit_Log | Hub |
 | IProvisioningLog | models/IProvisioningLog.ts | id, projectCode, projectName (@denormalized), status: ProvisioningStatus, currentStep, siteUrl?, hubNavLinkStatus? | Provisioning_Log | Hub |
@@ -525,6 +534,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | IMonthlyChecklistSectionDef | models/IMonthlyProjectReview.ts | key, title, items: {key, description}[] | — | — |
 | IProjectType | models/IProjectType.ts | code, label, office | Project_Types | Hub |
 | IStandardCostCode | models/IStandardCostCode.ts | id, description, phase, division, isDefault | Standard_Cost_Codes | Hub |
+| ISectorDefinition | models/ISectorDefinition.ts | id, code, label, isActive, parentDivision?, sortOrder | Sector_Definitions | Hub |
 | IWorkflowDefinition | models/IWorkflowDefinition.ts | id, workflowKey, name, description, steps, isActive, lastModifiedBy, lastModifiedDate | Workflow_Definitions | Hub |
 | IWorkflowStep | models/IWorkflowDefinition.ts | id, workflowId, stepOrder, name, assignmentType, projectRole?, defaultAssignee?, conditionalAssignees, isConditional, actionLabel, canChairMeeting? | Workflow_Steps | Hub |
 | IPersonAssignment | models/IWorkflowDefinition.ts | userId, displayName, email | — | — |
@@ -541,6 +551,16 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | ITurnoverExhibit | models/ITurnoverAgenda.ts | id, turnoverAgendaId, sortOrder, label, reviewed, fileUrl?, fileName?, linkedDocumentUrl?, isCustom | Turnover_Exhibits | Project |
 | ITurnoverSignature | models/ITurnoverAgenda.ts | id, turnoverAgendaId, role, personName, personEmail, signed, signedDate?, comment?, affidavitText, sortOrder | Turnover_Signatures | Project |
 | ITurnoverAttachment | models/ITurnoverAgenda.ts | id, discussionItemId, fileName, fileUrl, uploadedBy, uploadedDate, fileSize | Turnover_Attachments | Project |
+| IPermissionTemplate | models/IPermissionTemplate.ts | id, name, description, isGlobal, globalAccess, identityType, toolAccess: IToolAccess[], isDefault, isActive, version, promotedFromTier? | Permission_Templates | Hub |
+| ISecurityGroupMapping | models/IPermissionTemplate.ts | id, securityGroupId, securityGroupName, defaultTemplateId, isActive | Security_Group_Mappings | Hub |
+| IProjectTeamAssignment | models/IPermissionTemplate.ts | id, projectCode, userId, userDisplayName, userEmail, assignedRole, templateOverrideId?, granularFlagOverrides?, isActive | Project_Team_Assignments | Hub |
+| IToolAccess | models/IPermissionTemplate.ts | toolKey, level: PermissionLevel, granularFlags? | — | — |
+| IGranularFlagOverride | models/IPermissionTemplate.ts | toolKey, flags: string[] | — | — |
+| IToolDefinition | models/IPermissionTemplate.ts | toolKey, toolGroup, label, description, levels, granularFlags | — | — |
+| IGranularFlagDef | models/IPermissionTemplate.ts | key, label, description, permissions | — | — |
+| IResolvedPermissions | models/IPermissionTemplate.ts | userId, projectCode, templateId, templateName, source, toolLevels, granularFlags, permissions: Set<string>, globalAccess | — | — |
+| IEnvironmentConfig | models/IEnvironmentConfig.ts | currentTier: EnvironmentTier, label, color, isReadOnly, promotionHistory: IPromotionRecord[] | Environment_Config | Hub |
+| IPromotionRecord | models/IEnvironmentConfig.ts | fromTier: EnvironmentTier, toTier: EnvironmentTier, promotedBy, promotedDate, templateCount | — | — |
 
 ### Enums (models/enums.ts)
 
@@ -548,7 +568,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 |------|--------|
 | Stage | LeadDiscovery, GoNoGoPending, GoNoGoWait, Opportunity, Pursuit, WonContractPending, ActiveConstruction, Closeout, ArchivedNoGo, ArchivedLoss, ArchivedHistorical |
 | Region | Miami, WestPalmBeach, MartinCounty, Orlando, Tallahassee |
-| Sector | Airport, City, Commercial, County, Federal, GolfClubCourse, MixedUse, MultiFamily, Municipal, ParkingGarage, State, Warehouse |
+| Sector (deprecated -- use dynamic sector definitions) | Airport, City, Commercial, County, Federal, GolfClubCourse, MixedUse, MultiFamily, Municipal, ParkingGarage, State, Warehouse |
 | Division | Commercial, LuxuryResidential |
 | DepartmentOfOrigin | BusinessDevelopment, Estimating, Marketing, Operations, Other |
 | DeliveryMethod | GMP, HardBid, PreconWithGMP, Other |
@@ -558,8 +578,8 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | RoleName | BDRepresentative, EstimatingCoordinator, AccountingManager, PreconstructionTeam, OperationsTeam, ExecutiveLeadership, Legal, RiskManagement, Marketing, QualityControl, Safety, IDS, DepartmentDirector |
 | ProvisioningStatus | Queued, InProgress, Completed, PartialFailure, Failed |
 | TurnoverStatus | Draft, PrerequisitesInProgress, MeetingScheduled, MeetingComplete, PendingSignatures, Signed, Complete |
-| AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved, TurnoverAgendaCreated, TurnoverPrerequisiteCompleted, TurnoverItemDiscussed, TurnoverSubcontractorAdded, TurnoverSubcontractorRemoved, TurnoverExhibitReviewed, TurnoverExhibitAdded, TurnoverExhibitRemoved, TurnoverSigned, TurnoverAgendaCompleted, HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated |
-| EntityType | Lead, Scorecard, Estimate, Project, Permission, Config, Checklist, Matrix, ProjectRecord, RiskCost, Quality, Safety, Schedule, SuperintendentPlan, LessonLearned, PMP, MonthlyReview, WorkflowDefinition, TurnoverAgenda |
+| AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved, TurnoverAgendaCreated, TurnoverPrerequisiteCompleted, TurnoverItemDiscussed, TurnoverSubcontractorAdded, TurnoverSubcontractorRemoved, TurnoverExhibitReviewed, TurnoverExhibitAdded, TurnoverExhibitRemoved, TurnoverSigned, TurnoverAgendaCompleted, HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated, TemplateCreated, TemplateUpdated, TemplateDeleted, ProjectTeamAssigned, ProjectTeamRemoved, ProjectTeamOverridden, SecurityGroupMappingChanged, PermissionResolved |
+| EntityType | Lead, Scorecard, Estimate, Project, Permission, Config, Checklist, Matrix, ProjectRecord, RiskCost, Quality, Safety, Schedule, SuperintendentPlan, LessonLearned, PMP, MonthlyReview, WorkflowDefinition, TurnoverAgenda, PermissionTemplate, ProjectTeamAssignment |
 | DeliverableStatus | NotStarted, InProgress, InReview, Complete |
 | ActionItemStatus | Open, InProgress, Complete |
 | Priority | Low, Medium, High, Critical |
@@ -576,6 +596,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | ConditionField | Division, Region, Sector |
 | WorkflowActionType | GoNoGoReview, GoNoGoRevision, PMPApproval, PMPSignature, MonthlyReviewInput, MonthlyReviewValidation, CommitmentApproval, TurnoverSignature |
 | ActionPriority | Urgent, Normal, New |
+| PermissionLevel | NONE, READ_ONLY, STANDARD, ADMIN |
 
 ### Type Aliases
 
@@ -613,12 +634,13 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | EstimatingKickoffStatus | models/IEstimatingKickoff.ts | 'yes' \| 'no' \| 'na' \| null |
 | AutopsyAnswer | models/ILossAutopsy.ts | boolean \| null |
 | HubNavLinkStatus | models/IProvisioningLog.ts | 'success' \| 'failed' \| 'not_applicable' |
+| EnvironmentTier | models/IEnvironmentConfig.ts | 'dev' \| 'vetting' \| 'prod' |
 
 ---
 
 ## §7 Service Methods
 
-172 methods on IDataService. Source: `services/IDataService.ts`
+192 methods on IDataService. Source: `services/IDataService.ts`
 
 | # | Method | Signature | Mock | SP | Hook Caller | Mock JSON |
 |---|--------|-----------|------|-----|-------------|-----------|
@@ -794,6 +816,26 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 170 | getHubSiteUrl | () → Promise<string> | Impl | Impl | AdminPanel | in-memory |
 | 171 | setHubSiteUrl | (url: string) → Promise<void> | Impl | Stub | AdminPanel | in-memory |
 | 172 | getActionItems | (userEmail: string) → Promise<IActionInboxItem[]> | Impl | Stub | useActionInbox | aggregated |
+| 173 | getPermissionTemplates | () → Promise<IPermissionTemplate[]> | Impl | Stub | usePermissionEngine | permissionTemplates.json |
+| 174 | getPermissionTemplate | (id: number) → Promise<IPermissionTemplate \| null> | Impl | Stub | usePermissionEngine | permissionTemplates.json |
+| 175 | createPermissionTemplate | (data: Partial<IPermissionTemplate>) → Promise<IPermissionTemplate> | Impl | Stub | usePermissionEngine | permissionTemplates.json |
+| 176 | updatePermissionTemplate | (id: number, data: Partial<IPermissionTemplate>) → Promise<IPermissionTemplate> | Impl | Stub | usePermissionEngine | permissionTemplates.json |
+| 177 | deletePermissionTemplate | (id: number) → Promise<void> | Impl | Stub | usePermissionEngine | permissionTemplates.json |
+| 178 | getSecurityGroupMappings | () → Promise<ISecurityGroupMapping[]> | Impl | Stub | usePermissionEngine | securityGroupMappings.json |
+| 179 | createSecurityGroupMapping | (data: Partial<ISecurityGroupMapping>) → Promise<ISecurityGroupMapping> | Impl | Stub | usePermissionEngine | securityGroupMappings.json |
+| 180 | updateSecurityGroupMapping | (id: number, data: Partial<ISecurityGroupMapping>) → Promise<ISecurityGroupMapping> | Impl | Stub | usePermissionEngine | securityGroupMappings.json |
+| 181 | getProjectTeamAssignments | (projectCode: string) → Promise<IProjectTeamAssignment[]> | Impl | Stub | usePermissionEngine | projectTeamAssignments.json |
+| 182 | getMyProjectAssignments | (userEmail: string) → Promise<IProjectTeamAssignment[]> | Impl | Stub | usePermissionEngine | projectTeamAssignments.json |
+| 183 | createProjectTeamAssignment | (data: Partial<IProjectTeamAssignment>) → Promise<IProjectTeamAssignment> | Impl | Stub | usePermissionEngine | projectTeamAssignments.json |
+| 184 | updateProjectTeamAssignment | (id: number, data: Partial<IProjectTeamAssignment>) → Promise<IProjectTeamAssignment> | Impl | Stub | usePermissionEngine | projectTeamAssignments.json |
+| 185 | removeProjectTeamAssignment | (id: number) → Promise<void> | Impl | Stub | usePermissionEngine | projectTeamAssignments.json |
+| 186 | resolveUserPermissions | (userEmail: string, projectCode: string \| null) → Promise<IResolvedPermissions> | Impl | Stub | AppContext, usePermissionEngine | aggregated |
+| 187 | getAccessibleProjects | (userEmail: string) → Promise<string[]> | Impl | Stub | ProjectPicker, usePermissionEngine | projectTeamAssignments.json |
+| 188 | getEnvironmentConfig | () → Promise<IEnvironmentConfig> | Impl | Stub | AppShell | environmentConfig.json |
+| 189 | promoteTemplates | (fromTier: EnvironmentTier, toTier: EnvironmentTier, promotedBy: string) → Promise<void> | Impl | Stub | PermissionTemplateEditor | permissionTemplates.json |
+| 190 | getSectorDefinitions | () → Promise<ISectorDefinition[]> | Impl | Stub | useSectorDefinitions | sectorDefinitions.json |
+| 191 | createSectorDefinition | (data: Partial<ISectorDefinition>) → Promise<ISectorDefinition> | Impl | Stub | AdminPanel | sectorDefinitions.json |
+| 192 | updateSectorDefinition | (id: number, data: Partial<ISectorDefinition>) → Promise<ISectorDefinition> | Impl | Stub | AdminPanel | sectorDefinitions.json |
 
 ---
 
@@ -991,6 +1033,9 @@ Legend: **X** = has permission
 | workflow:manage | | | | | | X | | | | | | | |
 | turnover:agenda:edit | | X | | X | X | X | X | | | | | | |
 | turnover:sign | | X | | | X | X | X | | | | | | |
+| permission:templates:manage | | | | | | X | | | | | | | |
+| permission:project_team:manage | | | | | | X | | | | | | | |
+| permission:project_team:view | | | | | | X | X | | | | | | |
 
 ### NAV_GROUP_ROLES
 
@@ -1031,6 +1076,7 @@ Source: `mock/featureFlags.json`
 | ProjectManagementPlan | 20 | true | PMP and operational modules |
 | MonthlyProjectReview | 21 | true | Monthly project review |
 | WorkflowDefinitions | 22 | true | Workflow definition configuration |
+| PermissionEngine | 23 | true | Permission engine: template-based authorization, project access scoping |
 
 ---
 
@@ -1064,6 +1110,7 @@ Source: `mock/`
 | qualityConcerns.json | IQualityConcern | 8 | 25-042-01, 25-115-01 |
 | riskCostManagement.json | IRiskCostManagement | 2 | 25-042-01, 25-115-01 |
 | safetyConcerns.json | ISafetyConcern | 7 | 25-042-01, 25-115-01 |
+| sectorDefinitions.json | ISectorDefinition | 12 | N/A |
 | scorecards.json | IGoNoGoScorecard | 10 | 25-038-01, 25-035-01 |
 | standardCostCodes.json | IStandardCostCode | 24 | N/A |
 | startupChecklist.json | IStartupChecklistItem | 55 | 25-042-01 |
@@ -1076,6 +1123,10 @@ Source: `mock/`
 | users.json | IRole + ICurrentUser | 24 | N/A |
 | workflowDefinitions.json | IWorkflowDefinition | 5 | N/A |
 | workflowStepOverrides.json | IWorkflowStepOverride | 0 | N/A |
+| permissionTemplates.json | IPermissionTemplate | 8 | N/A |
+| securityGroupMappings.json | ISecurityGroupMapping | 8 | N/A |
+| projectTeamAssignments.json | IProjectTeamAssignment | 15 | 25-042-01, 25-115-01 |
+| environmentConfig.json | IEnvironmentConfig | 1 | N/A |
 
 ---
 
@@ -1114,6 +1165,10 @@ Source: `utils/constants.ts`, `theme/tokens.ts`
   WORKFLOW_STEPS: 'Workflow_Steps',
   WORKFLOW_CONDITIONAL_ASSIGNMENTS: 'Workflow_Conditional_Assignments',
   WORKFLOW_STEP_OVERRIDES: 'Workflow_Step_Overrides',
+  PERMISSION_TEMPLATES: 'Permission_Templates',
+  SECURITY_GROUP_MAPPINGS: 'Security_Group_Mappings',
+  PROJECT_TEAM_ASSIGNMENTS: 'Project_Team_Assignments',
+  SECTOR_DEFINITIONS: 'Sector_Definitions',
 }
 ```
 
@@ -1336,10 +1391,14 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 17 | Scorecard Unlock Fix, Director Role & Action Inbox — Bug fixes: getCurrentUser() returns real user from users.json per role (was hardcoded devuser email); canUnlock checks approval chain participants + Executive Leadership; canReview/canEnterCommitteeScores/canDecide grant Executive Leadership role-based access; respondToScorecardSubmission reassembles cycles defensively; submitScorecard looks up submitter displayName from users. New Action Inbox: aggregation widget on DashboardPage showing pending workflow items across 5 workflow types for current user. | IActionInbox.ts, useActionInbox.ts | MockDataService.ts (getCurrentUser role-to-user mapping, submitScorecard displayName lookup, respondToScorecardSubmission defensive reassembly, +getActionItems aggregation), useGoNoGo.ts (canUnlock/canReview/canEnterCommitteeScores/canDecide fixes), enums.ts (+2 enums), models/index.ts, IDataService.ts (+1 method, 172 total), SharePointDataService.ts (+1 stub), hooks/index.ts, DashboardPage.tsx (+Action Inbox section) |
 | 18 | Department Director Role + Go/No-Go Workflow Bug Fixes — 13th RBAC role (DepartmentDirector) for non-C-suite directors (e.g., Director of Precon). Bug fixes: relockScorecard(startNewCycle:true) now creates approval cycle directly; getScorecardByLeadId/getScorecards return reassembled scorecards; updateScorecard preserves workflow state fields; defensive status guards on 4 mutation methods. | (none) | enums.ts (+DepartmentDirector), permissions.ts (+ROLE_PERMISSIONS entry, +NAV_GROUP_ROLES), useGoNoGo.ts (isExecLeadership→isDirectorOrExec, 5 locations), MockDataService.ts (relockScorecard cycle creation, getScorecardByLeadId/getScorecards reassembly, updateScorecard preservation, 4 status guards, getActionItems DepartmentDirector check), users.json (David Park→Department Director), RoleSwitcher.tsx (+1 option), DashboardPage.tsx (+3 RoleGate), GoNoGoMeetingScheduler.tsx (+DepartmentDirector attendees + RoleGate), ActiveProjectsDashboard.tsx (+RoleGate), MarketingDashboard.tsx (+RoleGate), EstimatingDashboard.tsx (+RoleGate), WinLossRecorder.tsx (+RoleGate), LossAutopsy.tsx (+RoleGate), NotificationService.ts (+Department Director to 18 recipient arrays) |
 | 19 | UI Enhancements — 4-batch visual polish, information architecture, collaborative UI, and accessibility improvements across the entire app | Breadcrumb.tsx, SkeletonLoader.tsx, CollapsibleSection.tsx, SlideDrawer.tsx, ToastContainer.tsx, ActivityTimeline.tsx, usePersistedState.ts, useTabFromUrl.ts, useKeyboardShortcut.ts, breadcrumbs.ts | App.tsx (ToastProvider), AppShell.tsx (skip-link, print styles, ARIA landmarks, SkeletonLoader), tokens.ts (ELEVATION, TRANSITION), globalStyles.ts, KPICard.tsx, DataTable.tsx, 37 page files (SkeletonLoader replacing LoadingSpinner), 38 page files (Breadcrumb integration), AdminPanel.tsx (useTabFromUrl), TurnoverToOps.tsx (useTabFromUrl), LeadFormPage/LeadDetailPage/GoNoGoScorecard/BuyoutLogPage/ProjectStartupChecklist (useToast) |
+| 19A | Permission Engine Core — Template-based authorization, project access scoping, feature-flagged resolution chain, tool permission map (23 tools x 4 levels), AppContext integration, ProjectPicker scoping | IPermissionTemplate.ts, IEnvironmentConfig.ts, toolPermissionMap.ts, permissionTemplates.json, securityGroupMappings.json, projectTeamAssignments.json, usePermissionEngine.ts | enums.ts (+PermissionLevel enum, +8 AuditAction, +2 EntityType), models/index.ts, constants.ts (+3 HUB_LISTS), permissions.ts (+3 keys), featureFlags.json (+PermissionEngine id:23), IDataService.ts (+15 methods, 187 total), MockDataService.ts (+15 implementations), SharePointDataService.ts (+15 stubs), columnMappings.ts (+3 mappings), AppContext.tsx (resolvedPermissions + re-resolution on project change), ProjectPicker.tsx (accessible project filtering), hooks/index.ts (+1 export) |
+| 19B | Permission Engine Admin UI — PermissionTemplateEditor two-panel layout (template CRUD + tool permission matrix + security group mappings), ProjectTeamPanel for project-level team assignments, AdminPanel 7th tab | PermissionTemplateEditor.tsx, ToolPermissionMatrix.tsx, GranularFlagEditor.tsx, ProjectTeamPanel.tsx | AdminPanel.tsx (+7th Permissions tab), ProjectDashboard.tsx (+ProjectTeamPanel section), shared/index.ts (+2 exports), pages/hub/index.ts (+1 export), pages/project/index.ts (+1 export) |
+| 19C | Environment Architecture — Tri-tier environment config (Dev/Vetting/Prod), template versioning, promotion workflow, environment badge in AppShell header | mock/environmentConfig.json | models/IEnvironmentConfig.ts (+IPromotionRecord), models/IPermissionTemplate.ts (+version, +promotedFromTier), services/IDataService.ts (+2 methods, 189 total), services/MockDataService.ts (+2 implementations), services/SharePointDataService.ts (+2 stubs), layouts/AppShell.tsx (environment badge), pages/hub/PermissionTemplateEditor.tsx (promote button + env banner) |
+| 19D | Flexible Sectors + Identity — Dynamic sector definitions replacing hardcoded Sector enum, ISectorDefinition model, admin Sectors tab, identityType on ICurrentUser | models/ISectorDefinition.ts, mock/sectorDefinitions.json, hooks/useSectorDefinitions.ts | models/enums.ts (@deprecated Sector), models/IRole.ts (+identityType), services/IDataService.ts (+3 methods, 192 total), services/MockDataService.ts (+3 implementations), services/SharePointDataService.ts (+3 stubs), pages/hub/AdminPanel.tsx (8 tabs, +Sectors), pages/hub/LeadFormPage.tsx (dynamic sectors), pages/hub/PipelinePage.tsx (dynamic sectors), shared/ConditionBuilder.tsx (dynamic sectors), hooks/index.ts (+1 export), models/index.ts (+1 export), utils/constants.ts (+1 HUB_LIST) |
 
 ### Known Stubs / Placeholders
 
-- **SharePointDataService**: 123 of 172 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
+- **SharePointDataService**: 143 of 192 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
 - **HubNavigationService**: SharePointHubNavigationService is a stub (all 3 methods throw).
 - **Column Mappings**: `columnMappings.ts` has mappings for all lists but SP service stubs don't use them yet.
 - **Offline Support**: `OfflineQueueService.ts` exists but feature flag `OfflineSupport` is disabled.
@@ -1351,7 +1410,7 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 ### SharePointDataService Status
 
 - **Implemented (49)**: Leads CRUD, Go/No-Go CRUD, Estimating CRUD, Roles/Flags CRUD, Audit log/read, Provisioning read, Phase 6 workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read
-- **Stubbed (123)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff, all job number requests, all workflow definitions, all turnover agenda, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers, hub site URL write, action inbox (SP)
+- **Stubbed (143)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff, all job number requests, all workflow definitions, all turnover agenda, all permission templates, all security group mappings, all project team assignments, all sector definitions, resolveUserPermissions, getAccessibleProjects, getEnvironmentConfig, promoteTemplates, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers, hub site URL write, action inbox (SP)
 
 ---
 
@@ -1397,6 +1456,10 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 20. **useTabFromUrl for deep-linkable tabs** — Tabbed pages (AdminPanel, TurnoverToOps) use `useTabFromUrl` hook to sync tab state with URL `?tab=` parameter. Pages that already use route-based tabs (EstimatingDashboard, ResponsibilityMatrices) should NOT use this hook — they are already URL-driven via `navigate()`.
 
+21. **PermissionEngine feature flag controls permission resolution** — When `PermissionEngine` flag is enabled (id: 23), AppContext resolves permissions via `resolveUserPermissions()` instead of `ROLE_PERMISSIONS`. When disabled, the app falls back to `ROLE_PERMISSIONS[role]` (zero regression). The resolution chain: Role → Security Group Mapping → Template → Project Override → Granular Flags → `resolveToolPermissions()` → `Set<string>`. Permissions re-resolve when `selectedProject` changes.
+
+22. **ProjectPicker filters by accessible projects** — When the permission engine is active and `resolvedPermissions.globalAccess` is false, ProjectPicker only shows projects the user is assigned to via `Project_Team_Assignments`. Users with `globalAccess: true` (e.g., President/VP, OpEx Manager) see all projects.
+
 ---
 
 ## Audit Log
@@ -1410,3 +1473,7 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-09 | §2, §6, §7, §15, §16 | Phase 17: Scorecard Unlock Fix, Director Role & Action Inbox. Bug fixes in useGoNoGo: canUnlock checks approval chain participants OR Executive Leadership (was GONOGO_DECIDE only); canReview/canEnterCommitteeScores/canDecide now grant access to Executive Leadership role regardless of email match (fixes mock dev user email mismatch with workflow step assignees). New model: IActionInboxItem (models/IActionInbox.ts). 2 new enums: WorkflowActionType (8 values), ActionPriority (3 values). 1 new IDataService method (172 total): getActionItems. New hook: useActionInbox (auto-refresh 5min). DashboardPage: Action Inbox section between filters and KPI cards. SharePointDataService: 49 implemented, 123 stubs. |
 | 2026-02-09 | §15, §16 | Phase 17 bug fixes: MockDataService.getCurrentUser() now returns first real user from users.json matching selected role (was hardcoded 'devuser@hedrickbrothers.com'). Role-to-user mapping: BD Rep=Sarah Mitchell (smitchell), Exec=Mike Hedrick (mhedrick), etc. submitScorecard() looks up submitter displayName from users list. respondToScorecardSubmission() defensively reassembles approval cycles from flat arrays if missing. Added pitfall #13 (getCurrentUser real users) and #14 (Executive Leadership role fallback). |
 | 2026-02-09 | §6, §10, §15, §16 | Phase 18: Department Director Role + Go/No-Go Workflow Bug Fixes. Added DepartmentDirector to RoleName enum (13th role). New ROLE_PERMISSIONS entry (operational subset of Executive Leadership — NO admin access). NAV_GROUP_ROLES updated (Marketing, Preconstruction, Operations — NOT Admin). useGoNoGo.ts: isExecLeadership→isDirectorOrExec (5 locations). Mock users.json: David Park role changed from Executive Leadership to Department Director. RoleSwitcher: +1 option. 7 page files updated with DepartmentDirector in RoleGate arrays. NotificationService: 18 recipient arrays updated. MockDataService bug fixes: relockScorecard creates approval cycle for startNewCycle=true; getScorecardByLeadId/getScorecards return reassembled scorecards; updateScorecard preserves workflow state fields; 4 defensive status guards added. RBAC table expanded to 13 columns. Added pitfalls #15-#17. |
+| 2026-02-10 | §2, §6, §7, §10, §11, §12, §13, §15, §16 | Phase 19A: Core Permission Engine. Added template-based authorization with 23-tool permission map, project access scoping, feature-flagged resolution chain. 9 new interfaces (IPermissionTemplate + related). 15 new IDataService methods (187 total). 3 new mock data files. PermissionLevel enum. 8 AuditAction + 2 EntityType values. 3 new HUB_LISTS. 3 new permission keys. PermissionEngine feature flag (id: 23). AppContext integration with resolvedPermissions + re-resolution on project change. ProjectPicker accessible project filtering. |
+| 2026-02-10 | §2, §5, §15 | Phase 19B: Permission Engine Admin UI. 4 new components (PermissionTemplateEditor, ToolPermissionMatrix, GranularFlagEditor, ProjectTeamPanel). AdminPanel expanded to 7 tabs. ProjectDashboard gains ProjectTeamPanel section (FeatureGated). |
+| 2026-02-10 | §6, §7, §12, §15 | Phase 19C: Environment Architecture. IPermissionTemplate gains version + promotedFromTier. IEnvironmentConfig expanded with promotionHistory + IPromotionRecord. 2 new service methods (189 total): getEnvironmentConfig, promoteTemplates. New mock file environmentConfig.json. AppShell env badge (DEV/UAT). PermissionTemplateEditor promote button. |
+| 2026-02-10 | §2, §6, §7, §12, §13, §15 | Phase 19D: Flexible Sectors + Identity. New ISectorDefinition model + sectorDefinitions.json (12 entries). 3 new service methods (192 total): getSectorDefinitions, createSectorDefinition, updateSectorDefinition. Sector enum deprecated. ICurrentUser gains identityType. AdminPanel Sectors tab (8th tab). LeadFormPage, PipelinePage, ConditionBuilder use dynamic sectors when PermissionEngine enabled. New hook useSectorDefinitions. |

@@ -21,3 +21,4 @@ export { SuperintendentPlanPage } from './SuperintendentPlanPage';
 export { LessonsLearnedPage } from './LessonsLearnedPage';
 export { ProjectManagementPlan } from './pmp/ProjectManagementPlan';
 export { MonthlyProjectReview } from './MonthlyProjectReview';
+export { ProjectTeamPanel } from './ProjectTeamPanel';

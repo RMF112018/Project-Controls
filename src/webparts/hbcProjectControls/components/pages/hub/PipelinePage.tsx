@@ -15,6 +15,7 @@ import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { ILead, Stage, Region, Sector, Division, AwardStatus, GoNoGoDecision } from '../../../models';
+import { useSectorDefinitions } from '../../hooks/useSectorDefinitions';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { formatCurrencyCompact, formatDate, formatPercent } from '../../../utils/formatters';
 import { isActiveStage } from '../../../utils/stageEngine';
@@ -24,7 +25,8 @@ export const PipelinePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { hasPermission } = useAppContext();
+  const { hasPermission, isFeatureEnabled } = useAppContext();
+  const { activeSectors } = useSectorDefinitions();
   const { leads, totalCount, isLoading, fetchLeads } = useLeads();
   const { isMobile } = useResponsive();
   const [chartMode, setChartMode] = React.useState<'count' | 'value'>('count');
@@ -213,7 +215,10 @@ export const PipelinePage: React.FC = () => {
           </Select>
           <Select value={sectorFilter} onChange={(_, data) => setSectorFilter(data.value)} style={{ minWidth: '160px' }}>
             <option value="all">All Sectors</option>
-            {Object.values(Sector).map(s => <option key={s} value={s}>{s}</option>)}
+            {(isFeatureEnabled('PermissionEngine') && activeSectors.length > 0
+              ? activeSectors.map(s => <option key={s.label} value={s.label}>{s.label}</option>)
+              : Object.values(Sector).map(s => <option key={s} value={s}>{s}</option>)
+            )}
           </Select>
           <Select value={divisionFilter} onChange={(_, data) => setDivisionFilter(data.value)} style={{ minWidth: '160px' }}>
             <option value="all">All Divisions</option>

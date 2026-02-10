@@ -10,8 +10,11 @@ import { StageBadge } from '../../shared/StageBadge';
 import { StageIndicator } from '../../shared/StageIndicator';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ILead, Stage, GoNoGoDecision } from '../../../models';
+import { PermissionGate } from '../../guards';
 import { PERMISSIONS } from '../../../utils/permissions';
 import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import { FeatureGate } from '../../guards/FeatureGate';
+import { ProjectTeamPanel } from './ProjectTeamPanel';
 import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 import { formatCurrency, formatDate, formatSquareFeet } from '../../../utils/formatters';
 import { getStageScreens, getStageLabel } from '../../../utils/stageEngine';
@@ -211,6 +214,15 @@ export const ProjectDashboard: React.FC = () => {
             )}
           </div>
         </div>
+      )}
+
+      {/* Team Management — gated by PermissionEngine feature flag */}
+      {project.ProjectCode && (
+        <FeatureGate featureName="PermissionEngine">
+          <div style={{ marginTop: '32px' }}>
+            <ProjectTeamPanel projectCode={project.ProjectCode} />
+          </div>
+        </FeatureGate>
       )}
     </div>
   );

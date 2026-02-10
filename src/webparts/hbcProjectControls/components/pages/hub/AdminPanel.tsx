@@ -27,12 +27,15 @@ import { MockHubNavigationService } from '../../../services/HubNavigationService
 import { HubNavLinkStatus } from '../../../models/IProvisioningLog';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { WorkflowDefinitionsPanel } from './WorkflowDefinitionsPanel';
+import { PermissionTemplateEditor } from './PermissionTemplateEditor';
 import { useTabFromUrl } from '../../hooks/useTabFromUrl';
+import { useSectorDefinitions } from '../../hooks/useSectorDefinitions';
+import { ISectorDefinition } from '../../../models/ISectorDefinition';
 import { HBC_COLORS, SPACING } from '../../../theme/tokens';
 import { formatDateTime } from '../../../utils/formatters';
 import { PERMISSIONS } from '../../../utils/permissions';
 
-const TAB_KEYS = ['connections', 'roles', 'flags', 'provisioning', 'workflows', 'audit'] as const;
+const TAB_KEYS = ['connections', 'roles', 'flags', 'provisioning', 'workflows', 'permissions', 'sectors', 'audit'] as const;
 type AdminTab = typeof TAB_KEYS[number];
 const TAB_LABELS: Record<AdminTab, string> = {
   connections: 'Connections',
@@ -40,6 +43,8 @@ const TAB_LABELS: Record<AdminTab, string> = {
   flags: 'Feature Flags',
   provisioning: 'Provisioning',
   workflows: 'Workflows',
+  permissions: 'Permissions',
+  sectors: 'Sectors',
   audit: 'Audit Log',
 };
 
@@ -162,6 +167,10 @@ export const AdminPanel: React.FC = () => {
     return d.toISOString().split('T')[0];
   });
   const [auditEndDate, setAuditEndDate] = React.useState(() => new Date().toISOString().split('T')[0]);
+
+  // -- Sectors state --
+  const { sectors: sectorDefs, createSector: createSectorDef, updateSector: updateSectorDef, loading: sectorsLoading, refresh: refreshSectors } = useSectorDefinitions();
+  const [newSectorLabel, setNewSectorLabel] = React.useState('');
 
   const hubNavService = React.useMemo(() => new MockHubNavigationService(), []);
   const provisioningService = React.useMemo(
@@ -702,7 +711,114 @@ export const AdminPanel: React.FC = () => {
         )
       )}
 
-      {/* Tab 6: Audit Log */}
+      {/* Tab 6: Permissions */}
+      {activeTab === 'permissions' && (
+        hasPermission(PERMISSIONS.PERMISSION_TEMPLATES_MANAGE) ? (
+          <FeatureGate featureName="PermissionEngine">
+            <PermissionTemplateEditor />
+          </FeatureGate>
+        ) : (
+          <div style={{ padding: '24px', textAlign: 'center', color: HBC_COLORS.gray400 }}>
+            You do not have permission to manage permission templates.
+          </div>
+        )
+      )}
+
+      {/* Tab 7: Sectors */}
+      {activeTab === 'sectors' && (
+        hasPermission(PERMISSIONS.PERMISSION_TEMPLATES_MANAGE) ? (
+          <FeatureGate featureName="PermissionEngine">
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div>
+                  <h3 style={{ margin: 0, color: HBC_COLORS.navy, fontSize: '16px' }}>Sector Definitions</h3>
+                  <p style={{ margin: '4px 0 0', color: HBC_COLORS.gray500, fontSize: '13px' }}>
+                    Manage industry sectors for lead classification. Changes affect all sector dropdowns across the application.
+                  </p>
+                </div>
+              </div>
+
+              {/* Add Sector */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  value={newSectorLabel}
+                  onChange={e => setNewSectorLabel(e.target.value)}
+                  placeholder="New sector name..."
+                  style={{
+                    padding: '6px 12px', borderRadius: '4px', border: `1px solid ${HBC_COLORS.gray300}`,
+                    fontSize: '13px', width: '250px',
+                  }}
+                />
+                <Button
+                  appearance="primary"
+                  size="small"
+                  disabled={!newSectorLabel.trim()}
+                  onClick={async () => {
+                    if (!newSectorLabel.trim()) return;
+                    await createSectorDef({ label: newSectorLabel.trim() });
+                    setNewSectorLabel('');
+                    dataService.logAudit({
+                      Action: AuditAction.ConfigRoleChanged,
+                      EntityType: EntityType.Config,
+                      EntityId: 'sector-definitions',
+                      User: currentUser?.displayName || '',
+                      Details: `Created sector: ${newSectorLabel.trim()}`,
+                    });
+                  }}
+                >
+                  Add Sector
+                </Button>
+              </div>
+
+              {sectorsLoading ? (
+                <SkeletonLoader variant="table" rows={6} columns={4} />
+              ) : (
+                <DataTable<ISectorDefinition>
+                  columns={[
+                    { key: 'sortOrder', header: '#', width: '60px', render: (s: ISectorDefinition) => <span style={{ color: HBC_COLORS.gray500, fontSize: '12px' }}>{s.sortOrder}</span> },
+                    { key: 'label', header: 'Label', render: (s: ISectorDefinition) => <span style={{ fontWeight: 500 }}>{s.label}</span> },
+                    { key: 'code', header: 'Code', render: (s: ISectorDefinition) => <span style={{ fontFamily: 'monospace', fontSize: '12px', color: HBC_COLORS.gray500 }}>{s.code}</span> },
+                    { key: 'isActive', header: 'Status', width: '100px', render: (s: ISectorDefinition) => (
+                      <StatusBadge
+                        label={s.isActive ? 'Active' : 'Inactive'}
+                        color={s.isActive ? HBC_COLORS.success : HBC_COLORS.gray400}
+                        backgroundColor={s.isActive ? HBC_COLORS.successLight : HBC_COLORS.gray100}
+                      />
+                    )},
+                    { key: 'actions', header: 'Actions', width: '100px', render: (s: ISectorDefinition) => (
+                      <Button
+                        appearance="subtle"
+                        size="small"
+                        onClick={async () => {
+                          await updateSectorDef(s.id, { isActive: !s.isActive });
+                          dataService.logAudit({
+                            Action: AuditAction.ConfigRoleChanged,
+                            EntityType: EntityType.Config,
+                            EntityId: `sector-${s.id}`,
+                            User: currentUser?.displayName || '',
+                            Details: `${s.isActive ? 'Deactivated' : 'Activated'} sector: ${s.label}`,
+                          });
+                        }}
+                      >
+                        {s.isActive ? 'Deactivate' : 'Activate'}
+                      </Button>
+                    )},
+                  ]}
+                  items={sectorDefs}
+                  keyExtractor={(s: ISectorDefinition) => s.id.toString()}
+                />
+              )}
+            </div>
+          </FeatureGate>
+        ) : (
+          <div style={{ padding: '24px', textAlign: 'center', color: HBC_COLORS.gray400 }}>
+            You do not have permission to manage sector definitions.
+          </div>
+        )
+      )}
+
+      {/* Tab 8: Audit Log */}
       {activeTab === 'audit' && (
         <div>
           {auditEntries.length > 5000 && (

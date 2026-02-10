@@ -7,6 +7,7 @@ import { SearchBar } from '../shared/SearchBar';
 import { SyncStatusIndicator } from '../shared/SyncStatusIndicator';
 import { WhatsNewModal, shouldShowWhatsNew } from '../shared/WhatsNewModal';
 import { useResponsive } from '../hooks/useResponsive';
+import { IEnvironmentConfig } from '../../models/IEnvironmentConfig';
 import { HBC_COLORS } from '../../theme/tokens';
 import { APP_VERSION } from '../../utils/constants';
 
@@ -14,11 +15,33 @@ interface IAppShellProps {
   children: React.ReactNode;
 }
 
+const ENV_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
+  dev: { bg: '#3B82F6', text: '#fff' },
+  vetting: { bg: '#F59E0B', text: '#000' },
+  prod: { bg: '#10B981', text: '#fff' },
+};
+
+const ENV_BADGE_LABELS: Record<string, string> = {
+  dev: 'DEV',
+  vetting: 'UAT',
+  prod: 'PROD',
+};
+
 export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
-  const { isLoading, error, currentUser } = useAppContext();
+  const { isLoading, error, currentUser, dataService, isFeatureEnabled } = useAppContext();
   const { isMobile, isTablet } = useResponsive();
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
   const [whatsNewOpen, setWhatsNewOpen] = React.useState(false);
+  const [envConfig, setEnvConfig] = React.useState<IEnvironmentConfig | null>(null);
+
+  // Load environment config if PermissionEngine is enabled
+  React.useEffect(() => {
+    if (isFeatureEnabled('PermissionEngine')) {
+      dataService.getEnvironmentConfig()
+        .then(setEnvConfig)
+        .catch(() => setEnvConfig(null));
+    }
+  }, [dataService, isFeatureEnabled]);
 
   // Auto-open What's New on first load after version bump
   React.useEffect(() => {
@@ -98,6 +121,19 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           <span style={{ fontWeight: 700, fontSize: '16px', color: HBC_COLORS.orange }}>HBC</span>
           {!isMobile && (
             <span style={{ fontSize: '14px', opacity: 0.9 }}>Project Controls</span>
+          )}
+          {envConfig && envConfig.currentTier !== 'prod' && (
+            <span style={{
+              padding: '2px 8px',
+              borderRadius: '4px',
+              fontSize: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.5px',
+              backgroundColor: ENV_BADGE_COLORS[envConfig.currentTier]?.bg || '#3B82F6',
+              color: ENV_BADGE_COLORS[envConfig.currentTier]?.text || '#fff',
+            }}>
+              {ENV_BADGE_LABELS[envConfig.currentTier] || envConfig.currentTier.toUpperCase()}
+            </span>
           )}
         </div>
 
