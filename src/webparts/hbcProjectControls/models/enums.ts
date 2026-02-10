@@ -98,7 +98,8 @@ export enum RoleName {
   Marketing = 'Marketing',
   QualityControl = 'Quality Control',
   Safety = 'Safety',
-  IDS = 'IDS'
+  IDS = 'IDS',
+  DepartmentDirector = 'Department Director'
 }
 
 export enum ProvisioningStatus {
@@ -339,4 +340,21 @@ export enum ConditionField {
   Division = 'Division',
   Region = 'Region',
   Sector = 'Sector'
+}
+
+export enum WorkflowActionType {
+  GoNoGoReview = 'GoNoGoReview',
+  GoNoGoRevision = 'GoNoGoRevision',
+  PMPApproval = 'PMPApproval',
+  PMPSignature = 'PMPSignature',
+  MonthlyReviewInput = 'MonthlyReviewInput',
+  MonthlyReviewValidation = 'MonthlyReviewValidation',
+  CommitmentApproval = 'CommitmentApproval',
+  TurnoverSignature = 'TurnoverSignature'
+}
+
+export enum ActionPriority {
+  Urgent = 'Urgent',
+  Normal = 'Normal',
+  New = 'New'
 }

@@ -37,3 +37,4 @@ export * from './IActiveProject';
 export * from './IComplianceSummary';
 export * from './IWorkflowDefinition';
 export * from './ITurnoverAgenda';
+export * from './IActionInbox';

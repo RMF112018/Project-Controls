@@ -120,7 +120,8 @@ import { IBuyoutEntry, EVerifyStatus } from '../models/IBuyoutEntry';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverProjectHeader, ITurnoverPrerequisite, ITurnoverEstimateOverview, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverAttachment } from '../models/ITurnoverAgenda';
-import { WorkflowKey, StepAssignmentType, ConditionField, TurnoverStatus } from '../models/enums';
+import { IActionInboxItem } from '../models/IActionInbox';
+import { WorkflowKey, StepAssignmentType, ConditionField, TurnoverStatus, WorkflowActionType, ActionPriority } from '../models/enums';
 import mockWorkflowDefinitions from '../mock/workflowDefinitions.json';
 import mockWorkflowStepOverrides from '../mock/workflowStepOverrides.json';
 import mockTurnoverAgendas from '../mock/turnoverAgendas.json';
@@ -1155,12 +1156,13 @@ export class MockDataService implements IDataService {
 
   public async getScorecardByLeadId(leadId: number): Promise<IGoNoGoScorecard | null> {
     await delay();
-    return this.scorecards.find(s => s.LeadID === leadId) ?? null;
+    const sc = this.scorecards.find(s => s.LeadID === leadId);
+    return sc ? this.assembleScorecard(sc) : null;
   }
 
   public async getScorecards(): Promise<IGoNoGoScorecard[]> {
     await delay();
-    return [...this.scorecards];
+    return this.scorecards.map(sc => this.assembleScorecard(sc));
   }
 
   public async createScorecard(data: Partial<IGoNoGoScorecard>): Promise<IGoNoGoScorecard> {
@@ -1210,7 +1212,17 @@ export class MockDataService implements IDataService {
       throw new Error(`Scorecard with id ${id} not found`);
     }
 
-    this.scorecards[index] = { ...this.scorecards[index], ...data };
+    const existing = this.scorecards[index];
+    // Preserve workflow state fields — callers should use dedicated methods to modify these
+    const preserved = {
+      approvalCycles: existing.approvalCycles,
+      versions: existing.versions,
+      scorecardStatus: existing.scorecardStatus,
+      isLocked: existing.isLocked,
+      currentVersion: existing.currentVersion,
+      currentApprovalStep: existing.currentApprovalStep,
+    };
+    this.scorecards[index] = { ...existing, ...data, ...preserved };
     return { ...this.scorecards[index] };
   }
 
@@ -1287,13 +1299,18 @@ export class MockDataService implements IDataService {
       status: 'Active',
     };
 
+    // Look up the submitter's display name from users list
+    const submitterUser = this.users.find(
+      (u: { email: string }) => u.email.toLowerCase() === submittedBy.toLowerCase()
+    );
+
     const step1: IScorecardApprovalStep = {
       id: this.getNextId(),
       cycleId,
       stepOrder: 1,
       name: 'BD Rep Submission',
       assigneeEmail: submittedBy,
-      assigneeName: submittedBy,
+      assigneeName: submitterUser?.displayName ?? submittedBy,
       assignmentSource: 'Default',
       status: 'Approved',
       actionDate: new Date().toISOString().split('T')[0],
@@ -1335,10 +1352,20 @@ export class MockDataService implements IDataService {
     await delay();
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
 
+    if (scorecard.scorecardStatus !== ScorecardStatus.Submitted) {
+      throw new Error(`Cannot respond: scorecard is in ${scorecard.scorecardStatus} state`);
+    }
+
+    // Reassemble approval cycles from flat arrays if missing (defensive)
+    if (!scorecard.approvalCycles || scorecard.approvalCycles.length === 0) {
+      const reassembled = this.assembleScorecard(scorecard);
+      scorecard.approvalCycles = reassembled.approvalCycles;
+    }
+
     const activeCycle = scorecard.approvalCycles?.find(c => c.status === 'Active');
     if (!activeCycle) throw new Error('No active approval cycle found');
 
-    const pendingStep = activeCycle.steps.find(s => s.status === 'Pending');
+    const pendingStep = activeCycle.steps?.find(s => s.status === 'Pending');
     if (!pendingStep) throw new Error('No pending approval step found');
 
     if (approved) {
@@ -1369,6 +1396,10 @@ export class MockDataService implements IDataService {
   ): Promise<IGoNoGoScorecard> {
     await delay();
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
+
+    if (scorecard.scorecardStatus !== ScorecardStatus.InCommitteeReview) {
+      throw new Error(`Cannot enter committee scores: scorecard is in ${scorecard.scorecardStatus} state`);
+    }
 
     // Apply committee scores
     for (const [criterionId, value] of Object.entries(scores)) {
@@ -1402,6 +1433,10 @@ export class MockDataService implements IDataService {
   ): Promise<IGoNoGoScorecard> {
     await delay();
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
+
+    if (scorecard.scorecardStatus !== ScorecardStatus.PendingDecision) {
+      throw new Error(`Cannot record decision: scorecard is in ${scorecard.scorecardStatus} state`);
+    }
 
     const now = new Date().toISOString().split('T')[0];
     scorecard.finalDecision = decision;
@@ -1458,6 +1493,10 @@ export class MockDataService implements IDataService {
     await delay();
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
 
+    if (!scorecard.isLocked) {
+      throw new Error('Cannot unlock: scorecard is not locked');
+    }
+
     // Create version snapshot before unlock
     this.createVersionSnapshot(scorecard, `Unlocked: ${reason}`, scorecard.finalDecisionBy || 'system');
 
@@ -1480,8 +1519,54 @@ export class MockDataService implements IDataService {
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
 
     if (startNewCycle) {
+      // Create new 2-step approval cycle (same pattern as submitScorecard)
+      const directorAssignee = { displayName: 'David Park', email: 'dpark@hedrickbrothers.com' };
+      const cycleId = this.getNextId();
+      const cycle: IScorecardApprovalCycle = {
+        id: cycleId,
+        scorecardId,
+        cycleNumber: (scorecard.approvalCycles?.length ?? 0) + 1,
+        version: scorecard.currentVersion,
+        steps: [],
+        startedDate: new Date().toISOString().split('T')[0],
+        status: 'Active',
+      };
+
+      const submitterEmail = scorecard.unlockedBy || scorecard.finalDecisionBy || 'system';
+      const submitterUser = this.users.find(
+        (u: { email: string }) => u.email?.toLowerCase() === submitterEmail.toLowerCase()
+      );
+
+      const step1: IScorecardApprovalStep = {
+        id: this.getNextId(),
+        cycleId,
+        stepOrder: 1,
+        name: 'BD Rep Resubmission',
+        assigneeEmail: submitterEmail,
+        assigneeName: submitterUser?.displayName ?? submitterEmail,
+        assignmentSource: 'Default',
+        status: 'Approved',
+        actionDate: new Date().toISOString().split('T')[0],
+      };
+
+      const step2: IScorecardApprovalStep = {
+        id: this.getNextId(),
+        cycleId,
+        stepOrder: 2,
+        name: 'Director of Precon Review',
+        assigneeEmail: directorAssignee.email,
+        assigneeName: directorAssignee.displayName,
+        assignmentSource: 'Default',
+        status: 'Pending',
+      };
+
+      cycle.steps = [step1, step2];
+      this.scorecardApprovalCycles.push(cycle);
+      this.scorecardApprovalSteps.push(step1, step2);
+
+      scorecard.approvalCycles = [...(scorecard.approvalCycles || []), cycle];
       scorecard.scorecardStatus = ScorecardStatus.Submitted;
-      // Will create a new approval cycle via submitScorecard
+      scorecard.currentApprovalStep = 1;
     } else {
       scorecard.scorecardStatus = ScorecardStatus.Locked;
       scorecard.isLocked = true;
@@ -1642,11 +1727,19 @@ export class MockDataService implements IDataService {
     const roleName = this._currentRole;
     const perms = ROLE_PERMISSIONS[roleName] ?? [];
 
+    // Return the first real user from users.json that matches the selected role.
+    // This ensures the mock user's email aligns with workflow step assignee emails.
+    const matchingUser = this.users.find(
+      (u: { roles: string[] }) => u.roles.includes(roleName)
+    );
+
+    const email = matchingUser?.email ?? 'devuser@hedrickbrothers.com';
+
     return {
-      id: 5,
-      displayName: 'Dev User',
-      email: 'devuser@hedrickbrothers.com',
-      loginName: 'i:0#.f|membership|devuser@hedrickbrothers.com',
+      id: matchingUser?.id ?? 999,
+      displayName: matchingUser?.displayName ?? 'Dev User',
+      email,
+      loginName: `i:0#.f|membership|${email}`,
       roles: [roleName],
       permissions: new Set<string>(perms),
       photoUrl: undefined
@@ -4545,5 +4638,221 @@ export class MockDataService implements IDataService {
   async setHubSiteUrl(url: string): Promise<void> {
     await delay();
     this.hubSiteUrl = url;
+  }
+
+  // --- Action Inbox Aggregation ---
+  async getActionItems(userEmail: string): Promise<IActionInboxItem[]> {
+    await delay();
+    const items: IActionInboxItem[] = [];
+    const email = userEmail.toLowerCase();
+    const now = new Date();
+
+    const computePriority = (dateStr: string): ActionPriority => {
+      const days = Math.floor((now.getTime() - new Date(dateStr).getTime()) / 86400000);
+      if (days > 7) return ActionPriority.Urgent;
+      if (days >= 1) return ActionPriority.Normal;
+      return ActionPriority.New;
+    };
+    const computeDays = (dateStr: string): number =>
+      Math.max(0, Math.floor((now.getTime() - new Date(dateStr).getTime()) / 86400000));
+
+    // 1. Go/No-Go Scorecards — pending approval steps
+    for (const sc of this.scorecards) {
+      const assembled = this.assembleScorecard(sc);
+      if (!assembled.approvalCycles?.length) continue;
+      const activeCycle = assembled.approvalCycles.find(c => c.status === 'Active');
+      if (!activeCycle) continue;
+      const pendingStep = activeCycle.steps?.find(
+        s => s.status === 'Pending' && s.assigneeEmail?.toLowerCase() === email
+      );
+      if (pendingStep) {
+        const lead = this.leads.find(l => l.id === sc.LeadID);
+        const prevStep = activeCycle.steps?.find(s => s.stepOrder === pendingStep.stepOrder - 1);
+        const requestedDate = prevStep?.actionDate || activeCycle.startedDate || now.toISOString().split('T')[0];
+        items.push({
+          id: `gonogo-${sc.id}-${pendingStep.id}`,
+          workflowType: pendingStep.stepOrder === 1
+            ? WorkflowActionType.GoNoGoRevision
+            : WorkflowActionType.GoNoGoReview,
+          actionLabel: pendingStep.stepOrder === 1
+            ? 'Revise Go/No-Go Scorecard'
+            : 'Review Go/No-Go Scorecard',
+          projectCode: lead?.ProjectCode || '',
+          projectName: lead?.Title || `Lead ${sc.LeadID}`,
+          entityId: sc.id,
+          requestedBy: prevStep?.assigneeName || 'System',
+          requestedByEmail: prevStep?.assigneeEmail || '',
+          requestedDate,
+          waitingDays: computeDays(requestedDate),
+          routePath: `/lead/${sc.LeadID}/gonogo`,
+          priority: computePriority(requestedDate),
+        });
+      }
+    }
+
+    // 2. PMP Approval — pending approval steps
+    for (const pmp of this.pmps) {
+      const assembled = this.assemblePMP(pmp);
+      if (!assembled.approvalCycles?.length) continue;
+      const activeCycle = assembled.approvalCycles.find(c => c.status === 'InProgress');
+      if (!activeCycle) continue;
+      const pendingStep = activeCycle.steps?.find(
+        s => s.status === 'Pending' && s.approverEmail?.toLowerCase() === email
+      );
+      if (pendingStep) {
+        const requestedDate = activeCycle.submittedDate || now.toISOString().split('T')[0];
+        items.push({
+          id: `pmp-approval-${pmp.id}-${pendingStep.id}`,
+          workflowType: WorkflowActionType.PMPApproval,
+          actionLabel: 'Approve Project Management Plan',
+          projectCode: pmp.projectCode,
+          projectName: pmp.projectName || pmp.projectCode,
+          entityId: pmp.id,
+          requestedBy: activeCycle.submittedBy || 'Unknown',
+          requestedByEmail: '',
+          requestedDate,
+          waitingDays: computeDays(requestedDate),
+          routePath: `/operations/management-plan`,
+          priority: computePriority(requestedDate),
+        });
+      }
+    }
+
+    // 3. PMP Signatures — pending signatures
+    for (const pmp of this.pmps) {
+      const assembled = this.assemblePMP(pmp);
+      const pendingSigs = [...(assembled.startupSignatures || []), ...(assembled.completionSignatures || [])]
+        .filter(s => s.status === 'Pending' && s.personEmail?.toLowerCase() === email);
+      for (const sig of pendingSigs) {
+        const requestedDate = pmp.lastUpdatedAt || pmp.createdAt || now.toISOString().split('T')[0];
+        items.push({
+          id: `pmp-sig-${pmp.id}-${sig.id}`,
+          workflowType: WorkflowActionType.PMPSignature,
+          actionLabel: `Sign PMP (${sig.signatureType})`,
+          projectCode: pmp.projectCode,
+          projectName: pmp.projectName || pmp.projectCode,
+          entityId: pmp.id,
+          requestedBy: pmp.createdBy || 'Unknown',
+          requestedByEmail: '',
+          requestedDate,
+          waitingDays: computeDays(requestedDate),
+          routePath: `/operations/management-plan`,
+          priority: computePriority(requestedDate),
+        });
+      }
+    }
+
+    // 4. Monthly Reviews — status-based assignee inference
+    for (const review of this.monthlyReviews) {
+      const assembled = this.assembleMonthlyReview(review);
+      const status = assembled.status;
+      // PX-facing statuses: check if user has Executive Leadership role (approximated by email match)
+      if ((status === 'PendingPXReview' || status === 'PendingPXValidation')) {
+        // In mock mode, PX users are Executive Leadership — check all roles
+        const currentUserData = this.users.find(u => u.email?.toLowerCase() === email);
+        const isPX = currentUserData?.roles?.includes(RoleName.ExecutiveLeadership) ||
+          currentUserData?.roles?.includes(RoleName.DepartmentDirector);
+        if (isPX) {
+          const requestedDate = assembled.lastUpdatedAt || assembled.createdAt || now.toISOString().split('T')[0];
+          items.push({
+            id: `monthly-review-${assembled.id}`,
+            workflowType: WorkflowActionType.MonthlyReviewValidation,
+            actionLabel: status === 'PendingPXReview' ? 'Review Monthly Report' : 'Validate Monthly Report',
+            projectCode: assembled.projectCode,
+            projectName: assembled.projectCode,
+            entityId: assembled.id,
+            requestedBy: assembled.createdBy || 'PM',
+            requestedByEmail: '',
+            requestedDate,
+            waitingDays: computeDays(requestedDate),
+            routePath: `/operations/monthly-review`,
+            priority: computePriority(requestedDate),
+          });
+        }
+      }
+      // PM-facing statuses: match createdBy
+      if ((status === 'PMRevising' || status === 'InProgress' || status === 'FollowUpPending') &&
+          assembled.createdBy?.toLowerCase() === email) {
+        const requestedDate = assembled.lastUpdatedAt || assembled.createdAt || now.toISOString().split('T')[0];
+        items.push({
+          id: `monthly-input-${assembled.id}`,
+          workflowType: WorkflowActionType.MonthlyReviewInput,
+          actionLabel: status === 'FollowUpPending' ? 'Respond to Follow-Ups' : 'Complete Monthly Review',
+          projectCode: assembled.projectCode,
+          projectName: assembled.projectCode,
+          entityId: assembled.id,
+          requestedBy: 'Project Executive',
+          requestedByEmail: '',
+          requestedDate,
+          waitingDays: computeDays(requestedDate),
+          routePath: `/operations/monthly-review`,
+          priority: computePriority(requestedDate),
+        });
+      }
+    }
+
+    // 5. Commitment Approvals — pending approval steps on buyout entries
+    for (const entry of this.buyoutEntries) {
+      if (!entry.approvalHistory?.length) continue;
+      const pendingApproval = entry.approvalHistory.find(
+        a => a.status === 'Pending' && a.approverEmail?.toLowerCase() === email
+      );
+      if (pendingApproval) {
+        // Use the most recent approved step's actionDate or fallback to today
+        const previousSteps = entry.approvalHistory.filter(a => a.status === 'Approved' && a.actionDate);
+        const lastApprovedDate = previousSteps.length > 0
+          ? previousSteps.sort((a, b) => new Date(b.actionDate!).getTime() - new Date(a.actionDate!).getTime())[0].actionDate!
+          : now.toISOString().split('T')[0];
+        items.push({
+          id: `commitment-${entry.id}-${pendingApproval.id}`,
+          workflowType: WorkflowActionType.CommitmentApproval,
+          actionLabel: `Approve Commitment: ${entry.divisionDescription || entry.divisionCode}`,
+          projectCode: entry.projectCode,
+          projectName: entry.projectCode,
+          entityId: entry.id,
+          requestedBy: previousSteps.length > 0 ? previousSteps[0].approverName : 'Unknown',
+          requestedByEmail: previousSteps.length > 0 ? previousSteps[0].approverEmail : '',
+          requestedDate: lastApprovedDate,
+          waitingDays: computeDays(lastApprovedDate),
+          routePath: `/operations/buyout-log`,
+          priority: computePriority(lastApprovedDate),
+        });
+      }
+    }
+
+    // 6. Turnover Signatures — unsigned signatures on pending turnovers
+    for (const agenda of this.turnoverAgendas) {
+      if (agenda.status !== TurnoverStatus.PendingSignatures) continue;
+      const unsignedSigs = this.turnoverSignatures.filter(
+        s => s.turnoverAgendaId === agenda.id && !s.signed && s.signerEmail?.toLowerCase() === email
+      );
+      for (const sig of unsignedSigs) {
+        const lead = this.leads.find(l => l.id === agenda.leadId);
+        const requestedDate = now.toISOString().split('T')[0];
+        items.push({
+          id: `turnover-sig-${agenda.id}-${sig.id}`,
+          workflowType: WorkflowActionType.TurnoverSignature,
+          actionLabel: 'Sign Turnover Agenda',
+          projectCode: agenda.projectCode,
+          projectName: lead?.Title || agenda.projectCode,
+          entityId: agenda.id,
+          requestedBy: 'System',
+          requestedByEmail: '',
+          requestedDate,
+          waitingDays: computeDays(requestedDate),
+          routePath: `/preconstruction/pursuit/${agenda.leadId}/turnover`,
+          priority: computePriority(requestedDate),
+        });
+      }
+    }
+
+    // Sort: Urgent first, then oldest first
+    const priorityOrder: Record<string, number> = { Urgent: 0, Normal: 1, New: 2 };
+    return items.sort((a, b) => {
+      if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      }
+      return new Date(a.requestedDate).getTime() - new Date(b.requestedDate).getTime();
+    });
   }
 }

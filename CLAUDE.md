@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-09 — Phase 16: Hub Site Navigation Link Provisioning
+**Last Updated:** 2026-02-09 — Phase 18: Department Director Role + Go/No-Go Workflow Bug Fixes
 
 ---
 
@@ -109,7 +109,8 @@ src/webparts/hbcProjectControls/
 │   │   ├── ProjectRequiredRoute.tsx      # Shows "No Project Selected" if no selectedProject
 │   │   ├── RoleGate.tsx                  # Renders children only if user has allowed role
 │   │   └── index.ts
-│   ├── hooks/                             # 29 custom hooks (see §7 for service method mapping)
+│   ├── hooks/                             # 30 custom hooks (see §7 for service method mapping)
+│   │   ├── useActionInbox.ts             # Action inbox aggregation with auto-refresh
 │   │   ├── useActiveProjects.ts          # Active projects portfolio
 │   │   ├── useBuyoutLog.ts              # Buyout log CRUD
 │   │   ├── useCommitmentApproval.ts     # Commitment approval workflow
@@ -232,16 +233,16 @@ src/webparts/hbcProjectControls/
 │       ├── WorkflowStepCard.tsx
 │       └── index.ts
 ├── mock/                                  # 36 JSON mock data files (see §12)
-├── models/                                # 40 TypeScript model files (see §6)
-│   ├── enums.ts                          # All shared enums (29 enums)
+├── models/                                # 41 TypeScript model files (see §6)
+│   ├── enums.ts                          # All shared enums (31 enums)
 │   ├── I*.ts                             # Interface files (one per entity)
 │   └── index.ts                          # Barrel export
 ├── provisioning/
 │   └── site-template.json                # SP site template definition
 ├── services/
-│   ├── IDataService.ts                   # Service interface (171 methods)
-│   ├── MockDataService.ts               # Mock implementation (all 171 implemented)
-│   ├── SharePointDataService.ts         # SP implementation (49 implemented, 122 stubs)
+│   ├── IDataService.ts                   # Service interface (172 methods)
+│   ├── MockDataService.ts               # Mock implementation (all 172 implemented)
+│   ├── SharePointDataService.ts         # SP implementation (49 implemented, 123 stubs)
 │   ├── AuditService.ts                  # Fire-and-forget audit queue with 2s debounce
 │   ├── CacheService.ts                  # Two-tier cache (memory + sessionStorage), 15min TTL
 │   ├── columnMappings.ts                # SP column name mappings for all lists (1267 lines)
@@ -453,6 +454,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | IPortfolioSummary | models/IActiveProject.ts | totalBacklog, totalOriginalContract, projectCount, projectsByStatus, projectsWithAlerts | — | — |
 | IPersonnelWorkload | models/IActiveProject.ts | name, email?, role, projectCount, totalContractValue, projects | — | — |
 | IAlertThresholds | models/IActiveProject.ts | unbilledWarningPct, feeErosionPct, scheduleDelayDays | — | — |
+| IActionInboxItem | models/IActionInbox.ts | id, workflowType: WorkflowActionType, actionLabel, projectCode, projectName, entityId, requestedBy, requestedDate, waitingDays, routePath, priority: ActionPriority | — (aggregated) | — |
 | IRole | models/IRole.ts | id, Title: RoleName, UserOrGroup, Permissions, IsActive | App_Roles | Hub |
 | ICurrentUser | models/IRole.ts | id, displayName, email, loginName, roles: RoleName[], permissions: Set<string> | — | — |
 | IFeatureFlag | models/IFeatureFlag.ts | id, FeatureName, Enabled, EnabledForRoles?, TargetDate?, Notes? | Feature_Flags | Hub |
@@ -537,7 +539,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | GoNoGoDecision | Go, NoGo, Wait |
 | WinLossDecision | Win, Loss |
 | LossReason | Price, Relationship, Experience, Schedule, Competition, Other |
-| RoleName | BDRepresentative, EstimatingCoordinator, AccountingManager, PreconstructionTeam, OperationsTeam, ExecutiveLeadership, Legal, RiskManagement, Marketing, QualityControl, Safety, IDS |
+| RoleName | BDRepresentative, EstimatingCoordinator, AccountingManager, PreconstructionTeam, OperationsTeam, ExecutiveLeadership, Legal, RiskManagement, Marketing, QualityControl, Safety, IDS, DepartmentDirector |
 | ProvisioningStatus | Queued, InProgress, Completed, PartialFailure, Failed |
 | TurnoverStatus | Draft, PrerequisitesInProgress, MeetingScheduled, MeetingComplete, PendingSignatures, Signed, Complete |
 | AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved, TurnoverAgendaCreated, TurnoverPrerequisiteCompleted, TurnoverItemDiscussed, TurnoverSubcontractorAdded, TurnoverSubcontractorRemoved, TurnoverExhibitReviewed, TurnoverExhibitAdded, TurnoverExhibitRemoved, TurnoverSigned, TurnoverAgendaCompleted, HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated |
@@ -556,6 +558,8 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | WorkflowKey | GO_NO_GO, PMP_APPROVAL, MONTHLY_REVIEW, COMMITMENT_APPROVAL, TURNOVER_APPROVAL |
 | StepAssignmentType | ProjectRole, NamedPerson |
 | ConditionField | Division, Region, Sector |
+| WorkflowActionType | GoNoGoReview, GoNoGoRevision, PMPApproval, PMPSignature, MonthlyReviewInput, MonthlyReviewValidation, CommitmentApproval, TurnoverSignature |
+| ActionPriority | Urgent, Normal, New |
 
 ### Type Aliases
 
@@ -598,7 +602,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 
 ## §7 Service Methods
 
-171 methods on IDataService. Source: `services/IDataService.ts`
+172 methods on IDataService. Source: `services/IDataService.ts`
 
 | # | Method | Signature | Mock | SP | Hook Caller | Mock JSON |
 |---|--------|-----------|------|-----|-------------|-----------|
@@ -773,6 +777,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 169 | getTurnoverAgendaByLeadId | (leadId: number) → Promise<ITurnoverAgenda \| null> | Impl | Stub | useTurnoverAgenda | turnoverAgendas.json |
 | 170 | getHubSiteUrl | () → Promise<string> | Impl | Impl | AdminPanel | in-memory |
 | 171 | setHubSiteUrl | (url: string) → Promise<void> | Impl | Stub | AdminPanel | in-memory |
+| 172 | getActionItems | (userEmail: string) → Promise<IActionInboxItem[]> | Impl | Stub | useActionInbox | aggregated |
 
 ---
 
@@ -891,93 +896,93 @@ Source: `utils/permissions.ts`
 
 Legend: **X** = has permission
 
-| Permission | BD Rep | Est Coord | Acct Mgr | Precon | Ops | Exec | Legal | Risk Mgmt | Marketing | QC | Safety | IDS |
-|-----------|--------|-----------|----------|--------|-----|------|-------|-----------|-----------|-----|--------|-----|
-| lead:create | X | | | | | | | | | | | |
-| lead:read | X | X | X | | | X | X | X | X | | | |
-| lead:edit | X | | | | | | | | | | | |
-| lead:delete | X | | | | | | | | | | | |
-| gonogo:score:originator | X | X | | | | | | | | | | |
-| gonogo:score:committee | | | | | | X | | | | | | |
-| gonogo:submit | X | | | | | | | | | | | |
-| gonogo:decide | | | | | | X | | | | | | |
-| gonogo:read | X | X | X | | | X | X | X | X | | | |
-| precon:read | X | X | X | X | | X | X | X | X | X | X | X |
-| precon:edit | | X | | X | | | | | | | | |
-| proposal:read | X | X | X | X | | X | X | X | X | X | X | X |
-| proposal:edit | | X | | X | | | | | X | | | |
-| winloss:record | X | | | | | | | | | | | |
-| winloss:read | X | X | X | X | | X | X | X | X | X | X | X |
-| contract:read | X | X | X | X | | X | X | X | X | X | X | X |
-| contract:edit | | | | | | | X | | | | | |
-| contract:view:financials | | | X | | | X | | | | | | |
-| turnover:read | X | X | X | X | X | X | X | X | X | X | X | X |
-| turnover:edit | | | | | X | | | | | | | |
-| closeout:read | X | X | X | X | X | X | X | X | X | X | X | X |
-| closeout:edit | | | | | X | | | | | | | |
-| estimating:read | X | X | X | X | | X | | | | | | |
-| estimating:edit | | X | | | | | | | | | | |
-| precon:hub:view | | X | | | | X | | | | | | |
-| project:hub:view | | X | | | X | X | | | | | | |
-| admin:roles | | | | | | X | | | | | | |
-| admin:flags | | | | | | X | | | | | | |
-| admin:config | | | | | | X | | | | | | X |
-| admin:connections | | | | | | X | | | | | | |
-| admin:provisioning | | | | | | X | | | | | | |
-| marketing:edit | | | | | | | | | X | | | |
-| marketing:dashboard:view | | | | | | X | | | X | | | |
-| site:provision | X | | | | | | | | | | | |
-| meeting:schedule | X | | | | | X | | | | | | |
-| meeting:read | X | X | X | X | X | X | X | X | X | X | X | X |
-| startup:checklist:edit | | | | | X | | | | | | | |
-| startup:checklist:signoff | | | | | | X | | | | | | |
-| matrix:edit | | | | | X | | | | | | | |
-| projectrecord:edit | | | | | | | | | X | | | |
-| projectrecord:ops:edit | | | | | X | | | | | | | |
-| pmp:edit | | | | | X | | | | | | | |
-| pmp:approve | | | | | | X | | | | | | |
-| pmp:final:approve | | | | | | X | | | | | | |
-| pmp:sign | | | | | X | X | | | | | | |
-| risk:edit | | | | | X | | | X | | | | |
-| quality:edit | | | | | X | | | | | X | | |
-| safety:edit | | | | | X | | | | | | | |
-| schedule:edit | | | | | X | | | | | | | |
-| superintendent:plan:edit | | | | | X | | | | | | | |
-| lessons:edit | | | | | X | | | | | | | |
-| monthly:review:pm | | | | | X | | | | | | | |
-| monthly:review:px | | | | | | X | | | | | | |
-| monthly:review:create | | | | | | X | | | | | | |
-| job_number_request:create | | X | | | | | | | | | | |
-| job_number_request:finalize | | | X | | | | | | | | | |
-| accounting_queue:view | | | X | | | | | | | | | |
-| kickoff:view | X | X | | X | | X | | | | | | |
-| kickoff:edit | | X | | | | X | | | | | | |
-| kickoff:template:edit | | X | | | | X | | | | | | |
-| autopsy:view | X | X | | X | | X | | | | | | |
-| autopsy:edit | | X | | | | X | | | | | | |
-| autopsy:schedule | | X | | | | X | | | | | | |
-| buyout:view | | | | X | X | X | | | | | | |
-| buyout:edit | | | | | X | X | | | | | | |
-| buyout:manage | | | | | X | | | | | | | |
-| commitment:submit | | | | | X | | | | | | | |
-| commitment:approve:px | | | | | | X | | | | | | |
-| commitment:approve:compliance | | | | | | | | X | | | | |
-| commitment:approve:cfo | | | | | | X | | | | | | |
-| commitment:escalate | | | | | | X | | X | | | | |
-| active_projects:view | | | | | X | X | | | | | | |
-| active_projects:sync | | | | | | X | | | | | | |
-| compliance_log:view | | | | | X | X | | X | | | | |
-| workflow:manage | | | | | | X | | | | | | |
-| turnover:agenda:edit | | X | | X | X | X | | | | | | |
-| turnover:sign | | X | | | X | X | | | | | | |
+| Permission | BD Rep | Est Coord | Acct Mgr | Precon | Ops | Exec | Dept Dir | Legal | Risk Mgmt | Marketing | QC | Safety | IDS |
+|-----------|--------|-----------|----------|--------|-----|------|----------|-------|-----------|-----------|-----|--------|-----|
+| lead:create | X | | | | | | | | | | | | |
+| lead:read | X | X | X | | | X | X | X | X | X | | | |
+| lead:edit | X | | | | | | | | | | | | |
+| lead:delete | X | | | | | | | | | | | | |
+| gonogo:score:originator | X | X | | | | | | | | | | | |
+| gonogo:score:committee | | | | | | X | X | | | | | | |
+| gonogo:submit | X | | | | | | | | | | | | |
+| gonogo:decide | | | | | | X | X | | | | | | |
+| gonogo:read | X | X | X | | | X | X | X | X | X | | | |
+| precon:read | X | X | X | X | | X | X | X | X | X | X | X | X |
+| precon:edit | | X | | X | | | | | | | | | |
+| proposal:read | X | X | X | X | | X | X | X | X | X | X | X | X |
+| proposal:edit | | X | | X | | | | | | X | | | |
+| winloss:record | X | | | | | | | | | | | | |
+| winloss:read | X | X | X | X | | X | X | X | X | X | X | X | X |
+| contract:read | X | X | X | X | | X | X | X | X | X | X | X | X |
+| contract:edit | | | | | | | | X | | | | | |
+| contract:view:financials | | | X | | | X | X | | | | | | |
+| turnover:read | X | X | X | X | X | X | X | X | X | X | X | X | X |
+| turnover:edit | | | | | X | | | | | | | | |
+| closeout:read | X | X | X | X | X | X | X | X | X | X | X | X | X |
+| closeout:edit | | | | | X | | | | | | | | |
+| estimating:read | X | X | X | X | | X | X | | | | | | |
+| estimating:edit | | X | | | | | | | | | | | |
+| precon:hub:view | | X | | | | X | X | | | | | | |
+| project:hub:view | | X | | | X | X | X | | | | | | |
+| admin:roles | | | | | | X | | | | | | | |
+| admin:flags | | | | | | X | | | | | | | |
+| admin:config | | | | | | X | | | | | | | X |
+| admin:connections | | | | | | X | | | | | | | |
+| admin:provisioning | | | | | | X | | | | | | | |
+| marketing:edit | | | | | | | | | | X | | | |
+| marketing:dashboard:view | | | | | | X | X | | | X | | | |
+| site:provision | X | | | | | | | | | | | | |
+| meeting:schedule | X | | | | | X | X | | | | | | |
+| meeting:read | X | X | X | X | X | X | X | X | X | X | X | X | X |
+| startup:checklist:edit | | | | | X | | | | | | | | |
+| startup:checklist:signoff | | | | | | X | X | | | | | | |
+| matrix:edit | | | | | X | | | | | | | | |
+| projectrecord:edit | | | | | | | | | | X | | | |
+| projectrecord:ops:edit | | | | | X | | | | | | | | |
+| pmp:edit | | | | | X | | | | | | | | |
+| pmp:approve | | | | | | X | X | | | | | | |
+| pmp:final:approve | | | | | | X | X | | | | | | |
+| pmp:sign | | | | | X | X | X | | | | | | |
+| risk:edit | | | | | X | | | | X | | | | |
+| quality:edit | | | | | X | | | | | | X | | |
+| safety:edit | | | | | X | | | | | | | | |
+| schedule:edit | | | | | X | | | | | | | | |
+| superintendent:plan:edit | | | | | X | | | | | | | | |
+| lessons:edit | | | | | X | | | | | | | | |
+| monthly:review:pm | | | | | X | | | | | | | | |
+| monthly:review:px | | | | | | X | X | | | | | | |
+| monthly:review:create | | | | | | X | X | | | | | | |
+| job_number_request:create | | X | | | | | | | | | | | |
+| job_number_request:finalize | | | X | | | | | | | | | | |
+| accounting_queue:view | | | X | | | | | | | | | | |
+| kickoff:view | X | X | | X | | X | X | | | | | | |
+| kickoff:edit | | X | | | | X | X | | | | | | |
+| kickoff:template:edit | | X | | | | X | X | | | | | | |
+| autopsy:view | X | X | | X | | X | X | | | | | | |
+| autopsy:edit | | X | | | | X | X | | | | | | |
+| autopsy:schedule | | X | | | | X | X | | | | | | |
+| buyout:view | | | | X | X | X | X | | | | | | |
+| buyout:edit | | | | | X | X | X | | | | | | |
+| buyout:manage | | | | | X | | | | | | | | |
+| commitment:submit | | | | | X | | | | | | | | |
+| commitment:approve:px | | | | | | X | X | | | | | | |
+| commitment:approve:compliance | | | | | | | | | X | | | | |
+| commitment:approve:cfo | | | | | | X | X | | | | | | |
+| commitment:escalate | | | | | | X | X | X | | | | | |
+| active_projects:view | | | | | X | X | X | | | | | | |
+| active_projects:sync | | | | | | X | X | | | | | | |
+| compliance_log:view | | | | | X | X | X | X | | | | | |
+| workflow:manage | | | | | | X | | | | | | | |
+| turnover:agenda:edit | | X | | X | X | X | X | | | | | | |
+| turnover:sign | | X | | | X | X | X | | | | | | |
 
 ### NAV_GROUP_ROLES
 
 | Nav Group | Roles That Can See |
 |-----------|-------------------|
-| Marketing | Marketing, Executive Leadership |
-| Preconstruction | BD Representative, Estimating Coordinator, Preconstruction Team, Executive Leadership, Legal |
-| Operations | Operations Team, Executive Leadership, Risk Management, Quality Control, Safety, IDS |
+| Marketing | Marketing, Executive Leadership, Department Director |
+| Preconstruction | BD Representative, Estimating Coordinator, Preconstruction Team, Executive Leadership, Department Director, Legal |
+| Operations | Operations Team, Executive Leadership, Department Director, Risk Management, Quality Control, Safety, IDS |
 | Admin | Executive Leadership |
 
 ---
@@ -1305,9 +1310,12 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 | 15 | Turnover to Ops Meeting Agenda — Two-tab TurnoverToOps rewrite (Meeting Agenda + Follow-Up Checklist), formal meeting procedure with prerequisites, estimate overview, 10 discussion items, subcontractor table, 10 exhibits, 4-party signature block with affidavit, workflow-driven signer resolution | ITurnoverAgenda.ts, turnoverAgendaTemplate.ts, turnoverAgendas.json, useTurnoverAgenda.ts | TurnoverToOps.tsx (rewrite), IDataService (169 methods), MockDataService, SharePointDataService, columnMappings.ts (+7 mappings), enums.ts (+TurnoverStatus, +10 AuditAction, +1 EntityType, +1 WorkflowKey), permissions.ts (+turnover:agenda:edit, +turnover:sign), constants.ts (+7 PROJECT_LISTS), workflowDefinitions.json (+TURNOVER_APPROVAL) |
 | 16 | Hub Site Navigation Link Provisioning — Post-provisioning hub nav link creation under year-based labels, HubNavigationService (Mock + SP stub), IDataService hub URL config, AdminPanel hub URL editor + nav link status column + retry, ProvisioningService integration | HubNavigationService.ts | IProvisioningLog.ts (+HubNavLinkStatus), enums.ts (+5 AuditAction), IDataService.ts (+2 methods, 171 total), MockDataService.ts, SharePointDataService.ts, ProvisioningService.ts, constants.ts (+DEFAULT_HUB_SITE_URL), AdminPanel.tsx, GoNoGoScorecard.tsx, JobNumberRequestForm.tsx, AccountingQueuePage.tsx |
 
+| 17 | Scorecard Unlock Fix, Director Role & Action Inbox — Bug fixes: getCurrentUser() returns real user from users.json per role (was hardcoded devuser email); canUnlock checks approval chain participants + Executive Leadership; canReview/canEnterCommitteeScores/canDecide grant Executive Leadership role-based access; respondToScorecardSubmission reassembles cycles defensively; submitScorecard looks up submitter displayName from users. New Action Inbox: aggregation widget on DashboardPage showing pending workflow items across 5 workflow types for current user. | IActionInbox.ts, useActionInbox.ts | MockDataService.ts (getCurrentUser role-to-user mapping, submitScorecard displayName lookup, respondToScorecardSubmission defensive reassembly, +getActionItems aggregation), useGoNoGo.ts (canUnlock/canReview/canEnterCommitteeScores/canDecide fixes), enums.ts (+2 enums), models/index.ts, IDataService.ts (+1 method, 172 total), SharePointDataService.ts (+1 stub), hooks/index.ts, DashboardPage.tsx (+Action Inbox section) |
+| 18 | Department Director Role + Go/No-Go Workflow Bug Fixes — 13th RBAC role (DepartmentDirector) for non-C-suite directors (e.g., Director of Precon). Bug fixes: relockScorecard(startNewCycle:true) now creates approval cycle directly; getScorecardByLeadId/getScorecards return reassembled scorecards; updateScorecard preserves workflow state fields; defensive status guards on 4 mutation methods. | (none) | enums.ts (+DepartmentDirector), permissions.ts (+ROLE_PERMISSIONS entry, +NAV_GROUP_ROLES), useGoNoGo.ts (isExecLeadership→isDirectorOrExec, 5 locations), MockDataService.ts (relockScorecard cycle creation, getScorecardByLeadId/getScorecards reassembly, updateScorecard preservation, 4 status guards, getActionItems DepartmentDirector check), users.json (David Park→Department Director), RoleSwitcher.tsx (+1 option), DashboardPage.tsx (+3 RoleGate), GoNoGoMeetingScheduler.tsx (+DepartmentDirector attendees + RoleGate), ActiveProjectsDashboard.tsx (+RoleGate), MarketingDashboard.tsx (+RoleGate), EstimatingDashboard.tsx (+RoleGate), WinLossRecorder.tsx (+RoleGate), LossAutopsy.tsx (+RoleGate), NotificationService.ts (+Department Director to 18 recipient arrays) |
+
 ### Known Stubs / Placeholders
 
-- **SharePointDataService**: 122 of 171 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
+- **SharePointDataService**: 123 of 172 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
 - **HubNavigationService**: SharePointHubNavigationService is a stub (all 3 methods throw).
 - **Column Mappings**: `columnMappings.ts` has mappings for all lists but SP service stubs don't use them yet.
 - **Offline Support**: `OfflineQueueService.ts` exists but feature flag `OfflineSupport` is disabled.
@@ -1319,7 +1327,7 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 ### SharePointDataService Status
 
 - **Implemented (49)**: Leads CRUD, Go/No-Go CRUD, Estimating CRUD, Roles/Flags CRUD, Audit log/read, Provisioning read, Phase 6 workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read
-- **Stubbed (122)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff, all job number requests, all workflow definitions, all turnover agenda, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers, hub site URL write
+- **Stubbed (123)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff, all job number requests, all workflow definitions, all turnover agenda, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers, hub site URL write, action inbox (SP)
 
 ---
 
@@ -1349,6 +1357,16 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 
 12. **Flattened child collections in MockDataService** — Mock JSON files store parent and child entities in flat arrays. The `MockDataService` assembles them (e.g., kickoff + kickoffItems, riskCost + riskCostItems). New entities with children must follow this pattern.
 
+13. **MockDataService.getCurrentUser() returns real users per role** — `getCurrentUser()` looks up the first user from `users.json` matching the selected role. This ensures the mock user's email aligns with workflow step assignee emails. When adding new workflow steps with email-based assignees, verify the assignee email exists in `users.json` and matches the expected role. BD Rep = Sarah Mitchell (`smitchell`), Executive Leadership = Mike Hedrick (`mhedrick`).
+
+14. **Scorecard workflow permissions need Executive Leadership OR DepartmentDirector role check** — `canReview`, `canEnterCommitteeScores`, `canDecide`, and `canUnlock` in `useGoNoGo.ts` use `isDirectorOrExec` which checks both `RoleName.ExecutiveLeadership` and `RoleName.DepartmentDirector`. When adding new leadership-level role checks, always include both roles.
+
+15. **DepartmentDirector is NOT Executive Leadership** — Department Directors have operational permissions (Go/No-Go decide, PMP approve, meeting schedule, etc.) but NO admin access (`admin:*`, `workflow:manage`). When adding RoleGate checks for leadership access, include `RoleName.DepartmentDirector` alongside `RoleName.ExecutiveLeadership` in page-level guards. Do NOT add DepartmentDirector to Admin-gated components.
+
+16. **relockScorecard(startNewCycle: true) creates its own approval cycle** — The `relockScorecard()` method in MockDataService creates a 2-step approval cycle directly when `startNewCycle=true`. The caller (GoNoGoScorecard.tsx `handleRelock()`) does NOT need to also call `submitScorecard()`. This is different from the initial submission flow.
+
+17. **updateScorecard() preserves workflow state** — `updateScorecard()` explicitly preserves `approvalCycles`, `versions`, `scorecardStatus`, `isLocked`, `currentVersion`, and `currentApprovalStep`. To modify these fields, use the dedicated methods (`submitScorecard`, `respondToScorecardSubmission`, `enterCommitteeScores`, `recordFinalDecision`, `unlockScorecard`, `relockScorecard`).
+
 ---
 
 ## Audit Log
@@ -1359,3 +1377,6 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 | 2026-02-09 | §2, §3, §5, §6, §7, §10, §11, §12, §13, §15 | Phase 13: Added workflow definition configuration. 4 new workflows (Go/No-Go, PMP, Monthly Review, Commitment) with 14 steps. AdminPanel expanded to 6 tabs. 10 new IDataService methods (152 total). 3 new enums, 6 new enum values. 4 new shared components, 1 new hook, 1 new page. |
 | 2026-02-09 | §2, §6, §7, §10, §12, §13, §15 | Phase 15: Turnover to Ops Meeting Agenda. TurnoverToOps.tsx rewritten as two-tab module (Meeting Agenda + Follow-Up Checklist). 9 new interfaces (ITurnoverAgenda + 8 sub-interfaces). 17 new IDataService methods (169 total). 1 new enum (TurnoverStatus), 10 AuditAction values, 1 EntityType, 1 WorkflowKey. 2 new permissions (turnover:agenda:edit, turnover:sign). 7 new PROJECT_LISTS. 7 new column mappings. 5th workflow (TURNOVER_APPROVAL). New files: ITurnoverAgenda.ts, turnoverAgendaTemplate.ts, turnoverAgendas.json, useTurnoverAgenda.ts. |
 | 2026-02-09 | §2, §6, §7, §13, §15 | Phase 16: Hub Site Navigation Link Provisioning. Added HubNavigationService.ts to services. IProvisioningLog updated with hubNavLinkStatus field. 1 new type alias (HubNavLinkStatus). 5 new AuditAction enum values (HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated). 2 new IDataService methods (171 total): getHubSiteUrl (implemented), setHubSiteUrl (stub). Added DEFAULT_HUB_SITE_URL constant. SharePointDataService: 49 implemented, 122 stubs. HubNavigationService SP stub added to known stubs. |
+| 2026-02-09 | §2, §6, §7, §15, §16 | Phase 17: Scorecard Unlock Fix, Director Role & Action Inbox. Bug fixes in useGoNoGo: canUnlock checks approval chain participants OR Executive Leadership (was GONOGO_DECIDE only); canReview/canEnterCommitteeScores/canDecide now grant access to Executive Leadership role regardless of email match (fixes mock dev user email mismatch with workflow step assignees). New model: IActionInboxItem (models/IActionInbox.ts). 2 new enums: WorkflowActionType (8 values), ActionPriority (3 values). 1 new IDataService method (172 total): getActionItems. New hook: useActionInbox (auto-refresh 5min). DashboardPage: Action Inbox section between filters and KPI cards. SharePointDataService: 49 implemented, 123 stubs. |
+| 2026-02-09 | §15, §16 | Phase 17 bug fixes: MockDataService.getCurrentUser() now returns first real user from users.json matching selected role (was hardcoded 'devuser@hedrickbrothers.com'). Role-to-user mapping: BD Rep=Sarah Mitchell (smitchell), Exec=Mike Hedrick (mhedrick), etc. submitScorecard() looks up submitter displayName from users list. respondToScorecardSubmission() defensively reassembles approval cycles from flat arrays if missing. Added pitfall #13 (getCurrentUser real users) and #14 (Executive Leadership role fallback). |
+| 2026-02-09 | §6, §10, §15, §16 | Phase 18: Department Director Role + Go/No-Go Workflow Bug Fixes. Added DepartmentDirector to RoleName enum (13th role). New ROLE_PERMISSIONS entry (operational subset of Executive Leadership — NO admin access). NAV_GROUP_ROLES updated (Marketing, Preconstruction, Operations — NOT Admin). useGoNoGo.ts: isExecLeadership→isDirectorOrExec (5 locations). Mock users.json: David Park role changed from Executive Leadership to Department Director. RoleSwitcher: +1 option. 7 page files updated with DepartmentDirector in RoleGate arrays. NotificationService: 18 recipient arrays updated. MockDataService bug fixes: relockScorecard creates approval cycle for startNewCycle=true; getScorecardByLeadId/getScorecards return reassembled scorecards; updateScorecard preserves workflow state fields; 4 defensive status guards added. RBAC table expanded to 13 columns. Added pitfalls #15-#17. |

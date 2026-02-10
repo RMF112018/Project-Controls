@@ -484,7 +484,7 @@ export const EstimatingDashboard: React.FC = () => {
 
   return (
     <RoleGate
-      allowedRoles={[RoleName.EstimatingCoordinator, RoleName.ExecutiveLeadership]}
+      allowedRoles={[RoleName.EstimatingCoordinator, RoleName.ExecutiveLeadership, RoleName.DepartmentDirector]}
       fallback={accessDenied}
     >
     <div>

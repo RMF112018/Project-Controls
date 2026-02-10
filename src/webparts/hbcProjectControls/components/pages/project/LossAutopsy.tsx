@@ -113,7 +113,7 @@ export const LossAutopsy: React.FC = () => {
         <p style={{ fontSize: 14, color: HBC_COLORS.gray600 }}>Preliminary Notes: {project.LossAutopsyNotes ?? '-'}</p>
       </div>
 
-      <RoleGate allowedRoles={[RoleName.BDRepresentative, RoleName.ExecutiveLeadership]} fallback={
+      <RoleGate allowedRoles={[RoleName.BDRepresentative, RoleName.ExecutiveLeadership, RoleName.DepartmentDirector]} fallback={
         <div style={cardStyle}><p style={{ color: HBC_COLORS.gray500 }}>Read-only access. Contact BD or Executive Leadership to edit.</p></div>
       }>
         <div style={cardStyle}>

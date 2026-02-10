@@ -294,7 +294,7 @@ export const MarketingDashboard: React.FC = () => {
   if (isLoading) return <LoadingSpinner label="Loading marketing records..." />;
 
   return (
-    <RoleGate allowedRoles={[RoleName.Marketing, RoleName.ExecutiveLeadership]}>
+    <RoleGate allowedRoles={[RoleName.Marketing, RoleName.ExecutiveLeadership, RoleName.DepartmentDirector]}>
       <FeatureGate featureName="MarketingProjectRecord">
         <div>
           <PageHeader

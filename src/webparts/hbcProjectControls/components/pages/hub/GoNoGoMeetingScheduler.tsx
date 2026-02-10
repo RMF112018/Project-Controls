@@ -30,9 +30,11 @@ export function GoNoGoMeetingScheduler(): React.ReactElement {
         ]);
         setLead(leadData);
 
-        // Get Executive Leadership emails for GNG committee
+        // Get Executive Leadership + Department Director emails for GNG committee
         const execRole = roles.find(r => r.Title === RoleName.ExecutiveLeadership);
-        setCommitteeEmails(execRole?.UserOrGroup ?? []);
+        const directorRole = roles.find(r => r.Title === RoleName.DepartmentDirector);
+        const emails = [...(execRole?.UserOrGroup ?? []), ...(directorRole?.UserOrGroup ?? [])];
+        setCommitteeEmails([...new Set(emails)]);
       } catch {
         // Error handled via empty state
       } finally {
@@ -98,7 +100,7 @@ export function GoNoGoMeetingScheduler(): React.ReactElement {
   const endDate = nextFriday.toISOString().split('T')[0];
 
   return (
-    <RoleGate allowedRoles={[RoleName.BDRepresentative, RoleName.ExecutiveLeadership]}>
+    <RoleGate allowedRoles={[RoleName.BDRepresentative, RoleName.ExecutiveLeadership, RoleName.DepartmentDirector]}>
       <PageHeader
         title={`Schedule Go/No-Go Meeting`}
         subtitle={`${lead.Title} — ${lead.ClientName ?? ''}`}

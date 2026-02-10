@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import { useLeads } from '../../hooks/useLeads';
 import { useEstimating } from '../../hooks/useEstimating';
+import { useActionInbox } from '../../hooks/useActionInbox';
 import { useResponsive } from '../../hooks/useResponsive';
 import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
@@ -26,7 +27,9 @@ import { LoadingSpinner } from '../../shared/LoadingSpinner';
 import { PipelineChart } from '../../shared/PipelineChart';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { RoleGate } from '../../guards/RoleGate';
-import { ILead, IEstimatingTracker, Stage, Region, Division, GoNoGoDecision, AwardStatus, RoleName } from '../../../models';
+import { ILead, IEstimatingTracker, IActionInboxItem, Stage, Region, Division, GoNoGoDecision, AwardStatus, RoleName, ActionPriority } from '../../../models';
+import { useAppContext } from '../../contexts/AppContext';
+import { ISelectedProject } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
 import {
   formatCurrencyCompact,
@@ -47,9 +50,12 @@ const REGION_COLORS = [HBC_COLORS.navy, HBC_COLORS.orange, HBC_COLORS.info, HBC_
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { setSelectedProject } = useAppContext();
   const { leads, isLoading: leadsLoading, fetchLeads } = useLeads();
   const { records, isLoading: estLoading, fetchRecords } = useEstimating();
+  const { items: actionItems, loading: actionLoading, totalCount: actionTotal, urgentCount, refresh: refreshActions } = useActionInbox();
   const { isMobile, isTablet } = useResponsive();
+  const [showAllActions, setShowAllActions] = React.useState(false);
 
   const [chartMode, setChartMode] = React.useState<'count' | 'value'>('count');
   const [yearFilter, setYearFilter] = React.useState<string>('All');
@@ -250,6 +256,31 @@ export const DashboardPage: React.FC = () => {
     })),
   [filteredLeads]);
 
+  const handleGoToAction = React.useCallback((item: IActionInboxItem) => {
+    if (item.routePath.startsWith('/operations/')) {
+      const proj: ISelectedProject = {
+        projectCode: item.projectCode,
+        projectName: item.projectName,
+        stage: Stage.ActiveConstruction,
+      };
+      setSelectedProject(proj);
+    }
+    navigate(item.routePath);
+  }, [navigate, setSelectedProject]);
+
+  const getRelativeTime = (dateStr: string): string => {
+    const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+    if (days === 0) return 'Today';
+    if (days === 1) return '1 day ago';
+    return `${days} days ago`;
+  };
+
+  const priorityDotColor = (priority: ActionPriority): string => {
+    if (priority === ActionPriority.Urgent) return HBC_COLORS.error;
+    if (priority === ActionPriority.Normal) return HBC_COLORS.warning;
+    return HBC_COLORS.success;
+  };
+
   if (leadsLoading || estLoading) return <LoadingSpinner label="Loading dashboard..." />;
 
   const kpiGridCols = isMobile ? 'repeat(2, 1fr)' : isTablet ? 'repeat(3, 1fr)' : 'repeat(auto-fit, minmax(200px, 1fr))';
@@ -298,6 +329,99 @@ export const DashboardPage: React.FC = () => {
             <option value="count">Count</option>
             <option value="value">Value</option>
           </Select>
+        </div>
+
+        {/* Action Inbox */}
+        <div style={{
+          backgroundColor: '#fff',
+          borderRadius: '8px',
+          padding: '16px 20px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          marginBottom: '24px',
+          border: urgentCount > 0 ? `1px solid ${HBC_COLORS.orange}` : `1px solid ${HBC_COLORS.gray200}`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: actionTotal > 0 ? '12px' : '0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '16px', fontWeight: 600, color: HBC_COLORS.navy }}>Action Required</span>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                minWidth: '22px', height: '22px', borderRadius: '11px', padding: '0 6px',
+                fontSize: '12px', fontWeight: 600, color: '#fff',
+                backgroundColor: urgentCount > 0 ? HBC_COLORS.orange : HBC_COLORS.gray400,
+              }}>
+                {actionTotal}
+              </span>
+            </div>
+            <button
+              onClick={() => { refreshActions(); }}
+              style={{
+                padding: '4px 12px', fontSize: '12px', color: HBC_COLORS.navy,
+                backgroundColor: 'transparent', border: `1px solid ${HBC_COLORS.gray300}`,
+                borderRadius: '4px', cursor: 'pointer',
+              }}
+            >
+              Refresh
+            </button>
+          </div>
+
+          {actionLoading ? (
+            <LoadingSpinner size="small" label="Loading actions..." />
+          ) : actionTotal === 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: HBC_COLORS.gray500, fontSize: '14px', padding: '8px 0' }}>
+              <span style={{ color: HBC_COLORS.success, fontSize: '18px' }}>&#10003;</span>
+              No pending actions
+            </div>
+          ) : (
+            <>
+              {(showAllActions ? actionItems : actionItems.slice(0, 5)).map(item => (
+                <div
+                  key={item.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 0',
+                    borderBottom: `1px solid ${HBC_COLORS.gray100}`,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', flex: 1, minWidth: 0 }}>
+                    <span style={{
+                      width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0, marginTop: '5px',
+                      backgroundColor: priorityDotColor(item.priority),
+                    }} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: '14px', color: HBC_COLORS.navy }}>{item.actionLabel}</div>
+                      <div style={{ fontSize: '12px', color: HBC_COLORS.gray600, marginTop: '2px' }}>
+                        {item.projectName}{item.projectCode ? ` — ${item.projectCode}` : ''}
+                      </div>
+                      <div style={{ fontSize: '11px', color: HBC_COLORS.gray400, marginTop: '2px' }}>
+                        Requested by {item.requestedBy} &middot; {getRelativeTime(item.requestedDate)}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleGoToAction(item)}
+                    style={{
+                      padding: '4px 12px', fontSize: '12px', color: HBC_COLORS.navy, fontWeight: 500,
+                      backgroundColor: HBC_COLORS.gray50, border: `1px solid ${HBC_COLORS.gray200}`,
+                      borderRadius: '4px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                    }}
+                  >
+                    Go &rarr;
+                  </button>
+                </div>
+              ))}
+              {actionTotal > 5 && (
+                <button
+                  onClick={() => setShowAllActions(!showAllActions)}
+                  style={{
+                    marginTop: '8px', padding: '4px 0', fontSize: '13px', color: HBC_COLORS.orange,
+                    backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 500,
+                  }}
+                >
+                  {showAllActions ? 'Show less' : `Show all (${actionTotal})`}
+                </button>
+              )}
+            </>
+          )}
         </div>
 
         {/* KPI Cards */}
@@ -465,7 +589,7 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Marketing Summary */}
-        <RoleGate allowedRoles={[RoleName.Marketing, RoleName.ExecutiveLeadership]}>
+        <RoleGate allowedRoles={[RoleName.Marketing, RoleName.ExecutiveLeadership, RoleName.DepartmentDirector]}>
           <div style={{ marginTop: '32px' }}>
             {sectionTitle('Marketing')}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto', gap: '16px', alignItems: 'center' }}>
@@ -484,7 +608,7 @@ export const DashboardPage: React.FC = () => {
         </RoleGate>
 
         {/* Preconstruction Summary */}
-        <RoleGate allowedRoles={[RoleName.BDRepresentative, RoleName.EstimatingCoordinator, RoleName.PreconstructionTeam, RoleName.ExecutiveLeadership]}>
+        <RoleGate allowedRoles={[RoleName.BDRepresentative, RoleName.EstimatingCoordinator, RoleName.PreconstructionTeam, RoleName.ExecutiveLeadership, RoleName.DepartmentDirector]}>
           <div style={{ marginTop: '32px' }}>
             {sectionTitle('Preconstruction')}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr) auto', gap: '16px', alignItems: 'center' }}>
@@ -505,7 +629,7 @@ export const DashboardPage: React.FC = () => {
         </RoleGate>
 
         {/* Operations Summary */}
-        <RoleGate allowedRoles={[RoleName.OperationsTeam, RoleName.ExecutiveLeadership, RoleName.RiskManagement, RoleName.QualityControl, RoleName.Safety]}>
+        <RoleGate allowedRoles={[RoleName.OperationsTeam, RoleName.ExecutiveLeadership, RoleName.DepartmentDirector, RoleName.RiskManagement, RoleName.QualityControl, RoleName.Safety]}>
           <div style={{ marginTop: '32px' }}>
             {sectionTitle('Operations')}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(2, 1fr) auto', gap: '16px', alignItems: 'center' }}>

@@ -249,7 +249,7 @@ export const WinLossRecorder: React.FC = () => {
     <div>
       <PageHeader title="Win/Loss Recorder" subtitle={`${project.Title} — ${project.ClientName}`} />
 
-      <RoleGate allowedRoles={[RoleName.BDRepresentative, RoleName.ExecutiveLeadership]} fallback={
+      <RoleGate allowedRoles={[RoleName.BDRepresentative, RoleName.ExecutiveLeadership, RoleName.DepartmentDirector]} fallback={
         <div style={cardStyle}><p style={{ color: HBC_COLORS.gray500 }}>You do not have permission to record win/loss decisions. Please contact BD or Executive Leadership.</p></div>
       }>
         {mode === 'choose' && (
