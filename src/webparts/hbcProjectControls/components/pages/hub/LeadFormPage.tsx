@@ -1,20 +1,26 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button, Input, Select } from '@fluentui/react-components';
 import { useLeads } from '../../hooks/useLeads';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useAppContext } from '../../contexts/AppContext';
 import { RoleGate } from '../../guards/RoleGate';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { ILeadFormData, Stage, Region, Sector, Division, DepartmentOfOrigin, DeliveryMethod, RoleName, NotificationEvent, AuditAction, EntityType } from '../../../models';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import { validateLeadForm } from '../../../utils/validators';
+import { useToast } from '../../shared/ToastContainer';
 
 export const LeadFormPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { createLead } = useLeads();
   const { notify } = useNotifications();
   const { currentUser, dataService } = useAppContext();
+  const { addToast } = useToast();
   const [formData, setFormData] = React.useState<Partial<ILeadFormData>>({
     Stage: Stage.LeadDiscovery,
   });
@@ -65,9 +71,11 @@ export const LeadFormPage: React.FC = () => {
         leadId: newLead.id,
         clientName: newLead.ClientName,
       }).catch(console.error);
+      addToast('Lead created successfully', 'success');
       navigate('/');
     } catch (err) {
       console.error('Failed to create lead:', err);
+      addToast('Failed to create lead', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -97,6 +105,7 @@ export const LeadFormPage: React.FC = () => {
         <PageHeader
           title="New Lead"
           subtitle={`Submitting as ${currentUser?.displayName || 'Unknown'}`}
+          breadcrumb={<Breadcrumb items={breadcrumbs} />}
           actions={
             <Button appearance="secondary" onClick={() => navigate(-1)}>Cancel</Button>
           }
@@ -105,7 +114,7 @@ export const LeadFormPage: React.FC = () => {
           backgroundColor: '#fff',
           borderRadius: '8px',
           padding: '24px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          boxShadow: ELEVATION.level1,
           maxWidth: '800px',
         }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>

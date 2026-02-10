@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-09 — Phase 18: Department Director Role + Go/No-Go Workflow Bug Fixes
+**Last Updated:** 2026-02-10 — UI Enhancement: Visual Polish, SkeletonLoader, Breadcrumbs, Toast, Deep Linking, Accessibility
 
 ---
 
@@ -109,7 +109,7 @@ src/webparts/hbcProjectControls/
 │   │   ├── ProjectRequiredRoute.tsx      # Shows "No Project Selected" if no selectedProject
 │   │   ├── RoleGate.tsx                  # Renders children only if user has allowed role
 │   │   └── index.ts
-│   ├── hooks/                             # 30 custom hooks (see §7 for service method mapping)
+│   ├── hooks/                             # 33 custom hooks (see §7 for service method mapping)
 │   │   ├── useActionInbox.ts             # Action inbox aggregation with auto-refresh
 │   │   ├── useActiveProjects.ts          # Active projects portfolio
 │   │   ├── useBuyoutLog.ts              # Buyout log CRUD
@@ -119,6 +119,7 @@ src/webparts/hbcProjectControls/
 │   │   ├── useEstimatingKickoff.ts      # Estimating kickoff CRUD + items
 │   │   ├── useGoNoGo.ts                 # Go/No-Go scorecards
 │   │   ├── useJobNumberRequest.ts       # Job number requests + reference data
+│   │   ├── useKeyboardShortcut.ts      # Global keyboard shortcut registration
 │   │   ├── useLeads.ts                  # Leads CRUD + search
 │   │   ├── useLessonsLearned.ts         # Lessons learned CRUD
 │   │   ├── useMarketingRecord.ts        # Marketing project records
@@ -126,6 +127,7 @@ src/webparts/hbcProjectControls/
 │   │   ├── useMonthlyReview.ts          # Monthly review workflow
 │   │   ├── useNotifications.ts          # Notification send + fetch
 │   │   ├── usePermission.ts             # Single permission check (boolean)
+│   │   ├── usePersistedState.ts         # SessionStorage-backed state persistence
 │   │   ├── usePostBidAutopsy.ts         # Post-bid autopsy + finalization
 │   │   ├── useProjectManagementPlan.ts  # PMP with approvals + signatures
 │   │   ├── useProjectSchedule.ts        # Schedule + critical path items
@@ -137,6 +139,7 @@ src/webparts/hbcProjectControls/
 │   │   ├── useSelectedProject.ts        # Selected project from context
 │   │   ├── useStartupChecklist.ts       # Startup checklist CRUD
 │   │   ├── useSuperintendentPlan.ts     # Superintendent plan sections
+│   │   ├── useTabFromUrl.ts            # URL-synced tab state for deep linking
 │   │   ├── useTurnoverAgenda.ts       # Turnover meeting agenda CRUD + computed state + workflow
 │   │   ├── useWorkflow.ts              # Composite workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy, stage transitions)
 │   │   ├── useWorkflowDefinitions.ts  # Workflow definition CRUD + resolution
@@ -205,9 +208,12 @@ src/webparts/hbcProjectControls/
 │   │   │   └── index.ts
 │   │   └── shared/
 │   │       └── AccessDeniedPage.tsx
-│   └── shared/                           # 25 reusable components (see §5)
+│   └── shared/                           # 31 reusable components (see §5)
+│       ├── ActivityTimeline.tsx
 │       ├── AutopsyMeetingScheduler.tsx
 │       ├── AzureADPeoplePicker.tsx
+│       ├── Breadcrumb.tsx
+│       ├── CollapsibleSection.tsx
 │       ├── ConditionBuilder.tsx
 │       ├── ConfirmDialog.tsx
 │       ├── DataTable.tsx
@@ -224,10 +230,13 @@ src/webparts/hbcProjectControls/
 │       ├── ProvisioningStatus.tsx
 │       ├── ScoreTierBadge.tsx
 │       ├── SearchBar.tsx
+│       ├── SkeletonLoader.tsx
+│       ├── SlideDrawer.tsx
 │       ├── StageBadge.tsx
 │       ├── StageIndicator.tsx
 │       ├── StatusBadge.tsx
 │       ├── SyncStatusIndicator.tsx
+│       ├── ToastContainer.tsx
 │       ├── WhatsNewModal.tsx
 │       ├── WorkflowPreview.tsx
 │       ├── WorkflowStepCard.tsx
@@ -257,8 +266,9 @@ src/webparts/hbcProjectControls/
 ├── theme/
 │   ├── globalStyles.ts                   # Global CSS injection
 │   ├── hbcTheme.ts                      # Fluent UI v9 theme
-│   └── tokens.ts                        # HBC_COLORS, BREAKPOINTS, SPACING
+│   └── tokens.ts                        # HBC_COLORS, BREAKPOINTS, SPACING, ELEVATION, TRANSITION
 └── utils/
+    ├── breadcrumbs.ts                    # Route-to-breadcrumb builder
     ├── buyoutTemplate.ts                 # 20 standard buyout divisions (CSI MasterFormat)
     ├── constants.ts                      # HUB_LISTS, PROJECT_LISTS, ROUTES, STAGE_ORDER, STAGE_COLORS, etc.
     ├── estimatingKickoffTemplate.ts     # 3 sections, 58 template items
@@ -401,8 +411,11 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 
 | Component | File | Key Props | Used By (approx) |
 |-----------|------|-----------|-------------------|
+| ActivityTimeline | components/shared/ActivityTimeline.tsx | entries: ITimelineEntry[], maxItems?, emptyMessage? | ~0 (available) |
 | AutopsyMeetingScheduler | components/shared/AutopsyMeetingScheduler.tsx | attendeeEmails, leadId?, projectCode?, onScheduled?, onCancel? | ~1 |
 | AzureADPeoplePicker | components/shared/AzureADPeoplePicker.tsx | selectedUser, onSelect, label?, placeholder?, disabled? | ~2 |
+| Breadcrumb | components/shared/Breadcrumb.tsx | items: IBreadcrumbItem[] | ~38 |
+| CollapsibleSection | components/shared/CollapsibleSection.tsx | title, subtitle?, defaultExpanded?, badge?, children | ~0 (available) |
 | ConditionBuilder | components/shared/ConditionBuilder.tsx | assignment, onChange, onRemove, disabled? | ~1 |
 | ConfirmDialog | components/shared/ConfirmDialog.tsx | open, title, message, confirmLabel?, cancelLabel?, onConfirm, onCancel, danger? | ~1 |
 | DataTable | components/shared/DataTable.tsx | columns: IDataTableColumn<T>[], items, keyExtractor, isLoading?, onRowClick?, sortField?, onSort?, pageSize? | ~12 |
@@ -419,10 +432,13 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | ProvisioningStatus | components/shared/ProvisioningStatus.tsx | projectCode, log?, pollInterval?, compact? | ~3 |
 | ScoreTierBadge | components/shared/ScoreTierBadge.tsx | score, showLabel? | ~3 |
 | SearchBar | components/shared/SearchBar.tsx | placeholder? | 1 (AppShell) |
+| SkeletonLoader | components/shared/SkeletonLoader.tsx | variant: 'table'\|'kpi-grid'\|'form'\|'card'\|'text', rows?, columns?, style? | ~37 |
+| SlideDrawer | components/shared/SlideDrawer.tsx | isOpen, onClose, title?, width?, children | ~0 (available) |
 | StageBadge | components/shared/StageBadge.tsx | stage, size? ('small'\|'medium') | ~4 |
 | StageIndicator | components/shared/StageIndicator.tsx | currentStage, size? | ~1 |
 | StatusBadge | components/shared/StatusBadge.tsx | label, color, backgroundColor, size? | ~5 |
 | SyncStatusIndicator | components/shared/SyncStatusIndicator.tsx | (none) | 1 (AppShell) |
+| ToastProvider/useToast | components/shared/ToastContainer.tsx | children (provider), addToast(message, type?, duration?) (hook) | 1 (App.tsx) + 5 pages |
 | WhatsNewModal | components/shared/WhatsNewModal.tsx | isOpen, onClose | 1 (AppShell) |
 | WorkflowPreview | components/shared/WorkflowPreview.tsx | workflowKey, onClose | ~1 |
 | WorkflowStepCard | components/shared/WorkflowStepCard.tsx | step, isExpanded, onToggle, onUpdateStep, onAddCondition, onUpdateCondition, onRemoveCondition, disabled? | ~1 |
@@ -1254,6 +1270,13 @@ BREAKPOINTS = { mobile: 768, tablet: 1024, desktop: 1024 }
 SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px' }
 ```
 
+### UI Constants (theme/tokens.ts)
+
+```typescript
+ELEVATION = { level1: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)', level2: '0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06)', level3: '0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05)', level4: '0 20px 25px rgba(0,0,0,0.1), 0 10px 10px rgba(0,0,0,0.04)' }
+TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
+```
+
 ---
 
 ## §14 File Naming & Conventions
@@ -1312,6 +1335,7 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 
 | 17 | Scorecard Unlock Fix, Director Role & Action Inbox — Bug fixes: getCurrentUser() returns real user from users.json per role (was hardcoded devuser email); canUnlock checks approval chain participants + Executive Leadership; canReview/canEnterCommitteeScores/canDecide grant Executive Leadership role-based access; respondToScorecardSubmission reassembles cycles defensively; submitScorecard looks up submitter displayName from users. New Action Inbox: aggregation widget on DashboardPage showing pending workflow items across 5 workflow types for current user. | IActionInbox.ts, useActionInbox.ts | MockDataService.ts (getCurrentUser role-to-user mapping, submitScorecard displayName lookup, respondToScorecardSubmission defensive reassembly, +getActionItems aggregation), useGoNoGo.ts (canUnlock/canReview/canEnterCommitteeScores/canDecide fixes), enums.ts (+2 enums), models/index.ts, IDataService.ts (+1 method, 172 total), SharePointDataService.ts (+1 stub), hooks/index.ts, DashboardPage.tsx (+Action Inbox section) |
 | 18 | Department Director Role + Go/No-Go Workflow Bug Fixes — 13th RBAC role (DepartmentDirector) for non-C-suite directors (e.g., Director of Precon). Bug fixes: relockScorecard(startNewCycle:true) now creates approval cycle directly; getScorecardByLeadId/getScorecards return reassembled scorecards; updateScorecard preserves workflow state fields; defensive status guards on 4 mutation methods. | (none) | enums.ts (+DepartmentDirector), permissions.ts (+ROLE_PERMISSIONS entry, +NAV_GROUP_ROLES), useGoNoGo.ts (isExecLeadership→isDirectorOrExec, 5 locations), MockDataService.ts (relockScorecard cycle creation, getScorecardByLeadId/getScorecards reassembly, updateScorecard preservation, 4 status guards, getActionItems DepartmentDirector check), users.json (David Park→Department Director), RoleSwitcher.tsx (+1 option), DashboardPage.tsx (+3 RoleGate), GoNoGoMeetingScheduler.tsx (+DepartmentDirector attendees + RoleGate), ActiveProjectsDashboard.tsx (+RoleGate), MarketingDashboard.tsx (+RoleGate), EstimatingDashboard.tsx (+RoleGate), WinLossRecorder.tsx (+RoleGate), LossAutopsy.tsx (+RoleGate), NotificationService.ts (+Department Director to 18 recipient arrays) |
+| 19 | UI Enhancements — 4-batch visual polish, information architecture, collaborative UI, and accessibility improvements across the entire app | Breadcrumb.tsx, SkeletonLoader.tsx, CollapsibleSection.tsx, SlideDrawer.tsx, ToastContainer.tsx, ActivityTimeline.tsx, usePersistedState.ts, useTabFromUrl.ts, useKeyboardShortcut.ts, breadcrumbs.ts | App.tsx (ToastProvider), AppShell.tsx (skip-link, print styles, ARIA landmarks, SkeletonLoader), tokens.ts (ELEVATION, TRANSITION), globalStyles.ts, KPICard.tsx, DataTable.tsx, 37 page files (SkeletonLoader replacing LoadingSpinner), 38 page files (Breadcrumb integration), AdminPanel.tsx (useTabFromUrl), TurnoverToOps.tsx (useTabFromUrl), LeadFormPage/LeadDetailPage/GoNoGoScorecard/BuyoutLogPage/ProjectStartupChecklist (useToast) |
 
 ### Known Stubs / Placeholders
 
@@ -1366,6 +1390,12 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 16. **relockScorecard(startNewCycle: true) creates its own approval cycle** — The `relockScorecard()` method in MockDataService creates a 2-step approval cycle directly when `startNewCycle=true`. The caller (GoNoGoScorecard.tsx `handleRelock()`) does NOT need to also call `submitScorecard()`. This is different from the initial submission flow.
 
 17. **updateScorecard() preserves workflow state** — `updateScorecard()` explicitly preserves `approvalCycles`, `versions`, `scorecardStatus`, `isLocked`, `currentVersion`, and `currentApprovalStep`. To modify these fields, use the dedicated methods (`submitScorecard`, `respondToScorecardSubmission`, `enterCommitteeScores`, `recordFinalDecision`, `unlockScorecard`, `relockScorecard`).
+
+18. **SkeletonLoader replaces LoadingSpinner for full-page loading** — All page-level loading states now use `<SkeletonLoader variant="...">` instead of `<LoadingSpinner>`. Only use `LoadingSpinner` for inline/small loading indicators (e.g., `size="small"` within a section). The variant should match the page content: `table` for DataTable pages, `form` for form pages, `card` for detail views, `kpi-grid` for dashboard KPI sections.
+
+19. **ToastProvider must wrap HashRouter** — The `ToastProvider` in App.tsx must be inside `AppProvider` (needs context) but outside `HashRouter`. Toast messages use `useToast()` hook — never create custom inline toast divs. Toast types: `success`, `error`, `warning`, `info`.
+
+20. **useTabFromUrl for deep-linkable tabs** — Tabbed pages (AdminPanel, TurnoverToOps) use `useTabFromUrl` hook to sync tab state with URL `?tab=` parameter. Pages that already use route-based tabs (EstimatingDashboard, ResponsibilityMatrices) should NOT use this hook — they are already URL-driven via `navigate()`.
 
 ---
 

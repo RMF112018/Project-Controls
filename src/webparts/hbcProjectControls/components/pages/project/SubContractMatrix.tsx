@@ -11,14 +11,14 @@ import {
 } from '../../../models/IResponsibilityMatrix';
 import { AuditAction, EntityType } from '../../../models';
 import { ExportButtons } from '../../shared/ExportButtons';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 
 /* ---------- Styles ---------- */
 const cardStyle: React.CSSProperties = {
   backgroundColor: HBC_COLORS.white,
   borderRadius: '8px',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  boxShadow: ELEVATION.level1,
   padding: '24px',
   marginBottom: '16px',
 };
@@ -241,7 +241,7 @@ export const SubContractMatrix: React.FC = () => {
   };
 
   /* Loading / Error */
-  if (isLoading) return <LoadingSpinner label="Loading sub-contract matrix..." />;
+  if (isLoading) return <SkeletonLoader variant="table" rows={10} columns={7} />;
   if (error) return <div style={{ color: HBC_COLORS.error, padding: '24px' }}>{error}</div>;
 
   return (

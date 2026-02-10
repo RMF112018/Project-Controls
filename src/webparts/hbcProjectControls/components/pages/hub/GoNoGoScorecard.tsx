@@ -1,12 +1,14 @@
 import * as React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button, Input, Select, Textarea } from '@fluentui/react-components';
 import { useGoNoGo } from '../../hooks/useGoNoGo';
 import { useLeads } from '../../hooks/useLeads';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ScoreTierBadge } from '../../shared/ScoreTierBadge';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { ConfirmDialog } from '../../shared/ConfirmDialog';
@@ -30,9 +32,10 @@ import {
   AuditAction,
   EntityType,
 } from '../../../models';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 import { PERMISSIONS } from '../../../utils/permissions';
 import { ExportService } from '../../../services/ExportService';
+import { useToast } from '../../shared/ToastContainer';
 import {
   calculateTotalScore,
   getScoreTier,
@@ -82,6 +85,8 @@ const STATUS_COLORS: Record<ScorecardStatus, { bg: string; color: string }> = {
 export const GoNoGoScorecard: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { dataService, currentUser, hasPermission } = useAppContext();
   const {
     getScorecardByLeadId, createScorecard, updateScorecard,
@@ -103,8 +108,7 @@ export const GoNoGoScorecard: React.FC = () => {
   const [qualFields, setQualFields] = React.useState<Record<string, string | number>>({});
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
-  const [toastMessage, setToastMessage] = React.useState('');
-  const [toastType, setToastType] = React.useState<'success' | 'warning' | 'error'>('success');
+  const { addToast } = useToast();
   const [provisioningCode, setProvisioningCode] = React.useState<string | null>(null);
   const [showKickoffScheduler, setShowKickoffScheduler] = React.useState(false);
   const [kickoffAttendees, setKickoffAttendees] = React.useState<string[]>([]);
@@ -228,12 +232,6 @@ export const GoNoGoScorecard: React.FC = () => {
   const origPct = getCompletionPercentage(scores, 'originator');
   const cmtePct = getCompletionPercentage(scores, 'committee');
 
-  const showToast = (message: string, type: 'success' | 'warning' | 'error' = 'success'): void => {
-    setToastMessage(message);
-    setToastType(type);
-    setTimeout(() => setToastMessage(''), 5000);
-  };
-
   const handleSave = async (): Promise<IScorecardModel> => {
     setIsSaving(true);
     try {
@@ -261,7 +259,7 @@ export const GoNoGoScorecard: React.FC = () => {
         UserId: currentUser?.id,
         Details: `Scorecard saved for "${lead?.Title}" (Originator: ${origTotal}, Committee: ${cmteTotal})`,
       }).catch(console.error);
-      showToast('Scorecard saved successfully');
+      addToast('Scorecard saved successfully');
       return saved;
     } finally {
       setIsSaving(false);
@@ -285,10 +283,10 @@ export const GoNoGoScorecard: React.FC = () => {
         submittedBy: currentUser?.displayName,
       }).catch(console.error);
 
-      showToast('Scorecard submitted for Director review');
+      addToast('Scorecard submitted for Director review');
     } catch (err) {
       console.error('Failed to submit scorecard:', err);
-      showToast('Failed to submit scorecard', 'error');
+      addToast('Failed to submit scorecard', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -303,18 +301,18 @@ export const GoNoGoScorecard: React.FC = () => {
       setReturnComment('');
 
       if (approved) {
-        showToast('Scorecard accepted. Committee scoring is now open.');
+        addToast('Scorecard accepted. Committee scoring is now open.');
       } else {
         notify(NotificationEvent.ScorecardReturnedForRevision, {
           leadTitle: lead?.Title,
           leadId,
           returnComment,
         }).catch(console.error);
-        showToast('Scorecard returned for revision', 'warning');
+        addToast('Scorecard returned for revision', 'warning');
       }
     } catch (err) {
       console.error('Failed to respond to submission:', err);
-      showToast('Failed to process response', 'error');
+      addToast('Failed to process response', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -338,10 +336,10 @@ export const GoNoGoScorecard: React.FC = () => {
         committeeTotal: cmteTotal,
       }).catch(console.error);
 
-      showToast('Committee scores finalized. Ready for decision.');
+      addToast('Committee scores finalized. Ready for decision.');
     } catch (err) {
       console.error('Failed to save committee scores:', err);
-      showToast('Failed to save committee scores', 'error');
+      addToast('Failed to save committee scores', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -413,7 +411,7 @@ export const GoNoGoScorecard: React.FC = () => {
           setPostGoRedirect(`/job-request/${leadId}`);
         }
 
-        showToast(
+        addToast(
           decisionChoice === GoNoGoDecision.Go
             ? `GO decision recorded. Project code ${projectCode} assigned.`
             : `CONDITIONAL GO decision recorded. Conditions documented.`
@@ -426,7 +424,7 @@ export const GoNoGoScorecard: React.FC = () => {
           GoNoGoScore_Originator: origTotal,
           GoNoGoScore_Committee: cmteTotal,
         });
-        showToast('NO GO decision recorded. Lead archived.', 'warning');
+        addToast('NO GO decision recorded. Lead archived.', 'warning');
       }
 
       notify(NotificationEvent.ScorecardDecisionRecorded, {
@@ -448,7 +446,7 @@ export const GoNoGoScorecard: React.FC = () => {
       }).catch(console.error);
     } catch (err) {
       console.error('Failed to record decision:', err);
-      showToast('Failed to record decision', 'error');
+      addToast('Failed to record decision', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -470,10 +468,10 @@ export const GoNoGoScorecard: React.FC = () => {
         reason: unlockReason,
       }).catch(console.error);
 
-      showToast('Scorecard unlocked for editing', 'warning');
+      addToast('Scorecard unlocked for editing', 'warning');
     } catch (err) {
       console.error('Failed to unlock scorecard:', err);
-      showToast('Failed to unlock scorecard', 'error');
+      addToast('Failed to unlock scorecard', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -488,10 +486,10 @@ export const GoNoGoScorecard: React.FC = () => {
       const updated = await relockScorecard(scorecard!.id, startNewCycle);
       setScorecard(updated);
       setShowRelockOptions(false);
-      showToast(startNewCycle ? 'Scorecard submitted for re-approval' : 'Scorecard re-locked');
+      addToast(startNewCycle ? 'Scorecard submitted for re-approval' : 'Scorecard re-locked');
     } catch (err) {
       console.error('Failed to re-lock scorecard:', err);
-      showToast('Failed to re-lock scorecard', 'error');
+      addToast('Failed to re-lock scorecard', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -509,12 +507,12 @@ export const GoNoGoScorecard: React.FC = () => {
     }));
   }, [scores]);
 
-  if (isLoading) return <LoadingSpinner label="Loading scorecard..." />;
+  if (isLoading) return <SkeletonLoader variant="form" rows={10} />;
   if (!lead) return <div style={{ padding: '24px', color: HBC_COLORS.error }}>Lead not found</div>;
 
   const labelStyle: React.CSSProperties = { fontSize: '13px', fontWeight: 500, color: HBC_COLORS.gray700, marginBottom: '4px', display: 'block' };
   const fieldStyle: React.CSSProperties = { marginBottom: '16px' };
-  const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: '8px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' };
+  const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: '8px', padding: '24px', boxShadow: ELEVATION.level1, marginBottom: '24px' };
 
   // Get return comments from latest approval cycle
   const activeCycle = scorecard?.approvalCycles?.find(c => c.status === 'Active');
@@ -528,6 +526,7 @@ export const GoNoGoScorecard: React.FC = () => {
       <PageHeader
         title={`Go/No-Go Scorecard`}
         subtitle={`${lead.Title} — ${lead.ClientName}`}
+        breadcrumb={<Breadcrumb items={breadcrumbs} />}
         actions={
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {/* Status Badge */}
@@ -553,25 +552,6 @@ export const GoNoGoScorecard: React.FC = () => {
           </div>
         }
       />
-
-      {/* Toast */}
-      {toastMessage && (
-        <div style={{
-          padding: '12px 16px',
-          marginBottom: '16px',
-          backgroundColor: toastType === 'success' ? HBC_COLORS.successLight
-            : toastType === 'warning' ? '#FEF3C7'
-            : '#FEE2E2',
-          color: toastType === 'success' ? '#065F46'
-            : toastType === 'warning' ? '#92400E'
-            : '#991B1B',
-          borderRadius: '6px',
-          fontSize: '13px',
-          fontWeight: 500,
-        }}>
-          {toastMessage}
-        </div>
-      )}
 
       {/* Status-specific Banners */}
       {currentStatus === ScorecardStatus.ReturnedForRevision && returnedStep && (
@@ -670,7 +650,7 @@ export const GoNoGoScorecard: React.FC = () => {
       {scorecard?.finalDecision === GoNoGoDecision.ConditionalGo && scorecard.conditionalGoConditions && (
         <div style={{
           ...cardStyle,
-          borderLeft: `4px solid ${HBC_COLORS.warning}`,
+          ...RISK_INDICATOR.style(RISK_INDICATOR.colors.warning),
         }}>
           <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#92400E', margin: '0 0 8px 0' }}>
             Conditional Go — Required Conditions
@@ -688,14 +668,14 @@ export const GoNoGoScorecard: React.FC = () => {
         gap: '16px',
         marginBottom: '24px',
       }}>
-        <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '16px', boxShadow: ELEVATION.level1 }}>
           <div style={{ fontSize: '13px', color: HBC_COLORS.gray500, marginBottom: '4px' }}>Originator Score</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <ScoreTierBadge score={origTotal} showLabel />
             <span style={{ fontSize: '12px', color: HBC_COLORS.gray400 }}>{origPct}% complete</span>
           </div>
         </div>
-        <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '16px', boxShadow: ELEVATION.level1 }}>
           <div style={{ fontSize: '13px', color: HBC_COLORS.gray500, marginBottom: '4px' }}>Committee Score</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <ScoreTierBadge score={cmteTotal} showLabel />
@@ -708,7 +688,7 @@ export const GoNoGoScorecard: React.FC = () => {
       <div style={{
         backgroundColor: '#fff',
         borderRadius: '8px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        boxShadow: ELEVATION.level1,
         overflow: 'auto',
         marginBottom: '24px',
       }}>
@@ -930,11 +910,11 @@ export const GoNoGoScorecard: React.FC = () => {
       {currentStatus === ScorecardStatus.PendingDecision && recommendedDecision && (
         <div style={{
           ...cardStyle,
-          borderLeft: `4px solid ${
-            recommendedDecision.decision === GoNoGoDecision.Go ? HBC_COLORS.success
-            : recommendedDecision.decision === GoNoGoDecision.NoGo ? HBC_COLORS.error
-            : HBC_COLORS.warning
-          }`,
+          ...RISK_INDICATOR.style(
+            recommendedDecision.decision === GoNoGoDecision.Go ? RISK_INDICATOR.colors.success
+            : recommendedDecision.decision === GoNoGoDecision.NoGo ? RISK_INDICATOR.colors.critical
+            : RISK_INDICATOR.colors.warning
+          ),
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
@@ -1303,7 +1283,7 @@ export const GoNoGoScorecard: React.FC = () => {
             padding: '24px',
             maxWidth: '480px',
             width: '100%',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            boxShadow: ELEVATION.level4,
           }}>
             <h3 style={{ fontSize: '16px', fontWeight: 600, color: HBC_COLORS.navy, margin: '0 0 16px 0' }}>
               Submit Scorecard for Review
@@ -1345,7 +1325,7 @@ export const GoNoGoScorecard: React.FC = () => {
             padding: '24px',
             maxWidth: '480px',
             width: '100%',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            boxShadow: ELEVATION.level4,
           }}>
             <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#92400E', margin: '0 0 16px 0' }}>
               Return for Revision
@@ -1391,7 +1371,7 @@ export const GoNoGoScorecard: React.FC = () => {
             padding: '24px',
             maxWidth: '480px',
             width: '100%',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            boxShadow: ELEVATION.level4,
           }}>
             <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#9A3412', margin: '0 0 16px 0' }}>
               Unlock Scorecard

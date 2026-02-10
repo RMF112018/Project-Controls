@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { IPersonAssignment } from '../../models/IWorkflowDefinition';
-import { HBC_COLORS } from '../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
 import mockUsers from '../../mock/users.json';
 
 interface IAzureADPeoplePickerProps {
@@ -134,7 +134,7 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = ({
           backgroundColor: '#fff',
           border: `1px solid ${HBC_COLORS.gray200}`,
           borderRadius: '6px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+          boxShadow: ELEVATION.level3,
           maxHeight: '240px',
           overflow: 'auto',
           marginTop: '2px',

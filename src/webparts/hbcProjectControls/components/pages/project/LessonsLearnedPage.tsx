@@ -1,10 +1,13 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLessonsLearned } from '../../hooks/useLessonsLearned';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
+import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 import { PERMISSIONS } from '../../../utils/permissions';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { AuditAction, EntityType } from '../../../models/enums';
 import { LessonCategory, LessonImpact } from '../../../models/ILessonsLearned';
 
@@ -16,9 +19,11 @@ const IMPACT_COLORS: Record<string, string> = { Positive: HBC_COLORS.success, Ne
 const ALL_CATEGORIES: LessonCategory[] = ['Cost', 'Schedule', 'Quality', 'Safety', 'Communication', 'Subcontractor', 'Design', 'Client', 'Other'];
 const ALL_IMPACTS: LessonImpact[] = ['Positive', 'Negative', 'Neutral'];
 
-const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 12 };
+const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 20, boxShadow: ELEVATION.level1, marginBottom: 12 };
 
 export const LessonsLearnedPage: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
   const { lessons, isLoading, error, fetchLessons, addLesson, updateLesson } = useLessonsLearned();
   const projectCode = selectedProject?.projectCode ?? '';
@@ -53,14 +58,14 @@ export const LessonsLearnedPage: React.FC = () => {
     await updateLesson(projectCode, lessonId, { isIncludedInFinalRecord: !current });
   }, [projectCode, updateLesson]);
 
-  if (isLoading) return <LoadingSpinner label="Loading lessons learned..." />;
+  if (isLoading) return <SkeletonLoader variant="table" rows={6} columns={4} />;
   if (error) return <div style={{ padding: 24, color: HBC_COLORS.error }}>{error}</div>;
 
   const inputStyle: React.CSSProperties = { border: `1px solid ${HBC_COLORS.gray200}`, borderRadius: 4, padding: '8px', fontSize: 13, width: '100%' };
 
   return (
     <div>
-      <PageHeader title="Lessons Learned" subtitle={projectCode} />
+      <PageHeader title="Lessons Learned" subtitle={projectCode} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
       {/* Filter bar */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ border: `1px solid ${HBC_COLORS.gray200}`, borderRadius: 4, padding: '6px 8px', fontSize: 13 }}>
@@ -76,7 +81,7 @@ export const LessonsLearnedPage: React.FC = () => {
       </div>
       {/* Add form */}
       {showAddForm && (
-        <div style={{ ...cardStyle, borderLeft: `4px solid ${HBC_COLORS.orange}` }}>
+        <div style={{ ...cardStyle, ...RISK_INDICATOR.style(HBC_COLORS.orange) }}>
           <h4 style={{ margin: '0 0 12px', color: HBC_COLORS.navy }}>New Lesson Learned</h4>
           <div style={{ display: 'grid', gap: 12 }}>
             <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Title" style={inputStyle} />
@@ -99,7 +104,7 @@ export const LessonsLearnedPage: React.FC = () => {
       )}
       {/* Lessons list */}
       {filtered.map(l => (
-        <div key={l.id} style={{ ...cardStyle, borderLeft: `4px solid ${CATEGORY_COLORS[l.category]}` }}>
+        <div key={l.id} style={{ ...cardStyle, ...RISK_INDICATOR.style(CATEGORY_COLORS[l.category]) }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
             <h4 style={{ margin: 0, fontSize: 14, color: HBC_COLORS.navy }}>{l.title}</h4>
             <div style={{ display: 'flex', gap: 6 }}>

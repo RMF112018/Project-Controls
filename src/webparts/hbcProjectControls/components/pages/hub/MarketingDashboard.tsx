@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useMarketingRecord } from '../../hooks/useMarketingRecord';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLeads } from '../../hooks/useLeads';
@@ -6,12 +7,14 @@ import { PERMISSIONS } from '../../../utils/permissions';
 import { RoleGate } from '../../guards/RoleGate';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { KPICard } from '../../shared/KPICard';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { IMarketingProjectRecord, RoleName } from '../../../models';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import { formatCurrency, formatDate, formatPercent } from '../../../utils/formatters';
 
 // ---------------------------------------------------------------------------
@@ -20,7 +23,7 @@ import { formatCurrency, formatDate, formatPercent } from '../../../utils/format
 const cardStyle: React.CSSProperties = {
   backgroundColor: HBC_COLORS.white,
   borderRadius: '8px',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  boxShadow: ELEVATION.level1,
   padding: '24px',
   marginBottom: '16px',
 };
@@ -127,6 +130,8 @@ const InlineDetail: React.FC<{ record: IMarketingProjectRecord }> = ({ record })
 // Main Component
 // ---------------------------------------------------------------------------
 export const MarketingDashboard: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { allRecords, isLoading, fetchAllRecords } = useMarketingRecord();
 
   const [searchText, setSearchText] = React.useState('');
@@ -291,7 +296,7 @@ export const MarketingDashboard: React.FC = () => {
   // We handle expansion outside the DataTable via a custom render approach
   // ---------------------------------------------------------------------------
 
-  if (isLoading) return <LoadingSpinner label="Loading marketing records..." />;
+  if (isLoading) return (<div><SkeletonLoader variant="kpi-grid" columns={4} style={{ marginBottom: '24px' }} /><SkeletonLoader variant="table" rows={6} columns={5} /></div>);
 
   return (
     <RoleGate allowedRoles={[RoleName.Marketing, RoleName.ExecutiveLeadership, RoleName.DepartmentDirector]}>
@@ -300,6 +305,7 @@ export const MarketingDashboard: React.FC = () => {
           <PageHeader
             title="Marketing Project Records"
             subtitle={`${totalProjects} project${totalProjects !== 1 ? 's' : ''} tracked`}
+            breadcrumb={<Breadcrumb items={breadcrumbs} />}
             actions={
               <ExportButtons
                 data={allRecords.map(r => r as unknown as Record<string, unknown>)}
@@ -361,7 +367,7 @@ export const MarketingDashboard: React.FC = () => {
           </div>
 
           {/* Data Table with custom expand */}
-          <div style={{ backgroundColor: HBC_COLORS.white, borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+          <div style={{ backgroundColor: HBC_COLORS.white, borderRadius: '8px', boxShadow: ELEVATION.level1, overflow: 'hidden' }}>
             <DataTable<IMarketingProjectRecord>
               columns={columns}
               items={sortedRecords}
@@ -381,7 +387,7 @@ export const MarketingDashboard: React.FC = () => {
             const expandedRecord = sortedRecords.find(r => r.projectCode === expandedCode);
             if (!expandedRecord) return null;
             return (
-              <div style={{ marginTop: '-8px', marginBottom: '16px', borderRadius: '0 0 8px 8px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+              <div style={{ marginTop: '-8px', marginBottom: '16px', borderRadius: '0 0 8px 8px', overflow: 'hidden', boxShadow: ELEVATION.level1 }}>
                 <div style={{ padding: '8px 16px', backgroundColor: HBC_COLORS.navy, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '14px', fontWeight: 600, color: HBC_COLORS.white }}>
                     {expandedRecord.projectName} ({expandedRecord.projectCode})

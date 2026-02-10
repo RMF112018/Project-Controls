@@ -4,7 +4,7 @@ import { useAppContext } from '../../contexts/AppContext';
 import { useWorkflowDefinitions } from '../../hooks/useWorkflowDefinitions';
 import { WorkflowStepCard } from '../../shared/WorkflowStepCard';
 import { WorkflowPreview } from '../../shared/WorkflowPreview';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import {
   IWorkflowDefinition,
   IWorkflowStep,
@@ -100,7 +100,7 @@ export const WorkflowDefinitionsPanel: React.FC = () => {
   };
 
   if (loading && workflows.length === 0) {
-    return <LoadingSpinner label="Loading workflow definitions..." />;
+    return <SkeletonLoader variant="card" />;
   }
 
   return (

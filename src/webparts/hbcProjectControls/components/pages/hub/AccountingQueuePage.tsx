@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { useAppContext } from '../../contexts/AppContext';
 import { useJobNumberRequest } from '../../hooks/useJobNumberRequest';
@@ -10,6 +11,8 @@ import { ILead } from '../../../models/ILead';
 import { NotificationService } from '../../../services/NotificationService';
 import { ProvisioningService } from '../../../services/ProvisioningService';
 import { MockHubNavigationService } from '../../../services/HubNavigationService';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 
 const PROJECT_CODE_REGEX = /^\d{2}-\d{3}-\d{2}$/;
 
@@ -25,6 +28,8 @@ export const AccountingQueuePage: React.FC = () => {
 };
 
 const AccountingQueueContent: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { dataService, currentUser } = useAppContext();
   const { requests, fetchRequests, finalizeJobNumber } = useJobNumberRequest();
   const { leads, fetchLeads, getLeadById } = useLeads();

@@ -1,9 +1,11 @@
 import * as React from 'react';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { useLocation } from 'react-router-dom';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import { useAppContext } from '../../contexts/AppContext';
 import { useStartupChecklist } from '../../hooks/useStartupChecklist';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ExportButtons } from '../../shared/ExportButtons';
 import {
   IStartupChecklistItem,
@@ -16,6 +18,8 @@ import {
   EntityType,
 } from '../../../models';
 import { PERMISSIONS } from '../../../utils/permissions';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import { useToast } from '../../shared/ToastContainer';
 import { formatDateTime } from '../../../utils/formatters';
 
 /* ---------- Status color map ---------- */
@@ -39,7 +43,7 @@ const STATUS_LABELS: Record<ChecklistStatus, string> = {
 const cardStyle: React.CSSProperties = {
   backgroundColor: HBC_COLORS.white,
   borderRadius: '8px',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  boxShadow: ELEVATION.level1,
   padding: '24px',
   marginBottom: '16px',
 };
@@ -88,6 +92,8 @@ const SummaryBadges: React.FC<{ summary: IStartupChecklistSummary; small?: boole
 
 /* ---------- Main Component ---------- */
 export const ProjectStartupChecklist: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { selectedProject, hasPermission, currentUser, dataService } = useAppContext();
   const {
     items,
@@ -101,6 +107,7 @@ export const ProjectStartupChecklist: React.FC = () => {
     getSectionSummary,
   } = useStartupChecklist();
 
+  const { addToast } = useToast();
   const canEdit = hasPermission(PERMISSIONS.STARTUP_CHECKLIST_EDIT);
   const canSignOff = hasPermission(PERMISSIONS.STARTUP_CHECKLIST_SIGNOFF);
 
@@ -224,6 +231,7 @@ export const ProjectStartupChecklist: React.FC = () => {
     setAddingInSection(null);
     setNewItemLabel('');
     setNewItemResponseType('yesNoNA');
+    addToast('Custom item added', 'success');
   };
 
   const handleSignOff = (): void => {
@@ -236,6 +244,7 @@ export const ProjectStartupChecklist: React.FC = () => {
       User: currentUser.email,
       Details: `Checklist signed off by ${currentUser.displayName}`,
     }).catch(console.error);
+    addToast('Checklist signed off', 'success');
   };
 
   /* ---------- Render helpers ---------- */
@@ -562,7 +571,7 @@ export const ProjectStartupChecklist: React.FC = () => {
   };
 
   /* ---------- Render ---------- */
-  if (isLoading) return <LoadingSpinner label="Loading startup checklist..." />;
+  if (isLoading) return <SkeletonLoader variant="table" rows={10} columns={4} />;
 
   if (error) {
     return (
@@ -578,6 +587,7 @@ export const ProjectStartupChecklist: React.FC = () => {
       <PageHeader
         title="Project Startup Checklist"
         subtitle={selectedProject?.projectCode ? `Project: ${selectedProject?.projectCode}` : undefined}
+        breadcrumb={<Breadcrumb items={breadcrumbs} />}
         actions={
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {canSignOff && (

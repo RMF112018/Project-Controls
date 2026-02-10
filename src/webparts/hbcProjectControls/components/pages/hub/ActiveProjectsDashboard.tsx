@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Select, Input, Button } from '@fluentui/react-components';
 import {
   BarChart,
@@ -18,16 +18,18 @@ import { useResponsive } from '../../hooks/useResponsive';
 import { useAppContext } from '../../contexts/AppContext';
 import { Stage } from '../../../models/enums';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { KPICard } from '../../shared/KPICard';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { StatusBadge } from '../../shared/StatusBadge';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { RoleGate } from '../../guards/RoleGate';
 import { IActiveProject, ProjectStatus, SectorType } from '../../../models/IActiveProject';
 import { RoleName } from '../../../models/enums';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import { formatCurrencyCompact, formatPercent } from '../../../utils/formatters';
 
 // Status colors
@@ -51,6 +53,8 @@ const ALERT_COLORS = {
 
 export const ActiveProjectsDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { isMobile, isTablet } = useResponsive();
   const { setSelectedProject } = useAppContext();
   const {
@@ -298,7 +302,12 @@ export const ActiveProjectsDashboard: React.FC = () => {
     })),
   [filteredProjects]);
 
-  if (isLoading && !summary) return <LoadingSpinner label="Loading portfolio..." />;
+  if (isLoading && !summary) return (
+    <div>
+      <SkeletonLoader variant="kpi-grid" columns={isMobile ? 2 : 6} style={{ marginBottom: '24px' }} />
+      <SkeletonLoader variant="table" rows={8} columns={6} />
+    </div>
+  );
 
   const kpiGridCols = isMobile ? 'repeat(2, 1fr)' : isTablet ? 'repeat(3, 1fr)' : 'repeat(auto-fit, minmax(180px, 1fr))';
   const chartGridCols = isMobile ? '1fr' : '1fr 1fr';
@@ -307,7 +316,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
     backgroundColor: '#fff',
     borderRadius: '8px',
     padding: '20px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    boxShadow: ELEVATION.level1,
   };
 
   const sectionTitle = (text: string): React.ReactNode => (
@@ -329,6 +338,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
           <PageHeader
             title="Active Projects Portfolio"
             subtitle="Real-time portfolio-wide view of financial and operational health"
+            breadcrumb={<Breadcrumb items={breadcrumbs} />}
             actions={
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <Button
@@ -406,7 +416,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
             padding: '16px',
             backgroundColor: '#fff',
             borderRadius: '8px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            boxShadow: ELEVATION.level1,
           }}>
             <Input
               placeholder="Search projects..."
@@ -579,7 +589,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
                         padding: '8px 12px',
                         borderRadius: '6px',
                         cursor: 'pointer',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                        boxShadow: ELEVATION.level1,
                       }}
                       onClick={() => { setSelectedProject({ projectCode: p.projectCode, projectName: p.projectName, stage: Stage.ActiveConstruction, region: p.region }); navigate('/operations/project'); }}
                     >

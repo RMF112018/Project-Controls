@@ -1,10 +1,13 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import { useMonthlyReview } from '../../hooks/useMonthlyReview';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import { PERMISSIONS } from '../../../utils/permissions';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { AuditAction, EntityType } from '../../../models/enums';
 import { MonthlyReviewStatus, MONTHLY_CHECKLIST_SECTIONS, IMonthlyChecklistItem } from '../../../models/IMonthlyProjectReview';
 
@@ -14,9 +17,11 @@ const STATUS_LABELS: Record<string, string> = {
   PMRevising: 'PM Revising', PendingPXValidation: 'PX Validation', SubmittedToLeadership: 'Leadership', FollowUpPending: 'Follow-Up', Complete: 'Complete',
 };
 
-const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 12 };
+const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 20, boxShadow: ELEVATION.level1, marginBottom: 12 };
 
 export const MonthlyProjectReview: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
   const { reviews, currentReview, isLoading, error, fetchReviews, createReview, updateReview, advanceStatus, addFollowUp, selectReview } = useMonthlyReview();
   const projectCode = selectedProject?.projectCode ?? '';
@@ -65,7 +70,7 @@ export const MonthlyProjectReview: React.FC = () => {
     setNewFollowUpQuestion('');
   }, [currentReview, newFollowUpQuestion, addFollowUp, currentUser]);
 
-  if (isLoading) return <LoadingSpinner label="Loading monthly reviews..." />;
+  if (isLoading) return <SkeletonLoader variant="table" rows={6} columns={4} />;
   if (error) return <div style={{ padding: 24, color: HBC_COLORS.error }}>{error}</div>;
 
   const getNextStatus = (): { label: string; status: MonthlyReviewStatus } | null => {
@@ -85,7 +90,7 @@ export const MonthlyProjectReview: React.FC = () => {
 
   return (
     <div>
-      <PageHeader title="Monthly Project Review" subtitle={projectCode} />
+      <PageHeader title="Monthly Project Review" subtitle={projectCode} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
       {/* Review selector */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
         <select value={currentReview?.id ?? ''} onChange={e => selectReview(parseInt(e.target.value))} style={{ border: `1px solid ${HBC_COLORS.gray200}`, borderRadius: 4, padding: '8px 12px', fontSize: 13 }}>

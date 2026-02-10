@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Select } from '@fluentui/react-components';
 import {
   LineChart,
@@ -18,19 +18,23 @@ import {
 import { useLeads } from '../../hooks/useLeads';
 import { useEstimating } from '../../hooks/useEstimating';
 import { useActionInbox } from '../../hooks/useActionInbox';
+import { usePersistedState } from '../../hooks/usePersistedState';
 import { useResponsive } from '../../hooks/useResponsive';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { KPICard } from '../../shared/KPICard';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { PipelineChart } from '../../shared/PipelineChart';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { RoleGate } from '../../guards/RoleGate';
 import { ILead, IEstimatingTracker, IActionInboxItem, Stage, Region, Division, GoNoGoDecision, AwardStatus, RoleName, ActionPriority } from '../../../models';
 import { useAppContext } from '../../contexts/AppContext';
 import { ISelectedProject } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import {
   formatCurrencyCompact,
   formatDate,
@@ -50,6 +54,8 @@ const REGION_COLORS = [HBC_COLORS.navy, HBC_COLORS.orange, HBC_COLORS.info, HBC_
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { setSelectedProject } = useAppContext();
   const { leads, isLoading: leadsLoading, fetchLeads } = useLeads();
   const { records, isLoading: estLoading, fetchRecords } = useEstimating();
@@ -58,9 +64,9 @@ export const DashboardPage: React.FC = () => {
   const [showAllActions, setShowAllActions] = React.useState(false);
 
   const [chartMode, setChartMode] = React.useState<'count' | 'value'>('count');
-  const [yearFilter, setYearFilter] = React.useState<string>('All');
-  const [regionFilter, setRegionFilter] = React.useState<string>('All');
-  const [divisionFilter, setDivisionFilter] = React.useState<string>('All');
+  const [yearFilter, setYearFilter] = usePersistedState<string>('dashboard-year', 'All');
+  const [regionFilter, setRegionFilter] = usePersistedState<string>('dashboard-region', 'All');
+  const [divisionFilter, setDivisionFilter] = usePersistedState<string>('dashboard-division', 'All');
 
   React.useEffect(() => {
     fetchLeads().catch(console.error);
@@ -281,7 +287,12 @@ export const DashboardPage: React.FC = () => {
     return HBC_COLORS.success;
   };
 
-  if (leadsLoading || estLoading) return <LoadingSpinner label="Loading dashboard..." />;
+  if (leadsLoading || estLoading) return (
+    <div>
+      <SkeletonLoader variant="kpi-grid" columns={isMobile ? 2 : 6} style={{ marginBottom: '32px' }} />
+      <SkeletonLoader variant="table" rows={5} columns={5} />
+    </div>
+  );
 
   const kpiGridCols = isMobile ? 'repeat(2, 1fr)' : isTablet ? 'repeat(3, 1fr)' : 'repeat(auto-fit, minmax(200px, 1fr))';
   const chartGridCols = isMobile ? '1fr' : '1fr 1fr';
@@ -290,7 +301,7 @@ export const DashboardPage: React.FC = () => {
     backgroundColor: '#fff',
     borderRadius: '8px',
     padding: '20px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    boxShadow: ELEVATION.level1,
   };
 
   const sectionTitle = (text: string): React.ReactNode => (
@@ -302,6 +313,7 @@ export const DashboardPage: React.FC = () => {
         <PageHeader
           title="Executive Dashboard"
           subtitle="Organization-wide project pipeline overview"
+          breadcrumb={<Breadcrumb items={breadcrumbs} />}
           actions={
             <ExportButtons
               data={exportData}
@@ -336,7 +348,7 @@ export const DashboardPage: React.FC = () => {
           backgroundColor: '#fff',
           borderRadius: '8px',
           padding: '16px 20px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          boxShadow: ELEVATION.level1,
           marginBottom: '24px',
           border: urgentCount > 0 ? `1px solid ${HBC_COLORS.orange}` : `1px solid ${HBC_COLORS.gray200}`,
         }}>

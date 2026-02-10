@@ -6,7 +6,7 @@ import { useLeads } from '../hooks/useLeads';
 import { IResolvedWorkflowStep } from '../../models/IWorkflowDefinition';
 import { WorkflowKey, Stage } from '../../models/enums';
 import { ISelectedProject } from '../contexts/AppContext';
-import { HBC_COLORS } from '../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
 import { isActiveStage } from '../../utils/stageEngine';
 import { LoadingSpinner } from './LoadingSpinner';
 
@@ -98,7 +98,7 @@ export const WorkflowPreview: React.FC<IWorkflowPreviewProps> = ({ workflowKey, 
         width: '560px',
         maxHeight: '80vh',
         overflow: 'auto',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+        boxShadow: ELEVATION.level4,
       }}>
         {/* Header */}
         <div style={{
@@ -154,7 +154,7 @@ export const WorkflowPreview: React.FC<IWorkflowPreviewProps> = ({ workflowKey, 
                 backgroundColor: '#fff',
                 border: `1px solid ${HBC_COLORS.gray200}`,
                 borderRadius: '6px',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                boxShadow: ELEVATION.level3,
                 maxHeight: '200px',
                 overflow: 'auto',
                 marginTop: '2px',

@@ -1,9 +1,12 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useLeads } from '../../hooks/useLeads';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { ExportButtons } from '../../shared/ExportButtons';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ILead, GoNoGoDecision } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { formatDate } from '../../../utils/formatters';
@@ -13,6 +16,8 @@ const CheckIcon: React.FC = () => (
 );
 
 export const GoNoGoTracker: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { leads, isLoading, fetchLeads } = useLeads();
   const [regionFilter, setRegionFilter] = React.useState('All');
   const [sortField, setSortField] = React.useState<string>('');
@@ -73,7 +78,7 @@ export const GoNoGoTracker: React.FC = () => {
     })),
   [filtered]);
 
-  if (isLoading) return <LoadingSpinner label="Loading Go/No-Go data..." />;
+  if (isLoading) return <SkeletonLoader variant="table" rows={8} columns={5} />;
 
   const selectStyle: React.CSSProperties = {
     padding: '6px 10px', borderRadius: '6px', border: `1px solid ${HBC_COLORS.gray200}`,
@@ -85,6 +90,7 @@ export const GoNoGoTracker: React.FC = () => {
       <PageHeader
         title="Go/No-Go Tracker"
         subtitle="All Go/No-Go decisions from Leads Master"
+        breadcrumb={<Breadcrumb items={breadcrumbs} />}
         actions={
           <ExportButtons
             data={exportData}

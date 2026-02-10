@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { HBC_COLORS, SPACING } from '../../../theme/tokens';
 import { MeetingType, RoleName, ILead, IMeeting, NotificationEvent, AuditAction, EntityType } from '../../../models';
 import { useAppContext } from '../../contexts/AppContext';
@@ -7,12 +7,16 @@ import { useLeads } from '../../hooks/useLeads';
 import { useNotifications } from '../../hooks/useNotifications';
 import { MeetingScheduler } from '../../shared/MeetingScheduler';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
 
 export function GoNoGoMeetingScheduler(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { dataService, currentUser } = useAppContext();
   const { getLeadById } = useLeads();
   const { notify } = useNotifications();
@@ -76,7 +80,7 @@ export function GoNoGoMeetingScheduler(): React.ReactElement {
   }, [id, navigate]);
 
   if (loading) {
-    return <LoadingSpinner label="Loading..." />;
+    return <SkeletonLoader variant="form" rows={4} />;
   }
 
   if (!lead) {
@@ -104,6 +108,7 @@ export function GoNoGoMeetingScheduler(): React.ReactElement {
       <PageHeader
         title={`Schedule Go/No-Go Meeting`}
         subtitle={`${lead.Title} — ${lead.ClientName ?? ''}`}
+        breadcrumb={<Breadcrumb items={breadcrumbs} />}
       />
       <div style={{ padding: SPACING.md }}>
         <MeetingScheduler

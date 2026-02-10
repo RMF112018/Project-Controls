@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { useAppContext } from '../../contexts/AppContext';
 import { useJobNumberRequest } from '../../hooks/useJobNumberRequest';
@@ -10,6 +10,8 @@ import { NotificationEvent } from '../../../models/enums';
 import { NotificationService } from '../../../services/NotificationService';
 import { ProvisioningService } from '../../../services/ProvisioningService';
 import { MockHubNavigationService } from '../../../services/HubNavigationService';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 
 const ESTIMATING_DEFAULT_CODES = ['01-01-413', '01-01-025', '01-01-311', '01-01-302'];
 
@@ -17,6 +19,8 @@ export const JobNumberRequestForm: React.FC = () => {
   const { leadId: leadIdParam } = useParams<{ leadId: string }>();
   const leadId = leadIdParam ? Number(leadIdParam) : Number.NaN;
   const navigate = useNavigate();
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { dataService, currentUser } = useAppContext();
   const { projectTypes, costCodes, fetchReferenceData, createRequest, fetchRequestByLeadId } = useJobNumberRequest();
   const { leads, fetchLeads, getLeadById } = useLeads();

@@ -1,16 +1,19 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLeads } from '../../hooks/useLeads';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
 import { ILead, RoleName } from '../../../models';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: '#fff', borderRadius: 8, padding: 24,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 24,
+  boxShadow: ELEVATION.level1, marginBottom: 24,
 };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: HBC_COLORS.gray600, marginBottom: 4 };
 const inputStyle: React.CSSProperties = {
@@ -20,6 +23,8 @@ const inputStyle: React.CSSProperties = {
 const textareaStyle: React.CSSProperties = { ...inputStyle, minHeight: 80, resize: 'vertical' as const };
 
 export const InterviewPrep: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { selectedProject } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
   const { interviewPrep, fetchInterviewPrep, saveInterviewPrep, scheduleRedTeamReview, teamMembers, fetchTeamMembers } = useWorkflow();
@@ -81,12 +86,12 @@ export const InterviewPrep: React.FC = () => {
     setToast('Red Team Review meeting scheduled.');
   };
 
-  if (leadsLoading) return <LoadingSpinner label="Loading..." />;
+  if (leadsLoading) return <SkeletonLoader variant="form" rows={6} />;
   if (!project) return <div style={{ padding: 48, textAlign: 'center', color: HBC_COLORS.gray500 }}><h2>Project not found</h2></div>;
 
   return (
     <div>
-      <PageHeader title="Interview Preparation" subtitle={`${project.Title} — ${project.ClientName}`} />
+      <PageHeader title="Interview Preparation" subtitle={`${project.Title} — ${project.ClientName}`} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
       {toast && <div style={{ padding: '12px 16px', backgroundColor: '#D1FAE5', color: '#065F46', borderRadius: 6, marginBottom: 16, fontSize: 14 }}>{toast}</div>}
 
       <RoleGate allowedRoles={[RoleName.BDRepresentative, RoleName.Marketing]} fallback={

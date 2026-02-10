@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Input } from '@fluentui/react-components';
 import { useAppContext } from '../contexts/AppContext';
 import { ILead, IEstimatingTracker, IGoNoGoScorecard } from '../../models';
-import { HBC_COLORS } from '../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
 import { formatCurrencyCompact } from '../../utils/formatters';
 
 interface ISearchBarProps {
@@ -239,7 +239,7 @@ export const SearchBar: React.FC<ISearchBarProps> = ({ placeholder = 'Search pro
           right: 0,
           backgroundColor: '#fff',
           borderRadius: '0 0 8px 8px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+          boxShadow: ELEVATION.level3,
           zIndex: 1000,
         }}>
           <div style={{ padding: '8px 16px', fontSize: '11px', fontWeight: 600, color: HBC_COLORS.gray400, textTransform: 'uppercase' }}>
@@ -274,7 +274,7 @@ export const SearchBar: React.FC<ISearchBarProps> = ({ placeholder = 'Search pro
           right: 0,
           backgroundColor: '#fff',
           borderRadius: '0 0 8px 8px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+          boxShadow: ELEVATION.level3,
           zIndex: 1000,
           maxHeight: '400px',
           overflow: 'auto',

@@ -1,10 +1,14 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { Button } from '@fluentui/react-components';
 import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { ProvisioningStatusView } from '../../shared/ProvisioningStatus';
 import { RoleGate } from '../../guards/RoleGate';
@@ -23,11 +27,21 @@ import { MockHubNavigationService } from '../../../services/HubNavigationService
 import { HubNavLinkStatus } from '../../../models/IProvisioningLog';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { WorkflowDefinitionsPanel } from './WorkflowDefinitionsPanel';
+import { useTabFromUrl } from '../../hooks/useTabFromUrl';
 import { HBC_COLORS, SPACING } from '../../../theme/tokens';
 import { formatDateTime } from '../../../utils/formatters';
 import { PERMISSIONS } from '../../../utils/permissions';
 
-const TABS = ['Connections', 'Roles', 'Feature Flags', 'Provisioning', 'Workflows', 'Audit Log'] as const;
+const TAB_KEYS = ['connections', 'roles', 'flags', 'provisioning', 'workflows', 'audit'] as const;
+type AdminTab = typeof TAB_KEYS[number];
+const TAB_LABELS: Record<AdminTab, string> = {
+  connections: 'Connections',
+  roles: 'Roles',
+  flags: 'Feature Flags',
+  provisioning: 'Provisioning',
+  workflows: 'Workflows',
+  audit: 'Audit Log',
+};
 
 interface IConnectionEntry {
   id: number;
@@ -104,8 +118,10 @@ function getStatusBadgeColor(status: ProvisioningStatus): string {
 }
 
 export const AdminPanel: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { dataService, currentUser, hasPermission } = useAppContext();
-  const [activeTab, setActiveTab] = React.useState(0);
+  const [activeTab, setActiveTab] = useTabFromUrl<AdminTab>('connections', TAB_KEYS);
 
   // -- Connection Testing state --
   const [connections, setConnections] = React.useState<IConnectionEntry[]>(INITIAL_CONNECTIONS);
@@ -164,16 +180,16 @@ export const AdminPanel: React.FC = () => {
 
   // Load data based on active tab
   React.useEffect(() => {
-    if (activeTab === 1 && roles.length === 0) {
+    if (activeTab === 'roles' && roles.length === 0) {
       setRolesLoading(true);
       dataService.getRoles().then(setRoles).catch(console.error).finally(() => setRolesLoading(false));
-    } else if (activeTab === 2 && flags.length === 0) {
+    } else if (activeTab === 'flags' && flags.length === 0) {
       setFlagsLoading(true);
       dataService.getFeatureFlags().then(setFlags).catch(console.error).finally(() => setFlagsLoading(false));
-    } else if (activeTab === 3 && logs.length === 0) {
+    } else if (activeTab === 'provisioning' && logs.length === 0) {
       setProvLoading(true);
       dataService.getProvisioningLogs().then(setLogs).catch(console.error).finally(() => setProvLoading(false));
-    } else if (activeTab === 5 && auditEntries.length === 0) {
+    } else if (activeTab === 'audit' && auditEntries.length === 0) {
       setAuditLoading(true);
       dataService.getAuditLog(undefined, undefined, auditStartDate, auditEndDate)
         .then(setAuditEntries).catch(console.error).finally(() => setAuditLoading(false));
@@ -182,7 +198,7 @@ export const AdminPanel: React.FC = () => {
 
   // Provisioning polling
   React.useEffect(() => {
-    if (activeTab !== 3) return;
+    if (activeTab !== 'provisioning') return;
     const hasActive = logs.some(l => l.status === ProvisioningStatus.InProgress || l.status === ProvisioningStatus.Queued);
     if (!hasActive) return;
     const interval = setInterval(() => {
@@ -455,13 +471,13 @@ export const AdminPanel: React.FC = () => {
     })),
   [filteredAudit]);
 
-  const tabStyle = (idx: number): React.CSSProperties => ({
+  const tabStyle = (key: AdminTab): React.CSSProperties => ({
     padding: '10px 20px',
     cursor: 'pointer',
     fontSize: '14px',
-    fontWeight: activeTab === idx ? 600 : 400,
-    color: activeTab === idx ? HBC_COLORS.navy : HBC_COLORS.gray500,
-    borderBottom: activeTab === idx ? `3px solid ${HBC_COLORS.navy}` : '3px solid transparent',
+    fontWeight: activeTab === key ? 600 : 400,
+    color: activeTab === key ? HBC_COLORS.navy : HBC_COLORS.gray500,
+    borderBottom: activeTab === key ? `3px solid ${HBC_COLORS.navy}` : '3px solid transparent',
     transition: 'all 0.2s',
   });
 
@@ -480,19 +496,19 @@ export const AdminPanel: React.FC = () => {
         </div>
       }
     >
-      <PageHeader title="Admin Panel" subtitle="System administration and configuration" />
+      <PageHeader title="Admin Panel" subtitle="System administration and configuration" breadcrumb={<Breadcrumb items={breadcrumbs} />} />
 
       {/* Tab Bar */}
       <div style={{ display: 'flex', borderBottom: `1px solid ${HBC_COLORS.gray200}`, marginBottom: '20px' }}>
-        {TABS.map((label, idx) => (
-          <div key={label} style={tabStyle(idx)} onClick={() => setActiveTab(idx)}>
-            {label}
+        {TAB_KEYS.map((key) => (
+          <div key={key} style={tabStyle(key)} onClick={() => setActiveTab(key)}>
+            {TAB_LABELS[key]}
           </div>
         ))}
       </div>
 
       {/* Tab 1: Connection Testing */}
-      {activeTab === 0 && (
+      {activeTab === 'connections' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
             <Button appearance="primary" size="small" onClick={() => { handleTestAll().catch(console.error); }}>
@@ -600,9 +616,9 @@ export const AdminPanel: React.FC = () => {
       )}
 
       {/* Tab 2: Roles Management */}
-      {activeTab === 1 && (
+      {activeTab === 'roles' && (
         hasPermission(PERMISSIONS.ADMIN_ROLES) ? (
-          rolesLoading ? <LoadingSpinner label="Loading roles..." /> : (
+          rolesLoading ? <SkeletonLoader variant="table" rows={5} columns={4} /> : (
             <DataTable<IRole>
               columns={roleColumns}
               items={roles}
@@ -618,9 +634,9 @@ export const AdminPanel: React.FC = () => {
       )}
 
       {/* Tab 3: Feature Flags */}
-      {activeTab === 2 && (
+      {activeTab === 'flags' && (
         hasPermission(PERMISSIONS.ADMIN_FLAGS) ? (
-          flagsLoading ? <LoadingSpinner label="Loading feature flags..." /> : (
+          flagsLoading ? <SkeletonLoader variant="table" rows={5} columns={4} /> : (
             <DataTable<IFeatureFlag>
               columns={flagColumns}
               items={flags}
@@ -636,9 +652,9 @@ export const AdminPanel: React.FC = () => {
       )}
 
       {/* Tab 4: Provisioning Queue */}
-      {activeTab === 3 && (
+      {activeTab === 'provisioning' && (
         hasPermission(PERMISSIONS.ADMIN_PROVISIONING) ? (
-          provLoading && logs.length === 0 ? <LoadingSpinner label="Loading provisioning logs..." /> : (
+          provLoading && logs.length === 0 ? <SkeletonLoader variant="table" rows={5} columns={5} /> : (
             <>
               <DataTable<IProvisioningLog>
                 columns={provColumns}
@@ -674,7 +690,7 @@ export const AdminPanel: React.FC = () => {
       )}
 
       {/* Tab 5: Workflows */}
-      {activeTab === 4 && (
+      {activeTab === 'workflows' && (
         hasPermission(PERMISSIONS.WORKFLOW_MANAGE) ? (
           <FeatureGate featureName="WorkflowDefinitions">
             <WorkflowDefinitionsPanel />
@@ -687,7 +703,7 @@ export const AdminPanel: React.FC = () => {
       )}
 
       {/* Tab 6: Audit Log */}
-      {activeTab === 5 && (
+      {activeTab === 'audit' && (
         <div>
           {auditEntries.length > 5000 && (
             <div style={{
@@ -732,7 +748,7 @@ export const AdminPanel: React.FC = () => {
               title="Audit Log"
             />
           </div>
-          {auditLoading ? <LoadingSpinner label="Loading audit log..." /> : (
+          {auditLoading ? <SkeletonLoader variant="table" rows={8} columns={5} /> : (
             <DataTable<IAuditEntry>
               columns={auditColumns}
               items={filteredAudit}

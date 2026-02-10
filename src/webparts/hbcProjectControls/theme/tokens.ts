@@ -1,3 +1,5 @@
+import * as React from 'react';
+
 export const HBC_COLORS = {
   // Primary brand
   navy: '#1B2A4A',
@@ -52,3 +54,25 @@ export const SPACING = {
   xl: '32px',
   xxl: '48px',
 } as const;
+
+export const ELEVATION = {
+  level0: 'none',
+  level1: '0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.1)',
+  level2: '0 2px 6px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.08)',
+  level3: '0 4px 16px rgba(0,0,0,0.12)',
+  level4: '0 8px 32px rgba(0,0,0,0.18)',
+} as const;
+
+export const RISK_INDICATOR = {
+  style: (color: string, glow?: boolean): React.CSSProperties => ({
+    borderLeft: `4px solid ${color}`,
+    ...(glow ? { boxShadow: `inset 3px 0 8px -4px ${color}40` } : {}),
+  }),
+  colors: {
+    critical: HBC_COLORS.error,
+    warning: HBC_COLORS.warning,
+    success: HBC_COLORS.success,
+    info: HBC_COLORS.info,
+    neutral: HBC_COLORS.gray300,
+  },
+};

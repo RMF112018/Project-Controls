@@ -1,10 +1,12 @@
 import * as React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from '@fluentui/react-components';
 import { useGoNoGo } from '../../hooks/useGoNoGo';
 import { useLeads } from '../../hooks/useLeads';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ScoreTierBadge } from '../../shared/ScoreTierBadge';
 import { ExportButtons } from '../../shared/ExportButtons';
 import {
@@ -13,7 +15,7 @@ import {
   ILead,
   GoNoGoDecision,
 } from '../../../models';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import {
   calculateTotalScore,
   getScoreTierColor,
@@ -23,6 +25,8 @@ import {
 export const GoNoGoDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { getScorecardByLeadId } = useGoNoGo();
   const { getLeadById } = useLeads();
 
@@ -51,7 +55,7 @@ export const GoNoGoDetail: React.FC = () => {
     load().catch(console.error);
   }, [leadId, getLeadById, getScorecardByLeadId]);
 
-  if (isLoading) return <LoadingSpinner label="Loading scorecard..." />;
+  if (isLoading) return <SkeletonLoader variant="card" />;
   if (!lead || !scorecard) {
     return (
       <div style={{ padding: '24px', textAlign: 'center' }}>
@@ -86,6 +90,7 @@ export const GoNoGoDetail: React.FC = () => {
       <PageHeader
         title="Scorecard Detail"
         subtitle={`${lead.Title} — ${lead.ClientName}`}
+        breadcrumb={<Breadcrumb items={breadcrumbs} />}
         actions={
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <ExportButtons
@@ -146,14 +151,14 @@ export const GoNoGoDetail: React.FC = () => {
         gap: '16px',
         marginBottom: '24px',
       }}>
-        <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '16px', boxShadow: ELEVATION.level1 }}>
           <div style={{ fontSize: '13px', color: HBC_COLORS.gray500, marginBottom: '8px' }}>Originator Score</div>
           <ScoreTierBadge score={origTotal} showLabel />
           {scorecard.ScoredBy_Orig && (
             <div style={{ fontSize: '11px', color: HBC_COLORS.gray400, marginTop: '6px' }}>{scorecard.ScoredBy_Orig}</div>
           )}
         </div>
-        <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '16px', boxShadow: ELEVATION.level1 }}>
           <div style={{ fontSize: '13px', color: HBC_COLORS.gray500, marginBottom: '8px' }}>Committee Score</div>
           <ScoreTierBadge score={cmteTotal} showLabel />
           {scorecard.ScoredBy_Cmte && (
@@ -162,7 +167,7 @@ export const GoNoGoDetail: React.FC = () => {
             </div>
           )}
         </div>
-        <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '16px', boxShadow: ELEVATION.level1 }}>
           <div style={{ fontSize: '13px', color: HBC_COLORS.gray500, marginBottom: '8px' }}>Difference</div>
           <span style={{
             fontSize: '24px',
@@ -181,7 +186,7 @@ export const GoNoGoDetail: React.FC = () => {
       <div style={{
         backgroundColor: '#fff',
         borderRadius: '8px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        boxShadow: ELEVATION.level1,
         overflow: 'auto',
         marginBottom: '24px',
       }}>
@@ -280,7 +285,7 @@ export const GoNoGoDetail: React.FC = () => {
         backgroundColor: '#fff',
         borderRadius: '8px',
         padding: '24px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        boxShadow: ELEVATION.level1,
         marginBottom: '24px',
       }}>
         <h3 style={{ fontSize: '16px', fontWeight: 600, color: HBC_COLORS.navy, margin: '0 0 16px 0' }}>
