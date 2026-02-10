@@ -98,7 +98,8 @@ export enum RoleName {
   Marketing = 'Marketing',
   QualityControl = 'Quality Control',
   Safety = 'Safety',
-  IDS = 'IDS'
+  IDS = 'IDS',
+  DepartmentDirector = 'Department Director'
 }
 
 export enum ProvisioningStatus {

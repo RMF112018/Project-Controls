@@ -1156,12 +1156,13 @@ export class MockDataService implements IDataService {
 
   public async getScorecardByLeadId(leadId: number): Promise<IGoNoGoScorecard | null> {
     await delay();
-    return this.scorecards.find(s => s.LeadID === leadId) ?? null;
+    const sc = this.scorecards.find(s => s.LeadID === leadId);
+    return sc ? this.assembleScorecard(sc) : null;
   }
 
   public async getScorecards(): Promise<IGoNoGoScorecard[]> {
     await delay();
-    return [...this.scorecards];
+    return this.scorecards.map(sc => this.assembleScorecard(sc));
   }
 
   public async createScorecard(data: Partial<IGoNoGoScorecard>): Promise<IGoNoGoScorecard> {
@@ -1211,7 +1212,17 @@ export class MockDataService implements IDataService {
       throw new Error(`Scorecard with id ${id} not found`);
     }
 
-    this.scorecards[index] = { ...this.scorecards[index], ...data };
+    const existing = this.scorecards[index];
+    // Preserve workflow state fields — callers should use dedicated methods to modify these
+    const preserved = {
+      approvalCycles: existing.approvalCycles,
+      versions: existing.versions,
+      scorecardStatus: existing.scorecardStatus,
+      isLocked: existing.isLocked,
+      currentVersion: existing.currentVersion,
+      currentApprovalStep: existing.currentApprovalStep,
+    };
+    this.scorecards[index] = { ...existing, ...data, ...preserved };
     return { ...this.scorecards[index] };
   }
 
@@ -1288,13 +1299,18 @@ export class MockDataService implements IDataService {
       status: 'Active',
     };
 
+    // Look up the submitter's display name from users list
+    const submitterUser = this.users.find(
+      (u: { email: string }) => u.email.toLowerCase() === submittedBy.toLowerCase()
+    );
+
     const step1: IScorecardApprovalStep = {
       id: this.getNextId(),
       cycleId,
       stepOrder: 1,
       name: 'BD Rep Submission',
       assigneeEmail: submittedBy,
-      assigneeName: submittedBy,
+      assigneeName: submitterUser?.displayName ?? submittedBy,
       assignmentSource: 'Default',
       status: 'Approved',
       actionDate: new Date().toISOString().split('T')[0],
@@ -1336,10 +1352,20 @@ export class MockDataService implements IDataService {
     await delay();
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
 
+    if (scorecard.scorecardStatus !== ScorecardStatus.Submitted) {
+      throw new Error(`Cannot respond: scorecard is in ${scorecard.scorecardStatus} state`);
+    }
+
+    // Reassemble approval cycles from flat arrays if missing (defensive)
+    if (!scorecard.approvalCycles || scorecard.approvalCycles.length === 0) {
+      const reassembled = this.assembleScorecard(scorecard);
+      scorecard.approvalCycles = reassembled.approvalCycles;
+    }
+
     const activeCycle = scorecard.approvalCycles?.find(c => c.status === 'Active');
     if (!activeCycle) throw new Error('No active approval cycle found');
 
-    const pendingStep = activeCycle.steps.find(s => s.status === 'Pending');
+    const pendingStep = activeCycle.steps?.find(s => s.status === 'Pending');
     if (!pendingStep) throw new Error('No pending approval step found');
 
     if (approved) {
@@ -1370,6 +1396,10 @@ export class MockDataService implements IDataService {
   ): Promise<IGoNoGoScorecard> {
     await delay();
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
+
+    if (scorecard.scorecardStatus !== ScorecardStatus.InCommitteeReview) {
+      throw new Error(`Cannot enter committee scores: scorecard is in ${scorecard.scorecardStatus} state`);
+    }
 
     // Apply committee scores
     for (const [criterionId, value] of Object.entries(scores)) {
@@ -1403,6 +1433,10 @@ export class MockDataService implements IDataService {
   ): Promise<IGoNoGoScorecard> {
     await delay();
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
+
+    if (scorecard.scorecardStatus !== ScorecardStatus.PendingDecision) {
+      throw new Error(`Cannot record decision: scorecard is in ${scorecard.scorecardStatus} state`);
+    }
 
     const now = new Date().toISOString().split('T')[0];
     scorecard.finalDecision = decision;
@@ -1459,6 +1493,10 @@ export class MockDataService implements IDataService {
     await delay();
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
 
+    if (!scorecard.isLocked) {
+      throw new Error('Cannot unlock: scorecard is not locked');
+    }
+
     // Create version snapshot before unlock
     this.createVersionSnapshot(scorecard, `Unlocked: ${reason}`, scorecard.finalDecisionBy || 'system');
 
@@ -1481,8 +1519,54 @@ export class MockDataService implements IDataService {
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
 
     if (startNewCycle) {
+      // Create new 2-step approval cycle (same pattern as submitScorecard)
+      const directorAssignee = { displayName: 'David Park', email: 'dpark@hedrickbrothers.com' };
+      const cycleId = this.getNextId();
+      const cycle: IScorecardApprovalCycle = {
+        id: cycleId,
+        scorecardId,
+        cycleNumber: (scorecard.approvalCycles?.length ?? 0) + 1,
+        version: scorecard.currentVersion,
+        steps: [],
+        startedDate: new Date().toISOString().split('T')[0],
+        status: 'Active',
+      };
+
+      const submitterEmail = scorecard.unlockedBy || scorecard.finalDecisionBy || 'system';
+      const submitterUser = this.users.find(
+        (u: { email: string }) => u.email?.toLowerCase() === submitterEmail.toLowerCase()
+      );
+
+      const step1: IScorecardApprovalStep = {
+        id: this.getNextId(),
+        cycleId,
+        stepOrder: 1,
+        name: 'BD Rep Resubmission',
+        assigneeEmail: submitterEmail,
+        assigneeName: submitterUser?.displayName ?? submitterEmail,
+        assignmentSource: 'Default',
+        status: 'Approved',
+        actionDate: new Date().toISOString().split('T')[0],
+      };
+
+      const step2: IScorecardApprovalStep = {
+        id: this.getNextId(),
+        cycleId,
+        stepOrder: 2,
+        name: 'Director of Precon Review',
+        assigneeEmail: directorAssignee.email,
+        assigneeName: directorAssignee.displayName,
+        assignmentSource: 'Default',
+        status: 'Pending',
+      };
+
+      cycle.steps = [step1, step2];
+      this.scorecardApprovalCycles.push(cycle);
+      this.scorecardApprovalSteps.push(step1, step2);
+
+      scorecard.approvalCycles = [...(scorecard.approvalCycles || []), cycle];
       scorecard.scorecardStatus = ScorecardStatus.Submitted;
-      // Will create a new approval cycle via submitScorecard
+      scorecard.currentApprovalStep = 1;
     } else {
       scorecard.scorecardStatus = ScorecardStatus.Locked;
       scorecard.isLocked = true;
@@ -1643,11 +1727,19 @@ export class MockDataService implements IDataService {
     const roleName = this._currentRole;
     const perms = ROLE_PERMISSIONS[roleName] ?? [];
 
+    // Return the first real user from users.json that matches the selected role.
+    // This ensures the mock user's email aligns with workflow step assignee emails.
+    const matchingUser = this.users.find(
+      (u: { roles: string[] }) => u.roles.includes(roleName)
+    );
+
+    const email = matchingUser?.email ?? 'devuser@hedrickbrothers.com';
+
     return {
-      id: 5,
-      displayName: 'Dev User',
-      email: 'devuser@hedrickbrothers.com',
-      loginName: 'i:0#.f|membership|devuser@hedrickbrothers.com',
+      id: matchingUser?.id ?? 999,
+      displayName: matchingUser?.displayName ?? 'Dev User',
+      email,
+      loginName: `i:0#.f|membership|${email}`,
       roles: [roleName],
       permissions: new Set<string>(perms),
       photoUrl: undefined
@@ -4658,7 +4750,8 @@ export class MockDataService implements IDataService {
       if ((status === 'PendingPXReview' || status === 'PendingPXValidation')) {
         // In mock mode, PX users are Executive Leadership — check all roles
         const currentUserData = this.users.find(u => u.email?.toLowerCase() === email);
-        const isPX = currentUserData?.roles?.includes(RoleName.ExecutiveLeadership);
+        const isPX = currentUserData?.roles?.includes(RoleName.ExecutiveLeadership) ||
+          currentUserData?.roles?.includes(RoleName.DepartmentDirector);
         if (isPX) {
           const requestedDate = assembled.lastUpdatedAt || assembled.createdAt || now.toISOString().split('T')[0];
           items.push({

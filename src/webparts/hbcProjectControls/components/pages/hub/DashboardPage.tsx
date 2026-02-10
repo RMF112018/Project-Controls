@@ -589,7 +589,7 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Marketing Summary */}
-        <RoleGate allowedRoles={[RoleName.Marketing, RoleName.ExecutiveLeadership]}>
+        <RoleGate allowedRoles={[RoleName.Marketing, RoleName.ExecutiveLeadership, RoleName.DepartmentDirector]}>
           <div style={{ marginTop: '32px' }}>
             {sectionTitle('Marketing')}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto', gap: '16px', alignItems: 'center' }}>
@@ -608,7 +608,7 @@ export const DashboardPage: React.FC = () => {
         </RoleGate>
 
         {/* Preconstruction Summary */}
-        <RoleGate allowedRoles={[RoleName.BDRepresentative, RoleName.EstimatingCoordinator, RoleName.PreconstructionTeam, RoleName.ExecutiveLeadership]}>
+        <RoleGate allowedRoles={[RoleName.BDRepresentative, RoleName.EstimatingCoordinator, RoleName.PreconstructionTeam, RoleName.ExecutiveLeadership, RoleName.DepartmentDirector]}>
           <div style={{ marginTop: '32px' }}>
             {sectionTitle('Preconstruction')}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr) auto', gap: '16px', alignItems: 'center' }}>
@@ -629,7 +629,7 @@ export const DashboardPage: React.FC = () => {
         </RoleGate>
 
         {/* Operations Summary */}
-        <RoleGate allowedRoles={[RoleName.OperationsTeam, RoleName.ExecutiveLeadership, RoleName.RiskManagement, RoleName.QualityControl, RoleName.Safety]}>
+        <RoleGate allowedRoles={[RoleName.OperationsTeam, RoleName.ExecutiveLeadership, RoleName.DepartmentDirector, RoleName.RiskManagement, RoleName.QualityControl, RoleName.Safety]}>
           <div style={{ marginTop: '32px' }}>
             {sectionTitle('Operations')}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(2, 1fr) auto', gap: '16px', alignItems: 'center' }}>

@@ -8,6 +8,7 @@ const ROLE_OPTIONS: { label: string; value: RoleName }[] = [
   { label: 'Preconstruction Team', value: RoleName.PreconstructionTeam },
   { label: 'Operations Team', value: RoleName.OperationsTeam },
   { label: 'Executive Leadership', value: RoleName.ExecutiveLeadership },
+  { label: 'Department Director', value: RoleName.DepartmentDirector },
   { label: 'Legal', value: RoleName.Legal },
   { label: 'Risk Management', value: RoleName.RiskManagement },
   { label: 'Marketing', value: RoleName.Marketing },

@@ -317,11 +317,11 @@ export const ActiveProjectsDashboard: React.FC = () => {
   return (
     <FeatureGate featureName="ActiveProjectsDashboard">
       <RoleGate
-        allowedRoles={[RoleName.ExecutiveLeadership, RoleName.OperationsTeam]}
+        allowedRoles={[RoleName.ExecutiveLeadership, RoleName.DepartmentDirector, RoleName.OperationsTeam]}
         fallback={
           <div style={{ padding: '48px', textAlign: 'center', color: HBC_COLORS.gray500 }}>
             <h3>Access Restricted</h3>
-            <p>The Active Projects Dashboard is restricted to Executive Leadership and Operations Team.</p>
+            <p>The Active Projects Dashboard is restricted to Executive Leadership, Department Directors, and Operations Team.</p>
           </div>
         }
       >

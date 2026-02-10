@@ -177,32 +177,43 @@ export function useGoNoGo(): IUseGoNoGoResult {
     );
   }, [activeScorecard, hasPermission]);
 
+  const isDirectorOrExec = currentUser?.roles?.includes(RoleName.ExecutiveLeadership)
+    || currentUser?.roles?.includes(RoleName.DepartmentDirector)
+    || false;
+
   const canReview = React.useMemo(() => {
     if (!activeScorecard) return false;
     if (activeScorecard.scorecardStatus !== ScorecardStatus.Submitted) return false;
-    // Check if current user is the pending reviewer
+    if (isDirectorOrExec) return true;
     const activeCycle = activeScorecard.approvalCycles?.find(c => c.status === 'Active');
     if (!activeCycle) return false;
     const pendingStep = activeCycle.steps?.find(s => s.status === 'Pending');
     if (!pendingStep) return false;
-    return pendingStep.assigneeEmail === currentUser?.email || hasPermission(PERMISSIONS.GONOGO_DECIDE);
-  }, [activeScorecard, currentUser, hasPermission]);
+    const userEmail = currentUser?.email?.toLowerCase();
+    return pendingStep.assigneeEmail?.toLowerCase() === userEmail || hasPermission(PERMISSIONS.GONOGO_DECIDE);
+  }, [activeScorecard, currentUser, hasPermission, isDirectorOrExec]);
 
   const canEnterCommitteeScores = React.useMemo(() => {
     if (!activeScorecard) return false;
-    return (
-      activeScorecard.scorecardStatus === ScorecardStatus.InCommitteeReview &&
-      hasPermission(PERMISSIONS.GONOGO_SCORE_COMMITTEE)
-    );
-  }, [activeScorecard, hasPermission]);
+    if (activeScorecard.scorecardStatus !== ScorecardStatus.InCommitteeReview) return false;
+    if (isDirectorOrExec) return true;
+    const userEmail = currentUser?.email?.toLowerCase();
+    const isInCycle = activeScorecard.approvalCycles?.some(cycle =>
+      cycle.steps?.some(step => step.assigneeEmail?.toLowerCase() === userEmail)
+    ) || false;
+    return isInCycle || hasPermission(PERMISSIONS.GONOGO_SCORE_COMMITTEE);
+  }, [activeScorecard, currentUser, hasPermission, isDirectorOrExec]);
 
   const canDecide = React.useMemo(() => {
     if (!activeScorecard) return false;
-    return (
-      activeScorecard.scorecardStatus === ScorecardStatus.PendingDecision &&
-      hasPermission(PERMISSIONS.GONOGO_DECIDE)
-    );
-  }, [activeScorecard, hasPermission]);
+    if (activeScorecard.scorecardStatus !== ScorecardStatus.PendingDecision) return false;
+    if (isDirectorOrExec) return true;
+    const userEmail = currentUser?.email?.toLowerCase();
+    const isInCycle = activeScorecard.approvalCycles?.some(cycle =>
+      cycle.steps?.some(step => step.assigneeEmail?.toLowerCase() === userEmail)
+    ) || false;
+    return isInCycle || hasPermission(PERMISSIONS.GONOGO_DECIDE);
+  }, [activeScorecard, currentUser, hasPermission, isDirectorOrExec]);
 
   const canUnlock = React.useMemo(() => {
     if (!activeScorecard || !activeScorecard.isLocked) return false;
@@ -211,8 +222,10 @@ export function useGoNoGo(): IUseGoNoGoResult {
     const isInApprovalChain = activeScorecard.approvalCycles?.some(cycle =>
       cycle.steps?.some(step => step.assigneeEmail?.toLowerCase() === userEmail)
     ) || false;
-    const isExecLeadership = currentUser?.roles?.includes(RoleName.ExecutiveLeadership) || false;
-    return isInApprovalChain || isExecLeadership;
+    const isDirectorOrExecLocal = currentUser?.roles?.includes(RoleName.ExecutiveLeadership)
+      || currentUser?.roles?.includes(RoleName.DepartmentDirector)
+      || false;
+    return isInApprovalChain || isDirectorOrExecLocal;
   }, [activeScorecard, currentUser]);
 
   const recommendedDecision = React.useMemo(() => {
