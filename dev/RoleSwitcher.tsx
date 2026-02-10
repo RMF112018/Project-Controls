@@ -1,27 +1,34 @@
 import * as React from 'react';
 import { RoleName } from '@models/enums';
 
-const ROLE_OPTIONS: { label: string; value: RoleName }[] = [
-  { label: 'BD Representative', value: RoleName.BDRepresentative },
-  { label: 'Estimating Coordinator', value: RoleName.EstimatingCoordinator },
-  { label: 'Accounting Manager', value: RoleName.AccountingManager },
-  { label: 'Preconstruction Team', value: RoleName.PreconstructionTeam },
-  { label: 'Operations Team', value: RoleName.OperationsTeam },
-  { label: 'Executive Leadership', value: RoleName.ExecutiveLeadership },
+const DEV_SUPER_ADMIN = 'DEV_SUPER_ADMIN';
+type RoleValue = RoleName | typeof DEV_SUPER_ADMIN;
+
+const ROLE_OPTIONS: { label: string; value: RoleValue }[] = [
+  { label: '\u26A1 DEV: Super-Admin', value: DEV_SUPER_ADMIN },
+  { label: 'President / VP Operations', value: RoleName.ExecutiveLeadership },
+  { label: 'OpEx Manager', value: RoleName.IDS },
   { label: 'Department Director', value: RoleName.DepartmentDirector },
-  { label: 'Legal', value: RoleName.Legal },
-  { label: 'Risk Management', value: RoleName.RiskManagement },
+  { label: 'SharePoint Admin', value: RoleName.SharePointAdmin },
+  { label: 'Project Executive', value: RoleName.OperationsTeam },
+  { label: 'Project Manager', value: RoleName.PreconstructionTeam },
+  { label: 'Estimating Coordinator', value: RoleName.EstimatingCoordinator },
+  { label: 'BD Representative', value: RoleName.BDRepresentative },
+  { label: 'Accounting Controller', value: RoleName.AccountingManager },
+  { label: 'Legal / Risk Manager', value: RoleName.Legal },
   { label: 'Marketing', value: RoleName.Marketing },
   { label: 'Quality Control', value: RoleName.QualityControl },
   { label: 'Safety', value: RoleName.Safety },
-  { label: 'IDS', value: RoleName.IDS },
+  { label: 'Read-Only Observer', value: RoleName.RiskManagement },
 ];
 
 export const RoleSwitcher: React.FC<{
-  role: RoleName;
-  onRoleChange: (role: RoleName) => void;
+  role: RoleValue;
+  onRoleChange: (role: RoleValue) => void;
 }> = ({ role, onRoleChange }) => {
   const [isHovered, setIsHovered] = React.useState(false);
+
+  const pillLabel = role === DEV_SUPER_ADMIN ? '\u26A1 SUPER-ADMIN' : role;
 
   return (
     <div
@@ -61,7 +68,7 @@ export const RoleSwitcher: React.FC<{
       <span
         style={{
           display: 'inline-block',
-          background: '#E87722',
+          background: role === DEV_SUPER_ADMIN ? '#EF4444' : '#E87722',
           color: '#fff',
           fontSize: 10,
           fontWeight: 700,
@@ -72,7 +79,7 @@ export const RoleSwitcher: React.FC<{
           letterSpacing: 0.3,
         }}
       >
-        {role}
+        {pillLabel}
       </span>
 
       {/* Divider */}
@@ -88,7 +95,7 @@ export const RoleSwitcher: React.FC<{
       {/* Dropdown */}
       <select
         value={role}
-        onChange={(e) => onRoleChange(e.target.value as RoleName)}
+        onChange={(e) => onRoleChange(e.target.value as RoleValue)}
         style={{
           appearance: 'none',
           WebkitAppearance: 'none',

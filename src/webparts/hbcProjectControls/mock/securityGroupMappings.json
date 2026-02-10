@@ -6,5 +6,6 @@
   { "id": 5, "securityGroupId": "aad-group-005", "securityGroupName": "HBC - Estimating", "defaultTemplateId": 5, "isActive": true },
   { "id": 6, "securityGroupId": "aad-group-006", "securityGroupName": "HBC - Business Development", "defaultTemplateId": 6, "isActive": true },
   { "id": 7, "securityGroupId": "aad-group-007", "securityGroupName": "HBC - Accounting", "defaultTemplateId": 7, "isActive": true },
-  { "id": 8, "securityGroupId": "aad-group-008", "securityGroupName": "HBC - Read Only", "defaultTemplateId": 8, "isActive": true }
+  { "id": 8, "securityGroupId": "aad-group-008", "securityGroupName": "HBC - Read Only", "defaultTemplateId": 8, "isActive": true },
+  { "id": 9, "securityGroupId": "aad-group-009", "securityGroupName": "HBC - SharePoint Admins", "defaultTemplateId": 9, "isActive": true }
 ]

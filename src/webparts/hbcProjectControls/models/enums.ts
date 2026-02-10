@@ -100,7 +100,8 @@ export enum RoleName {
   QualityControl = 'Quality Control',
   Safety = 'Safety',
   IDS = 'IDS',
-  DepartmentDirector = 'Department Director'
+  DepartmentDirector = 'Department Director',
+  SharePointAdmin = 'SharePoint Admin'
 }
 
 export enum ProvisioningStatus {
