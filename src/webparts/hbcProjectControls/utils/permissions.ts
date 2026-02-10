@@ -141,10 +141,10 @@ export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS];
 
 // Nav group visibility by role
 export const NAV_GROUP_ROLES: Record<string, string[]> = {
-  Marketing: ['Marketing', 'Executive Leadership', 'Department Director'],
-  Preconstruction: ['BD Representative', 'Estimating Coordinator', 'Preconstruction Team', 'Executive Leadership', 'Department Director', 'Legal'],
-  Operations: ['Operations Team', 'Executive Leadership', 'Department Director', 'Risk Management', 'Quality Control', 'Safety', 'IDS'],
-  Admin: ['Executive Leadership'],
+  Marketing: ['Marketing', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
+  Preconstruction: ['BD Representative', 'Estimating Coordinator', 'Preconstruction Team', 'Executive Leadership', 'Department Director', 'Legal', 'SharePoint Admin'],
+  Operations: ['Operations Team', 'Executive Leadership', 'Department Director', 'Risk Management', 'Quality Control', 'Safety', 'IDS', 'SharePoint Admin'],
+  Admin: ['Executive Leadership', 'SharePoint Admin'],
 };
 
 // Role to permissions mapping
@@ -306,5 +306,10 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.WINLOSS_READ,
     PERMISSIONS.CONTRACT_READ, PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
     PERMISSIONS.MEETING_READ, PERMISSIONS.ADMIN_CONFIG,
+    PERMISSIONS.PERMISSION_TEMPLATES_MANAGE, PERMISSIONS.PERMISSION_PROJECT_TEAM_MANAGE, PERMISSIONS.PERMISSION_PROJECT_TEAM_VIEW,
+  ],
+  'SharePoint Admin': [
+    // Full admin access to all tools/modules
+    ...Object.values(PERMISSIONS),
   ],
 };

@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-10 — Phase 19D: Flexible Sectors + Identity (dynamic sector definitions, identityType on ICurrentUser)
+**Last Updated:** 2026-02-10 — Phase 20: SharePoint Admin Role + Dev Super-Admin Mode
 
 ---
 
@@ -575,7 +575,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | GoNoGoDecision | Go, NoGo, Wait |
 | WinLossDecision | Win, Loss |
 | LossReason | Price, Relationship, Experience, Schedule, Competition, Other |
-| RoleName | BDRepresentative, EstimatingCoordinator, AccountingManager, PreconstructionTeam, OperationsTeam, ExecutiveLeadership, Legal, RiskManagement, Marketing, QualityControl, Safety, IDS, DepartmentDirector |
+| RoleName | BDRepresentative, EstimatingCoordinator, AccountingManager, PreconstructionTeam, OperationsTeam, ExecutiveLeadership, Legal, RiskManagement, Marketing, QualityControl, Safety, IDS, DepartmentDirector, SharePointAdmin |
 | ProvisioningStatus | Queued, InProgress, Completed, PartialFailure, Failed |
 | TurnoverStatus | Draft, PrerequisitesInProgress, MeetingScheduled, MeetingComplete, PendingSignatures, Signed, Complete |
 | AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved, TurnoverAgendaCreated, TurnoverPrerequisiteCompleted, TurnoverItemDiscussed, TurnoverSubcontractorAdded, TurnoverSubcontractorRemoved, TurnoverExhibitReviewed, TurnoverExhibitAdded, TurnoverExhibitRemoved, TurnoverSigned, TurnoverAgendaCompleted, HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated, TemplateCreated, TemplateUpdated, TemplateDeleted, ProjectTeamAssigned, ProjectTeamRemoved, ProjectTeamOverridden, SecurityGroupMappingChanged, PermissionResolved |
@@ -954,97 +954,97 @@ Source: `utils/permissions.ts`
 
 Legend: **X** = has permission
 
-| Permission | BD Rep | Est Coord | Acct Mgr | Precon | Ops | Exec | Dept Dir | Legal | Risk Mgmt | Marketing | QC | Safety | IDS |
-|-----------|--------|-----------|----------|--------|-----|------|----------|-------|-----------|-----------|-----|--------|-----|
-| lead:create | X | | | | | | | | | | | | |
-| lead:read | X | X | X | | | X | X | X | X | X | | | |
-| lead:edit | X | | | | | | | | | | | | |
-| lead:delete | X | | | | | | | | | | | | |
-| gonogo:score:originator | X | X | | | | | | | | | | | |
-| gonogo:score:committee | | | | | | X | X | | | | | | |
-| gonogo:submit | X | | | | | | | | | | | | |
-| gonogo:decide | | | | | | X | X | | | | | | |
-| gonogo:read | X | X | X | | | X | X | X | X | X | | | |
-| precon:read | X | X | X | X | | X | X | X | X | X | X | X | X |
-| precon:edit | | X | | X | | | | | | | | | |
-| proposal:read | X | X | X | X | | X | X | X | X | X | X | X | X |
-| proposal:edit | | X | | X | | | | | | X | | | |
-| winloss:record | X | | | | | | | | | | | | |
-| winloss:read | X | X | X | X | | X | X | X | X | X | X | X | X |
-| contract:read | X | X | X | X | | X | X | X | X | X | X | X | X |
-| contract:edit | | | | | | | | X | | | | | |
-| contract:view:financials | | | X | | | X | X | | | | | | |
-| turnover:read | X | X | X | X | X | X | X | X | X | X | X | X | X |
-| turnover:edit | | | | | X | | | | | | | | |
-| closeout:read | X | X | X | X | X | X | X | X | X | X | X | X | X |
-| closeout:edit | | | | | X | | | | | | | | |
-| estimating:read | X | X | X | X | | X | X | | | | | | |
-| estimating:edit | | X | | | | | | | | | | | |
-| precon:hub:view | | X | | | | X | X | | | | | | |
-| project:hub:view | | X | | | X | X | X | | | | | | |
-| admin:roles | | | | | | X | | | | | | | |
-| admin:flags | | | | | | X | | | | | | | |
-| admin:config | | | | | | X | | | | | | | X |
-| admin:connections | | | | | | X | | | | | | | |
-| admin:provisioning | | | | | | X | | | | | | | |
-| marketing:edit | | | | | | | | | | X | | | |
-| marketing:dashboard:view | | | | | | X | X | | | X | | | |
-| site:provision | X | | | | | | | | | | | | |
-| meeting:schedule | X | | | | | X | X | | | | | | |
-| meeting:read | X | X | X | X | X | X | X | X | X | X | X | X | X |
-| startup:checklist:edit | | | | | X | | | | | | | | |
-| startup:checklist:signoff | | | | | | X | X | | | | | | |
-| matrix:edit | | | | | X | | | | | | | | |
-| projectrecord:edit | | | | | | | | | | X | | | |
-| projectrecord:ops:edit | | | | | X | | | | | | | | |
-| pmp:edit | | | | | X | | | | | | | | |
-| pmp:approve | | | | | | X | X | | | | | | |
-| pmp:final:approve | | | | | | X | X | | | | | | |
-| pmp:sign | | | | | X | X | X | | | | | | |
-| risk:edit | | | | | X | | | | X | | | | |
-| quality:edit | | | | | X | | | | | | X | | |
-| safety:edit | | | | | X | | | | | | | | |
-| schedule:edit | | | | | X | | | | | | | | |
-| superintendent:plan:edit | | | | | X | | | | | | | | |
-| lessons:edit | | | | | X | | | | | | | | |
-| monthly:review:pm | | | | | X | | | | | | | | |
-| monthly:review:px | | | | | | X | X | | | | | | |
-| monthly:review:create | | | | | | X | X | | | | | | |
-| job_number_request:create | | X | | | | | | | | | | | |
-| job_number_request:finalize | | | X | | | | | | | | | | |
-| accounting_queue:view | | | X | | | | | | | | | | |
-| kickoff:view | X | X | | X | | X | X | | | | | | |
-| kickoff:edit | | X | | | | X | X | | | | | | |
-| kickoff:template:edit | | X | | | | X | X | | | | | | |
-| autopsy:view | X | X | | X | | X | X | | | | | | |
-| autopsy:edit | | X | | | | X | X | | | | | | |
-| autopsy:schedule | | X | | | | X | X | | | | | | |
-| buyout:view | | | | X | X | X | X | | | | | | |
-| buyout:edit | | | | | X | X | X | | | | | | |
-| buyout:manage | | | | | X | | | | | | | | |
-| commitment:submit | | | | | X | | | | | | | | |
-| commitment:approve:px | | | | | | X | X | | | | | | |
-| commitment:approve:compliance | | | | | | | | | X | | | | |
-| commitment:approve:cfo | | | | | | X | X | | | | | | |
-| commitment:escalate | | | | | | X | X | X | | | | | |
-| active_projects:view | | | | | X | X | X | | | | | | |
-| active_projects:sync | | | | | | X | X | | | | | | |
-| compliance_log:view | | | | | X | X | X | X | | | | | |
-| workflow:manage | | | | | | X | | | | | | | |
-| turnover:agenda:edit | | X | | X | X | X | X | | | | | | |
-| turnover:sign | | X | | | X | X | X | | | | | | |
-| permission:templates:manage | | | | | | X | | | | | | | |
-| permission:project_team:manage | | | | | | X | | | | | | | |
-| permission:project_team:view | | | | | | X | X | | | | | | |
+| Permission | BD Rep | Est Coord | Acct Mgr | Precon | Ops | Exec | Dept Dir | Legal | Risk Mgmt | Marketing | QC | Safety | IDS | SP Admin |
+|-----------|--------|-----------|----------|--------|-----|------|----------|-------|-----------|-----------|-----|--------|-----|----------|
+| lead:create | X | | | | | | | | | | | | | X |
+| lead:read | X | X | X | | | X | X | X | X | X | | | | X |
+| lead:edit | X | | | | | | | | | | | | | X |
+| lead:delete | X | | | | | | | | | | | | | X |
+| gonogo:score:originator | X | X | | | | | | | | | | | | X |
+| gonogo:score:committee | | | | | | X | X | | | | | | | X |
+| gonogo:submit | X | | | | | | | | | | | | | X |
+| gonogo:decide | | | | | | X | X | | | | | | | X |
+| gonogo:read | X | X | X | | | X | X | X | X | X | | | | X |
+| precon:read | X | X | X | X | | X | X | X | X | X | X | X | X | X |
+| precon:edit | | X | | X | | | | | | | | | | X |
+| proposal:read | X | X | X | X | | X | X | X | X | X | X | X | X | X |
+| proposal:edit | | X | | X | | | | | | X | | | | X |
+| winloss:record | X | | | | | | | | | | | | | X |
+| winloss:read | X | X | X | X | | X | X | X | X | X | X | X | X | X |
+| contract:read | X | X | X | X | | X | X | X | X | X | X | X | X | X |
+| contract:edit | | | | | | | | X | | | | | | X |
+| contract:view:financials | | | X | | | X | X | | | | | | | X |
+| turnover:read | X | X | X | X | X | X | X | X | X | X | X | X | X | X |
+| turnover:edit | | | | | X | | | | | | | | | X |
+| closeout:read | X | X | X | X | X | X | X | X | X | X | X | X | X | X |
+| closeout:edit | | | | | X | | | | | | | | | X |
+| estimating:read | X | X | X | X | | X | X | | | | | | | X |
+| estimating:edit | | X | | | | | | | | | | | | X |
+| precon:hub:view | | X | | | | X | X | | | | | | | X |
+| project:hub:view | | X | | | X | X | X | | | | | | | X |
+| admin:roles | | | | | | X | | | | | | | | X |
+| admin:flags | | | | | | X | | | | | | | | X |
+| admin:config | | | | | | X | | | | | | | X | X |
+| admin:connections | | | | | | X | | | | | | | | X |
+| admin:provisioning | | | | | | X | | | | | | | | X |
+| marketing:edit | | | | | | | | | | X | | | | X |
+| marketing:dashboard:view | | | | | | X | X | | | X | | | | X |
+| site:provision | X | | | | | | | | | | | | | X |
+| meeting:schedule | X | | | | | X | X | | | | | | | X |
+| meeting:read | X | X | X | X | X | X | X | X | X | X | X | X | X | X |
+| startup:checklist:edit | | | | | X | | | | | | | | | X |
+| startup:checklist:signoff | | | | | | X | X | | | | | | | X |
+| matrix:edit | | | | | X | | | | | | | | | X |
+| projectrecord:edit | | | | | | | | | | X | | | | X |
+| projectrecord:ops:edit | | | | | X | | | | | | | | | X |
+| pmp:edit | | | | | X | | | | | | | | | X |
+| pmp:approve | | | | | | X | X | | | | | | | X |
+| pmp:final:approve | | | | | | X | X | | | | | | | X |
+| pmp:sign | | | | | X | X | X | | | | | | | X |
+| risk:edit | | | | | X | | | | X | | | | | X |
+| quality:edit | | | | | X | | | | | | X | | | X |
+| safety:edit | | | | | X | | | | | | | | | X |
+| schedule:edit | | | | | X | | | | | | | | | X |
+| superintendent:plan:edit | | | | | X | | | | | | | | | X |
+| lessons:edit | | | | | X | | | | | | | | | X |
+| monthly:review:pm | | | | | X | | | | | | | | | X |
+| monthly:review:px | | | | | | X | X | | | | | | | X |
+| monthly:review:create | | | | | | X | X | | | | | | | X |
+| job_number_request:create | | X | | | | | | | | | | | | X |
+| job_number_request:finalize | | | X | | | | | | | | | | | X |
+| accounting_queue:view | | | X | | | | | | | | | | | X |
+| kickoff:view | X | X | | X | | X | X | | | | | | | X |
+| kickoff:edit | | X | | | | X | X | | | | | | | X |
+| kickoff:template:edit | | X | | | | X | X | | | | | | | X |
+| autopsy:view | X | X | | X | | X | X | | | | | | | X |
+| autopsy:edit | | X | | | | X | X | | | | | | | X |
+| autopsy:schedule | | X | | | | X | X | | | | | | | X |
+| buyout:view | | | | X | X | X | X | | | | | | | X |
+| buyout:edit | | | | | X | X | X | | | | | | | X |
+| buyout:manage | | | | | X | | | | | | | | | X |
+| commitment:submit | | | | | X | | | | | | | | | X |
+| commitment:approve:px | | | | | | X | X | | | | | | | X |
+| commitment:approve:compliance | | | | | | | | | X | | | | | X |
+| commitment:approve:cfo | | | | | | X | X | | | | | | | X |
+| commitment:escalate | | | | | | X | X | X | | | | | | X |
+| active_projects:view | | | | | X | X | X | | | | | | | X |
+| active_projects:sync | | | | | | X | X | | | | | | | X |
+| compliance_log:view | | | | | X | X | X | X | | | | | | X |
+| workflow:manage | | | | | | X | | | | | | | | X |
+| turnover:agenda:edit | | X | | X | X | X | X | | | | | | | X |
+| turnover:sign | | X | | | X | X | X | | | | | | | X |
+| permission:templates:manage | | | | | | X | | | | | | | X | X |
+| permission:project_team:manage | | | | | | X | | | | | | | X | X |
+| permission:project_team:view | | | | | | X | X | | | | | | X | X |
 
 ### NAV_GROUP_ROLES
 
 | Nav Group | Roles That Can See |
 |-----------|-------------------|
-| Marketing | Marketing, Executive Leadership, Department Director |
-| Preconstruction | BD Representative, Estimating Coordinator, Preconstruction Team, Executive Leadership, Department Director, Legal |
-| Operations | Operations Team, Executive Leadership, Department Director, Risk Management, Quality Control, Safety, IDS |
-| Admin | Executive Leadership |
+| Marketing | Marketing, Executive Leadership, Department Director, SharePoint Admin |
+| Preconstruction | BD Representative, Estimating Coordinator, Preconstruction Team, Executive Leadership, Department Director, Legal, SharePoint Admin |
+| Operations | Operations Team, Executive Leadership, Department Director, Risk Management, Quality Control, Safety, IDS, SharePoint Admin |
+| Admin | Executive Leadership, SharePoint Admin |
 
 ---
 
@@ -1120,11 +1120,11 @@ Source: `mock/`
 | templateRegistry.json | Template definitions | 12 | N/A |
 | turnoverAgendas.json | ITurnoverAgenda (flat) | 2 agendas + child arrays | 25-042-01, 25-115-01 |
 | turnoverItems.json | ITurnoverItem | 14 | 25-042-01 |
-| users.json | IRole + ICurrentUser | 24 | N/A |
+| users.json | IRole + ICurrentUser | 25 | N/A |
 | workflowDefinitions.json | IWorkflowDefinition | 5 | N/A |
 | workflowStepOverrides.json | IWorkflowStepOverride | 0 | N/A |
-| permissionTemplates.json | IPermissionTemplate | 8 | N/A |
-| securityGroupMappings.json | ISecurityGroupMapping | 8 | N/A |
+| permissionTemplates.json | IPermissionTemplate | 9 | N/A |
+| securityGroupMappings.json | ISecurityGroupMapping | 9 | N/A |
 | projectTeamAssignments.json | IProjectTeamAssignment | 15 | 25-042-01, 25-115-01 |
 | environmentConfig.json | IEnvironmentConfig | 1 | N/A |
 
@@ -1395,6 +1395,7 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 19B | Permission Engine Admin UI — PermissionTemplateEditor two-panel layout (template CRUD + tool permission matrix + security group mappings), ProjectTeamPanel for project-level team assignments, AdminPanel 7th tab | PermissionTemplateEditor.tsx, ToolPermissionMatrix.tsx, GranularFlagEditor.tsx, ProjectTeamPanel.tsx | AdminPanel.tsx (+7th Permissions tab), ProjectDashboard.tsx (+ProjectTeamPanel section), shared/index.ts (+2 exports), pages/hub/index.ts (+1 export), pages/project/index.ts (+1 export) |
 | 19C | Environment Architecture — Tri-tier environment config (Dev/Vetting/Prod), template versioning, promotion workflow, environment badge in AppShell header | mock/environmentConfig.json | models/IEnvironmentConfig.ts (+IPromotionRecord), models/IPermissionTemplate.ts (+version, +promotedFromTier), services/IDataService.ts (+2 methods, 189 total), services/MockDataService.ts (+2 implementations), services/SharePointDataService.ts (+2 stubs), layouts/AppShell.tsx (environment badge), pages/hub/PermissionTemplateEditor.tsx (promote button + env banner) |
 | 19D | Flexible Sectors + Identity — Dynamic sector definitions replacing hardcoded Sector enum, ISectorDefinition model, admin Sectors tab, identityType on ICurrentUser | models/ISectorDefinition.ts, mock/sectorDefinitions.json, hooks/useSectorDefinitions.ts | models/enums.ts (@deprecated Sector), models/IRole.ts (+identityType), services/IDataService.ts (+3 methods, 192 total), services/MockDataService.ts (+3 implementations), services/SharePointDataService.ts (+3 stubs), pages/hub/AdminPanel.tsx (8 tabs, +Sectors), pages/hub/LeadFormPage.tsx (dynamic sectors), pages/hub/PipelinePage.tsx (dynamic sectors), shared/ConditionBuilder.tsx (dynamic sectors), hooks/index.ts (+1 export), models/index.ts (+1 export), utils/constants.ts (+1 HUB_LIST) |
+| 20 | SharePoint Admin Role + Dev Super-Admin — 14th RoleName (SharePointAdmin) with ALL permissions, Dev Super-Admin mode (union of ALL permissions, dev-only), full admin template (id:9, all 23 tools at ADMIN), resolveUserPermissions super-admin short-circuit + roleToGroupMap entry, NAV_GROUP_ROLES all 4 groups, RoleSwitcher with 15 options + super-admin toggle, mockContext.ts default fix | (none) | enums.ts (+SharePointAdmin), permissions.ts (+role entry with ...Object.values(PERMISSIONS), +NAV_GROUP_ROLES all 4 groups), users.json (+Alex Torres id:25), permissionTemplates.json (+id:9 full ADMIN), securityGroupMappings.json (+id:9), MockDataService.ts (+_isDevSuperAdmin, +setDevSuperAdminMode, getCurrentUser super-admin branch, resolveUserPermissions super-admin short-circuit + SharePoint Admin in roleToGroupMap), RoleSwitcher.tsx (RoleValue union type, 15 options, red pill for super-admin), dev/index.tsx (RoleValue type, super-admin detection), dev/mockContext.ts (default→ExecutiveLeadership) |
 
 ### Known Stubs / Placeholders
 
@@ -1460,6 +1461,12 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 22. **ProjectPicker filters by accessible projects** — When the permission engine is active and `resolvedPermissions.globalAccess` is false, ProjectPicker only shows projects the user is assigned to via `Project_Team_Assignments`. Users with `globalAccess: true` (e.g., President/VP, OpEx Manager) see all projects.
 
+23. **MockDataService defaults to ExecutiveLeadership** — The `_currentRole` field in MockDataService defaults to `RoleName.ExecutiveLeadership` (not OperationsTeam). This ensures the dev server starts with full admin access for testing the permission engine. The RoleSwitcher shows "President / VP Operations" as the first/default option.
+
+24. **RoleSwitcher labels are enterprise personas, not RoleName values** — The `ROLE_OPTIONS` in `dev/RoleSwitcher.tsx` use business-oriented labels (e.g., "Project Executive" → `OperationsTeam`, "OpEx Manager" → `IDS`, "Read-Only Observer" → `RiskManagement`). The underlying `RoleName` enum values are unchanged.
+
+25. **Dev Super-Admin is NOT a real role** — `DEV_SUPER_ADMIN` is a dev-only sentinel string used by the RoleSwitcher. It is NOT a `RoleName` enum value and must never be sent to production or used in `ROLE_PERMISSIONS`. It grants the union of ALL permissions from every role purely for local testing convenience. The `_isDevSuperAdmin` flag on `MockDataService` is not part of `IDataService`.
+
 ---
 
 ## Audit Log
@@ -1477,3 +1484,5 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-10 | §2, §5, §15 | Phase 19B: Permission Engine Admin UI. 4 new components (PermissionTemplateEditor, ToolPermissionMatrix, GranularFlagEditor, ProjectTeamPanel). AdminPanel expanded to 7 tabs. ProjectDashboard gains ProjectTeamPanel section (FeatureGated). |
 | 2026-02-10 | §6, §7, §12, §15 | Phase 19C: Environment Architecture. IPermissionTemplate gains version + promotedFromTier. IEnvironmentConfig expanded with promotionHistory + IPromotionRecord. 2 new service methods (189 total): getEnvironmentConfig, promoteTemplates. New mock file environmentConfig.json. AppShell env badge (DEV/UAT). PermissionTemplateEditor promote button. |
 | 2026-02-10 | §2, §6, §7, §12, §13, §15 | Phase 19D: Flexible Sectors + Identity. New ISectorDefinition model + sectorDefinitions.json (12 entries). 3 new service methods (192 total): getSectorDefinitions, createSectorDefinition, updateSectorDefinition. Sector enum deprecated. ICurrentUser gains identityType. AdminPanel Sectors tab (8th tab). LeadFormPage, PipelinePage, ConditionBuilder use dynamic sectors when PermissionEngine enabled. New hook useSectorDefinitions. |
+| 2026-02-10 | §10, §16 | Permission Engine activation polish: RoleSwitcher enterprise hierarchy labels (seniority-ordered, persona names). IDS (OpEx Manager) gains permission:templates:manage, permission:project_team:manage, permission:project_team:view. toolPermissionMap admin_panel ADMIN level gains permission engine keys. MockDataService default role → ExecutiveLeadership. resolveUserPermissions console.log for debugging. |
+| 2026-02-10 | §6, §10, §12, §15, §16 | Phase 20: SharePoint Admin Role + Dev Super-Admin. Added 14th RoleName (SharePointAdmin). ROLE_PERMISSIONS entry with `...Object.values(PERMISSIONS)` (ALL permissions). NAV_GROUP_ROLES: SharePoint Admin added to all 4 groups (Marketing, Preconstruction, Operations, Admin). Dev Super-Admin mode: union of ALL role permissions (dev-only, not a real role). MockDataService: +_isDevSuperAdmin +setDevSuperAdminMode, getCurrentUser super-admin branch, resolveUserPermissions super-admin short-circuit + 'SharePoint Admin' in roleToGroupMap. RoleSwitcher widened to RoleValue union type with 15 options + red pill badge. dev/index.tsx super-admin detection. mockContext.ts default fixed to ExecutiveLeadership. users.json +Alex Torres (id:25). permissionTemplates.json +id:9 (SharePoint Admin, all 23 tools at ADMIN). securityGroupMappings.json +id:9. |

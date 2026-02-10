@@ -6,16 +6,24 @@ import { RoleName } from '@models/enums';
 import { RoleSwitcher } from './RoleSwitcher';
 import { setMockUserRole, getMockUserRole } from './mockContext';
 
+const DEV_SUPER_ADMIN = 'DEV_SUPER_ADMIN';
+type RoleValue = RoleName | typeof DEV_SUPER_ADMIN;
+
 const dataService = new MockDataService();
 
 const DevRoot: React.FC = () => {
-  const [role, setRole] = React.useState<RoleName>(getMockUserRole());
+  const [role, setRole] = React.useState<RoleValue>(getMockUserRole());
 
   const handleRoleChange = React.useCallback(
-    (newRole: RoleName) => {
+    (newRole: RoleValue) => {
       if (newRole === role) return;
-      setMockUserRole(newRole);
-      dataService.setCurrentUserRole(newRole);
+      if (newRole === DEV_SUPER_ADMIN) {
+        dataService.setDevSuperAdminMode(true);
+      } else {
+        dataService.setDevSuperAdminMode(false);
+        setMockUserRole(newRole as RoleName);
+        dataService.setCurrentUserRole(newRole as RoleName);
+      }
       window.location.hash = '#/';
       setRole(newRole);
     },
@@ -24,7 +32,7 @@ const DevRoot: React.FC = () => {
 
   return (
     <>
-      <App key={role} dataService={dataService} />
+      <App key={String(role)} dataService={dataService} />
       <RoleSwitcher role={role} onRoleChange={handleRoleChange} />
     </>
   );

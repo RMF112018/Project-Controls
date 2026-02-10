@@ -208,11 +208,17 @@ export class MockDataService implements IDataService {
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
-  private _currentRole: RoleName = RoleName.OperationsTeam;
+  private _currentRole: RoleName = RoleName.ExecutiveLeadership;
+  private _isDevSuperAdmin: boolean = false;
 
   /** Set the mock user role (called by the dev RoleSwitcher). */
   public setCurrentUserRole(role: RoleName): void {
     this._currentRole = role;
+  }
+
+  /** Enable/disable dev super-admin mode (union of ALL role permissions). */
+  public setDevSuperAdminMode(enabled: boolean): void {
+    this._isDevSuperAdmin = enabled;
   }
 
   constructor() {
@@ -1739,6 +1745,23 @@ export class MockDataService implements IDataService {
 
   public async getCurrentUser(): Promise<ICurrentUser> {
     await delay();
+
+    // Dev super-admin: union of ALL role permissions
+    if (this._isDevSuperAdmin) {
+      const allPerms = new Set<string>();
+      for (const perms of Object.values(ROLE_PERMISSIONS)) {
+        for (const p of perms) allPerms.add(p);
+      }
+      return {
+        id: 0,
+        displayName: 'Dev Super-Admin',
+        email: 'superadmin@hedrickbrothers.dev',
+        loginName: 'i:0#.f|membership|superadmin@hedrickbrothers.dev',
+        roles: [RoleName.ExecutiveLeadership],
+        permissions: allPerms,
+        photoUrl: undefined,
+      };
+    }
 
     const roleName = this._currentRole;
     const perms = ROLE_PERMISSIONS[roleName] ?? [];
@@ -5012,6 +5035,25 @@ export class MockDataService implements IDataService {
     await delay();
     const email = userEmail.toLowerCase();
 
+    // Dev super-admin: return union of ALL permissions (bypasses template chain)
+    if (this._isDevSuperAdmin) {
+      const allPerms = new Set<string>();
+      for (const perms of Object.values(ROLE_PERMISSIONS)) {
+        for (const p of perms) allPerms.add(p);
+      }
+      return {
+        userId: email,
+        projectCode,
+        templateId: 0,
+        templateName: 'Dev Super-Admin',
+        source: 'SecurityGroupDefault',
+        toolLevels: {},
+        granularFlags: {},
+        permissions: allPerms,
+        globalAccess: true,
+      };
+    }
+
     // Step 1: Find the user's default template via security group mapping
     // In mock mode, map the current role to a security group by convention
     const roleToGroupMap: Record<string, string> = {
@@ -5028,6 +5070,7 @@ export class MockDataService implements IDataService {
       'Quality Control': 'HBC - Read Only',
       'Safety': 'HBC - Read Only',
       'IDS': 'HBC - Read Only',
+      'SharePoint Admin': 'HBC - SharePoint Admins',
     };
 
     const roleName = this._currentRole;
@@ -5097,6 +5140,15 @@ export class MockDataService implements IDataService {
         granularFlags[ta.toolKey] = ta.granularFlags;
       }
     }
+
+    console.log('[PermissionEngine] resolved', {
+      email,
+      projectCode,
+      templateName: template.name,
+      source,
+      globalAccess: template.globalAccess,
+      permissionCount: permissions.size,
+    });
 
     return {
       userId: email,

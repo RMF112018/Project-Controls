@@ -302,7 +302,7 @@ export const TOOL_DEFINITIONS: IToolDefinition[] = [
       NONE: [],
       READ_ONLY: ['admin:config'],
       STANDARD: ['admin:config', 'admin:flags'],
-      ADMIN: ['admin:roles', 'admin:flags', 'admin:config', 'admin:connections', 'admin:provisioning'],
+      ADMIN: ['admin:roles', 'admin:flags', 'admin:config', 'admin:connections', 'admin:provisioning', 'permission:templates:manage', 'permission:project_team:manage'],
     },
     granularFlags: [
       { key: 'can_manage_provisioning', label: 'Manage Provisioning', description: 'Allow managing site provisioning', permissions: ['admin:provisioning'] },
