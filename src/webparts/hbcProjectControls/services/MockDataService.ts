@@ -121,10 +121,19 @@ import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../m
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverProjectHeader, ITurnoverPrerequisite, ITurnoverEstimateOverview, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverAttachment } from '../models/ITurnoverAgenda';
 import { IActionInboxItem } from '../models/IActionInbox';
-import { WorkflowKey, StepAssignmentType, ConditionField, TurnoverStatus, WorkflowActionType, ActionPriority } from '../models/enums';
+import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions } from '../models/IPermissionTemplate';
+import { PermissionLevel, WorkflowKey, StepAssignmentType, ConditionField, TurnoverStatus, WorkflowActionType, ActionPriority } from '../models/enums';
+import { resolveToolPermissions, TOOL_DEFINITIONS } from '../utils/toolPermissionMap';
 import mockWorkflowDefinitions from '../mock/workflowDefinitions.json';
 import mockWorkflowStepOverrides from '../mock/workflowStepOverrides.json';
 import mockTurnoverAgendas from '../mock/turnoverAgendas.json';
+import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfig';
+import { ISectorDefinition } from '../models/ISectorDefinition';
+import mockPermissionTemplates from '../mock/permissionTemplates.json';
+import mockSecurityGroupMappings from '../mock/securityGroupMappings.json';
+import mockProjectTeamAssignments from '../mock/projectTeamAssignments.json';
+import mockEnvironmentConfig from '../mock/environmentConfig.json';
+import mockSectorDefinitions from '../mock/sectorDefinitions.json';
 import { DEFAULT_PREREQUISITES, DEFAULT_DISCUSSION_ITEMS, DEFAULT_EXHIBITS, DEFAULT_SIGNATURES, TURNOVER_SIGNATURE_AFFIDAVIT } from '../utils/turnoverAgendaTemplate';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
@@ -193,6 +202,9 @@ export class MockDataService implements IDataService {
   private turnoverSignatures: ITurnoverSignature[];
   private turnoverAttachments: ITurnoverAttachment[];
   private hubSiteUrl: string;
+  private permissionTemplates: IPermissionTemplate[];
+  private securityGroupMappings: ISecurityGroupMapping[];
+  private projectTeamAssignments: IProjectTeamAssignment[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -350,6 +362,10 @@ export class MockDataService implements IDataService {
     this.turnoverExhibits = rawTurnoverData.exhibits as ITurnoverExhibit[];
     this.turnoverSignatures = rawTurnoverData.signatures as ITurnoverSignature[];
     this.turnoverAttachments = rawTurnoverData.attachments as ITurnoverAttachment[];
+
+    this.permissionTemplates = JSON.parse(JSON.stringify(mockPermissionTemplates)) as IPermissionTemplate[];
+    this.securityGroupMappings = JSON.parse(JSON.stringify(mockSecurityGroupMappings)) as ISecurityGroupMapping[];
+    this.projectTeamAssignments = JSON.parse(JSON.stringify(mockProjectTeamAssignments)) as IProjectTeamAssignment[];
 
     this.nextId = 1000;
   }
@@ -4854,5 +4870,326 @@ export class MockDataService implements IDataService {
       }
       return new Date(a.requestedDate).getTime() - new Date(b.requestedDate).getTime();
     });
+  }
+
+  // ========== Permission Templates ==========
+
+  async getPermissionTemplates(): Promise<IPermissionTemplate[]> {
+    await delay();
+    return JSON.parse(JSON.stringify(this.permissionTemplates));
+  }
+
+  async getPermissionTemplate(id: number): Promise<IPermissionTemplate | null> {
+    await delay();
+    const t = this.permissionTemplates.find(t => t.id === id);
+    return t ? JSON.parse(JSON.stringify(t)) : null;
+  }
+
+  async createPermissionTemplate(data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> {
+    await delay();
+    const newTemplate: IPermissionTemplate = {
+      id: ++this.nextId,
+      name: data.name || 'New Template',
+      description: data.description || '',
+      isGlobal: data.isGlobal ?? false,
+      globalAccess: data.globalAccess ?? false,
+      identityType: data.identityType || 'Internal',
+      toolAccess: data.toolAccess || [],
+      isDefault: data.isDefault ?? false,
+      isActive: data.isActive ?? true,
+      version: data.version ?? 1,
+      createdBy: data.createdBy || 'System',
+      createdDate: new Date().toISOString(),
+      lastModifiedBy: data.lastModifiedBy || data.createdBy || 'System',
+      lastModifiedDate: new Date().toISOString(),
+    };
+    this.permissionTemplates.push(newTemplate);
+    return JSON.parse(JSON.stringify(newTemplate));
+  }
+
+  async updatePermissionTemplate(id: number, data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> {
+    await delay();
+    const idx = this.permissionTemplates.findIndex(t => t.id === id);
+    if (idx === -1) throw new Error(`Template ${id} not found`);
+    this.permissionTemplates[idx] = {
+      ...this.permissionTemplates[idx],
+      ...data,
+      id,
+      lastModifiedDate: new Date().toISOString(),
+    };
+    return JSON.parse(JSON.stringify(this.permissionTemplates[idx]));
+  }
+
+  async deletePermissionTemplate(id: number): Promise<void> {
+    await delay();
+    const idx = this.permissionTemplates.findIndex(t => t.id === id);
+    if (idx === -1) throw new Error(`Template ${id} not found`);
+    this.permissionTemplates.splice(idx, 1);
+  }
+
+  // ========== Security Group Mappings ==========
+
+  async getSecurityGroupMappings(): Promise<ISecurityGroupMapping[]> {
+    await delay();
+    return JSON.parse(JSON.stringify(this.securityGroupMappings));
+  }
+
+  async createSecurityGroupMapping(data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> {
+    await delay();
+    const newMapping: ISecurityGroupMapping = {
+      id: ++this.nextId,
+      securityGroupId: data.securityGroupId || '',
+      securityGroupName: data.securityGroupName || '',
+      defaultTemplateId: data.defaultTemplateId || 0,
+      isActive: data.isActive ?? true,
+    };
+    this.securityGroupMappings.push(newMapping);
+    return JSON.parse(JSON.stringify(newMapping));
+  }
+
+  async updateSecurityGroupMapping(id: number, data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> {
+    await delay();
+    const idx = this.securityGroupMappings.findIndex(m => m.id === id);
+    if (idx === -1) throw new Error(`Security group mapping ${id} not found`);
+    this.securityGroupMappings[idx] = { ...this.securityGroupMappings[idx], ...data, id };
+    return JSON.parse(JSON.stringify(this.securityGroupMappings[idx]));
+  }
+
+  // ========== Project Team Assignments ==========
+
+  async getProjectTeamAssignments(projectCode: string): Promise<IProjectTeamAssignment[]> {
+    await delay();
+    return JSON.parse(JSON.stringify(
+      this.projectTeamAssignments.filter(a => a.projectCode === projectCode && a.isActive)
+    ));
+  }
+
+  async getMyProjectAssignments(userEmail: string): Promise<IProjectTeamAssignment[]> {
+    await delay();
+    const email = userEmail.toLowerCase();
+    return JSON.parse(JSON.stringify(
+      this.projectTeamAssignments.filter(a => a.userEmail.toLowerCase() === email && a.isActive)
+    ));
+  }
+
+  async createProjectTeamAssignment(data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> {
+    await delay();
+    const newAssignment: IProjectTeamAssignment = {
+      id: ++this.nextId,
+      projectCode: data.projectCode || '',
+      userId: data.userId || '',
+      userDisplayName: data.userDisplayName || '',
+      userEmail: data.userEmail || '',
+      assignedRole: data.assignedRole || '',
+      templateOverrideId: data.templateOverrideId,
+      granularFlagOverrides: data.granularFlagOverrides,
+      assignedBy: data.assignedBy || 'System',
+      assignedDate: new Date().toISOString(),
+      isActive: data.isActive ?? true,
+    };
+    this.projectTeamAssignments.push(newAssignment);
+    return JSON.parse(JSON.stringify(newAssignment));
+  }
+
+  async updateProjectTeamAssignment(id: number, data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> {
+    await delay();
+    const idx = this.projectTeamAssignments.findIndex(a => a.id === id);
+    if (idx === -1) throw new Error(`Project team assignment ${id} not found`);
+    this.projectTeamAssignments[idx] = { ...this.projectTeamAssignments[idx], ...data, id };
+    return JSON.parse(JSON.stringify(this.projectTeamAssignments[idx]));
+  }
+
+  async removeProjectTeamAssignment(id: number): Promise<void> {
+    await delay();
+    const idx = this.projectTeamAssignments.findIndex(a => a.id === id);
+    if (idx === -1) throw new Error(`Project team assignment ${id} not found`);
+    this.projectTeamAssignments[idx].isActive = false;
+  }
+
+  // ========== Permission Resolution ==========
+
+  async resolveUserPermissions(userEmail: string, projectCode: string | null): Promise<IResolvedPermissions> {
+    await delay();
+    const email = userEmail.toLowerCase();
+
+    // Step 1: Find the user's default template via security group mapping
+    // In mock mode, map the current role to a security group by convention
+    const roleToGroupMap: Record<string, string> = {
+      'Executive Leadership': 'HBC - Executive Leadership',
+      'Department Director': 'HBC - Project Executives',
+      'Operations Team': 'HBC - Project Managers',
+      'Preconstruction Team': 'HBC - Estimating',
+      'BD Representative': 'HBC - Business Development',
+      'Estimating Coordinator': 'HBC - Estimating',
+      'Accounting Manager': 'HBC - Accounting',
+      'Legal': 'HBC - Read Only',
+      'Risk Management': 'HBC - Read Only',
+      'Marketing': 'HBC - Read Only',
+      'Quality Control': 'HBC - Read Only',
+      'Safety': 'HBC - Read Only',
+      'IDS': 'HBC - Read Only',
+    };
+
+    const roleName = this._currentRole;
+    const groupName = roleToGroupMap[roleName] || 'HBC - Read Only';
+    const groupMapping = this.securityGroupMappings.find(m => m.securityGroupName === groupName && m.isActive);
+    const defaultTemplateId = groupMapping?.defaultTemplateId || 8; // fallback to Read-Only
+    let templateId = defaultTemplateId;
+    let source: 'SecurityGroupDefault' | 'ProjectOverride' | 'DirectAssignment' = 'SecurityGroupDefault';
+
+    // Step 2: Check for project-level template override
+    if (projectCode) {
+      const assignment = this.projectTeamAssignments.find(
+        a => a.userEmail.toLowerCase() === email && a.projectCode === projectCode && a.isActive
+      );
+      if (assignment?.templateOverrideId) {
+        templateId = assignment.templateOverrideId;
+        source = 'ProjectOverride';
+      }
+    }
+
+    // Step 3: Load template
+    const template = this.permissionTemplates.find(t => t.id === templateId);
+    if (!template) {
+      // Fallback to empty permissions
+      return {
+        userId: email,
+        projectCode,
+        templateId: 0,
+        templateName: 'Unknown',
+        source,
+        toolLevels: {},
+        granularFlags: {},
+        permissions: new Set<string>(),
+        globalAccess: false,
+      };
+    }
+
+    // Step 4: Merge granular flag overrides from project assignment
+    const toolAccess = [...template.toolAccess];
+    if (projectCode) {
+      const assignment = this.projectTeamAssignments.find(
+        a => a.userEmail.toLowerCase() === email && a.projectCode === projectCode && a.isActive
+      );
+      if (assignment?.granularFlagOverrides) {
+        for (const override of assignment.granularFlagOverrides) {
+          const existingTool = toolAccess.find(ta => ta.toolKey === override.toolKey);
+          if (existingTool) {
+            existingTool.granularFlags = [
+              ...(existingTool.granularFlags || []),
+              ...override.flags,
+            ];
+          }
+        }
+      }
+    }
+
+    // Step 5: Flatten to permission strings
+    const permissionStrings = resolveToolPermissions(toolAccess, TOOL_DEFINITIONS);
+    const permissions = new Set<string>(permissionStrings);
+
+    // Build toolLevels and granularFlags maps
+    const toolLevels: Record<string, PermissionLevel> = {};
+    const granularFlags: Record<string, string[]> = {};
+    for (const ta of toolAccess) {
+      toolLevels[ta.toolKey] = ta.level as PermissionLevel;
+      if (ta.granularFlags && ta.granularFlags.length > 0) {
+        granularFlags[ta.toolKey] = ta.granularFlags;
+      }
+    }
+
+    return {
+      userId: email,
+      projectCode,
+      templateId: template.id,
+      templateName: template.name,
+      source,
+      toolLevels,
+      granularFlags,
+      permissions,
+      globalAccess: template.globalAccess,
+    };
+  }
+
+  async getAccessibleProjects(userEmail: string): Promise<string[]> {
+    await delay();
+    const email = userEmail.toLowerCase();
+
+    // First check if user has globalAccess via their template
+    const resolved = await this.resolveUserPermissions(email, null);
+    if (resolved.globalAccess) {
+      // Return all project codes from leads that have project codes
+      return [...new Set(this.leads.filter(l => l.ProjectCode).map(l => l.ProjectCode!))];
+    }
+
+    // Otherwise return only assigned project codes
+    const assignments = this.projectTeamAssignments.filter(
+      a => a.userEmail.toLowerCase() === email && a.isActive
+    );
+    return [...new Set(assignments.map(a => a.projectCode))];
+  }
+
+  // --- Environment Configuration ---
+  private environmentConfig: IEnvironmentConfig = JSON.parse(JSON.stringify(mockEnvironmentConfig));
+
+  async getEnvironmentConfig(): Promise<IEnvironmentConfig> {
+    await new Promise(r => setTimeout(r, 100));
+    return JSON.parse(JSON.stringify(this.environmentConfig));
+  }
+
+  async promoteTemplates(fromTier: EnvironmentTier, toTier: EnvironmentTier, promotedBy: string): Promise<void> {
+    await new Promise(r => setTimeout(r, 500));
+    // Increment version on all active templates
+    for (const tpl of this.permissionTemplates) {
+      if (tpl.isActive) {
+        tpl.version = (tpl.version || 1) + 1;
+        tpl.promotedFromTier = fromTier;
+        tpl.lastModifiedBy = promotedBy;
+        tpl.lastModifiedDate = new Date().toISOString();
+      }
+    }
+    // Record promotion
+    if (!this.environmentConfig.promotionHistory) {
+      this.environmentConfig.promotionHistory = [];
+    }
+    this.environmentConfig.promotionHistory.push({
+      fromTier,
+      toTier,
+      promotedBy,
+      promotedDate: new Date().toISOString(),
+      templateCount: this.permissionTemplates.filter(t => t.isActive).length,
+    });
+  }
+
+  // --- Sector Definitions ---
+  private sectorDefinitions: ISectorDefinition[] = JSON.parse(JSON.stringify(mockSectorDefinitions));
+
+  async getSectorDefinitions(): Promise<ISectorDefinition[]> {
+    await new Promise(r => setTimeout(r, 100));
+    return JSON.parse(JSON.stringify(this.sectorDefinitions.sort((a, b) => a.sortOrder - b.sortOrder)));
+  }
+
+  async createSectorDefinition(data: Partial<ISectorDefinition>): Promise<ISectorDefinition> {
+    await new Promise(r => setTimeout(r, 200));
+    const maxId = this.sectorDefinitions.reduce((max, s) => Math.max(max, s.id), 0);
+    const maxSort = this.sectorDefinitions.reduce((max, s) => Math.max(max, s.sortOrder), 0);
+    const newSector: ISectorDefinition = {
+      id: maxId + 1,
+      code: data.code || data.label?.toUpperCase().replace(/[^A-Z0-9]/g, '_') || 'NEW',
+      label: data.label || 'New Sector',
+      isActive: data.isActive ?? true,
+      parentDivision: data.parentDivision,
+      sortOrder: data.sortOrder ?? maxSort + 1,
+    };
+    this.sectorDefinitions.push(newSector);
+    return JSON.parse(JSON.stringify(newSector));
+  }
+
+  async updateSectorDefinition(id: number, data: Partial<ISectorDefinition>): Promise<ISectorDefinition> {
+    await new Promise(r => setTimeout(r, 200));
+    const idx = this.sectorDefinitions.findIndex(s => s.id === id);
+    if (idx === -1) throw new Error(`Sector definition ${id} not found`);
+    this.sectorDefinitions[idx] = { ...this.sectorDefinitions[idx], ...data };
+    return JSON.parse(JSON.stringify(this.sectorDefinitions[idx]));
   }
 }

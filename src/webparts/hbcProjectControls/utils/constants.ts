@@ -41,6 +41,10 @@ export const HUB_LISTS = {
   WORKFLOW_STEPS: 'Workflow_Steps',
   WORKFLOW_CONDITIONAL_ASSIGNMENTS: 'Workflow_Conditional_Assignments',
   WORKFLOW_STEP_OVERRIDES: 'Workflow_Step_Overrides',
+  PERMISSION_TEMPLATES: 'Permission_Templates',
+  SECURITY_GROUP_MAPPINGS: 'Security_Group_Mappings',
+  PROJECT_TEAM_ASSIGNMENTS: 'Project_Team_Assignments',
+  SECTOR_DEFINITIONS: 'Sector_Definitions',
 } as const;
 
 export const PROJECT_LISTS = {

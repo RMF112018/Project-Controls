@@ -32,3 +32,5 @@ export { ToastProvider, useToast } from './ToastContainer';
 export type { ToastType, IToast } from './ToastContainer';
 export { ActivityTimeline } from './ActivityTimeline';
 export type { ITimelineEntry } from './ActivityTimeline';
+export { ToolPermissionMatrix } from './ToolPermissionMatrix';
+export { GranularFlagEditor } from './GranularFlagEditor';

@@ -7,3 +7,4 @@ export { GoNoGoDetail } from './GoNoGoDetail';
 export { GoNoGoMeetingScheduler } from './GoNoGoMeetingScheduler';
 export { AdminPanel } from './AdminPanel';
 export { MarketingDashboard } from './MarketingDashboard';
+export { PermissionTemplateEditor } from './PermissionTemplateEditor';

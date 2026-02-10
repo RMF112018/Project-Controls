@@ -1,0 +1,84 @@
+[
+  {
+    "id": 1, "projectCode": "25-042-01", "userId": "user-mhedrick", "userDisplayName": "Mike Hedrick",
+    "userEmail": "mhedrick@hedrickbrothers.com", "assignedRole": "Principal-in-Charge",
+    "assignedBy": "System", "assignedDate": "2025-01-15T00:00:00Z", "isActive": true
+  },
+  {
+    "id": 2, "projectCode": "25-042-01", "userId": "user-bcashin", "userDisplayName": "Bob Cashin",
+    "userEmail": "bcashin@hedrickbrothers.com", "assignedRole": "Project Executive",
+    "templateOverrideId": 3,
+    "assignedBy": "Mike Hedrick", "assignedDate": "2025-01-15T00:00:00Z", "isActive": true
+  },
+  {
+    "id": 3, "projectCode": "25-042-01", "userId": "user-jchen", "userDisplayName": "James Chen",
+    "userEmail": "jchen@hedrickbrothers.com", "assignedRole": "Lead PM",
+    "templateOverrideId": 4,
+    "assignedBy": "Bob Cashin", "assignedDate": "2025-01-16T00:00:00Z", "isActive": true
+  },
+  {
+    "id": 4, "projectCode": "25-042-01", "userId": "user-amartin", "userDisplayName": "Angela Martin",
+    "userEmail": "amartin@hedrickbrothers.com", "assignedRole": "Assistant PM",
+    "assignedBy": "James Chen", "assignedDate": "2025-01-16T00:00:00Z", "isActive": true
+  },
+  {
+    "id": 5, "projectCode": "25-042-01", "userId": "user-rjohnson", "userDisplayName": "Robert Johnson",
+    "userEmail": "rjohnson@hedrickbrothers.com", "assignedRole": "Lead Superintendent",
+    "assignedBy": "Bob Cashin", "assignedDate": "2025-01-16T00:00:00Z", "isActive": true
+  },
+  {
+    "id": 6, "projectCode": "25-042-01", "userId": "user-thickman", "userDisplayName": "Tacara Hickman",
+    "userEmail": "thickman@hedrickbrothers.com", "assignedRole": "Project Accountant",
+    "templateOverrideId": 7,
+    "assignedBy": "Bob Cashin", "assignedDate": "2025-01-17T00:00:00Z", "isActive": true
+  },
+  {
+    "id": 7, "projectCode": "25-042-01", "userId": "user-dpark", "userDisplayName": "David Park",
+    "userEmail": "dpark@hedrickbrothers.com", "assignedRole": "Director of Preconstruction",
+    "granularFlagOverrides": [{ "toolKey": "gonogo", "flags": ["can_score_committee"] }],
+    "assignedBy": "Mike Hedrick", "assignedDate": "2025-01-15T00:00:00Z", "isActive": true
+  },
+  {
+    "id": 8, "projectCode": "25-042-01", "userId": "user-smitchell", "userDisplayName": "Sarah Mitchell",
+    "userEmail": "smitchell@hedrickbrothers.com", "assignedRole": "BD Representative",
+    "assignedBy": "Mike Hedrick", "assignedDate": "2025-01-15T00:00:00Z", "isActive": true
+  },
+  {
+    "id": 9, "projectCode": "25-115-01", "userId": "user-mhedrick", "userDisplayName": "Mike Hedrick",
+    "userEmail": "mhedrick@hedrickbrothers.com", "assignedRole": "Principal-in-Charge",
+    "assignedBy": "System", "assignedDate": "2025-03-01T00:00:00Z", "isActive": true
+  },
+  {
+    "id": 10, "projectCode": "25-115-01", "userId": "user-bcashin", "userDisplayName": "Bob Cashin",
+    "userEmail": "bcashin@hedrickbrothers.com", "assignedRole": "Project Executive",
+    "templateOverrideId": 3,
+    "assignedBy": "Mike Hedrick", "assignedDate": "2025-03-01T00:00:00Z", "isActive": true
+  },
+  {
+    "id": 11, "projectCode": "25-115-01", "userId": "user-amartin", "userDisplayName": "Angela Martin",
+    "userEmail": "amartin@hedrickbrothers.com", "assignedRole": "Lead PM",
+    "templateOverrideId": 4,
+    "assignedBy": "Bob Cashin", "assignedDate": "2025-03-02T00:00:00Z", "isActive": true
+  },
+  {
+    "id": 12, "projectCode": "25-115-01", "userId": "user-rjohnson", "userDisplayName": "Robert Johnson",
+    "userEmail": "rjohnson@hedrickbrothers.com", "assignedRole": "Superintendent",
+    "assignedBy": "Bob Cashin", "assignedDate": "2025-03-02T00:00:00Z", "isActive": true
+  },
+  {
+    "id": 13, "projectCode": "25-115-01", "userId": "user-dpark", "userDisplayName": "David Park",
+    "userEmail": "dpark@hedrickbrothers.com", "assignedRole": "Director of Preconstruction",
+    "assignedBy": "Mike Hedrick", "assignedDate": "2025-03-01T00:00:00Z", "isActive": true
+  },
+  {
+    "id": 14, "projectCode": "25-115-01", "userId": "user-smitchell", "userDisplayName": "Sarah Mitchell",
+    "userEmail": "smitchell@hedrickbrothers.com", "assignedRole": "BD Representative",
+    "assignedBy": "Mike Hedrick", "assignedDate": "2025-03-01T00:00:00Z", "isActive": true
+  },
+  {
+    "id": 15, "projectCode": "25-042-01", "userId": "user-lgarcia", "userDisplayName": "Lisa Garcia",
+    "userEmail": "lgarcia@hedrickbrothers.com", "assignedRole": "Safety Officer",
+    "granularFlagOverrides": [{ "toolKey": "quality_safety", "flags": [] }],
+    "assignedBy": "Bob Cashin", "assignedDate": "2025-01-20T00:00:00Z", "isActive": true
+  }
+]

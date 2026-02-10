@@ -20,6 +20,7 @@ export enum Region {
   Tallahassee = 'Tallahassee'
 }
 
+/** @deprecated Use dynamic sector definitions from dataService.getSectorDefinitions() instead. Kept for backward compatibility with existing data. */
 export enum Sector {
   Airport = 'Airport',
   City = 'City',
@@ -172,7 +173,15 @@ export enum AuditAction {
   HubNavLinkFailed = 'HubNav.LinkFailed',
   HubNavLinkRetried = 'HubNav.LinkRetried',
   HubNavLinkRemoved = 'HubNav.LinkRemoved',
-  HubSiteUrlUpdated = 'HubNav.SiteUrlUpdated'
+  HubSiteUrlUpdated = 'HubNav.SiteUrlUpdated',
+  TemplateCreated = 'Permission.TemplateCreated',
+  TemplateUpdated = 'Permission.TemplateUpdated',
+  TemplateDeleted = 'Permission.TemplateDeleted',
+  ProjectTeamAssigned = 'Permission.ProjectTeamAssigned',
+  ProjectTeamRemoved = 'Permission.ProjectTeamRemoved',
+  ProjectTeamOverridden = 'Permission.ProjectTeamOverridden',
+  SecurityGroupMappingChanged = 'Permission.SecurityGroupMappingChanged',
+  PermissionResolved = 'Permission.Resolved'
 }
 
 export enum EntityType {
@@ -194,7 +203,9 @@ export enum EntityType {
   PMP = 'PMP',
   MonthlyReview = 'MonthlyReview',
   WorkflowDefinition = 'WorkflowDefinition',
-  TurnoverAgenda = 'TurnoverAgenda'
+  TurnoverAgenda = 'TurnoverAgenda',
+  PermissionTemplate = 'PermissionTemplate',
+  ProjectTeamAssignment = 'ProjectTeamAssignment'
 }
 
 export enum DeliverableStatus {
@@ -357,4 +368,11 @@ export enum ActionPriority {
   Urgent = 'Urgent',
   Normal = 'Normal',
   New = 'New'
+}
+
+export enum PermissionLevel {
+  NONE = 'NONE',
+  READ_ONLY = 'READ_ONLY',
+  STANDARD = 'STANDARD',
+  ADMIN = 'ADMIN'
 }

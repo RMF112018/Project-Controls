@@ -20,5 +20,6 @@
   { "id": 19, "FeatureName": "MarketingProjectRecord", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 9 marketing project record and dashboard" },
   { "id": 20, "FeatureName": "ProjectManagementPlan", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 10 PMP and operational modules" },
   { "id": 21, "FeatureName": "MonthlyProjectReview", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 10 monthly project review" },
-  { "id": 22, "FeatureName": "WorkflowDefinitions", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 13 workflow definition configuration" }
+  { "id": 22, "FeatureName": "WorkflowDefinitions", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 13 workflow definition configuration" },
+  { "id": 23, "FeatureName": "PermissionEngine", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 19 Procore-modeled permission engine with templates and project scoping" }
 ]

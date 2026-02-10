@@ -37,6 +37,9 @@ import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../m
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
 import { IActionInboxItem } from '../models/IActionInbox';
+import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions } from '../models/IPermissionTemplate';
+import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfig';
+import { ISectorDefinition } from '../models/ISectorDefinition';
 import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -328,6 +331,38 @@ export interface IDataService {
 
   // Action Inbox aggregation
   getActionItems(userEmail: string): Promise<IActionInboxItem[]>;
+
+  // Permission Templates
+  getPermissionTemplates(): Promise<IPermissionTemplate[]>;
+  getPermissionTemplate(id: number): Promise<IPermissionTemplate | null>;
+  createPermissionTemplate(data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate>;
+  updatePermissionTemplate(id: number, data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate>;
+  deletePermissionTemplate(id: number): Promise<void>;
+
+  // Security Group Mappings
+  getSecurityGroupMappings(): Promise<ISecurityGroupMapping[]>;
+  createSecurityGroupMapping(data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping>;
+  updateSecurityGroupMapping(id: number, data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping>;
+
+  // Project Team Assignments
+  getProjectTeamAssignments(projectCode: string): Promise<IProjectTeamAssignment[]>;
+  getMyProjectAssignments(userEmail: string): Promise<IProjectTeamAssignment[]>;
+  createProjectTeamAssignment(data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment>;
+  updateProjectTeamAssignment(id: number, data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment>;
+  removeProjectTeamAssignment(id: number): Promise<void>;
+
+  // Permission Resolution
+  resolveUserPermissions(userEmail: string, projectCode: string | null): Promise<IResolvedPermissions>;
+  getAccessibleProjects(userEmail: string): Promise<string[]>;
+
+  // Environment Configuration
+  getEnvironmentConfig(): Promise<IEnvironmentConfig>;
+  promoteTemplates(fromTier: EnvironmentTier, toTier: EnvironmentTier, promotedBy: string): Promise<void>;
+
+  // Sector Definitions
+  getSectorDefinitions(): Promise<ISectorDefinition[]>;
+  createSectorDefinition(data: Partial<ISectorDefinition>): Promise<ISectorDefinition>;
+  updateSectorDefinition(id: number, data: Partial<ISectorDefinition>): Promise<ISectorDefinition>;
 }
 
 export interface IActiveProjectsQueryOptions extends IListQueryOptions {

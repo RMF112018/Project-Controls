@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { IDataService } from '../../services/IDataService';
 import { ICurrentUser, IFeatureFlag, Stage } from '../../models';
+import { IResolvedPermissions } from '../../models/IPermissionTemplate';
 
 export interface ISelectedProject {
   projectCode: string;
@@ -21,6 +22,7 @@ export interface IAppContextValue {
   setSelectedProject: (project: ISelectedProject | null) => void;
   hasPermission: (permission: string) => boolean;
   isFeatureEnabled: (featureName: string) => boolean;
+  resolvedPermissions: IResolvedPermissions | null;
 }
 
 const AppContext = React.createContext<IAppContextValue | undefined>(undefined);
@@ -36,6 +38,13 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, children
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [selectedProject, setSelectedProject] = React.useState<ISelectedProject | null>(null);
+  const [resolvedPermissions, setResolvedPermissions] = React.useState<IResolvedPermissions | null>(null);
+
+  // Helper: check if PermissionEngine flag is enabled in a given set of flags
+  const isPermissionEngineEnabled = React.useCallback((flags: IFeatureFlag[]): boolean => {
+    const flag = flags.find(f => f.FeatureName === 'PermissionEngine');
+    return flag?.Enabled === true;
+  }, []);
 
   React.useEffect(() => {
     const init = async (): Promise<void> => {
@@ -45,6 +54,20 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, children
           dataService.getCurrentUser(),
           dataService.getFeatureFlags(),
         ]);
+
+        // If PermissionEngine flag is enabled, resolve permissions via the engine
+        const engineEnabled = flags.find(f => f.FeatureName === 'PermissionEngine')?.Enabled === true;
+        if (engineEnabled) {
+          try {
+            const resolved = await dataService.resolveUserPermissions(user.email, null);
+            user.permissions = resolved.permissions;
+            setResolvedPermissions(resolved);
+          } catch {
+            // Fallback: keep ROLE_PERMISSIONS-based permissions (already set by getCurrentUser)
+            console.warn('Permission engine resolution failed, using role-based fallback');
+          }
+        }
+
         setCurrentUser(user);
         setFeatureFlags(flags);
       } catch (err) {
@@ -55,6 +78,25 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, children
     };
     init().catch(console.error);
   }, [dataService]);
+
+  // Re-resolve permissions when selectedProject changes (if engine is enabled)
+  React.useEffect(() => {
+    if (!currentUser || !isPermissionEngineEnabled(featureFlags)) return;
+
+    const projectCode = selectedProject?.projectCode || null;
+    dataService.resolveUserPermissions(currentUser.email, projectCode)
+      .then(resolved => {
+        setCurrentUser(prev => {
+          if (!prev) return prev;
+          return { ...prev, permissions: resolved.permissions };
+        });
+        setResolvedPermissions(resolved);
+      })
+      .catch(() => {
+        // Keep existing permissions on failure
+        console.warn('Permission re-resolution failed for project change');
+      });
+  }, [selectedProject, currentUser?.email, dataService, featureFlags, isPermissionEngineEnabled]);
 
   const hasPermission = React.useCallback((permission: string): boolean => {
     if (!currentUser) return false;
@@ -81,7 +123,8 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, children
     setSelectedProject,
     hasPermission,
     isFeatureEnabled,
-  }), [dataService, currentUser, featureFlags, isLoading, error, selectedProject, hasPermission, isFeatureEnabled]);
+    resolvedPermissions,
+  }), [dataService, currentUser, featureFlags, isLoading, error, selectedProject, hasPermission, isFeatureEnabled, resolvedPermissions]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

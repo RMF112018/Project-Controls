@@ -9,6 +9,7 @@ import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { ILeadFormData, Stage, Region, Sector, Division, DepartmentOfOrigin, DeliveryMethod, RoleName, NotificationEvent, AuditAction, EntityType } from '../../../models';
+import { useSectorDefinitions } from '../../hooks/useSectorDefinitions';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import { validateLeadForm } from '../../../utils/validators';
 import { useToast } from '../../shared/ToastContainer';
@@ -19,8 +20,9 @@ export const LeadFormPage: React.FC = () => {
   const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { createLead } = useLeads();
   const { notify } = useNotifications();
-  const { currentUser, dataService } = useAppContext();
+  const { currentUser, dataService, isFeatureEnabled } = useAppContext();
   const { addToast } = useToast();
+  const { activeSectors } = useSectorDefinitions();
   const [formData, setFormData] = React.useState<Partial<ILeadFormData>>({
     Stage: Stage.LeadDiscovery,
   });
@@ -170,7 +172,10 @@ export const LeadFormPage: React.FC = () => {
                 onChange={(_, d) => handleChange('Sector', d.value)}
               >
                 <option value="">Select...</option>
-                {Object.values(Sector).map(s => <option key={s} value={s}>{s}</option>)}
+                {(isFeatureEnabled('PermissionEngine') && activeSectors.length > 0
+                  ? activeSectors.map(s => <option key={s.label} value={s.label}>{s.label}</option>)
+                  : Object.values(Sector).map(s => <option key={s} value={s}>{s}</option>)
+                )}
               </Select>
               {errors.Sector && (
                 <span style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.Sector}</span>

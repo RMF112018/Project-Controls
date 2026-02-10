@@ -17,4 +17,5 @@ export interface ICurrentUser {
   roles: RoleName[];
   permissions: Set<string>;
   photoUrl?: string;
+  identityType?: 'Internal' | 'External';
 }

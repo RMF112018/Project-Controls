@@ -31,3 +31,5 @@ export { useActionInbox } from './useActionInbox';
 export { usePersistedState } from './usePersistedState';
 export { useTabFromUrl } from './useTabFromUrl';
 export { useKeyboardShortcut } from './useKeyboardShortcut';
+export { usePermissionEngine } from './usePermissionEngine';
+export { useSectorDefinitions } from './useSectorDefinitions';
