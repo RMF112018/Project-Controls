@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { HBC_COLORS } from '../../../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../../../theme/tokens';
 import { IProjectManagementPlan, IPMPApprovalCycle } from '../../../../models/IProjectManagementPlan';
 
 interface IPMPApprovalPanelProps {
@@ -26,7 +26,7 @@ export const PMPApprovalPanel: React.FC<IPMPApprovalPanelProps> = ({ pmp, canSub
   const allSigned = signedCount === requiredSigs.length && requiredSigs.length > 0;
 
   return (
-    <div style={{ backgroundColor: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+    <div style={{ backgroundColor: '#fff', borderRadius: 8, padding: 20, boxShadow: ELEVATION.level1 }}>
       <h3 style={{ margin: '0 0 16px', color: HBC_COLORS.navy, fontSize: 16 }}>Approval Status</h3>
 
       {/* Status badge */}

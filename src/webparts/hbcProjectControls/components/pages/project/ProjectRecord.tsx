@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useMarketingRecord } from '../../hooks/useMarketingRecord';
 import { useAppContext } from '../../contexts/AppContext';
 import { PERMISSIONS } from '../../../utils/permissions';
@@ -10,10 +11,12 @@ import {
 } from '../../../models/IMarketingProjectRecord';
 import { IMarketingProjectRecord, AuditAction, EntityType } from '../../../models';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 
 // ---------------------------------------------------------------------------
 // Section field mappings for completion calculation
@@ -64,7 +67,7 @@ const CASE_STUDY_LABELS: Record<string, string> = {
 const cardStyle: React.CSSProperties = {
   backgroundColor: HBC_COLORS.white,
   borderRadius: '8px',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  boxShadow: ELEVATION.level1,
   padding: '24px',
   marginBottom: '16px',
 };
@@ -219,6 +222,8 @@ const CompletionCircle: React.FC<{ pct: number }> = ({ pct }) => {
 // Main Component
 // ---------------------------------------------------------------------------
 export const ProjectRecord: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { selectedProject, hasPermission, currentUser, dataService } = useAppContext();
   const { record, isLoading, fetchRecord, updateRecord, createRecord } = useMarketingRecord();
 
@@ -495,12 +500,12 @@ export const ProjectRecord: React.FC = () => {
   // ---------------------------------------------------------------------------
   // Loading / no record states
   // ---------------------------------------------------------------------------
-  if (isLoading) return <LoadingSpinner label="Loading project record..." />;
+  if (isLoading) return <SkeletonLoader variant="form" rows={8} />;
 
   if (!localRecord && !record) {
     return (
       <div style={{ padding: '48px', textAlign: 'center' }}>
-        <PageHeader title="Marketing Project Record" subtitle={selectedProject?.projectCode || ''} />
+        <PageHeader title="Marketing Project Record" subtitle={selectedProject?.projectCode || ''} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
         <div style={cardStyle}>
           <h3 style={{ color: HBC_COLORS.gray500, marginBottom: '16px' }}>No Project Record Found</h3>
           <p style={{ color: HBC_COLORS.gray400, marginBottom: '24px' }}>
@@ -541,6 +546,7 @@ export const ProjectRecord: React.FC = () => {
       <PageHeader
         title="Marketing Project Record"
         subtitle={`${localRecord.projectName} (${localRecord.projectCode})`}
+        breadcrumb={<Breadcrumb items={breadcrumbs} />}
         actions={
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {isSaving && <span style={{ fontSize: '12px', color: HBC_COLORS.gray400 }}>Saving...</span>}

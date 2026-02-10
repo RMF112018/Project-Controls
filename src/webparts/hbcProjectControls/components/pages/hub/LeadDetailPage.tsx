@@ -1,27 +1,33 @@
 import * as React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@fluentui/react-components';
 import { useLeads } from '../../hooks/useLeads';
 import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { StageBadge } from '../../shared/StageBadge';
 import { ScoreTierBadge } from '../../shared/ScoreTierBadge';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ILead, Stage, GoNoGoDecision, AuditAction, EntityType } from '../../../models';
 import { ProvisioningStatusView } from '../../shared/ProvisioningStatus';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import { formatCurrency, formatDate, formatSquareFeet } from '../../../utils/formatters';
 import { PERMISSIONS } from '../../../utils/permissions';
+import { useToast } from '../../shared/ToastContainer';
 
 export const LeadDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { hasPermission, dataService, currentUser } = useAppContext();
+  const { addToast } = useToast();
   const { getLeadById, updateLead } = useLeads();
   const [lead, setLead] = React.useState<ILead | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isEditing, setIsEditing] = React.useState(false);
   const [editData, setEditData] = React.useState<Partial<ILead>>({});
+  const breadcrumbs = buildBreadcrumbs(location.pathname, lead?.Title);
 
   React.useEffect(() => {
     if (id) {
@@ -58,12 +64,14 @@ export const LeadDetailPage: React.FC = () => {
       setLead(updated);
       setIsEditing(false);
       setEditData({});
+      addToast('Lead updated', 'success');
     } catch (err) {
       console.error('Failed to save:', err);
+      addToast('Failed to update lead', 'error');
     }
   };
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading) return <SkeletonLoader variant="form" rows={8} />;
   if (!lead) return <div style={{ padding: '24px' }}>Lead not found</div>;
 
   const fieldStyle: React.CSSProperties = { marginBottom: '16px' };
@@ -83,6 +91,7 @@ export const LeadDetailPage: React.FC = () => {
       <PageHeader
         title={lead.Title}
         subtitle={`${lead.ClientName} \u2014 ${lead.Region}`}
+        breadcrumb={<Breadcrumb items={breadcrumbs} />}
         actions={
           <div style={{ display: 'flex', gap: '8px' }}>
             <Button appearance="secondary" onClick={() => navigate(-1)}>Back</Button>
@@ -118,7 +127,7 @@ export const LeadDetailPage: React.FC = () => {
           backgroundColor: '#fff',
           borderRadius: '8px',
           padding: '24px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          boxShadow: ELEVATION.level1,
         }}>
           <h3 style={{ margin: '0 0 16px', color: HBC_COLORS.navy }}>Project Details</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -172,7 +181,7 @@ export const LeadDetailPage: React.FC = () => {
             backgroundColor: '#fff',
             borderRadius: '8px',
             padding: '24px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            boxShadow: ELEVATION.level1,
             marginBottom: '16px',
           }}>
             <h3 style={{ margin: '0 0 12px', color: HBC_COLORS.navy }}>Status</h3>
@@ -199,7 +208,7 @@ export const LeadDetailPage: React.FC = () => {
               backgroundColor: '#fff',
               borderRadius: '8px',
               padding: '24px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              boxShadow: ELEVATION.level1,
             }}>
               <h3 style={{ margin: '0 0 12px', color: HBC_COLORS.navy }}>Go/No-Go Scores</h3>
               {lead.GoNoGoScore_Originator !== undefined && (
@@ -241,7 +250,7 @@ export const LeadDetailPage: React.FC = () => {
                   backgroundColor: '#fff',
                   borderRadius: '8px',
                   padding: '24px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  boxShadow: ELEVATION.level1,
                 }}>
                   <h3 style={{ margin: '0 0 12px', color: HBC_COLORS.navy }}>Project Site</h3>
                   <a

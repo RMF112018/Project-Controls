@@ -1,14 +1,16 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button, Select } from '@fluentui/react-components';
 import { useLeads } from '../../hooks/useLeads';
 import { useAppContext } from '../../contexts/AppContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { KPICard } from '../../shared/KPICard';
 import { PipelineChart } from '../../shared/PipelineChart';
 import { StageBadge } from '../../shared/StageBadge';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { FeatureGate } from '../../guards/FeatureGate';
@@ -20,6 +22,8 @@ import { PERMISSIONS } from '../../../utils/permissions';
 
 export const PipelinePage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { hasPermission } = useAppContext();
   const { leads, totalCount, isLoading, fetchLeads } = useLeads();
   const { isMobile } = useResponsive();
@@ -167,7 +171,7 @@ export const PipelinePage: React.FC = () => {
     setDivisionFilter('all');
   };
 
-  if (isLoading) return <LoadingSpinner label="Loading pipeline..." />;
+  if (isLoading) return <SkeletonLoader variant="table" rows={8} columns={5} />;
 
   return (
     <FeatureGate featureName="PipelineDashboard">
@@ -175,6 +179,7 @@ export const PipelinePage: React.FC = () => {
         <PageHeader
           title="Project Pipeline"
           subtitle={`${totalCount} leads across all stages`}
+          breadcrumb={<Breadcrumb items={breadcrumbs} />}
           actions={
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <ExportButtons data={exportData} filename="pipeline-export" title="Project Pipeline" />

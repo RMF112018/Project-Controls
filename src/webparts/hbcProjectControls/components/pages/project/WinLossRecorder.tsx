@@ -1,19 +1,21 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLeads } from '../../hooks/useLeads';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
 import { AutopsyMeetingScheduler } from '../../shared/AutopsyMeetingScheduler';
 import { ILead, RoleName, LossReason } from '../../../models';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { formatCurrency } from '../../../utils/formatters';
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: '#fff', borderRadius: 8, padding: 24,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  boxShadow: ELEVATION.level1,
 };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: HBC_COLORS.gray600, marginBottom: 4 };
 const inputStyle: React.CSSProperties = {
@@ -24,6 +26,8 @@ const inputStyle: React.CSSProperties = {
 const LOSS_REASONS = Object.values(LossReason);
 
 export const WinLossRecorder: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const navigate = useNavigate();
   const { selectedProject, dataService, currentUser } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
@@ -165,7 +169,7 @@ export const WinLossRecorder: React.FC = () => {
     setSelectedReasons(prev => prev.includes(reason) ? prev.filter(r => r !== reason) : [...prev, reason]);
   };
 
-  if (leadsLoading) return <LoadingSpinner label="Loading..." />;
+  if (leadsLoading) return <SkeletonLoader variant="form" rows={6} />;
   if (!project) return <div style={{ padding: 48, textAlign: 'center', color: HBC_COLORS.gray500 }}><h2>Project not found</h2></div>;
 
   // Read-only summary if decision already recorded
@@ -173,9 +177,9 @@ export const WinLossRecorder: React.FC = () => {
     const isWin = project.WinLossDecision === 'Win' || mode === 'win';
     return (
       <div>
-        <PageHeader title="Win/Loss Recorder" subtitle={`${project.Title} — ${project.ClientName}`} />
+        <PageHeader title="Win/Loss Recorder" subtitle={`${project.Title} — ${project.ClientName}`} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
         {toast && <div style={{ padding: '12px 16px', backgroundColor: '#D1FAE5', color: '#065F46', borderRadius: 6, marginBottom: 16, fontSize: 14 }}>{toast}</div>}
-        <div style={{ ...cardStyle, borderLeft: `4px solid ${isWin ? '#10B981' : '#EF4444'}` }}>
+        <div style={{ ...cardStyle, ...(RISK_INDICATOR.style(isWin ? RISK_INDICATOR.colors.success : RISK_INDICATOR.colors.critical)) }}>
           <h3 style={{ margin: '0 0 16px', color: isWin ? '#10B981' : '#EF4444' }}>
             {isWin ? 'WIN' : 'LOSS'} Recorded
           </h3>
@@ -247,7 +251,7 @@ export const WinLossRecorder: React.FC = () => {
 
   return (
     <div>
-      <PageHeader title="Win/Loss Recorder" subtitle={`${project.Title} — ${project.ClientName}`} />
+      <PageHeader title="Win/Loss Recorder" subtitle={`${project.Title} — ${project.ClientName}`} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
 
       <RoleGate allowedRoles={[RoleName.BDRepresentative, RoleName.ExecutiveLeadership, RoleName.DepartmentDirector]} fallback={
         <div style={cardStyle}><p style={{ color: HBC_COLORS.gray500 }}>You do not have permission to record win/loss decisions. Please contact BD or Executive Leadership.</p></div>
@@ -270,7 +274,7 @@ export const WinLossRecorder: React.FC = () => {
         )}
 
         {mode === 'win' && (
-          <div style={{ ...cardStyle, borderLeft: '4px solid #10B981' }}>
+          <div style={{ ...cardStyle, ...RISK_INDICATOR.style(RISK_INDICATOR.colors.success) }}>
             <h3 style={{ margin: '0 0 20px', color: '#10B981' }}>Record Win — Award Details</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div><label style={labelStyle}>Contract Value ($)</label><input type="number" value={contractValue} onChange={e => setContractValue(e.target.value)} placeholder="0" style={inputStyle} /></div>
@@ -286,7 +290,7 @@ export const WinLossRecorder: React.FC = () => {
         )}
 
         {mode === 'loss' && (
-          <div style={{ ...cardStyle, borderLeft: '4px solid #EF4444' }}>
+          <div style={{ ...cardStyle, ...RISK_INDICATOR.style(RISK_INDICATOR.colors.critical) }}>
             <h3 style={{ margin: '0 0 20px', color: '#EF4444' }}>Record Loss — Details</h3>
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>Loss Reasons (select all that apply) *</label>

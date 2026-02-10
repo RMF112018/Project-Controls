@@ -9,7 +9,7 @@ import {
   Cell,
 } from 'recharts';
 import { ILead, Stage } from '../../models';
-import { HBC_COLORS } from '../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
 import { STAGE_COLORS, STAGE_ORDER } from '../../utils/constants';
 import { getStageLabel, isArchived } from '../../utils/stageEngine';
 import { formatCurrencyCompact } from '../../utils/formatters';
@@ -56,7 +56,7 @@ export const PipelineChart: React.FC<IPipelineChartProps> = ({ leads, mode = 'co
       backgroundColor: '#fff',
       borderRadius: '8px',
       padding: '24px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      boxShadow: ELEVATION.level1,
     }}>
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 16 }}>

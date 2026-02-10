@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useLeads } from '../hooks/useLeads';
 import { ISelectedProject } from '../contexts/AppContext';
 import { StatusBadge } from './StatusBadge';
-import { HBC_COLORS } from '../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
 import { Stage } from '../../models/enums';
 import { getStageLabel, isActiveStage } from '../../utils/stageEngine';
 
@@ -129,7 +129,7 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
           backgroundColor: '#fff',
           border: `1px solid ${HBC_COLORS.gray200}`,
           borderRadius: '6px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+          boxShadow: ELEVATION.level3,
           maxHeight: '320px',
           overflow: 'auto',
         }}>

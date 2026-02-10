@@ -1,17 +1,22 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import { useProjectSchedule } from '../../hooks/useProjectSchedule';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import { PERMISSIONS } from '../../../utils/permissions';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { AuditAction, EntityType } from '../../../models/enums';
 import { CriticalPathStatus } from '../../../models/IProjectScheduleCriticalPath';
 
 const STATUS_COLORS: Record<string, string> = { Active: HBC_COLORS.error, Monitoring: '#3B82F6', Resolved: HBC_COLORS.success };
-const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 16 };
+const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 24, boxShadow: ELEVATION.level1, marginBottom: 16 };
 
 export const ProjectScheduleCriticalPath: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
   const { schedule, isLoading, error, fetchSchedule, updateSchedule, addCriticalPathItem, daysToCompletion } = useProjectSchedule();
   const projectCode = selectedProject?.projectCode ?? '';
@@ -32,7 +37,7 @@ export const ProjectScheduleCriticalPath: React.FC = () => {
     dataService.logAudit({ Action: AuditAction.ScheduleUpdated, EntityType: EntityType.Schedule, EntityId: projectCode, User: currentUser?.email ?? '', Details: `Added critical path item ${nextLetter}`, ProjectCode: projectCode }).catch(console.error);
   }, [schedule, projectCode, addCriticalPathItem, dataService, currentUser]);
 
-  if (isLoading) return <LoadingSpinner label="Loading schedule..." />;
+  if (isLoading) return <SkeletonLoader variant="card" />;
   if (error) return <div style={{ padding: 24, color: HBC_COLORS.error }}>{error}</div>;
   if (!schedule) return <div style={{ padding: 48, textAlign: 'center', color: HBC_COLORS.gray400 }}>No schedule data for this project.</div>;
 
@@ -41,7 +46,7 @@ export const ProjectScheduleCriticalPath: React.FC = () => {
 
   return (
     <div>
-      <PageHeader title="Schedule & Critical Path" subtitle={projectCode} />
+      <PageHeader title="Schedule & Critical Path" subtitle={projectCode} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
       {daysToCompletion !== null && (
         <div style={{ ...cardStyle, display: 'flex', gap: 24, alignItems: 'center' }}>
           <div style={{ fontSize: 32, fontWeight: 700, color: daysToCompletion > 90 ? HBC_COLORS.success : daysToCompletion > 30 ? HBC_COLORS.warning : HBC_COLORS.error }}>{daysToCompletion}</div>

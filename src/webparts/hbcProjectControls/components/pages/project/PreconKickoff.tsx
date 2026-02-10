@@ -1,14 +1,17 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLeads } from '../../hooks/useLeads';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
 import { KPICard } from '../../shared/KPICard';
 import { DataTable } from '../../shared/DataTable';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
 import { ILead, ITeamMember, RoleName } from '../../../models';
-import { HBC_COLORS, SPACING } from '../../../theme/tokens';
+import { HBC_COLORS, SPACING, ELEVATION } from '../../../theme/tokens';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { formatCurrency, formatDate, formatSquareFeet } from '../../../utils/formatters';
 import type { IDataTableColumn } from '../../shared/DataTable';
 
@@ -16,7 +19,7 @@ const cardStyle: React.CSSProperties = {
   backgroundColor: HBC_COLORS.white,
   borderRadius: '8px',
   padding: SPACING.lg,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  boxShadow: ELEVATION.level1,
 };
 
 const sectionTitleStyle: React.CSSProperties = {
@@ -39,6 +42,8 @@ const teamColumns: IDataTableColumn<ITeamMember>[] = [
 ];
 
 export const PreconKickoff: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { selectedProject } = useAppContext();
   const { leads, isLoading: leadsLoading, fetchLeads } = useLeads();
   const {
@@ -104,7 +109,7 @@ export const PreconKickoff: React.FC = () => {
   const isLoading = leadsLoading || workflowLoading;
 
   if (isLoading && !project) {
-    return <LoadingSpinner label="Loading preconstruction kickoff..." />;
+    return <SkeletonLoader variant="table" rows={8} columns={5} />;
   }
 
   if (!project) {
@@ -123,6 +128,7 @@ export const PreconKickoff: React.FC = () => {
       <PageHeader
         title="Preconstruction Kickoff"
         subtitle={`${project.Title} — ${project.ClientName}`}
+        breadcrumb={<Breadcrumb items={breadcrumbs} />}
       />
 
       {/* Toast message */}

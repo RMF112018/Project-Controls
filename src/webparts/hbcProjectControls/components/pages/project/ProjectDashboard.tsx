@@ -1,16 +1,18 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLeads } from '../../hooks/useLeads';
 import { useStartupChecklist } from '../../hooks/useStartupChecklist';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
 import { KPICard } from '../../shared/KPICard';
 import { StageBadge } from '../../shared/StageBadge';
 import { StageIndicator } from '../../shared/StageIndicator';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ILead, Stage, GoNoGoDecision } from '../../../models';
 import { PERMISSIONS } from '../../../utils/permissions';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 import { formatCurrency, formatDate, formatSquareFeet } from '../../../utils/formatters';
 import { getStageScreens, getStageLabel } from '../../../utils/stageEngine';
 
@@ -40,13 +42,15 @@ const quickActionCardStyle: React.CSSProperties = {
   backgroundColor: '#fff',
   borderRadius: '8px',
   padding: '20px',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  boxShadow: ELEVATION.level1,
   cursor: 'pointer',
   transition: 'box-shadow 0.15s, transform 0.15s',
   border: `1px solid ${HBC_COLORS.gray200}`,
 };
 
 export const ProjectDashboard: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const navigate = useNavigate();
   const { selectedProject: selectedProjectCtx, hasPermission } = useAppContext();
   const { leads, isLoading, fetchLeads } = useLeads();
@@ -70,7 +74,7 @@ export const ProjectDashboard: React.FC = () => {
     }
   }, [leads, selectedProjectCtx?.projectCode]);
 
-  if (isLoading) return <LoadingSpinner label="Loading project..." />;
+  if (isLoading) return <SkeletonLoader variant="kpi-grid" columns={3} />;
 
   if (!project) {
     return (
@@ -84,13 +88,13 @@ export const ProjectDashboard: React.FC = () => {
   const fieldStyle: React.CSSProperties = { marginBottom: '12px' };
   const labelStyle: React.CSSProperties = { fontSize: '12px', color: HBC_COLORS.gray500, display: 'block' };
   const valueStyle: React.CSSProperties = { fontSize: '14px', color: HBC_COLORS.gray800 };
-  const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' };
+  const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 24, boxShadow: ELEVATION.level1 };
 
   const activeScreens = getStageScreens(project.Stage);
 
   return (
     <div>
-      <PageHeader title={project.Title} subtitle={`${project.ClientName} — ${project.CityLocation || ''}, ${project.Region}`} />
+      <PageHeader title={project.Title} subtitle={`${project.ClientName} — ${project.CityLocation || ''}, ${project.Region}`} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
 
       {/* Stage indicator */}
       <div style={{ ...cardStyle, marginBottom: 24 }}>
@@ -118,9 +122,9 @@ export const ProjectDashboard: React.FC = () => {
               if (!meta) return null;
               return (
                 <div key={screen} onClick={() => navigate(meta.path)}
-                  style={{ ...cardStyle, cursor: 'pointer', borderLeft: `4px solid ${meta.color}`, transition: 'box-shadow 0.2s' }}
-                  onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)')}
-                  onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)')}>
+                  style={{ ...cardStyle, cursor: 'pointer', ...RISK_INDICATOR.style(meta.color), transition: 'box-shadow 0.2s' }}
+                  onMouseEnter={e => (e.currentTarget.style.boxShadow = ELEVATION.level2)}
+                  onMouseLeave={e => (e.currentTarget.style.boxShadow = ELEVATION.level1)}>
                   <h4 style={{ margin: '0 0 4px', color: HBC_COLORS.navy, fontSize: 15 }}>{meta.label}</h4>
                   <p style={{ margin: 0, fontSize: 13, color: HBC_COLORS.gray500 }}>{meta.description}</p>
                 </div>
@@ -155,8 +159,8 @@ export const ProjectDashboard: React.FC = () => {
             <div
               style={quickActionCardStyle}
               onClick={() => navigate('/operations/startup-checklist')}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = ELEVATION.level2; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = ELEVATION.level1; }}
             >
               <div style={{ fontSize: '14px', fontWeight: 600, color: HBC_COLORS.navy, marginBottom: '6px' }}>
                 Startup Checklist
@@ -183,8 +187,8 @@ export const ProjectDashboard: React.FC = () => {
             <div
               style={quickActionCardStyle}
               onClick={() => navigate('/operations/responsibility')}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = ELEVATION.level2; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = ELEVATION.level1; }}
             >
               <div style={{ fontSize: '14px', fontWeight: 600, color: HBC_COLORS.navy, marginBottom: '6px' }}>
                 Responsibility Matrices
@@ -196,8 +200,8 @@ export const ProjectDashboard: React.FC = () => {
               <div
                 style={quickActionCardStyle}
                 onClick={() => navigate('/operations/project-record')}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = ELEVATION.level2; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = ELEVATION.level1; }}
               >
                 <div style={{ fontSize: '14px', fontWeight: 600, color: HBC_COLORS.navy, marginBottom: '6px' }}>
                   Project Record

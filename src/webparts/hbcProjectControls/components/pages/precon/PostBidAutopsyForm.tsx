@@ -1,12 +1,14 @@
 import * as React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import { usePostBidAutopsy } from '../../hooks/usePostBidAutopsy';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ILossAutopsy, AutopsyAnswer, AUTOPSY_QUESTIONS } from '../../../models/ILossAutopsy';
 import { ActionItemStatus, AuditAction, EntityType } from '../../../models/enums';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 
 /** Calculate process score from the 11 yes/no questions */
 function calculateProcessScore(autopsy: Partial<ILossAutopsy>): number {
@@ -26,6 +28,7 @@ function calculateProcessScore(autopsy: Partial<ILossAutopsy>): number {
 export const PostBidAutopsyForm: React.FC = () => {
   const { leadId: leadIdParam } = useParams<{ leadId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { dataService, currentUser } = useAppContext();
   const {
     autopsy,
@@ -57,6 +60,7 @@ export const PostBidAutopsyForm: React.FC = () => {
   }, [autopsy]);
 
   const processScore = React.useMemo(() => calculateProcessScore(form), [form]);
+  const breadcrumbs = buildBreadcrumbs(location.pathname, lead?.Title);
 
   const updateField = <K extends keyof ILossAutopsy>(key: K, value: ILossAutopsy[K]): void => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -155,7 +159,7 @@ export const PostBidAutopsyForm: React.FC = () => {
     setTimeout(() => setToast(null), 5000);
   };
 
-  if (isLoading) return <LoadingSpinner label="Loading autopsy..." />;
+  if (isLoading) return <SkeletonLoader variant="form" rows={8} />;
   if (error) return <div style={{ padding: 48, color: '#EF4444' }}>{error}</div>;
   if (!leadId) return <div style={{ padding: 48, textAlign: 'center', color: HBC_COLORS.gray500 }}><h2>No lead specified</h2></div>;
 
@@ -166,6 +170,7 @@ export const PostBidAutopsyForm: React.FC = () => {
       <PageHeader
         title="Post-Bid Autopsy"
         subtitle={lead ? `${lead.Title} — ${lead.ClientName}` : `Lead #${leadId}`}
+        breadcrumb={<Breadcrumb items={breadcrumbs} />}
       />
 
       {toast && (
@@ -202,7 +207,7 @@ export const PostBidAutopsyForm: React.FC = () => {
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: 24,
-        borderLeft: `4px solid ${processScore >= 70 ? '#10B981' : processScore >= 50 ? '#F59E0B' : '#EF4444'}`,
+        ...RISK_INDICATOR.style(processScore >= 70 ? RISK_INDICATOR.colors.success : processScore >= 50 ? RISK_INDICATOR.colors.warning : RISK_INDICATOR.colors.critical),
       }}>
         <div>
           <div style={{ fontSize: 12, fontWeight: 600, color: HBC_COLORS.gray500, textTransform: 'uppercase' as const }}>
@@ -461,7 +466,7 @@ const cardStyle: React.CSSProperties = {
   backgroundColor: '#fff',
   borderRadius: 8,
   padding: 24,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  boxShadow: ELEVATION.level1,
 };
 
 const sectionTitle: React.CSSProperties = {

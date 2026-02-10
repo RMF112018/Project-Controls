@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { NavigationSidebar } from './NavigationSidebar';
 import { LoadingSpinner } from '../shared/LoadingSpinner';
+import { SkeletonLoader } from '../shared/SkeletonLoader';
 import { SearchBar } from '../shared/SearchBar';
 import { SyncStatusIndicator } from '../shared/SyncStatusIndicator';
 import { WhatsNewModal, shouldShowWhatsNew } from '../shared/WhatsNewModal';
@@ -27,7 +28,13 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
   }, []);
 
   if (isLoading) {
-    return <LoadingSpinner label="Initializing HBC Project Controls..." size="large" />;
+    return (
+      <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+        <SkeletonLoader variant="text" rows={1} style={{ marginBottom: '24px', maxWidth: '300px' }} />
+        <SkeletonLoader variant="kpi-grid" columns={4} style={{ marginBottom: '32px' }} />
+        <SkeletonLoader variant="table" rows={8} columns={5} />
+      </div>
+    );
   }
 
   if (error) {
@@ -43,8 +50,28 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+      {/* Skip to main content — accessibility */}
+      <a
+        href="#hbc-main-content"
+        className="hbc-skip-link"
+        style={{
+          position: 'absolute',
+          top: '-100px',
+          left: '16px',
+          zIndex: 3000,
+          padding: '8px 16px',
+          backgroundColor: HBC_COLORS.navy,
+          color: '#fff',
+          borderRadius: '0 0 4px 4px',
+          fontSize: '14px',
+          fontWeight: 600,
+          textDecoration: 'none',
+        }}
+      >
+        Skip to main content
+      </a>
       {/* Header */}
-      <header style={{
+      <header data-print-hide role="banner" style={{
         backgroundColor: HBC_COLORS.navy,
         color: '#FFFFFF',
         padding: '0 24px',
@@ -118,17 +145,27 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
 
         {/* Desktop/Tablet sidebar */}
         {!isMobile && (
-          <div style={{ width: `${sidebarWidth}px`, flexShrink: 0, overflow: isTablet ? 'hidden' : 'auto' }}>
+          <nav data-print-hide aria-label="Main navigation" style={{ width: `${sidebarWidth}px`, flexShrink: 0, overflow: isTablet ? 'hidden' : 'auto' }}>
             <NavigationSidebar />
-          </div>
+          </nav>
         )}
 
-        <main style={{ flex: 1, padding: isMobile ? '16px' : '24px', backgroundColor: HBC_COLORS.gray50, overflow: 'auto' }}>
+        <main id="hbc-main-content" tabIndex={-1} style={{ flex: 1, padding: isMobile ? '16px' : '24px', backgroundColor: HBC_COLORS.gray50, overflow: 'auto', outline: 'none' }}>
           {children}
         </main>
       </div>
 
       <WhatsNewModal isOpen={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
+      <style>{`
+        .hbc-skip-link:focus {
+          top: 0 !important;
+        }
+        @media print {
+          header, nav, .hbc-skip-link, [data-print-hide] { display: none !important; }
+          main { padding: 0 !important; background: #fff !important; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      `}</style>
     </div>
   );
 };

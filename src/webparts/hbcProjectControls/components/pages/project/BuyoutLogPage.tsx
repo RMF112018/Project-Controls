@@ -1,14 +1,17 @@
 import * as React from 'react';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLeads } from '../../hooks/useLeads';
 import { useBuyoutLog } from '../../hooks/useBuyoutLog';
+import { usePersistedState } from '../../hooks/usePersistedState';
 import { useCommitmentApproval } from '../../hooks/useCommitmentApproval';
 import { IBuyoutEntry, BuyoutStatus } from '../../../models/IBuyoutEntry';
 import { CommitmentStatus } from '../../../models/ICommitmentApproval';
 import { PERMISSIONS } from '../../../utils/permissions';
 import { CommitmentForm } from './CommitmentForm';
 import { CommitmentApprovalPanel } from './CommitmentApprovalPanel';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
+import { useToast } from '../../shared/ToastContainer';
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -53,13 +56,13 @@ export const BuyoutLogPage: React.FC = () => {
   const { submitForApproval, respondToApproval } = useCommitmentApproval();
 
   const projectCode = selectedProject?.projectCode ?? '';
-  const [search, setSearch] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState<string>('all');
+  const [search, setSearch] = usePersistedState('buyout-search', '');
+  const [statusFilter, setStatusFilter] = usePersistedState<string>('buyout-status', 'all');
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const [editData, setEditData] = React.useState<Partial<IBuyoutEntry>>({});
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [newEntry, setNewEntry] = React.useState<Partial<IBuyoutEntry>>({ divisionCode: '', divisionDescription: '' });
-  const [toast, setToast] = React.useState<string | null>(null);
+  const { addToast } = useToast();
 
   // Commitment approval modal state
   const [commitmentFormEntry, setCommitmentFormEntry] = React.useState<IBuyoutEntry | null>(null);
@@ -78,15 +81,6 @@ export const BuyoutLogPage: React.FC = () => {
   React.useEffect(() => {
     if (projectCode) fetchEntries(projectCode).catch(console.error);
   }, [projectCode, fetchEntries]);
-
-  // Auto-clear toast
-  React.useEffect(() => {
-    if (toast) {
-      const t = setTimeout(() => setToast(null), 3000);
-      return () => clearTimeout(t);
-    }
-    return undefined;
-  }, [toast]);
 
   const project = React.useMemo(
     () => leads.find(l => l.ProjectCode === projectCode) ?? null,
@@ -110,7 +104,7 @@ export const BuyoutLogPage: React.FC = () => {
   // ---- initialize if empty ----
   const handleInitialize = async (): Promise<void> => {
     await initializeLog(projectCode);
-    setToast('Buyout log initialized with standard divisions.');
+    addToast('Buyout log initialized', 'success');
   };
 
   // ---- inline edit ----
@@ -129,7 +123,7 @@ export const BuyoutLogPage: React.FC = () => {
     await updateEntry(projectCode, editingId, editData);
     setEditingId(null);
     setEditData({});
-    setToast('Entry updated.');
+    addToast('Entry updated', 'success');
   };
 
   // ---- add custom division ----
@@ -138,14 +132,14 @@ export const BuyoutLogPage: React.FC = () => {
     await addEntry(projectCode, { ...newEntry, isStandard: false });
     setNewEntry({ divisionCode: '', divisionDescription: '' });
     setShowAddForm(false);
-    setToast('Custom division added.');
+    addToast('Custom division added', 'success');
   };
 
   // ---- remove ----
   const handleRemove = async (entry: IBuyoutEntry): Promise<void> => {
     if (!confirm(`Remove "${entry.divisionCode} - ${entry.divisionDescription}"?`)) return;
     await removeEntry(projectCode, entry.id);
-    setToast('Division removed.');
+    addToast('Division removed', 'success');
   };
 
   // ---- commitment form submit ----
@@ -169,7 +163,7 @@ export const BuyoutLogPage: React.FC = () => {
     // Refresh
     await fetchEntries(projectCode);
     setCommitmentFormEntry(null);
-    setToast(updated.waiverRequired ? 'Commitment submitted — waiver required.' : 'Commitment submitted for PX review.');
+    addToast(updated.waiverRequired ? 'Commitment submitted — waiver required' : 'Commitment submitted for review', 'success');
   };
 
   const handleApprovalAction = async (action: 'approve' | 'reject' | 'escalate', comment: string): Promise<void> => {
@@ -183,13 +177,14 @@ export const BuyoutLogPage: React.FC = () => {
     );
     await fetchEntries(projectCode);
     setApprovalDetailEntry(null);
-    const msg = action === 'approve' ? 'Commitment approved.' : action === 'reject' ? 'Commitment rejected.' : 'Escalated to CFO.';
-    setToast(msg);
+    const toastType = action === 'reject' ? 'warning' : 'success';
+    const msg = action === 'approve' ? 'Commitment approved' : action === 'reject' ? 'Commitment rejected' : 'Escalated to CFO';
+    addToast(msg, toastType);
   };
 
   // ---- loading / empty ----
   if (loading && entries.length === 0) {
-    return <div style={{ padding: 48, textAlign: 'center', color: HBC_COLORS.gray500 }}>Loading buyout log...</div>;
+    return <SkeletonLoader variant="table" rows={8} columns={6} />;
   }
 
   if (error) {
@@ -533,14 +528,6 @@ export const BuyoutLogPage: React.FC = () => {
         </div>
       )}
 
-      {/* Toast */}
-      {toast && (
-        <div style={{
-          position: 'fixed', bottom: 24, right: 24, padding: '12px 24px',
-          backgroundColor: HBC_COLORS.navy, color: '#fff', borderRadius: 8,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 1000, fontSize: 14,
-        }}>{toast}</div>
-      )}
     </div>
   );
 };
@@ -553,7 +540,7 @@ const MetricCard: React.FC<{ label: string; value: string; color: string; subtit
   <div style={{
     ...cardStyle,
     padding: 20,
-    borderLeft: `4px solid ${color}`,
+    ...RISK_INDICATOR.style(color),
   }}>
     <div style={{ fontSize: 12, fontWeight: 500, color: HBC_COLORS.gray500, marginBottom: 4 }}>{label}</div>
     <div style={{ fontSize: 22, fontWeight: 700, color }}>{value}</div>
@@ -590,7 +577,7 @@ const cardStyle: React.CSSProperties = {
   backgroundColor: '#fff',
   borderRadius: 8,
   border: `1px solid ${HBC_COLORS.gray200}`,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+  boxShadow: ELEVATION.level1,
 };
 
 const inputStyle: React.CSSProperties = {
@@ -646,5 +633,5 @@ const modalOverlay: React.CSSProperties = {
 const modalContent: React.CSSProperties = {
   backgroundColor: '#fff', borderRadius: 12, padding: 24,
   maxWidth: 640, width: '90%', maxHeight: '85vh', overflow: 'auto',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+  boxShadow: ELEVATION.level4,
 };

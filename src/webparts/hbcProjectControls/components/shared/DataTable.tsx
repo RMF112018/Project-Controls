@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { HBC_COLORS } from '../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
 import { useResponsive } from '../hooks/useResponsive';
-import { LoadingSpinner } from './LoadingSpinner';
+import { SkeletonLoader } from './SkeletonLoader';
 import { EmptyState } from './EmptyState';
 
 export interface IDataTableColumn<T> {
@@ -73,7 +73,7 @@ export function DataTable<T>({
     color: HBC_COLORS.gray800,
   };
 
-  if (isLoading) return <LoadingSpinner label="Loading..." />;
+  if (isLoading) return <SkeletonLoader variant="table" rows={5} columns={visibleColumns.length || 5} />;
 
   if (items.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />;
@@ -84,7 +84,7 @@ export function DataTable<T>({
       <div style={{
         backgroundColor: '#fff',
         borderRadius: '8px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        boxShadow: ELEVATION.level1,
         overflow: 'auto',
       }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>

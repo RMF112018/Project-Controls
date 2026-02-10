@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useProjectManagementPlan } from '../../../hooks/useProjectManagementPlan';
 import { useRiskCostManagement } from '../../../hooks/useRiskCostManagement';
@@ -9,9 +9,11 @@ import { useProjectSchedule } from '../../../hooks/useProjectSchedule';
 import { useSuperintendentPlan } from '../../../hooks/useSuperintendentPlan';
 import { useLessonsLearned } from '../../../hooks/useLessonsLearned';
 import { PageHeader } from '../../../shared/PageHeader';
-import { LoadingSpinner } from '../../../shared/LoadingSpinner';
+import { Breadcrumb } from '../../../shared/Breadcrumb';
+import { SkeletonLoader } from '../../../shared/SkeletonLoader';
 import { HBC_COLORS } from '../../../../theme/tokens';
 import { PERMISSIONS } from '../../../../utils/permissions';
+import { buildBreadcrumbs } from '../../../../utils/breadcrumbs';
 import { AuditAction, EntityType, Stage } from '../../../../models/enums';
 import { PMP_SECTIONS } from '../../../../models/IProjectManagementPlan';
 import { PMPSection } from './PMPSection';
@@ -20,6 +22,8 @@ import { PMPApprovalPanel } from './PMPApprovalPanel';
 import { useLeads } from '../../../hooks/useLeads';
 
 export const ProjectManagementPlan: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const navigate = useNavigate();
   const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
   const { pmp, boilerplate, isLoading, error, fetchPlan, updatePlan, submitForApproval, respondToApproval, signPlan, canSubmit } = useProjectManagementPlan();
@@ -71,7 +75,7 @@ export const ProjectManagementPlan: React.FC = () => {
     await updatePlan(projectCode, { [field]: value });
   }, [canEdit, projectCode, updatePlan]);
 
-  if (isLoading) return <LoadingSpinner label="Loading Project Management Plan..." />;
+  if (isLoading) return <SkeletonLoader variant="form" rows={10} />;
   if (error) return <div style={{ padding: 24, color: HBC_COLORS.error }}>{error}</div>;
   if (!pmp) return <div style={{ padding: 48, textAlign: 'center', color: HBC_COLORS.gray400 }}>No PMP found for this project.</div>;
 
@@ -84,7 +88,7 @@ export const ProjectManagementPlan: React.FC = () => {
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 24 }}>
       {/* Main content */}
       <div>
-        <PageHeader title="Project Management Plan" subtitle={`${pmp.projectName} — ${pmp.jobNumber}`} />
+        <PageHeader title="Project Management Plan" subtitle={`${pmp.projectName} — ${pmp.jobNumber}`} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
 
         {PMP_SECTIONS.map(sec => (
           <PMPSection key={sec.number} number={sec.number} title={sec.title} sourceType={sec.sourceType} isGrayed={(sec.number === 'XII' || sec.number === 'XIV') && !isCloseout}>

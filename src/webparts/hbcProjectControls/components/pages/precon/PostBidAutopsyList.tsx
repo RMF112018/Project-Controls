@@ -1,14 +1,18 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { usePostBidAutopsy } from '../../hooks/usePostBidAutopsy';
 import { useLeads } from '../../hooks/useLeads';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ILead, Stage } from '../../../models';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 
 export const PostBidAutopsyList: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { allAutopsies, isLoading: autopsyLoading, fetchAllAutopsies } = usePostBidAutopsy();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
 
@@ -39,13 +43,14 @@ export const PostBidAutopsyList: React.FC = () => {
     });
   }, [lostLeads, allAutopsies]);
 
-  if (isLoading) return <LoadingSpinner label="Loading autopsies..." />;
+  if (isLoading) return <SkeletonLoader variant="table" rows={6} columns={4} />;
 
   return (
     <div>
       <PageHeader
         title="Post-Bid Autopsies"
         subtitle={`${rows.length} lost projects — ${rows.filter(r => r.status === 'Finalized').length} finalized`}
+        breadcrumb={<Breadcrumb items={breadcrumbs} />}
       />
 
       {rows.length === 0 && (
@@ -149,7 +154,7 @@ const rowStyle: React.CSSProperties = {
   border: `1px solid ${HBC_COLORS.gray200}`,
   cursor: 'pointer',
   transition: 'border-color 0.15s',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+  boxShadow: ELEVATION.level1,
 };
 
 const emptyStyle: React.CSSProperties = {

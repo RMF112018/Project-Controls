@@ -1,13 +1,16 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
 import { KPICard } from '../../shared/KPICard';
 import { DataTable } from '../../shared/DataTable';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
 import { IDeliverable, RoleName, DeliverableStatus } from '../../../models';
-import { HBC_COLORS, SPACING } from '../../../theme/tokens';
+import { HBC_COLORS, SPACING, ELEVATION } from '../../../theme/tokens';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { formatDate, getDaysUntil, getUrgencyColor } from '../../../utils/formatters';
 import type { IDataTableColumn } from '../../shared/DataTable';
 
@@ -26,7 +29,7 @@ const cardStyle: React.CSSProperties = {
   backgroundColor: HBC_COLORS.white,
   borderRadius: '8px',
   padding: SPACING.lg,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  boxShadow: ELEVATION.level1,
 };
 
 interface INewDeliverableForm {
@@ -44,6 +47,8 @@ const emptyForm: INewDeliverableForm = {
 };
 
 export const DeliverablesTracker: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { selectedProject } = useAppContext();
   const {
     deliverables,
@@ -279,7 +284,7 @@ export const DeliverablesTracker: React.FC = () => {
   );
 
   if (isLoading && deliverables.length === 0) {
-    return <LoadingSpinner label="Loading deliverables..." />;
+    return <SkeletonLoader variant="table" rows={6} columns={5} />;
   }
 
   // Label styles for the form
@@ -305,6 +310,7 @@ export const DeliverablesTracker: React.FC = () => {
       <PageHeader
         title="Deliverables Tracker"
         subtitle={projectCode ? `Project: ${projectCode}` : undefined}
+        breadcrumb={<Breadcrumb items={breadcrumbs} />}
         actions={
           <RoleGate allowedRoles={[RoleName.PreconstructionTeam, RoleName.Marketing]}>
             <button

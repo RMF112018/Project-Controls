@@ -1,10 +1,13 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import { useQualityConcerns } from '../../hooks/useQualityConcerns';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
+import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 import { PERMISSIONS } from '../../../utils/permissions';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { AuditAction, EntityType } from '../../../models/enums';
 import { QualityConcernStatus } from '../../../models/IQualityConcerns';
 
@@ -15,9 +18,11 @@ const STATUS_COLORS: Record<string, string> = {
   Closed: HBC_COLORS.gray400,
 };
 
-const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 12 };
+const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 20, boxShadow: ELEVATION.level1, marginBottom: 12 };
 
 export const QualityConcernsTracker: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
   const { concerns, isLoading, error, fetchConcerns, addConcern, updateConcern, openCount, resolvedCount } = useQualityConcerns();
   const projectCode = selectedProject?.projectCode ?? '';
@@ -41,12 +46,12 @@ export const QualityConcernsTracker: React.FC = () => {
     dataService.logAudit({ Action: AuditAction.QualityConcernUpdated, EntityType: EntityType.Quality, EntityId: String(concernId), User: currentUser?.email ?? '', Details: `Updated ${field}`, ProjectCode: projectCode }).catch(console.error);
   }, [canEdit, projectCode, updateConcern, dataService, currentUser]);
 
-  if (isLoading) return <LoadingSpinner label="Loading quality concerns..." />;
+  if (isLoading) return <SkeletonLoader variant="table" rows={6} columns={4} />;
   if (error) return <div style={{ padding: 24, color: HBC_COLORS.error }}>{error}</div>;
 
   return (
     <div>
-      <PageHeader title="Quality Concerns" subtitle={projectCode} />
+      <PageHeader title="Quality Concerns" subtitle={projectCode} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
       <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
         <div style={{ padding: '8px 16px', backgroundColor: `${HBC_COLORS.warning}15`, borderRadius: 8, fontSize: 13 }}>
           <strong style={{ color: HBC_COLORS.warning }}>{openCount}</strong> <span style={{ color: HBC_COLORS.gray500 }}>Open</span>
@@ -60,7 +65,7 @@ export const QualityConcernsTracker: React.FC = () => {
         {canEdit && <button onClick={handleAdd} style={{ marginLeft: 'auto', padding: '8px 16px', backgroundColor: HBC_COLORS.navy, color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>+ Add Concern</button>}
       </div>
       {concerns.map(c => (
-        <div key={c.id} style={{ ...cardStyle, borderLeft: `4px solid ${STATUS_COLORS[c.status]}` }}>
+        <div key={c.id} style={{ ...cardStyle, ...RISK_INDICATOR.style(STATUS_COLORS[c.status]) }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
             <div style={{ fontWeight: 700, color: HBC_COLORS.navy, fontSize: 15 }}>{c.letter}.</div>
             {canEdit ? (

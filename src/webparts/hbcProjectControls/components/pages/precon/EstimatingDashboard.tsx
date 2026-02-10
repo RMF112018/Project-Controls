@@ -2,13 +2,16 @@ import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useEstimating } from '../../hooks/useEstimating';
 import { useLeads } from '../../hooks/useLeads';
+import { usePersistedState } from '../../hooks/usePersistedState';
 import { useAppContext } from '../../contexts/AppContext';
 import { RoleGate } from '../../guards/RoleGate';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { KPICard } from '../../shared/KPICard';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { IEstimatingTracker, ILead, GoNoGoDecision, AwardStatus, AuditAction, EntityType, RoleName } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
 import {
@@ -40,15 +43,16 @@ export const EstimatingDashboard: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const activeTab = pathToTab(location.pathname);
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
 
   const { dataService, currentUser } = useAppContext();
   const { records, isLoading: estLoading, fetchRecords, updateRecord } = useEstimating();
   const { leads, isLoading: leadsLoading, fetchLeads } = useLeads();
 
-  const [yearFilter, setYearFilter] = React.useState('All');
-  const [estimatorFilter, setEstimatorFilter] = React.useState('All');
-  const [regionFilter, setRegionFilter] = React.useState('All');
-  const [gonogoRegionFilter, setGonogoRegionFilter] = React.useState('All');
+  const [yearFilter, setYearFilter] = usePersistedState('estimating-year', 'All');
+  const [estimatorFilter, setEstimatorFilter] = usePersistedState('estimating-estimator', 'All');
+  const [regionFilter, setRegionFilter] = usePersistedState('estimating-region', 'All');
+  const [gonogoRegionFilter, setGonogoRegionFilter] = usePersistedState('estimating-gonogo-region', 'All');
   const [sortField, setSortField] = React.useState<string>('');
   const [sortAsc, setSortAsc] = React.useState(true);
 
@@ -456,7 +460,7 @@ export const EstimatingDashboard: React.FC = () => {
     );
   }, [currentPursuits, preconEngagements, estimateLog, preconTotals, logSummary]);
 
-  if (estLoading || leadsLoading) return <LoadingSpinner label="Loading estimating data..." />;
+  if (estLoading || leadsLoading) return <SkeletonLoader variant="table" rows={8} columns={6} />;
 
   const accessDenied = (
     <div style={{ padding: '48px', textAlign: 'center', color: HBC_COLORS.gray500 }}>
@@ -491,6 +495,7 @@ export const EstimatingDashboard: React.FC = () => {
       <PageHeader
         title="Estimating Dashboard"
         subtitle="Current pursuit, preconstruction, and estimate tracking"
+        breadcrumb={<Breadcrumb items={breadcrumbs} />}
         actions={
           <button
             onClick={() => { handleExport().catch(console.error); }}

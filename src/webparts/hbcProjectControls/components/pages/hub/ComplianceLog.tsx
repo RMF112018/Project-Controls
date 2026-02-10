@@ -1,8 +1,11 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { useComplianceLog } from '../../hooks/useComplianceLog';
 import { useResponsive } from '../../hooks/useResponsive';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { KPICard } from '../../shared/KPICard';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { IComplianceEntry } from '../../../models/IComplianceSummary';
@@ -65,6 +68,8 @@ const ComplianceIcon: React.FC<{ compliant: boolean }> = ({ compliant }) => (
 // ---------------------------------------------------------------------------
 
 export const ComplianceLog: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const {
     entries, summary, loading, error, filters,
     updateFilters, clearFilters,
@@ -119,6 +124,7 @@ export const ComplianceLog: React.FC = () => {
       <PageHeader
         title="Compliance Log"
         subtitle="Compliance status for all active commitments across projects"
+        breadcrumb={<Breadcrumb items={breadcrumbs} />}
         actions={
           <ExportButtons
             pdfElementId="compliance-log-view"

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { HBC_COLORS } from '../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
 import { APP_VERSION } from '../../utils/constants';
 
 interface IChangelogEntry {
@@ -77,7 +77,7 @@ export const WhatsNewModal: React.FC<IWhatsNewModalProps> = ({ isOpen, onClose }
         maxWidth: '90vw',
         maxHeight: '80vh',
         overflow: 'hidden',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+        boxShadow: ELEVATION.level4,
       }}>
         {/* Header */}
         <div style={{

@@ -5,6 +5,7 @@ import { hbcLightTheme } from '../theme/hbcTheme';
 import { AppProvider } from './contexts/AppContext';
 import { AppShell } from './layouts/AppShell';
 import { ErrorBoundary } from './shared/ErrorBoundary';
+import { ToastProvider } from './shared/ToastContainer';
 import { IDataService } from '../services/IDataService';
 
 // Hub pages
@@ -228,11 +229,13 @@ export const App: React.FC<IAppProps> = ({ dataService }) => {
     <FluentProvider theme={hbcLightTheme}>
       <ErrorBoundary>
         <AppProvider dataService={dataService}>
-          <HashRouter>
-            <AppShell>
-              <AppRoutes />
-            </AppShell>
-          </HashRouter>
+          <ToastProvider>
+            <HashRouter>
+              <AppShell>
+                <AppRoutes />
+              </AppShell>
+            </HashRouter>
+          </ToastProvider>
         </AppProvider>
       </ErrorBoundary>
     </FluentProvider>

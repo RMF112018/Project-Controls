@@ -1,10 +1,12 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
 import { InternalResponsibilityMatrix } from './InternalResponsibilityMatrix';
 import { OwnerContractMatrix } from './OwnerContractMatrix';
 import { SubContractMatrix } from './SubContractMatrix';
 import { HBC_COLORS } from '../../../theme/tokens';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 
 const TAB_PATHS = ['/operations/responsibility', '/operations/responsibility/owner-contract', '/operations/responsibility/sub-contract'];
 const TAB_LABELS = ['Internal', 'Owner Contract', 'Sub-Contract'];
@@ -16,6 +18,7 @@ function pathToTab(pathname: string): number {
 
 export const ResponsibilityMatrices: React.FC = () => {
   const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const navigate = useNavigate();
   const activeTab = pathToTab(location.pathname);
 
@@ -31,7 +34,7 @@ export const ResponsibilityMatrices: React.FC = () => {
 
   return (
     <div>
-      <PageHeader title="Responsibility Matrices" />
+      <PageHeader title="Responsibility Matrices" breadcrumb={<Breadcrumb items={breadcrumbs} />} />
 
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: `1px solid ${HBC_COLORS.gray200}`, marginBottom: '20px' }}>

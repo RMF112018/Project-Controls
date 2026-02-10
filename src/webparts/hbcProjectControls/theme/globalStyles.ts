@@ -1,5 +1,5 @@
 import { makeStyles, shorthands } from '@fluentui/react-components';
-import { HBC_COLORS, SPACING, BREAKPOINTS } from './tokens';
+import { HBC_COLORS, SPACING, BREAKPOINTS, ELEVATION } from './tokens';
 
 export const useGlobalStyles = makeStyles({
   pageContainer: {
@@ -21,7 +21,7 @@ export const useGlobalStyles = makeStyles({
     backgroundColor: HBC_COLORS.white,
     ...shorthands.borderRadius('8px'),
     ...shorthands.padding(SPACING.lg),
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
+    boxShadow: ELEVATION.level1,
   },
   sectionHeader: {
     fontSize: '18px',

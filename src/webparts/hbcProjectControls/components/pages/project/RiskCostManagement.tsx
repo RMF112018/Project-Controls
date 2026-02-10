@@ -1,10 +1,13 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import { useRiskCostManagement } from '../../hooks/useRiskCostManagement';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
+import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 import { PERMISSIONS } from '../../../utils/permissions';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { AuditAction, EntityType } from '../../../models/enums';
 import { IRiskCostItem, RiskCostCategory, RiskCostItemStatus } from '../../../models/IRiskCostManagement';
 
@@ -15,9 +18,11 @@ const STATUS_COLORS: Record<string, string> = {
   Closed: HBC_COLORS.gray400,
 };
 
-const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 16 };
+const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 24, boxShadow: ELEVATION.level1, marginBottom: 16 };
 
 export const RiskCostManagement: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
   const { data, isLoading, error, fetchData, updateContractInfo, addItem, updateItem } = useRiskCostManagement();
   const projectCode = selectedProject?.projectCode ?? '';
@@ -53,11 +58,11 @@ export const RiskCostManagement: React.FC = () => {
     dataService.logAudit({ Action: AuditAction.RiskItemUpdated, EntityType: EntityType.RiskCost, EntityId: projectCode, User: currentUser?.email ?? '', Details: `Updated item ${itemId} field ${field}`, ProjectCode: projectCode }).catch(console.error);
   }, [canEdit, projectCode, updateItem, dataService, currentUser]);
 
-  if (isLoading) return <LoadingSpinner label="Loading risk & cost data..." />;
+  if (isLoading) return <SkeletonLoader variant="card" />;
   if (error) return <div style={{ padding: 24, color: HBC_COLORS.error }}>{error}</div>;
 
   const renderTable = (title: string, items: IRiskCostItem[], category: RiskCostCategory, borderColor: string): React.ReactElement => (
-    <div style={{ ...cardStyle, borderLeft: `4px solid ${borderColor}` }}>
+    <div style={{ ...cardStyle, ...RISK_INDICATOR.style(borderColor) }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <h3 style={{ margin: 0, color: HBC_COLORS.navy, fontSize: 16 }}>{title}</h3>
         {canEdit && <button onClick={() => handleAddItem(category)} style={{ padding: '6px 12px', backgroundColor: HBC_COLORS.navy, color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>+ Add</button>}
@@ -107,7 +112,7 @@ export const RiskCostManagement: React.FC = () => {
 
   return (
     <div>
-      <PageHeader title="Risk & Cost Management" subtitle={projectCode} />
+      <PageHeader title="Risk & Cost Management" subtitle={projectCode} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
       {data && (
         <>
           <div style={cardStyle}>

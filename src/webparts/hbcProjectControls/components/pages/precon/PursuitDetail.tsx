@@ -1,13 +1,15 @@
 import * as React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useEstimating } from '../../hooks/useEstimating';
 import { useLeads } from '../../hooks/useLeads';
 import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { ExportButtons } from '../../shared/ExportButtons';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { IEstimatingTracker, AwardStatus, EstimateSource, DeliverableType, WinLossDecision, GoNoGoDecision, AuditAction, EntityType } from '../../../models';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import { formatCurrency, formatDate, getDaysUntil, getUrgencyColor } from '../../../utils/formatters';
 import { PERMISSIONS } from '../../../utils/permissions';
 
@@ -51,6 +53,7 @@ const CHK_FIELDS: Array<{ key: keyof IEstimatingTracker; label: string }> = [
 export const PursuitDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser, dataService } = useAppContext();
   const { getRecordById, updateRecord } = useEstimating();
   const { updateLead, getLeadById } = useLeads();
@@ -62,6 +65,7 @@ export const PursuitDetail: React.FC = () => {
   const [formData, setFormData] = React.useState<Partial<IEstimatingTracker>>({});
 
   const canEdit = currentUser?.permissions.has(PERMISSIONS.ESTIMATING_EDIT) ?? false;
+  const breadcrumbs = buildBreadcrumbs(location.pathname, record?.Title);
 
   React.useEffect(() => {
     const load = async (): Promise<void> => {
@@ -124,7 +128,7 @@ export const PursuitDetail: React.FC = () => {
     }
   };
 
-  if (isLoading) return <LoadingSpinner label="Loading pursuit details..." />;
+  if (isLoading) return <SkeletonLoader variant="card" />;
 
   if (!record) {
     return (
@@ -139,7 +143,7 @@ export const PursuitDetail: React.FC = () => {
 
   const cardStyle: React.CSSProperties = {
     backgroundColor: '#fff', borderRadius: '8px', padding: '20px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '20px',
+    boxShadow: ELEVATION.level1, marginBottom: '20px',
   };
   const gridStyle: React.CSSProperties = {
     display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px',
@@ -171,14 +175,7 @@ export const PursuitDetail: React.FC = () => {
       <PageHeader
         title={record.Title}
         subtitle={record.ProjectCode ? `Project Code: ${record.ProjectCode}` : 'No project code assigned'}
-        breadcrumb={
-          <span
-            style={{ fontSize: '13px', color: HBC_COLORS.info, cursor: 'pointer' }}
-            onClick={() => navigate('/preconstruction')}
-          >
-            &larr; Back to Estimating Dashboard
-          </span>
-        }
+        breadcrumb={<Breadcrumb items={breadcrumbs} />}
         actions={
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <ExportButtons

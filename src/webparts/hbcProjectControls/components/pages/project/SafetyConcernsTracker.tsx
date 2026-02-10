@@ -1,10 +1,13 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import { useSafetyConcerns } from '../../hooks/useSafetyConcerns';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
+import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 import { PERMISSIONS } from '../../../utils/permissions';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { AuditAction, EntityType } from '../../../models/enums';
 import { SafetyConcernStatus, SafetyConcernSeverity } from '../../../models/ISafetyConcerns';
 
@@ -22,9 +25,11 @@ const STATUS_COLORS: Record<string, string> = {
   Closed: HBC_COLORS.gray400,
 };
 
-const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 12 };
+const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 20, boxShadow: ELEVATION.level1, marginBottom: 12 };
 
 export const SafetyConcernsTracker: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
   const { concerns, isLoading, error, safetyOfficer, fetchConcerns, addConcern, updateConcern } = useSafetyConcerns();
   const projectCode = selectedProject?.projectCode ?? '';
@@ -54,14 +59,14 @@ export const SafetyConcernsTracker: React.FC = () => {
     dataService.logAudit({ Action: AuditAction.SafetyConcernUpdated, EntityType: EntityType.Safety, EntityId: String(concernId), User: currentUser?.email ?? '', Details: `Updated ${field}`, ProjectCode: projectCode }).catch(console.error);
   }, [canEdit, projectCode, updateConcern, dataService, currentUser]);
 
-  if (isLoading) return <LoadingSpinner label="Loading safety concerns..." />;
+  if (isLoading) return <SkeletonLoader variant="table" rows={6} columns={4} />;
   if (error) return <div style={{ padding: 24, color: HBC_COLORS.error }}>{error}</div>;
 
   return (
     <div>
-      <PageHeader title="Safety Concerns" subtitle={projectCode} />
+      <PageHeader title="Safety Concerns" subtitle={projectCode} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
       {safetyOfficer && (
-        <div style={{ ...cardStyle, borderLeft: `4px solid ${HBC_COLORS.navy}` }}>
+        <div style={{ ...cardStyle, ...RISK_INDICATOR.style(HBC_COLORS.navy) }}>
           <h3 style={{ margin: '0 0 8px', color: HBC_COLORS.navy, fontSize: 14 }}>Safety Officer</h3>
           <div style={{ fontSize: 14 }}>{safetyOfficer.name}</div>
           <div style={{ fontSize: 12, color: HBC_COLORS.gray500 }}>{safetyOfficer.email}</div>
@@ -79,7 +84,7 @@ export const SafetyConcernsTracker: React.FC = () => {
         {canEdit && <button onClick={handleAdd} style={{ marginLeft: 'auto', padding: '8px 16px', backgroundColor: HBC_COLORS.navy, color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>+ Add Concern</button>}
       </div>
       {concerns.map(c => (
-        <div key={c.id} style={{ ...cardStyle, borderLeft: `4px solid ${SEVERITY_COLORS[c.severity]}` }}>
+        <div key={c.id} style={{ ...cardStyle, ...RISK_INDICATOR.style(SEVERITY_COLORS[c.severity]) }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontWeight: 700, color: HBC_COLORS.navy, fontSize: 15 }}>{c.letter}.</span>

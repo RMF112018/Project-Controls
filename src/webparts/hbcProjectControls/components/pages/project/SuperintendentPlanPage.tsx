@@ -1,16 +1,21 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import { useSuperintendentPlan } from '../../hooks/useSuperintendentPlan';
 import { PageHeader } from '../../shared/PageHeader';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import { PERMISSIONS } from '../../../utils/permissions';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { AuditAction, EntityType } from '../../../models/enums';
 import { SUPERINTENDENT_PLAN_SECTIONS } from '../../../models/ISuperintendentPlan';
 
-const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 12, overflow: 'hidden' };
+const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, boxShadow: ELEVATION.level1, marginBottom: 12, overflow: 'hidden' };
 
 export const SuperintendentPlanPage: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
   const { plan, isLoading, error, fetchPlan, updateSection, completionPercentage, incompleteSections } = useSuperintendentPlan();
   const projectCode = selectedProject?.projectCode ?? '';
@@ -33,15 +38,15 @@ export const SuperintendentPlanPage: React.FC = () => {
     dataService.logAudit({ Action: AuditAction.SuperPlanUpdated, EntityType: EntityType.SuperintendentPlan, EntityId: projectCode, User: currentUser?.email ?? '', Details: `Updated section ${sectionId} ${field}`, ProjectCode: projectCode }).catch(console.error);
   }, [canEdit, projectCode, updateSection, dataService, currentUser]);
 
-  if (isLoading) return <LoadingSpinner label="Loading superintendent plan..." />;
+  if (isLoading) return <SkeletonLoader variant="form" rows={8} />;
   if (error) return <div style={{ padding: 24, color: HBC_COLORS.error }}>{error}</div>;
   if (!plan) return <div style={{ padding: 48, textAlign: 'center', color: HBC_COLORS.gray400 }}>No superintendent plan for this project.</div>;
 
   return (
     <div>
-      <PageHeader title="Superintendent's Plan" subtitle={`${projectCode} — ${plan.superintendentName}`} />
+      <PageHeader title="Superintendent's Plan" subtitle={`${projectCode} — ${plan.superintendentName}`} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
       {/* Progress bar */}
-      <div style={{ backgroundColor: '#fff', borderRadius: 8, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 16 }}>
+      <div style={{ backgroundColor: '#fff', borderRadius: 8, padding: 16, boxShadow: ELEVATION.level1, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
           <span style={{ fontSize: 14, fontWeight: 600, color: HBC_COLORS.navy }}>Overall Completion</span>
           <span style={{ fontSize: 14, fontWeight: 600, color: completionPercentage === 100 ? HBC_COLORS.success : HBC_COLORS.navy }}>{completionPercentage}%</span>

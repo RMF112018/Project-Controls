@@ -1,11 +1,14 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLeads } from '../../hooks/useLeads';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { useTurnoverAgenda } from '../../hooks/useTurnoverAgenda';
+import { useTabFromUrl } from '../../hooks/useTabFromUrl';
 import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
 import { KPICard } from '../../shared/KPICard';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
 import { PermissionGate } from '../../guards/PermissionGate';
 import { MeetingScheduler } from '../../shared/MeetingScheduler';
@@ -14,12 +17,13 @@ import {
   AuditAction, EntityType, NotificationType, TurnoverStatus,
   MeetingType,
 } from '../../../models';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
+import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { PERMISSIONS } from '../../../utils/permissions';
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: '#fff', borderRadius: 8, padding: 24,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 24,
+  boxShadow: ELEVATION.level1, marginBottom: 24,
 };
 
 const tabStyle = (active: boolean): React.CSSProperties => ({
@@ -67,11 +71,13 @@ const TURNOVER_STATUS_STEPS: TurnoverStatus[] = [
 const CATEGORIES = Object.values(TurnoverCategory);
 
 export const TurnoverToOps: React.FC = () => {
+  const location = useLocation();
+  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { selectedProject, dataService, hasPermission } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
   const workflow = useWorkflow();
   const turnoverHook = useTurnoverAgenda();
-  const [activeTab, setActiveTab] = React.useState<'agenda' | 'checklist'>('agenda');
+  const [activeTab, setActiveTab] = useTabFromUrl('agenda', ['agenda', 'checklist'] as const);
   const [project, setProject] = React.useState<ILead | null>(null);
   const [toast, setToast] = React.useState<string | null>(null);
   const [showScheduler, setShowScheduler] = React.useState(false);
@@ -102,12 +108,12 @@ export const TurnoverToOps: React.FC = () => {
     setToast('Turnover agenda created.');
   };
 
-  if (leadsLoading || turnoverHook.loading) return <LoadingSpinner label="Loading..." />;
+  if (leadsLoading || turnoverHook.loading) return <SkeletonLoader variant="form" rows={8} />;
   if (!project) return <div style={{ padding: 48, textAlign: 'center', color: HBC_COLORS.gray500 }}><h2>Project not found</h2></div>;
 
   return (
     <div>
-      <PageHeader title="Turnover to Operations" subtitle={`${project.Title} — ${project.ClientName}`} />
+      <PageHeader title="Turnover to Operations" subtitle={`${project.Title} — ${project.ClientName}`} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
       {toast && <div style={{ padding: '12px 16px', backgroundColor: '#D1FAE5', color: '#065F46', borderRadius: 6, marginBottom: 16, fontSize: 14 }}>{toast}</div>}
 
       {/* Tab Bar */}
