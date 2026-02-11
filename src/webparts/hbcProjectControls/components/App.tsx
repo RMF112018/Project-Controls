@@ -61,6 +61,7 @@ import { PERMISSIONS } from '../utils/permissions';
 
 export interface IAppProps {
   dataService: IDataService;
+  siteUrl?: string;  // Provided by SPFx; undefined in dev server
 }
 
 const NotFoundPage: React.FC = () => (
@@ -225,11 +226,11 @@ const AppRoutes: React.FC = () => (
   </Routes>
 );
 
-export const App: React.FC<IAppProps> = ({ dataService }) => {
+export const App: React.FC<IAppProps> = ({ dataService, siteUrl }) => {
   return (
     <FluentProvider theme={hbcLightTheme}>
       <ErrorBoundary>
-        <AppProvider dataService={dataService}>
+        <AppProvider dataService={dataService} siteUrl={siteUrl}>
           <ToastProvider>
             <HashRouter>
               <AppShell>

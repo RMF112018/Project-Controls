@@ -9,9 +9,10 @@ import { getStageLabel, isActiveStage } from '../../utils/stageEngine';
 interface IProjectPickerProps {
   selected: ISelectedProject | null;
   onSelect: (project: ISelectedProject | null) => void;
+  locked?: boolean;
 }
 
-export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelect }) => {
+export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelect, locked }) => {
   const { leads, fetchLeads } = useLeads();
   const { dataService, currentUser, resolvedPermissions } = useAppContext();
   const [query, setQuery] = React.useState('');
@@ -109,6 +110,25 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
     onSelect(null);
     setQuery('');
   };
+
+  if (locked && selected) {
+    return (
+      <div style={{ padding: '8px 12px' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '6px 10px', borderRadius: 6,
+          border: `1px solid ${HBC_COLORS.gray200}`,
+          backgroundColor: HBC_COLORS.gray50,
+          fontSize: 13, minHeight: 32,
+        }}>
+          <span style={{ flex: 1, fontWeight: 500, color: HBC_COLORS.navy, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {selected.projectName}
+          </span>
+          <span style={{ color: HBC_COLORS.gray400, fontSize: 11 }}>{selected.projectCode}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef} style={{ position: 'relative', padding: '8px 12px' }}>

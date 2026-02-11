@@ -1354,4 +1354,13 @@ export class SharePointDataService implements IDataService {
   // --- Scorecard Reject / Archive ---
   async rejectScorecard(_scorecardId: number, _reason: string): Promise<IGoNoGoScorecard> { throw new Error('Not implemented'); }
   async archiveScorecard(_scorecardId: number, _archivedBy: string): Promise<IGoNoGoScorecard> { throw new Error('Not implemented'); }
+
+  // --- Project Site URL Targeting ---
+  private _projectSiteUrl: string | null = null;
+
+  public setProjectSiteUrl(siteUrl: string | null): void {
+    this._projectSiteUrl = siteUrl;
+    // When PnP project-web methods are implemented, this will create
+    // a new SPFI web instance: this._projectWeb = Web([this.sp.web, siteUrl])
+  }
 }

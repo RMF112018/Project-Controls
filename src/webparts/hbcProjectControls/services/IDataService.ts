@@ -381,6 +381,9 @@ export interface IDataService {
   // Scorecard archive (Phase 22)
   rejectScorecard(scorecardId: number, reason: string): Promise<IGoNoGoScorecard>;
   archiveScorecard(scorecardId: number, archivedBy: string): Promise<IGoNoGoScorecard>;
+
+  // Project site URL targeting (Phase 26)
+  setProjectSiteUrl(siteUrl: string | null): void;
 }
 
 export interface IActiveProjectsQueryOptions extends IListQueryOptions {

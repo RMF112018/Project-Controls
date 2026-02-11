@@ -5372,6 +5372,10 @@ export class MockDataService implements IDataService {
     return { ...scorecard };
   }
 
+  public setProjectSiteUrl(_siteUrl: string | null): void {
+    // No-op: mock data uses in-memory arrays filtered by projectCode
+  }
+
   async archiveScorecard(scorecardId: number, archivedBy: string): Promise<IGoNoGoScorecard> {
     await delay();
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);

@@ -23,6 +23,7 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
   public render(): void {
     const element: React.ReactElement<IAppProps> = React.createElement(App, {
       dataService: this._dataService,
+      siteUrl: this.context.pageContext.web.absoluteUrl,
     });
 
     ReactDom.render(element, this.domElement);

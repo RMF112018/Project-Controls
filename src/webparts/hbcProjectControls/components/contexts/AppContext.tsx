@@ -2,6 +2,8 @@ import * as React from 'react';
 import { IDataService } from '../../services/IDataService';
 import { ICurrentUser, IFeatureFlag, Stage } from '../../models';
 import { IResolvedPermissions } from '../../models/IPermissionTemplate';
+import { detectSiteContext } from '../../utils/siteDetector';
+import { DEFAULT_HUB_SITE_URL } from '../../utils/constants';
 
 export interface ISelectedProject {
   projectCode: string;
@@ -10,6 +12,7 @@ export interface ISelectedProject {
   region?: string;
   division?: string;
   leadId?: number;
+  siteUrl?: string;  // Project SP site URL (set on project sites, optional on hub selection)
 }
 
 export interface IAppContextValue {
@@ -23,22 +26,40 @@ export interface IAppContextValue {
   hasPermission: (permission: string) => boolean;
   isFeatureEnabled: (featureName: string) => boolean;
   resolvedPermissions: IResolvedPermissions | null;
+  isProjectSite: boolean;
 }
 
 const AppContext = React.createContext<IAppContextValue | undefined>(undefined);
 
 interface IAppProviderProps {
   dataService: IDataService;
+  siteUrl?: string;
   children: React.ReactNode;
 }
 
-export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, children }) => {
+export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, siteUrl, children }) => {
   const [currentUser, setCurrentUser] = React.useState<ICurrentUser | null>(null);
   const [featureFlags, setFeatureFlags] = React.useState<IFeatureFlag[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [selectedProject, setSelectedProject] = React.useState<ISelectedProject | null>(null);
   const [resolvedPermissions, setResolvedPermissions] = React.useState<IResolvedPermissions | null>(null);
+
+  // Site detection — compute once on mount
+  const siteContext = React.useMemo(() => {
+    if (!siteUrl) {
+      return { siteUrl: DEFAULT_HUB_SITE_URL, hubSiteUrl: DEFAULT_HUB_SITE_URL, isHubSite: true };
+    }
+    return detectSiteContext(siteUrl, DEFAULT_HUB_SITE_URL);
+  }, [siteUrl]);
+
+  const isProjectSite = !siteContext.isHubSite && !!siteContext.projectCode;
+
+  // Guard: cannot clear project on project-specific sites
+  const handleSetSelectedProject = React.useCallback((project: ISelectedProject | null) => {
+    if (isProjectSite && project === null) return;
+    setSelectedProject(project);
+  }, [isProjectSite]);
 
   // Helper: check if PermissionEngine flag is enabled in a given set of flags
   const isPermissionEngineEnabled = React.useCallback((flags: IFeatureFlag[]): boolean => {
@@ -70,6 +91,27 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, children
 
         setCurrentUser(user);
         setFeatureFlags(flags);
+
+        // Auto-select project on project-specific sites
+        if (isProjectSite && siteContext.projectCode) {
+          try {
+            const results = await dataService.searchLeads(siteContext.projectCode);
+            const lead = results.find(l => l.ProjectCode === siteContext.projectCode);
+            if (lead) {
+              setSelectedProject({
+                projectCode: lead.ProjectCode!,
+                projectName: lead.Title,
+                stage: lead.Stage,
+                region: lead.Region,
+                division: lead.Division,
+                leadId: lead.id,
+                siteUrl: siteContext.siteUrl,
+              });
+            }
+          } catch {
+            console.warn('Auto-select failed for project code:', siteContext.projectCode);
+          }
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to initialize');
       } finally {
@@ -77,7 +119,16 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, children
       }
     };
     init().catch(console.error);
-  }, [dataService]);
+  }, [dataService, isProjectSite, siteContext]);
+
+  // Route project-scoped data service queries to project site when selected
+  React.useEffect(() => {
+    if (selectedProject?.siteUrl) {
+      dataService.setProjectSiteUrl(selectedProject.siteUrl);
+    } else if (!selectedProject) {
+      dataService.setProjectSiteUrl(null);
+    }
+  }, [selectedProject, dataService]);
 
   // Re-resolve permissions when selectedProject changes (if engine is enabled)
   React.useEffect(() => {
@@ -120,11 +171,12 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, children
     isLoading,
     error,
     selectedProject,
-    setSelectedProject,
+    setSelectedProject: handleSetSelectedProject,
     hasPermission,
     isFeatureEnabled,
     resolvedPermissions,
-  }), [dataService, currentUser, featureFlags, isLoading, error, selectedProject, hasPermission, isFeatureEnabled, resolvedPermissions]);
+    isProjectSite,
+  }), [dataService, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
