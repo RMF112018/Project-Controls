@@ -10,6 +10,7 @@ interface INavItem {
   path: string;
   requiresProject?: boolean;
   permission?: string;
+  hubOnly?: boolean;
 }
 
 interface INavGroupDef {
@@ -24,7 +25,7 @@ const NAV_STRUCTURE: INavGroupDef[] = [
     label: 'Marketing',
     groupKey: 'Marketing',
     items: [
-      { label: 'Marketing Dashboard', path: '/marketing', permission: PERMISSIONS.MARKETING_DASHBOARD_VIEW },
+      { label: 'Marketing Dashboard', path: '/marketing', permission: PERMISSIONS.MARKETING_DASHBOARD_VIEW, hubOnly: true },
       { label: 'Project Record', path: '/operations/project-record', requiresProject: true },
     ],
   },
@@ -32,22 +33,22 @@ const NAV_STRUCTURE: INavGroupDef[] = [
     label: 'Preconstruction',
     groupKey: 'Preconstruction',
     items: [
-      { label: 'Estimating Dashboard', path: '/preconstruction' },
-      { label: 'Pipeline', path: '/preconstruction/pipeline' },
-      { label: 'Go/No-Go Tracker', path: '/preconstruction/pipeline/gonogo' },
-      { label: 'Precon Tracker', path: '/preconstruction/precon-tracker' },
-      { label: 'Estimate Log', path: '/preconstruction/estimate-log' },
+      { label: 'Estimating Dashboard', path: '/preconstruction', hubOnly: true },
+      { label: 'Pipeline', path: '/preconstruction/pipeline', hubOnly: true },
+      { label: 'Go/No-Go Tracker', path: '/preconstruction/pipeline/gonogo', hubOnly: true },
+      { label: 'Precon Tracker', path: '/preconstruction/precon-tracker', hubOnly: true },
+      { label: 'Estimate Log', path: '/preconstruction/estimate-log', hubOnly: true },
       { label: 'Post-Bid Autopsies', path: '/preconstruction/autopsy-list', permission: PERMISSIONS.AUTOPSY_VIEW },
-      { label: 'New Lead', path: '/lead/new', permission: PERMISSIONS.LEAD_CREATE },
-      { label: 'Job Number Request', path: '/job-request', permission: PERMISSIONS.JOB_NUMBER_REQUEST_CREATE },
+      { label: 'New Lead', path: '/lead/new', permission: PERMISSIONS.LEAD_CREATE, hubOnly: true },
+      { label: 'Job Number Request', path: '/job-request', permission: PERMISSIONS.JOB_NUMBER_REQUEST_CREATE, hubOnly: true },
     ],
   },
   {
     label: 'Operations',
     groupKey: 'Operations',
     items: [
-      { label: 'Active Projects', path: '/operations', permission: PERMISSIONS.ACTIVE_PROJECTS_VIEW },
-      { label: 'Compliance Log', path: '/operations/compliance-log', permission: PERMISSIONS.COMPLIANCE_LOG_VIEW },
+      { label: 'Active Projects', path: '/operations', permission: PERMISSIONS.ACTIVE_PROJECTS_VIEW, hubOnly: true },
+      { label: 'Compliance Log', path: '/operations/compliance-log', permission: PERMISSIONS.COMPLIANCE_LOG_VIEW, hubOnly: true },
     ],
     subGroups: [
       {
@@ -206,7 +207,7 @@ const NavSubGroup: React.FC<{
 export const NavigationSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser, selectedProject, setSelectedProject, hasPermission } = useAppContext();
+  const { currentUser, selectedProject, setSelectedProject, hasPermission, isProjectSite } = useAppContext();
 
   const userRoles = currentUser?.roles ?? [];
 
@@ -218,6 +219,7 @@ export const NavigationSidebar: React.FC = () => {
 
   const isItemVisible = (item: INavItem): boolean => {
     if (item.permission && !hasPermission(item.permission)) return false;
+    if (item.hubOnly && selectedProject) return false;
     return true;
   };
 
@@ -237,7 +239,7 @@ export const NavigationSidebar: React.FC = () => {
       flexDirection: 'column',
     }}>
       {/* Project Picker */}
-      <ProjectPicker selected={selectedProject} onSelect={setSelectedProject} />
+      <ProjectPicker selected={selectedProject} onSelect={setSelectedProject} locked={isProjectSite} />
 
       {/* Dashboard — always visible */}
       <div style={{ borderBottom: `1px solid ${HBC_COLORS.gray200}` }}>
@@ -272,6 +274,24 @@ export const NavigationSidebar: React.FC = () => {
                 onClick={() => navigate(item.path)}
               />
             ))}
+
+            {/* Dynamic project-scoped items when a project is selected */}
+            {group.groupKey === 'Preconstruction' && selectedProject?.leadId && (
+              <>
+                <NavItem
+                  label="Lead Detail"
+                  path={`/lead/${selectedProject.leadId}`}
+                  isActive={isActive(`/lead/${selectedProject.leadId}`)}
+                  onClick={() => navigate(`/lead/${selectedProject.leadId}`)}
+                />
+                <NavItem
+                  label="Go/No-Go"
+                  path={`/lead/${selectedProject.leadId}/gonogo`}
+                  isActive={isActive(`/lead/${selectedProject.leadId}/gonogo`)}
+                  onClick={() => navigate(`/lead/${selectedProject.leadId}/gonogo`)}
+                />
+              </>
+            )}
 
             {group.subGroups?.map(sg => {
               const sgItems = sg.items.filter(isItemVisible);

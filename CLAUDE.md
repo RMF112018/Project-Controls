@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-11 — Phase 24: Estimating Coordinator UX Enhancements
+**Last Updated:** 2026-02-11 — Phase 26: Project Selection Behavior
 
 ---
 
@@ -346,7 +346,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | File | src/webparts/hbcProjectControls/HbcProjectControlsWebPart.ts |
 | Class | `HbcProjectControlsWebPart extends BaseClientSideWebPart<IHbcProjectControlsWebPartProps>` |
 | onInit() | Instantiates `MockDataService` (or `SharePointDataService` in production) |
-| render() | Mounts `<App dataService={dataService} />` via ReactDOM to `this.domElement` |
+| render() | Mounts `<App dataService={dataService} siteUrl={pageContext.web.absoluteUrl} />` via ReactDOM to `this.domElement` |
 
 ### Standalone Dev Server
 
@@ -362,7 +362,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | Item | Value |
 |------|-------|
 | File | src/webparts/hbcProjectControls/components/App.tsx |
-| Component Tree | `FluentProvider` → `ErrorBoundary` → `AppProvider(dataService)` → `HashRouter` → `AppShell` → `AppRoutes` |
+| Component Tree | `FluentProvider` → `ErrorBoundary` → `AppProvider(dataService, siteUrl?)` → `HashRouter` → `AppShell` → `AppRoutes` |
 | Router Type | `HashRouter` from react-router-dom |
 | Route Count | 49 routes (see §8) |
 
@@ -413,6 +413,14 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 - `syncDenormalizedFields(leadId)` propagates changes from lead to all dependent records
 - Examples: `projectName` from `Leads_Master.Title`, `contractAmount` from `Leads_Master.ProjectValue`
 
+### Site Detection Pattern
+- `detectSiteContext(siteUrl, hubSiteUrl)` from `utils/siteDetector.ts` determines if the current SP site is the hub or a project-specific site
+- `AppContext.isProjectSite` is `true` when launched from a project-specific SP site (URL contains a project code)
+- On project sites: picker is locked (read-only), project auto-selected via `searchLeads()`, `setSelectedProject(null)` is blocked
+- On hub sites: picker is interactive; selecting a project hides `hubOnly` nav items (multi-project views) and shows dynamic project-scoped items
+- `dataService.setProjectSiteUrl()` is called when `selectedProject` changes to enable dual-web data routing in `SharePointDataService`
+- Supports both dashed (`25-042-01`) and dashless (`2504201`) project code formats in URLs
+
 ---
 
 ## §5 Shared Components
@@ -437,7 +445,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | MeetingScheduler | components/shared/MeetingScheduler.tsx | meetingType, subject, attendeeEmails, leadId?, projectCode?, startDate, endDate, onScheduled, onCancel? | ~1 |
 | PageHeader | components/shared/PageHeader.tsx | title, subtitle?, actions?, breadcrumb? | ~30+ |
 | PipelineChart | components/shared/PipelineChart.tsx | leads, mode? ('count'\|'value'), height? | ~2 |
-| ProjectPicker | components/shared/ProjectPicker.tsx | selected, onSelect | 1 (NavigationSidebar) |
+| ProjectPicker | components/shared/ProjectPicker.tsx | selected, onSelect, locked? | 1 (NavigationSidebar) |
 | ProvisioningStatus | components/shared/ProvisioningStatus.tsx | projectCode, log?, pollInterval?, compact? | ~3 |
 | ScoreTierBadge | components/shared/ScoreTierBadge.tsx | score, showLabel? | ~3 |
 | SearchBar | components/shared/SearchBar.tsx | placeholder? | 1 (AppShell) |
@@ -645,7 +653,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 
 ## §7 Service Methods
 
-201 methods on IDataService. Source: `services/IDataService.ts`
+202 methods on IDataService. Source: `services/IDataService.ts`
 
 | # | Method | Signature | Mock | SP | Hook Caller | Mock JSON |
 |---|--------|-----------|------|-----|-------------|-----------|
@@ -850,6 +858,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 198 | createAssignmentMapping | (data: Partial<IAssignmentMapping>) → Promise<IAssignmentMapping> | Impl | Stub | useAssignmentMappings | assignmentMappings.json |
 | 199 | updateAssignmentMapping | (id: number, data: Partial<IAssignmentMapping>) → Promise<IAssignmentMapping> | Impl | Stub | useAssignmentMappings | assignmentMappings.json |
 | 200 | deleteAssignmentMapping | (id: number) → Promise<void> | Impl | Stub | useAssignmentMappings | assignmentMappings.json |
+| 201 | setProjectSiteUrl | (siteUrl: string \| null) → void | Impl | Impl | AppContext | — |
 
 ---
 
@@ -919,25 +928,27 @@ Source: `components/layouts/NavigationSidebar.tsx`
 Dashboard                                    [always visible, path: /]
 ─────────────────────────────────────────────
 Marketing                                    [roles: Marketing, Executive Leadership]
-  ├── Marketing Dashboard                    [/marketing, permission: marketing:dashboard:view]
+  ├── Marketing Dashboard                    [/marketing, permission: marketing:dashboard:view, hubOnly]
   └── Project Record                         [/operations/project-record, requiresProject]
 ─────────────────────────────────────────────
 Preconstruction                              [roles: BD Rep, Estimating Coord, Precon Team, Exec Leadership, Legal]
-  ├── Estimating Dashboard                   [/preconstruction]
-  ├── Pipeline                               [/preconstruction/pipeline]
-  ├── Go/No-Go Tracker                       [/preconstruction/pipeline/gonogo]
-  ├── Precon Tracker                          [/preconstruction/precon-tracker]
-  ├── Estimate Log                            [/preconstruction/estimate-log]
+  ├── Estimating Dashboard                   [/preconstruction, hubOnly]
+  ├── Pipeline                               [/preconstruction/pipeline, hubOnly]
+  ├── Go/No-Go Tracker                       [/preconstruction/pipeline/gonogo, hubOnly]
+  ├── Precon Tracker                          [/preconstruction/precon-tracker, hubOnly]
+  ├── Estimate Log                            [/preconstruction/estimate-log, hubOnly]
   ├── Post-Bid Autopsies                      [/preconstruction/autopsy-list, permission: autopsy:view]
-  ├── New Lead                                [/lead/new, permission: lead:create]
-  └── Job Number Request                      [/job-request, permission: job_number_request:create]
+  ├── New Lead                                [/lead/new, permission: lead:create, hubOnly]
+  ├── Job Number Request                      [/job-request, permission: job_number_request:create, hubOnly]
+  ├── Lead Detail                             [/lead/:leadId, dynamic — only when project selected]
+  └── Go/No-Go                               [/lead/:leadId/gonogo, dynamic — only when project selected]
 ─────────────────────────────────────────────
 Accounting                                   [roles: Acct Mgr, Executive Leadership, Dept Director]
   └── Accounting Queue                        [/accounting-queue, permission: accounting_queue:view]
 ─────────────────────────────────────────────
 Operations                                   [roles: Ops Team, Exec Leadership, Risk Mgmt, QC, Safety, IDS]
-  ├── Active Projects                         [/operations, permission: active_projects:view]
-  ├── Compliance Log                          [/operations/compliance-log, permission: compliance_log:view]
+  ├── Active Projects                         [/operations, permission: active_projects:view, hubOnly]
+  ├── Compliance Log                          [/operations/compliance-log, permission: compliance_log:view, hubOnly]
   ├── [Project Manual]
   │   ├── Project Dashboard                   [/operations/project, requiresProject]
   │   ├── Startup Checklist                   [/operations/startup-checklist, requiresProject]
@@ -960,7 +971,7 @@ Admin                                        [roles: Executive Leadership]
   └── Admin Panel                             [/admin, permission: admin:config]
 ```
 
-Items with `requiresProject` are disabled (grayed out) when no project is selected. Items with `permission` are hidden if user lacks that permission.
+Items with `requiresProject` are disabled (grayed out) when no project is selected. Items with `permission` are hidden if user lacks that permission. Items with `hubOnly` are hidden when a project is selected (both hub-with-selection and project-site modes). Dynamic items (Lead Detail, Go/No-Go) appear under Preconstruction only when `selectedProject?.leadId` is set.
 
 ---
 
@@ -1430,9 +1441,13 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 | 24 | Estimating Coordinator UX Enhancements — EC landing page redirect, remove Kick-Off Checklists nav item, inline-editable dashboard tables (3 tabs, ~30 columns with InlineInput/InlineNumber/InlineDate/InlineSelect helpers), Current Pursuits column auto-sizing + header cleanup + row-click navigation + Kick-Off button removal, EstimatingKickoffPage overhaul (route param fix `:id` not `:projectCode`, lead selector, Key Personnel with AzureADPeoplePicker, checklist with multi-select assignees, role-filtered Pursuit Tools), AzureADPeoplePicker multi-select support (discriminated union props), PursuitDetail tool filtering + Estimating Kickoff button removal, EC GONOGO_SCORE_ORIGINATOR permission removed | (none) | DashboardPage.tsx, NavigationSidebar.tsx, EstimatingDashboard.tsx, EstimatingKickoffPage.tsx, PursuitDetail.tsx, AzureADPeoplePicker.tsx, IEstimatingKickoff.ts, useEstimatingKickoff.ts, IDataService.ts, MockDataService.ts, SharePointDataService.ts, permissions.ts, estimatingKickoffs.json, columnMappings.ts |
 
+| 25 | Job Number Request Form Alignment — Fixed Skip mode transition bug (`isLeadSelection` now checks `&& !lead`), expanded noLeadMode entry screen from 3→6 fields (added Division select, Sector select, ProjectValue input), 2-column grid layout, main form header shows Division/Sector/Region/ProjectValue context. No model/service/hook/mock data changes. | (none) | JobNumberRequestForm.tsx |
+
+| 26 | Project Selection Behavior — Site detection wired into app (`siteDetector.ts` → AppContext `isProjectSite`), auto-select project on project-specific SP sites, ProjectPicker `locked` mode for project sites, `hubOnly` nav item flag hides multi-project views when project selected, dynamic Lead Detail/Go/No-Go nav items under Preconstruction when project selected, `setProjectSiteUrl()` dual-web plumbing on IDataService/MockDataService/SharePointDataService, dashless project code regex fix in siteDetector (supports `2504201` → `25-042-01` conversion), `ISelectedProject` gains `siteUrl?` field, `IAppContextValue` gains `isProjectSite` boolean | (none) | HbcProjectControlsWebPart.ts, App.tsx, AppContext.tsx, siteDetector.ts, ProjectPicker.tsx, NavigationSidebar.tsx, IDataService.ts, MockDataService.ts, SharePointDataService.ts |
+
 ### Known Stubs / Placeholders
 
-- **SharePointDataService**: 152 of 201 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
+- **SharePointDataService**: 152 of 202 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed. `setProjectSiteUrl()` is implemented (stores URL for future dual-web PnP usage).
 - **HubNavigationService**: SharePointHubNavigationService is a stub (all 3 methods throw).
 - **Column Mappings**: `columnMappings.ts` has mappings for all lists but SP service stubs don't use them yet.
 - **Offline Support**: `OfflineQueueService.ts` exists but feature flag `OfflineSupport` is disabled.
@@ -1512,6 +1527,12 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 31. **EstimatingKickoffPage uses `id` route param (not `projectCode`)** — The route is `/preconstruction/pursuit/:id/kickoff` where `:id` is the estimating tracker record ID. The component reads `useParams<{ id }>()`, then calls `getRecordById(Number(id))` to look up the `IEstimatingTracker` and get the `ProjectCode`. Never use `projectCode` as a route param — it was a latent bug that has been fixed in Phase 24.
 
+32. **`isLeadSelection` in JobNumberRequestForm checks both URL param AND lead state** — `isLeadSelection = !Number.isFinite(leadId) && !lead`. This ensures Skip mode (no URL param) properly transitions to the main form after `handleNoLeadContinue` sets the `lead` state. Do not revert to checking only `leadId` — that breaks the Skip→Form transition.
+
+33. **siteDetector supports both dashed and dashless project codes** — `ProvisioningService` creates site URLs using `projectCode.replace(/-/g, '')` (e.g., `2504201`). `detectSiteContext()` tries dashed format first (`25-042-01`), then falls back to dashless 7-digit match and re-inserts dashes. When creating test URLs for site detection, use either format — both work.
+
+34. **`isProjectSite` blocks `setSelectedProject(null)`** — On project-specific SP sites, `handleSetSelectedProject` in AppContext ignores null arguments to prevent clearing the auto-detected project. The ProjectPicker shows as locked (read-only static display). This is intentional — project sites should always have their project selected. On hub sites, clearing works normally.
+
 ---
 
 ## Audit Log
@@ -1535,3 +1556,5 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-11 | §2, §6, §7, §10, §12, §13, §15, §16 | Phase 22: Lead-to-Site Workflow Enhancement. ScorecardStatus replaced (8→10 values: BDDraft, AwaitingDirectorReview, DirectorReturnedForRevision, AwaitingCommitteeScoring, CommitteeReturnedForRevision, Rejected, NoGo, Go, Locked, Unlocked). New IAssignmentMapping model + assignmentMappings.json (4 entries) + useAssignmentMappings hook. 8 new IDataService methods (200 total): createBdLeadFolder, checkFolderExists, createFolder, renameFolder, getAssignmentMappings, createAssignmentMapping, updateAssignmentMapping, deleteAssignmentMapping. +3 AuditAction (ScorecardArchived, LeadFolderCreated, AssignmentMappingUpdated), +7 NotificationEvent (ScorecardSubmittedToDirector, ScorecardReturnedByDirector, ScorecardRejectedByDirector, ScorecardAdvancedToCommittee, ScorecardApprovedGo, ScorecardDecidedNoGo, EstimatingCoordinatorNotifiedGo), +1 EntityType (AssignmentMapping). +2 permissions (gonogo:review, admin:assignments:manage). GoNoGoScorecard.tsx rewritten with Save/Submit, Director review/reject, Committee Go/NoGo/Return, archive flow. PipelinePage.tsx Go/No-Go Tracker with Pending/Archive sub-tabs + advanced filters. LeadFormPage.tsx +BD Leads folder creation. JobNumberRequestForm.tsx +optional lead association. EstimatingDashboard.tsx +Request New Project Number button. AdminPanel.tsx +Assignment Mappings CRUD. scorecards.json updated to new status values. Added pitfalls #26-#27. |
 | 2026-02-11 | §6, §10, §15, §16 | Phase 23: BD Representative UX Enhancements. ILead.ts: +AddressStreet, +AddressCity, +AddressState, +AddressZip, +DateSubmitted; -ProjectAddress. validators.ts: +AddressCity/AddressState required. LeadFormPage.tsx: address field grid with US_STATES dropdown, CityLocation auto-populate, DateSubmitted auto-set. LeadDetailPage.tsx: full edit mode (all fields become editable inputs, +address section, +Notes). PipelinePage.tsx: +DateSubmitted "Created" column, default sort newest-first. useGoNoGo.ts: canSubmit allows null scorecard. permissions.ts: BD Rep +6 permissions (marketing:dashboard:view, marketing:edit, projectrecord:edit, precon:hub:view, autopsy:edit, autopsy:schedule), BD Rep added to Marketing nav group. leads.json: +4 address fields on all 29 records. columnMappings.ts: +5 new mappings (address fields + DateSubmitted), -ProjectAddress. AccountingQueuePage.tsx and MockDataService.ts: removed ProjectAddress references from ILead context. Added pitfalls #28-#30. |
 | 2026-02-11 | §5, §6, §7, §9, §10, §12, §15, §16 | Phase 24: Estimating Coordinator UX Enhancements. EC redirect to /preconstruction on login (DashboardPage.tsx). Removed Kick-Off Checklists from NavigationSidebar. Inline-editable dashboard tables (3 tabs, ~30 columns with InlineInput/InlineNumber/InlineDate/InlineSelect React.memo helpers in EstimatingDashboard.tsx). Current Pursuits: auto-width text columns, stripped parenthetical checkbox headers, row-click→kickoff, removed Kick-Off button column. EstimatingKickoffPage: fixed route param bug (`:id` not `:projectCode`), lead selector dropdown, Key Personnel section with AzureADPeoplePicker, Estimating Checklist with multi-select assignees, role-filtered Pursuit Tools. AzureADPeoplePicker: discriminated union props for multiSelect (pills, toggle select, checkmarks). PursuitDetail: removed Estimating Kickoff button, EC role filtering (4 tools vs 5). New model: IKeyPersonnelEntry. IEstimatingKickoff: +keyPersonnel field. IEstimatingKickoffItem: +assignees field. 1 new IDataService method (201 total): updateKickoffKeyPersonnel. EC GONOGO_SCORE_ORIGINATOR permission removed. Added pitfall #31 (EstimatingKickoffPage route param). |
+| 2026-02-11 | §15, §16 | Phase 25: Job Number Request Form Alignment. Fixed Skip mode transition bug (isLeadSelection now checks `&& !lead`). Expanded noLeadMode entry from 3→6 fields (added Division select, Sector select, ProjectValue input). 2-column grid layout. Main form header shows Division/Sector/Region/ProjectValue context. No IJobNumberRequest model changes. No service/hook/mock data changes. Single file modified: JobNumberRequestForm.tsx. Added pitfall #32. |
+| 2026-02-11 | §3, §4, §5, §7, §9, §15, §16 | Phase 26: Project Selection Behavior. Wired `siteDetector.ts` into app — `detectSiteContext()` → AppContext `isProjectSite` flag. WebPart passes `pageContext.web.absoluteUrl` as `siteUrl` prop. AppProvider computes site context, auto-selects project on project-specific SP sites via `searchLeads()`. `ISelectedProject` gains `siteUrl?` field. `IAppContextValue` gains `isProjectSite` boolean. `handleSetSelectedProject` blocks null on project sites. ProjectPicker gains `locked?` prop — shows read-only static display when true. NavigationSidebar: `hubOnly` flag on 10 multi-project nav items, dynamic Lead Detail + Go/No-Go items under Preconstruction when project selected. `setProjectSiteUrl()` added to IDataService (method #202): no-op in Mock, stores URL in SharePointDataService for future dual-web PnP. `siteDetector.ts` dashless project code regex fix (7-digit `2504201` → `25-042-01`). AppContext effect calls `setProjectSiteUrl()` on selectedProject changes. Added pitfalls #33 (dashless siteDetector) and #34 (isProjectSite blocks null). |
