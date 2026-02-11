@@ -4,6 +4,7 @@ export interface IGraphService {
   getCurrentUserProfile(): Promise<{ displayName: string; email: string; id: string }>;
   getUserPhoto(email: string): Promise<string | null>;
   getGroupMembers(groupId: string): Promise<Array<{ displayName: string; email: string }>>;
+  addGroupMember(groupId: string, userId: string): Promise<void>;
   getCalendarAvailability(emails: string[], start: string, end: string): Promise<ICalendarAvailability[]>;
   createCalendarEvent(meeting: Partial<IMeeting>): Promise<IMeeting>;
   sendEmail(to: string[], subject: string, body: string): Promise<void>;
@@ -42,6 +43,16 @@ export class GraphService implements IGraphService {
       displayName: m.displayName,
       email: m.mail,
     }));
+  }
+
+  async addGroupMember(groupId: string, userId: string): Promise<void> {
+    if (!this.graphClient) {
+      console.warn('Graph client not initialized');
+      return;
+    }
+    await this.graphClient.api(`/groups/${groupId}/members/$ref`).post({
+      '@odata.id': `https://graph.microsoft.com/v1.0/directoryObjects/${userId}`,
+    });
   }
 
   async getCalendarAvailability(emails: string[], start: string, end: string): Promise<ICalendarAvailability[]> {

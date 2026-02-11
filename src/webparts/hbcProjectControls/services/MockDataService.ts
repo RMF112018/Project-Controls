@@ -5043,6 +5043,17 @@ export class MockDataService implements IDataService {
     this.projectTeamAssignments[idx].isActive = false;
   }
 
+  async getAllProjectTeamAssignments(): Promise<IProjectTeamAssignment[]> {
+    await delay();
+    return JSON.parse(JSON.stringify(
+      this.projectTeamAssignments.filter((a: IProjectTeamAssignment) => a.isActive)
+    ));
+  }
+
+  async inviteToProjectSiteGroup(projectCode: string, userEmail: string, role: string): Promise<void> {
+    console.log(`[Mock] Would invite ${userEmail} to SP group for project ${projectCode} with role ${role}`);
+  }
+
   // ========== Permission Resolution ==========
 
   async resolveUserPermissions(userEmail: string, projectCode: string | null): Promise<IResolvedPermissions> {

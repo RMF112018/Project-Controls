@@ -1325,6 +1325,8 @@ export class SharePointDataService implements IDataService {
   async createProjectTeamAssignment(_data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> { throw new Error('Not implemented'); }
   async updateProjectTeamAssignment(_id: number, _data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> { throw new Error('Not implemented'); }
   async removeProjectTeamAssignment(_id: number): Promise<void> { throw new Error('Not implemented'); }
+  async getAllProjectTeamAssignments(): Promise<IProjectTeamAssignment[]> { throw new Error('Not implemented'); }
+  async inviteToProjectSiteGroup(_projectCode: string, _userEmail: string, _role: string): Promise<void> { throw new Error('Not implemented'); }
 
   // --- Permission Resolution ---
   async resolveUserPermissions(_userEmail: string, _projectCode: string | null): Promise<IResolvedPermissions> { throw new Error('Not implemented'); }

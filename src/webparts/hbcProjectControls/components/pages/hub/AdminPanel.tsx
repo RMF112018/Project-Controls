@@ -28,6 +28,7 @@ import { HubNavLinkStatus } from '../../../models/IProvisioningLog';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { WorkflowDefinitionsPanel } from './WorkflowDefinitionsPanel';
 import { PermissionTemplateEditor } from './PermissionTemplateEditor';
+import { ProjectAssignmentsPanel } from './ProjectAssignmentsPanel';
 import { useTabFromUrl } from '../../hooks/useTabFromUrl';
 import { useSectorDefinitions } from '../../hooks/useSectorDefinitions';
 import { useAssignmentMappings } from '../../hooks/useAssignmentMappings';
@@ -37,7 +38,7 @@ import { HBC_COLORS, SPACING } from '../../../theme/tokens';
 import { formatDateTime } from '../../../utils/formatters';
 import { PERMISSIONS } from '../../../utils/permissions';
 
-const TAB_KEYS = ['connections', 'roles', 'flags', 'provisioning', 'workflows', 'permissions', 'sectors', 'audit'] as const;
+const TAB_KEYS = ['connections', 'roles', 'flags', 'provisioning', 'workflows', 'permissions', 'sectors', 'assignments', 'audit'] as const;
 type AdminTab = typeof TAB_KEYS[number];
 const TAB_LABELS: Record<AdminTab, string> = {
   connections: 'Connections',
@@ -47,6 +48,7 @@ const TAB_LABELS: Record<AdminTab, string> = {
   workflows: 'Workflows',
   permissions: 'Permissions',
   sectors: 'Sectors',
+  assignments: 'Assignments',
   audit: 'Audit Log',
 };
 
@@ -1001,7 +1003,18 @@ export const AdminPanel: React.FC = () => {
         )
       )}
 
-      {/* Tab 8: Audit Log */}
+      {/* Tab 8: Project Assignments */}
+      {activeTab === 'assignments' && (
+        hasPermission(PERMISSIONS.PERMISSION_PROJECT_TEAM_MANAGE) ? (
+          <ProjectAssignmentsPanel />
+        ) : (
+          <div style={{ padding: '24px', textAlign: 'center', color: HBC_COLORS.gray400 }}>
+            You do not have permission to manage project team assignments.
+          </div>
+        )
+      )}
+
+      {/* Tab 9: Audit Log */}
       {activeTab === 'audit' && (
         <div>
           {auditEntries.length > 5000 && (

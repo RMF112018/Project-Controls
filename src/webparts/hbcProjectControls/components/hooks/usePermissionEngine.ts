@@ -15,9 +15,11 @@ export interface IUsePermissionEngineResult {
   resolvePermissions: (userEmail: string, projectCode: string | null) => Promise<IResolvedPermissions>;
   getAccessibleProjects: (userEmail: string) => Promise<string[]>;
   getProjectTeam: (projectCode: string) => Promise<IProjectTeamAssignment[]>;
+  getAllAssignments: () => Promise<IProjectTeamAssignment[]>;
   assignToProject: (data: Partial<IProjectTeamAssignment>) => Promise<IProjectTeamAssignment>;
   removeFromProject: (id: number) => Promise<void>;
   updateAssignment: (id: number, data: Partial<IProjectTeamAssignment>) => Promise<IProjectTeamAssignment>;
+  inviteToSiteGroup: (projectCode: string, userEmail: string, role: string) => Promise<void>;
   createTemplate: (data: Partial<IPermissionTemplate>) => Promise<IPermissionTemplate>;
   updateTemplate: (id: number, data: Partial<IPermissionTemplate>) => Promise<IPermissionTemplate>;
   deleteTemplate: (id: number) => Promise<void>;
@@ -67,6 +69,16 @@ export function usePermissionEngine(): IUsePermissionEngineResult {
     return dataService.getProjectTeamAssignments(projectCode);
   }, [dataService]);
 
+  const getAllAssignments = React.useCallback(async () => {
+    return dataService.getAllProjectTeamAssignments();
+  }, [dataService]);
+
+  const inviteToSiteGroup = React.useCallback(async (
+    projectCode: string, userEmail: string, role: string
+  ) => {
+    return dataService.inviteToProjectSiteGroup(projectCode, userEmail, role);
+  }, [dataService]);
+
   const assignToProject = React.useCallback(async (data: Partial<IProjectTeamAssignment>) => {
     return dataService.createProjectTeamAssignment(data);
   }, [dataService]);
@@ -110,9 +122,11 @@ export function usePermissionEngine(): IUsePermissionEngineResult {
     resolvePermissions,
     getAccessibleProjects,
     getProjectTeam,
+    getAllAssignments,
     assignToProject,
     removeFromProject,
     updateAssignment,
+    inviteToSiteGroup,
     createTemplate,
     updateTemplate,
     deleteTemplate,
