@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-10 — Phase 20: SharePoint Admin Role + Dev Super-Admin Mode
+**Last Updated:** 2026-02-11 — Phase 22: Lead-to-Site Workflow Enhancement
 
 ---
 
@@ -109,9 +109,10 @@ src/webparts/hbcProjectControls/
 │   │   ├── ProjectRequiredRoute.tsx      # Shows "No Project Selected" if no selectedProject
 │   │   ├── RoleGate.tsx                  # Renders children only if user has allowed role
 │   │   └── index.ts
-│   ├── hooks/                             # 35 custom hooks (see §7 for service method mapping)
+│   ├── hooks/                             # 36 custom hooks (see §7 for service method mapping)
 │   │   ├── useActionInbox.ts             # Action inbox aggregation with auto-refresh
 │   │   ├── useActiveProjects.ts          # Active projects portfolio
+│   │   ├── useAssignmentMappings.ts     # Assignment mapping CRUD + resolution
 │   │   ├── useBuyoutLog.ts              # Buyout log CRUD
 │   │   ├── useCommitmentApproval.ts     # Commitment approval workflow
 │   │   ├── useComplianceLog.ts          # Compliance log with filters
@@ -247,8 +248,8 @@ src/webparts/hbcProjectControls/
 │       ├── WorkflowPreview.tsx
 │       ├── WorkflowStepCard.tsx
 │       └── index.ts
-├── mock/                                  # 40 JSON mock data files (see §12)
-├── models/                                # 44 TypeScript model files (see §6)
+├── mock/                                  # 41 JSON mock data files (see §12)
+├── models/                                # 45 TypeScript model files (see §6)
 │   ├── enums.ts                          # All shared enums (31 enums)
 │   ├── I*.ts                             # Interface files (one per entity)
 │   └── index.ts                          # Barrel export
@@ -363,7 +364,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | File | src/webparts/hbcProjectControls/components/App.tsx |
 | Component Tree | `FluentProvider` → `ErrorBoundary` → `AppProvider(dataService)` → `HashRouter` → `AppShell` → `AppRoutes` |
 | Router Type | `HashRouter` from react-router-dom |
-| Route Count | 48 routes (see §8) |
+| Route Count | 49 routes (see §8) |
 
 ---
 
@@ -535,6 +536,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | IProjectType | models/IProjectType.ts | code, label, office | Project_Types | Hub |
 | IStandardCostCode | models/IStandardCostCode.ts | id, description, phase, division, isDefault | Standard_Cost_Codes | Hub |
 | ISectorDefinition | models/ISectorDefinition.ts | id, code, label, isActive, parentDivision?, sortOrder | Sector_Definitions | Hub |
+| IAssignmentMapping | models/IAssignmentMapping.ts | id, region, sector, assignmentType: AssignmentType, assignee: {userId, displayName, email} | Assignment_Mappings | Hub |
 | IWorkflowDefinition | models/IWorkflowDefinition.ts | id, workflowKey, name, description, steps, isActive, lastModifiedBy, lastModifiedDate | Workflow_Definitions | Hub |
 | IWorkflowStep | models/IWorkflowDefinition.ts | id, workflowId, stepOrder, name, assignmentType, projectRole?, defaultAssignee?, conditionalAssignees, isConditional, actionLabel, canChairMeeting? | Workflow_Steps | Hub |
 | IPersonAssignment | models/IWorkflowDefinition.ts | userId, displayName, email | — | — |
@@ -572,14 +574,15 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | Division | Commercial, LuxuryResidential |
 | DepartmentOfOrigin | BusinessDevelopment, Estimating, Marketing, Operations, Other |
 | DeliveryMethod | GMP, HardBid, PreconWithGMP, Other |
-| GoNoGoDecision | Go, NoGo, Wait |
+| GoNoGoDecision | Go, NoGo, ConditionalGo |
+| ScorecardStatus | BDDraft, AwaitingDirectorReview, DirectorReturnedForRevision, AwaitingCommitteeScoring, CommitteeReturnedForRevision, Rejected, NoGo, Go, Locked, Unlocked |
 | WinLossDecision | Win, Loss |
 | LossReason | Price, Relationship, Experience, Schedule, Competition, Other |
 | RoleName | BDRepresentative, EstimatingCoordinator, AccountingManager, PreconstructionTeam, OperationsTeam, ExecutiveLeadership, Legal, RiskManagement, Marketing, QualityControl, Safety, IDS, DepartmentDirector, SharePointAdmin |
 | ProvisioningStatus | Queued, InProgress, Completed, PartialFailure, Failed |
 | TurnoverStatus | Draft, PrerequisitesInProgress, MeetingScheduled, MeetingComplete, PendingSignatures, Signed, Complete |
-| AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved, TurnoverAgendaCreated, TurnoverPrerequisiteCompleted, TurnoverItemDiscussed, TurnoverSubcontractorAdded, TurnoverSubcontractorRemoved, TurnoverExhibitReviewed, TurnoverExhibitAdded, TurnoverExhibitRemoved, TurnoverSigned, TurnoverAgendaCompleted, HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated, TemplateCreated, TemplateUpdated, TemplateDeleted, ProjectTeamAssigned, ProjectTeamRemoved, ProjectTeamOverridden, SecurityGroupMappingChanged, PermissionResolved |
-| EntityType | Lead, Scorecard, Estimate, Project, Permission, Config, Checklist, Matrix, ProjectRecord, RiskCost, Quality, Safety, Schedule, SuperintendentPlan, LessonLearned, PMP, MonthlyReview, WorkflowDefinition, TurnoverAgenda, PermissionTemplate, ProjectTeamAssignment |
+| AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved, TurnoverAgendaCreated, TurnoverPrerequisiteCompleted, TurnoverItemDiscussed, TurnoverSubcontractorAdded, TurnoverSubcontractorRemoved, TurnoverExhibitReviewed, TurnoverExhibitAdded, TurnoverExhibitRemoved, TurnoverSigned, TurnoverAgendaCompleted, HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated, TemplateCreated, TemplateUpdated, TemplateDeleted, ProjectTeamAssigned, ProjectTeamRemoved, ProjectTeamOverridden, SecurityGroupMappingChanged, PermissionResolved, ScorecardArchived, LeadFolderCreated, AssignmentMappingUpdated |
+| EntityType | Lead, Scorecard, Estimate, Project, Permission, Config, Checklist, Matrix, ProjectRecord, RiskCost, Quality, Safety, Schedule, SuperintendentPlan, LessonLearned, PMP, MonthlyReview, WorkflowDefinition, TurnoverAgenda, PermissionTemplate, ProjectTeamAssignment, AssignmentMapping |
 | DeliverableStatus | NotStarted, InProgress, InReview, Complete |
 | ActionItemStatus | Open, InProgress, Complete |
 | Priority | Low, Medium, High, Critical |
@@ -590,7 +593,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | MeetingType | GoNoGo, Kickoff, PreconKickoff, RedTeam, WinStrategy, Autopsy, LossAutopsy, Turnover, Other |
 | NotificationType | Email, Teams, Both |
 | ActiveProjectStatus | Precon, Construction, FinalPayment |
-| NotificationEvent | LeadSubmitted, GoNoGoScoringRequested, GoNoGoDecisionMade, SiteProvisioned, PreconKickoff, DeliverableDueApproaching, WinLossRecorded, AutopsyScheduled, TurnoverCompleted, SafetyFolderChanged, PMPSignatureRequested, PMPSubmittedForApproval, PMPApprovalRequired, PMPApproved, PMPReturnedForRevision, MonthlyReviewDueNotification, MonthlyReviewSubmittedToPX, MonthlyReviewReturnedToPM, MonthlyReviewSubmittedToLeadership, JobNumberRequested, JobNumberAssigned, EstimatingKickoffScheduled, AutopsyFinalized, CommitmentSubmitted, CommitmentWaiverRequired, CommitmentApproved, CommitmentEscalatedToCFO, CommitmentRejected |
+| NotificationEvent | LeadSubmitted, GoNoGoScoringRequested, GoNoGoDecisionMade, SiteProvisioned, PreconKickoff, DeliverableDueApproaching, WinLossRecorded, AutopsyScheduled, TurnoverCompleted, SafetyFolderChanged, PMPSignatureRequested, PMPSubmittedForApproval, PMPApprovalRequired, PMPApproved, PMPReturnedForRevision, MonthlyReviewDueNotification, MonthlyReviewSubmittedToPX, MonthlyReviewReturnedToPM, MonthlyReviewSubmittedToLeadership, JobNumberRequested, JobNumberAssigned, EstimatingKickoffScheduled, AutopsyFinalized, CommitmentSubmitted, CommitmentWaiverRequired, CommitmentApproved, CommitmentEscalatedToCFO, CommitmentRejected, ScorecardSubmittedToDirector, ScorecardReturnedByDirector, ScorecardRejectedByDirector, ScorecardAdvancedToCommittee, ScorecardApprovedGo, ScorecardDecidedNoGo, EstimatingCoordinatorNotifiedGo |
 | WorkflowKey | GO_NO_GO, PMP_APPROVAL, MONTHLY_REVIEW, COMMITMENT_APPROVAL, TURNOVER_APPROVAL |
 | StepAssignmentType | ProjectRole, NamedPerson |
 | ConditionField | Division, Region, Sector |
@@ -635,12 +638,13 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | AutopsyAnswer | models/ILossAutopsy.ts | boolean \| null |
 | HubNavLinkStatus | models/IProvisioningLog.ts | 'success' \| 'failed' \| 'not_applicable' |
 | EnvironmentTier | models/IEnvironmentConfig.ts | 'dev' \| 'vetting' \| 'prod' |
+| AssignmentType | models/IAssignmentMapping.ts | 'Estimator' \| 'Director' |
 
 ---
 
 ## §7 Service Methods
 
-192 methods on IDataService. Source: `services/IDataService.ts`
+200 methods on IDataService. Source: `services/IDataService.ts`
 
 | # | Method | Signature | Mock | SP | Hook Caller | Mock JSON |
 |---|--------|-----------|------|-----|-------------|-----------|
@@ -836,6 +840,14 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 190 | getSectorDefinitions | () → Promise<ISectorDefinition[]> | Impl | Stub | useSectorDefinitions | sectorDefinitions.json |
 | 191 | createSectorDefinition | (data: Partial<ISectorDefinition>) → Promise<ISectorDefinition> | Impl | Stub | AdminPanel | sectorDefinitions.json |
 | 192 | updateSectorDefinition | (id: number, data: Partial<ISectorDefinition>) → Promise<ISectorDefinition> | Impl | Stub | AdminPanel | sectorDefinitions.json |
+| 193 | createBdLeadFolder | (leadTitle: string, originatorName: string) → Promise<void> | Impl | Stub | LeadFormPage | in-memory |
+| 194 | checkFolderExists | (path: string) → Promise<boolean> | Impl | Stub | — | in-memory |
+| 195 | createFolder | (path: string) → Promise<void> | Impl | Stub | — | in-memory |
+| 196 | renameFolder | (oldPath: string, newPath: string) → Promise<void> | Impl | Stub | useGoNoGo | in-memory |
+| 197 | getAssignmentMappings | () → Promise<IAssignmentMapping[]> | Impl | Stub | useAssignmentMappings | assignmentMappings.json |
+| 198 | createAssignmentMapping | (data: Partial<IAssignmentMapping>) → Promise<IAssignmentMapping> | Impl | Stub | useAssignmentMappings | assignmentMappings.json |
+| 199 | updateAssignmentMapping | (id: number, data: Partial<IAssignmentMapping>) → Promise<IAssignmentMapping> | Impl | Stub | useAssignmentMappings | assignmentMappings.json |
+| 200 | deleteAssignmentMapping | (id: number) → Promise<void> | Impl | Stub | useAssignmentMappings | assignmentMappings.json |
 
 ---
 
@@ -848,8 +860,9 @@ Source: `components/App.tsx`
 | / | DashboardPage | pages/hub/DashboardPage.tsx | No | — |
 | /marketing | MarketingDashboard | pages/hub/MarketingDashboard.tsx | No | MARKETING_DASHBOARD_VIEW |
 | /preconstruction | EstimatingDashboard | pages/precon/EstimatingDashboard.tsx | No | — |
-| /preconstruction/gonogo | GoNoGoTracker | pages/precon/GoNoGoTracker.tsx | No | — |
 | /preconstruction/pipeline | PipelinePage | pages/hub/PipelinePage.tsx | No | — |
+| /preconstruction/pipeline/gonogo | PipelinePage | pages/hub/PipelinePage.tsx | No | — |
+| /preconstruction/gonogo | PipelinePage | pages/hub/PipelinePage.tsx | No | — |
 | /preconstruction/precon-tracker | EstimatingDashboard | pages/precon/EstimatingDashboard.tsx | No | — |
 | /preconstruction/estimate-log | EstimatingDashboard | pages/precon/EstimatingDashboard.tsx | No | — |
 | /preconstruction/kickoff-list | EstimatingKickoffList | pages/precon/EstimatingKickoffList.tsx | No | KICKOFF_VIEW |
@@ -910,13 +923,13 @@ Marketing                                    [roles: Marketing, Executive Leader
 Preconstruction                              [roles: BD Rep, Estimating Coord, Precon Team, Exec Leadership, Legal]
   ├── Estimating Dashboard                   [/preconstruction]
   ├── Pipeline                               [/preconstruction/pipeline]
-  ├── Go/No-Go Tracker                       [/preconstruction/gonogo]
-  ├── Precon Tracker                          [/preconstruction/precon-tracker]
-  ├── Estimate Log                            [/preconstruction/estimate-log]
+  ├── Go/No-Go Tracker                       [/preconstruction/pipeline/gonogo]
   ├── Kick-Off Checklists                     [/preconstruction/kickoff-list, permission: kickoff:view]
   ├── Post-Bid Autopsies                      [/preconstruction/autopsy-list, permission: autopsy:view]
   ├── New Lead                                [/lead/new, permission: lead:create]
-  ├── Job Number Request                      [/job-request, permission: job_number_request:create]
+  └── Job Number Request                      [/job-request, permission: job_number_request:create]
+─────────────────────────────────────────────
+Accounting                                   [roles: Acct Mgr, Executive Leadership, Dept Director]
   └── Accounting Queue                        [/accounting-queue, permission: accounting_queue:view]
 ─────────────────────────────────────────────
 Operations                                   [roles: Ops Team, Exec Leadership, Risk Mgmt, QC, Safety, IDS]
@@ -964,6 +977,7 @@ Legend: **X** = has permission
 | gonogo:score:committee | | | | | | X | X | | | | | | | X |
 | gonogo:submit | X | | | | | | | | | | | | | X |
 | gonogo:decide | | | | | | X | X | | | | | | | X |
+| gonogo:review | | | | | | X | X | | | | | | | X |
 | gonogo:read | X | X | X | | | X | X | X | X | X | | | | X |
 | precon:read | X | X | X | X | | X | X | X | X | X | X | X | X | X |
 | precon:edit | | X | | X | | | | | | | | | | X |
@@ -987,6 +1001,7 @@ Legend: **X** = has permission
 | admin:config | | | | | | X | | | | | | | X | X |
 | admin:connections | | | | | | X | | | | | | | | X |
 | admin:provisioning | | | | | | X | | | | | | | | X |
+| admin:assignments:manage | | | | | | X | | | | | | | | X |
 | marketing:edit | | | | | | | | | | X | | | | X |
 | marketing:dashboard:view | | | | | | X | X | | | X | | | | X |
 | site:provision | X | | | | | | | | | | | | | X |
@@ -1044,6 +1059,7 @@ Legend: **X** = has permission
 | Marketing | Marketing, Executive Leadership, Department Director, SharePoint Admin |
 | Preconstruction | BD Representative, Estimating Coordinator, Preconstruction Team, Executive Leadership, Department Director, Legal, SharePoint Admin |
 | Operations | Operations Team, Executive Leadership, Department Director, Risk Management, Quality Control, Safety, IDS, SharePoint Admin |
+| Accounting | Accounting Manager, Executive Leadership, Department Director, SharePoint Admin |
 | Admin | Executive Leadership, SharePoint Admin |
 
 ---
@@ -1087,6 +1103,7 @@ Source: `mock/`
 | JSON File | Entity Type | Record Count | Project Codes |
 |-----------|-------------|-------------|---------------|
 | appContextConfig.json | App context configs | 3 | N/A |
+| assignmentMappings.json | IAssignmentMapping | 4 | N/A |
 | buyoutEntries.json | IBuyoutEntry | 15 | 25-042-01 |
 | calendarAvailability.json | ICalendarAvailability | 7 | N/A |
 | closeoutItems.json | ICloseoutItem | 15 | 25-042-01 |
@@ -1169,6 +1186,7 @@ Source: `utils/constants.ts`, `theme/tokens.ts`
   SECURITY_GROUP_MAPPINGS: 'Security_Group_Mappings',
   PROJECT_TEAM_ASSIGNMENTS: 'Project_Team_Assignments',
   SECTOR_DEFINITIONS: 'Sector_Definitions',
+  ASSIGNMENT_MAPPINGS: 'Assignment_Mappings',
 }
 ```
 
@@ -1267,6 +1285,7 @@ Source: `utils/constants.ts`, `theme/tokens.ts`
   PRECON: '/preconstruction',
   PRECON_GONOGO: '/preconstruction/gonogo',
   PRECON_PIPELINE: '/preconstruction/pipeline',
+  PRECON_PIPELINE_GONOGO: '/preconstruction/pipeline/gonogo',
   PRECON_TRACKING: '/preconstruction/precon-tracker',
   PRECON_ESTIMATE_LOG: '/preconstruction/estimate-log',
   PRECON_KICKOFF_LIST: '/preconstruction/kickoff-list',
@@ -1323,6 +1342,10 @@ FILE_CHUNK_SIZE = 10485760  // 10MB
 
 BREAKPOINTS = { mobile: 768, tablet: 1024, desktop: 1024 }
 SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px' }
+
+BD_LEADS_SITE_URL = 'https://hedrickbrotherscom.sharepoint.com/sites/PXPortfolioDashboard'
+BD_LEADS_LIBRARY = 'BD Leads'
+BD_LEADS_SUBFOLDERS = ['Client Information', 'Correspondence', 'Proposal Documents', 'Site and Project Plans', 'Financial Estimates', 'Evaluations and Scorecards', 'Contracts and Legal', 'Media and Visuals', 'Archives']
 ```
 
 ### UI Constants (theme/tokens.ts)
@@ -1397,9 +1420,12 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 19D | Flexible Sectors + Identity — Dynamic sector definitions replacing hardcoded Sector enum, ISectorDefinition model, admin Sectors tab, identityType on ICurrentUser | models/ISectorDefinition.ts, mock/sectorDefinitions.json, hooks/useSectorDefinitions.ts | models/enums.ts (@deprecated Sector), models/IRole.ts (+identityType), services/IDataService.ts (+3 methods, 192 total), services/MockDataService.ts (+3 implementations), services/SharePointDataService.ts (+3 stubs), pages/hub/AdminPanel.tsx (8 tabs, +Sectors), pages/hub/LeadFormPage.tsx (dynamic sectors), pages/hub/PipelinePage.tsx (dynamic sectors), shared/ConditionBuilder.tsx (dynamic sectors), hooks/index.ts (+1 export), models/index.ts (+1 export), utils/constants.ts (+1 HUB_LIST) |
 | 20 | SharePoint Admin Role + Dev Super-Admin — 14th RoleName (SharePointAdmin) with ALL permissions, Dev Super-Admin mode (union of ALL permissions, dev-only), full admin template (id:9, all 23 tools at ADMIN), resolveUserPermissions super-admin short-circuit + roleToGroupMap entry, NAV_GROUP_ROLES all 4 groups, RoleSwitcher with 15 options + super-admin toggle, mockContext.ts default fix | (none) | enums.ts (+SharePointAdmin), permissions.ts (+role entry with ...Object.values(PERMISSIONS), +NAV_GROUP_ROLES all 4 groups), users.json (+Alex Torres id:25), permissionTemplates.json (+id:9 full ADMIN), securityGroupMappings.json (+id:9), MockDataService.ts (+_isDevSuperAdmin, +setDevSuperAdminMode, getCurrentUser super-admin branch, resolveUserPermissions super-admin short-circuit + SharePoint Admin in roleToGroupMap), RoleSwitcher.tsx (RoleValue union type, 15 options, red pill for super-admin), dev/index.tsx (RoleValue type, super-admin detection), dev/mockContext.ts (default→ExecutiveLeadership) |
 
+| 21 | Preconstruction Navigation Cleanup — Reduced Preconstruction nav from 10→7 items, moved Accounting Queue to new Accounting nav group, moved Go/No-Go Tracker from EstimatingDashboard tab to PipelinePage tab. PipelinePage now 2-tab (Pipeline + Go/No-Go Tracker). EstimatingDashboard now 3-tab (removed Go/No-Go). | (none) | NavigationSidebar.tsx (removed 3 items, added Accounting group, updated Go/No-Go path), permissions.ts (+Accounting NAV_GROUP_ROLES), EstimatingDashboard.tsx (removed tab 3, gonogoRegionFilter, gonogoLeads, gonogoColumns, GoNoGoDecision import), PipelinePage.tsx (2-tab rewrite: Pipeline + Go/No-Go Tracker with region filter, sort, export), App.tsx (+/preconstruction/pipeline/gonogo route, /preconstruction/gonogo→PipelinePage), constants.ts (+PRECON_PIPELINE_GONOGO) |
+| 22 | Lead-to-Site Workflow Enhancement — ScorecardStatus 8→10 values (BDDraft, AwaitingDirectorReview, DirectorReturnedForRevision, AwaitingCommitteeScoring, CommitteeReturnedForRevision, Rejected, NoGo, Go, Locked, Unlocked), IAssignmentMapping model for admin-configurable Director/Estimator assignments per Region/Sector, BD Leads folder creation on lead create, GoNoGoScorecard Save/Submit + Director review/reject + Committee Go/NoGo/Return + archive flow, PipelinePage Go/No-Go Tracker Pending/Archive sub-tabs with advanced filtering, JobNumberRequestForm optional lead association, AdminPanel Assignment Mappings CRUD, 7 new NotificationService event handlers | IAssignmentMapping.ts, assignmentMappings.json, useAssignmentMappings.ts | enums.ts (ScorecardStatus 10 values, +3 AuditAction, +7 NotificationEvent, +1 EntityType), IGoNoGoScorecard.ts (+unlockedSections, +isArchived, +archivedDate, +archivedBy), models/index.ts, IDataService.ts (+8 methods, 200 total), MockDataService.ts (+8 implementations, updated scorecard workflow methods for new statuses), SharePointDataService.ts (+8 stubs), columnMappings.ts (+Assignment_Mappings), NotificationService.ts (+7 event handlers), constants.ts (+ASSIGNMENT_MAPPINGS, +BD_LEADS constants), permissions.ts (+gonogo:review, +admin:assignments:manage), hooks/index.ts (+1 export), useGoNoGo.ts (new statuses, +canReviewDirector, +canReviewCommittee, +canArchive, +rejectScorecard, +archiveScorecard), GoNoGoScorecard.tsx (Save/Submit, Director/Committee action bars, reject/archive dialogs), PipelinePage.tsx (Pending/Archive sub-tabs, advanced filters, scorecard-lead join), LeadFormPage.tsx (+BD Leads folder creation), JobNumberRequestForm.tsx (+optional lead association, manual fields), EstimatingDashboard.tsx (+Request New Project Number button), AdminPanel.tsx (+Assignment Mappings section), scorecards.json (updated to new ScorecardStatus values) |
+
 ### Known Stubs / Placeholders
 
-- **SharePointDataService**: 143 of 192 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
+- **SharePointDataService**: 151 of 200 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
 - **HubNavigationService**: SharePointHubNavigationService is a stub (all 3 methods throw).
 - **Column Mappings**: `columnMappings.ts` has mappings for all lists but SP service stubs don't use them yet.
 - **Offline Support**: `OfflineQueueService.ts` exists but feature flag `OfflineSupport` is disabled.
@@ -1411,7 +1437,7 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 ### SharePointDataService Status
 
 - **Implemented (49)**: Leads CRUD, Go/No-Go CRUD, Estimating CRUD, Roles/Flags CRUD, Audit log/read, Provisioning read, Phase 6 workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read
-- **Stubbed (143)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff, all job number requests, all workflow definitions, all turnover agenda, all permission templates, all security group mappings, all project team assignments, all sector definitions, resolveUserPermissions, getAccessibleProjects, getEnvironmentConfig, promoteTemplates, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers, hub site URL write, action inbox (SP)
+- **Stubbed (151)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff, all job number requests, all workflow definitions, all turnover agenda, all permission templates, all security group mappings, all project team assignments, all sector definitions, all assignment mappings, all BD Leads folder operations, resolveUserPermissions, getAccessibleProjects, getEnvironmentConfig, promoteTemplates, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers, hub site URL write, action inbox (SP)
 
 ---
 
@@ -1467,6 +1493,10 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 25. **Dev Super-Admin is NOT a real role** — `DEV_SUPER_ADMIN` is a dev-only sentinel string used by the RoleSwitcher. It is NOT a `RoleName` enum value and must never be sent to production or used in `ROLE_PERMISSIONS`. It grants the union of ALL permissions from every role purely for local testing convenience. The `_isDevSuperAdmin` flag on `MockDataService` is not part of `IDataService`.
 
+26. **ScorecardStatus enum was replaced in Phase 22** — The old 8-value enum (Draft, Submitted, ReturnedForRevision, InCommitteeReview, PendingDecision, Decided, Locked, Unlocked) was replaced with a new 10-value enum. Old → New mapping: Draft→BDDraft, Submitted→AwaitingDirectorReview, ReturnedForRevision→DirectorReturnedForRevision, InCommitteeReview→AwaitingCommitteeScoring. `PendingDecision` and `Decided` were removed (replaced by `Go`, `NoGo`, `Rejected`). New values: `CommitteeReturnedForRevision`, `Rejected`, `NoGo`, `Go`. Any code referencing old enum members will fail at compile time.
+
+27. **Assignment mapping resolution uses 4-tier fallback** — `resolveAssignee(region, sector, type)` in `useAssignmentMappings` resolves via: exact region+sector → exact region+"All Sectors" → "All Regions"+exact sector → "All Regions"+"All Sectors". Always add a fallback "All Regions" + "All Sectors" mapping as a catch-all.
+
 ---
 
 ## Audit Log
@@ -1486,3 +1516,5 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-10 | §2, §6, §7, §12, §13, §15 | Phase 19D: Flexible Sectors + Identity. New ISectorDefinition model + sectorDefinitions.json (12 entries). 3 new service methods (192 total): getSectorDefinitions, createSectorDefinition, updateSectorDefinition. Sector enum deprecated. ICurrentUser gains identityType. AdminPanel Sectors tab (8th tab). LeadFormPage, PipelinePage, ConditionBuilder use dynamic sectors when PermissionEngine enabled. New hook useSectorDefinitions. |
 | 2026-02-10 | §10, §16 | Permission Engine activation polish: RoleSwitcher enterprise hierarchy labels (seniority-ordered, persona names). IDS (OpEx Manager) gains permission:templates:manage, permission:project_team:manage, permission:project_team:view. toolPermissionMap admin_panel ADMIN level gains permission engine keys. MockDataService default role → ExecutiveLeadership. resolveUserPermissions console.log for debugging. |
 | 2026-02-10 | §6, §10, §12, §15, §16 | Phase 20: SharePoint Admin Role + Dev Super-Admin. Added 14th RoleName (SharePointAdmin). ROLE_PERMISSIONS entry with `...Object.values(PERMISSIONS)` (ALL permissions). NAV_GROUP_ROLES: SharePoint Admin added to all 4 groups (Marketing, Preconstruction, Operations, Admin). Dev Super-Admin mode: union of ALL role permissions (dev-only, not a real role). MockDataService: +_isDevSuperAdmin +setDevSuperAdminMode, getCurrentUser super-admin branch, resolveUserPermissions super-admin short-circuit + 'SharePoint Admin' in roleToGroupMap. RoleSwitcher widened to RoleValue union type with 15 options + red pill badge. dev/index.tsx super-admin detection. mockContext.ts default fixed to ExecutiveLeadership. users.json +Alex Torres (id:25). permissionTemplates.json +id:9 (SharePoint Admin, all 23 tools at ADMIN). securityGroupMappings.json +id:9. |
+| 2026-02-10 | §3, §8, §9, §10, §13, §15 | Phase 21: Preconstruction Navigation Cleanup. Preconstruction nav 10→7 items (removed Precon Tracker, Estimate Log, Accounting Queue). New Accounting nav group (Acct Mgr, Exec, Dept Dir, SP Admin). Go/No-Go Tracker moved from EstimatingDashboard tab 3 to PipelinePage tab 1. PipelinePage now 2-tab (Pipeline + Go/No-Go Tracker). EstimatingDashboard now 3-tab. /preconstruction/gonogo backward compat→PipelinePage. Route count 48→49. NAV_GROUP_ROLES +Accounting. ROUTES +PRECON_PIPELINE_GONOGO. |
+| 2026-02-11 | §2, §6, §7, §10, §12, §13, §15, §16 | Phase 22: Lead-to-Site Workflow Enhancement. ScorecardStatus replaced (8→10 values: BDDraft, AwaitingDirectorReview, DirectorReturnedForRevision, AwaitingCommitteeScoring, CommitteeReturnedForRevision, Rejected, NoGo, Go, Locked, Unlocked). New IAssignmentMapping model + assignmentMappings.json (4 entries) + useAssignmentMappings hook. 8 new IDataService methods (200 total): createBdLeadFolder, checkFolderExists, createFolder, renameFolder, getAssignmentMappings, createAssignmentMapping, updateAssignmentMapping, deleteAssignmentMapping. +3 AuditAction (ScorecardArchived, LeadFolderCreated, AssignmentMappingUpdated), +7 NotificationEvent (ScorecardSubmittedToDirector, ScorecardReturnedByDirector, ScorecardRejectedByDirector, ScorecardAdvancedToCommittee, ScorecardApprovedGo, ScorecardDecidedNoGo, EstimatingCoordinatorNotifiedGo), +1 EntityType (AssignmentMapping). +2 permissions (gonogo:review, admin:assignments:manage). GoNoGoScorecard.tsx rewritten with Save/Submit, Director review/reject, Committee Go/NoGo/Return, archive flow. PipelinePage.tsx Go/No-Go Tracker with Pending/Archive sub-tabs + advanced filters. LeadFormPage.tsx +BD Leads folder creation. JobNumberRequestForm.tsx +optional lead association. EstimatingDashboard.tsx +Request New Project Number button. AdminPanel.tsx +Assignment Mappings CRUD. scorecards.json updated to new status values. Added pitfalls #26-#27. |

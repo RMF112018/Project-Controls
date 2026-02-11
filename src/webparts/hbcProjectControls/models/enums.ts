@@ -63,14 +63,16 @@ export enum GoNoGoDecision {
 }
 
 export enum ScorecardStatus {
-  Draft = 'Draft',
-  Submitted = 'Submitted',
-  ReturnedForRevision = 'Returned for Revision',
-  InCommitteeReview = 'In Committee Review',
-  PendingDecision = 'Pending Decision',
-  Decided = 'Decided',
+  BDDraft = 'BD Draft',
+  AwaitingDirectorReview = 'Awaiting Director Review',
+  DirectorReturnedForRevision = 'Director Returned for Revision',
+  AwaitingCommitteeScoring = 'Awaiting Committee Scoring',
+  CommitteeReturnedForRevision = 'Committee Returned for Revision',
+  Rejected = 'Rejected',
+  NoGo = 'No Go',
+  Go = 'Go',
   Locked = 'Locked',
-  Unlocked = 'Unlocked'
+  Unlocked = 'Unlocked',
 }
 
 export enum WinLossDecision {
@@ -182,7 +184,10 @@ export enum AuditAction {
   ProjectTeamRemoved = 'Permission.ProjectTeamRemoved',
   ProjectTeamOverridden = 'Permission.ProjectTeamOverridden',
   SecurityGroupMappingChanged = 'Permission.SecurityGroupMappingChanged',
-  PermissionResolved = 'Permission.Resolved'
+  PermissionResolved = 'Permission.Resolved',
+  ScorecardArchived = 'Scorecard.Archived',
+  LeadFolderCreated = 'Lead.FolderCreated',
+  AssignmentMappingUpdated = 'Assignment.MappingUpdated',
 }
 
 export enum EntityType {
@@ -206,7 +211,8 @@ export enum EntityType {
   WorkflowDefinition = 'WorkflowDefinition',
   TurnoverAgenda = 'TurnoverAgenda',
   PermissionTemplate = 'PermissionTemplate',
-  ProjectTeamAssignment = 'ProjectTeamAssignment'
+  ProjectTeamAssignment = 'ProjectTeamAssignment',
+  AssignmentMapping = 'AssignmentMapping',
 }
 
 export enum DeliverableStatus {
@@ -322,7 +328,14 @@ export enum NotificationEvent {
   ScorecardReturnedForRevision = 'ScorecardReturnedForRevision',
   ScorecardCommitteeScoresFinalized = 'ScorecardCommitteeScoresFinalized',
   ScorecardDecisionRecorded = 'ScorecardDecisionRecorded',
-  ScorecardUnlockedForEditing = 'ScorecardUnlockedForEditing'
+  ScorecardUnlockedForEditing = 'ScorecardUnlockedForEditing',
+  ScorecardSubmittedToDirector = 'ScorecardSubmittedToDirector',
+  ScorecardReturnedByDirector = 'ScorecardReturnedByDirector',
+  ScorecardRejectedByDirector = 'ScorecardRejectedByDirector',
+  ScorecardAdvancedToCommittee = 'ScorecardAdvancedToCommittee',
+  ScorecardApprovedGo = 'ScorecardApprovedGo',
+  ScorecardDecidedNoGo = 'ScorecardDecidedNoGo',
+  EstimatingCoordinatorNotifiedGo = 'EstimatingCoordinatorNotifiedGo',
 }
 
 export enum TurnoverStatus {

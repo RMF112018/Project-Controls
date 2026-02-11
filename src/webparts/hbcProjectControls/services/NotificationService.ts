@@ -27,6 +27,9 @@ export interface INotificationContext {
   committeeTotal?: number;
   unlockedBy?: string;
   reason?: string;
+  comment?: string;
+  conditions?: string;
+  decisionDate?: string;
 }
 
 interface INotificationTemplate {
@@ -232,6 +235,62 @@ function buildTemplate(
         body: `The Go/No-Go scorecard for "${ctx.leadTitle}" has been unlocked for editing by ${ctx.unlockedBy ?? 'Unknown'}.${ctx.reason ? ` Reason: ${ctx.reason}` : ''}`,
         type: NotificationType.Both,
         recipientRoles: ['BD Representative', 'Executive Leadership', 'Department Director'],
+      };
+
+    case NotificationEvent.ScorecardSubmittedToDirector:
+      return {
+        subject: `Go/No-Go Scorecard Submitted for Review: ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `A Go/No-Go scorecard for "${ctx.leadTitle}" has been submitted for Director review by ${ctx.submittedBy ?? 'Unknown'}. Please review and approve, return, or reject.`,
+        type: NotificationType.Both,
+        recipientRoles: ['Department Director', 'Executive Leadership'],
+      };
+
+    case NotificationEvent.ScorecardReturnedByDirector:
+      return {
+        subject: `Go/No-Go Scorecard Returned for Revision: ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `The Go/No-Go scorecard for "${ctx.leadTitle}" has been returned for revision by the Director.${ctx.comment ? ` Comment: ${ctx.comment}` : ''}`,
+        type: NotificationType.Both,
+        recipientRoles: ['BD Representative'],
+      };
+
+    case NotificationEvent.ScorecardRejectedByDirector:
+      return {
+        subject: `Go/No-Go Scorecard Rejected: ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `The Go/No-Go scorecard for "${ctx.leadTitle}" has been rejected by the Director.${ctx.reason ? ` Reason: ${ctx.reason}` : ''} The BD Rep may revise and resubmit or archive.`,
+        type: NotificationType.Both,
+        recipientRoles: ['BD Representative', 'Executive Leadership'],
+      };
+
+    case NotificationEvent.ScorecardAdvancedToCommittee:
+      return {
+        subject: `Go/No-Go Scorecard Advanced to Committee: ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `The Go/No-Go scorecard for "${ctx.leadTitle}" has been approved by the Director and advanced to the Go/No-Go Committee for scoring and decision.`,
+        type: NotificationType.Both,
+        recipientRoles: ['Executive Leadership', 'Department Director', 'Estimating Coordinator'],
+      };
+
+    case NotificationEvent.ScorecardApprovedGo:
+      return {
+        subject: `GO Decision: ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `The Go/No-Go Committee has approved "${ctx.leadTitle}" as GO.${ctx.conditions ? ` Conditions: ${ctx.conditions}` : ''} The Estimating Coordinator has been notified to proceed.`,
+        type: NotificationType.Both,
+        recipientRoles: ['BD Representative', 'Executive Leadership', 'Department Director', 'Estimating Coordinator'],
+      };
+
+    case NotificationEvent.ScorecardDecidedNoGo:
+      return {
+        subject: `NO GO Decision: ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `The Go/No-Go Committee has decided NO GO for "${ctx.leadTitle}". The scorecard has been archived.`,
+        type: NotificationType.Both,
+        recipientRoles: ['BD Representative', 'Executive Leadership', 'Department Director'],
+      };
+
+    case NotificationEvent.EstimatingCoordinatorNotifiedGo:
+      return {
+        subject: `New GO Project Ready for Estimating: ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `"${ctx.leadTitle}" has received a GO decision on ${ctx.decisionDate ?? 'today'}. Please begin the estimating kickoff process.`,
+        type: NotificationType.Both,
+        recipientRoles: ['Estimating Coordinator'],
       };
 
     default:

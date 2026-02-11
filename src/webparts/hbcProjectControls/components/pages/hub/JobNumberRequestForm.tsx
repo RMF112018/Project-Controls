@@ -6,7 +6,7 @@ import { useJobNumberRequest } from '../../hooks/useJobNumberRequest';
 import { useLeads } from '../../hooks/useLeads';
 import { IProjectType } from '../../../models/IProjectType';
 import { IStandardCostCode } from '../../../models/IStandardCostCode';
-import { NotificationEvent } from '../../../models/enums';
+import { NotificationEvent, Region } from '../../../models/enums';
 import { NotificationService } from '../../../services/NotificationService';
 import { ProvisioningService } from '../../../services/ProvisioningService';
 import { MockHubNavigationService } from '../../../services/HubNavigationService';
@@ -32,6 +32,10 @@ export const JobNumberRequestForm: React.FC = () => {
   const [toastMessage, setToastMessage] = React.useState('');
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [leadSearch, setLeadSearch] = React.useState('');
+  const [noLeadMode, setNoLeadMode] = React.useState(false);
+  const [manualProjectName, setManualProjectName] = React.useState('');
+  const [manualRegion, setManualRegion] = React.useState('');
+  const [manualClientName, setManualClientName] = React.useState('');
 
   // Form state
   const [requiredByDate, setRequiredByDate] = React.useState('');
@@ -96,9 +100,10 @@ export const JobNumberRequestForm: React.FC = () => {
     try {
       setIsSaving(true);
       const typeObj = projectTypes.find(t => t.code === selectedProjectType);
+      const hasLead = Number.isFinite(leadId);
 
       await createRequest({
-        LeadID: leadId,
+        LeadID: hasLead ? leadId : undefined as unknown as number,
         RequestDate: new Date().toISOString().split('T')[0],
         Originator: currentUser.email,
         RequiredByDate: requiredByDate,
@@ -190,15 +195,80 @@ export const JobNumberRequestForm: React.FC = () => {
     return <div style={{ padding: 40, textAlign: 'center', color: HBC_COLORS.gray500 }}>Loading...</div>;
   }
 
+  // Handle noLeadMode: set manual lead object and show form
+  const handleNoLeadContinue = (): void => {
+    if (!manualProjectName.trim()) {
+      setErrors({ manualProjectName: 'Project name is required' });
+      return;
+    }
+    setLead({
+      Title: manualProjectName,
+      ClientName: manualClientName || 'N/A',
+      Division: 'Commercial',
+      Region: manualRegion || 'Miami',
+    });
+    setNoLeadMode(false);
+    fetchReferenceData().catch(console.error);
+  };
+
   if (isLeadSelection) {
+    // No-lead manual entry mode
+    if (noLeadMode) {
+      return (
+        <div style={{ maxWidth: 600, margin: '0 auto', padding: 24 }}>
+          <div style={{ marginBottom: 16 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: HBC_COLORS.navy, margin: 0 }}>Job Number Request — No Lead</h1>
+            <p style={{ fontSize: 13, color: HBC_COLORS.gray500, marginTop: 4 }}>
+              Enter project details manually to request a job number without an associated lead.
+            </p>
+          </div>
+          <div style={{ display: 'grid', gap: 16 }}>
+            <div>
+              <label style={labelStyle}>Project Name *</label>
+              <input type="text" value={manualProjectName} onChange={e => setManualProjectName(e.target.value)} placeholder="Enter project name" style={inputStyle} />
+              {errors.manualProjectName && <span style={errorStyle}>{errors.manualProjectName}</span>}
+            </div>
+            <div>
+              <label style={labelStyle}>Region</label>
+              <select value={manualRegion} onChange={e => setManualRegion(e.target.value)} style={inputStyle}>
+                <option value="">Select...</option>
+                {Object.values(Region).map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Client Name</label>
+              <input type="text" value={manualClientName} onChange={e => setManualClientName(e.target.value)} placeholder="Client name (optional)" style={inputStyle} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+            <button onClick={() => setNoLeadMode(false)} style={btnSecondaryStyle}>Back</button>
+            <button onClick={handleNoLeadContinue} style={btnPrimaryStyle}>Continue to Request Form</button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div style={{ maxWidth: 900, margin: '0 auto', padding: 24 }}>
         <div style={{ marginBottom: 16 }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: HBC_COLORS.navy, margin: 0 }}>Start a Job Number Request</h1>
           <p style={{ fontSize: 13, color: HBC_COLORS.gray500, marginTop: 4 }}>
-            Select a lead to begin the request form.
+            Select a lead to begin the request form, or skip to request without a lead.
           </p>
         </div>
+
+        {/* Skip button */}
+        <button
+          onClick={() => setNoLeadMode(true)}
+          style={{
+            display: 'block', width: '100%', padding: '12px 16px', marginBottom: 16,
+            background: HBC_COLORS.gray50, border: `2px dashed ${HBC_COLORS.gray300}`,
+            borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600,
+            color: HBC_COLORS.navy, textAlign: 'center',
+          }}
+        >
+          Skip — No Lead Association
+        </button>
 
         <input
           type="text"
