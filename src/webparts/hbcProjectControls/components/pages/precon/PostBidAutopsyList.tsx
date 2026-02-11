@@ -2,19 +2,23 @@ import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePostBidAutopsy } from '../../hooks/usePostBidAutopsy';
 import { useLeads } from '../../hooks/useLeads';
+import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ILead, Stage } from '../../../models';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
+import { PERMISSIONS } from '../../../utils/permissions';
 
 export const PostBidAutopsyList: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
+  const { hasPermission } = useAppContext();
   const { allAutopsies, isLoading: autopsyLoading, fetchAllAutopsies } = usePostBidAutopsy();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
+  const [showLeadSelector, setShowLeadSelector] = React.useState(false);
 
   React.useEffect(() => {
     fetchAllAutopsies().catch(console.error);
@@ -43,6 +47,14 @@ export const PostBidAutopsyList: React.FC = () => {
     });
   }, [lostLeads, allAutopsies]);
 
+  // Leads eligible for a new autopsy (ArchivedLoss without existing autopsy)
+  const eligibleLeads = React.useMemo(() =>
+    rows.filter(r => r.status === 'Pending').map(r => r.lead),
+    [rows]
+  );
+
+  const canCreate = hasPermission(PERMISSIONS.AUTOPSY_CREATE);
+
   if (isLoading) return <SkeletonLoader variant="table" rows={6} columns={4} />;
 
   return (
@@ -51,7 +63,84 @@ export const PostBidAutopsyList: React.FC = () => {
         title="Post-Bid Autopsies"
         subtitle={`${rows.length} lost projects — ${rows.filter(r => r.status === 'Finalized').length} finalized`}
         breadcrumb={<Breadcrumb items={breadcrumbs} />}
+        actions={canCreate ? (
+          <button
+            onClick={() => setShowLeadSelector(prev => !prev)}
+            disabled={eligibleLeads.length === 0}
+            title={eligibleLeads.length === 0 ? 'All lost projects already have autopsy reports' : undefined}
+            style={{
+              padding: '8px 16px',
+              borderRadius: 6,
+              border: 'none',
+              backgroundColor: eligibleLeads.length === 0 ? HBC_COLORS.gray300 : HBC_COLORS.orange,
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: eligibleLeads.length === 0 ? 'not-allowed' : 'pointer',
+            }}
+          >
+            Create New Autopsy Report
+          </button>
+        ) : undefined}
       />
+
+      {/* Inline lead selector */}
+      {showLeadSelector && eligibleLeads.length > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '12px 16px',
+          marginBottom: 16,
+          backgroundColor: HBC_COLORS.gray50,
+          borderRadius: 8,
+          border: `1px solid ${HBC_COLORS.gray200}`,
+        }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: HBC_COLORS.navy, whiteSpace: 'nowrap' }}>
+            Select project:
+          </label>
+          <select
+            defaultValue=""
+            onChange={e => {
+              if (e.target.value) {
+                navigate(`/preconstruction/pursuit/${e.target.value}/autopsy-form`);
+                setShowLeadSelector(false);
+              }
+            }}
+            style={{
+              flex: 1,
+              maxWidth: 400,
+              padding: '6px 10px',
+              borderRadius: 6,
+              border: `1px solid ${HBC_COLORS.gray200}`,
+              fontSize: 13,
+              backgroundColor: '#fff',
+              color: HBC_COLORS.gray800,
+            }}
+          >
+            <option value="">Select a lost project...</option>
+            {eligibleLeads.map(lead => (
+              <option key={lead.id} value={lead.id}>
+                {lead.Title} — {lead.ClientName}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => setShowLeadSelector(false)}
+            style={{
+              padding: '6px 12px',
+              borderRadius: 6,
+              border: `1px solid ${HBC_COLORS.gray300}`,
+              backgroundColor: '#fff',
+              fontSize: 13,
+              color: HBC_COLORS.gray600,
+              cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {rows.length === 0 && (
         <div style={emptyStyle}>

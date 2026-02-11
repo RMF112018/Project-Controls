@@ -26,7 +26,7 @@ function calculateProcessScore(autopsy: Partial<ILossAutopsy>): number {
 }
 
 export const PostBidAutopsyForm: React.FC = () => {
-  const { leadId: leadIdParam } = useParams<{ leadId: string }>();
+  const { id: leadIdParam } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { dataService, currentUser } = useAppContext();
