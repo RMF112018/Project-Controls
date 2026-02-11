@@ -485,6 +485,7 @@ export class SharePointDataService implements IDataService {
   async updateKickoffItem(_kickoffId: number, _itemId: number, _data: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> { throw new Error('Not implemented'); }
   async addKickoffItem(_kickoffId: number, _item: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> { throw new Error('Not implemented'); }
   async removeKickoffItem(_kickoffId: number, _itemId: number): Promise<void> { throw new Error('Not implemented'); }
+  async updateKickoffKeyPersonnel(_kickoffId: number, _personnel: import('../models/IEstimatingKickoff').IKeyPersonnelEntry[]): Promise<import('../models/IEstimatingKickoff').IEstimatingKickoff> { throw new Error('Not implemented'); }
 
   // --- Job Number Requests ---
   async getJobNumberRequests(_status?: JobNumberRequestStatus): Promise<IJobNumberRequest[]> { return []; }

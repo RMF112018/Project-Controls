@@ -15,6 +15,10 @@
     "PreSubmissionReview": "2026-02-20",
     "SubcontractorSiteWalkThru": "2026-02-10",
     "OwnerEstimateReview": "2026-02-25",
+    "keyPersonnel": [
+      { "id": 1, "label": "Lead Estimator", "person": { "userId": "6", "displayName": "Sam Patterson", "email": "spatterson@hedrickbrothers.com" } },
+      { "id": 2, "label": "PX", "person": { "userId": "1", "displayName": "Mike Hedrick", "email": "mhedrick@hedrickbrothers.com" } }
+    ],
     "items": [],
     "KickoffMeetingId": "",
     "KickoffMeetingDate": "",

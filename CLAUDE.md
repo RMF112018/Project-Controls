@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-11 — Phase 23: BD Representative UX Enhancements
+**Last Updated:** 2026-02-11 — Phase 24: Estimating Coordinator UX Enhancements
 
 ---
 
@@ -421,7 +421,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 |-----------|------|-----------|-------------------|
 | ActivityTimeline | components/shared/ActivityTimeline.tsx | entries: ITimelineEntry[], maxItems?, emptyMessage? | ~0 (available) |
 | AutopsyMeetingScheduler | components/shared/AutopsyMeetingScheduler.tsx | attendeeEmails, leadId?, projectCode?, onScheduled?, onCancel? | ~1 |
-| AzureADPeoplePicker | components/shared/AzureADPeoplePicker.tsx | selectedUser, onSelect, label?, placeholder?, disabled? | ~2 |
+| AzureADPeoplePicker | components/shared/AzureADPeoplePicker.tsx | Single: selectedUser, onSelect; Multi: multiSelect=true, selectedUsers, onSelectMulti; Common: label?, placeholder?, disabled? | ~4 |
 | Breadcrumb | components/shared/Breadcrumb.tsx | items: IBreadcrumbItem[] | ~38 |
 | CollapsibleSection | components/shared/CollapsibleSection.tsx | title, subtitle?, defaultExpanded?, badge?, children | ~0 (available) |
 | ConditionBuilder | components/shared/ConditionBuilder.tsx | assignment, onChange, onRemove, disabled? | ~1 |
@@ -466,8 +466,9 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | IGoNoGoScorecard | models/IGoNoGoScorecard.ts | id, LeadID, scores, TotalScore_Orig?, TotalScore_Cmte?, Decision?, DecisionDate? | GoNoGo_Scorecard | Hub |
 | IScorecardCriterion | models/IGoNoGoScorecard.ts | id, label, high, avg, low | GoNoGo_Scorecard | Hub |
 | IEstimatingTracker | models/IEstimatingTracker.ts | id, Title (@denormalized), LeadID, ProjectCode, Source?, DeliverableType?, DueDate_OutTheDoor?, LeadEstimator?, AwardStatus? | Estimating_Tracker | Hub |
-| IEstimatingKickoff | models/IEstimatingKickoff.ts | id, LeadID, ProjectCode, Architect?, ProposalDueDateTime?, items: IEstimatingKickoffItem[] | Estimating_Kickoffs | Hub |
-| IEstimatingKickoffItem | models/IEstimatingKickoff.ts | id, kickoffId?, section, task, status, responsibleParty?, sortOrder | Estimating_Kickoff_Items | Hub |
+| IEstimatingKickoff | models/IEstimatingKickoff.ts | id, LeadID, ProjectCode, Architect?, ProposalDueDateTime?, keyPersonnel?: IKeyPersonnelEntry[], items: IEstimatingKickoffItem[] | Estimating_Kickoffs | Hub |
+| IKeyPersonnelEntry | models/IEstimatingKickoff.ts | id, label, person: IPersonAssignment | Estimating_Kickoffs (JSON) | Hub |
+| IEstimatingKickoffItem | models/IEstimatingKickoff.ts | id, kickoffId?, section, task, status, responsibleParty?, assignees?: IPersonAssignment[], sortOrder | Estimating_Kickoff_Items | Hub |
 | IJobNumberRequest | models/IJobNumberRequest.ts | id, LeadID, RequestDate, Originator, ProjectExecutive (@denormalized), ProjectManager? (@denormalized), RequestStatus, AssignedJobNumber? | Job_Number_Requests | Hub |
 | ILossAutopsy | models/ILossAutopsy.ts | id, leadId, actionItems: IActionItem[], processScore, overallRating, isFinalized | Loss_Autopsies | Hub |
 | IMarketingProjectRecord | models/IMarketingProjectRecord.ts | projectName (@denormalized), projectCode, contractBudget (@denormalized), sectionCompletion, overallCompletion | Marketing_Project_Records | Hub |
@@ -644,7 +645,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 
 ## §7 Service Methods
 
-200 methods on IDataService. Source: `services/IDataService.ts`
+201 methods on IDataService. Source: `services/IDataService.ts`
 
 | # | Method | Signature | Mock | SP | Hook Caller | Mock JSON |
 |---|--------|-----------|------|-----|-------------|-----------|
@@ -762,6 +763,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 112 | updateKickoffItem | (kickoffId: number, itemId: number, data: Partial<IEstimatingKickoffItem>) → Promise<IEstimatingKickoffItem> | Impl | Stub | useEstimatingKickoff | estimatingKickoffs.json |
 | 113 | addKickoffItem | (kickoffId: number, item: Partial<IEstimatingKickoffItem>) → Promise<IEstimatingKickoffItem> | Impl | Stub | useEstimatingKickoff | estimatingKickoffs.json |
 | 114 | removeKickoffItem | (kickoffId: number, itemId: number) → Promise<void> | Impl | Stub | useEstimatingKickoff | estimatingKickoffs.json |
+| 173 | updateKickoffKeyPersonnel | (kickoffId: number, personnel: IKeyPersonnelEntry[]) → Promise<IEstimatingKickoff> | Impl | Stub | useEstimatingKickoff | estimatingKickoffs.json |
 | 115 | getJobNumberRequests | (status?: JobNumberRequestStatus) → Promise<IJobNumberRequest[]> | Impl | Stub | useJobNumberRequest | jobNumberRequests.json |
 | 116 | getJobNumberRequestByLeadId | (leadId: number) → Promise<IJobNumberRequest \| null> | Impl | Stub | useJobNumberRequest | jobNumberRequests.json |
 | 117 | createJobNumberRequest | (data: Partial<IJobNumberRequest>) → Promise<IJobNumberRequest> | Impl | Stub | useJobNumberRequest | jobNumberRequests.json |
@@ -924,7 +926,8 @@ Preconstruction                              [roles: BD Rep, Estimating Coord, P
   ├── Estimating Dashboard                   [/preconstruction]
   ├── Pipeline                               [/preconstruction/pipeline]
   ├── Go/No-Go Tracker                       [/preconstruction/pipeline/gonogo]
-  ├── Kick-Off Checklists                     [/preconstruction/kickoff-list, permission: kickoff:view]
+  ├── Precon Tracker                          [/preconstruction/precon-tracker]
+  ├── Estimate Log                            [/preconstruction/estimate-log]
   ├── Post-Bid Autopsies                      [/preconstruction/autopsy-list, permission: autopsy:view]
   ├── New Lead                                [/lead/new, permission: lead:create]
   └── Job Number Request                      [/job-request, permission: job_number_request:create]
@@ -973,7 +976,7 @@ Legend: **X** = has permission
 | lead:read | X | X | X | | | X | X | X | X | X | | | | X |
 | lead:edit | X | | | | | | | | | | | | | X |
 | lead:delete | X | | | | | | | | | | | | | X |
-| gonogo:score:originator | X | X | | | | | | | | | | | | X |
+| gonogo:score:originator | X | | | | | | | | | | | | | X |
 | gonogo:score:committee | | | | | | X | X | | | | | | | X |
 | gonogo:submit | X | | | | | | | | | | | | | X |
 | gonogo:decide | | | | | | X | X | | | | | | | X |
@@ -1425,9 +1428,11 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 | 23 | BD Representative UX Enhancements — Structured address fields on lead form/detail (AddressStreet, AddressCity, AddressState, AddressZip), Pipeline "Created Date" (DateSubmitted) sortable column with newest-first default sort, LeadDetailPage full edit mode (all fields become editable inputs), GoNoGoScorecard immediate actions (canSubmit allows null scorecard for new creation), BD Rep permission expansion (marketing:dashboard:view, marketing:edit, projectrecord:edit, precon:hub:view, autopsy:edit, autopsy:schedule), BD Rep added to Marketing nav group | (none) | ILead.ts (+AddressStreet, +AddressCity, +AddressState, +AddressZip, +DateSubmitted, -ProjectAddress), validators.ts (+AddressCity/AddressState required), LeadFormPage.tsx (address field grid, US_STATES dropdown, CityLocation auto-populate, DateSubmitted auto-set), LeadDetailPage.tsx (full edit mode with Input/Select/Textarea for all fields, address section, Notes field), PipelinePage.tsx (+DateSubmitted column, default sort DateSubmitted desc), useGoNoGo.ts (canSubmit allows null scorecard), permissions.ts (+6 BD Rep permissions, +BD Rep to Marketing nav group), leads.json (+4 address fields on all 29 records), columnMappings.ts (+AddressStreet/City/State/Zip/DateSubmitted, -ProjectAddress), AccountingQueuePage.tsx (-ProjectAddress ref), MockDataService.ts (-ProjectAddress ref) |
 
+| 24 | Estimating Coordinator UX Enhancements — EC landing page redirect, remove Kick-Off Checklists nav item, inline-editable dashboard tables (3 tabs, ~30 columns with InlineInput/InlineNumber/InlineDate/InlineSelect helpers), Current Pursuits column auto-sizing + header cleanup + row-click navigation + Kick-Off button removal, EstimatingKickoffPage overhaul (route param fix `:id` not `:projectCode`, lead selector, Key Personnel with AzureADPeoplePicker, checklist with multi-select assignees, role-filtered Pursuit Tools), AzureADPeoplePicker multi-select support (discriminated union props), PursuitDetail tool filtering + Estimating Kickoff button removal, EC GONOGO_SCORE_ORIGINATOR permission removed | (none) | DashboardPage.tsx, NavigationSidebar.tsx, EstimatingDashboard.tsx, EstimatingKickoffPage.tsx, PursuitDetail.tsx, AzureADPeoplePicker.tsx, IEstimatingKickoff.ts, useEstimatingKickoff.ts, IDataService.ts, MockDataService.ts, SharePointDataService.ts, permissions.ts, estimatingKickoffs.json, columnMappings.ts |
+
 ### Known Stubs / Placeholders
 
-- **SharePointDataService**: 151 of 200 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
+- **SharePointDataService**: 152 of 201 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
 - **HubNavigationService**: SharePointHubNavigationService is a stub (all 3 methods throw).
 - **Column Mappings**: `columnMappings.ts` has mappings for all lists but SP service stubs don't use them yet.
 - **Offline Support**: `OfflineQueueService.ts` exists but feature flag `OfflineSupport` is disabled.
@@ -1439,7 +1444,7 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 ### SharePointDataService Status
 
 - **Implemented (49)**: Leads CRUD, Go/No-Go CRUD, Estimating CRUD, Roles/Flags CRUD, Audit log/read, Provisioning read, Phase 6 workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read
-- **Stubbed (151)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff, all job number requests, all workflow definitions, all turnover agenda, all permission templates, all security group mappings, all project team assignments, all sector definitions, all assignment mappings, all BD Leads folder operations, resolveUserPermissions, getAccessibleProjects, getEnvironmentConfig, promoteTemplates, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers, hub site URL write, action inbox (SP)
+- **Stubbed (152)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff (incl. updateKickoffKeyPersonnel), all job number requests, all workflow definitions, all turnover agenda, all permission templates, all security group mappings, all project team assignments, all sector definitions, all assignment mappings, all BD Leads folder operations, resolveUserPermissions, getAccessibleProjects, getEnvironmentConfig, promoteTemplates, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers, hub site URL write, action inbox (SP)
 
 ---
 
@@ -1505,6 +1510,8 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 30. **AddressCity and AddressState are required on new leads but optional on ILead** — The `validateLeadForm()` validator enforces City and State as required, but the `ILead` interface marks them as optional (`?`) since existing/historical leads may not have these fields populated.
 
+31. **EstimatingKickoffPage uses `id` route param (not `projectCode`)** — The route is `/preconstruction/pursuit/:id/kickoff` where `:id` is the estimating tracker record ID. The component reads `useParams<{ id }>()`, then calls `getRecordById(Number(id))` to look up the `IEstimatingTracker` and get the `ProjectCode`. Never use `projectCode` as a route param — it was a latent bug that has been fixed in Phase 24.
+
 ---
 
 ## Audit Log
@@ -1527,3 +1534,4 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-10 | §3, §8, §9, §10, §13, §15 | Phase 21: Preconstruction Navigation Cleanup. Preconstruction nav 10→7 items (removed Precon Tracker, Estimate Log, Accounting Queue). New Accounting nav group (Acct Mgr, Exec, Dept Dir, SP Admin). Go/No-Go Tracker moved from EstimatingDashboard tab 3 to PipelinePage tab 1. PipelinePage now 2-tab (Pipeline + Go/No-Go Tracker). EstimatingDashboard now 3-tab. /preconstruction/gonogo backward compat→PipelinePage. Route count 48→49. NAV_GROUP_ROLES +Accounting. ROUTES +PRECON_PIPELINE_GONOGO. |
 | 2026-02-11 | §2, §6, §7, §10, §12, §13, §15, §16 | Phase 22: Lead-to-Site Workflow Enhancement. ScorecardStatus replaced (8→10 values: BDDraft, AwaitingDirectorReview, DirectorReturnedForRevision, AwaitingCommitteeScoring, CommitteeReturnedForRevision, Rejected, NoGo, Go, Locked, Unlocked). New IAssignmentMapping model + assignmentMappings.json (4 entries) + useAssignmentMappings hook. 8 new IDataService methods (200 total): createBdLeadFolder, checkFolderExists, createFolder, renameFolder, getAssignmentMappings, createAssignmentMapping, updateAssignmentMapping, deleteAssignmentMapping. +3 AuditAction (ScorecardArchived, LeadFolderCreated, AssignmentMappingUpdated), +7 NotificationEvent (ScorecardSubmittedToDirector, ScorecardReturnedByDirector, ScorecardRejectedByDirector, ScorecardAdvancedToCommittee, ScorecardApprovedGo, ScorecardDecidedNoGo, EstimatingCoordinatorNotifiedGo), +1 EntityType (AssignmentMapping). +2 permissions (gonogo:review, admin:assignments:manage). GoNoGoScorecard.tsx rewritten with Save/Submit, Director review/reject, Committee Go/NoGo/Return, archive flow. PipelinePage.tsx Go/No-Go Tracker with Pending/Archive sub-tabs + advanced filters. LeadFormPage.tsx +BD Leads folder creation. JobNumberRequestForm.tsx +optional lead association. EstimatingDashboard.tsx +Request New Project Number button. AdminPanel.tsx +Assignment Mappings CRUD. scorecards.json updated to new status values. Added pitfalls #26-#27. |
 | 2026-02-11 | §6, §10, §15, §16 | Phase 23: BD Representative UX Enhancements. ILead.ts: +AddressStreet, +AddressCity, +AddressState, +AddressZip, +DateSubmitted; -ProjectAddress. validators.ts: +AddressCity/AddressState required. LeadFormPage.tsx: address field grid with US_STATES dropdown, CityLocation auto-populate, DateSubmitted auto-set. LeadDetailPage.tsx: full edit mode (all fields become editable inputs, +address section, +Notes). PipelinePage.tsx: +DateSubmitted "Created" column, default sort newest-first. useGoNoGo.ts: canSubmit allows null scorecard. permissions.ts: BD Rep +6 permissions (marketing:dashboard:view, marketing:edit, projectrecord:edit, precon:hub:view, autopsy:edit, autopsy:schedule), BD Rep added to Marketing nav group. leads.json: +4 address fields on all 29 records. columnMappings.ts: +5 new mappings (address fields + DateSubmitted), -ProjectAddress. AccountingQueuePage.tsx and MockDataService.ts: removed ProjectAddress references from ILead context. Added pitfalls #28-#30. |
+| 2026-02-11 | §5, §6, §7, §9, §10, §12, §15, §16 | Phase 24: Estimating Coordinator UX Enhancements. EC redirect to /preconstruction on login (DashboardPage.tsx). Removed Kick-Off Checklists from NavigationSidebar. Inline-editable dashboard tables (3 tabs, ~30 columns with InlineInput/InlineNumber/InlineDate/InlineSelect React.memo helpers in EstimatingDashboard.tsx). Current Pursuits: auto-width text columns, stripped parenthetical checkbox headers, row-click→kickoff, removed Kick-Off button column. EstimatingKickoffPage: fixed route param bug (`:id` not `:projectCode`), lead selector dropdown, Key Personnel section with AzureADPeoplePicker, Estimating Checklist with multi-select assignees, role-filtered Pursuit Tools. AzureADPeoplePicker: discriminated union props for multiSelect (pills, toggle select, checkmarks). PursuitDetail: removed Estimating Kickoff button, EC role filtering (4 tools vs 5). New model: IKeyPersonnelEntry. IEstimatingKickoff: +keyPersonnel field. IEstimatingKickoffItem: +assignees field. 1 new IDataService method (201 total): updateKickoffKeyPersonnel. EC GONOGO_SCORE_ORIGINATOR permission removed. Added pitfall #31 (EstimatingKickoffPage route param). |

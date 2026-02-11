@@ -12,8 +12,9 @@ import { KPICard } from '../../shared/KPICard';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
-import { IEstimatingTracker, ILead, AwardStatus, AuditAction, EntityType, RoleName } from '../../../models';
+import { IEstimatingTracker, ILead, AwardStatus, EstimateSource, DeliverableType, AuditAction, EntityType, RoleName } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
+import { PERMISSIONS } from '../../../utils/permissions';
 import {
   formatCurrency,
   formatCurrencyCompact,
@@ -39,15 +40,143 @@ const EmptyBox: React.FC = () => (
   <span style={{ color: HBC_COLORS.gray300, fontSize: '14px' }}>&#9744;</span>
 );
 
+// --- Inline editing helpers ---
+
+const InlineInput = React.memo<{
+  recordId: number;
+  field: string;
+  value: string;
+  updateFn: (id: number, data: Partial<IEstimatingTracker>) => Promise<unknown>;
+  disabled?: boolean;
+}>(({ recordId, field, value, updateFn, disabled }) => {
+  const [val, setVal] = React.useState(value);
+  React.useEffect(() => { setVal(value); }, [value]);
+  return (
+    <input
+      type="text"
+      value={val}
+      onChange={e => setVal(e.target.value)}
+      onBlur={() => { if (val !== value) updateFn(recordId, { [field]: val } as Partial<IEstimatingTracker>); }}
+      disabled={disabled}
+      onClick={e => e.stopPropagation()}
+      style={{
+        width: '100%', padding: '3px 6px', border: `1px solid ${HBC_COLORS.gray200}`,
+        borderRadius: 4, fontSize: '12px', backgroundColor: disabled ? 'transparent' : '#fff',
+        outline: 'none', boxSizing: 'border-box',
+      }}
+    />
+  );
+});
+
+const InlineNumber = React.memo<{
+  recordId: number;
+  field: string;
+  value: number | undefined;
+  updateFn: (id: number, data: Partial<IEstimatingTracker>) => Promise<unknown>;
+  disabled?: boolean;
+  format?: (v: number | undefined) => string;
+}>(({ recordId, field, value, updateFn, disabled, format }) => {
+  const [editing, setEditing] = React.useState(false);
+  const [val, setVal] = React.useState(String(value ?? ''));
+  React.useEffect(() => { setVal(String(value ?? '')); }, [value]);
+  if (!editing) {
+    return (
+      <span
+        onClick={e => { if (!disabled) { e.stopPropagation(); setEditing(true); } }}
+        style={{ cursor: disabled ? 'default' : 'pointer', fontWeight: 500 }}
+      >
+        {format ? format(value) : (value != null ? `$${value.toLocaleString()}` : '-')}
+      </span>
+    );
+  }
+  return (
+    <input
+      type="number"
+      value={val}
+      autoFocus
+      onChange={e => setVal(e.target.value)}
+      onBlur={() => {
+        setEditing(false);
+        const num = parseFloat(val) || 0;
+        if (num !== (value ?? 0)) updateFn(recordId, { [field]: num } as Partial<IEstimatingTracker>);
+      }}
+      onClick={e => e.stopPropagation()}
+      style={{
+        width: '100%', padding: '3px 6px', border: `1px solid ${HBC_COLORS.navy}`,
+        borderRadius: 4, fontSize: '12px', outline: 'none', boxSizing: 'border-box',
+      }}
+    />
+  );
+});
+
+const InlineDate = React.memo<{
+  recordId: number;
+  field: string;
+  value: string | undefined;
+  updateFn: (id: number, data: Partial<IEstimatingTracker>) => Promise<unknown>;
+  disabled?: boolean;
+}>(({ recordId, field, value, updateFn, disabled }) => {
+  const [val, setVal] = React.useState(value || '');
+  React.useEffect(() => { setVal(value || ''); }, [value]);
+  const days = getDaysUntil(val || undefined);
+  const color = getUrgencyColor(days);
+  return (
+    <input
+      type="date"
+      value={val}
+      onChange={e => {
+        setVal(e.target.value);
+      }}
+      onBlur={() => { if (val !== (value || '')) updateFn(recordId, { [field]: val || undefined } as Partial<IEstimatingTracker>); }}
+      disabled={disabled}
+      onClick={e => e.stopPropagation()}
+      style={{
+        width: '100%', padding: '2px 4px', border: `1px solid ${HBC_COLORS.gray200}`,
+        borderRadius: 4, fontSize: '11px', backgroundColor: disabled ? 'transparent' : '#fff',
+        outline: 'none', boxSizing: 'border-box', color,
+        fontWeight: days !== null && days <= 7 ? 600 : 400,
+      }}
+    />
+  );
+});
+
+const InlineSelect = React.memo<{
+  recordId: number;
+  field: string;
+  value: string | undefined;
+  options: string[];
+  updateFn: (id: number, data: Partial<IEstimatingTracker>) => Promise<unknown>;
+  disabled?: boolean;
+}>(({ recordId, field, value, options, updateFn, disabled }) => {
+  return (
+    <select
+      value={value || ''}
+      onChange={e => { e.stopPropagation(); updateFn(recordId, { [field]: e.target.value || undefined } as Partial<IEstimatingTracker>); }}
+      disabled={disabled}
+      onClick={e => e.stopPropagation()}
+      style={{
+        width: '100%', padding: '3px 4px', border: `1px solid ${HBC_COLORS.gray200}`,
+        borderRadius: 4, fontSize: '11px', backgroundColor: disabled ? 'transparent' : '#fff',
+        outline: 'none', boxSizing: 'border-box',
+      }}
+    >
+      <option value="">-</option>
+      {options.map(o => <option key={o} value={o}>{o}</option>)}
+    </select>
+  );
+});
+
 export const EstimatingDashboard: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const activeTab = pathToTab(location.pathname);
   const breadcrumbs = buildBreadcrumbs(location.pathname);
 
-  const { dataService, currentUser } = useAppContext();
+  const { dataService, currentUser, hasPermission } = useAppContext();
   const { records, isLoading: estLoading, fetchRecords, updateRecord } = useEstimating();
   const { leads, isLoading: leadsLoading, fetchLeads } = useLeads();
+
+  const canEdit = hasPermission(PERMISSIONS.ESTIMATING_EDIT);
 
   const [yearFilter, setYearFilter] = usePersistedState('estimating-year', 'All');
   const [estimatorFilter, setEstimatorFilter] = usePersistedState('estimating-estimator', 'All');
@@ -59,6 +188,23 @@ export const EstimatingDashboard: React.FC = () => {
     fetchRecords().catch(console.error);
     fetchLeads().catch(console.error);
   }, [fetchRecords, fetchLeads]);
+
+  // Inline update with audit
+  const handleInlineUpdate = React.useCallback(async (id: number, data: Partial<IEstimatingTracker>) => {
+    if (!canEdit) return;
+    await updateRecord(id, data);
+    const fieldName = Object.keys(data)[0];
+    dataService.logAudit({
+      Action: AuditAction.EstimateStatusChanged,
+      EntityType: EntityType.Estimate,
+      EntityId: String(id),
+      FieldChanged: fieldName,
+      NewValue: String(Object.values(data)[0] ?? ''),
+      User: currentUser?.displayName || 'Unknown',
+      UserId: currentUser?.id,
+      Details: `Inline edit: ${fieldName} updated`,
+    }).catch(console.error);
+  }, [canEdit, updateRecord, dataService, currentUser]);
 
   // Build a lead lookup map
   const leadMap = React.useMemo(() => {
@@ -169,61 +315,61 @@ export const EstimatingDashboard: React.FC = () => {
     }).catch(console.error);
   }, [updateRecord, dataService, currentUser]);
 
-  // Date cell renderer
-  const dateCell = (dateStr: string | undefined): React.ReactNode => {
-    if (!dateStr) return <span style={{ color: HBC_COLORS.gray400 }}>-</span>;
-    const days = getDaysUntil(dateStr);
-    const color = getUrgencyColor(days);
-    return <span style={{ color, fontWeight: days !== null && days <= 7 ? 600 : 400 }}>{formatDate(dateStr)}</span>;
-  };
-
-  // Checklist header with responsible person
+  // Checklist headers — stripped parenthetical names
   const chkHeaders: Array<{ key: keyof IEstimatingTracker; label: string }> = [
-    { key: 'Chk_BidBond', label: 'Bid Bond (Wanda)' },
-    { key: 'Chk_PPBond', label: 'PP Bond (Wanda)' },
-    { key: 'Chk_Schedule', label: 'Schedule (Est.)' },
-    { key: 'Chk_Logistics', label: 'Logistics (Est.)' },
-    { key: 'Chk_BIMProposal', label: 'BIM (VDC)' },
-    { key: 'Chk_PreconProposal', label: 'Precon Prop (Ryan)' },
-    { key: 'Chk_ProposalTabs', label: 'Tabs (Wanda/Wendy)' },
+    { key: 'Chk_BidBond', label: 'Bid Bond' },
+    { key: 'Chk_PPBond', label: 'PP Bond' },
+    { key: 'Chk_Schedule', label: 'Schedule' },
+    { key: 'Chk_Logistics', label: 'Logistics' },
+    { key: 'Chk_BIMProposal', label: 'BIM' },
+    { key: 'Chk_PreconProposal', label: 'Precon Prop' },
+    { key: 'Chk_ProposalTabs', label: 'Tabs' },
     { key: 'Chk_CoordMarketing', label: 'Coord. Marketing' },
-    { key: 'Chk_BusinessTerms', label: 'Bus. Terms (Legal)' },
+    { key: 'Chk_BusinessTerms', label: 'Bus. Terms' },
   ];
 
-  // Current Pursuits columns
+  const sourceOptions = Object.values(EstimateSource);
+  const typeOptions = Object.values(DeliverableType);
+  const awardOptions = Object.values(AwardStatus);
+
+  // Current Pursuits columns — no fixed width on text columns, removed Kick-Off button
   const pursuitColumns: IDataTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
     { key: 'Title', header: 'Project', sortable: true, render: (r) => (
-      <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{r.Title}</span>
+      <span style={{ fontWeight: 500, color: HBC_COLORS.navy, whiteSpace: 'nowrap' }}>{r.Title}</span>
     )},
     { key: 'ProjectCode', header: 'Code', sortable: true, width: '90px', render: (r) => (
-      <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{r.ProjectCode || '-'}</span>
+      <span style={{ fontFamily: 'monospace', fontSize: '12px', whiteSpace: 'nowrap' }}>{r.ProjectCode || '-'}</span>
     )},
-    { key: 'Source', header: 'Source', sortable: true, width: '90px', render: (r) => r.Source || '-' },
-    { key: 'DeliverableType', header: 'Type', sortable: true, width: '80px', render: (r) => r.DeliverableType || '-' },
-    { key: 'SubBidsDue', header: 'Sub Bids Due', width: '100px', render: (r) => dateCell(r.SubBidsDue) },
-    { key: 'PreSubmissionReview', header: 'Pre-Sub Review', width: '100px', render: (r) => dateCell(r.PreSubmissionReview) },
-    { key: 'WinStrategyMeeting', header: 'Win Strategy', width: '100px', render: (r) => dateCell(r.WinStrategyMeeting) },
-    { key: 'DueDate_OutTheDoor', header: 'Due (OTD)', sortable: true, width: '100px', render: (r) => dateCell(r.DueDate_OutTheDoor) },
-    { key: 'LeadEstimator', header: 'Estimator', sortable: true, width: '80px', render: (r) => r.LeadEstimator || '-' },
-    { key: 'Contributors', header: 'Contributors', width: '100px', render: (r) => {
-      const contribs = r.Contributors || [];
-      if (contribs.length === 0) return '-';
-      return (
-        <div style={{ display: 'flex', gap: '2px' }}>
-          {contribs.map((c, i) => (
-            <span key={i} style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: '24px', height: '24px', borderRadius: '50%',
-              backgroundColor: HBC_COLORS.navy, color: '#fff', fontSize: '10px', fontWeight: 600,
-            }} title={c}>{c[0]}</span>
-          ))}
-        </div>
-      );
-    }},
-    { key: 'PX_ProjectExecutive', header: 'PX', width: '80px', render: (r) => {
-      const px = r.PX_ProjectExecutive || '-';
-      return px !== '-' ? px.split(' ').map(n => n[0]).join('') : '-';
-    }},
+    { key: 'Source', header: 'Source', sortable: true, render: (r) => (
+      <InlineSelect recordId={r.id} field="Source" value={r.Source} options={sourceOptions} updateFn={handleInlineUpdate} disabled={!canEdit} />
+    )},
+    { key: 'DeliverableType', header: 'Type', sortable: true, render: (r) => (
+      <InlineSelect recordId={r.id} field="DeliverableType" value={r.DeliverableType} options={typeOptions} updateFn={handleInlineUpdate} disabled={!canEdit} />
+    )},
+    { key: 'SubBidsDue', header: 'Sub Bids Due', render: (r) => (
+      <InlineDate recordId={r.id} field="SubBidsDue" value={r.SubBidsDue} updateFn={handleInlineUpdate} disabled={!canEdit} />
+    )},
+    { key: 'PreSubmissionReview', header: 'Pre-Sub Review', render: (r) => (
+      <InlineDate recordId={r.id} field="PreSubmissionReview" value={r.PreSubmissionReview} updateFn={handleInlineUpdate} disabled={!canEdit} />
+    )},
+    { key: 'WinStrategyMeeting', header: 'Win Strategy', render: (r) => (
+      <InlineDate recordId={r.id} field="WinStrategyMeeting" value={r.WinStrategyMeeting} updateFn={handleInlineUpdate} disabled={!canEdit} />
+    )},
+    { key: 'DueDate_OutTheDoor', header: 'Due (OTD)', sortable: true, render: (r) => (
+      <InlineDate recordId={r.id} field="DueDate_OutTheDoor" value={r.DueDate_OutTheDoor} updateFn={handleInlineUpdate} disabled={!canEdit} />
+    )},
+    { key: 'LeadEstimator', header: 'Estimator', sortable: true, render: (r) => (
+      <InlineInput recordId={r.id} field="LeadEstimator" value={r.LeadEstimator || ''} updateFn={handleInlineUpdate} disabled={!canEdit} />
+    )},
+    { key: 'Contributors', header: 'Contributors', width: '100px', render: (r) => (
+      <InlineInput recordId={r.id} field="Contributors" value={(r.Contributors || []).join(', ')} updateFn={(id, data) => {
+        const val = String((data as Record<string, unknown>).Contributors || '');
+        return handleInlineUpdate(id, { Contributors: val.split(',').map(s => s.trim()).filter(Boolean) } as unknown as Partial<IEstimatingTracker>);
+      }} disabled={!canEdit} />
+    )},
+    { key: 'PX_ProjectExecutive', header: 'PX', render: (r) => (
+      <InlineInput recordId={r.id} field="PX_ProjectExecutive" value={r.PX_ProjectExecutive || ''} updateFn={handleInlineUpdate} disabled={!canEdit} />
+    )},
     ...chkHeaders.map(ch => ({
       key: ch.key as string,
       header: ch.label,
@@ -238,88 +384,79 @@ export const EstimatingDashboard: React.FC = () => {
       ),
     })),
     { key: 'EstimatedCostValue', header: 'Est. Value', sortable: true, width: '100px', render: (r) => (
-      <span style={{ fontWeight: 500 }}>{formatCurrencyCompact(r.EstimatedCostValue)}</span>
+      <InlineNumber recordId={r.id} field="EstimatedCostValue" value={r.EstimatedCostValue} updateFn={handleInlineUpdate} disabled={!canEdit} format={formatCurrencyCompact} />
     )},
-    { key: 'Kickoff', header: 'Kick-Off', width: '90px', render: (r) => (
-      <button
-        onClick={(e) => { e.stopPropagation(); if (r.ProjectCode) navigate(`/preconstruction/pursuit/${r.id}/kickoff`); }}
-        style={{
-          padding: '4px 8px',
-          background: HBC_COLORS.orange,
-          color: '#fff',
-          border: 'none',
-          borderRadius: 4,
-          fontSize: '11px',
-          fontWeight: 600,
-          cursor: r.ProjectCode ? 'pointer' : 'not-allowed',
-          opacity: r.ProjectCode ? 1 : 0.5,
-        }}
-        disabled={!r.ProjectCode}
-      >
-        Open
-      </button>
-    )},
-  ], [handleCheckToggle, navigate]);
+  ], [handleCheckToggle, handleInlineUpdate, canEdit, sourceOptions, typeOptions]);
 
   // Precon Engagements columns
   const preconColumns: IDataTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
     { key: 'Title', header: 'Project', sortable: true, render: (r) => (
-      <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{r.Title}</span>
+      <span style={{ fontWeight: 500, color: HBC_COLORS.navy, whiteSpace: 'nowrap' }}>{r.Title}</span>
     )},
     { key: 'ProjectCode', header: 'Code', sortable: true, width: '90px', render: (r) => (
-      <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{r.ProjectCode || '-'}</span>
+      <span style={{ fontFamily: 'monospace', fontSize: '12px', whiteSpace: 'nowrap' }}>{r.ProjectCode || '-'}</span>
     )},
-    { key: 'LeadEstimator', header: 'Estimator', sortable: true, width: '80px', render: (r) => r.LeadEstimator || '-' },
-    { key: 'PX_ProjectExecutive', header: 'PX', width: '80px', render: (r) => {
-      const px = r.PX_ProjectExecutive || '-';
-      return px !== '-' ? px.split(' ').map(n => n[0]).join('') : '-';
-    }},
-    { key: 'DocSetStage', header: 'Doc Stage', sortable: true, width: '80px', render: (r) => r.DocSetStage || '-' },
+    { key: 'LeadEstimator', header: 'Estimator', sortable: true, render: (r) => (
+      <InlineInput recordId={r.id} field="LeadEstimator" value={r.LeadEstimator || ''} updateFn={handleInlineUpdate} disabled={!canEdit} />
+    )},
+    { key: 'PX_ProjectExecutive', header: 'PX', render: (r) => (
+      <InlineInput recordId={r.id} field="PX_ProjectExecutive" value={r.PX_ProjectExecutive || ''} updateFn={handleInlineUpdate} disabled={!canEdit} />
+    )},
+    { key: 'DocSetStage', header: 'Doc Stage', sortable: true, render: (r) => (
+      <InlineInput recordId={r.id} field="DocSetStage" value={r.DocSetStage || ''} updateFn={handleInlineUpdate} disabled={!canEdit} />
+    )},
     { key: 'CurrentStage', header: 'Current Stage', width: '120px', render: (r) => {
       const lead = r.LeadID ? leadMap.get(r.LeadID) : undefined;
       return lead ? lead.Stage : '-';
     }},
-    { key: 'PreconFee', header: 'Precon Budget', sortable: true, width: '110px', render: (r) => formatCurrency(r.PreconFee) },
-    { key: 'DesignBudget', header: 'Design Budget', sortable: true, width: '110px', render: (r) => formatCurrency(r.DesignBudget) },
-    { key: 'FeePaidToDate', header: 'Billed to Date', sortable: true, width: '110px', render: (r) => formatCurrency(r.FeePaidToDate) },
+    { key: 'PreconFee', header: 'Precon Budget', sortable: true, width: '110px', render: (r) => (
+      <InlineNumber recordId={r.id} field="PreconFee" value={r.PreconFee} updateFn={handleInlineUpdate} disabled={!canEdit} format={v => formatCurrency(v)} />
+    )},
+    { key: 'DesignBudget', header: 'Design Budget', sortable: true, width: '110px', render: (r) => (
+      <InlineNumber recordId={r.id} field="DesignBudget" value={r.DesignBudget} updateFn={handleInlineUpdate} disabled={!canEdit} format={v => formatCurrency(v)} />
+    )},
+    { key: 'FeePaidToDate', header: 'Billed to Date', sortable: true, width: '110px', render: (r) => (
+      <InlineNumber recordId={r.id} field="FeePaidToDate" value={r.FeePaidToDate} updateFn={handleInlineUpdate} disabled={!canEdit} format={v => formatCurrency(v)} />
+    )},
     { key: 'Remaining', header: 'Remaining', width: '110px', render: (r) => {
       const remaining = (r.PreconFee || 0) - (r.FeePaidToDate || 0);
       return <span style={{ color: remaining < 0 ? HBC_COLORS.error : HBC_COLORS.gray800, fontWeight: remaining < 0 ? 600 : 400 }}>{formatCurrency(remaining)}</span>;
     }},
-  ], []);
+  ], [handleInlineUpdate, canEdit, leadMap]);
 
   // Estimate Log columns
   const logColumns: IDataTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
     { key: 'Title', header: 'Project', sortable: true, render: (r) => (
-      <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{r.Title}</span>
+      <span style={{ fontWeight: 500, color: HBC_COLORS.navy, whiteSpace: 'nowrap' }}>{r.Title}</span>
     )},
     { key: 'ProjectCode', header: 'Code', sortable: true, width: '90px', render: (r) => (
-      <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{r.ProjectCode || '-'}</span>
+      <span style={{ fontFamily: 'monospace', fontSize: '12px', whiteSpace: 'nowrap' }}>{r.ProjectCode || '-'}</span>
     )},
-    { key: 'LeadEstimator', header: 'Estimator', sortable: true, width: '80px', render: (r) => r.LeadEstimator || '-' },
-    { key: 'EstimateType', header: 'Est. Type', sortable: true, width: '100px', render: (r) => r.EstimateType || '-' },
-    { key: 'EstimatedCostValue', header: 'Est. Value', sortable: true, width: '110px', render: (r) => formatCurrencyCompact(r.EstimatedCostValue) },
-    { key: 'CostPerGSF', header: '$/GSF', sortable: true, width: '80px', render: (r) => r.CostPerGSF ? `$${r.CostPerGSF}` : '-' },
-    { key: 'CostPerUnit', header: '$/Unit', sortable: true, width: '80px', render: (r) => r.CostPerUnit ? `$${r.CostPerUnit.toLocaleString()}` : '-' },
-    { key: 'SubmittedDate', header: 'Submitted', sortable: true, width: '100px', render: (r) => formatDate(r.SubmittedDate) },
-    { key: 'AwardStatus', header: 'Award Status', sortable: true, width: '120px', render: (r) => {
-      const status = r.AwardStatus || 'Pending';
-      const isAwarded = status.includes('Awarded');
-      const isNotAwarded = status === 'Not Awarded';
-      return (
-        <StatusBadge
-          label={status}
-          color={isAwarded ? '#065F46' : isNotAwarded ? '#991B1B' : '#1E40AF'}
-          backgroundColor={isAwarded ? HBC_COLORS.successLight : isNotAwarded ? HBC_COLORS.errorLight : HBC_COLORS.infoLight}
-        />
-      );
-    }},
+    { key: 'LeadEstimator', header: 'Estimator', sortable: true, render: (r) => (
+      <InlineInput recordId={r.id} field="LeadEstimator" value={r.LeadEstimator || ''} updateFn={handleInlineUpdate} disabled={!canEdit} />
+    )},
+    { key: 'EstimateType', header: 'Est. Type', sortable: true, width: '100px', render: (r) => (
+      <InlineSelect recordId={r.id} field="EstimateType" value={r.EstimateType} options={typeOptions} updateFn={handleInlineUpdate} disabled={!canEdit} />
+    )},
+    { key: 'EstimatedCostValue', header: 'Est. Value', sortable: true, width: '110px', render: (r) => (
+      <InlineNumber recordId={r.id} field="EstimatedCostValue" value={r.EstimatedCostValue} updateFn={handleInlineUpdate} disabled={!canEdit} format={formatCurrencyCompact} />
+    )},
+    { key: 'CostPerGSF', header: '$/GSF', sortable: true, width: '80px', render: (r) => (
+      <InlineNumber recordId={r.id} field="CostPerGSF" value={r.CostPerGSF} updateFn={handleInlineUpdate} disabled={!canEdit} format={v => v ? `$${v}` : '-'} />
+    )},
+    { key: 'CostPerUnit', header: '$/Unit', sortable: true, width: '80px', render: (r) => (
+      <InlineNumber recordId={r.id} field="CostPerUnit" value={r.CostPerUnit} updateFn={handleInlineUpdate} disabled={!canEdit} format={v => v ? `$${v.toLocaleString()}` : '-'} />
+    )},
+    { key: 'SubmittedDate', header: 'Submitted', sortable: true, width: '100px', render: (r) => (
+      <InlineDate recordId={r.id} field="SubmittedDate" value={r.SubmittedDate} updateFn={handleInlineUpdate} disabled={!canEdit} />
+    )},
+    { key: 'AwardStatus', header: 'Award Status', sortable: true, width: '120px', render: (r) => (
+      <InlineSelect recordId={r.id} field="AwardStatus" value={r.AwardStatus} options={awardOptions} updateFn={handleInlineUpdate} disabled={!canEdit} />
+    )},
     { key: 'NotesFeedback', header: 'Notes', width: '150px', render: (r) => (
-      <span style={{ fontSize: '12px', color: HBC_COLORS.gray500 }} title={r.NotesFeedback || ''}>
-        {r.NotesFeedback ? (r.NotesFeedback.length > 40 ? r.NotesFeedback.slice(0, 40) + '...' : r.NotesFeedback) : '-'}
-      </span>
+      <InlineInput recordId={r.id} field="NotesFeedback" value={r.NotesFeedback || ''} updateFn={handleInlineUpdate} disabled={!canEdit} />
     )},
-  ], []);
+  ], [handleInlineUpdate, canEdit, typeOptions, awardOptions]);
 
   // Precon fee totals
   const preconTotals = React.useMemo(() => ({
@@ -537,7 +674,7 @@ export const EstimatingDashboard: React.FC = () => {
           columns={pursuitColumns}
           items={currentPursuits}
           keyExtractor={r => r.id}
-          onRowClick={r => navigate(`/preconstruction/pursuit/${r.id}`)}
+          onRowClick={r => navigate(`/preconstruction/pursuit/${r.id}/kickoff`)}
           sortField={sortField}
           sortAsc={sortAsc}
           onSort={handleSort}
@@ -553,7 +690,7 @@ export const EstimatingDashboard: React.FC = () => {
             columns={preconColumns}
             items={preconEngagements}
             keyExtractor={r => r.id}
-            onRowClick={r => navigate(`/preconstruction/pursuit/${r.id}`)}
+            onRowClick={r => navigate(`/preconstruction/pursuit/${r.id}/kickoff`)}
             sortField={sortField}
             sortAsc={sortAsc}
             onSort={handleSort}
@@ -580,6 +717,7 @@ export const EstimatingDashboard: React.FC = () => {
             columns={logColumns}
             items={estimateLog}
             keyExtractor={r => r.id}
+            onRowClick={r => navigate(`/preconstruction/pursuit/${r.id}/kickoff`)}
             sortField={sortField}
             sortAsc={sortAsc}
             onSort={handleSort}

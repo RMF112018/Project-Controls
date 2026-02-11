@@ -115,7 +115,7 @@ import mockBuyoutEntries from '../mock/buyoutEntries.json';
 import { createEstimatingKickoffTemplate } from '../utils/estimatingKickoffTemplate';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 import { DEFAULT_HUB_SITE_URL } from '../utils/constants';
-import { IEstimatingKickoff, IEstimatingKickoffItem } from '../models/IEstimatingKickoff';
+import { IEstimatingKickoff, IEstimatingKickoffItem, IKeyPersonnelEntry } from '../models/IEstimatingKickoff';
 import { IBuyoutEntry, EVerifyStatus } from '../models/IBuyoutEntry';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
@@ -3194,6 +3194,15 @@ export class MockDataService implements IDataService {
 
     this.estimatingKickoffItems = this.estimatingKickoffItems.filter(i => !(i.id === itemId && i.kickoffId === kickoffId));
     kickoff.ModifiedDate = new Date().toISOString();
+  }
+
+  public async updateKickoffKeyPersonnel(kickoffId: number, personnel: IKeyPersonnelEntry[]): Promise<IEstimatingKickoff> {
+    await delay();
+    const kickoff = this.estimatingKickoffs.find(k => k.id === kickoffId);
+    if (!kickoff) throw new Error(`Estimating kickoff ${kickoffId} not found`);
+    kickoff.keyPersonnel = personnel;
+    kickoff.ModifiedDate = new Date().toISOString();
+    return this.assembleEstimatingKickoff(kickoff);
   }
 
   // ---------------------------------------------------------------------------

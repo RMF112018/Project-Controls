@@ -233,6 +233,7 @@ export interface IDataService {
   updateKickoffItem(kickoffId: number, itemId: number, data: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem>;
   addKickoffItem(kickoffId: number, item: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem>;
   removeKickoffItem(kickoffId: number, itemId: number): Promise<void>;
+  updateKickoffKeyPersonnel(kickoffId: number, personnel: import('../models/IEstimatingKickoff').IKeyPersonnelEntry[]): Promise<IEstimatingKickoff>;
 
   // Job Number Requests
   getJobNumberRequests(status?: JobNumberRequestStatus): Promise<IJobNumberRequest[]>;

@@ -1,6 +1,14 @@
+import { IPersonAssignment } from './IWorkflowDefinition';
+
 export type EstimatingKickoffSection = 'managing' | 'deliverables_standard' | 'deliverables_nonstandard';
 
 export type EstimatingKickoffStatus = 'yes' | 'no' | 'na' | null;
+
+export interface IKeyPersonnelEntry {
+  id: number;
+  label: string;
+  person: IPersonAssignment;
+}
 
 export interface IEstimatingKickoffItem {
   id: number;
@@ -12,6 +20,7 @@ export interface IEstimatingKickoffItem {
   task: string;
   status: EstimatingKickoffStatus;
   responsibleParty?: string;
+  assignees?: IPersonAssignment[];
   deadline?: string;
   frequency?: string;
   notes?: string;
@@ -40,6 +49,9 @@ export interface IEstimatingKickoff {
   PreSubmissionReview?: string;
   SubcontractorSiteWalkThru?: string;
   OwnerEstimateReview?: string;
+
+  // Key Personnel
+  keyPersonnel?: IKeyPersonnelEntry[];
 
   // Checklist Items
   items: IEstimatingKickoffItem[];
