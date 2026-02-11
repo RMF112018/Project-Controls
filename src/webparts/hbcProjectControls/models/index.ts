@@ -41,3 +41,4 @@ export * from './IActionInbox';
 export * from './IPermissionTemplate';
 export * from './IEnvironmentConfig';
 export * from './ISectorDefinition';
+export * from './IAssignmentMapping';

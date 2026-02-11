@@ -84,8 +84,9 @@ const AppRoutes: React.FC = () => (
 
     {/* Preconstruction */}
     <Route path="/preconstruction" element={<EstimatingDashboard />} />
-    <Route path="/preconstruction/gonogo" element={<GoNoGoTracker />} />
     <Route path="/preconstruction/pipeline" element={<PipelinePage />} />
+    <Route path="/preconstruction/pipeline/gonogo" element={<PipelinePage />} />
+    <Route path="/preconstruction/gonogo" element={<PipelinePage />} />
     <Route path="/preconstruction/precon-tracker" element={<EstimatingDashboard />} />
     <Route path="/preconstruction/estimate-log" element={<EstimatingDashboard />} />
     <Route path="/preconstruction/kickoff-list" element={

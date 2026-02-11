@@ -1337,4 +1337,20 @@ export class SharePointDataService implements IDataService {
   async getSectorDefinitions(): Promise<import('../models/ISectorDefinition').ISectorDefinition[]> { return []; }
   async createSectorDefinition(_data: Partial<import('../models/ISectorDefinition').ISectorDefinition>): Promise<import('../models/ISectorDefinition').ISectorDefinition> { throw new Error('Not implemented'); }
   async updateSectorDefinition(_id: number, _data: Partial<import('../models/ISectorDefinition').ISectorDefinition>): Promise<import('../models/ISectorDefinition').ISectorDefinition> { throw new Error('Not implemented'); }
+
+  // --- BD Leads Folder Operations ---
+  async createBdLeadFolder(_leadTitle: string, _originatorName: string): Promise<void> { throw new Error('Not implemented'); }
+  async checkFolderExists(_path: string): Promise<boolean> { throw new Error('Not implemented'); }
+  async createFolder(_path: string): Promise<void> { throw new Error('Not implemented'); }
+  async renameFolder(_oldPath: string, _newPath: string): Promise<void> { throw new Error('Not implemented'); }
+
+  // --- Assignment Mappings ---
+  async getAssignmentMappings(): Promise<import('../models/IAssignmentMapping').IAssignmentMapping[]> { return []; }
+  async createAssignmentMapping(_data: Partial<import('../models/IAssignmentMapping').IAssignmentMapping>): Promise<import('../models/IAssignmentMapping').IAssignmentMapping> { throw new Error('Not implemented'); }
+  async updateAssignmentMapping(_id: number, _data: Partial<import('../models/IAssignmentMapping').IAssignmentMapping>): Promise<import('../models/IAssignmentMapping').IAssignmentMapping> { throw new Error('Not implemented'); }
+  async deleteAssignmentMapping(_id: number): Promise<void> { throw new Error('Not implemented'); }
+
+  // --- Scorecard Reject / Archive ---
+  async rejectScorecard(_scorecardId: number, _reason: string): Promise<IGoNoGoScorecard> { throw new Error('Not implemented'); }
+  async archiveScorecard(_scorecardId: number, _archivedBy: string): Promise<IGoNoGoScorecard> { throw new Error('Not implemented'); }
 }

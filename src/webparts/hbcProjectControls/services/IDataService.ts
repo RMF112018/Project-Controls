@@ -40,6 +40,7 @@ import { IActionInboxItem } from '../models/IActionInbox';
 import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions } from '../models/IPermissionTemplate';
 import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfig';
 import { ISectorDefinition } from '../models/ISectorDefinition';
+import { IAssignmentMapping } from '../models/IAssignmentMapping';
 import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -363,6 +364,22 @@ export interface IDataService {
   getSectorDefinitions(): Promise<ISectorDefinition[]>;
   createSectorDefinition(data: Partial<ISectorDefinition>): Promise<ISectorDefinition>;
   updateSectorDefinition(id: number, data: Partial<ISectorDefinition>): Promise<ISectorDefinition>;
+
+  // BD Leads Document Library (folder operations)
+  createBdLeadFolder(leadTitle: string, originatorName: string): Promise<void>;
+  checkFolderExists(path: string): Promise<boolean>;
+  createFolder(path: string): Promise<void>;
+  renameFolder(oldPath: string, newPath: string): Promise<void>;
+
+  // Assignment Mappings
+  getAssignmentMappings(): Promise<IAssignmentMapping[]>;
+  createAssignmentMapping(data: Partial<IAssignmentMapping>): Promise<IAssignmentMapping>;
+  updateAssignmentMapping(id: number, data: Partial<IAssignmentMapping>): Promise<IAssignmentMapping>;
+  deleteAssignmentMapping(id: number): Promise<void>;
+
+  // Scorecard archive (Phase 22)
+  rejectScorecard(scorecardId: number, reason: string): Promise<IGoNoGoScorecard>;
+  archiveScorecard(scorecardId: number, archivedBy: string): Promise<IGoNoGoScorecard>;
 }
 
 export interface IActiveProjectsQueryOptions extends IListQueryOptions {

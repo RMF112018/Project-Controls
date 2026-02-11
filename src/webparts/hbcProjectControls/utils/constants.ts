@@ -45,6 +45,7 @@ export const HUB_LISTS = {
   SECURITY_GROUP_MAPPINGS: 'Security_Group_Mappings',
   PROJECT_TEAM_ASSIGNMENTS: 'Project_Team_Assignments',
   SECTOR_DEFINITIONS: 'Sector_Definitions',
+  ASSIGNMENT_MAPPINGS: 'Assignment_Mappings',
 } as const;
 
 export const PROJECT_LISTS = {
@@ -102,6 +103,7 @@ export const ROUTES = {
   PRECON: '/preconstruction',
   PRECON_GONOGO: '/preconstruction/gonogo',
   PRECON_PIPELINE: '/preconstruction/pipeline',
+  PRECON_PIPELINE_GONOGO: '/preconstruction/pipeline/gonogo',
   PRECON_TRACKING: '/preconstruction/precon-tracker',
   PRECON_ESTIMATE_LOG: '/preconstruction/estimate-log',
   PRECON_KICKOFF_LIST: '/preconstruction/kickoff-list',
@@ -263,3 +265,12 @@ export const SCORE_THRESHOLDS = {
 } as const;
 
 export const DEFAULT_HUB_SITE_URL = 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral';
+
+// BD Leads Document Library
+export const BD_LEADS_SITE_URL = 'https://hedrickbrotherscom.sharepoint.com/sites/PXPortfolioDashboard';
+export const BD_LEADS_LIBRARY = 'BD Leads';
+export const BD_LEADS_SUBFOLDERS = [
+  'Client Information', 'Correspondence', 'Proposal Documents',
+  'Site and Project Plans', 'Financial Estimates', 'Evaluations and Scorecards',
+  'Contracts and Legal', 'Media and Visuals', 'Archives',
+];

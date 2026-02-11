@@ -73,6 +73,21 @@ export const LeadFormPage: React.FC = () => {
         leadId: newLead.id,
         clientName: newLead.ClientName,
       }).catch(console.error);
+      // Fire-and-forget BD Leads folder creation
+      try {
+        const originatorName = currentUser?.displayName || 'Unknown';
+        await dataService.createBdLeadFolder(newLead.Title, originatorName);
+        dataService.logAudit({
+          Action: AuditAction.LeadFolderCreated,
+          EntityType: EntityType.Lead,
+          EntityId: String(newLead.id),
+          User: originatorName,
+          Details: `BD Leads folder created for "${newLead.Title}"`,
+        }).catch(console.error);
+      } catch (folderErr) {
+        console.error('Failed to create BD Leads folder:', folderErr);
+        addToast('Lead created but folder creation failed', 'error');
+      }
       addToast('Lead created successfully', 'success');
       navigate('/');
     } catch (err) {

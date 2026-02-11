@@ -81,6 +81,11 @@ export interface IGoNoGoScorecard {
   unlockedBy?: string;
   unlockedDate?: string;
   unlockReason?: string;
+  // Phase 22 — partial unlock + archive
+  unlockedSections?: string[];  // e.g., ['bd'] for partial unlock of BD fields only
+  isArchived?: boolean;
+  archivedDate?: string;
+  archivedBy?: string;
 }
 
 // IPersonAssignment is defined in IWorkflowDefinition.ts and re-exported from barrel

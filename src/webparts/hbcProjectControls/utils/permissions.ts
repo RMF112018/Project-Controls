@@ -135,6 +135,12 @@ export const PERMISSIONS = {
   PERMISSION_TEMPLATES_MANAGE: 'permission:templates:manage',
   PERMISSION_PROJECT_TEAM_MANAGE: 'permission:project_team:manage',
   PERMISSION_PROJECT_TEAM_VIEW: 'permission:project_team:view',
+
+  // Go/No-Go Review (Director/Committee)
+  GONOGO_REVIEW: 'gonogo:review',
+
+  // Assignment Mappings Admin
+  ADMIN_ASSIGNMENTS: 'admin:assignments:manage',
 } as const;
 
 export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS];
@@ -144,6 +150,7 @@ export const NAV_GROUP_ROLES: Record<string, string[]> = {
   Marketing: ['Marketing', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
   Preconstruction: ['BD Representative', 'Estimating Coordinator', 'Preconstruction Team', 'Executive Leadership', 'Department Director', 'Legal', 'SharePoint Admin'],
   Operations: ['Operations Team', 'Executive Leadership', 'Department Director', 'Risk Management', 'Quality Control', 'Safety', 'IDS', 'SharePoint Admin'],
+  Accounting: ['Accounting Manager', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
   Admin: ['Executive Leadership', 'SharePoint Admin'],
 };
 
@@ -213,13 +220,14 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
   'Executive Leadership': [
     PERMISSIONS.LEAD_READ,
-    PERMISSIONS.GONOGO_SCORE_COMMITTEE, PERMISSIONS.GONOGO_DECIDE, PERMISSIONS.GONOGO_READ,
+    PERMISSIONS.GONOGO_SCORE_COMMITTEE, PERMISSIONS.GONOGO_DECIDE, PERMISSIONS.GONOGO_READ, PERMISSIONS.GONOGO_REVIEW,
     PERMISSIONS.PRECON_READ, PERMISSIONS.PROPOSAL_READ,
     PERMISSIONS.WINLOSS_READ,
     PERMISSIONS.CONTRACT_READ, PERMISSIONS.CONTRACT_VIEW_FINANCIALS,
     PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
     PERMISSIONS.ESTIMATING_READ,
     PERMISSIONS.ADMIN_ROLES, PERMISSIONS.ADMIN_FLAGS, PERMISSIONS.ADMIN_CONFIG, PERMISSIONS.ADMIN_CONNECTIONS, PERMISSIONS.ADMIN_PROVISIONING,
+    PERMISSIONS.ADMIN_ASSIGNMENTS,
     PERMISSIONS.MEETING_SCHEDULE, PERMISSIONS.MEETING_READ,
     PERMISSIONS.STARTUP_CHECKLIST_SIGNOFF, PERMISSIONS.MARKETING_DASHBOARD_VIEW,
     PERMISSIONS.PMP_APPROVE, PERMISSIONS.PMP_FINAL_APPROVE, PERMISSIONS.PMP_SIGN,
@@ -237,7 +245,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
   'Department Director': [
     PERMISSIONS.LEAD_READ,
-    PERMISSIONS.GONOGO_SCORE_COMMITTEE, PERMISSIONS.GONOGO_DECIDE, PERMISSIONS.GONOGO_READ,
+    PERMISSIONS.GONOGO_SCORE_COMMITTEE, PERMISSIONS.GONOGO_DECIDE, PERMISSIONS.GONOGO_READ, PERMISSIONS.GONOGO_REVIEW,
     PERMISSIONS.PRECON_READ, PERMISSIONS.PROPOSAL_READ,
     PERMISSIONS.WINLOSS_READ,
     PERMISSIONS.CONTRACT_READ, PERMISSIONS.CONTRACT_VIEW_FINANCIALS,

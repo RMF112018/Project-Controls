@@ -1568,3 +1568,17 @@ export const PROJECT_TEAM_ASSIGNMENTS_COLUMNS = {
   assignedDate: 'AssignedDate',                // SP: DateTime
   isActive: 'IsActive',                        // SP: Yes/No
 } as const;
+
+/**
+ * List: Assignment_Mappings
+ * Interface: IAssignmentMapping
+ */
+export const ASSIGNMENT_MAPPINGS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  region: 'Region',                            // SP: Single Line of Text
+  sector: 'Sector',                            // SP: Single Line of Text
+  assignmentType: 'AssignmentType',            // SP: Choice (Estimator, Director)
+  assigneeUserId: 'AssigneeUserId',            // SP: Single Line of Text
+  assigneeDisplayName: 'AssigneeDisplayName',  // SP: Single Line of Text
+  assigneeEmail: 'AssigneeEmail',              // SP: Single Line of Text
+} as const;

@@ -164,7 +164,7 @@
       "CommitteeComments": "Committee scores entered. Awaiting scheduling of committee meeting for final review and scoring.",
       "ScoredBy_Orig": "kfoster@hedrickbrothers.com",
       "ScoredBy_Cmte": ["dpark@hedrickbrothers.com"],
-      "scorecardStatus": "In Committee Review",
+      "scorecardStatus": "Awaiting Committee Scoring",
       "currentApprovalStep": 2,
       "committeeScoresEnteredBy": "dpark@hedrickbrothers.com",
       "committeeScoresEnteredDate": "2026-02-07",
@@ -339,7 +339,7 @@
       "OriginatorComments": "K-12 public school market is steady work. Seminole County has multiple projects coming from bond referendum. This could lead to program management relationship.",
       "CommitteeComments": "",
       "ScoredBy_Orig": "jrodriguez@hedrickbrothers.com",
-      "scorecardStatus": "Submitted",
+      "scorecardStatus": "Awaiting Director Review",
       "currentApprovalStep": 1,
       "currentVersion": 1,
       "isLocked": false
@@ -414,7 +414,7 @@
       "TotalScore_Orig": 73,
       "OriginatorComments": "Major healthcare opportunity in growing Orlando market. Orlando Health is one of the largest health systems in FL. HKS is a trusted AE partner for us. Strong pursuit potential.",
       "ScoredBy_Orig": "jrodriguez@hedrickbrothers.com",
-      "scorecardStatus": "Draft",
+      "scorecardStatus": "BD Draft",
       "currentVersion": 1,
       "isLocked": false
     }

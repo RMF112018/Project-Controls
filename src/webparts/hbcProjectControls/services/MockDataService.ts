@@ -134,6 +134,8 @@ import mockSecurityGroupMappings from '../mock/securityGroupMappings.json';
 import mockProjectTeamAssignments from '../mock/projectTeamAssignments.json';
 import mockEnvironmentConfig from '../mock/environmentConfig.json';
 import mockSectorDefinitions from '../mock/sectorDefinitions.json';
+import mockAssignmentMappings from '../mock/assignmentMappings.json';
+import { IAssignmentMapping } from '../models/IAssignmentMapping';
 import { DEFAULT_PREREQUISITES, DEFAULT_DISCUSSION_ITEMS, DEFAULT_EXHIBITS, DEFAULT_SIGNATURES, TURNOVER_SIGNATURE_AFFIDAVIT } from '../utils/turnoverAgendaTemplate';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
@@ -1132,7 +1134,7 @@ export class MockDataService implements IDataService {
     const versions = this.scorecardVersions.filter(v => v.scorecardId === sc.id);
     return {
       ...sc,
-      scorecardStatus: (sc.scorecardStatus as ScorecardStatus) || ScorecardStatus.Draft,
+      scorecardStatus: (sc.scorecardStatus as ScorecardStatus) || ScorecardStatus.BDDraft,
       approvalCycles: cycles,
       versions,
       currentVersion: sc.currentVersion || 1,
@@ -1215,7 +1217,7 @@ export class MockDataService implements IDataService {
       ScoredBy_Orig: data.ScoredBy_Orig,
       ScoredBy_Cmte: data.ScoredBy_Cmte,
       // Phase 16 fields
-      scorecardStatus: ScorecardStatus.Draft,
+      scorecardStatus: ScorecardStatus.BDDraft,
       approvalCycles: [],
       currentVersion: 1,
       versions: [],
@@ -1353,7 +1355,7 @@ export class MockDataService implements IDataService {
     this.scorecardApprovalCycles.push(cycle);
     this.scorecardApprovalSteps.push(step1, step2);
 
-    scorecard.scorecardStatus = ScorecardStatus.Submitted;
+    scorecard.scorecardStatus = ScorecardStatus.AwaitingDirectorReview;
     scorecard.currentApprovalStep = 1;
     scorecard.approvalCycles = [...(scorecard.approvalCycles || []), cycle];
 
@@ -1374,7 +1376,7 @@ export class MockDataService implements IDataService {
     await delay();
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
 
-    if (scorecard.scorecardStatus !== ScorecardStatus.Submitted) {
+    if (scorecard.scorecardStatus !== ScorecardStatus.AwaitingDirectorReview) {
       throw new Error(`Cannot respond: scorecard is in ${scorecard.scorecardStatus} state`);
     }
 
@@ -1394,13 +1396,13 @@ export class MockDataService implements IDataService {
       pendingStep.status = 'Approved';
       pendingStep.actionDate = new Date().toISOString().split('T')[0];
       pendingStep.comment = comment || undefined;
-      scorecard.scorecardStatus = ScorecardStatus.InCommitteeReview;
+      scorecard.scorecardStatus = ScorecardStatus.AwaitingCommitteeScoring;
       scorecard.currentApprovalStep = 2;
     } else {
       pendingStep.status = 'Returned';
       pendingStep.actionDate = new Date().toISOString().split('T')[0];
       pendingStep.comment = comment;
-      scorecard.scorecardStatus = ScorecardStatus.ReturnedForRevision;
+      scorecard.scorecardStatus = ScorecardStatus.DirectorReturnedForRevision;
     }
 
     // Update flat arrays
@@ -1419,7 +1421,7 @@ export class MockDataService implements IDataService {
     await delay();
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
 
-    if (scorecard.scorecardStatus !== ScorecardStatus.InCommitteeReview) {
+    if (scorecard.scorecardStatus !== ScorecardStatus.AwaitingCommitteeScoring) {
       throw new Error(`Cannot enter committee scores: scorecard is in ${scorecard.scorecardStatus} state`);
     }
 
@@ -1441,8 +1443,7 @@ export class MockDataService implements IDataService {
       scorecard.recommendedDecision = rec.decision;
     }
 
-    scorecard.scorecardStatus = ScorecardStatus.PendingDecision;
-
+    // Stay in AwaitingCommitteeScoring — committee decides from this state
     this.scorecards[index] = scorecard;
     return { ...scorecard };
   }
@@ -1456,7 +1457,7 @@ export class MockDataService implements IDataService {
     await delay();
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
 
-    if (scorecard.scorecardStatus !== ScorecardStatus.PendingDecision) {
+    if (scorecard.scorecardStatus !== ScorecardStatus.AwaitingCommitteeScoring) {
       throw new Error(`Cannot record decision: scorecard is in ${scorecard.scorecardStatus} state`);
     }
 
@@ -1471,7 +1472,12 @@ export class MockDataService implements IDataService {
       scorecard.conditionalGoConditions = conditions;
     }
 
-    scorecard.scorecardStatus = ScorecardStatus.Locked;
+    // Set status based on decision
+    if (decision === GoNoGoDecision.Go || decision === GoNoGoDecision.ConditionalGo) {
+      scorecard.scorecardStatus = ScorecardStatus.Go;
+    } else {
+      scorecard.scorecardStatus = ScorecardStatus.NoGo;
+    }
     scorecard.isLocked = true;
 
     // Complete active approval cycle
@@ -1587,7 +1593,7 @@ export class MockDataService implements IDataService {
       this.scorecardApprovalSteps.push(step1, step2);
 
       scorecard.approvalCycles = [...(scorecard.approvalCycles || []), cycle];
-      scorecard.scorecardStatus = ScorecardStatus.Submitted;
+      scorecard.scorecardStatus = ScorecardStatus.AwaitingDirectorReview;
       scorecard.currentApprovalStep = 1;
     } else {
       scorecard.scorecardStatus = ScorecardStatus.Locked;
@@ -5243,5 +5249,139 @@ export class MockDataService implements IDataService {
     if (idx === -1) throw new Error(`Sector definition ${id} not found`);
     this.sectorDefinitions[idx] = { ...this.sectorDefinitions[idx], ...data };
     return JSON.parse(JSON.stringify(this.sectorDefinitions[idx]));
+  }
+
+  // --- BD Leads Folder Operations ---
+  private bdLeadFolders: Set<string> = new Set();
+
+  async createBdLeadFolder(leadTitle: string, originatorName: string): Promise<void> {
+    await delay();
+    const parentPath = `BD Leads/${new Date().getFullYear()}`;
+    const leadFolderPath = `${parentPath}/${leadTitle} - ${originatorName}`;
+
+    // Create parent year folder
+    this.bdLeadFolders.add(parentPath);
+    // Create lead folder
+    this.bdLeadFolders.add(leadFolderPath);
+    // Create subfolders
+    const subfolders = [
+      'Client Information', 'Correspondence', 'Proposal Documents',
+      'Site and Project Plans', 'Financial Estimates', 'Evaluations and Scorecards',
+      'Contracts and Legal', 'Media and Visuals', 'Archives',
+    ];
+    for (const sub of subfolders) {
+      this.bdLeadFolders.add(`${leadFolderPath}/${sub}`);
+    }
+  }
+
+  async checkFolderExists(path: string): Promise<boolean> {
+    await delay();
+    return this.bdLeadFolders.has(path);
+  }
+
+  async createFolder(path: string): Promise<void> {
+    await delay();
+    this.bdLeadFolders.add(path);
+  }
+
+  async renameFolder(oldPath: string, newPath: string): Promise<void> {
+    await delay();
+    // Remove old path and all children, add new path and all children
+    const toRemove: string[] = [];
+    const toAdd: string[] = [];
+    for (const existing of this.bdLeadFolders) {
+      if (existing === oldPath || existing.startsWith(oldPath + '/')) {
+        toRemove.push(existing);
+        toAdd.push(newPath + existing.substring(oldPath.length));
+      }
+    }
+    for (const r of toRemove) this.bdLeadFolders.delete(r);
+    for (const a of toAdd) this.bdLeadFolders.add(a);
+  }
+
+  // --- Assignment Mappings ---
+  private assignmentMappings: IAssignmentMapping[] = JSON.parse(JSON.stringify(mockAssignmentMappings));
+
+  async getAssignmentMappings(): Promise<IAssignmentMapping[]> {
+    await delay();
+    return JSON.parse(JSON.stringify(this.assignmentMappings));
+  }
+
+  async createAssignmentMapping(data: Partial<IAssignmentMapping>): Promise<IAssignmentMapping> {
+    await delay();
+    const maxId = this.assignmentMappings.reduce((max, m) => Math.max(max, m.id), 0);
+    const newMapping: IAssignmentMapping = {
+      id: maxId + 1,
+      region: data.region || 'All Regions',
+      sector: data.sector || 'All Sectors',
+      assignmentType: data.assignmentType || 'Director',
+      assignee: data.assignee || { userId: '', displayName: '', email: '' },
+    };
+    this.assignmentMappings.push(newMapping);
+    return JSON.parse(JSON.stringify(newMapping));
+  }
+
+  async updateAssignmentMapping(id: number, data: Partial<IAssignmentMapping>): Promise<IAssignmentMapping> {
+    await delay();
+    const idx = this.assignmentMappings.findIndex(m => m.id === id);
+    if (idx === -1) throw new Error(`Assignment mapping ${id} not found`);
+    this.assignmentMappings[idx] = { ...this.assignmentMappings[idx], ...data };
+    return JSON.parse(JSON.stringify(this.assignmentMappings[idx]));
+  }
+
+  async deleteAssignmentMapping(id: number): Promise<void> {
+    await delay();
+    const idx = this.assignmentMappings.findIndex(m => m.id === id);
+    if (idx === -1) throw new Error(`Assignment mapping ${id} not found`);
+    this.assignmentMappings.splice(idx, 1);
+  }
+
+  // --- Scorecard Reject / Archive (Phase 22) ---
+
+  async rejectScorecard(scorecardId: number, reason: string): Promise<IGoNoGoScorecard> {
+    await delay();
+    const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
+    scorecard.scorecardStatus = ScorecardStatus.Rejected;
+    scorecard.isLocked = true;
+    scorecard.finalDecision = GoNoGoDecision.NoGo;
+    scorecard.finalDecisionDate = new Date().toISOString().split('T')[0];
+
+    // Complete active cycle
+    const activeCycle = scorecard.approvalCycles?.find(c => c.status === 'Active');
+    if (activeCycle) {
+      activeCycle.status = 'Completed';
+      activeCycle.completedDate = new Date().toISOString().split('T')[0];
+      const pendingStep = activeCycle.steps?.find(s => s.status === 'Pending');
+      if (pendingStep) {
+        pendingStep.status = 'Returned';
+        pendingStep.comment = `Rejected: ${reason}`;
+        pendingStep.actionDate = new Date().toISOString().split('T')[0];
+      }
+    }
+
+    this.createVersionSnapshot(scorecard, `Rejected: ${reason}`, scorecard.finalDecisionBy || 'system');
+    this.scorecards[index] = scorecard;
+    return { ...scorecard };
+  }
+
+  async archiveScorecard(scorecardId: number, archivedBy: string): Promise<IGoNoGoScorecard> {
+    await delay();
+    const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
+    scorecard.isArchived = true;
+    scorecard.archivedDate = new Date().toISOString().split('T')[0];
+    scorecard.archivedBy = archivedBy;
+
+    // Rename folder if it exists
+    const lead = this.leads.find(l => l.id === scorecard.LeadID);
+    if (lead) {
+      const yearStr = new Date().getFullYear().toString();
+      const oldPath = `BD Leads/${yearStr}/${lead.Title}`;
+      if (this.bdLeadFolders.has(oldPath)) {
+        await this.renameFolder(oldPath, `${oldPath}-ARCHIVED`);
+      }
+    }
+
+    this.scorecards[index] = scorecard;
+    return { ...scorecard };
   }
 }
