@@ -334,40 +334,40 @@ export const EstimatingDashboard: React.FC = () => {
 
   // Current Pursuits columns — no fixed width on text columns, removed Kick-Off button
   const pursuitColumns: IDataTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
-    { key: 'Title', header: 'Project', sortable: true, render: (r) => (
+    { key: 'Title', header: 'Project', sortable: true, minWidth: '180px', render: (r) => (
       <span style={{ fontWeight: 500, color: HBC_COLORS.navy, whiteSpace: 'nowrap' }}>{r.Title}</span>
     )},
     { key: 'ProjectCode', header: 'Code', sortable: true, width: '90px', render: (r) => (
       <span style={{ fontFamily: 'monospace', fontSize: '12px', whiteSpace: 'nowrap' }}>{r.ProjectCode || '-'}</span>
     )},
-    { key: 'Source', header: 'Source', sortable: true, render: (r) => (
+    { key: 'Source', header: 'Source', sortable: true, minWidth: '100px', render: (r) => (
       <InlineSelect recordId={r.id} field="Source" value={r.Source} options={sourceOptions} updateFn={handleInlineUpdate} disabled={!canEdit} />
     )},
-    { key: 'DeliverableType', header: 'Type', sortable: true, render: (r) => (
+    { key: 'DeliverableType', header: 'Type', sortable: true, minWidth: '100px', render: (r) => (
       <InlineSelect recordId={r.id} field="DeliverableType" value={r.DeliverableType} options={typeOptions} updateFn={handleInlineUpdate} disabled={!canEdit} />
     )},
-    { key: 'SubBidsDue', header: 'Sub Bids Due', render: (r) => (
+    { key: 'SubBidsDue', header: 'Sub Bids Due', minWidth: '120px', render: (r) => (
       <InlineDate recordId={r.id} field="SubBidsDue" value={r.SubBidsDue} updateFn={handleInlineUpdate} disabled={!canEdit} />
     )},
-    { key: 'PreSubmissionReview', header: 'Pre-Sub Review', render: (r) => (
+    { key: 'PreSubmissionReview', header: 'Pre-Sub Review', minWidth: '120px', render: (r) => (
       <InlineDate recordId={r.id} field="PreSubmissionReview" value={r.PreSubmissionReview} updateFn={handleInlineUpdate} disabled={!canEdit} />
     )},
-    { key: 'WinStrategyMeeting', header: 'Win Strategy', render: (r) => (
+    { key: 'WinStrategyMeeting', header: 'Win Strategy', minWidth: '120px', render: (r) => (
       <InlineDate recordId={r.id} field="WinStrategyMeeting" value={r.WinStrategyMeeting} updateFn={handleInlineUpdate} disabled={!canEdit} />
     )},
-    { key: 'DueDate_OutTheDoor', header: 'Due (OTD)', sortable: true, render: (r) => (
+    { key: 'DueDate_OutTheDoor', header: 'Due (OTD)', sortable: true, minWidth: '120px', render: (r) => (
       <InlineDate recordId={r.id} field="DueDate_OutTheDoor" value={r.DueDate_OutTheDoor} updateFn={handleInlineUpdate} disabled={!canEdit} />
     )},
-    { key: 'LeadEstimator', header: 'Estimator', sortable: true, render: (r) => (
+    { key: 'LeadEstimator', header: 'Estimator', sortable: true, minWidth: '120px', render: (r) => (
       <InlineInput recordId={r.id} field="LeadEstimator" value={r.LeadEstimator || ''} updateFn={handleInlineUpdate} disabled={!canEdit} />
     )},
-    { key: 'Contributors', header: 'Contributors', width: '100px', render: (r) => (
+    { key: 'Contributors', header: 'Contributors', width: '130px', render: (r) => (
       <InlineInput recordId={r.id} field="Contributors" value={(r.Contributors || []).join(', ')} updateFn={(id, data) => {
         const val = String((data as Record<string, unknown>).Contributors || '');
         return handleInlineUpdate(id, { Contributors: val.split(',').map(s => s.trim()).filter(Boolean) } as unknown as Partial<IEstimatingTracker>);
       }} disabled={!canEdit} />
     )},
-    { key: 'PX_ProjectExecutive', header: 'PX', render: (r) => (
+    { key: 'PX_ProjectExecutive', header: 'PX', minWidth: '90px', render: (r) => (
       <InlineInput recordId={r.id} field="PX_ProjectExecutive" value={r.PX_ProjectExecutive || ''} updateFn={handleInlineUpdate} disabled={!canEdit} />
     )},
     ...chkHeaders.map(ch => ({
@@ -383,7 +383,7 @@ export const EstimatingDashboard: React.FC = () => {
         </span>
       ),
     })),
-    { key: 'EstimatedCostValue', header: 'Est. Value', sortable: true, width: '100px', render: (r) => (
+    { key: 'EstimatedCostValue', header: 'Est. Value', sortable: true, width: '110px', render: (r) => (
       <InlineNumber recordId={r.id} field="EstimatedCostValue" value={r.EstimatedCostValue} updateFn={handleInlineUpdate} disabled={!canEdit} format={formatCurrencyCompact} />
     )},
   ], [handleCheckToggle, handleInlineUpdate, canEdit, sourceOptions, typeOptions]);
