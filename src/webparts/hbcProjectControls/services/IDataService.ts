@@ -348,10 +348,14 @@ export interface IDataService {
 
   // Project Team Assignments
   getProjectTeamAssignments(projectCode: string): Promise<IProjectTeamAssignment[]>;
+  getAllProjectTeamAssignments(): Promise<IProjectTeamAssignment[]>;
   getMyProjectAssignments(userEmail: string): Promise<IProjectTeamAssignment[]>;
   createProjectTeamAssignment(data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment>;
   updateProjectTeamAssignment(id: number, data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment>;
   removeProjectTeamAssignment(id: number): Promise<void>;
+
+  // Project Site Group Invitations
+  inviteToProjectSiteGroup(projectCode: string, userEmail: string, role: string): Promise<void>;
 
   // Permission Resolution
   resolveUserPermissions(userEmail: string, projectCode: string | null): Promise<IResolvedPermissions>;

@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-11 — Phase 26: Project Selection Behavior
+**Last Updated:** 2026-02-11 — Phase 27: Admin Project Assignments
 
 ---
 
@@ -167,6 +167,7 @@ src/webparts/hbcProjectControls/
 │   │   │   ├── MarketingDashboard.tsx
 │   │   │   ├── PermissionTemplateEditor.tsx
 │   │   │   ├── PipelinePage.tsx
+│   │   │   ├── ProjectAssignmentsPanel.tsx
 │   │   │   ├── WorkflowDefinitionsPanel.tsx
 │   │   │   └── index.ts
 │   │   ├── precon/                       # Preconstruction pages (estimating, pursuits, autopsies)
@@ -653,7 +654,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 
 ## §7 Service Methods
 
-202 methods on IDataService. Source: `services/IDataService.ts`
+204 methods on IDataService. Source: `services/IDataService.ts`
 
 | # | Method | Signature | Mock | SP | Hook Caller | Mock JSON |
 |---|--------|-----------|------|-----|-------------|-----------|
@@ -859,6 +860,8 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 199 | updateAssignmentMapping | (id: number, data: Partial<IAssignmentMapping>) → Promise<IAssignmentMapping> | Impl | Stub | useAssignmentMappings | assignmentMappings.json |
 | 200 | deleteAssignmentMapping | (id: number) → Promise<void> | Impl | Stub | useAssignmentMappings | assignmentMappings.json |
 | 201 | setProjectSiteUrl | (siteUrl: string \| null) → void | Impl | Impl | AppContext | — |
+| 202 | getAllProjectTeamAssignments | () → Promise<IProjectTeamAssignment[]> | Impl | Stub | usePermissionEngine | projectTeamAssignments.json |
+| 203 | inviteToProjectSiteGroup | (projectCode: string, userEmail: string, role: string) → Promise<void> | Impl | Stub | usePermissionEngine | in-memory |
 
 ---
 
@@ -1444,10 +1447,11 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 25 | Job Number Request Form Alignment — Fixed Skip mode transition bug (`isLeadSelection` now checks `&& !lead`), expanded noLeadMode entry screen from 3→6 fields (added Division select, Sector select, ProjectValue input), 2-column grid layout, main form header shows Division/Sector/Region/ProjectValue context. No model/service/hook/mock data changes. | (none) | JobNumberRequestForm.tsx |
 
 | 26 | Project Selection Behavior — Site detection wired into app (`siteDetector.ts` → AppContext `isProjectSite`), auto-select project on project-specific SP sites, ProjectPicker `locked` mode for project sites, `hubOnly` nav item flag hides multi-project views when project selected, dynamic Lead Detail/Go/No-Go nav items under Preconstruction when project selected, `setProjectSiteUrl()` dual-web plumbing on IDataService/MockDataService/SharePointDataService, dashless project code regex fix in siteDetector (supports `2504201` → `25-042-01` conversion), `ISelectedProject` gains `siteUrl?` field, `IAppContextValue` gains `isProjectSite` boolean | (none) | HbcProjectControlsWebPart.ts, App.tsx, AppContext.tsx, siteDetector.ts, ProjectPicker.tsx, NavigationSidebar.tsx, IDataService.ts, MockDataService.ts, SharePointDataService.ts |
+| 27 | Admin Project Assignments — Hub-level project-user assignment panel in AdminPanel (9th tab "Assignments"). `getAllProjectTeamAssignments()` returns all active assignments across projects. `inviteToProjectSiteGroup()` fire-and-forget SP group invitation (console.log in mock). `addGroupMember()` on GraphService for MS Graph group membership. `usePermissionEngine` hook extended with `getAllAssignments` and `inviteToSiteGroup`. `ProjectAssignmentsPanel.tsx`: Project-grouped layout — main DataTable of projects (code, name, team count badge) with expand/collapse chevrons; expanded section shows per-project assignment sub-DataTable + inline batch-add form (multi-select AzureADPeoplePicker, role select, template override, sequential await per user); useActiveProjects for project name enrichment; search bar filters by name/code. Permission-gated by `permission:project_team:manage`. | ProjectAssignmentsPanel.tsx | IDataService.ts (+2 methods, 204 total), MockDataService.ts, SharePointDataService.ts, GraphService.ts (+addGroupMember), usePermissionEngine.ts, AdminPanel.tsx (9 tabs), pages/hub/index.ts |
 
 ### Known Stubs / Placeholders
 
-- **SharePointDataService**: 152 of 202 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed. `setProjectSiteUrl()` is implemented (stores URL for future dual-web PnP usage).
+- **SharePointDataService**: 154 of 204 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed. `setProjectSiteUrl()` is implemented (stores URL for future dual-web PnP usage).
 - **HubNavigationService**: SharePointHubNavigationService is a stub (all 3 methods throw).
 - **Column Mappings**: `columnMappings.ts` has mappings for all lists but SP service stubs don't use them yet.
 - **Offline Support**: `OfflineQueueService.ts` exists but feature flag `OfflineSupport` is disabled.
@@ -1459,7 +1463,7 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 ### SharePointDataService Status
 
 - **Implemented (49)**: Leads CRUD, Go/No-Go CRUD, Estimating CRUD, Roles/Flags CRUD, Audit log/read, Provisioning read, Phase 6 workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read
-- **Stubbed (152)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff (incl. updateKickoffKeyPersonnel), all job number requests, all workflow definitions, all turnover agenda, all permission templates, all security group mappings, all project team assignments, all sector definitions, all assignment mappings, all BD Leads folder operations, resolveUserPermissions, getAccessibleProjects, getEnvironmentConfig, promoteTemplates, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers, hub site URL write, action inbox (SP)
+- **Stubbed (154)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff (incl. updateKickoffKeyPersonnel), all job number requests, all workflow definitions, all turnover agenda, all permission templates, all security group mappings, all project team assignments (incl. getAllProjectTeamAssignments), all sector definitions, all assignment mappings, all BD Leads folder operations, inviteToProjectSiteGroup, resolveUserPermissions, getAccessibleProjects, getEnvironmentConfig, promoteTemplates, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers, hub site URL write, action inbox (SP)
 
 ---
 
@@ -1533,6 +1537,8 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 34. **`isProjectSite` blocks `setSelectedProject(null)`** — On project-specific SP sites, `handleSetSelectedProject` in AppContext ignores null arguments to prevent clearing the auto-detected project. The ProjectPicker shows as locked (read-only static display). This is intentional — project sites should always have their project selected. On hub sites, clearing works normally.
 
+35. **`inviteToProjectSiteGroup` is fire-and-forget** — When creating a project team assignment, the SP group invitation (`inviteToProjectSiteGroup`) is called fire-and-forget (`.catch(console.error)`). Failures should not block assignment creation — the assignment record is the source of truth, and group membership can be retried later. In mock mode, it logs to console only.
+
 ---
 
 ## Audit Log
@@ -1558,3 +1564,4 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-11 | §5, §6, §7, §9, §10, §12, §15, §16 | Phase 24: Estimating Coordinator UX Enhancements. EC redirect to /preconstruction on login (DashboardPage.tsx). Removed Kick-Off Checklists from NavigationSidebar. Inline-editable dashboard tables (3 tabs, ~30 columns with InlineInput/InlineNumber/InlineDate/InlineSelect React.memo helpers in EstimatingDashboard.tsx). Current Pursuits: auto-width text columns, stripped parenthetical checkbox headers, row-click→kickoff, removed Kick-Off button column. EstimatingKickoffPage: fixed route param bug (`:id` not `:projectCode`), lead selector dropdown, Key Personnel section with AzureADPeoplePicker, Estimating Checklist with multi-select assignees, role-filtered Pursuit Tools. AzureADPeoplePicker: discriminated union props for multiSelect (pills, toggle select, checkmarks). PursuitDetail: removed Estimating Kickoff button, EC role filtering (4 tools vs 5). New model: IKeyPersonnelEntry. IEstimatingKickoff: +keyPersonnel field. IEstimatingKickoffItem: +assignees field. 1 new IDataService method (201 total): updateKickoffKeyPersonnel. EC GONOGO_SCORE_ORIGINATOR permission removed. Added pitfall #31 (EstimatingKickoffPage route param). |
 | 2026-02-11 | §15, §16 | Phase 25: Job Number Request Form Alignment. Fixed Skip mode transition bug (isLeadSelection now checks `&& !lead`). Expanded noLeadMode entry from 3→6 fields (added Division select, Sector select, ProjectValue input). 2-column grid layout. Main form header shows Division/Sector/Region/ProjectValue context. No IJobNumberRequest model changes. No service/hook/mock data changes. Single file modified: JobNumberRequestForm.tsx. Added pitfall #32. |
 | 2026-02-11 | §3, §4, §5, §7, §9, §15, §16 | Phase 26: Project Selection Behavior. Wired `siteDetector.ts` into app — `detectSiteContext()` → AppContext `isProjectSite` flag. WebPart passes `pageContext.web.absoluteUrl` as `siteUrl` prop. AppProvider computes site context, auto-selects project on project-specific SP sites via `searchLeads()`. `ISelectedProject` gains `siteUrl?` field. `IAppContextValue` gains `isProjectSite` boolean. `handleSetSelectedProject` blocks null on project sites. ProjectPicker gains `locked?` prop — shows read-only static display when true. NavigationSidebar: `hubOnly` flag on 10 multi-project nav items, dynamic Lead Detail + Go/No-Go items under Preconstruction when project selected. `setProjectSiteUrl()` added to IDataService (method #202): no-op in Mock, stores URL in SharePointDataService for future dual-web PnP. `siteDetector.ts` dashless project code regex fix (7-digit `2504201` → `25-042-01`). AppContext effect calls `setProjectSiteUrl()` on selectedProject changes. Added pitfalls #33 (dashless siteDetector) and #34 (isProjectSite blocks null). |
+| 2026-02-11 | §2, §7, §15, §16 | Phase 27: Admin Project Assignments. Hub-level project-user assignment panel in AdminPanel 9th tab ("Assignments"). 2 new IDataService methods (204 total): `getAllProjectTeamAssignments` (returns all active assignments), `inviteToProjectSiteGroup` (fire-and-forget SP group invite, console.log in mock). `addGroupMember(groupId, userId)` added to IGraphService + GraphService class. `usePermissionEngine` hook extended with `getAllAssignments` and `inviteToSiteGroup`. `ProjectAssignmentsPanel.tsx`: Project-grouped layout — main DataTable of projects (code, name, team count badge) with expand/collapse chevrons; expanded section shows per-project assignment sub-DataTable + inline batch-add form (multi-select AzureADPeoplePicker, role select, template override, sequential await per user); search bar filters projects by name/code; total assignment count badge; useActiveProjects for project name enrichment. Permission-gated by `permission:project_team:manage`. Added pitfall #35 (inviteToProjectSiteGroup fire-and-forget). |
