@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-11 — Phase 27: Admin Project Assignments
+**Last Updated:** 2026-02-11 — Phase 28: Post-Bid Autopsy Create Button
 
 ---
 
@@ -1049,6 +1049,7 @@ Legend: **X** = has permission
 | kickoff:edit | | X | | | | X | X | | | | | | | X |
 | kickoff:template:edit | | X | | | | X | X | | | | | | | X |
 | autopsy:view | X | X | | X | | X | X | | | | | | | X |
+| autopsy:create | X | X | | | | X | X | | | | | | | X |
 | autopsy:edit | X | X | | | | X | X | | | | | | | X |
 | autopsy:schedule | X | X | | | | X | X | | | | | | | X |
 | buyout:view | | | | X | X | X | X | | | | | | | X |
@@ -1448,6 +1449,7 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 | 26 | Project Selection Behavior — Site detection wired into app (`siteDetector.ts` → AppContext `isProjectSite`), auto-select project on project-specific SP sites, ProjectPicker `locked` mode for project sites, `hubOnly` nav item flag hides multi-project views when project selected, dynamic Lead Detail/Go/No-Go nav items under Preconstruction when project selected, `setProjectSiteUrl()` dual-web plumbing on IDataService/MockDataService/SharePointDataService, dashless project code regex fix in siteDetector (supports `2504201` → `25-042-01` conversion), `ISelectedProject` gains `siteUrl?` field, `IAppContextValue` gains `isProjectSite` boolean | (none) | HbcProjectControlsWebPart.ts, App.tsx, AppContext.tsx, siteDetector.ts, ProjectPicker.tsx, NavigationSidebar.tsx, IDataService.ts, MockDataService.ts, SharePointDataService.ts |
 | 27 | Admin Project Assignments — Hub-level project-user assignment panel in AdminPanel (9th tab "Assignments"). `getAllProjectTeamAssignments()` returns all active assignments across projects. `inviteToProjectSiteGroup()` fire-and-forget SP group invitation (console.log in mock). `addGroupMember()` on GraphService for MS Graph group membership. `usePermissionEngine` hook extended with `getAllAssignments` and `inviteToSiteGroup`. `ProjectAssignmentsPanel.tsx`: Project-grouped layout — main DataTable of projects (code, name, team count badge) with expand/collapse chevrons; expanded section shows per-project assignment sub-DataTable + inline batch-add form (multi-select AzureADPeoplePicker, role select, template override, sequential await per user); useActiveProjects for project name enrichment; search bar filters by name/code. Permission-gated by `permission:project_team:manage`. | ProjectAssignmentsPanel.tsx | IDataService.ts (+2 methods, 204 total), MockDataService.ts, SharePointDataService.ts, GraphService.ts (+addGroupMember), usePermissionEngine.ts, AdminPanel.tsx (9 tabs), pages/hub/index.ts |
+| 28 | Post-Bid Autopsy Create Button — "Create New Autopsy Report" button in PostBidAutopsyList PageHeader with inline lead selector (dropdown of eligible ArchivedLoss leads without existing autopsy). New `autopsy:create` permission (BD Rep, Est Coord, Exec, Dept Dir, SP Admin). Bug fix: PostBidAutopsyForm `useParams` param mismatch (`:id` not `:leadId`). | (none) | PostBidAutopsyList.tsx (+create button, +lead selector, +permission gate), PostBidAutopsyForm.tsx (param fix: `leadId` → `id`), permissions.ts (+AUTOPSY_CREATE, +4 ROLE_PERMISSIONS entries) |
 
 ### Known Stubs / Placeholders
 
@@ -1539,6 +1541,8 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 35. **`inviteToProjectSiteGroup` is fire-and-forget** — When creating a project team assignment, the SP group invitation (`inviteToProjectSiteGroup`) is called fire-and-forget (`.catch(console.error)`). Failures should not block assignment creation — the assignment record is the source of truth, and group membership can be retried later. In mock mode, it logs to console only.
 
+36. **PostBidAutopsyForm uses `:id` route param (not `:leadId`)** — The route is `/preconstruction/pursuit/:id/autopsy-form` where `:id` is the lead ID. The component reads `useParams<{ id }>()`. Previously it destructured `{ leadId }` which was a param name mismatch causing the form to always show "No lead specified". Fixed in Phase 28.
+
 ---
 
 ## Audit Log
@@ -1565,3 +1569,4 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-11 | §15, §16 | Phase 25: Job Number Request Form Alignment. Fixed Skip mode transition bug (isLeadSelection now checks `&& !lead`). Expanded noLeadMode entry from 3→6 fields (added Division select, Sector select, ProjectValue input). 2-column grid layout. Main form header shows Division/Sector/Region/ProjectValue context. No IJobNumberRequest model changes. No service/hook/mock data changes. Single file modified: JobNumberRequestForm.tsx. Added pitfall #32. |
 | 2026-02-11 | §3, §4, §5, §7, §9, §15, §16 | Phase 26: Project Selection Behavior. Wired `siteDetector.ts` into app — `detectSiteContext()` → AppContext `isProjectSite` flag. WebPart passes `pageContext.web.absoluteUrl` as `siteUrl` prop. AppProvider computes site context, auto-selects project on project-specific SP sites via `searchLeads()`. `ISelectedProject` gains `siteUrl?` field. `IAppContextValue` gains `isProjectSite` boolean. `handleSetSelectedProject` blocks null on project sites. ProjectPicker gains `locked?` prop — shows read-only static display when true. NavigationSidebar: `hubOnly` flag on 10 multi-project nav items, dynamic Lead Detail + Go/No-Go items under Preconstruction when project selected. `setProjectSiteUrl()` added to IDataService (method #202): no-op in Mock, stores URL in SharePointDataService for future dual-web PnP. `siteDetector.ts` dashless project code regex fix (7-digit `2504201` → `25-042-01`). AppContext effect calls `setProjectSiteUrl()` on selectedProject changes. Added pitfalls #33 (dashless siteDetector) and #34 (isProjectSite blocks null). |
 | 2026-02-11 | §2, §7, §15, §16 | Phase 27: Admin Project Assignments. Hub-level project-user assignment panel in AdminPanel 9th tab ("Assignments"). 2 new IDataService methods (204 total): `getAllProjectTeamAssignments` (returns all active assignments), `inviteToProjectSiteGroup` (fire-and-forget SP group invite, console.log in mock). `addGroupMember(groupId, userId)` added to IGraphService + GraphService class. `usePermissionEngine` hook extended with `getAllAssignments` and `inviteToSiteGroup`. `ProjectAssignmentsPanel.tsx`: Project-grouped layout — main DataTable of projects (code, name, team count badge) with expand/collapse chevrons; expanded section shows per-project assignment sub-DataTable + inline batch-add form (multi-select AzureADPeoplePicker, role select, template override, sequential await per user); search bar filters projects by name/code; total assignment count badge; useActiveProjects for project name enrichment. Permission-gated by `permission:project_team:manage`. Added pitfall #35 (inviteToProjectSiteGroup fire-and-forget). |
+| 2026-02-11 | §10, §15, §16 | Phase 28: Post-Bid Autopsy Create Button. Added "Create New Autopsy Report" button to PostBidAutopsyList PageHeader with inline lead selector dropdown (eligible ArchivedLoss leads without existing autopsy). New permission `autopsy:create` added to PERMISSIONS constant and 4 ROLE_PERMISSIONS entries (BD Rep, Est Coord, Exec, Dept Dir; SP Admin inherits via spread). Bug fix: PostBidAutopsyForm `useParams` destructure changed from `{ leadId }` to `{ id }` to match route param `:id`. Added pitfall #36. |
