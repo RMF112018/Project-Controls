@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IEstimatingKickoff, IEstimatingKickoffItem } from '../../models/IEstimatingKickoff';
+import { IEstimatingKickoff, IEstimatingKickoffItem, IKeyPersonnelEntry } from '../../models/IEstimatingKickoff';
 
 interface IUseEstimatingKickoffResult {
   kickoff: IEstimatingKickoff | null;
@@ -13,6 +13,7 @@ interface IUseEstimatingKickoffResult {
   updateItem: (itemId: number, data: Partial<IEstimatingKickoffItem>) => Promise<void>;
   addItem: (item: Partial<IEstimatingKickoffItem>) => Promise<void>;
   removeItem: (itemId: number) => Promise<void>;
+  updateKeyPersonnel: (personnel: IKeyPersonnelEntry[]) => Promise<void>;
 }
 
 export function useEstimatingKickoff(): IUseEstimatingKickoffResult {
@@ -83,6 +84,12 @@ export function useEstimatingKickoff(): IUseEstimatingKickoffResult {
     setKickoff(prev => prev ? { ...prev, items: prev.items.filter(i => i.id !== itemId) } : prev);
   }, [dataService, kickoff]);
 
+  const updateKeyPersonnel = React.useCallback(async (personnel: IKeyPersonnelEntry[]) => {
+    if (!kickoff) return;
+    const updated = await dataService.updateKickoffKeyPersonnel(kickoff.id, personnel);
+    setKickoff(updated);
+  }, [dataService, kickoff]);
+
   return {
     kickoff,
     isLoading,
@@ -94,5 +101,6 @@ export function useEstimatingKickoff(): IUseEstimatingKickoffResult {
     updateItem,
     addItem,
     removeItem,
+    updateKeyPersonnel,
   };
 }

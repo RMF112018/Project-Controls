@@ -56,7 +56,7 @@ export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { setSelectedProject } = useAppContext();
+  const { setSelectedProject, currentUser } = useAppContext();
   const { leads, isLoading: leadsLoading, fetchLeads } = useLeads();
   const { records, isLoading: estLoading, fetchRecords } = useEstimating();
   const { items: actionItems, loading: actionLoading, totalCount: actionTotal, urgentCount, refresh: refreshActions } = useActionInbox();
@@ -67,6 +67,13 @@ export const DashboardPage: React.FC = () => {
   const [yearFilter, setYearFilter] = usePersistedState<string>('dashboard-year', 'All');
   const [regionFilter, setRegionFilter] = usePersistedState<string>('dashboard-region', 'All');
   const [divisionFilter, setDivisionFilter] = usePersistedState<string>('dashboard-division', 'All');
+
+  // Redirect EC to Estimating Dashboard
+  React.useEffect(() => {
+    if (currentUser?.roles.includes(RoleName.EstimatingCoordinator)) {
+      navigate('/preconstruction', { replace: true });
+    }
+  }, [currentUser, navigate]);
 
   React.useEffect(() => {
     fetchLeads().catch(console.error);

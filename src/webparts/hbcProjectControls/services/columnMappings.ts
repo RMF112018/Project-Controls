@@ -461,6 +461,7 @@ export const ESTIMATING_KICKOFFS_COLUMNS = {
   PreSubmissionReview: 'PreSubmissionReview',   // SP: DateTime
   SubcontractorSiteWalkThru: 'SubcontractorSiteWalkThru', // SP: DateTime
   OwnerEstimateReview: 'OwnerEstimateReview',  // SP: DateTime
+  KeyPersonnel: 'KeyPersonnel',                // SP: Note (JSON-serialized IKeyPersonnelEntry[])
   // items: stored in child list → Estimating_Kickoff_Items
   KickoffMeetingId: 'KickoffMeetingId',        // SP: Single Line of Text
   KickoffMeetingDate: 'KickoffMeetingDate',    // SP: DateTime
@@ -483,6 +484,7 @@ export const ESTIMATING_KICKOFF_ITEMS_COLUMNS = {
   task: 'task',                                // SP: Single Line of Text
   status: 'status',                            // SP: Choice
   responsibleParty: 'responsibleParty',        // SP: Single Line of Text
+  Assignees: 'Assignees',                      // SP: Note (JSON-serialized IPersonAssignment[])
   deadline: 'deadline',                        // SP: DateTime
   frequency: 'frequency',                      // SP: Single Line of Text
   notes: 'notes',                              // SP: Multiple Lines of Text

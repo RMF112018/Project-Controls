@@ -37,7 +37,6 @@ const NAV_STRUCTURE: INavGroupDef[] = [
       { label: 'Go/No-Go Tracker', path: '/preconstruction/gonogo' },
       { label: 'Precon Tracker', path: '/preconstruction/precon-tracker' },
       { label: 'Estimate Log', path: '/preconstruction/estimate-log' },
-      { label: 'Kick-Off Checklists', path: '/preconstruction/kickoff-list', permission: PERMISSIONS.KICKOFF_VIEW },
       { label: 'Post-Bid Autopsies', path: '/preconstruction/autopsy-list', permission: PERMISSIONS.AUTOPSY_VIEW },
       { label: 'New Lead', path: '/lead/new', permission: PERMISSIONS.LEAD_CREATE },
       { label: 'Job Number Request', path: '/job-request', permission: PERMISSIONS.JOB_NUMBER_REQUEST_CREATE },

@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-10 — UI Enhancement: Visual Polish, SkeletonLoader, Breadcrumbs, Toast, Deep Linking, Accessibility
+**Last Updated:** 2026-02-11 — Phase 24: Estimating Coordinator UX Enhancements
 
 ---
 
@@ -413,7 +413,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 |-----------|------|-----------|-------------------|
 | ActivityTimeline | components/shared/ActivityTimeline.tsx | entries: ITimelineEntry[], maxItems?, emptyMessage? | ~0 (available) |
 | AutopsyMeetingScheduler | components/shared/AutopsyMeetingScheduler.tsx | attendeeEmails, leadId?, projectCode?, onScheduled?, onCancel? | ~1 |
-| AzureADPeoplePicker | components/shared/AzureADPeoplePicker.tsx | selectedUser, onSelect, label?, placeholder?, disabled? | ~2 |
+| AzureADPeoplePicker | components/shared/AzureADPeoplePicker.tsx | Single: selectedUser, onSelect; Multi: multiSelect=true, selectedUsers, onSelectMulti; Common: label?, placeholder?, disabled? | ~4 |
 | Breadcrumb | components/shared/Breadcrumb.tsx | items: IBreadcrumbItem[] | ~38 |
 | CollapsibleSection | components/shared/CollapsibleSection.tsx | title, subtitle?, defaultExpanded?, badge?, children | ~0 (available) |
 | ConditionBuilder | components/shared/ConditionBuilder.tsx | assignment, onChange, onRemove, disabled? | ~1 |
@@ -456,8 +456,9 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | IGoNoGoScorecard | models/IGoNoGoScorecard.ts | id, LeadID, scores, TotalScore_Orig?, TotalScore_Cmte?, Decision?, DecisionDate? | GoNoGo_Scorecard | Hub |
 | IScorecardCriterion | models/IGoNoGoScorecard.ts | id, label, high, avg, low | GoNoGo_Scorecard | Hub |
 | IEstimatingTracker | models/IEstimatingTracker.ts | id, Title (@denormalized), LeadID, ProjectCode, Source?, DeliverableType?, DueDate_OutTheDoor?, LeadEstimator?, AwardStatus? | Estimating_Tracker | Hub |
-| IEstimatingKickoff | models/IEstimatingKickoff.ts | id, LeadID, ProjectCode, Architect?, ProposalDueDateTime?, items: IEstimatingKickoffItem[] | Estimating_Kickoffs | Hub |
-| IEstimatingKickoffItem | models/IEstimatingKickoff.ts | id, kickoffId?, section, task, status, responsibleParty?, sortOrder | Estimating_Kickoff_Items | Hub |
+| IEstimatingKickoff | models/IEstimatingKickoff.ts | id, LeadID, ProjectCode, Architect?, ProposalDueDateTime?, keyPersonnel?: IKeyPersonnelEntry[], items: IEstimatingKickoffItem[] | Estimating_Kickoffs | Hub |
+| IKeyPersonnelEntry | models/IEstimatingKickoff.ts | id, label, person: IPersonAssignment | Estimating_Kickoffs (JSON) | Hub |
+| IEstimatingKickoffItem | models/IEstimatingKickoff.ts | id, kickoffId?, section, task, status, responsibleParty?, assignees?: IPersonAssignment[], sortOrder | Estimating_Kickoff_Items | Hub |
 | IJobNumberRequest | models/IJobNumberRequest.ts | id, LeadID, RequestDate, Originator, ProjectExecutive (@denormalized), ProjectManager? (@denormalized), RequestStatus, AssignedJobNumber? | Job_Number_Requests | Hub |
 | ILossAutopsy | models/ILossAutopsy.ts | id, leadId, actionItems: IActionItem[], processScore, overallRating, isFinalized | Loss_Autopsies | Hub |
 | IMarketingProjectRecord | models/IMarketingProjectRecord.ts | projectName (@denormalized), projectCode, contractBudget (@denormalized), sectionCompletion, overallCompletion | Marketing_Project_Records | Hub |
@@ -618,7 +619,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 
 ## §7 Service Methods
 
-172 methods on IDataService. Source: `services/IDataService.ts`
+173 methods on IDataService. Source: `services/IDataService.ts`
 
 | # | Method | Signature | Mock | SP | Hook Caller | Mock JSON |
 |---|--------|-----------|------|-----|-------------|-----------|
@@ -736,6 +737,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 112 | updateKickoffItem | (kickoffId: number, itemId: number, data: Partial<IEstimatingKickoffItem>) → Promise<IEstimatingKickoffItem> | Impl | Stub | useEstimatingKickoff | estimatingKickoffs.json |
 | 113 | addKickoffItem | (kickoffId: number, item: Partial<IEstimatingKickoffItem>) → Promise<IEstimatingKickoffItem> | Impl | Stub | useEstimatingKickoff | estimatingKickoffs.json |
 | 114 | removeKickoffItem | (kickoffId: number, itemId: number) → Promise<void> | Impl | Stub | useEstimatingKickoff | estimatingKickoffs.json |
+| 173 | updateKickoffKeyPersonnel | (kickoffId: number, personnel: IKeyPersonnelEntry[]) → Promise<IEstimatingKickoff> | Impl | Stub | useEstimatingKickoff | estimatingKickoffs.json |
 | 115 | getJobNumberRequests | (status?: JobNumberRequestStatus) → Promise<IJobNumberRequest[]> | Impl | Stub | useJobNumberRequest | jobNumberRequests.json |
 | 116 | getJobNumberRequestByLeadId | (leadId: number) → Promise<IJobNumberRequest \| null> | Impl | Stub | useJobNumberRequest | jobNumberRequests.json |
 | 117 | createJobNumberRequest | (data: Partial<IJobNumberRequest>) → Promise<IJobNumberRequest> | Impl | Stub | useJobNumberRequest | jobNumberRequests.json |
@@ -871,7 +873,6 @@ Preconstruction                              [roles: BD Rep, Estimating Coord, P
   ├── Go/No-Go Tracker                       [/preconstruction/gonogo]
   ├── Precon Tracker                          [/preconstruction/precon-tracker]
   ├── Estimate Log                            [/preconstruction/estimate-log]
-  ├── Kick-Off Checklists                     [/preconstruction/kickoff-list, permission: kickoff:view]
   ├── Post-Bid Autopsies                      [/preconstruction/autopsy-list, permission: autopsy:view]
   ├── New Lead                                [/lead/new, permission: lead:create]
   ├── Job Number Request                      [/job-request, permission: job_number_request:create]
@@ -918,7 +919,7 @@ Legend: **X** = has permission
 | lead:read | X | X | X | | | X | X | X | X | X | | | |
 | lead:edit | X | | | | | | | | | | | | |
 | lead:delete | X | | | | | | | | | | | | |
-| gonogo:score:originator | X | X | | | | | | | | | | | |
+| gonogo:score:originator | X | | | | | | | | | | | | |
 | gonogo:score:committee | | | | | | X | X | | | | | | |
 | gonogo:submit | X | | | | | | | | | | | | |
 | gonogo:decide | | | | | | X | X | | | | | | |
@@ -1337,9 +1338,11 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 18 | Department Director Role + Go/No-Go Workflow Bug Fixes — 13th RBAC role (DepartmentDirector) for non-C-suite directors (e.g., Director of Precon). Bug fixes: relockScorecard(startNewCycle:true) now creates approval cycle directly; getScorecardByLeadId/getScorecards return reassembled scorecards; updateScorecard preserves workflow state fields; defensive status guards on 4 mutation methods. | (none) | enums.ts (+DepartmentDirector), permissions.ts (+ROLE_PERMISSIONS entry, +NAV_GROUP_ROLES), useGoNoGo.ts (isExecLeadership→isDirectorOrExec, 5 locations), MockDataService.ts (relockScorecard cycle creation, getScorecardByLeadId/getScorecards reassembly, updateScorecard preservation, 4 status guards, getActionItems DepartmentDirector check), users.json (David Park→Department Director), RoleSwitcher.tsx (+1 option), DashboardPage.tsx (+3 RoleGate), GoNoGoMeetingScheduler.tsx (+DepartmentDirector attendees + RoleGate), ActiveProjectsDashboard.tsx (+RoleGate), MarketingDashboard.tsx (+RoleGate), EstimatingDashboard.tsx (+RoleGate), WinLossRecorder.tsx (+RoleGate), LossAutopsy.tsx (+RoleGate), NotificationService.ts (+Department Director to 18 recipient arrays) |
 | 19 | UI Enhancements — 4-batch visual polish, information architecture, collaborative UI, and accessibility improvements across the entire app | Breadcrumb.tsx, SkeletonLoader.tsx, CollapsibleSection.tsx, SlideDrawer.tsx, ToastContainer.tsx, ActivityTimeline.tsx, usePersistedState.ts, useTabFromUrl.ts, useKeyboardShortcut.ts, breadcrumbs.ts | App.tsx (ToastProvider), AppShell.tsx (skip-link, print styles, ARIA landmarks, SkeletonLoader), tokens.ts (ELEVATION, TRANSITION), globalStyles.ts, KPICard.tsx, DataTable.tsx, 37 page files (SkeletonLoader replacing LoadingSpinner), 38 page files (Breadcrumb integration), AdminPanel.tsx (useTabFromUrl), TurnoverToOps.tsx (useTabFromUrl), LeadFormPage/LeadDetailPage/GoNoGoScorecard/BuyoutLogPage/ProjectStartupChecklist (useToast) |
 
+| 24 | Estimating Coordinator UX Enhancements — EC landing page redirect, remove Kick-Off Checklists nav item, inline-editable dashboard tables (3 tabs, ~30 columns with InlineInput/InlineNumber/InlineDate/InlineSelect helpers), Current Pursuits column auto-sizing + header cleanup + row-click navigation + Kick-Off button removal, EstimatingKickoffPage overhaul (route param fix `:id` not `:projectCode`, lead selector, Key Personnel with AzureADPeoplePicker, checklist with multi-select assignees, role-filtered Pursuit Tools), AzureADPeoplePicker multi-select support (discriminated union props), PursuitDetail tool filtering + Estimating Kickoff button removal, EC GONOGO_SCORE_ORIGINATOR permission removed | (none) | DashboardPage.tsx, NavigationSidebar.tsx, EstimatingDashboard.tsx, EstimatingKickoffPage.tsx, PursuitDetail.tsx, AzureADPeoplePicker.tsx, IEstimatingKickoff.ts, useEstimatingKickoff.ts, IDataService.ts, MockDataService.ts, SharePointDataService.ts, permissions.ts, estimatingKickoffs.json, columnMappings.ts |
+
 ### Known Stubs / Placeholders
 
-- **SharePointDataService**: 123 of 172 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
+- **SharePointDataService**: 124 of 173 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
 - **HubNavigationService**: SharePointHubNavigationService is a stub (all 3 methods throw).
 - **Column Mappings**: `columnMappings.ts` has mappings for all lists but SP service stubs don't use them yet.
 - **Offline Support**: `OfflineQueueService.ts` exists but feature flag `OfflineSupport` is disabled.
@@ -1351,7 +1354,7 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 ### SharePointDataService Status
 
 - **Implemented (49)**: Leads CRUD, Go/No-Go CRUD, Estimating CRUD, Roles/Flags CRUD, Audit log/read, Provisioning read, Phase 6 workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read
-- **Stubbed (123)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff, all job number requests, all workflow definitions, all turnover agenda, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers, hub site URL write, action inbox (SP)
+- **Stubbed (124)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff (incl. updateKickoffKeyPersonnel), all job number requests, all workflow definitions, all turnover agenda, reference data, re-key, sync, promote, getCurrentUser, meetings, notifications, provisioning triggers, hub site URL write, action inbox (SP)
 
 ---
 
@@ -1397,6 +1400,8 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 20. **useTabFromUrl for deep-linkable tabs** — Tabbed pages (AdminPanel, TurnoverToOps) use `useTabFromUrl` hook to sync tab state with URL `?tab=` parameter. Pages that already use route-based tabs (EstimatingDashboard, ResponsibilityMatrices) should NOT use this hook — they are already URL-driven via `navigate()`.
 
+21. **EstimatingKickoffPage uses `id` route param (not `projectCode`)** — The route is `/preconstruction/pursuit/:id/kickoff` where `:id` is the estimating tracker record ID. The component reads `useParams<{ id }>()`, then calls `getRecordById(Number(id))` to look up the `IEstimatingTracker` and get the `ProjectCode`. Never use `projectCode` as a route param — it was a latent bug that has been fixed in Phase 24.
+
 ---
 
 ## Audit Log
@@ -1410,3 +1415,4 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-09 | §2, §6, §7, §15, §16 | Phase 17: Scorecard Unlock Fix, Director Role & Action Inbox. Bug fixes in useGoNoGo: canUnlock checks approval chain participants OR Executive Leadership (was GONOGO_DECIDE only); canReview/canEnterCommitteeScores/canDecide now grant access to Executive Leadership role regardless of email match (fixes mock dev user email mismatch with workflow step assignees). New model: IActionInboxItem (models/IActionInbox.ts). 2 new enums: WorkflowActionType (8 values), ActionPriority (3 values). 1 new IDataService method (172 total): getActionItems. New hook: useActionInbox (auto-refresh 5min). DashboardPage: Action Inbox section between filters and KPI cards. SharePointDataService: 49 implemented, 123 stubs. |
 | 2026-02-09 | §15, §16 | Phase 17 bug fixes: MockDataService.getCurrentUser() now returns first real user from users.json matching selected role (was hardcoded 'devuser@hedrickbrothers.com'). Role-to-user mapping: BD Rep=Sarah Mitchell (smitchell), Exec=Mike Hedrick (mhedrick), etc. submitScorecard() looks up submitter displayName from users list. respondToScorecardSubmission() defensively reassembles approval cycles from flat arrays if missing. Added pitfall #13 (getCurrentUser real users) and #14 (Executive Leadership role fallback). |
 | 2026-02-09 | §6, §10, §15, §16 | Phase 18: Department Director Role + Go/No-Go Workflow Bug Fixes. Added DepartmentDirector to RoleName enum (13th role). New ROLE_PERMISSIONS entry (operational subset of Executive Leadership — NO admin access). NAV_GROUP_ROLES updated (Marketing, Preconstruction, Operations — NOT Admin). useGoNoGo.ts: isExecLeadership→isDirectorOrExec (5 locations). Mock users.json: David Park role changed from Executive Leadership to Department Director. RoleSwitcher: +1 option. 7 page files updated with DepartmentDirector in RoleGate arrays. NotificationService: 18 recipient arrays updated. MockDataService bug fixes: relockScorecard creates approval cycle for startNewCycle=true; getScorecardByLeadId/getScorecards return reassembled scorecards; updateScorecard preserves workflow state fields; 4 defensive status guards added. RBAC table expanded to 13 columns. Added pitfalls #15-#17. |
+| 2026-02-11 | §5, §6, §7, §9, §10, §12, §15, §16 | Phase 24: Estimating Coordinator UX Enhancements. EC redirect to /preconstruction on login (DashboardPage.tsx). Removed Kick-Off Checklists from NavigationSidebar. Inline-editable dashboard tables (3 tabs, ~30 columns with InlineInput/InlineNumber/InlineDate/InlineSelect React.memo helpers in EstimatingDashboard.tsx). Current Pursuits: auto-width text columns, stripped parenthetical checkbox headers, row-click→kickoff, removed Kick-Off button column. EstimatingKickoffPage: fixed route param bug (`:id` not `:projectCode`), lead selector dropdown, Key Personnel section with AzureADPeoplePicker, Estimating Checklist with multi-select assignees, role-filtered Pursuit Tools. AzureADPeoplePicker: discriminated union props for multiSelect (pills, toggle select, checkmarks). PursuitDetail: removed Estimating Kickoff button, EC role filtering (4 tools vs 5). New model: IKeyPersonnelEntry. IEstimatingKickoff: +keyPersonnel field. IEstimatingKickoffItem: +assignees field. 1 new IDataService method (173 total): updateKickoffKeyPersonnel. EC GONOGO_SCORE_ORIGINATOR permission removed. Added pitfall #21 (EstimatingKickoffPage route param). |

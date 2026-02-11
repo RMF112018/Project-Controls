@@ -8,7 +8,7 @@ import { Breadcrumb } from '../../shared/Breadcrumb';
 import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
-import { IEstimatingTracker, AwardStatus, EstimateSource, DeliverableType, WinLossDecision, GoNoGoDecision, AuditAction, EntityType } from '../../../models';
+import { IEstimatingTracker, AwardStatus, EstimateSource, DeliverableType, WinLossDecision, GoNoGoDecision, AuditAction, EntityType, RoleName } from '../../../models';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import { formatCurrency, formatDate, getDaysUntil, getUrgencyColor } from '../../../utils/formatters';
 import { PERMISSIONS } from '../../../utils/permissions';
@@ -442,14 +442,18 @@ export const PursuitDetail: React.FC = () => {
       <div style={{ ...cardStyle, marginTop: '16px' }}>
         <h3 style={{ fontSize: '15px', fontWeight: 600, color: HBC_COLORS.navy, marginBottom: '12px' }}>Pursuit Tools</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '8px' }}>
-          {[
-            { label: 'Estimating Kickoff', path: `/preconstruction/pursuit/${id}/kickoff` },
-            { label: 'Interview Prep', path: `/preconstruction/pursuit/${id}/interview` },
-            { label: 'Win/Loss', path: `/preconstruction/pursuit/${id}/winloss` },
-            { label: 'Turnover to Ops', path: `/preconstruction/pursuit/${id}/turnover` },
-            { label: 'Loss Autopsy', path: `/preconstruction/pursuit/${id}/autopsy` },
-            { label: 'Deliverables', path: `/preconstruction/pursuit/${id}/deliverables` },
-          ].map(tool => (
+          {(() => {
+            const allTools = [
+              { label: 'Interview Prep', path: `/preconstruction/pursuit/${id}/interview` },
+              { label: 'Deliverables', path: `/preconstruction/pursuit/${id}/deliverables` },
+              { label: 'Win/Loss', path: `/preconstruction/pursuit/${id}/winloss` },
+              { label: 'Turnover to Ops', path: `/preconstruction/pursuit/${id}/turnover` },
+              { label: 'Loss Autopsy', path: `/preconstruction/pursuit/${id}/autopsy` },
+            ];
+            const EC_TOOLS = ['Deliverables', 'Win/Loss', 'Turnover to Ops', 'Loss Autopsy'];
+            const isEC = currentUser?.roles.includes(RoleName.EstimatingCoordinator);
+            return isEC ? allTools.filter(t => EC_TOOLS.includes(t.label)) : allTools;
+          })().map(tool => (
             <div
               key={tool.path}
               onClick={() => navigate(tool.path)}
