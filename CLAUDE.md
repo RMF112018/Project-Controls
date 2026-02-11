@@ -435,7 +435,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | CollapsibleSection | components/shared/CollapsibleSection.tsx | title, subtitle?, defaultExpanded?, badge?, children | ~0 (available) |
 | ConditionBuilder | components/shared/ConditionBuilder.tsx | assignment, onChange, onRemove, disabled? | ~1 |
 | ConfirmDialog | components/shared/ConfirmDialog.tsx | open, title, message, confirmLabel?, cancelLabel?, onConfirm, onCancel, danger? | ~1 |
-| DataTable | components/shared/DataTable.tsx | columns: IDataTableColumn<T>[], items, keyExtractor, isLoading?, onRowClick?, sortField?, onSort?, pageSize? | ~12 |
+| DataTable | components/shared/DataTable.tsx | columns: IDataTableColumn<T>[] (key, header, render, sortable?, width?, minWidth?, hideOnMobile?), items, keyExtractor, isLoading?, onRowClick?, sortField?, onSort?, pageSize? | ~12 |
 | EmptyState | components/shared/EmptyState.tsx | title, description?, icon?, action? | internal (DataTable) |
 | ErrorBoundary | components/shared/ErrorBoundary.tsx | children, fallback? | 1 (App.tsx root) |
 | ExportButtons | components/shared/ExportButtons.tsx | pdfElementId?, data?, filename, title? | ~10 |

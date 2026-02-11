@@ -10,6 +10,7 @@ export interface IDataTableColumn<T> {
   render: (item: T) => React.ReactNode;
   sortable?: boolean;
   width?: string;
+  minWidth?: string;
   hideOnMobile?: boolean;
 }
 
@@ -98,6 +99,7 @@ export function DataTable<T>({
                     cursor: col.sortable && onSort ? 'pointer' : 'default',
                     userSelect: col.sortable ? 'none' : undefined,
                     width: col.width,
+                    minWidth: col.minWidth,
                   }}
                   onClick={() => col.sortable && onSort && onSort(col.key)}
                 >
