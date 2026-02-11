@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-11 — Phase 22: Lead-to-Site Workflow Enhancement
+**Last Updated:** 2026-02-11 — Phase 23: BD Representative UX Enhancements
 
 ---
 
@@ -461,7 +461,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 
 | Interface | File | Key Fields | SP List Name | Site |
 |-----------|------|------------|--------------|------|
-| ILead | models/ILead.ts | id, Title, ClientName, Region, Sector, Division, Stage, ProjectCode?, ProjectValue?, GoNoGoDecision?, WinLossDecision? | Leads_Master | Hub |
+| ILead | models/ILead.ts | id, Title, ClientName, AddressStreet?, AddressCity?, AddressState?, AddressZip?, DateSubmitted?, Region, Sector, Division, Stage, ProjectCode?, ProjectValue?, GoNoGoDecision?, WinLossDecision? | Leads_Master | Hub |
 | ILeadFormData | models/ILead.ts | extends Omit<ILead, 'id'\|'DateOfEvaluation'\|'Originator'\|'OriginatorId'> | Leads_Master | Hub |
 | IGoNoGoScorecard | models/IGoNoGoScorecard.ts | id, LeadID, scores, TotalScore_Orig?, TotalScore_Cmte?, Decision?, DecisionDate? | GoNoGo_Scorecard | Hub |
 | IScorecardCriterion | models/IGoNoGoScorecard.ts | id, label, high, avg, low | GoNoGo_Scorecard | Hub |
@@ -994,7 +994,7 @@ Legend: **X** = has permission
 | closeout:edit | | | | | X | | | | | | | | | X |
 | estimating:read | X | X | X | X | | X | X | | | | | | | X |
 | estimating:edit | | X | | | | | | | | | | | | X |
-| precon:hub:view | | X | | | | X | X | | | | | | | X |
+| precon:hub:view | X | X | | | | X | X | | | | | | | X |
 | project:hub:view | | X | | | X | X | X | | | | | | | X |
 | admin:roles | | | | | | X | | | | | | | | X |
 | admin:flags | | | | | | X | | | | | | | | X |
@@ -1002,15 +1002,15 @@ Legend: **X** = has permission
 | admin:connections | | | | | | X | | | | | | | | X |
 | admin:provisioning | | | | | | X | | | | | | | | X |
 | admin:assignments:manage | | | | | | X | | | | | | | | X |
-| marketing:edit | | | | | | | | | | X | | | | X |
-| marketing:dashboard:view | | | | | | X | X | | | X | | | | X |
+| marketing:edit | X | | | | | | | | | X | | | | X |
+| marketing:dashboard:view | X | | | | | X | X | | | X | | | | X |
 | site:provision | X | | | | | | | | | | | | | X |
 | meeting:schedule | X | | | | | X | X | | | | | | | X |
 | meeting:read | X | X | X | X | X | X | X | X | X | X | X | X | X | X |
 | startup:checklist:edit | | | | | X | | | | | | | | | X |
 | startup:checklist:signoff | | | | | | X | X | | | | | | | X |
 | matrix:edit | | | | | X | | | | | | | | | X |
-| projectrecord:edit | | | | | | | | | | X | | | | X |
+| projectrecord:edit | X | | | | | | | | | X | | | | X |
 | projectrecord:ops:edit | | | | | X | | | | | | | | | X |
 | pmp:edit | | | | | X | | | | | | | | | X |
 | pmp:approve | | | | | | X | X | | | | | | | X |
@@ -1032,8 +1032,8 @@ Legend: **X** = has permission
 | kickoff:edit | | X | | | | X | X | | | | | | | X |
 | kickoff:template:edit | | X | | | | X | X | | | | | | | X |
 | autopsy:view | X | X | | X | | X | X | | | | | | | X |
-| autopsy:edit | | X | | | | X | X | | | | | | | X |
-| autopsy:schedule | | X | | | | X | X | | | | | | | X |
+| autopsy:edit | X | X | | | | X | X | | | | | | | X |
+| autopsy:schedule | X | X | | | | X | X | | | | | | | X |
 | buyout:view | | | | X | X | X | X | | | | | | | X |
 | buyout:edit | | | | | X | X | X | | | | | | | X |
 | buyout:manage | | | | | X | | | | | | | | | X |
@@ -1056,7 +1056,7 @@ Legend: **X** = has permission
 
 | Nav Group | Roles That Can See |
 |-----------|-------------------|
-| Marketing | Marketing, Executive Leadership, Department Director, SharePoint Admin |
+| Marketing | Marketing, BD Representative, Executive Leadership, Department Director, SharePoint Admin |
 | Preconstruction | BD Representative, Estimating Coordinator, Preconstruction Team, Executive Leadership, Department Director, Legal, SharePoint Admin |
 | Operations | Operations Team, Executive Leadership, Department Director, Risk Management, Quality Control, Safety, IDS, SharePoint Admin |
 | Accounting | Accounting Manager, Executive Leadership, Department Director, SharePoint Admin |
@@ -1423,6 +1423,8 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 21 | Preconstruction Navigation Cleanup — Reduced Preconstruction nav from 10→7 items, moved Accounting Queue to new Accounting nav group, moved Go/No-Go Tracker from EstimatingDashboard tab to PipelinePage tab. PipelinePage now 2-tab (Pipeline + Go/No-Go Tracker). EstimatingDashboard now 3-tab (removed Go/No-Go). | (none) | NavigationSidebar.tsx (removed 3 items, added Accounting group, updated Go/No-Go path), permissions.ts (+Accounting NAV_GROUP_ROLES), EstimatingDashboard.tsx (removed tab 3, gonogoRegionFilter, gonogoLeads, gonogoColumns, GoNoGoDecision import), PipelinePage.tsx (2-tab rewrite: Pipeline + Go/No-Go Tracker with region filter, sort, export), App.tsx (+/preconstruction/pipeline/gonogo route, /preconstruction/gonogo→PipelinePage), constants.ts (+PRECON_PIPELINE_GONOGO) |
 | 22 | Lead-to-Site Workflow Enhancement — ScorecardStatus 8→10 values (BDDraft, AwaitingDirectorReview, DirectorReturnedForRevision, AwaitingCommitteeScoring, CommitteeReturnedForRevision, Rejected, NoGo, Go, Locked, Unlocked), IAssignmentMapping model for admin-configurable Director/Estimator assignments per Region/Sector, BD Leads folder creation on lead create, GoNoGoScorecard Save/Submit + Director review/reject + Committee Go/NoGo/Return + archive flow, PipelinePage Go/No-Go Tracker Pending/Archive sub-tabs with advanced filtering, JobNumberRequestForm optional lead association, AdminPanel Assignment Mappings CRUD, 7 new NotificationService event handlers | IAssignmentMapping.ts, assignmentMappings.json, useAssignmentMappings.ts | enums.ts (ScorecardStatus 10 values, +3 AuditAction, +7 NotificationEvent, +1 EntityType), IGoNoGoScorecard.ts (+unlockedSections, +isArchived, +archivedDate, +archivedBy), models/index.ts, IDataService.ts (+8 methods, 200 total), MockDataService.ts (+8 implementations, updated scorecard workflow methods for new statuses), SharePointDataService.ts (+8 stubs), columnMappings.ts (+Assignment_Mappings), NotificationService.ts (+7 event handlers), constants.ts (+ASSIGNMENT_MAPPINGS, +BD_LEADS constants), permissions.ts (+gonogo:review, +admin:assignments:manage), hooks/index.ts (+1 export), useGoNoGo.ts (new statuses, +canReviewDirector, +canReviewCommittee, +canArchive, +rejectScorecard, +archiveScorecard), GoNoGoScorecard.tsx (Save/Submit, Director/Committee action bars, reject/archive dialogs), PipelinePage.tsx (Pending/Archive sub-tabs, advanced filters, scorecard-lead join), LeadFormPage.tsx (+BD Leads folder creation), JobNumberRequestForm.tsx (+optional lead association, manual fields), EstimatingDashboard.tsx (+Request New Project Number button), AdminPanel.tsx (+Assignment Mappings section), scorecards.json (updated to new ScorecardStatus values) |
 
+| 23 | BD Representative UX Enhancements — Structured address fields on lead form/detail (AddressStreet, AddressCity, AddressState, AddressZip), Pipeline "Created Date" (DateSubmitted) sortable column with newest-first default sort, LeadDetailPage full edit mode (all fields become editable inputs), GoNoGoScorecard immediate actions (canSubmit allows null scorecard for new creation), BD Rep permission expansion (marketing:dashboard:view, marketing:edit, projectrecord:edit, precon:hub:view, autopsy:edit, autopsy:schedule), BD Rep added to Marketing nav group | (none) | ILead.ts (+AddressStreet, +AddressCity, +AddressState, +AddressZip, +DateSubmitted, -ProjectAddress), validators.ts (+AddressCity/AddressState required), LeadFormPage.tsx (address field grid, US_STATES dropdown, CityLocation auto-populate, DateSubmitted auto-set), LeadDetailPage.tsx (full edit mode with Input/Select/Textarea for all fields, address section, Notes field), PipelinePage.tsx (+DateSubmitted column, default sort DateSubmitted desc), useGoNoGo.ts (canSubmit allows null scorecard), permissions.ts (+6 BD Rep permissions, +BD Rep to Marketing nav group), leads.json (+4 address fields on all 29 records), columnMappings.ts (+AddressStreet/City/State/Zip/DateSubmitted, -ProjectAddress), AccountingQueuePage.tsx (-ProjectAddress ref), MockDataService.ts (-ProjectAddress ref) |
+
 ### Known Stubs / Placeholders
 
 - **SharePointDataService**: 151 of 200 methods are stubs (return empty/null/throw). All Phase 7+ project-level list operations are stubbed.
@@ -1497,6 +1499,12 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 27. **Assignment mapping resolution uses 4-tier fallback** — `resolveAssignee(region, sector, type)` in `useAssignmentMappings` resolves via: exact region+sector → exact region+"All Sectors" → "All Regions"+exact sector → "All Regions"+"All Sectors". Always add a fallback "All Regions" + "All Sectors" mapping as a catch-all.
 
+28. **`canSubmit` in useGoNoGo allows null scorecard for new creation flow** — When `activeScorecard` is null (brand new scorecard, not yet saved), `canSubmit` returns `true` if the user has `GONOGO_SUBMIT` permission. This is safe because `handleSubmitForReview` in GoNoGoScorecard.tsx calls `handleSave()` first, which creates the scorecard before submission. Do not add a null guard that would block this flow.
+
+29. **LeadDetailPage edit mode syncs CityLocation from AddressCity** — When saving edits on LeadDetailPage, if `AddressCity` was changed, `CityLocation` is auto-populated from `AddressCity` for backward compatibility with pipeline views and other pages that read `CityLocation`.
+
+30. **AddressCity and AddressState are required on new leads but optional on ILead** — The `validateLeadForm()` validator enforces City and State as required, but the `ILead` interface marks them as optional (`?`) since existing/historical leads may not have these fields populated.
+
 ---
 
 ## Audit Log
@@ -1518,3 +1526,4 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-10 | §6, §10, §12, §15, §16 | Phase 20: SharePoint Admin Role + Dev Super-Admin. Added 14th RoleName (SharePointAdmin). ROLE_PERMISSIONS entry with `...Object.values(PERMISSIONS)` (ALL permissions). NAV_GROUP_ROLES: SharePoint Admin added to all 4 groups (Marketing, Preconstruction, Operations, Admin). Dev Super-Admin mode: union of ALL role permissions (dev-only, not a real role). MockDataService: +_isDevSuperAdmin +setDevSuperAdminMode, getCurrentUser super-admin branch, resolveUserPermissions super-admin short-circuit + 'SharePoint Admin' in roleToGroupMap. RoleSwitcher widened to RoleValue union type with 15 options + red pill badge. dev/index.tsx super-admin detection. mockContext.ts default fixed to ExecutiveLeadership. users.json +Alex Torres (id:25). permissionTemplates.json +id:9 (SharePoint Admin, all 23 tools at ADMIN). securityGroupMappings.json +id:9. |
 | 2026-02-10 | §3, §8, §9, §10, §13, §15 | Phase 21: Preconstruction Navigation Cleanup. Preconstruction nav 10→7 items (removed Precon Tracker, Estimate Log, Accounting Queue). New Accounting nav group (Acct Mgr, Exec, Dept Dir, SP Admin). Go/No-Go Tracker moved from EstimatingDashboard tab 3 to PipelinePage tab 1. PipelinePage now 2-tab (Pipeline + Go/No-Go Tracker). EstimatingDashboard now 3-tab. /preconstruction/gonogo backward compat→PipelinePage. Route count 48→49. NAV_GROUP_ROLES +Accounting. ROUTES +PRECON_PIPELINE_GONOGO. |
 | 2026-02-11 | §2, §6, §7, §10, §12, §13, §15, §16 | Phase 22: Lead-to-Site Workflow Enhancement. ScorecardStatus replaced (8→10 values: BDDraft, AwaitingDirectorReview, DirectorReturnedForRevision, AwaitingCommitteeScoring, CommitteeReturnedForRevision, Rejected, NoGo, Go, Locked, Unlocked). New IAssignmentMapping model + assignmentMappings.json (4 entries) + useAssignmentMappings hook. 8 new IDataService methods (200 total): createBdLeadFolder, checkFolderExists, createFolder, renameFolder, getAssignmentMappings, createAssignmentMapping, updateAssignmentMapping, deleteAssignmentMapping. +3 AuditAction (ScorecardArchived, LeadFolderCreated, AssignmentMappingUpdated), +7 NotificationEvent (ScorecardSubmittedToDirector, ScorecardReturnedByDirector, ScorecardRejectedByDirector, ScorecardAdvancedToCommittee, ScorecardApprovedGo, ScorecardDecidedNoGo, EstimatingCoordinatorNotifiedGo), +1 EntityType (AssignmentMapping). +2 permissions (gonogo:review, admin:assignments:manage). GoNoGoScorecard.tsx rewritten with Save/Submit, Director review/reject, Committee Go/NoGo/Return, archive flow. PipelinePage.tsx Go/No-Go Tracker with Pending/Archive sub-tabs + advanced filters. LeadFormPage.tsx +BD Leads folder creation. JobNumberRequestForm.tsx +optional lead association. EstimatingDashboard.tsx +Request New Project Number button. AdminPanel.tsx +Assignment Mappings CRUD. scorecards.json updated to new status values. Added pitfalls #26-#27. |
+| 2026-02-11 | §6, §10, §15, §16 | Phase 23: BD Representative UX Enhancements. ILead.ts: +AddressStreet, +AddressCity, +AddressState, +AddressZip, +DateSubmitted; -ProjectAddress. validators.ts: +AddressCity/AddressState required. LeadFormPage.tsx: address field grid with US_STATES dropdown, CityLocation auto-populate, DateSubmitted auto-set. LeadDetailPage.tsx: full edit mode (all fields become editable inputs, +address section, +Notes). PipelinePage.tsx: +DateSubmitted "Created" column, default sort newest-first. useGoNoGo.ts: canSubmit allows null scorecard. permissions.ts: BD Rep +6 permissions (marketing:dashboard:view, marketing:edit, projectrecord:edit, precon:hub:view, autopsy:edit, autopsy:schedule), BD Rep added to Marketing nav group. leads.json: +4 address fields on all 29 records. columnMappings.ts: +5 new mappings (address fields + DateSubmitted), -ProjectAddress. AccountingQueuePage.tsx and MockDataService.ts: removed ProjectAddress references from ILead context. Added pitfalls #28-#30. |

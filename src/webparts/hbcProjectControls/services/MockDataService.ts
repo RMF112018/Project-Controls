@@ -3263,7 +3263,6 @@ export class MockDataService implements IDataService {
     const leadIndex = this.leads.findIndex(l => l.id === request.LeadID);
     if (leadIndex !== -1) {
       this.leads[leadIndex].OfficialJobNumber = jobNumber;
-      this.leads[leadIndex].ProjectAddress = request.ProjectAddress;
       this.leads[leadIndex].ProjectExecutive = request.ProjectExecutive;
       this.leads[leadIndex].ProjectManager = request.ProjectManager;
     }

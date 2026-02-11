@@ -87,7 +87,6 @@ const AccountingQueueContent: React.FC = () => {
         await dataService.updateLead(request.LeadID, {
           ProjectCode: jobNumber,
           OfficialJobNumber: jobNumber,
-          ProjectAddress: request.ProjectAddress,
           ProjectExecutive: request.ProjectExecutive,
           ProjectManager: request.ProjectManager,
         });

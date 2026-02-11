@@ -26,6 +26,12 @@ export function validateLeadForm(data: Partial<ILeadFormData>): IValidationError
   if (!data.DepartmentOfOrigin) {
     errors.push({ field: 'DepartmentOfOrigin', message: 'Department of origin is required' });
   }
+  if (!data.AddressCity?.trim()) {
+    errors.push({ field: 'AddressCity', message: 'City is required' });
+  }
+  if (!data.AddressState?.trim()) {
+    errors.push({ field: 'AddressState', message: 'State is required' });
+  }
   if (data.ProjectValue !== undefined && data.ProjectValue < 0) {
     errors.push({ field: 'ProjectValue', message: 'Project value cannot be negative' });
   }
