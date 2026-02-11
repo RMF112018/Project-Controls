@@ -56,7 +56,11 @@ export const LEADS_MASTER_COLUMNS = {
   LossReason: 'LossReason',                   // SP: Choice (multi-select)
   LossCompetitor: 'LossCompetitor',            // SP: Single Line of Text
   LossAutopsyNotes: 'LossAutopsyNotes',        // SP: Multiple Lines of Text
-  ProjectAddress: 'ProjectAddress',            // SP: Single Line of Text
+  AddressStreet: 'AddressStreet',              // SP: Single Line of Text
+  AddressCity: 'AddressCity',                  // SP: Single Line of Text
+  AddressState: 'AddressState',               // SP: Choice
+  AddressZip: 'AddressZip',                    // SP: Single Line of Text
+  DateSubmitted: 'DateSubmitted',              // SP: DateTime
   ProjectExecutive: 'ProjectExecutive',        // SP: Single Line of Text
   ProjectManager: 'ProjectManager',            // SP: Single Line of Text
   OfficialJobNumber: 'OfficialJobNumber',      // SP: Single Line of Text

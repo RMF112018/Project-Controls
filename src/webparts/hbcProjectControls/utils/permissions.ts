@@ -147,7 +147,7 @@ export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS];
 
 // Nav group visibility by role
 export const NAV_GROUP_ROLES: Record<string, string[]> = {
-  Marketing: ['Marketing', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
+  Marketing: ['Marketing', 'BD Representative', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
   Preconstruction: ['BD Representative', 'Estimating Coordinator', 'Preconstruction Team', 'Executive Leadership', 'Department Director', 'Legal', 'SharePoint Admin'],
   Operations: ['Operations Team', 'Executive Leadership', 'Department Director', 'Risk Management', 'Quality Control', 'Safety', 'IDS', 'SharePoint Admin'],
   Accounting: ['Accounting Manager', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
@@ -165,7 +165,9 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.ESTIMATING_READ, PERMISSIONS.MEETING_SCHEDULE, PERMISSIONS.MEETING_READ,
     PERMISSIONS.SITE_PROVISION,
     PERMISSIONS.KICKOFF_VIEW,
-    PERMISSIONS.AUTOPSY_VIEW,
+    PERMISSIONS.AUTOPSY_VIEW, PERMISSIONS.AUTOPSY_EDIT, PERMISSIONS.AUTOPSY_SCHEDULE,
+    PERMISSIONS.MARKETING_DASHBOARD_VIEW, PERMISSIONS.MARKETING_EDIT, PERMISSIONS.PROJECT_RECORD_EDIT,
+    PERMISSIONS.PRECON_HUB_VIEW,
   ],
   'Estimating Coordinator': [
     PERMISSIONS.LEAD_READ,

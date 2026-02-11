@@ -53,8 +53,8 @@ export const PipelinePage: React.FC = () => {
   const [regionFilter, setRegionFilter] = React.useState<string>('all');
   const [sectorFilter, setSectorFilter] = React.useState<string>('all');
   const [divisionFilter, setDivisionFilter] = React.useState<string>('all');
-  const [sortField, setSortField] = React.useState<string>('Title');
-  const [sortAsc, setSortAsc] = React.useState(true);
+  const [sortField, setSortField] = React.useState<string>('DateSubmitted');
+  const [sortAsc, setSortAsc] = React.useState(false);
 
   // Go/No-Go tab state
   const { scorecards, fetchScorecards } = useGoNoGo();
@@ -177,6 +177,13 @@ export const PipelinePage: React.FC = () => {
       header: 'Originator',
       sortable: true,
       render: (lead) => lead.Originator,
+    },
+    {
+      key: 'DateSubmitted',
+      header: 'Created',
+      sortable: true,
+      hideOnMobile: true,
+      render: (lead) => lead.DateSubmitted ? formatDate(lead.DateSubmitted) : '-',
     },
     {
       key: 'GoNoGoScore_Originator',

@@ -192,7 +192,10 @@ export function useGoNoGo(): IUseGoNoGoResult {
   }, [activeScorecard]);
 
   const canSubmit = React.useMemo(() => {
-    if (!activeScorecard) return false;
+    if (!activeScorecard) {
+      // Allow submit on new (unsaved) scorecards — handleSubmitForReview calls handleSave first
+      return hasPermission(PERMISSIONS.GONOGO_SUBMIT);
+    }
     const status = activeScorecard.scorecardStatus;
     return (
       (status === ScorecardStatus.BDDraft ||
