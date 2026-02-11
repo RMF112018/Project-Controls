@@ -35,6 +35,9 @@ interface IUseGoNoGoResult {
   computeRecommendation: (committeeTotal: number) => IRecommendation;
   // Decision
   recordDecision: (scorecardId: number, decision: GoNoGoDecision, conditions?: string) => Promise<IGoNoGoScorecard>;
+  // Reject / Archive (Phase 22)
+  rejectScorecard: (scorecardId: number, reason: string) => Promise<IGoNoGoScorecard>;
+  archiveScorecard: (scorecardId: number) => Promise<IGoNoGoScorecard>;
   // Unlock
   canUnlock: boolean;
   unlockScorecard: (scorecardId: number, reason: string) => Promise<IGoNoGoScorecard>;
@@ -49,8 +52,11 @@ interface IUseGoNoGoResult {
   canEdit: boolean;
   canSubmit: boolean;
   canReview: boolean;
+  canReviewDirector: boolean;
+  canReviewCommittee: boolean;
   canEnterCommitteeScores: boolean;
   canDecide: boolean;
+  canArchive: boolean;
 }
 
 export function useGoNoGo(): IUseGoNoGoResult {
@@ -133,6 +139,22 @@ export function useGoNoGo(): IUseGoNoGoResult {
     return updated;
   }, [dataService, currentUser]);
 
+  // --- Phase 22: Reject / Archive ---
+
+  const rejectScorecard = React.useCallback(async (scorecardId: number, reason: string) => {
+    const updated = await dataService.rejectScorecard(scorecardId, reason);
+    setScorecards(prev => prev.map(s => s.id === scorecardId ? updated : s));
+    setActiveScorecard(updated);
+    return updated;
+  }, [dataService]);
+
+  const archiveScorecard = React.useCallback(async (scorecardId: number) => {
+    const updated = await dataService.archiveScorecard(scorecardId, currentUser?.displayName ?? 'Unknown');
+    setScorecards(prev => prev.map(s => s.id === scorecardId ? updated : s));
+    setActiveScorecard(updated);
+    return updated;
+  }, [dataService, currentUser]);
+
   const unlockScorecard = React.useCallback(async (scorecardId: number, reason: string) => {
     const updated = await dataService.unlockScorecard(scorecardId, reason);
     setScorecards(prev => prev.map(s => s.id === scorecardId ? updated : s));
@@ -162,17 +184,24 @@ export function useGoNoGo(): IUseGoNoGoResult {
     if (!activeScorecard) return true; // New scorecard
     const status = activeScorecard.scorecardStatus;
     return (
-      status === ScorecardStatus.Draft ||
-      status === ScorecardStatus.ReturnedForRevision ||
+      status === ScorecardStatus.BDDraft ||
+      status === ScorecardStatus.DirectorReturnedForRevision ||
+      status === ScorecardStatus.CommitteeReturnedForRevision ||
       status === ScorecardStatus.Unlocked
     );
   }, [activeScorecard]);
 
   const canSubmit = React.useMemo(() => {
-    if (!activeScorecard) return false;
+    if (!activeScorecard) {
+      // Allow submit on new (unsaved) scorecards — handleSubmitForReview calls handleSave first
+      return hasPermission(PERMISSIONS.GONOGO_SUBMIT);
+    }
     const status = activeScorecard.scorecardStatus;
     return (
-      (status === ScorecardStatus.Draft || status === ScorecardStatus.ReturnedForRevision || status === ScorecardStatus.Unlocked) &&
+      (status === ScorecardStatus.BDDraft ||
+       status === ScorecardStatus.DirectorReturnedForRevision ||
+       status === ScorecardStatus.CommitteeReturnedForRevision ||
+       status === ScorecardStatus.Unlocked) &&
       hasPermission(PERMISSIONS.GONOGO_SUBMIT)
     );
   }, [activeScorecard, hasPermission]);
@@ -181,21 +210,37 @@ export function useGoNoGo(): IUseGoNoGoResult {
     || currentUser?.roles?.includes(RoleName.DepartmentDirector)
     || false;
 
-  const canReview = React.useMemo(() => {
+  const canReviewDirector = React.useMemo(() => {
     if (!activeScorecard) return false;
-    if (activeScorecard.scorecardStatus !== ScorecardStatus.Submitted) return false;
+    if (activeScorecard.scorecardStatus !== ScorecardStatus.AwaitingDirectorReview) return false;
     if (isDirectorOrExec) return true;
+    if (hasPermission(PERMISSIONS.GONOGO_REVIEW)) return true;
     const activeCycle = activeScorecard.approvalCycles?.find(c => c.status === 'Active');
     if (!activeCycle) return false;
     const pendingStep = activeCycle.steps?.find(s => s.status === 'Pending');
     if (!pendingStep) return false;
     const userEmail = currentUser?.email?.toLowerCase();
-    return pendingStep.assigneeEmail?.toLowerCase() === userEmail || hasPermission(PERMISSIONS.GONOGO_DECIDE);
+    return pendingStep.assigneeEmail?.toLowerCase() === userEmail;
+  }, [activeScorecard, currentUser, hasPermission, isDirectorOrExec]);
+
+  // Alias for backward compatibility
+  const canReview = canReviewDirector;
+
+  const canReviewCommittee = React.useMemo(() => {
+    if (!activeScorecard) return false;
+    if (activeScorecard.scorecardStatus !== ScorecardStatus.AwaitingCommitteeScoring) return false;
+    if (isDirectorOrExec) return true;
+    if (hasPermission(PERMISSIONS.GONOGO_SCORE_COMMITTEE)) return true;
+    const userEmail = currentUser?.email?.toLowerCase();
+    const isInCycle = activeScorecard.approvalCycles?.some(cycle =>
+      cycle.steps?.some(step => step.assigneeEmail?.toLowerCase() === userEmail)
+    ) || false;
+    return isInCycle;
   }, [activeScorecard, currentUser, hasPermission, isDirectorOrExec]);
 
   const canEnterCommitteeScores = React.useMemo(() => {
     if (!activeScorecard) return false;
-    if (activeScorecard.scorecardStatus !== ScorecardStatus.InCommitteeReview) return false;
+    if (activeScorecard.scorecardStatus !== ScorecardStatus.AwaitingCommitteeScoring) return false;
     if (isDirectorOrExec) return true;
     const userEmail = currentUser?.email?.toLowerCase();
     const isInCycle = activeScorecard.approvalCycles?.some(cycle =>
@@ -206,7 +251,7 @@ export function useGoNoGo(): IUseGoNoGoResult {
 
   const canDecide = React.useMemo(() => {
     if (!activeScorecard) return false;
-    if (activeScorecard.scorecardStatus !== ScorecardStatus.PendingDecision) return false;
+    if (activeScorecard.scorecardStatus !== ScorecardStatus.AwaitingCommitteeScoring) return false;
     if (isDirectorOrExec) return true;
     const userEmail = currentUser?.email?.toLowerCase();
     const isInCycle = activeScorecard.approvalCycles?.some(cycle =>
@@ -228,9 +273,20 @@ export function useGoNoGo(): IUseGoNoGoResult {
     return isInApprovalChain || isDirectorOrExecLocal;
   }, [activeScorecard, currentUser]);
 
+  const canArchive = React.useMemo(() => {
+    if (!activeScorecard) return false;
+    if (activeScorecard.isArchived) return false;
+    const status = activeScorecard.scorecardStatus;
+    return (
+      status === ScorecardStatus.Rejected ||
+      status === ScorecardStatus.NoGo ||
+      status === ScorecardStatus.Go
+    );
+  }, [activeScorecard]);
+
   const recommendedDecision = React.useMemo(() => {
     if (!activeScorecard?.TotalScore_Cmte) return null;
-    if (activeScorecard.scorecardStatus !== ScorecardStatus.PendingDecision) return null;
+    if (activeScorecard.scorecardStatus !== ScorecardStatus.AwaitingCommitteeScoring) return null;
     return getRecommendedDecision(activeScorecard.TotalScore_Cmte);
   }, [activeScorecard]);
 
@@ -243,11 +299,14 @@ export function useGoNoGo(): IUseGoNoGoResult {
     enterCommitteeScores, recommendedDecision, computeRecommendation,
     // Decision
     recordDecision,
+    // Reject / Archive
+    rejectScorecard, archiveScorecard,
     // Unlock
     canUnlock, unlockScorecard, relockScorecard,
     // Version
     versions, currentVersion, loadVersions,
     // Computed status
-    scorecardStatus, isLocked, canEdit, canSubmit, canReview, canEnterCommitteeScores, canDecide,
+    scorecardStatus, isLocked, canEdit, canSubmit, canReview, canReviewDirector, canReviewCommittee,
+    canEnterCommitteeScores, canDecide, canArchive,
   };
 }

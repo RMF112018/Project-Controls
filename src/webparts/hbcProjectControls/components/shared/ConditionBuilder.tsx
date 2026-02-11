@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { IConditionalAssignment, IAssignmentCondition } from '../../models/IWorkflowDefinition';
 import { ConditionField, Region, Division, Sector } from '../../models/enums';
+import { useSectorDefinitions } from '../hooks/useSectorDefinitions';
 import { AzureADPeoplePicker } from './AzureADPeoplePicker';
 import { HBC_COLORS } from '../../theme/tokens';
 
@@ -10,12 +11,6 @@ interface IConditionBuilderProps {
   onRemove: () => void;
   disabled?: boolean;
 }
-
-const FIELD_VALUES: Record<ConditionField, string[]> = {
-  [ConditionField.Division]: Object.values(Division),
-  [ConditionField.Region]: Object.values(Region),
-  [ConditionField.Sector]: Object.values(Sector),
-};
 
 const selectStyle: React.CSSProperties = {
   padding: '5px 8px',
@@ -32,6 +27,16 @@ export const ConditionBuilder: React.FC<IConditionBuilderProps> = ({
   onRemove,
   disabled = false,
 }) => {
+  const { activeSectors } = useSectorDefinitions();
+
+  const FIELD_VALUES: Record<ConditionField, string[]> = React.useMemo(() => ({
+    [ConditionField.Division]: Object.values(Division),
+    [ConditionField.Region]: Object.values(Region),
+    [ConditionField.Sector]: activeSectors.length > 0
+      ? activeSectors.map(s => s.label)
+      : Object.values(Sector),
+  }), [activeSectors]);
+
   const handleConditionChange = (index: number, field: keyof IAssignmentCondition, value: string): void => {
     const updatedConditions = [...assignment.conditions];
     if (field === 'field') {

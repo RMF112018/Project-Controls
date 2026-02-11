@@ -4,7 +4,7 @@ import { RoleName } from '@models/enums';
 // Dev-only mock role state
 // ---------------------------------------------------------------------------
 
-let currentMockRole: RoleName = RoleName.OperationsTeam;
+let currentMockRole: RoleName = RoleName.ExecutiveLeadership;
 
 /** Get the currently selected mock role (dev server only). */
 export function getMockUserRole(): RoleName {

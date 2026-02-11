@@ -20,6 +20,7 @@ export enum Region {
   Tallahassee = 'Tallahassee'
 }
 
+/** @deprecated Use dynamic sector definitions from dataService.getSectorDefinitions() instead. Kept for backward compatibility with existing data. */
 export enum Sector {
   Airport = 'Airport',
   City = 'City',
@@ -62,14 +63,16 @@ export enum GoNoGoDecision {
 }
 
 export enum ScorecardStatus {
-  Draft = 'Draft',
-  Submitted = 'Submitted',
-  ReturnedForRevision = 'Returned for Revision',
-  InCommitteeReview = 'In Committee Review',
-  PendingDecision = 'Pending Decision',
-  Decided = 'Decided',
+  BDDraft = 'BD Draft',
+  AwaitingDirectorReview = 'Awaiting Director Review',
+  DirectorReturnedForRevision = 'Director Returned for Revision',
+  AwaitingCommitteeScoring = 'Awaiting Committee Scoring',
+  CommitteeReturnedForRevision = 'Committee Returned for Revision',
+  Rejected = 'Rejected',
+  NoGo = 'No Go',
+  Go = 'Go',
   Locked = 'Locked',
-  Unlocked = 'Unlocked'
+  Unlocked = 'Unlocked',
 }
 
 export enum WinLossDecision {
@@ -99,7 +102,8 @@ export enum RoleName {
   QualityControl = 'Quality Control',
   Safety = 'Safety',
   IDS = 'IDS',
-  DepartmentDirector = 'Department Director'
+  DepartmentDirector = 'Department Director',
+  SharePointAdmin = 'SharePoint Admin'
 }
 
 export enum ProvisioningStatus {
@@ -172,7 +176,18 @@ export enum AuditAction {
   HubNavLinkFailed = 'HubNav.LinkFailed',
   HubNavLinkRetried = 'HubNav.LinkRetried',
   HubNavLinkRemoved = 'HubNav.LinkRemoved',
-  HubSiteUrlUpdated = 'HubNav.SiteUrlUpdated'
+  HubSiteUrlUpdated = 'HubNav.SiteUrlUpdated',
+  TemplateCreated = 'Permission.TemplateCreated',
+  TemplateUpdated = 'Permission.TemplateUpdated',
+  TemplateDeleted = 'Permission.TemplateDeleted',
+  ProjectTeamAssigned = 'Permission.ProjectTeamAssigned',
+  ProjectTeamRemoved = 'Permission.ProjectTeamRemoved',
+  ProjectTeamOverridden = 'Permission.ProjectTeamOverridden',
+  SecurityGroupMappingChanged = 'Permission.SecurityGroupMappingChanged',
+  PermissionResolved = 'Permission.Resolved',
+  ScorecardArchived = 'Scorecard.Archived',
+  LeadFolderCreated = 'Lead.FolderCreated',
+  AssignmentMappingUpdated = 'Assignment.MappingUpdated',
 }
 
 export enum EntityType {
@@ -194,7 +209,10 @@ export enum EntityType {
   PMP = 'PMP',
   MonthlyReview = 'MonthlyReview',
   WorkflowDefinition = 'WorkflowDefinition',
-  TurnoverAgenda = 'TurnoverAgenda'
+  TurnoverAgenda = 'TurnoverAgenda',
+  PermissionTemplate = 'PermissionTemplate',
+  ProjectTeamAssignment = 'ProjectTeamAssignment',
+  AssignmentMapping = 'AssignmentMapping',
 }
 
 export enum DeliverableStatus {
@@ -310,7 +328,14 @@ export enum NotificationEvent {
   ScorecardReturnedForRevision = 'ScorecardReturnedForRevision',
   ScorecardCommitteeScoresFinalized = 'ScorecardCommitteeScoresFinalized',
   ScorecardDecisionRecorded = 'ScorecardDecisionRecorded',
-  ScorecardUnlockedForEditing = 'ScorecardUnlockedForEditing'
+  ScorecardUnlockedForEditing = 'ScorecardUnlockedForEditing',
+  ScorecardSubmittedToDirector = 'ScorecardSubmittedToDirector',
+  ScorecardReturnedByDirector = 'ScorecardReturnedByDirector',
+  ScorecardRejectedByDirector = 'ScorecardRejectedByDirector',
+  ScorecardAdvancedToCommittee = 'ScorecardAdvancedToCommittee',
+  ScorecardApprovedGo = 'ScorecardApprovedGo',
+  ScorecardDecidedNoGo = 'ScorecardDecidedNoGo',
+  EstimatingCoordinatorNotifiedGo = 'EstimatingCoordinatorNotifiedGo',
 }
 
 export enum TurnoverStatus {
@@ -357,4 +382,11 @@ export enum ActionPriority {
   Urgent = 'Urgent',
   Normal = 'Normal',
   New = 'New'
+}
+
+export enum PermissionLevel {
+  NONE = 'NONE',
+  READ_ONLY = 'READ_ONLY',
+  STANDARD = 'STANDARD',
+  ADMIN = 'ADMIN'
 }

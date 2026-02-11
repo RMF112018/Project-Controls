@@ -12,7 +12,7 @@ import { KPICard } from '../../shared/KPICard';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
-import { IEstimatingTracker, ILead, GoNoGoDecision, AwardStatus, EstimateSource, DeliverableType, AuditAction, EntityType, RoleName } from '../../../models';
+import { IEstimatingTracker, ILead, AwardStatus, EstimateSource, DeliverableType, AuditAction, EntityType, RoleName } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { PERMISSIONS } from '../../../utils/permissions';
 import {
@@ -25,8 +25,8 @@ import {
 } from '../../../utils/formatters';
 import { exportService } from '../../../services/ExportService';
 
-const TAB_PATHS = ['/preconstruction', '/preconstruction/precon-tracker', '/preconstruction/estimate-log', '/preconstruction/gonogo'];
-const TAB_LABELS = ['Current Pursuits', 'Current Preconstruction', 'Estimate Log', 'Go/No-Go Tracker'];
+const TAB_PATHS = ['/preconstruction', '/preconstruction/precon-tracker', '/preconstruction/estimate-log'];
+const TAB_LABELS = ['Current Pursuits', 'Current Preconstruction', 'Estimate Log'];
 
 function pathToTab(pathname: string): number {
   const idx = TAB_PATHS.indexOf(pathname);
@@ -181,7 +181,6 @@ export const EstimatingDashboard: React.FC = () => {
   const [yearFilter, setYearFilter] = usePersistedState('estimating-year', 'All');
   const [estimatorFilter, setEstimatorFilter] = usePersistedState('estimating-estimator', 'All');
   const [regionFilter, setRegionFilter] = usePersistedState('estimating-region', 'All');
-  const [gonogoRegionFilter, setGonogoRegionFilter] = usePersistedState('estimating-gonogo-region', 'All');
   const [sortField, setSortField] = React.useState<string>('');
   const [sortAsc, setSortAsc] = React.useState(true);
 
@@ -268,22 +267,6 @@ export const EstimatingDashboard: React.FC = () => {
     () => filteredRecords.filter(r => !!r.SubmittedDate),
     [filteredRecords]
   );
-
-  // Go/No-Go leads
-  const gonogoLeads = React.useMemo(() => {
-    return leads.filter(l => l.GoNoGoDecision || l.GoNoGoScore_Originator).filter(l => {
-      if (gonogoRegionFilter !== 'All' && l.Region !== gonogoRegionFilter) return false;
-      return true;
-    });
-  }, [leads, gonogoRegionFilter]);
-
-  const gonogoRegions = React.useMemo(() => {
-    const r = new Set<string>();
-    leads.filter(l => l.GoNoGoDecision || l.GoNoGoScore_Originator).forEach(l => {
-      if (l.Region) r.add(l.Region);
-    });
-    return ['All', ...Array.from(r).sort()];
-  }, [leads]);
 
   // KPI calculations
   const kpis = React.useMemo(() => {
@@ -475,23 +458,6 @@ export const EstimatingDashboard: React.FC = () => {
     )},
   ], [handleInlineUpdate, canEdit, typeOptions, awardOptions]);
 
-  // Go/No-Go Tracker columns
-  const gonogoColumns: IDataTableColumn<ILead>[] = React.useMemo(() => [
-    { key: 'GoNoGoDecisionDate', header: 'Date', sortable: true, width: '100px', render: (l) => formatDate(l.GoNoGoDecisionDate || l.DateOfEvaluation) },
-    { key: 'Title', header: 'Project', sortable: true, render: (l) => (
-      <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{l.Title}</span>
-    )},
-    { key: 'Region', header: 'Region', sortable: true, width: '120px', render: (l) => l.Region },
-    { key: 'Approved', header: 'Approved', width: '70px', render: (l) => l.GoNoGoDecision === GoNoGoDecision.Go ? <CheckIcon /> : null },
-    { key: 'Declined', header: 'Declined', width: '70px', render: (l) => l.GoNoGoDecision === GoNoGoDecision.NoGo ? <CheckIcon /> : null },
-    { key: 'Conditional', header: 'Conditional', width: '70px', render: (l) => l.GoNoGoDecision === GoNoGoDecision.ConditionalGo ? <CheckIcon /> : null },
-    { key: 'Score', header: 'Score (Orig / Cmte)', width: '140px', render: (l) => {
-      const orig = l.GoNoGoScore_Originator;
-      const cmte = l.GoNoGoScore_Committee;
-      return <span>{orig ?? '-'} / {cmte ?? '-'}</span>;
-    }},
-  ], []);
-
   // Precon fee totals
   const preconTotals = React.useMemo(() => ({
     preconFee: preconEngagements.reduce((s, r) => s + (r.PreconFee || 0), 0),
@@ -634,16 +600,28 @@ export const EstimatingDashboard: React.FC = () => {
         subtitle="Current pursuit, preconstruction, and estimate tracking"
         breadcrumb={<Breadcrumb items={breadcrumbs} />}
         actions={
-          <button
-            onClick={() => { handleExport().catch(console.error); }}
-            style={{
-              padding: '8px 16px', borderRadius: '6px', border: `1px solid ${HBC_COLORS.gray200}`,
-              backgroundColor: '#fff', fontSize: '13px', cursor: 'pointer', fontWeight: 500,
-              color: HBC_COLORS.navy,
-            }}
-          >
-            Export to Excel
-          </button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              onClick={() => navigate('/job-request')}
+              style={{
+                padding: '8px 16px', borderRadius: '6px', border: 'none',
+                backgroundColor: HBC_COLORS.orange, fontSize: '13px', cursor: 'pointer', fontWeight: 600,
+                color: '#fff',
+              }}
+            >
+              Request New Project Number
+            </button>
+            <button
+              onClick={() => { handleExport().catch(console.error); }}
+              style={{
+                padding: '8px 16px', borderRadius: '6px', border: `1px solid ${HBC_COLORS.gray200}`,
+                backgroundColor: '#fff', fontSize: '13px', cursor: 'pointer', fontWeight: 500,
+                color: HBC_COLORS.navy,
+              }}
+            >
+              Export to Excel
+            </button>
+          </div>
         }
       />
 
@@ -656,28 +634,26 @@ export const EstimatingDashboard: React.FC = () => {
       </div>
 
       {/* Cross-Tab Filters */}
-      {activeTab < 3 && (
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <label style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
-            Year:
-            <select style={{ ...selectStyle, marginLeft: '6px' }} value={yearFilter} onChange={e => setYearFilter(e.target.value)}>
-              {filterOptions.years.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </label>
-          <label style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
-            Lead Estimator:
-            <select style={{ ...selectStyle, marginLeft: '6px' }} value={estimatorFilter} onChange={e => setEstimatorFilter(e.target.value)}>
-              {filterOptions.estimators.map(e => <option key={e} value={e}>{e}</option>)}
-            </select>
-          </label>
-          <label style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
-            Region:
-            <select style={{ ...selectStyle, marginLeft: '6px' }} value={regionFilter} onChange={e => setRegionFilter(e.target.value)}>
-              {filterOptions.regions.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </label>
-        </div>
-      )}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <label style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
+          Year:
+          <select style={{ ...selectStyle, marginLeft: '6px' }} value={yearFilter} onChange={e => setYearFilter(e.target.value)}>
+            {filterOptions.years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </label>
+        <label style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
+          Lead Estimator:
+          <select style={{ ...selectStyle, marginLeft: '6px' }} value={estimatorFilter} onChange={e => setEstimatorFilter(e.target.value)}>
+            {filterOptions.estimators.map(e => <option key={e} value={e}>{e}</option>)}
+          </select>
+        </label>
+        <label style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
+          Region:
+          <select style={{ ...selectStyle, marginLeft: '6px' }} value={regionFilter} onChange={e => setRegionFilter(e.target.value)}>
+            {filterOptions.regions.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </label>
+      </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: `1px solid ${HBC_COLORS.gray200}`, marginBottom: '20px' }}>
@@ -760,28 +736,6 @@ export const EstimatingDashboard: React.FC = () => {
         </>
       )}
 
-      {activeTab === 3 && (
-        <>
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center' }}>
-            <label style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
-              Region:
-              <select style={{ ...selectStyle, marginLeft: '6px' }} value={gonogoRegionFilter} onChange={e => setGonogoRegionFilter(e.target.value)}>
-                {gonogoRegions.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </label>
-          </div>
-          <DataTable<ILead>
-            columns={gonogoColumns}
-            items={gonogoLeads}
-            keyExtractor={l => l.id}
-            sortField={sortField}
-            sortAsc={sortAsc}
-            onSort={handleSort}
-            emptyTitle="No Go/No-Go records"
-            emptyDescription="Leads with Go/No-Go activity appear here"
-          />
-        </>
-      )}
     </div>
     </RoleGate>
   );

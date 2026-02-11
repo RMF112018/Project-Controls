@@ -22,5 +22,6 @@
   { "id": 21, "displayName": "Ryan Phillips", "email": "rphillips@hedrickbrothers.com", "roles": ["Operations Team"], "region": "Miami", "department": "Operations" },
   { "id": 22, "displayName": "Mark Stevens", "email": "mstevens@hedrickbrothers.com", "roles": ["Operations Team"], "region": "Orlando", "department": "Operations" },
   { "id": 23, "displayName": "Nick Petrov", "email": "npetrov@hedrickbrothers.com", "roles": ["Preconstruction Team"], "region": "West Palm Beach", "department": "Preconstruction" },
-  { "id": 24, "displayName": "Tony Alvarez", "email": "talvarez@hedrickbrothers.com", "roles": ["Preconstruction Team"], "region": "Miami", "department": "Preconstruction" }
+  { "id": 24, "displayName": "Tony Alvarez", "email": "talvarez@hedrickbrothers.com", "roles": ["Preconstruction Team"], "region": "Miami", "department": "Preconstruction" },
+  { "id": 25, "displayName": "Alex Torres", "email": "atorres@hedrickbrothers.com", "roles": ["SharePoint Admin"], "region": "West Palm Beach", "department": "IT" }
 ]

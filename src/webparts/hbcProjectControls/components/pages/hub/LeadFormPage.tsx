@@ -9,9 +9,16 @@ import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { ILeadFormData, Stage, Region, Sector, Division, DepartmentOfOrigin, DeliveryMethod, RoleName, NotificationEvent, AuditAction, EntityType } from '../../../models';
+import { useSectorDefinitions } from '../../hooks/useSectorDefinitions';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import { validateLeadForm } from '../../../utils/validators';
 import { useToast } from '../../shared/ToastContainer';
+
+const US_STATES = [
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
+  'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
+  'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC',
+];
 
 export const LeadFormPage: React.FC = () => {
   const navigate = useNavigate();
@@ -19,8 +26,9 @@ export const LeadFormPage: React.FC = () => {
   const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { createLead } = useLeads();
   const { notify } = useNotifications();
-  const { currentUser, dataService } = useAppContext();
+  const { currentUser, dataService, isFeatureEnabled } = useAppContext();
   const { addToast } = useToast();
+  const { activeSectors } = useSectorDefinitions();
   const [formData, setFormData] = React.useState<Partial<ILeadFormData>>({
     Stage: Stage.LeadDiscovery,
   });
@@ -50,9 +58,11 @@ export const LeadFormPage: React.FC = () => {
       setIsSaving(true);
       const leadData = {
         ...formData,
+        CityLocation: formData.AddressCity || formData.CityLocation || '',
         Originator: currentUser?.displayName || 'Unknown',
         OriginatorId: currentUser?.id,
         DateOfEvaluation: new Date().toISOString(),
+        DateSubmitted: new Date().toISOString().split('T')[0],
       };
       const newLead = await createLead(leadData as unknown as ILeadFormData);
       // Fire-and-forget audit log
@@ -71,6 +81,21 @@ export const LeadFormPage: React.FC = () => {
         leadId: newLead.id,
         clientName: newLead.ClientName,
       }).catch(console.error);
+      // Fire-and-forget BD Leads folder creation
+      try {
+        const originatorName = currentUser?.displayName || 'Unknown';
+        await dataService.createBdLeadFolder(newLead.Title, originatorName);
+        dataService.logAudit({
+          Action: AuditAction.LeadFolderCreated,
+          EntityType: EntityType.Lead,
+          EntityId: String(newLead.id),
+          User: originatorName,
+          Details: `BD Leads folder created for "${newLead.Title}"`,
+        }).catch(console.error);
+      } catch (folderErr) {
+        console.error('Failed to create BD Leads folder:', folderErr);
+        addToast('Lead created but folder creation failed', 'error');
+      }
       addToast('Lead created successfully', 'success');
       navigate('/');
     } catch (err) {
@@ -170,7 +195,10 @@ export const LeadFormPage: React.FC = () => {
                 onChange={(_, d) => handleChange('Sector', d.value)}
               >
                 <option value="">Select...</option>
-                {Object.values(Sector).map(s => <option key={s} value={s}>{s}</option>)}
+                {(isFeatureEnabled('PermissionEngine') && activeSectors.length > 0
+                  ? activeSectors.map(s => <option key={s.label} value={s.label}>{s.label}</option>)
+                  : Object.values(Sector).map(s => <option key={s} value={s}>{s}</option>)
+                )}
               </Select>
               {errors.Sector && (
                 <span style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.Sector}</span>
@@ -234,12 +262,45 @@ export const LeadFormPage: React.FC = () => {
                 onChange={(_, d) => handleChange('SquareFeet', Number(d.value))}
               />
             </div>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>City/Location</label>
+            <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>Street Address</label>
               <Input
                 style={{ width: '100%' }}
-                value={formData.CityLocation || ''}
-                onChange={(_, d) => handleChange('CityLocation', d.value)}
+                value={formData.AddressStreet || ''}
+                onChange={(_, d) => handleChange('AddressStreet', d.value)}
+              />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>City *</label>
+              <Input
+                style={{ width: '100%' }}
+                value={formData.AddressCity || ''}
+                onChange={(_, d) => handleChange('AddressCity', d.value)}
+              />
+              {errors.AddressCity && (
+                <span style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.AddressCity}</span>
+              )}
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>State *</label>
+              <Select
+                style={{ width: '100%' }}
+                value={formData.AddressState || ''}
+                onChange={(_, d) => handleChange('AddressState', d.value)}
+              >
+                <option value="">Select...</option>
+                {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+              </Select>
+              {errors.AddressState && (
+                <span style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.AddressState}</span>
+              )}
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Zip Code</label>
+              <Input
+                style={{ width: '100%' }}
+                value={formData.AddressZip || ''}
+                onChange={(_, d) => handleChange('AddressZip', d.value)}
               />
             </div>
             <div style={fieldStyle}>

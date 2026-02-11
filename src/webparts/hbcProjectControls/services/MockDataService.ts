@@ -121,10 +121,21 @@ import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../m
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverProjectHeader, ITurnoverPrerequisite, ITurnoverEstimateOverview, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverAttachment } from '../models/ITurnoverAgenda';
 import { IActionInboxItem } from '../models/IActionInbox';
-import { WorkflowKey, StepAssignmentType, ConditionField, TurnoverStatus, WorkflowActionType, ActionPriority } from '../models/enums';
+import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions } from '../models/IPermissionTemplate';
+import { PermissionLevel, WorkflowKey, StepAssignmentType, ConditionField, TurnoverStatus, WorkflowActionType, ActionPriority } from '../models/enums';
+import { resolveToolPermissions, TOOL_DEFINITIONS } from '../utils/toolPermissionMap';
 import mockWorkflowDefinitions from '../mock/workflowDefinitions.json';
 import mockWorkflowStepOverrides from '../mock/workflowStepOverrides.json';
 import mockTurnoverAgendas from '../mock/turnoverAgendas.json';
+import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfig';
+import { ISectorDefinition } from '../models/ISectorDefinition';
+import mockPermissionTemplates from '../mock/permissionTemplates.json';
+import mockSecurityGroupMappings from '../mock/securityGroupMappings.json';
+import mockProjectTeamAssignments from '../mock/projectTeamAssignments.json';
+import mockEnvironmentConfig from '../mock/environmentConfig.json';
+import mockSectorDefinitions from '../mock/sectorDefinitions.json';
+import mockAssignmentMappings from '../mock/assignmentMappings.json';
+import { IAssignmentMapping } from '../models/IAssignmentMapping';
 import { DEFAULT_PREREQUISITES, DEFAULT_DISCUSSION_ITEMS, DEFAULT_EXHIBITS, DEFAULT_SIGNATURES, TURNOVER_SIGNATURE_AFFIDAVIT } from '../utils/turnoverAgendaTemplate';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
@@ -193,14 +204,23 @@ export class MockDataService implements IDataService {
   private turnoverSignatures: ITurnoverSignature[];
   private turnoverAttachments: ITurnoverAttachment[];
   private hubSiteUrl: string;
+  private permissionTemplates: IPermissionTemplate[];
+  private securityGroupMappings: ISecurityGroupMapping[];
+  private projectTeamAssignments: IProjectTeamAssignment[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
-  private _currentRole: RoleName = RoleName.OperationsTeam;
+  private _currentRole: RoleName = RoleName.ExecutiveLeadership;
+  private _isDevSuperAdmin: boolean = false;
 
   /** Set the mock user role (called by the dev RoleSwitcher). */
   public setCurrentUserRole(role: RoleName): void {
     this._currentRole = role;
+  }
+
+  /** Enable/disable dev super-admin mode (union of ALL role permissions). */
+  public setDevSuperAdminMode(enabled: boolean): void {
+    this._isDevSuperAdmin = enabled;
   }
 
   constructor() {
@@ -350,6 +370,10 @@ export class MockDataService implements IDataService {
     this.turnoverExhibits = rawTurnoverData.exhibits as ITurnoverExhibit[];
     this.turnoverSignatures = rawTurnoverData.signatures as ITurnoverSignature[];
     this.turnoverAttachments = rawTurnoverData.attachments as ITurnoverAttachment[];
+
+    this.permissionTemplates = JSON.parse(JSON.stringify(mockPermissionTemplates)) as IPermissionTemplate[];
+    this.securityGroupMappings = JSON.parse(JSON.stringify(mockSecurityGroupMappings)) as ISecurityGroupMapping[];
+    this.projectTeamAssignments = JSON.parse(JSON.stringify(mockProjectTeamAssignments)) as IProjectTeamAssignment[];
 
     this.nextId = 1000;
   }
@@ -1110,7 +1134,7 @@ export class MockDataService implements IDataService {
     const versions = this.scorecardVersions.filter(v => v.scorecardId === sc.id);
     return {
       ...sc,
-      scorecardStatus: (sc.scorecardStatus as ScorecardStatus) || ScorecardStatus.Draft,
+      scorecardStatus: (sc.scorecardStatus as ScorecardStatus) || ScorecardStatus.BDDraft,
       approvalCycles: cycles,
       versions,
       currentVersion: sc.currentVersion || 1,
@@ -1193,7 +1217,7 @@ export class MockDataService implements IDataService {
       ScoredBy_Orig: data.ScoredBy_Orig,
       ScoredBy_Cmte: data.ScoredBy_Cmte,
       // Phase 16 fields
-      scorecardStatus: ScorecardStatus.Draft,
+      scorecardStatus: ScorecardStatus.BDDraft,
       approvalCycles: [],
       currentVersion: 1,
       versions: [],
@@ -1331,7 +1355,7 @@ export class MockDataService implements IDataService {
     this.scorecardApprovalCycles.push(cycle);
     this.scorecardApprovalSteps.push(step1, step2);
 
-    scorecard.scorecardStatus = ScorecardStatus.Submitted;
+    scorecard.scorecardStatus = ScorecardStatus.AwaitingDirectorReview;
     scorecard.currentApprovalStep = 1;
     scorecard.approvalCycles = [...(scorecard.approvalCycles || []), cycle];
 
@@ -1352,7 +1376,7 @@ export class MockDataService implements IDataService {
     await delay();
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
 
-    if (scorecard.scorecardStatus !== ScorecardStatus.Submitted) {
+    if (scorecard.scorecardStatus !== ScorecardStatus.AwaitingDirectorReview) {
       throw new Error(`Cannot respond: scorecard is in ${scorecard.scorecardStatus} state`);
     }
 
@@ -1372,13 +1396,13 @@ export class MockDataService implements IDataService {
       pendingStep.status = 'Approved';
       pendingStep.actionDate = new Date().toISOString().split('T')[0];
       pendingStep.comment = comment || undefined;
-      scorecard.scorecardStatus = ScorecardStatus.InCommitteeReview;
+      scorecard.scorecardStatus = ScorecardStatus.AwaitingCommitteeScoring;
       scorecard.currentApprovalStep = 2;
     } else {
       pendingStep.status = 'Returned';
       pendingStep.actionDate = new Date().toISOString().split('T')[0];
       pendingStep.comment = comment;
-      scorecard.scorecardStatus = ScorecardStatus.ReturnedForRevision;
+      scorecard.scorecardStatus = ScorecardStatus.DirectorReturnedForRevision;
     }
 
     // Update flat arrays
@@ -1397,7 +1421,7 @@ export class MockDataService implements IDataService {
     await delay();
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
 
-    if (scorecard.scorecardStatus !== ScorecardStatus.InCommitteeReview) {
+    if (scorecard.scorecardStatus !== ScorecardStatus.AwaitingCommitteeScoring) {
       throw new Error(`Cannot enter committee scores: scorecard is in ${scorecard.scorecardStatus} state`);
     }
 
@@ -1419,8 +1443,7 @@ export class MockDataService implements IDataService {
       scorecard.recommendedDecision = rec.decision;
     }
 
-    scorecard.scorecardStatus = ScorecardStatus.PendingDecision;
-
+    // Stay in AwaitingCommitteeScoring — committee decides from this state
     this.scorecards[index] = scorecard;
     return { ...scorecard };
   }
@@ -1434,7 +1457,7 @@ export class MockDataService implements IDataService {
     await delay();
     const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
 
-    if (scorecard.scorecardStatus !== ScorecardStatus.PendingDecision) {
+    if (scorecard.scorecardStatus !== ScorecardStatus.AwaitingCommitteeScoring) {
       throw new Error(`Cannot record decision: scorecard is in ${scorecard.scorecardStatus} state`);
     }
 
@@ -1449,7 +1472,12 @@ export class MockDataService implements IDataService {
       scorecard.conditionalGoConditions = conditions;
     }
 
-    scorecard.scorecardStatus = ScorecardStatus.Locked;
+    // Set status based on decision
+    if (decision === GoNoGoDecision.Go || decision === GoNoGoDecision.ConditionalGo) {
+      scorecard.scorecardStatus = ScorecardStatus.Go;
+    } else {
+      scorecard.scorecardStatus = ScorecardStatus.NoGo;
+    }
     scorecard.isLocked = true;
 
     // Complete active approval cycle
@@ -1565,7 +1593,7 @@ export class MockDataService implements IDataService {
       this.scorecardApprovalSteps.push(step1, step2);
 
       scorecard.approvalCycles = [...(scorecard.approvalCycles || []), cycle];
-      scorecard.scorecardStatus = ScorecardStatus.Submitted;
+      scorecard.scorecardStatus = ScorecardStatus.AwaitingDirectorReview;
       scorecard.currentApprovalStep = 1;
     } else {
       scorecard.scorecardStatus = ScorecardStatus.Locked;
@@ -1723,6 +1751,23 @@ export class MockDataService implements IDataService {
 
   public async getCurrentUser(): Promise<ICurrentUser> {
     await delay();
+
+    // Dev super-admin: union of ALL role permissions
+    if (this._isDevSuperAdmin) {
+      const allPerms = new Set<string>();
+      for (const perms of Object.values(ROLE_PERMISSIONS)) {
+        for (const p of perms) allPerms.add(p);
+      }
+      return {
+        id: 0,
+        displayName: 'Dev Super-Admin',
+        email: 'superadmin@hedrickbrothers.dev',
+        loginName: 'i:0#.f|membership|superadmin@hedrickbrothers.dev',
+        roles: [RoleName.ExecutiveLeadership],
+        permissions: allPerms,
+        photoUrl: undefined,
+      };
+    }
 
     const roleName = this._currentRole;
     const perms = ROLE_PERMISSIONS[roleName] ?? [];
@@ -3227,7 +3272,6 @@ export class MockDataService implements IDataService {
     const leadIndex = this.leads.findIndex(l => l.id === request.LeadID);
     if (leadIndex !== -1) {
       this.leads[leadIndex].OfficialJobNumber = jobNumber;
-      this.leads[leadIndex].ProjectAddress = request.ProjectAddress;
       this.leads[leadIndex].ProjectExecutive = request.ProjectExecutive;
       this.leads[leadIndex].ProjectManager = request.ProjectManager;
     }
@@ -4863,5 +4907,489 @@ export class MockDataService implements IDataService {
       }
       return new Date(a.requestedDate).getTime() - new Date(b.requestedDate).getTime();
     });
+  }
+
+  // ========== Permission Templates ==========
+
+  async getPermissionTemplates(): Promise<IPermissionTemplate[]> {
+    await delay();
+    return JSON.parse(JSON.stringify(this.permissionTemplates));
+  }
+
+  async getPermissionTemplate(id: number): Promise<IPermissionTemplate | null> {
+    await delay();
+    const t = this.permissionTemplates.find(t => t.id === id);
+    return t ? JSON.parse(JSON.stringify(t)) : null;
+  }
+
+  async createPermissionTemplate(data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> {
+    await delay();
+    const newTemplate: IPermissionTemplate = {
+      id: ++this.nextId,
+      name: data.name || 'New Template',
+      description: data.description || '',
+      isGlobal: data.isGlobal ?? false,
+      globalAccess: data.globalAccess ?? false,
+      identityType: data.identityType || 'Internal',
+      toolAccess: data.toolAccess || [],
+      isDefault: data.isDefault ?? false,
+      isActive: data.isActive ?? true,
+      version: data.version ?? 1,
+      createdBy: data.createdBy || 'System',
+      createdDate: new Date().toISOString(),
+      lastModifiedBy: data.lastModifiedBy || data.createdBy || 'System',
+      lastModifiedDate: new Date().toISOString(),
+    };
+    this.permissionTemplates.push(newTemplate);
+    return JSON.parse(JSON.stringify(newTemplate));
+  }
+
+  async updatePermissionTemplate(id: number, data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> {
+    await delay();
+    const idx = this.permissionTemplates.findIndex(t => t.id === id);
+    if (idx === -1) throw new Error(`Template ${id} not found`);
+    this.permissionTemplates[idx] = {
+      ...this.permissionTemplates[idx],
+      ...data,
+      id,
+      lastModifiedDate: new Date().toISOString(),
+    };
+    return JSON.parse(JSON.stringify(this.permissionTemplates[idx]));
+  }
+
+  async deletePermissionTemplate(id: number): Promise<void> {
+    await delay();
+    const idx = this.permissionTemplates.findIndex(t => t.id === id);
+    if (idx === -1) throw new Error(`Template ${id} not found`);
+    this.permissionTemplates.splice(idx, 1);
+  }
+
+  // ========== Security Group Mappings ==========
+
+  async getSecurityGroupMappings(): Promise<ISecurityGroupMapping[]> {
+    await delay();
+    return JSON.parse(JSON.stringify(this.securityGroupMappings));
+  }
+
+  async createSecurityGroupMapping(data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> {
+    await delay();
+    const newMapping: ISecurityGroupMapping = {
+      id: ++this.nextId,
+      securityGroupId: data.securityGroupId || '',
+      securityGroupName: data.securityGroupName || '',
+      defaultTemplateId: data.defaultTemplateId || 0,
+      isActive: data.isActive ?? true,
+    };
+    this.securityGroupMappings.push(newMapping);
+    return JSON.parse(JSON.stringify(newMapping));
+  }
+
+  async updateSecurityGroupMapping(id: number, data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> {
+    await delay();
+    const idx = this.securityGroupMappings.findIndex(m => m.id === id);
+    if (idx === -1) throw new Error(`Security group mapping ${id} not found`);
+    this.securityGroupMappings[idx] = { ...this.securityGroupMappings[idx], ...data, id };
+    return JSON.parse(JSON.stringify(this.securityGroupMappings[idx]));
+  }
+
+  // ========== Project Team Assignments ==========
+
+  async getProjectTeamAssignments(projectCode: string): Promise<IProjectTeamAssignment[]> {
+    await delay();
+    return JSON.parse(JSON.stringify(
+      this.projectTeamAssignments.filter(a => a.projectCode === projectCode && a.isActive)
+    ));
+  }
+
+  async getMyProjectAssignments(userEmail: string): Promise<IProjectTeamAssignment[]> {
+    await delay();
+    const email = userEmail.toLowerCase();
+    return JSON.parse(JSON.stringify(
+      this.projectTeamAssignments.filter(a => a.userEmail.toLowerCase() === email && a.isActive)
+    ));
+  }
+
+  async createProjectTeamAssignment(data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> {
+    await delay();
+    const newAssignment: IProjectTeamAssignment = {
+      id: ++this.nextId,
+      projectCode: data.projectCode || '',
+      userId: data.userId || '',
+      userDisplayName: data.userDisplayName || '',
+      userEmail: data.userEmail || '',
+      assignedRole: data.assignedRole || '',
+      templateOverrideId: data.templateOverrideId,
+      granularFlagOverrides: data.granularFlagOverrides,
+      assignedBy: data.assignedBy || 'System',
+      assignedDate: new Date().toISOString(),
+      isActive: data.isActive ?? true,
+    };
+    this.projectTeamAssignments.push(newAssignment);
+    return JSON.parse(JSON.stringify(newAssignment));
+  }
+
+  async updateProjectTeamAssignment(id: number, data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> {
+    await delay();
+    const idx = this.projectTeamAssignments.findIndex(a => a.id === id);
+    if (idx === -1) throw new Error(`Project team assignment ${id} not found`);
+    this.projectTeamAssignments[idx] = { ...this.projectTeamAssignments[idx], ...data, id };
+    return JSON.parse(JSON.stringify(this.projectTeamAssignments[idx]));
+  }
+
+  async removeProjectTeamAssignment(id: number): Promise<void> {
+    await delay();
+    const idx = this.projectTeamAssignments.findIndex(a => a.id === id);
+    if (idx === -1) throw new Error(`Project team assignment ${id} not found`);
+    this.projectTeamAssignments[idx].isActive = false;
+  }
+
+  // ========== Permission Resolution ==========
+
+  async resolveUserPermissions(userEmail: string, projectCode: string | null): Promise<IResolvedPermissions> {
+    await delay();
+    const email = userEmail.toLowerCase();
+
+    // Dev super-admin: return union of ALL permissions (bypasses template chain)
+    if (this._isDevSuperAdmin) {
+      const allPerms = new Set<string>();
+      for (const perms of Object.values(ROLE_PERMISSIONS)) {
+        for (const p of perms) allPerms.add(p);
+      }
+      return {
+        userId: email,
+        projectCode,
+        templateId: 0,
+        templateName: 'Dev Super-Admin',
+        source: 'SecurityGroupDefault',
+        toolLevels: {},
+        granularFlags: {},
+        permissions: allPerms,
+        globalAccess: true,
+      };
+    }
+
+    // Step 1: Find the user's default template via security group mapping
+    // In mock mode, map the current role to a security group by convention
+    const roleToGroupMap: Record<string, string> = {
+      'Executive Leadership': 'HBC - Executive Leadership',
+      'Department Director': 'HBC - Project Executives',
+      'Operations Team': 'HBC - Project Managers',
+      'Preconstruction Team': 'HBC - Estimating',
+      'BD Representative': 'HBC - Business Development',
+      'Estimating Coordinator': 'HBC - Estimating',
+      'Accounting Manager': 'HBC - Accounting',
+      'Legal': 'HBC - Read Only',
+      'Risk Management': 'HBC - Read Only',
+      'Marketing': 'HBC - Read Only',
+      'Quality Control': 'HBC - Read Only',
+      'Safety': 'HBC - Read Only',
+      'IDS': 'HBC - Read Only',
+      'SharePoint Admin': 'HBC - SharePoint Admins',
+    };
+
+    const roleName = this._currentRole;
+    const groupName = roleToGroupMap[roleName] || 'HBC - Read Only';
+    const groupMapping = this.securityGroupMappings.find(m => m.securityGroupName === groupName && m.isActive);
+    const defaultTemplateId = groupMapping?.defaultTemplateId || 8; // fallback to Read-Only
+    let templateId = defaultTemplateId;
+    let source: 'SecurityGroupDefault' | 'ProjectOverride' | 'DirectAssignment' = 'SecurityGroupDefault';
+
+    // Step 2: Check for project-level template override
+    if (projectCode) {
+      const assignment = this.projectTeamAssignments.find(
+        a => a.userEmail.toLowerCase() === email && a.projectCode === projectCode && a.isActive
+      );
+      if (assignment?.templateOverrideId) {
+        templateId = assignment.templateOverrideId;
+        source = 'ProjectOverride';
+      }
+    }
+
+    // Step 3: Load template
+    const template = this.permissionTemplates.find(t => t.id === templateId);
+    if (!template) {
+      // Fallback to empty permissions
+      return {
+        userId: email,
+        projectCode,
+        templateId: 0,
+        templateName: 'Unknown',
+        source,
+        toolLevels: {},
+        granularFlags: {},
+        permissions: new Set<string>(),
+        globalAccess: false,
+      };
+    }
+
+    // Step 4: Merge granular flag overrides from project assignment
+    const toolAccess = [...template.toolAccess];
+    if (projectCode) {
+      const assignment = this.projectTeamAssignments.find(
+        a => a.userEmail.toLowerCase() === email && a.projectCode === projectCode && a.isActive
+      );
+      if (assignment?.granularFlagOverrides) {
+        for (const override of assignment.granularFlagOverrides) {
+          const existingTool = toolAccess.find(ta => ta.toolKey === override.toolKey);
+          if (existingTool) {
+            existingTool.granularFlags = [
+              ...(existingTool.granularFlags || []),
+              ...override.flags,
+            ];
+          }
+        }
+      }
+    }
+
+    // Step 5: Flatten to permission strings
+    const permissionStrings = resolveToolPermissions(toolAccess, TOOL_DEFINITIONS);
+    const permissions = new Set<string>(permissionStrings);
+
+    // Build toolLevels and granularFlags maps
+    const toolLevels: Record<string, PermissionLevel> = {};
+    const granularFlags: Record<string, string[]> = {};
+    for (const ta of toolAccess) {
+      toolLevels[ta.toolKey] = ta.level as PermissionLevel;
+      if (ta.granularFlags && ta.granularFlags.length > 0) {
+        granularFlags[ta.toolKey] = ta.granularFlags;
+      }
+    }
+
+    console.log('[PermissionEngine] resolved', {
+      email,
+      projectCode,
+      templateName: template.name,
+      source,
+      globalAccess: template.globalAccess,
+      permissionCount: permissions.size,
+    });
+
+    return {
+      userId: email,
+      projectCode,
+      templateId: template.id,
+      templateName: template.name,
+      source,
+      toolLevels,
+      granularFlags,
+      permissions,
+      globalAccess: template.globalAccess,
+    };
+  }
+
+  async getAccessibleProjects(userEmail: string): Promise<string[]> {
+    await delay();
+    const email = userEmail.toLowerCase();
+
+    // First check if user has globalAccess via their template
+    const resolved = await this.resolveUserPermissions(email, null);
+    if (resolved.globalAccess) {
+      // Return all project codes from leads that have project codes
+      return [...new Set(this.leads.filter(l => l.ProjectCode).map(l => l.ProjectCode!))];
+    }
+
+    // Otherwise return only assigned project codes
+    const assignments = this.projectTeamAssignments.filter(
+      a => a.userEmail.toLowerCase() === email && a.isActive
+    );
+    return [...new Set(assignments.map(a => a.projectCode))];
+  }
+
+  // --- Environment Configuration ---
+  private environmentConfig: IEnvironmentConfig = JSON.parse(JSON.stringify(mockEnvironmentConfig));
+
+  async getEnvironmentConfig(): Promise<IEnvironmentConfig> {
+    await new Promise(r => setTimeout(r, 100));
+    return JSON.parse(JSON.stringify(this.environmentConfig));
+  }
+
+  async promoteTemplates(fromTier: EnvironmentTier, toTier: EnvironmentTier, promotedBy: string): Promise<void> {
+    await new Promise(r => setTimeout(r, 500));
+    // Increment version on all active templates
+    for (const tpl of this.permissionTemplates) {
+      if (tpl.isActive) {
+        tpl.version = (tpl.version || 1) + 1;
+        tpl.promotedFromTier = fromTier;
+        tpl.lastModifiedBy = promotedBy;
+        tpl.lastModifiedDate = new Date().toISOString();
+      }
+    }
+    // Record promotion
+    if (!this.environmentConfig.promotionHistory) {
+      this.environmentConfig.promotionHistory = [];
+    }
+    this.environmentConfig.promotionHistory.push({
+      fromTier,
+      toTier,
+      promotedBy,
+      promotedDate: new Date().toISOString(),
+      templateCount: this.permissionTemplates.filter(t => t.isActive).length,
+    });
+  }
+
+  // --- Sector Definitions ---
+  private sectorDefinitions: ISectorDefinition[] = JSON.parse(JSON.stringify(mockSectorDefinitions));
+
+  async getSectorDefinitions(): Promise<ISectorDefinition[]> {
+    await new Promise(r => setTimeout(r, 100));
+    return JSON.parse(JSON.stringify(this.sectorDefinitions.sort((a, b) => a.sortOrder - b.sortOrder)));
+  }
+
+  async createSectorDefinition(data: Partial<ISectorDefinition>): Promise<ISectorDefinition> {
+    await new Promise(r => setTimeout(r, 200));
+    const maxId = this.sectorDefinitions.reduce((max, s) => Math.max(max, s.id), 0);
+    const maxSort = this.sectorDefinitions.reduce((max, s) => Math.max(max, s.sortOrder), 0);
+    const newSector: ISectorDefinition = {
+      id: maxId + 1,
+      code: data.code || data.label?.toUpperCase().replace(/[^A-Z0-9]/g, '_') || 'NEW',
+      label: data.label || 'New Sector',
+      isActive: data.isActive ?? true,
+      parentDivision: data.parentDivision,
+      sortOrder: data.sortOrder ?? maxSort + 1,
+    };
+    this.sectorDefinitions.push(newSector);
+    return JSON.parse(JSON.stringify(newSector));
+  }
+
+  async updateSectorDefinition(id: number, data: Partial<ISectorDefinition>): Promise<ISectorDefinition> {
+    await new Promise(r => setTimeout(r, 200));
+    const idx = this.sectorDefinitions.findIndex(s => s.id === id);
+    if (idx === -1) throw new Error(`Sector definition ${id} not found`);
+    this.sectorDefinitions[idx] = { ...this.sectorDefinitions[idx], ...data };
+    return JSON.parse(JSON.stringify(this.sectorDefinitions[idx]));
+  }
+
+  // --- BD Leads Folder Operations ---
+  private bdLeadFolders: Set<string> = new Set();
+
+  async createBdLeadFolder(leadTitle: string, originatorName: string): Promise<void> {
+    await delay();
+    const parentPath = `BD Leads/${new Date().getFullYear()}`;
+    const leadFolderPath = `${parentPath}/${leadTitle} - ${originatorName}`;
+
+    // Create parent year folder
+    this.bdLeadFolders.add(parentPath);
+    // Create lead folder
+    this.bdLeadFolders.add(leadFolderPath);
+    // Create subfolders
+    const subfolders = [
+      'Client Information', 'Correspondence', 'Proposal Documents',
+      'Site and Project Plans', 'Financial Estimates', 'Evaluations and Scorecards',
+      'Contracts and Legal', 'Media and Visuals', 'Archives',
+    ];
+    for (const sub of subfolders) {
+      this.bdLeadFolders.add(`${leadFolderPath}/${sub}`);
+    }
+  }
+
+  async checkFolderExists(path: string): Promise<boolean> {
+    await delay();
+    return this.bdLeadFolders.has(path);
+  }
+
+  async createFolder(path: string): Promise<void> {
+    await delay();
+    this.bdLeadFolders.add(path);
+  }
+
+  async renameFolder(oldPath: string, newPath: string): Promise<void> {
+    await delay();
+    // Remove old path and all children, add new path and all children
+    const toRemove: string[] = [];
+    const toAdd: string[] = [];
+    for (const existing of this.bdLeadFolders) {
+      if (existing === oldPath || existing.startsWith(oldPath + '/')) {
+        toRemove.push(existing);
+        toAdd.push(newPath + existing.substring(oldPath.length));
+      }
+    }
+    for (const r of toRemove) this.bdLeadFolders.delete(r);
+    for (const a of toAdd) this.bdLeadFolders.add(a);
+  }
+
+  // --- Assignment Mappings ---
+  private assignmentMappings: IAssignmentMapping[] = JSON.parse(JSON.stringify(mockAssignmentMappings));
+
+  async getAssignmentMappings(): Promise<IAssignmentMapping[]> {
+    await delay();
+    return JSON.parse(JSON.stringify(this.assignmentMappings));
+  }
+
+  async createAssignmentMapping(data: Partial<IAssignmentMapping>): Promise<IAssignmentMapping> {
+    await delay();
+    const maxId = this.assignmentMappings.reduce((max, m) => Math.max(max, m.id), 0);
+    const newMapping: IAssignmentMapping = {
+      id: maxId + 1,
+      region: data.region || 'All Regions',
+      sector: data.sector || 'All Sectors',
+      assignmentType: data.assignmentType || 'Director',
+      assignee: data.assignee || { userId: '', displayName: '', email: '' },
+    };
+    this.assignmentMappings.push(newMapping);
+    return JSON.parse(JSON.stringify(newMapping));
+  }
+
+  async updateAssignmentMapping(id: number, data: Partial<IAssignmentMapping>): Promise<IAssignmentMapping> {
+    await delay();
+    const idx = this.assignmentMappings.findIndex(m => m.id === id);
+    if (idx === -1) throw new Error(`Assignment mapping ${id} not found`);
+    this.assignmentMappings[idx] = { ...this.assignmentMappings[idx], ...data };
+    return JSON.parse(JSON.stringify(this.assignmentMappings[idx]));
+  }
+
+  async deleteAssignmentMapping(id: number): Promise<void> {
+    await delay();
+    const idx = this.assignmentMappings.findIndex(m => m.id === id);
+    if (idx === -1) throw new Error(`Assignment mapping ${id} not found`);
+    this.assignmentMappings.splice(idx, 1);
+  }
+
+  // --- Scorecard Reject / Archive (Phase 22) ---
+
+  async rejectScorecard(scorecardId: number, reason: string): Promise<IGoNoGoScorecard> {
+    await delay();
+    const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
+    scorecard.scorecardStatus = ScorecardStatus.Rejected;
+    scorecard.isLocked = true;
+    scorecard.finalDecision = GoNoGoDecision.NoGo;
+    scorecard.finalDecisionDate = new Date().toISOString().split('T')[0];
+
+    // Complete active cycle
+    const activeCycle = scorecard.approvalCycles?.find(c => c.status === 'Active');
+    if (activeCycle) {
+      activeCycle.status = 'Completed';
+      activeCycle.completedDate = new Date().toISOString().split('T')[0];
+      const pendingStep = activeCycle.steps?.find(s => s.status === 'Pending');
+      if (pendingStep) {
+        pendingStep.status = 'Returned';
+        pendingStep.comment = `Rejected: ${reason}`;
+        pendingStep.actionDate = new Date().toISOString().split('T')[0];
+      }
+    }
+
+    this.createVersionSnapshot(scorecard, `Rejected: ${reason}`, scorecard.finalDecisionBy || 'system');
+    this.scorecards[index] = scorecard;
+    return { ...scorecard };
+  }
+
+  async archiveScorecard(scorecardId: number, archivedBy: string): Promise<IGoNoGoScorecard> {
+    await delay();
+    const { scorecard, index } = this.findScorecardOrThrow(scorecardId);
+    scorecard.isArchived = true;
+    scorecard.archivedDate = new Date().toISOString().split('T')[0];
+    scorecard.archivedBy = archivedBy;
+
+    // Rename folder if it exists
+    const lead = this.leads.find(l => l.id === scorecard.LeadID);
+    if (lead) {
+      const yearStr = new Date().getFullYear().toString();
+      const oldPath = `BD Leads/${yearStr}/${lead.Title}`;
+      if (this.bdLeadFolders.has(oldPath)) {
+        await this.renameFolder(oldPath, `${oldPath}-ARCHIVED`);
+      }
+    }
+
+    this.scorecards[index] = scorecard;
+    return { ...scorecard };
   }
 }

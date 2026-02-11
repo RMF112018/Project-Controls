@@ -56,7 +56,11 @@ export const LEADS_MASTER_COLUMNS = {
   LossReason: 'LossReason',                   // SP: Choice (multi-select)
   LossCompetitor: 'LossCompetitor',            // SP: Single Line of Text
   LossAutopsyNotes: 'LossAutopsyNotes',        // SP: Multiple Lines of Text
-  ProjectAddress: 'ProjectAddress',            // SP: Single Line of Text
+  AddressStreet: 'AddressStreet',              // SP: Single Line of Text
+  AddressCity: 'AddressCity',                  // SP: Single Line of Text
+  AddressState: 'AddressState',               // SP: Choice
+  AddressZip: 'AddressZip',                    // SP: Single Line of Text
+  DateSubmitted: 'DateSubmitted',              // SP: DateTime
   ProjectExecutive: 'ProjectExecutive',        // SP: Single Line of Text
   ProjectManager: 'ProjectManager',            // SP: Single Line of Text
   OfficialJobNumber: 'OfficialJobNumber',      // SP: Single Line of Text
@@ -1519,4 +1523,68 @@ export const TURNOVER_ATTACHMENTS_COLUMNS = {
   fileUrl: 'FileUrl',                          // SP: Hyperlink
   uploadedBy: 'UploadedBy',                    // SP: Single Line of Text
   uploadedDate: 'UploadedDate',                // SP: DateTime
+} as const;
+
+/**
+ * List: Permission_Templates
+ * Interface: IPermissionTemplate
+ */
+export const PERMISSION_TEMPLATES_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  name: 'Title',                               // SP: Single Line of Text (default)
+  description: 'Description',                  // SP: Multiple Lines of Text
+  isGlobal: 'IsGlobal',                        // SP: Yes/No
+  globalAccess: 'GlobalAccess',                // SP: Yes/No
+  identityType: 'IdentityType',                // SP: Choice (Internal, External)
+  toolAccess: 'ToolAccess',                    // SP: Multiple Lines of Text (JSON)
+  isDefault: 'IsDefault',                      // SP: Yes/No
+  isActive: 'IsActive',                        // SP: Yes/No
+  createdBy: 'CreatedBy',                      // SP: Single Line of Text
+  createdDate: 'CreatedDate',                  // SP: DateTime
+  lastModifiedBy: 'LastModifiedBy',            // SP: Single Line of Text
+  lastModifiedDate: 'LastModifiedDate',        // SP: DateTime
+} as const;
+
+/**
+ * List: Security_Group_Mappings
+ * Interface: ISecurityGroupMapping
+ */
+export const SECURITY_GROUP_MAPPINGS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  securityGroupId: 'SecurityGroupId',          // SP: Single Line of Text (Azure AD object ID)
+  securityGroupName: 'Title',                  // SP: Single Line of Text (default)
+  defaultTemplateId: 'DefaultTemplateId',      // SP: Number (lookup ID)
+  isActive: 'IsActive',                        // SP: Yes/No
+} as const;
+
+/**
+ * List: Project_Team_Assignments
+ * Interface: IProjectTeamAssignment
+ */
+export const PROJECT_TEAM_ASSIGNMENTS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  projectCode: 'ProjectCode',                  // SP: Single Line of Text
+  userId: 'UserId',                            // SP: Single Line of Text (Azure AD user ID)
+  userDisplayName: 'Title',                    // SP: Single Line of Text (default)
+  userEmail: 'UserEmail',                      // SP: Single Line of Text
+  assignedRole: 'AssignedRole',                // SP: Single Line of Text
+  templateOverrideId: 'TemplateOverrideId',    // SP: Number (lookup ID, nullable)
+  granularFlagOverrides: 'GranularFlagOverrides', // SP: Multiple Lines of Text (JSON)
+  assignedBy: 'AssignedBy',                    // SP: Single Line of Text
+  assignedDate: 'AssignedDate',                // SP: DateTime
+  isActive: 'IsActive',                        // SP: Yes/No
+} as const;
+
+/**
+ * List: Assignment_Mappings
+ * Interface: IAssignmentMapping
+ */
+export const ASSIGNMENT_MAPPINGS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  region: 'Region',                            // SP: Single Line of Text
+  sector: 'Sector',                            // SP: Single Line of Text
+  assignmentType: 'AssignmentType',            // SP: Choice (Estimator, Director)
+  assigneeUserId: 'AssigneeUserId',            // SP: Single Line of Text
+  assigneeDisplayName: 'AssigneeDisplayName',  // SP: Single Line of Text
+  assigneeEmail: 'AssigneeEmail',              // SP: Single Line of Text
 } as const;

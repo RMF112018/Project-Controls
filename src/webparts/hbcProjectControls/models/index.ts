@@ -38,3 +38,7 @@ export * from './IComplianceSummary';
 export * from './IWorkflowDefinition';
 export * from './ITurnoverAgenda';
 export * from './IActionInbox';
+export * from './IPermissionTemplate';
+export * from './IEnvironmentConfig';
+export * from './ISectorDefinition';
+export * from './IAssignmentMapping';

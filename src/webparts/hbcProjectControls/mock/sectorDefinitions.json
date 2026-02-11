@@ -1,0 +1,14 @@
+[
+  { "id": 1, "code": "AIRPORT", "label": "Airport", "isActive": true, "sortOrder": 1 },
+  { "id": 2, "code": "CITY", "label": "City", "isActive": true, "sortOrder": 2 },
+  { "id": 3, "code": "COMMERCIAL", "label": "Commercial", "isActive": true, "sortOrder": 3 },
+  { "id": 4, "code": "COUNTY", "label": "County", "isActive": true, "sortOrder": 4 },
+  { "id": 5, "code": "FEDERAL", "label": "Federal", "isActive": true, "sortOrder": 5 },
+  { "id": 6, "code": "GOLF_CLUB_COURSE", "label": "Golf Club/Course", "isActive": true, "sortOrder": 6 },
+  { "id": 7, "code": "MIXED_USE", "label": "Mixed-Use", "isActive": true, "sortOrder": 7 },
+  { "id": 8, "code": "MULTI_FAMILY", "label": "Multi-Family", "isActive": true, "sortOrder": 8 },
+  { "id": 9, "code": "MUNICIPAL", "label": "Municipal", "isActive": true, "sortOrder": 9 },
+  { "id": 10, "code": "PARKING_GARAGE", "label": "Parking Garage", "isActive": true, "sortOrder": 10 },
+  { "id": 11, "code": "STATE", "label": "State", "isActive": true, "sortOrder": 11 },
+  { "id": 12, "code": "WAREHOUSE", "label": "Warehouse", "isActive": true, "sortOrder": 12 }
+]

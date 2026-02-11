@@ -6,6 +6,11 @@ export interface ILead {
   ClientName: string;
   AE?: string;
   CityLocation?: string;
+  AddressStreet?: string;
+  AddressCity?: string;
+  AddressState?: string;
+  AddressZip?: string;
+  DateSubmitted?: string;
   Region: Region;
   Sector: Sector;
   SubSector?: string;
@@ -38,7 +43,6 @@ export interface ILead {
   LossReason?: LossReason[];
   LossCompetitor?: string;
   LossAutopsyNotes?: string;
-  ProjectAddress?: string;
   ProjectExecutive?: string;
   ProjectManager?: string;
   OfficialJobNumber?: string;

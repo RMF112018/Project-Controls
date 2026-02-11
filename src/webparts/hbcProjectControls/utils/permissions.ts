@@ -130,16 +130,28 @@ export const PERMISSIONS = {
   // Turnover Agenda
   TURNOVER_AGENDA_EDIT: 'turnover:agenda:edit',
   TURNOVER_SIGN: 'turnover:sign',
+
+  // Permission Engine
+  PERMISSION_TEMPLATES_MANAGE: 'permission:templates:manage',
+  PERMISSION_PROJECT_TEAM_MANAGE: 'permission:project_team:manage',
+  PERMISSION_PROJECT_TEAM_VIEW: 'permission:project_team:view',
+
+  // Go/No-Go Review (Director/Committee)
+  GONOGO_REVIEW: 'gonogo:review',
+
+  // Assignment Mappings Admin
+  ADMIN_ASSIGNMENTS: 'admin:assignments:manage',
 } as const;
 
 export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS];
 
 // Nav group visibility by role
 export const NAV_GROUP_ROLES: Record<string, string[]> = {
-  Marketing: ['Marketing', 'Executive Leadership', 'Department Director'],
-  Preconstruction: ['BD Representative', 'Estimating Coordinator', 'Preconstruction Team', 'Executive Leadership', 'Department Director', 'Legal'],
-  Operations: ['Operations Team', 'Executive Leadership', 'Department Director', 'Risk Management', 'Quality Control', 'Safety', 'IDS'],
-  Admin: ['Executive Leadership'],
+  Marketing: ['Marketing', 'BD Representative', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
+  Preconstruction: ['BD Representative', 'Estimating Coordinator', 'Preconstruction Team', 'Executive Leadership', 'Department Director', 'Legal', 'SharePoint Admin'],
+  Operations: ['Operations Team', 'Executive Leadership', 'Department Director', 'Risk Management', 'Quality Control', 'Safety', 'IDS', 'SharePoint Admin'],
+  Accounting: ['Accounting Manager', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
+  Admin: ['Executive Leadership', 'SharePoint Admin'],
 };
 
 // Role to permissions mapping
@@ -153,7 +165,9 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.ESTIMATING_READ, PERMISSIONS.MEETING_SCHEDULE, PERMISSIONS.MEETING_READ,
     PERMISSIONS.SITE_PROVISION,
     PERMISSIONS.KICKOFF_VIEW,
-    PERMISSIONS.AUTOPSY_VIEW,
+    PERMISSIONS.AUTOPSY_VIEW, PERMISSIONS.AUTOPSY_EDIT, PERMISSIONS.AUTOPSY_SCHEDULE,
+    PERMISSIONS.MARKETING_DASHBOARD_VIEW, PERMISSIONS.MARKETING_EDIT, PERMISSIONS.PROJECT_RECORD_EDIT,
+    PERMISSIONS.PRECON_HUB_VIEW,
   ],
   'Estimating Coordinator': [
     PERMISSIONS.LEAD_READ,
@@ -208,13 +222,14 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
   'Executive Leadership': [
     PERMISSIONS.LEAD_READ,
-    PERMISSIONS.GONOGO_SCORE_COMMITTEE, PERMISSIONS.GONOGO_DECIDE, PERMISSIONS.GONOGO_READ,
+    PERMISSIONS.GONOGO_SCORE_COMMITTEE, PERMISSIONS.GONOGO_DECIDE, PERMISSIONS.GONOGO_READ, PERMISSIONS.GONOGO_REVIEW,
     PERMISSIONS.PRECON_READ, PERMISSIONS.PROPOSAL_READ,
     PERMISSIONS.WINLOSS_READ,
     PERMISSIONS.CONTRACT_READ, PERMISSIONS.CONTRACT_VIEW_FINANCIALS,
     PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
     PERMISSIONS.ESTIMATING_READ,
     PERMISSIONS.ADMIN_ROLES, PERMISSIONS.ADMIN_FLAGS, PERMISSIONS.ADMIN_CONFIG, PERMISSIONS.ADMIN_CONNECTIONS, PERMISSIONS.ADMIN_PROVISIONING,
+    PERMISSIONS.ADMIN_ASSIGNMENTS,
     PERMISSIONS.MEETING_SCHEDULE, PERMISSIONS.MEETING_READ,
     PERMISSIONS.STARTUP_CHECKLIST_SIGNOFF, PERMISSIONS.MARKETING_DASHBOARD_VIEW,
     PERMISSIONS.PMP_APPROVE, PERMISSIONS.PMP_FINAL_APPROVE, PERMISSIONS.PMP_SIGN,
@@ -228,10 +243,11 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.COMPLIANCE_LOG_VIEW,
     PERMISSIONS.WORKFLOW_MANAGE,
     PERMISSIONS.TURNOVER_AGENDA_EDIT, PERMISSIONS.TURNOVER_SIGN,
+    PERMISSIONS.PERMISSION_TEMPLATES_MANAGE, PERMISSIONS.PERMISSION_PROJECT_TEAM_MANAGE, PERMISSIONS.PERMISSION_PROJECT_TEAM_VIEW,
   ],
   'Department Director': [
     PERMISSIONS.LEAD_READ,
-    PERMISSIONS.GONOGO_SCORE_COMMITTEE, PERMISSIONS.GONOGO_DECIDE, PERMISSIONS.GONOGO_READ,
+    PERMISSIONS.GONOGO_SCORE_COMMITTEE, PERMISSIONS.GONOGO_DECIDE, PERMISSIONS.GONOGO_READ, PERMISSIONS.GONOGO_REVIEW,
     PERMISSIONS.PRECON_READ, PERMISSIONS.PROPOSAL_READ,
     PERMISSIONS.WINLOSS_READ,
     PERMISSIONS.CONTRACT_READ, PERMISSIONS.CONTRACT_VIEW_FINANCIALS,
@@ -249,6 +265,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.ACTIVE_PROJECTS_VIEW, PERMISSIONS.ACTIVE_PROJECTS_SYNC,
     PERMISSIONS.COMPLIANCE_LOG_VIEW,
     PERMISSIONS.TURNOVER_AGENDA_EDIT, PERMISSIONS.TURNOVER_SIGN,
+    PERMISSIONS.PERMISSION_PROJECT_TEAM_VIEW,
   ],
   'Legal': [
     PERMISSIONS.LEAD_READ, PERMISSIONS.GONOGO_READ,
@@ -299,5 +316,10 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.WINLOSS_READ,
     PERMISSIONS.CONTRACT_READ, PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
     PERMISSIONS.MEETING_READ, PERMISSIONS.ADMIN_CONFIG,
+    PERMISSIONS.PERMISSION_TEMPLATES_MANAGE, PERMISSIONS.PERMISSION_PROJECT_TEAM_MANAGE, PERMISSIONS.PERMISSION_PROJECT_TEAM_VIEW,
+  ],
+  'SharePoint Admin': [
+    // Full admin access to all tools/modules
+    ...Object.values(PERMISSIONS),
   ],
 };

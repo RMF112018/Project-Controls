@@ -1,0 +1,11 @@
+[
+  { "id": 1, "securityGroupId": "aad-group-001", "securityGroupName": "HBC - Executive Leadership", "defaultTemplateId": 1, "isActive": true },
+  { "id": 2, "securityGroupId": "aad-group-002", "securityGroupName": "HBC - Operations Excellence", "defaultTemplateId": 2, "isActive": true },
+  { "id": 3, "securityGroupId": "aad-group-003", "securityGroupName": "HBC - Project Executives", "defaultTemplateId": 3, "isActive": true },
+  { "id": 4, "securityGroupId": "aad-group-004", "securityGroupName": "HBC - Project Managers", "defaultTemplateId": 4, "isActive": true },
+  { "id": 5, "securityGroupId": "aad-group-005", "securityGroupName": "HBC - Estimating", "defaultTemplateId": 5, "isActive": true },
+  { "id": 6, "securityGroupId": "aad-group-006", "securityGroupName": "HBC - Business Development", "defaultTemplateId": 6, "isActive": true },
+  { "id": 7, "securityGroupId": "aad-group-007", "securityGroupName": "HBC - Accounting", "defaultTemplateId": 7, "isActive": true },
+  { "id": 8, "securityGroupId": "aad-group-008", "securityGroupName": "HBC - Read Only", "defaultTemplateId": 8, "isActive": true },
+  { "id": 9, "securityGroupId": "aad-group-009", "securityGroupName": "HBC - SharePoint Admins", "defaultTemplateId": 9, "isActive": true }
+]

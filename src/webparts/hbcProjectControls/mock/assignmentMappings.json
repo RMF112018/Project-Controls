@@ -1,0 +1,46 @@
+[
+  {
+    "id": 1,
+    "region": "Miami",
+    "sector": "All Sectors",
+    "assignmentType": "Director",
+    "assignee": {
+      "userId": "dpark",
+      "displayName": "David Park",
+      "email": "dpark@hedrickbrothers.com"
+    }
+  },
+  {
+    "id": 2,
+    "region": "West Palm Beach",
+    "sector": "All Sectors",
+    "assignmentType": "Director",
+    "assignee": {
+      "userId": "dpark",
+      "displayName": "David Park",
+      "email": "dpark@hedrickbrothers.com"
+    }
+  },
+  {
+    "id": 3,
+    "region": "Miami",
+    "sector": "All Sectors",
+    "assignmentType": "Estimator",
+    "assignee": {
+      "userId": "jthompson",
+      "displayName": "Jason Thompson",
+      "email": "jthompson@hedrickbrothers.com"
+    }
+  },
+  {
+    "id": 4,
+    "region": "All Regions",
+    "sector": "All Sectors",
+    "assignmentType": "Director",
+    "assignee": {
+      "userId": "dpark",
+      "displayName": "David Park",
+      "email": "dpark@hedrickbrothers.com"
+    }
+  }
+]

@@ -27,12 +27,17 @@ import { MockHubNavigationService } from '../../../services/HubNavigationService
 import { HubNavLinkStatus } from '../../../models/IProvisioningLog';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { WorkflowDefinitionsPanel } from './WorkflowDefinitionsPanel';
+import { PermissionTemplateEditor } from './PermissionTemplateEditor';
 import { useTabFromUrl } from '../../hooks/useTabFromUrl';
+import { useSectorDefinitions } from '../../hooks/useSectorDefinitions';
+import { useAssignmentMappings } from '../../hooks/useAssignmentMappings';
+import { IAssignmentMapping, AssignmentType } from '../../../models';
+import { ISectorDefinition } from '../../../models/ISectorDefinition';
 import { HBC_COLORS, SPACING } from '../../../theme/tokens';
 import { formatDateTime } from '../../../utils/formatters';
 import { PERMISSIONS } from '../../../utils/permissions';
 
-const TAB_KEYS = ['connections', 'roles', 'flags', 'provisioning', 'workflows', 'audit'] as const;
+const TAB_KEYS = ['connections', 'roles', 'flags', 'provisioning', 'workflows', 'permissions', 'sectors', 'audit'] as const;
 type AdminTab = typeof TAB_KEYS[number];
 const TAB_LABELS: Record<AdminTab, string> = {
   connections: 'Connections',
@@ -40,6 +45,8 @@ const TAB_LABELS: Record<AdminTab, string> = {
   flags: 'Feature Flags',
   provisioning: 'Provisioning',
   workflows: 'Workflows',
+  permissions: 'Permissions',
+  sectors: 'Sectors',
   audit: 'Audit Log',
 };
 
@@ -162,6 +169,19 @@ export const AdminPanel: React.FC = () => {
     return d.toISOString().split('T')[0];
   });
   const [auditEndDate, setAuditEndDate] = React.useState(() => new Date().toISOString().split('T')[0]);
+
+  // -- Sectors state --
+  const { sectors: sectorDefs, createSector: createSectorDef, updateSector: updateSectorDef, loading: sectorsLoading, refresh: refreshSectors } = useSectorDefinitions();
+  const [newSectorLabel, setNewSectorLabel] = React.useState('');
+
+  // -- Assignment Mappings state --
+  const { mappings: assignmentMappings, fetchMappings: fetchAssignmentMappings, createMapping, updateMapping, deleteMapping } = useAssignmentMappings();
+  const [newMappingRegion, setNewMappingRegion] = React.useState('');
+  const [newMappingSector, setNewMappingSector] = React.useState('');
+  const [newMappingType, setNewMappingType] = React.useState<AssignmentType>('Director');
+  const [newMappingName, setNewMappingName] = React.useState('');
+  const [newMappingEmail, setNewMappingEmail] = React.useState('');
+  const [assignmentMappingsLoaded, setAssignmentMappingsLoaded] = React.useState(false);
 
   const hubNavService = React.useMemo(() => new MockHubNavigationService(), []);
   const provisioningService = React.useMemo(
@@ -692,9 +712,181 @@ export const AdminPanel: React.FC = () => {
       {/* Tab 5: Workflows */}
       {activeTab === 'workflows' && (
         hasPermission(PERMISSIONS.WORKFLOW_MANAGE) ? (
-          <FeatureGate featureName="WorkflowDefinitions">
-            <WorkflowDefinitionsPanel />
-          </FeatureGate>
+          <>
+            <FeatureGate featureName="WorkflowDefinitions">
+              <WorkflowDefinitionsPanel />
+            </FeatureGate>
+
+            {/* Assignment Mappings Section */}
+            {hasPermission(PERMISSIONS.ADMIN_ASSIGNMENTS) && (
+              <div style={{ marginTop: '32px', borderTop: `1px solid ${HBC_COLORS.gray200}`, paddingTop: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <div>
+                    <h3 style={{ margin: 0, color: HBC_COLORS.navy, fontSize: '16px' }}>Assignment Mappings</h3>
+                    <p style={{ margin: '4px 0 0', color: HBC_COLORS.gray500, fontSize: '13px' }}>
+                      Configure Director of Preconstruction and Estimating Coordinator assignments per Region/Sector.
+                    </p>
+                  </div>
+                  {!assignmentMappingsLoaded && (
+                    <Button size="small" appearance="secondary" onClick={() => { fetchAssignmentMappings().then(() => setAssignmentMappingsLoaded(true)).catch(console.error); }}>
+                      Load Mappings
+                    </Button>
+                  )}
+                </div>
+
+                {assignmentMappingsLoaded && (
+                  <>
+                    {/* Add New Mapping */}
+                    <div style={{
+                      display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'flex-end',
+                      padding: '12px', backgroundColor: HBC_COLORS.gray50, borderRadius: '8px',
+                      flexWrap: 'wrap',
+                    }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', color: HBC_COLORS.gray500, marginBottom: '2px' }}>Region</label>
+                        <select
+                          value={newMappingRegion}
+                          onChange={e => setNewMappingRegion(e.target.value)}
+                          style={{ padding: '6px 10px', borderRadius: '4px', border: `1px solid ${HBC_COLORS.gray300}`, fontSize: '13px' }}
+                        >
+                          <option value="">Select...</option>
+                          <option value="All Regions">All Regions</option>
+                          <option value="Miami">Miami</option>
+                          <option value="West Palm Beach">West Palm Beach</option>
+                          <option value="Martin County">Martin County</option>
+                          <option value="Orlando">Orlando</option>
+                          <option value="Tallahassee">Tallahassee</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', color: HBC_COLORS.gray500, marginBottom: '2px' }}>Sector</label>
+                        <select
+                          value={newMappingSector}
+                          onChange={e => setNewMappingSector(e.target.value)}
+                          style={{ padding: '6px 10px', borderRadius: '4px', border: `1px solid ${HBC_COLORS.gray300}`, fontSize: '13px' }}
+                        >
+                          <option value="">Select...</option>
+                          <option value="All Sectors">All Sectors</option>
+                          {sectorDefs.filter(s => s.isActive).map(s => (
+                            <option key={s.id} value={s.label}>{s.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', color: HBC_COLORS.gray500, marginBottom: '2px' }}>Type</label>
+                        <select
+                          value={newMappingType}
+                          onChange={e => setNewMappingType(e.target.value as AssignmentType)}
+                          style={{ padding: '6px 10px', borderRadius: '4px', border: `1px solid ${HBC_COLORS.gray300}`, fontSize: '13px' }}
+                        >
+                          <option value="Director">Director</option>
+                          <option value="Estimator">Estimator</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', color: HBC_COLORS.gray500, marginBottom: '2px' }}>Assignee Name</label>
+                        <input
+                          type="text"
+                          value={newMappingName}
+                          onChange={e => setNewMappingName(e.target.value)}
+                          placeholder="Display name"
+                          style={{ padding: '6px 10px', borderRadius: '4px', border: `1px solid ${HBC_COLORS.gray300}`, fontSize: '13px', width: '150px' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', color: HBC_COLORS.gray500, marginBottom: '2px' }}>Email</label>
+                        <input
+                          type="email"
+                          value={newMappingEmail}
+                          onChange={e => setNewMappingEmail(e.target.value)}
+                          placeholder="email@hedrickbrothers.com"
+                          style={{ padding: '6px 10px', borderRadius: '4px', border: `1px solid ${HBC_COLORS.gray300}`, fontSize: '13px', width: '200px' }}
+                        />
+                      </div>
+                      <Button
+                        size="small"
+                        appearance="primary"
+                        disabled={!newMappingRegion || !newMappingSector || !newMappingName.trim() || !newMappingEmail.trim()}
+                        onClick={() => {
+                          createMapping({
+                            region: newMappingRegion,
+                            sector: newMappingSector,
+                            assignmentType: newMappingType,
+                            assignee: { userId: newMappingEmail.split('@')[0], displayName: newMappingName, email: newMappingEmail },
+                          }).then(() => {
+                            setNewMappingRegion('');
+                            setNewMappingSector('');
+                            setNewMappingName('');
+                            setNewMappingEmail('');
+                            dataService.logAudit({
+                              Action: AuditAction.AssignmentMappingUpdated,
+                              EntityType: EntityType.AssignmentMapping,
+                              EntityId: 'new',
+                              User: currentUser?.displayName || 'Unknown',
+                              Details: `Added ${newMappingType} mapping for ${newMappingRegion}/${newMappingSector}: ${newMappingName}`,
+                            }).catch(console.error);
+                          }).catch(console.error);
+                        }}
+                      >
+                        Add Mapping
+                      </Button>
+                    </div>
+
+                    {/* Mappings Table */}
+                    <div style={{ border: `1px solid ${HBC_COLORS.gray200}`, borderRadius: '8px', overflow: 'hidden' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 1.5fr 1.5fr 60px', padding: '8px 12px', background: HBC_COLORS.gray50, borderBottom: `1px solid ${HBC_COLORS.gray200}`, fontSize: '11px', fontWeight: 700, color: HBC_COLORS.gray500, textTransform: 'uppercase' }}>
+                        <span>Region</span>
+                        <span>Sector</span>
+                        <span>Type</span>
+                        <span>Assignee</span>
+                        <span>Email</span>
+                        <span></span>
+                      </div>
+                      {assignmentMappings.length === 0 && (
+                        <div style={{ padding: '24px', textAlign: 'center', color: HBC_COLORS.gray400, fontSize: '13px' }}>
+                          No assignment mappings configured. Add one above.
+                        </div>
+                      )}
+                      {assignmentMappings.map(m => (
+                        <div key={m.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 1.5fr 1.5fr 60px', padding: '8px 12px', alignItems: 'center', borderBottom: `1px solid ${HBC_COLORS.gray100}`, fontSize: '13px' }}>
+                          <span style={{ color: HBC_COLORS.navy, fontWeight: 500 }}>{m.region}</span>
+                          <span>{m.sector}</span>
+                          <span>
+                            <StatusBadge
+                              label={m.assignmentType}
+                              color={m.assignmentType === 'Director' ? '#1E40AF' : '#065F46'}
+                              backgroundColor={m.assignmentType === 'Director' ? '#DBEAFE' : '#D1FAE5'}
+                              size="small"
+                            />
+                          </span>
+                          <span>{m.assignee.displayName}</span>
+                          <span style={{ color: HBC_COLORS.gray500 }}>{m.assignee.email}</span>
+                          <span style={{ textAlign: 'right' }}>
+                            <button
+                              onClick={() => {
+                                deleteMapping(m.id).then(() => {
+                                  dataService.logAudit({
+                                    Action: AuditAction.AssignmentMappingUpdated,
+                                    EntityType: EntityType.AssignmentMapping,
+                                    EntityId: String(m.id),
+                                    User: currentUser?.displayName || 'Unknown',
+                                    Details: `Removed ${m.assignmentType} mapping for ${m.region}/${m.sector}`,
+                                  }).catch(console.error);
+                                }).catch(console.error);
+                              }}
+                              style={{ border: 'none', background: 'none', color: HBC_COLORS.error, cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                            >
+                              Remove
+                            </button>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </>
         ) : (
           <div style={{ padding: '24px', textAlign: 'center', color: HBC_COLORS.gray400 }}>
             You do not have permission to manage workflow definitions.
@@ -702,7 +894,114 @@ export const AdminPanel: React.FC = () => {
         )
       )}
 
-      {/* Tab 6: Audit Log */}
+      {/* Tab 6: Permissions */}
+      {activeTab === 'permissions' && (
+        hasPermission(PERMISSIONS.PERMISSION_TEMPLATES_MANAGE) ? (
+          <FeatureGate featureName="PermissionEngine">
+            <PermissionTemplateEditor />
+          </FeatureGate>
+        ) : (
+          <div style={{ padding: '24px', textAlign: 'center', color: HBC_COLORS.gray400 }}>
+            You do not have permission to manage permission templates.
+          </div>
+        )
+      )}
+
+      {/* Tab 7: Sectors */}
+      {activeTab === 'sectors' && (
+        hasPermission(PERMISSIONS.PERMISSION_TEMPLATES_MANAGE) ? (
+          <FeatureGate featureName="PermissionEngine">
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div>
+                  <h3 style={{ margin: 0, color: HBC_COLORS.navy, fontSize: '16px' }}>Sector Definitions</h3>
+                  <p style={{ margin: '4px 0 0', color: HBC_COLORS.gray500, fontSize: '13px' }}>
+                    Manage industry sectors for lead classification. Changes affect all sector dropdowns across the application.
+                  </p>
+                </div>
+              </div>
+
+              {/* Add Sector */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  value={newSectorLabel}
+                  onChange={e => setNewSectorLabel(e.target.value)}
+                  placeholder="New sector name..."
+                  style={{
+                    padding: '6px 12px', borderRadius: '4px', border: `1px solid ${HBC_COLORS.gray300}`,
+                    fontSize: '13px', width: '250px',
+                  }}
+                />
+                <Button
+                  appearance="primary"
+                  size="small"
+                  disabled={!newSectorLabel.trim()}
+                  onClick={async () => {
+                    if (!newSectorLabel.trim()) return;
+                    await createSectorDef({ label: newSectorLabel.trim() });
+                    setNewSectorLabel('');
+                    dataService.logAudit({
+                      Action: AuditAction.ConfigRoleChanged,
+                      EntityType: EntityType.Config,
+                      EntityId: 'sector-definitions',
+                      User: currentUser?.displayName || '',
+                      Details: `Created sector: ${newSectorLabel.trim()}`,
+                    });
+                  }}
+                >
+                  Add Sector
+                </Button>
+              </div>
+
+              {sectorsLoading ? (
+                <SkeletonLoader variant="table" rows={6} columns={4} />
+              ) : (
+                <DataTable<ISectorDefinition>
+                  columns={[
+                    { key: 'sortOrder', header: '#', width: '60px', render: (s: ISectorDefinition) => <span style={{ color: HBC_COLORS.gray500, fontSize: '12px' }}>{s.sortOrder}</span> },
+                    { key: 'label', header: 'Label', render: (s: ISectorDefinition) => <span style={{ fontWeight: 500 }}>{s.label}</span> },
+                    { key: 'code', header: 'Code', render: (s: ISectorDefinition) => <span style={{ fontFamily: 'monospace', fontSize: '12px', color: HBC_COLORS.gray500 }}>{s.code}</span> },
+                    { key: 'isActive', header: 'Status', width: '100px', render: (s: ISectorDefinition) => (
+                      <StatusBadge
+                        label={s.isActive ? 'Active' : 'Inactive'}
+                        color={s.isActive ? HBC_COLORS.success : HBC_COLORS.gray400}
+                        backgroundColor={s.isActive ? HBC_COLORS.successLight : HBC_COLORS.gray100}
+                      />
+                    )},
+                    { key: 'actions', header: 'Actions', width: '100px', render: (s: ISectorDefinition) => (
+                      <Button
+                        appearance="subtle"
+                        size="small"
+                        onClick={async () => {
+                          await updateSectorDef(s.id, { isActive: !s.isActive });
+                          dataService.logAudit({
+                            Action: AuditAction.ConfigRoleChanged,
+                            EntityType: EntityType.Config,
+                            EntityId: `sector-${s.id}`,
+                            User: currentUser?.displayName || '',
+                            Details: `${s.isActive ? 'Deactivated' : 'Activated'} sector: ${s.label}`,
+                          });
+                        }}
+                      >
+                        {s.isActive ? 'Deactivate' : 'Activate'}
+                      </Button>
+                    )},
+                  ]}
+                  items={sectorDefs}
+                  keyExtractor={(s: ISectorDefinition) => s.id.toString()}
+                />
+              )}
+            </div>
+          </FeatureGate>
+        ) : (
+          <div style={{ padding: '24px', textAlign: 'center', color: HBC_COLORS.gray400 }}>
+            You do not have permission to manage sector definitions.
+          </div>
+        )
+      )}
+
+      {/* Tab 8: Audit Log */}
       {activeTab === 'audit' && (
         <div>
           {auditEntries.length > 5000 && (
