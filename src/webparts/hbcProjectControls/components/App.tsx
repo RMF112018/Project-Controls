@@ -55,7 +55,7 @@ import { ProjectManagementPlan } from './pages/project/pmp/ProjectManagementPlan
 import { MonthlyProjectReview } from './pages/project/MonthlyProjectReview';
 import { BuyoutLogPage } from './pages/project/BuyoutLogPage';
 import { AccessDeniedPage } from './pages/shared/AccessDeniedPage';
-import { ProtectedRoute, ProjectRequiredRoute } from './guards';
+import { ProtectedRoute, ProjectRequiredRoute, FeatureGate } from './guards';
 
 import { PERMISSIONS } from '../utils/permissions';
 
@@ -84,21 +84,47 @@ const AppRoutes: React.FC = () => (
     } />
 
     {/* Preconstruction */}
-    <Route path="/preconstruction" element={<EstimatingDashboard />} />
-    <Route path="/preconstruction/pipeline" element={<PipelinePage />} />
-    <Route path="/preconstruction/pipeline/gonogo" element={<PipelinePage />} />
-    <Route path="/preconstruction/gonogo" element={<PipelinePage />} />
-    <Route path="/preconstruction/precon-tracker" element={<EstimatingDashboard />} />
-    <Route path="/preconstruction/estimate-log" element={<EstimatingDashboard />} />
+    <Route path="/preconstruction" element={
+      <FeatureGate featureName="EstimatingTracker" fallback={<NotFoundPage />}>
+        <EstimatingDashboard />
+      </FeatureGate>
+    } />
+    <Route path="/preconstruction/pipeline" element={
+      <FeatureGate featureName="PipelineDashboard" fallback={<NotFoundPage />}>
+        <PipelinePage />
+      </FeatureGate>
+    } />
+    <Route path="/preconstruction/pipeline/gonogo" element={
+      <FeatureGate featureName="PipelineDashboard" fallback={<NotFoundPage />}>
+        <PipelinePage />
+      </FeatureGate>
+    } />
+    <Route path="/preconstruction/gonogo" element={
+      <FeatureGate featureName="PipelineDashboard" fallback={<NotFoundPage />}>
+        <PipelinePage />
+      </FeatureGate>
+    } />
+    <Route path="/preconstruction/precon-tracker" element={
+      <FeatureGate featureName="EstimatingTracker" fallback={<NotFoundPage />}>
+        <EstimatingDashboard />
+      </FeatureGate>
+    } />
+    <Route path="/preconstruction/estimate-log" element={
+      <FeatureGate featureName="EstimatingTracker" fallback={<NotFoundPage />}>
+        <EstimatingDashboard />
+      </FeatureGate>
+    } />
     <Route path="/preconstruction/kickoff-list" element={
       <ProtectedRoute permission={PERMISSIONS.KICKOFF_VIEW}>
         <EstimatingKickoffList />
       </ProtectedRoute>
     } />
     <Route path="/preconstruction/autopsy-list" element={
-      <ProtectedRoute permission={PERMISSIONS.AUTOPSY_VIEW}>
-        <PostBidAutopsyList />
-      </ProtectedRoute>
+      <FeatureGate featureName="LossAutopsy" fallback={<NotFoundPage />}>
+        <ProtectedRoute permission={PERMISSIONS.AUTOPSY_VIEW}>
+          <PostBidAutopsyList />
+        </ProtectedRoute>
+      </FeatureGate>
     } />
     <Route path="/preconstruction/pursuit/:id" element={<PursuitDetail />} />
     <Route path="/preconstruction/pursuit/:id/kickoff" element={
@@ -108,21 +134,47 @@ const AppRoutes: React.FC = () => (
     } />
     <Route path="/preconstruction/pursuit/:id/interview" element={<InterviewPrep />} />
     <Route path="/preconstruction/pursuit/:id/winloss" element={<WinLossRecorder />} />
-    <Route path="/preconstruction/pursuit/:id/turnover" element={<TurnoverToOps />} />
-    <Route path="/preconstruction/pursuit/:id/autopsy" element={<LossAutopsy />} />
+    <Route path="/preconstruction/pursuit/:id/turnover" element={
+      <FeatureGate featureName="TurnoverWorkflow" fallback={<NotFoundPage />}>
+        <TurnoverToOps />
+      </FeatureGate>
+    } />
+    <Route path="/preconstruction/pursuit/:id/autopsy" element={
+      <FeatureGate featureName="LossAutopsy" fallback={<NotFoundPage />}>
+        <LossAutopsy />
+      </FeatureGate>
+    } />
     <Route path="/preconstruction/pursuit/:id/autopsy-form" element={
-      <ProtectedRoute permission={PERMISSIONS.AUTOPSY_VIEW}>
-        <PostBidAutopsyForm />
-      </ProtectedRoute>
+      <FeatureGate featureName="LossAutopsy" fallback={<NotFoundPage />}>
+        <ProtectedRoute permission={PERMISSIONS.AUTOPSY_VIEW}>
+          <PostBidAutopsyForm />
+        </ProtectedRoute>
+      </FeatureGate>
     } />
     <Route path="/preconstruction/pursuit/:id/deliverables" element={<DeliverablesTracker />} />
 
     {/* Lead */}
-    <Route path="/lead/new" element={<LeadFormPage />} />
+    <Route path="/lead/new" element={
+      <FeatureGate featureName="LeadIntake" fallback={<NotFoundPage />}>
+        <LeadFormPage />
+      </FeatureGate>
+    } />
     <Route path="/lead/:id" element={<LeadDetailPage />} />
-    <Route path="/lead/:id/gonogo" element={<GoNoGoScorecard />} />
-    <Route path="/lead/:id/gonogo/detail" element={<GoNoGoDetail />} />
-    <Route path="/lead/:id/schedule-gonogo" element={<GoNoGoMeetingScheduler />} />
+    <Route path="/lead/:id/gonogo" element={
+      <FeatureGate featureName="GoNoGoScorecard" fallback={<NotFoundPage />}>
+        <GoNoGoScorecard />
+      </FeatureGate>
+    } />
+    <Route path="/lead/:id/gonogo/detail" element={
+      <FeatureGate featureName="GoNoGoScorecard" fallback={<NotFoundPage />}>
+        <GoNoGoDetail />
+      </FeatureGate>
+    } />
+    <Route path="/lead/:id/schedule-gonogo" element={
+      <FeatureGate featureName="GoNoGoScorecard" fallback={<NotFoundPage />}>
+        <GoNoGoMeetingScheduler />
+      </FeatureGate>
+    } />
 
     {/* Operations */}
     <Route path="/operations" element={
@@ -134,26 +186,36 @@ const AppRoutes: React.FC = () => (
       <ProjectRequiredRoute><ProjectDashboard /></ProjectRequiredRoute>
     } />
     <Route path="/operations/startup-checklist" element={
-      <ProjectRequiredRoute><ProjectStartupChecklist /></ProjectRequiredRoute>
+      <FeatureGate featureName="ProjectStartup" fallback={<NotFoundPage />}>
+        <ProjectRequiredRoute><ProjectStartupChecklist /></ProjectRequiredRoute>
+      </FeatureGate>
     } />
     <Route path="/operations/management-plan" element={
-      <ProjectRequiredRoute>
-        <ProtectedRoute permission={PERMISSIONS.PMP_EDIT}>
-          <ProjectManagementPlan />
-        </ProtectedRoute>
-      </ProjectRequiredRoute>
+      <FeatureGate featureName="ProjectManagementPlan" fallback={<NotFoundPage />}>
+        <ProjectRequiredRoute>
+          <ProtectedRoute permission={PERMISSIONS.PMP_EDIT}>
+            <ProjectManagementPlan />
+          </ProtectedRoute>
+        </ProjectRequiredRoute>
+      </FeatureGate>
     } />
     <Route path="/operations/superintendent-plan" element={
       <ProjectRequiredRoute><SuperintendentPlanPage /></ProjectRequiredRoute>
     } />
     <Route path="/operations/responsibility" element={
-      <ProjectRequiredRoute><ResponsibilityMatrices /></ProjectRequiredRoute>
+      <FeatureGate featureName="ProjectStartup" fallback={<NotFoundPage />}>
+        <ProjectRequiredRoute><ResponsibilityMatrices /></ProjectRequiredRoute>
+      </FeatureGate>
     } />
     <Route path="/operations/responsibility/owner-contract" element={
-      <ProjectRequiredRoute><ResponsibilityMatrices /></ProjectRequiredRoute>
+      <FeatureGate featureName="ProjectStartup" fallback={<NotFoundPage />}>
+        <ProjectRequiredRoute><ResponsibilityMatrices /></ProjectRequiredRoute>
+      </FeatureGate>
     } />
     <Route path="/operations/responsibility/sub-contract" element={
-      <ProjectRequiredRoute><ResponsibilityMatrices /></ProjectRequiredRoute>
+      <FeatureGate featureName="ProjectStartup" fallback={<NotFoundPage />}>
+        <ProjectRequiredRoute><ResponsibilityMatrices /></ProjectRequiredRoute>
+      </FeatureGate>
     } />
     <Route path="/operations/closeout-checklist" element={
       <ProjectRequiredRoute><CloseoutChecklist /></ProjectRequiredRoute>
@@ -190,7 +252,9 @@ const AppRoutes: React.FC = () => (
       <ProjectRequiredRoute><SafetyConcernsTracker /></ProjectRequiredRoute>
     } />
     <Route path="/operations/monthly-review" element={
-      <ProjectRequiredRoute><MonthlyProjectReview /></ProjectRequiredRoute>
+      <FeatureGate featureName="MonthlyProjectReview" fallback={<NotFoundPage />}>
+        <ProjectRequiredRoute><MonthlyProjectReview /></ProjectRequiredRoute>
+      </FeatureGate>
     } />
     <Route path="/operations/project-record" element={
       <ProjectRequiredRoute><ProjectRecord /></ProjectRequiredRoute>
