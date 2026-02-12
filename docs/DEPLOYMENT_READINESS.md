@@ -19,11 +19,11 @@ The HBC Project Controls application is structurally sound and ready for deploym
 | SPFx Version Alignment | CLEAR | All 10 SPFx packages at 1.21.1 |
 | Build Pipeline | READY | gulp bundle/package-solution --ship verified |
 | Web Part Manifest | READY | SharePoint + Teams hosts, tenant-wide deployment |
-| SharePointDataService | CRITICAL GAP | 50 of 204 methods implemented (24%) |
-| Graph API Scopes | 1 MISSING | `Group.ReadWrite.All` needed for `addGroupMember()` |
+| SharePointDataService | CRITICAL GAP | 51 of 204 methods implemented (25%) |
+| Graph API Scopes | CLEAN | 8 scopes declared, all used; unused scopes removed (Phase 32) |
 | Provisioning Service | MOCK ONLY | All 7 steps are simulated; hardcoded tenant URL |
 | CDN/Storage Config | PLACEHOLDER | Requires deployment-time configuration |
-| `getCurrentUser()` | BLOCKER | SP implementation throws "Not implemented" — app cannot start |
+| `getCurrentUser()` | FIXED (Phase 31) | SP implementation uses page context + App_Roles lookup |
 
 ---
 
@@ -74,7 +74,7 @@ All SPFx runtime and dev dependencies are aligned at version 1.21.1:
 | `tsconfig.json` | Valid | target: es2017, module: esnext, strict mode, 8 path aliases |
 | `config/config.json` | Valid | Bundle entry: `./lib/webparts/hbcProjectControls/HbcProjectControlsWebPart.js` |
 | `config/serve.json` | Valid | Port 4321, HTTPS, workbench initial page |
-| `config/package-solution.json` | Valid | Solution ID, 10 Graph scopes, skipFeatureDeployment: true |
+| `config/package-solution.json` | Valid | Solution ID, 8 Graph scopes, skipFeatureDeployment: true |
 | `dev/webpack.config.js` | Valid | Dev server port 3000, REACT_APP_USE_MOCK=true |
 
 ### Build Commands
@@ -125,7 +125,7 @@ If using the SharePoint tenant app catalog with `includeClientSideAssets: true` 
 
 ## 5. SharePointDataService Implementation Matrix
 
-**Status: CRITICAL GAP — 50 of 204 methods implemented (24%)**
+**Status: CRITICAL GAP — 51 of 204 methods implemented (25%)**
 
 ### Implementation Summary
 
@@ -141,7 +141,7 @@ If using the SharePoint tenant app catalog with `includeClientSideAssets: true` 
 | Buyout/Commitment/Compliance | 12 | 0 | 12 |
 | Active Projects Portfolio | 7 | 0 | 7 |
 | App Context/Reference | 3 | 0 | 3 |
-| getCurrentUser | 0 | 1 | 1 |
+| getCurrentUser | 1 | 0 | 1 |
 | Scorecard Workflow | 0 | 7 | 7 |
 | Workflow Definitions | 0 | 10 | 10 |
 | Permission Engine | 0 | 15 | 15 |
@@ -149,15 +149,13 @@ If using the SharePoint tenant app catalog with `includeClientSideAssets: true` 
 | Meetings/Notifications | 0 | 5 | 5 |
 | Provisioning Triggers | 0 | 3 | 3 |
 | Miscellaneous | 0 | 4 | 4 |
-| **Total** | **50** | **154** | **204** |
+| **Total** | **51** | **153** | **204** |
 
-### Priority 1 — App Cannot Start (1 method)
+### Priority 1 — App Cannot Start (1 method) — **RESOLVED**
 
-| Method | Issue |
-|--------|-------|
-| `getCurrentUser()` | Throws "Not implemented". App context initialization calls this first — **entire app fails to load**. |
-
-**Remediation:** Implement using `@pnp/sp` to read current user profile + Azure AD group membership → map to `RoleName` roles → build `ICurrentUser` with permissions.
+| Method | Status |
+|--------|--------|
+| `getCurrentUser()` | **Implemented in Phase 31** — Uses SPFx page context + App_Roles SP list lookup + ROLE_PERMISSIONS mapping |
 
 ### Priority 2 — Core Workflows Broken (16 methods)
 
@@ -200,38 +198,44 @@ All project-level operations including:
 
 ## 6. Graph API Scope Analysis
 
-**Status: 1 MISSING SCOPE, 2 UNUSED SCOPES**
+**Status: CLEAN — Unused scopes removed (Phase 32), all Graph methods audit-logged**
 
-### Declared Scopes vs. Usage
+### Declared Scopes (8 scopes, down from 11)
 
-| Declared Scope | Used By | Method | Status |
-|---------------|---------|--------|--------|
-| `User.Read` | GraphService | `getCurrentUserProfile()` — `/me` | USED |
-| `User.Read.All` | — | Not called by any method | UNUSED |
-| `Group.Read.All` | GraphService | `getGroupMembers()` — `/groups/{id}/members` (GET) | USED |
-| `Calendars.Read.Shared` | GraphService | `getCalendarAvailability()` — `/me/calendar/getSchedule` | USED |
-| `Calendars.ReadWrite` | GraphService | `createCalendarEvent()` — `/me/events` (POST) | USED |
-| `Mail.Send` | GraphService | `sendEmail()` — `/me/sendMail` | USED |
-| `Chat.Create` | GraphService | `createTeamsChat()` — `/chats` (POST) | USED |
-| `ChatMessage.Send` | GraphService | `createTeamsChat()` — `/chats/{id}/messages` (POST) | USED |
-| `Sites.ReadWrite.All` | — | Reserved for future dual-web PnP operations | UNUSED (reserved) |
+| Declared Scope | Used By | Method | Admin Consent |
+|---------------|---------|--------|---------------|
+| `User.Read` | SPFx framework | `/me` (current user profile) | No |
+| `Group.Read.All` | GraphService | `getGroupMembers()` — `/groups/{id}/members` (GET) | Yes |
+| `Group.ReadWrite.All` | GraphService | `addGroupMember()` — `/groups/{id}/members/$ref` (POST) | Yes |
+| `Calendars.Read.Shared` | GraphService | `getCalendarAvailability()` — `/me/calendar/getSchedule` | No |
+| `Calendars.ReadWrite` | GraphService | `createCalendarEvent()` — `/me/events` (POST) | No |
+| `Mail.Send` | GraphService | `sendEmail()` — `/me/sendMail` | No |
+| `Chat.Create` | GraphService | `createTeamsChat()` — `/chats` (POST) | Yes |
+| `ChatMessage.Send` | GraphService | `createTeamsChat()` — `/chats/{id}/messages` (POST) | Yes |
 
-### Missing Scope
+### Scopes Removed (Phase 32)
 
-| Scope | Required By | Method | API Call |
-|-------|------------|--------|----------|
-| **`Group.ReadWrite.All`** | GraphService | `addGroupMember()` | `POST /groups/{id}/members/$ref` |
+| Scope | Reason for Removal |
+|-------|-------------------|
+| `User.Read.All` | No code path called it — SPFx `pageContext.user` provides current user; `getUserPhoto()` uses `User.Read` |
+| `Sites.ReadWrite.All` | No code path called it — `@pnp/sp` with SPFx context provides site-scoped access through page context |
 
-The `addGroupMember()` method (added in Phase 27 for project team site group invitations) requires write access to group membership. Only `Group.Read.All` is currently declared, which is insufficient for POST operations.
+### Phased Admin Consent Strategy
 
-**Fix applied:** `Group.ReadWrite.All` added to `config/package-solution.json` in this assessment.
+| Phase | Scopes to Approve | When |
+|-------|-------------------|------|
+| **MVD** | `User.Read`, `Group.ReadWrite.All`, `Group.Read.All` (3 scopes) | Before first deployment |
+| **Calendar** | + `Calendars.Read.Shared`, `Calendars.ReadWrite` | When MeetingScheduler feature enabled |
+| **Email** | + `Mail.Send` | When PowerAutomate bypass needed for email |
+| **Teams** | + `Chat.Create`, `ChatMessage.Send` | When DualNotifications flag enabled |
 
-### Unused Scope Advisory
+### GraphService Audit Logging (Phase 32)
 
-| Scope | Reason | Recommendation |
-|-------|--------|----------------|
-| `User.Read.All` | `getUserPhoto()` works with `User.Read` via `/users/{email}/photo` | Remove if not needed for future features; keep if planning directory lookups |
-| `Sites.ReadWrite.All` | Reserved for SharePointDataService dual-web PnP operations | Keep — will be needed when implementing project-site SP list operations |
+All 8 GraphService methods now log to the application audit trail via `GraphAuditLogger` callback:
+- **Mutations** (addGroupMember, createCalendarEvent, sendEmail, createTeamsChat): Log both success and failure
+- **Reads** (getGroupMembers, getCalendarAvailability, getCurrentUserProfile): Log failures only
+- **getUserPhoto**: Silent failure (cosmetic — no audit needed)
+- Fire-and-forget `inviteToSiteGroup` in `usePermissionEngine.ts` now logs 403/failure to audit trail
 
 ---
 
@@ -253,11 +257,11 @@ The `addGroupMember()` method (added in Phase 27 for project team site group inv
 
 | Location | Value | Action Required |
 |----------|-------|-----------------|
-| `ProvisioningService.ts:158` | `https://hedrickbrothers.sharepoint.com/sites/` | Replace with configurable tenant URL |
-| `ProvisioningService.ts:259` | `https://hedrickbrothers.sharepoint.com/sites/` | Same — used in `resumeSteps()` |
+| `ProvisioningService.ts:158` | `https://hedrickbrotherscom.sharepoint.com/sites/` | Fixed in Phase 32 — was `hedrickbrothers` |
+| `ProvisioningService.ts:259` | `https://hedrickbrotherscom.sharepoint.com/sites/` | Fixed in Phase 32 — was `hedrickbrothers` |
 | `utils/constants.ts` | `DEFAULT_HUB_SITE_URL = 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral'` | Verify correct tenant domain |
 
-**Note:** There is a domain inconsistency: `hedrickbrothers.sharepoint.com` (ProvisioningService) vs `hedrickbrotherscom.sharepoint.com` (constants). Verify the actual tenant domain.
+**Note:** The domain inconsistency (`hedrickbrothers` vs `hedrickbrotherscom`) has been fixed in Phase 32. Both ProvisioningService and constants now use `hedrickbrotherscom.sharepoint.com`.
 
 ### Production Implementation Requirements
 
@@ -285,7 +289,7 @@ Before deploying to any environment, complete the following:
 
 - [ ] **CDN Path** — Set `cdnBasePath` in `config/write-manifests.json` (or use bundled assets via `includeClientSideAssets: true`)
 - [ ] **Azure Storage** — If using Azure CDN: set `account` and `accessKey` in `config/deploy-azure-storage.json`
-- [ ] **Graph Admin Consent** — Approve all 10 API permission requests in SharePoint admin center (including newly added `Group.ReadWrite.All`)
+- [ ] **Graph Admin Consent** — Approve all 8 API permission requests in SharePoint admin center (see §6 for phased consent strategy)
 - [ ] **`getCurrentUser()` implementation** — Implement in `SharePointDataService.ts` before any deployment
 - [ ] **Tenant domain** — Verify and configure the correct SharePoint tenant domain for provisioning URLs
 - [ ] **Hub site URL** — Verify `DEFAULT_HUB_SITE_URL` matches the actual hub site
@@ -330,7 +334,7 @@ The application requires SharePoint lists on both the hub site and each project 
 
 | Feature | Blocked By | Priority |
 |---------|-----------|----------|
-| **App login/initialization** | `getCurrentUser()` not implemented | P1 — BLOCKER |
+| ~~**App login/initialization**~~ | ~~`getCurrentUser()` not implemented~~ | **RESOLVED (Phase 31)** |
 | Go/No-Go approval workflow (submit, review, decide) | 7 scorecard workflow stubs | P2 |
 | Workflow definitions admin | 10 workflow definition stubs | P2 |
 | Permission engine (template-based RBAC) | 15 permission engine stubs | P3 (fallback to role-based works) |
@@ -357,8 +361,8 @@ The application requires SharePoint lists on both the hub site and each project 
 
 | # | Task | Effort | Impact |
 |---|------|--------|--------|
-| 1.1 | Implement `getCurrentUser()` in SharePointDataService | Small | App cannot load without this |
-| 1.2 | Graph admin consent for all 10 scopes (incl. new `Group.ReadWrite.All`) | Config | Group membership operations |
+| 1.1 | ~~Implement `getCurrentUser()` in SharePointDataService~~ | ~~Small~~ | **DONE (Phase 31)** |
+| 1.2 | Graph admin consent for 8 scopes (see §6 phased strategy) | Config | Group membership operations |
 | 1.3 | Verify/create hub site SharePoint lists (32 lists) | Medium | Data storage |
 
 ### Tier 2: Core Feature Completion (MVP for Go/No-Go workflow)
@@ -418,7 +422,8 @@ Assuming Tier 1 remediation is complete:
 
 3. **Approve Graph API permissions:**
    - SharePoint admin center → Advanced → API access
-   - Approve all 10 pending permission requests
+   - MVD: Approve `User.Read`, `Group.Read.All`, `Group.ReadWrite.All` (3 scopes)
+   - Later: Approve calendar/email/Teams scopes as features are enabled (see §6)
 
 4. **Create hub site lists:**
    - Verify/create all 32 hub site lists with schemas from `columnMappings.ts`

@@ -6,6 +6,7 @@ import {
   IProjectTeamAssignment,
   IResolvedPermissions,
 } from '../../models/IPermissionTemplate';
+import { AuditAction, EntityType } from '../../models/enums';
 
 export interface IUsePermissionEngineResult {
   templates: IPermissionTemplate[];
@@ -100,6 +101,14 @@ export function usePermissionEngine(): IUsePermissionEngineResult {
       return await dataService.inviteToProjectSiteGroup(projectCode, userEmail, role);
     } catch (err) {
       console.warn('inviteToProjectSiteGroup failed (non-blocking):', err);
+      // Record the failure in audit trail so admins can see unapproved scope / group errors
+      dataService.logAudit({
+        Action: AuditAction.GraphGroupMemberAddFailed,
+        EntityType: EntityType.ProjectTeamAssignment,
+        EntityId: `${projectCode}/${userEmail}`,
+        ProjectCode: projectCode,
+        Details: `Site group invitation failed for ${userEmail} (role: ${role}): ${err instanceof Error ? err.message : String(err)}`,
+      }).catch(() => { /* audit is non-blocking */ });
     }
   }, [dataService]);
 

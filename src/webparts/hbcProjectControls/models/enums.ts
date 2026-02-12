@@ -188,6 +188,10 @@ export enum AuditAction {
   ScorecardArchived = 'Scorecard.Archived',
   LeadFolderCreated = 'Lead.FolderCreated',
   AssignmentMappingUpdated = 'Assignment.MappingUpdated',
+  GraphApiCallSucceeded = 'Graph.ApiCallSucceeded',
+  GraphApiCallFailed = 'Graph.ApiCallFailed',
+  GraphGroupMemberAdded = 'Graph.GroupMemberAdded',
+  GraphGroupMemberAddFailed = 'Graph.GroupMemberAddFailed',
 }
 
 export enum EntityType {
@@ -213,6 +217,7 @@ export enum EntityType {
   PermissionTemplate = 'PermissionTemplate',
   ProjectTeamAssignment = 'ProjectTeamAssignment',
   AssignmentMapping = 'AssignmentMapping',
+  GraphApi = 'GraphApi',
 }
 
 export enum DeliverableStatus {
