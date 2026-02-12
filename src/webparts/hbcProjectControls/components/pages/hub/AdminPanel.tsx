@@ -22,9 +22,11 @@ import {
   AuditAction,
   EntityType,
 } from '../../../models';
+import { FeatureFlagCategory } from '../../../models/IFeatureFlag';
 import { ProvisioningService } from '../../../services/ProvisioningService';
 import { MockHubNavigationService } from '../../../services/HubNavigationService';
 import { HubNavLinkStatus } from '../../../models/IProvisioningLog';
+import { CollapsibleSection } from '../../shared/CollapsibleSection';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { WorkflowDefinitionsPanel } from './WorkflowDefinitionsPanel';
 import { PermissionTemplateEditor } from './PermissionTemplateEditor';
@@ -247,7 +249,7 @@ export const AdminPanel: React.FC = () => {
 
   const handleToggleFlag = async (flag: IFeatureFlag): Promise<void> => {
     const action = flag.Enabled ? 'disable' : 'enable';
-    const confirmed = window.confirm(`Are you sure you want to ${action} "${flag.FeatureName}"?`);
+    const confirmed = window.confirm(`Are you sure you want to ${action} "${flag.DisplayName}"?`);
     if (!confirmed) return;
     setTogglingFlag(flag.id);
     try {
@@ -262,7 +264,7 @@ export const AdminPanel: React.FC = () => {
         NewValue: String(!flag.Enabled),
         User: currentUser?.displayName || 'Unknown',
         UserId: currentUser?.id,
-        Details: `Feature flag "${flag.FeatureName}" ${!flag.Enabled ? 'enabled' : 'disabled'}`,
+        Details: `Feature flag "${flag.DisplayName}" ${!flag.Enabled ? 'enabled' : 'disabled'}`,
       }).catch(console.error);
     } catch (err) {
       console.error('Failed to toggle flag:', err);
@@ -368,7 +370,7 @@ export const AdminPanel: React.FC = () => {
   ];
 
   const flagColumns: IDataTableColumn<IFeatureFlag>[] = [
-    { key: 'FeatureName', header: 'Feature', render: (f) => <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{f.FeatureName}</span> },
+    { key: 'DisplayName', header: 'Feature', render: (f) => <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{f.DisplayName}</span> },
     { key: 'Enabled', header: 'Enabled', width: '80px', render: (f) => (
       <button
         onClick={(e) => { e.stopPropagation(); handleToggleFlag(f).catch(console.error); }}
@@ -450,6 +452,33 @@ export const AdminPanel: React.FC = () => {
       );
     }},
   ];
+
+  // Feature flag grouping by category
+  const CATEGORY_ORDER: FeatureFlagCategory[] = [
+    'Core Platform',
+    'Preconstruction',
+    'Project Execution',
+    'Infrastructure',
+    'Integrations',
+  ];
+
+  const groupedFlags = React.useMemo(() => {
+    const groups = new Map<string, IFeatureFlag[]>();
+    for (const cat of CATEGORY_ORDER) {
+      groups.set(cat, []);
+    }
+    groups.set('Other', []);
+    for (const f of flags) {
+      const cat = f.Category && CATEGORY_ORDER.includes(f.Category) ? f.Category : 'Other';
+      groups.get(cat)!.push(f);
+    }
+    // Remove empty groups
+    const result: { category: string; items: IFeatureFlag[] }[] = [];
+    for (const [category, items] of groups.entries()) {
+      if (items.length > 0) result.push({ category, items });
+    }
+    return result;
+  }, [flags]);
 
   // Audit log filtered entries
   const filteredAudit = React.useMemo(() => {
@@ -659,12 +688,37 @@ export const AdminPanel: React.FC = () => {
       {activeTab === 'flags' && (
         hasPermission(PERMISSIONS.ADMIN_FLAGS) ? (
           flagsLoading ? <SkeletonLoader variant="table" rows={5} columns={4} /> : (
-            <DataTable<IFeatureFlag>
-              columns={flagColumns}
-              items={flags}
-              keyExtractor={f => f.id}
-              emptyTitle="No feature flags"
-            />
+            <div>
+              {groupedFlags.map(group => {
+                const enabledCount = group.items.filter(f => f.Enabled).length;
+                return (
+                  <CollapsibleSection
+                    key={group.category}
+                    title={group.category}
+                    badge={
+                      <span style={{
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        color: enabledCount === group.items.length ? HBC_COLORS.success : HBC_COLORS.gray500,
+                        backgroundColor: enabledCount === group.items.length ? HBC_COLORS.successLight : HBC_COLORS.gray100,
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                      }}>
+                        {enabledCount} of {group.items.length} enabled
+                      </span>
+                    }
+                    defaultExpanded
+                  >
+                    <DataTable<IFeatureFlag>
+                      columns={flagColumns}
+                      items={group.items}
+                      keyExtractor={f => f.id}
+                      emptyTitle="No feature flags"
+                    />
+                  </CollapsibleSection>
+                );
+              })}
+            </div>
           )
         ) : (
           <div style={{ padding: '24px', textAlign: 'center', color: HBC_COLORS.gray400 }}>

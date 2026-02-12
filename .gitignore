@@ -46,3 +46,6 @@ coverage/
 .eslintcache
 .cache/
 *.tsbuildinfo
+
+# Reference materials (local only)
+reference/

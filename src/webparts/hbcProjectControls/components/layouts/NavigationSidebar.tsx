@@ -11,6 +11,7 @@ interface INavItem {
   requiresProject?: boolean;
   permission?: string;
   hubOnly?: boolean;
+  featureFlag?: string;
 }
 
 interface INavGroupDef {
@@ -25,21 +26,21 @@ const NAV_STRUCTURE: INavGroupDef[] = [
     label: 'Marketing',
     groupKey: 'Marketing',
     items: [
-      { label: 'Marketing Dashboard', path: '/marketing', permission: PERMISSIONS.MARKETING_DASHBOARD_VIEW, hubOnly: true },
-      { label: 'Project Record', path: '/operations/project-record', requiresProject: true },
+      { label: 'Marketing Dashboard', path: '/marketing', permission: PERMISSIONS.MARKETING_DASHBOARD_VIEW, hubOnly: true, featureFlag: 'MarketingProjectRecord' },
+      { label: 'Project Record', path: '/operations/project-record', requiresProject: true, featureFlag: 'MarketingProjectRecord' },
     ],
   },
   {
     label: 'Preconstruction',
     groupKey: 'Preconstruction',
     items: [
-      { label: 'Estimating Dashboard', path: '/preconstruction', hubOnly: true },
-      { label: 'Pipeline', path: '/preconstruction/pipeline', hubOnly: true },
-      { label: 'Go/No-Go Tracker', path: '/preconstruction/pipeline/gonogo', hubOnly: true },
-      { label: 'Precon Tracker', path: '/preconstruction/precon-tracker', hubOnly: true },
-      { label: 'Estimate Log', path: '/preconstruction/estimate-log', hubOnly: true },
-      { label: 'Post-Bid Autopsies', path: '/preconstruction/autopsy-list', permission: PERMISSIONS.AUTOPSY_VIEW },
-      { label: 'New Lead', path: '/lead/new', permission: PERMISSIONS.LEAD_CREATE, hubOnly: true },
+      { label: 'Estimating Dashboard', path: '/preconstruction', hubOnly: true, featureFlag: 'EstimatingTracker' },
+      { label: 'Pipeline', path: '/preconstruction/pipeline', hubOnly: true, featureFlag: 'PipelineDashboard' },
+      { label: 'Go/No-Go Tracker', path: '/preconstruction/pipeline/gonogo', hubOnly: true, featureFlag: 'GoNoGoScorecard' },
+      { label: 'Precon Tracker', path: '/preconstruction/precon-tracker', hubOnly: true, featureFlag: 'EstimatingTracker' },
+      { label: 'Estimate Log', path: '/preconstruction/estimate-log', hubOnly: true, featureFlag: 'EstimatingTracker' },
+      { label: 'Post-Bid Autopsies', path: '/preconstruction/autopsy-list', permission: PERMISSIONS.AUTOPSY_VIEW, featureFlag: 'LossAutopsy' },
+      { label: 'New Lead', path: '/lead/new', permission: PERMISSIONS.LEAD_CREATE, hubOnly: true, featureFlag: 'LeadIntake' },
       { label: 'Job Number Request', path: '/job-request', permission: PERMISSIONS.JOB_NUMBER_REQUEST_CREATE, hubOnly: true },
     ],
   },
@@ -47,7 +48,7 @@ const NAV_STRUCTURE: INavGroupDef[] = [
     label: 'Operations',
     groupKey: 'Operations',
     items: [
-      { label: 'Active Projects', path: '/operations', permission: PERMISSIONS.ACTIVE_PROJECTS_VIEW, hubOnly: true },
+      { label: 'Active Projects', path: '/operations', permission: PERMISSIONS.ACTIVE_PROJECTS_VIEW, hubOnly: true, featureFlag: 'ExecutiveDashboard' },
       { label: 'Compliance Log', path: '/operations/compliance-log', permission: PERMISSIONS.COMPLIANCE_LOG_VIEW, hubOnly: true },
     ],
     subGroups: [
@@ -55,10 +56,10 @@ const NAV_STRUCTURE: INavGroupDef[] = [
         label: 'Project Manual',
         items: [
           { label: 'Project Dashboard', path: '/operations/project', requiresProject: true },
-          { label: 'Startup Checklist', path: '/operations/startup-checklist', requiresProject: true },
-          { label: 'Management Plan', path: '/operations/management-plan', requiresProject: true },
+          { label: 'Startup Checklist', path: '/operations/startup-checklist', requiresProject: true, featureFlag: 'ProjectStartup' },
+          { label: 'Management Plan', path: '/operations/management-plan', requiresProject: true, featureFlag: 'ProjectManagementPlan' },
           { label: "Super's Plan", path: '/operations/superintendent-plan', requiresProject: true },
-          { label: 'Responsibility', path: '/operations/responsibility', requiresProject: true },
+          { label: 'Responsibility', path: '/operations/responsibility', requiresProject: true, featureFlag: 'ProjectStartup' },
         ],
       },
       {
@@ -76,7 +77,7 @@ const NAV_STRUCTURE: INavGroupDef[] = [
           { label: 'Schedule', path: '/operations/schedule', requiresProject: true },
           { label: 'Quality Concerns', path: '/operations/quality-concerns', requiresProject: true },
           { label: 'Safety Concerns', path: '/operations/safety-concerns', requiresProject: true },
-          { label: 'Monthly Review', path: '/operations/monthly-review', requiresProject: true },
+          { label: 'Monthly Review', path: '/operations/monthly-review', requiresProject: true, featureFlag: 'MonthlyProjectReview' },
           { label: 'Lessons Learned', path: '/operations/lessons-learned', requiresProject: true },
         ],
       },
@@ -207,7 +208,7 @@ const NavSubGroup: React.FC<{
 export const NavigationSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser, selectedProject, setSelectedProject, hasPermission, isProjectSite } = useAppContext();
+  const { currentUser, selectedProject, setSelectedProject, hasPermission, isFeatureEnabled, isProjectSite } = useAppContext();
 
   const userRoles = currentUser?.roles ?? [];
 
@@ -218,6 +219,7 @@ export const NavigationSidebar: React.FC = () => {
   };
 
   const isItemVisible = (item: INavItem): boolean => {
+    if (item.featureFlag && !isFeatureEnabled(item.featureFlag)) return false;
     if (item.permission && !hasPermission(item.permission)) return false;
     if (item.hubOnly && selectedProject) return false;
     return true;
