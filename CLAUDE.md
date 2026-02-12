@@ -495,7 +495,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | IActionInboxItem | models/IActionInbox.ts | id, workflowType: WorkflowActionType, actionLabel, projectCode, projectName, entityId, requestedBy, requestedDate, waitingDays, routePath, priority: ActionPriority | — (aggregated) | — |
 | IRole | models/IRole.ts | id, Title: RoleName, UserOrGroup, Permissions, IsActive | App_Roles | Hub |
 | ICurrentUser | models/IRole.ts | id, displayName, email, loginName, roles: RoleName[], permissions: Set<string>, identityType?: 'Internal' \| 'External' | — | — |
-| IFeatureFlag | models/IFeatureFlag.ts | id, FeatureName, Enabled, EnabledForRoles?, TargetDate?, Notes? | Feature_Flags | Hub |
+| IFeatureFlag | models/IFeatureFlag.ts | id, FeatureName, DisplayName, Enabled, EnabledForRoles?, TargetDate?, Notes?, Category?: FeatureFlagCategory | Feature_Flags | Hub |
 | IAuditEntry | models/IAuditEntry.ts | id, Timestamp, User, Action: AuditAction, EntityType, EntityId, ProjectCode?, FieldChanged?, Details | Audit_Log | Hub |
 | IProvisioningLog | models/IProvisioningLog.ts | id, projectCode, projectName (@denormalized), status: ProvisioningStatus, currentStep, siteUrl?, hubNavLinkStatus? | Provisioning_Log | Hub |
 | INotification | models/INotification.ts | id, type: NotificationType, subject, body, recipients, status | — | — |
@@ -617,6 +617,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 
 | Alias | File | Definition |
 |-------|------|------------|
+| FeatureFlagCategory | models/IFeatureFlag.ts | 'Core Platform' \| 'Preconstruction' \| 'Project Execution' \| 'Infrastructure' \| 'Integrations' |
 | RiskCostCategory | models/IRiskCostManagement.ts | 'Buyout' \| 'Risk' \| 'Savings' |
 | RiskCostItemStatus | models/IRiskCostManagement.ts | 'Open' \| 'Realized' \| 'Mitigated' \| 'Closed' |
 | JobNumberRequestStatus | models/IJobNumberRequest.ts | Pending, Completed (enum) |
@@ -871,57 +872,57 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 
 Source: `components/App.tsx`
 
-| Route Path | Component | File | Requires Project | Permission Guard |
-|------------|-----------|------|-----------------|-----------------|
-| / | DashboardPage | pages/hub/DashboardPage.tsx | No | — |
-| /marketing | MarketingDashboard | pages/hub/MarketingDashboard.tsx | No | MARKETING_DASHBOARD_VIEW |
-| /preconstruction | EstimatingDashboard | pages/precon/EstimatingDashboard.tsx | No | — |
-| /preconstruction/pipeline | PipelinePage | pages/hub/PipelinePage.tsx | No | — |
-| /preconstruction/pipeline/gonogo | PipelinePage | pages/hub/PipelinePage.tsx | No | — |
-| /preconstruction/gonogo | PipelinePage | pages/hub/PipelinePage.tsx | No | — |
-| /preconstruction/precon-tracker | EstimatingDashboard | pages/precon/EstimatingDashboard.tsx | No | — |
-| /preconstruction/estimate-log | EstimatingDashboard | pages/precon/EstimatingDashboard.tsx | No | — |
-| /preconstruction/kickoff-list | EstimatingKickoffList | pages/precon/EstimatingKickoffList.tsx | No | KICKOFF_VIEW |
-| /preconstruction/autopsy-list | PostBidAutopsyList | pages/precon/PostBidAutopsyList.tsx | No | AUTOPSY_VIEW |
-| /preconstruction/pursuit/:id | PursuitDetail | pages/precon/PursuitDetail.tsx | No | — |
-| /preconstruction/pursuit/:id/kickoff | EstimatingKickoffPage | pages/precon/EstimatingKickoffPage.tsx | No | KICKOFF_VIEW |
-| /preconstruction/pursuit/:id/interview | InterviewPrep | pages/project/InterviewPrep.tsx | No | — |
-| /preconstruction/pursuit/:id/winloss | WinLossRecorder | pages/project/WinLossRecorder.tsx | No | — |
-| /preconstruction/pursuit/:id/turnover | TurnoverToOps | pages/project/TurnoverToOps.tsx | No | — |
-| /preconstruction/pursuit/:id/autopsy | LossAutopsy | pages/project/LossAutopsy.tsx | No | — |
-| /preconstruction/pursuit/:id/autopsy-form | PostBidAutopsyForm | pages/precon/PostBidAutopsyForm.tsx | No | AUTOPSY_VIEW |
-| /preconstruction/pursuit/:id/deliverables | DeliverablesTracker | pages/project/DeliverablesTracker.tsx | No | — |
-| /lead/new | LeadFormPage | pages/hub/LeadFormPage.tsx | No | — |
-| /lead/:id | LeadDetailPage | pages/hub/LeadDetailPage.tsx | No | — |
-| /lead/:id/gonogo | GoNoGoScorecard | pages/hub/GoNoGoScorecard.tsx | No | — |
-| /lead/:id/gonogo/detail | GoNoGoDetail | pages/hub/GoNoGoDetail.tsx | No | — |
-| /lead/:id/schedule-gonogo | GoNoGoMeetingScheduler | pages/hub/GoNoGoMeetingScheduler.tsx | No | — |
-| /operations | ActiveProjectsDashboard | pages/hub/ActiveProjectsDashboard.tsx | No | ACTIVE_PROJECTS_VIEW |
-| /operations/project | ProjectDashboard | pages/project/ProjectDashboard.tsx | Yes | — |
-| /operations/startup-checklist | ProjectStartupChecklist | pages/project/ProjectStartupChecklist.tsx | Yes | — |
-| /operations/management-plan | ProjectManagementPlan | pages/project/pmp/ProjectManagementPlan.tsx | Yes | PMP_EDIT |
-| /operations/superintendent-plan | SuperintendentPlanPage | pages/project/SuperintendentPlanPage.tsx | Yes | — |
-| /operations/responsibility | ResponsibilityMatrices | pages/project/ResponsibilityMatrices.tsx | Yes | — |
-| /operations/responsibility/owner-contract | ResponsibilityMatrices | pages/project/ResponsibilityMatrices.tsx | Yes | — |
-| /operations/responsibility/sub-contract | ResponsibilityMatrices | pages/project/ResponsibilityMatrices.tsx | Yes | — |
-| /operations/closeout-checklist | CloseoutChecklist | pages/project/CloseoutChecklist.tsx | Yes | — |
-| /operations/buyout-log | BuyoutLogPage | pages/project/BuyoutLogPage.tsx | Yes | BUYOUT_VIEW |
-| /operations/contract-tracking | ContractTracking | pages/project/ContractTracking.tsx | Yes | — |
-| /operations/compliance-log | ComplianceLog | pages/hub/ComplianceLog.tsx | No | COMPLIANCE_LOG_VIEW |
-| /operations/risk-cost | RiskCostManagement | pages/project/RiskCostManagement.tsx | Yes | RISK_EDIT |
-| /operations/schedule | ProjectScheduleCriticalPath | pages/project/ProjectScheduleCriticalPath.tsx | Yes | — |
-| /operations/quality-concerns | QualityConcernsTracker | pages/project/QualityConcernsTracker.tsx | Yes | — |
-| /operations/safety-concerns | SafetyConcernsTracker | pages/project/SafetyConcernsTracker.tsx | Yes | — |
-| /operations/monthly-review | MonthlyProjectReview | pages/project/MonthlyProjectReview.tsx | Yes | — |
-| /operations/project-record | ProjectRecord | pages/project/ProjectRecord.tsx | Yes | — |
-| /operations/lessons-learned | LessonsLearnedPage | pages/project/LessonsLearnedPage.tsx | Yes | — |
-| /operations/gonogo | GoNoGoScorecard | pages/hub/GoNoGoScorecard.tsx | Yes | — |
-| /job-request | JobNumberRequestForm | pages/hub/JobNumberRequestForm.tsx | No | — |
-| /job-request/:leadId | JobNumberRequestForm | pages/hub/JobNumberRequestForm.tsx | No | — |
-| /accounting-queue | AccountingQueuePage | pages/hub/AccountingQueuePage.tsx | No | ACCOUNTING_QUEUE_VIEW |
-| /admin | AdminPanel | pages/hub/AdminPanel.tsx | No | ADMIN_CONFIG |
-| /access-denied | AccessDeniedPage | pages/shared/AccessDeniedPage.tsx | No | — |
-| * | NotFoundPage | (inline in App.tsx) | No | — |
+| Route Path | Component | File | Requires Project | Permission Guard | Feature Gate |
+|------------|-----------|------|-----------------|-----------------|--------------|
+| / | DashboardPage | pages/hub/DashboardPage.tsx | No | — | — |
+| /marketing | MarketingDashboard | pages/hub/MarketingDashboard.tsx | No | MARKETING_DASHBOARD_VIEW | — (page-level) |
+| /preconstruction | EstimatingDashboard | pages/precon/EstimatingDashboard.tsx | No | — | EstimatingTracker |
+| /preconstruction/pipeline | PipelinePage | pages/hub/PipelinePage.tsx | No | — | PipelineDashboard |
+| /preconstruction/pipeline/gonogo | PipelinePage | pages/hub/PipelinePage.tsx | No | — | PipelineDashboard |
+| /preconstruction/gonogo | PipelinePage | pages/hub/PipelinePage.tsx | No | — | PipelineDashboard |
+| /preconstruction/precon-tracker | EstimatingDashboard | pages/precon/EstimatingDashboard.tsx | No | — | EstimatingTracker |
+| /preconstruction/estimate-log | EstimatingDashboard | pages/precon/EstimatingDashboard.tsx | No | — | EstimatingTracker |
+| /preconstruction/kickoff-list | EstimatingKickoffList | pages/precon/EstimatingKickoffList.tsx | No | KICKOFF_VIEW | — |
+| /preconstruction/autopsy-list | PostBidAutopsyList | pages/precon/PostBidAutopsyList.tsx | No | AUTOPSY_VIEW | LossAutopsy |
+| /preconstruction/pursuit/:id | PursuitDetail | pages/precon/PursuitDetail.tsx | No | — | — |
+| /preconstruction/pursuit/:id/kickoff | EstimatingKickoffPage | pages/precon/EstimatingKickoffPage.tsx | No | KICKOFF_VIEW | — |
+| /preconstruction/pursuit/:id/interview | InterviewPrep | pages/project/InterviewPrep.tsx | No | — | — |
+| /preconstruction/pursuit/:id/winloss | WinLossRecorder | pages/project/WinLossRecorder.tsx | No | — | — |
+| /preconstruction/pursuit/:id/turnover | TurnoverToOps | pages/project/TurnoverToOps.tsx | No | — | TurnoverWorkflow |
+| /preconstruction/pursuit/:id/autopsy | LossAutopsy | pages/project/LossAutopsy.tsx | No | — | LossAutopsy |
+| /preconstruction/pursuit/:id/autopsy-form | PostBidAutopsyForm | pages/precon/PostBidAutopsyForm.tsx | No | AUTOPSY_VIEW | LossAutopsy |
+| /preconstruction/pursuit/:id/deliverables | DeliverablesTracker | pages/project/DeliverablesTracker.tsx | No | — | — |
+| /lead/new | LeadFormPage | pages/hub/LeadFormPage.tsx | No | — | LeadIntake |
+| /lead/:id | LeadDetailPage | pages/hub/LeadDetailPage.tsx | No | — | — |
+| /lead/:id/gonogo | GoNoGoScorecard | pages/hub/GoNoGoScorecard.tsx | No | — | GoNoGoScorecard |
+| /lead/:id/gonogo/detail | GoNoGoDetail | pages/hub/GoNoGoDetail.tsx | No | — | GoNoGoScorecard |
+| /lead/:id/schedule-gonogo | GoNoGoMeetingScheduler | pages/hub/GoNoGoMeetingScheduler.tsx | No | — | GoNoGoScorecard |
+| /operations | ActiveProjectsDashboard | pages/hub/ActiveProjectsDashboard.tsx | No | ACTIVE_PROJECTS_VIEW | — (page-level) |
+| /operations/project | ProjectDashboard | pages/project/ProjectDashboard.tsx | Yes | — | — |
+| /operations/startup-checklist | ProjectStartupChecklist | pages/project/ProjectStartupChecklist.tsx | Yes | — | ProjectStartup |
+| /operations/management-plan | ProjectManagementPlan | pages/project/pmp/ProjectManagementPlan.tsx | Yes | PMP_EDIT | ProjectManagementPlan |
+| /operations/superintendent-plan | SuperintendentPlanPage | pages/project/SuperintendentPlanPage.tsx | Yes | — | — |
+| /operations/responsibility | ResponsibilityMatrices | pages/project/ResponsibilityMatrices.tsx | Yes | — | ProjectStartup |
+| /operations/responsibility/owner-contract | ResponsibilityMatrices | pages/project/ResponsibilityMatrices.tsx | Yes | — | ProjectStartup |
+| /operations/responsibility/sub-contract | ResponsibilityMatrices | pages/project/ResponsibilityMatrices.tsx | Yes | — | ProjectStartup |
+| /operations/closeout-checklist | CloseoutChecklist | pages/project/CloseoutChecklist.tsx | Yes | — | — |
+| /operations/buyout-log | BuyoutLogPage | pages/project/BuyoutLogPage.tsx | Yes | BUYOUT_VIEW | — |
+| /operations/contract-tracking | ContractTracking | pages/project/ContractTracking.tsx | Yes | — | — |
+| /operations/compliance-log | ComplianceLog | pages/hub/ComplianceLog.tsx | No | COMPLIANCE_LOG_VIEW | — |
+| /operations/risk-cost | RiskCostManagement | pages/project/RiskCostManagement.tsx | Yes | RISK_EDIT | — |
+| /operations/schedule | ProjectScheduleCriticalPath | pages/project/ProjectScheduleCriticalPath.tsx | Yes | — | — |
+| /operations/quality-concerns | QualityConcernsTracker | pages/project/QualityConcernsTracker.tsx | Yes | — | — |
+| /operations/safety-concerns | SafetyConcernsTracker | pages/project/SafetyConcernsTracker.tsx | Yes | — | — |
+| /operations/monthly-review | MonthlyProjectReview | pages/project/MonthlyProjectReview.tsx | Yes | — | MonthlyProjectReview |
+| /operations/project-record | ProjectRecord | pages/project/ProjectRecord.tsx | Yes | — | — |
+| /operations/lessons-learned | LessonsLearnedPage | pages/project/LessonsLearnedPage.tsx | Yes | — | — |
+| /operations/gonogo | GoNoGoScorecard | pages/hub/GoNoGoScorecard.tsx | Yes | — | — |
+| /job-request | JobNumberRequestForm | pages/hub/JobNumberRequestForm.tsx | No | — | — |
+| /job-request/:leadId | JobNumberRequestForm | pages/hub/JobNumberRequestForm.tsx | No | — | — |
+| /accounting-queue | AccountingQueuePage | pages/hub/AccountingQueuePage.tsx | No | ACCOUNTING_QUEUE_VIEW | — |
+| /admin | AdminPanel | pages/hub/AdminPanel.tsx | No | ADMIN_CONFIG | — |
+| /access-denied | AccessDeniedPage | pages/shared/AccessDeniedPage.tsx | No | — | — |
+| * | NotFoundPage | (inline in App.tsx) | No | — | — |
 
 ---
 
@@ -933,17 +934,17 @@ Source: `components/layouts/NavigationSidebar.tsx`
 Dashboard                                    [always visible, path: /]
 ─────────────────────────────────────────────
 Marketing                                    [roles: Marketing, Executive Leadership]
-  ├── Marketing Dashboard                    [/marketing, permission: marketing:dashboard:view, hubOnly]
-  └── Project Record                         [/operations/project-record, requiresProject]
+  ├── Marketing Dashboard                    [/marketing, permission: marketing:dashboard:view, hubOnly, featureFlag: MarketingProjectRecord]
+  └── Project Record                         [/operations/project-record, requiresProject, featureFlag: MarketingProjectRecord]
 ─────────────────────────────────────────────
 Preconstruction                              [roles: BD Rep, Estimating Coord, Precon Team, Exec Leadership, Legal]
-  ├── Estimating Dashboard                   [/preconstruction, hubOnly]
-  ├── Pipeline                               [/preconstruction/pipeline, hubOnly]
-  ├── Go/No-Go Tracker                       [/preconstruction/pipeline/gonogo, hubOnly]
-  ├── Precon Tracker                          [/preconstruction/precon-tracker, hubOnly]
-  ├── Estimate Log                            [/preconstruction/estimate-log, hubOnly]
-  ├── Post-Bid Autopsies                      [/preconstruction/autopsy-list, permission: autopsy:view]
-  ├── New Lead                                [/lead/new, permission: lead:create, hubOnly]
+  ├── Estimating Dashboard                   [/preconstruction, hubOnly, featureFlag: EstimatingTracker]
+  ├── Pipeline                               [/preconstruction/pipeline, hubOnly, featureFlag: PipelineDashboard]
+  ├── Go/No-Go Tracker                       [/preconstruction/pipeline/gonogo, hubOnly, featureFlag: GoNoGoScorecard]
+  ├── Precon Tracker                          [/preconstruction/precon-tracker, hubOnly, featureFlag: EstimatingTracker]
+  ├── Estimate Log                            [/preconstruction/estimate-log, hubOnly, featureFlag: EstimatingTracker]
+  ├── Post-Bid Autopsies                      [/preconstruction/autopsy-list, permission: autopsy:view, featureFlag: LossAutopsy]
+  ├── New Lead                                [/lead/new, permission: lead:create, hubOnly, featureFlag: LeadIntake]
   ├── Job Number Request                      [/job-request, permission: job_number_request:create, hubOnly]
   ├── Lead Detail                             [/lead/:leadId, dynamic — only when project selected]
   └── Go/No-Go                               [/lead/:leadId/gonogo, dynamic — only when project selected]
@@ -952,14 +953,14 @@ Accounting                                   [roles: Acct Mgr, Executive Leaders
   └── Accounting Queue                        [/accounting-queue, permission: accounting_queue:view]
 ─────────────────────────────────────────────
 Operations                                   [roles: Ops Team, Exec Leadership, Risk Mgmt, QC, Safety, IDS]
-  ├── Active Projects                         [/operations, permission: active_projects:view, hubOnly]
+  ├── Active Projects                         [/operations, permission: active_projects:view, hubOnly, featureFlag: ExecutiveDashboard]
   ├── Compliance Log                          [/operations/compliance-log, permission: compliance_log:view, hubOnly]
   ├── [Project Manual]
   │   ├── Project Dashboard                   [/operations/project, requiresProject]
-  │   ├── Startup Checklist                   [/operations/startup-checklist, requiresProject]
-  │   ├── Management Plan                     [/operations/management-plan, requiresProject]
+  │   ├── Startup Checklist                   [/operations/startup-checklist, requiresProject, featureFlag: ProjectStartup]
+  │   ├── Management Plan                     [/operations/management-plan, requiresProject, featureFlag: ProjectManagementPlan]
   │   ├── Super's Plan                        [/operations/superintendent-plan, requiresProject]
-  │   └── Responsibility                      [/operations/responsibility, requiresProject]
+  │   └── Responsibility                      [/operations/responsibility, requiresProject, featureFlag: ProjectStartup]
   ├── [Commitments]
   │   ├── Buyout Log                          [/operations/buyout-log, requiresProject, permission: buyout:view]
   │   ├── Contract Tracking                   [/operations/contract-tracking, requiresProject]
@@ -969,14 +970,14 @@ Operations                                   [roles: Ops Team, Exec Leadership, 
       ├── Schedule                            [/operations/schedule, requiresProject]
       ├── Quality Concerns                    [/operations/quality-concerns, requiresProject]
       ├── Safety Concerns                     [/operations/safety-concerns, requiresProject]
-      ├── Monthly Review                      [/operations/monthly-review, requiresProject]
+      ├── Monthly Review                      [/operations/monthly-review, requiresProject, featureFlag: MonthlyProjectReview]
       └── Lessons Learned                     [/operations/lessons-learned, requiresProject]
 ─────────────────────────────────────────────
 Admin                                        [roles: Executive Leadership]
   └── Admin Panel                             [/admin, permission: admin:config]
 ```
 
-Items with `requiresProject` are disabled (grayed out) when no project is selected. Items with `permission` are hidden if user lacks that permission. Items with `hubOnly` are hidden when a project is selected (both hub-with-selection and project-site modes). Dynamic items (Lead Detail, Go/No-Go) appear under Preconstruction only when `selectedProject?.leadId` is set.
+Items with `requiresProject` are disabled (grayed out) when no project is selected. Items with `permission` are hidden if user lacks that permission. Items with `hubOnly` are hidden when a project is selected (both hub-with-selection and project-site modes). Items with `featureFlag` are hidden if that feature flag is disabled (checked via `isFeatureEnabled()`). Dynamic items (Lead Detail, Go/No-Go) appear under Preconstruction only when `selectedProject?.leadId` is set.
 
 ---
 
@@ -1088,31 +1089,31 @@ Legend: **X** = has permission
 
 Source: `mock/featureFlags.json`
 
-| Flag Name | ID | Default | What It Gates |
-|-----------|-----|---------|---------------|
-| LeadIntake | 1 | true | Core lead intake feature |
-| GoNoGoScorecard | 2 | true | Go/No-Go scoring interface |
-| AutoSiteProvisioning | 3 | true | Automatic SP site provisioning |
-| MeetingScheduler | 4 | true | Calendar meeting scheduler |
-| PipelineDashboard | 5 | true | Pipeline visualization |
-| TurnoverWorkflow | 6 | true | Turnover to ops workflow |
-| LossAutopsy | 7 | true | Loss autopsy module |
-| EstimatingTracker | 8 | true | Estimating tracker |
-| UnanetIntegration | 9 | false | Unanet ERP integration (target: 2026-06-01) |
-| SageIntegration | 10 | false | Sage 300 accounting (target: 2026-06-01) |
-| DocumentCrunchIntegration | 11 | false | AI contract review (target: 2026-09-01) |
-| EstimatingModule | 12 | false | Full estimating module (target: 2026-12-01) |
-| BudgetSync | 13 | false | Budget sync with accounting |
-| ExecutiveDashboard | 14 | true | Executive dashboard |
-| DualNotifications | 15 | false | Send both email and Teams notifications |
-| AuditTrail | 16 | false | Detailed audit trail logging |
-| OfflineSupport | 17 | false | Offline mode with queue sync |
-| ProjectStartup | 18 | true | Startup checklist and responsibility matrices |
-| MarketingProjectRecord | 19 | true | Marketing project record and dashboard |
-| ProjectManagementPlan | 20 | true | PMP and operational modules |
-| MonthlyProjectReview | 21 | true | Monthly project review |
-| WorkflowDefinitions | 22 | true | Workflow definition configuration |
-| PermissionEngine | 23 | true | Permission engine: template-based authorization, project access scoping |
+| Flag Name | ID | DisplayName | Default | Category | What It Gates |
+|-----------|-----|-------------|---------|----------|---------------|
+| LeadIntake | 1 | Lead Intake | true | Core Platform | Core lead intake feature |
+| GoNoGoScorecard | 2 | Go/No-Go Scorecard | true | Core Platform | Go/No-Go scoring interface |
+| AutoSiteProvisioning | 3 | Automatic Site Provisioning | true | Infrastructure | Automatic SP site provisioning |
+| MeetingScheduler | 4 | Meeting Scheduler | true | Preconstruction | Calendar meeting scheduler |
+| PipelineDashboard | 5 | Pipeline Dashboard | true | Core Platform | Pipeline visualization |
+| TurnoverWorkflow | 6 | Turnover Workflow | true | Project Execution | Turnover to ops workflow |
+| LossAutopsy | 7 | Post-Bid Loss Autopsy | true | Preconstruction | Loss autopsy module |
+| EstimatingTracker | 8 | Estimating Tracker | true | Core Platform | Estimating tracker |
+| UnanetIntegration | 9 | Unanet ERP Integration | false | Integrations | Unanet ERP integration (target: 2026-06-01) |
+| SageIntegration | 10 | Sage 300 Integration | false | Integrations | Sage 300 accounting (target: 2026-06-01) |
+| DocumentCrunchIntegration | 11 | Document Crunch AI Review | false | Integrations | AI contract review (target: 2026-09-01) |
+| EstimatingModule | 12 | Full Estimating Module | false | Integrations | Full estimating module (target: 2026-12-01) |
+| BudgetSync | 13 | Budget Sync | false | Integrations | Budget sync with accounting |
+| ExecutiveDashboard | 14 | Executive Dashboard | true | Core Platform | Executive dashboard |
+| DualNotifications | 15 | Dual Notifications (Email + Teams) | false | Infrastructure | Send both email and Teams notifications |
+| AuditTrail | 16 | Audit Trail | false | Infrastructure | Detailed audit trail logging |
+| OfflineSupport | 17 | Offline Support | false | Infrastructure | Offline mode with queue sync |
+| ProjectStartup | 18 | Project Startup | true | Project Execution | Startup checklist and responsibility matrices |
+| MarketingProjectRecord | 19 | Marketing Project Record | true | Project Execution | Marketing project record and dashboard |
+| ProjectManagementPlan | 20 | Project Management Plan | true | Project Execution | PMP and operational modules |
+| MonthlyProjectReview | 21 | Monthly Project Review | true | Project Execution | Monthly project review |
+| WorkflowDefinitions | 22 | Workflow Definitions | true | Preconstruction | Workflow definition configuration |
+| PermissionEngine | 23 | Permission Engine | true | Infrastructure | Permission engine: template-based authorization, project access scoping |
 
 ---
 
@@ -1131,7 +1132,7 @@ Source: `mock/`
 | divisionApprovers.json | IDivisionApprover | 2 | N/A |
 | estimating.json | IEstimatingTracker | 23 | 25-038-01, 25-035-01, 25-041-01, 25-039-01, 25-033-01, 26-004-01, 26-005-01, 25-030-01, 25-028-01, 25-012-01, 24-052-01, 24-042-01, 24-078-01, 24-008-01, 25-022-01, 25-025-01, 25-019-01, 25-015-01, 25-020-01, 25-027-01, 26-001-01, 25-018-01, 25-010-01 |
 | estimatingKickoffs.json | IEstimatingKickoff | 1 | 25-042-01 |
-| featureFlags.json | IFeatureFlag | 21 | N/A |
+| featureFlags.json | IFeatureFlag (with Category) | 23 | N/A |
 | internalMatrix.json | IInternalMatrixTask + ITeamRoleAssignment + IRecurringCalendarItem | 100 | 25-042-01 |
 | jobNumberRequests.json | IJobNumberRequest | 3 | N/A (TempProjectCode: 25-041-01) |
 | leads.json | ILead | 29 | 25-038-01, 25-035-01, 25-041-01, 25-039-01, 25-033-01, 25-030-01, 25-028-01, 25-012-01, 24-078-01, 24-052-01, 24-042-01, 24-008-01, 23-065-01, 25-042-01 |
@@ -1452,6 +1453,8 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 26 | Project Selection Behavior — Site detection wired into app (`siteDetector.ts` → AppContext `isProjectSite`), auto-select project on project-specific SP sites, ProjectPicker `locked` mode for project sites, `hubOnly` nav item flag hides multi-project views when project selected, dynamic Lead Detail/Go/No-Go nav items under Preconstruction when project selected, `setProjectSiteUrl()` dual-web plumbing on IDataService/MockDataService/SharePointDataService, dashless project code regex fix in siteDetector (supports `2504201` → `25-042-01` conversion), `ISelectedProject` gains `siteUrl?` field, `IAppContextValue` gains `isProjectSite` boolean | (none) | HbcProjectControlsWebPart.ts, App.tsx, AppContext.tsx, siteDetector.ts, ProjectPicker.tsx, NavigationSidebar.tsx, IDataService.ts, MockDataService.ts, SharePointDataService.ts |
 | 27 | Admin Project Assignments — Hub-level project-user assignment panel in AdminPanel (9th tab "Assignments"). `getAllProjectTeamAssignments()` returns all active assignments across projects. `inviteToProjectSiteGroup()` fire-and-forget SP group invitation (console.log in mock). `addGroupMember()` on GraphService for MS Graph group membership. `usePermissionEngine` hook extended with `getAllAssignments` and `inviteToSiteGroup`. `ProjectAssignmentsPanel.tsx`: Project-grouped layout — main DataTable of projects (code, name, team count badge) with expand/collapse chevrons; expanded section shows per-project assignment sub-DataTable + inline batch-add form (multi-select AzureADPeoplePicker, role select, template override, sequential await per user); useActiveProjects for project name enrichment; search bar filters by name/code. Permission-gated by `permission:project_team:manage`. | ProjectAssignmentsPanel.tsx | IDataService.ts (+2 methods, 204 total), MockDataService.ts, SharePointDataService.ts, GraphService.ts (+addGroupMember), usePermissionEngine.ts, AdminPanel.tsx (9 tabs), pages/hub/index.ts |
 | 28 | Post-Bid Autopsy Create Button — "Create New Autopsy Report" button in PostBidAutopsyList PageHeader with inline lead selector (dropdown of eligible ArchivedLoss leads without existing autopsy). New `autopsy:create` permission (BD Rep, Est Coord, Exec, Dept Dir, SP Admin). Bug fix: PostBidAutopsyForm `useParams` param mismatch (`:id` not `:leadId`). | (none) | PostBidAutopsyList.tsx (+create button, +lead selector, +permission gate), PostBidAutopsyForm.tsx (param fix: `leadId` → `id`), permissions.ts (+AUTOPSY_CREATE, +4 ROLE_PERMISSIONS entries) |
+| 28A | Feature Flags Admin Enhancement — `FeatureFlagCategory` type + `Category?` on IFeatureFlag, grouped CollapsibleSection panels in AdminPanel Feature Flags tab, `featureFlag?` field on NavigationSidebar INavItem for flag-gating nav items (11 items mapped), fixed ActiveProjectsDashboard FeatureGate bug (`"ActiveProjectsDashboard"` → `"ExecutiveDashboard"`). | (none) | IFeatureFlag.ts (+FeatureFlagCategory, +Category), featureFlags.json (+Category on all 23 entries), columnMappings.ts (+Category), AdminPanel.tsx (grouped flags), NavigationSidebar.tsx (+featureFlag on INavItem, +isFeatureEnabled check), ActiveProjectsDashboard.tsx (FeatureGate fix) |
+| 28B | Feature Flag Route-Level Enforcement & Display Names — `DisplayName` field on IFeatureFlag for human-readable labels in AdminPanel. Route-level `<FeatureGate>` wrappers on 20 routes in App.tsx (LeadIntake, GoNoGoScorecard, PipelineDashboard, LossAutopsy, EstimatingTracker, TurnoverWorkflow, ProjectStartup, ProjectManagementPlan, MonthlyProjectReview). 3 additional nav-level featureFlag entries (Estimating Dashboard, Precon Tracker, Estimate Log → EstimatingTracker). AdminPanel displays DisplayName in flag table, confirm dialog, and audit log. | (none) | IFeatureFlag.ts (+DisplayName), featureFlags.json (+DisplayName on all 23 entries), columnMappings.ts (+DisplayName), AdminPanel.tsx (DisplayName in 3 places), App.tsx (+FeatureGate on 20 routes, +FeatureGate import), NavigationSidebar.tsx (+featureFlag on 3 items) |
 | 29 | Site Provisioning Workflow Enhancements — 4 enhancements: (A) Project Setup Tracker widget on DashboardPage with real-time provisioning visibility (auto-refresh 10s, 7-dot step progress, summary KPIs), (B) Centralized pre-provisioning validation hook composing validators.ts + async duplicate check, (C) ProvisioningService `provisionSiteWithFallback()` three-tier fallback (PowerAutomate → local 7-step → offline queue), (D) Feature flag gating on IWorkflowStep (`featureFlagName?`, `isSkippable?`) with MockDataService `resolveWorkflowChain()` skip/omit logic. | useProvisioningTracker.ts, useProvisioningValidation.ts | IWorkflowDefinition.ts (+featureFlagName?, +isSkippable? on IWorkflowStep; +skipped?, +skipReason? on IResolvedWorkflowStep), ProvisioningService.ts (+provisionSiteWithFallback(), extended constructor), MockDataService.ts (resolveWorkflowChain feature flag check), columnMappings.ts (+featureFlagName, +isSkippable on WORKFLOW_STEPS_COLUMNS), workflowDefinitions.json (+featureFlagName/isSkippable on GO_NO_GO step 2), DashboardPage.tsx (+Project Setup Tracker widget), JobNumberRequestForm.tsx (+useProvisioningValidation, +provisionSiteWithFallback), WorkflowStepCard.tsx (+feature flag badge), WorkflowPreview.tsx (+skipped step display), hooks/index.ts (+2 exports) |
 
 ### Known Stubs / Placeholders
@@ -1546,9 +1549,13 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 36. **PostBidAutopsyForm uses `:id` route param (not `:leadId`)** — The route is `/preconstruction/pursuit/:id/autopsy-form` where `:id` is the lead ID. The component reads `useParams<{ id }>()`. Previously it destructured `{ leadId }` which was a param name mismatch causing the form to always show "No lead specified". Fixed in Phase 28.
 
-37. **`provisionSiteWithFallback()` fallback chain order** — The three-tier fallback in `ProvisioningService.provisionSiteWithFallback()` runs: (1) PowerAutomate if `usePowerAutomate=true`, (2) local `provisionSite()` 7-step engine, (3) OfflineQueue enqueue. In mock mode, `usePowerAutomate` defaults to `false`, so tier 1 is always skipped and tier 2 runs (identical to pre-Phase 29 behavior). Do not set `usePowerAutomate=true` unless a real PowerAutomate endpoint is configured.
+37. **FeatureGate `featureName` must exactly match the flag's `FeatureName` string** — `isFeatureEnabled()` does a case-sensitive string comparison against `IFeatureFlag.FeatureName`. Using `"ActiveProjectsDashboard"` when the flag is named `"ExecutiveDashboard"` will silently fail (treated as disabled). Always verify the exact string in `featureFlags.json`. NavigationSidebar items also use `featureFlag` for the same check.
 
-38. **`featureFlagName` on IWorkflowStep must match exact `FeatureName` string** — The `resolveWorkflowChain()` feature flag check in MockDataService uses `this.featureFlags.find(f => f.FeatureName === step.featureFlagName)` — case-sensitive exact match. If the flag name doesn't exist in `featureFlags.json`, the step defaults to **enabled** (safe default). Always verify the flag name exists before adding it to a workflow step.
+38. **Route-level FeatureGate wraps OUTSIDE ProtectedRoute/ProjectRequiredRoute** — When adding `<FeatureGate>` to routes in App.tsx, it must be the outermost wrapper. If the flag is disabled, the user sees "Page Not Found" immediately without hitting permission checks or project-required checks. Pattern: `<FeatureGate> → <ProjectRequiredRoute> → <ProtectedRoute> → <Component>`. Three pages (MarketingDashboard, ActiveProjectsDashboard, PipelinePage) already have page-level `<FeatureGate>` wrappers and don't need route-level ones — adding both would be redundant but not harmful.
+
+39. **`provisionSiteWithFallback()` fallback chain order** — The three-tier fallback in `ProvisioningService.provisionSiteWithFallback()` runs: (1) PowerAutomate if `usePowerAutomate=true`, (2) local `provisionSite()` 7-step engine, (3) OfflineQueue enqueue. In mock mode, `usePowerAutomate` defaults to `false`, so tier 1 is always skipped and tier 2 runs (identical to pre-Phase 29 behavior). Do not set `usePowerAutomate=true` unless a real PowerAutomate endpoint is configured.
+
+40. **`featureFlagName` on IWorkflowStep must match exact `FeatureName` string** — The `resolveWorkflowChain()` feature flag check in MockDataService uses `this.featureFlags.find(f => f.FeatureName === step.featureFlagName)` — case-sensitive exact match. If the flag name doesn't exist in `featureFlags.json`, the step defaults to **enabled** (safe default). Always verify the flag name exists before adding it to a workflow step.
 
 ---
 
@@ -1577,4 +1584,6 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-11 | §3, §4, §5, §7, §9, §15, §16 | Phase 26: Project Selection Behavior. Wired `siteDetector.ts` into app — `detectSiteContext()` → AppContext `isProjectSite` flag. WebPart passes `pageContext.web.absoluteUrl` as `siteUrl` prop. AppProvider computes site context, auto-selects project on project-specific SP sites via `searchLeads()`. `ISelectedProject` gains `siteUrl?` field. `IAppContextValue` gains `isProjectSite` boolean. `handleSetSelectedProject` blocks null on project sites. ProjectPicker gains `locked?` prop — shows read-only static display when true. NavigationSidebar: `hubOnly` flag on 10 multi-project nav items, dynamic Lead Detail + Go/No-Go items under Preconstruction when project selected. `setProjectSiteUrl()` added to IDataService (method #202): no-op in Mock, stores URL in SharePointDataService for future dual-web PnP. `siteDetector.ts` dashless project code regex fix (7-digit `2504201` → `25-042-01`). AppContext effect calls `setProjectSiteUrl()` on selectedProject changes. Added pitfalls #33 (dashless siteDetector) and #34 (isProjectSite blocks null). |
 | 2026-02-11 | §2, §7, §15, §16 | Phase 27: Admin Project Assignments. Hub-level project-user assignment panel in AdminPanel 9th tab ("Assignments"). 2 new IDataService methods (204 total): `getAllProjectTeamAssignments` (returns all active assignments), `inviteToProjectSiteGroup` (fire-and-forget SP group invite, console.log in mock). `addGroupMember(groupId, userId)` added to IGraphService + GraphService class. `usePermissionEngine` hook extended with `getAllAssignments` and `inviteToSiteGroup`. `ProjectAssignmentsPanel.tsx`: Project-grouped layout — main DataTable of projects (code, name, team count badge) with expand/collapse chevrons; expanded section shows per-project assignment sub-DataTable + inline batch-add form (multi-select AzureADPeoplePicker, role select, template override, sequential await per user); search bar filters projects by name/code; total assignment count badge; useActiveProjects for project name enrichment. Permission-gated by `permission:project_team:manage`. Added pitfall #35 (inviteToProjectSiteGroup fire-and-forget). |
 | 2026-02-11 | §10, §15, §16 | Phase 28: Post-Bid Autopsy Create Button. Added "Create New Autopsy Report" button to PostBidAutopsyList PageHeader with inline lead selector dropdown (eligible ArchivedLoss leads without existing autopsy). New permission `autopsy:create` added to PERMISSIONS constant and 4 ROLE_PERMISSIONS entries (BD Rep, Est Coord, Exec, Dept Dir; SP Admin inherits via spread). Bug fix: PostBidAutopsyForm `useParams` destructure changed from `{ leadId }` to `{ id }` to match route param `:id`. Added pitfall #36. |
-| 2026-02-12 | §2, §6, §15, §16 | Phase 29: Site Provisioning Workflow Enhancements. 4 enhancements: (A) Project Setup Tracker widget on DashboardPage — useProvisioningTracker hook with 10s auto-refresh, 7-dot step progress, summary KPI chips, RoleGate + FeatureGate, retry for failed items; (B) useProvisioningValidation hook composing validators.ts + async duplicate-provisioning check, integrated into JobNumberRequestForm replacing local validate(); (C) ProvisioningService.provisionSiteWithFallback() three-tier fallback (PowerAutomate → local → offline queue), transparent in mock mode; (D) featureFlagName + isSkippable on IWorkflowStep, skipped + skipReason on IResolvedWorkflowStep, MockDataService resolveWorkflowChain feature flag gating, WorkflowStepCard purple flag badge, WorkflowPreview skipped step styling. 2 new hooks, 10 modified files. +2 new fields on IWorkflowStep, +2 on IResolvedWorkflowStep. +2 column mappings (WORKFLOW_STEPS_COLUMNS). GO_NO_GO step 2 (Precon Director Review) gets featureFlagName:"MeetingScheduler" + isSkippable:true. Added pitfalls #37-#38. |
+| 2026-02-11 | §6, §9, §11, §12, §15, §16 | Phase 28A: Feature Flags Admin Enhancement. Added `FeatureFlagCategory` type alias (5 categories: Core Platform, Preconstruction, Project Execution, Infrastructure, Integrations). `IFeatureFlag` gains optional `Category` field. `featureFlags.json` updated with Category on all 23 entries. `columnMappings.ts` +Category on FEATURE_FLAGS_COLUMNS. AdminPanel Feature Flags tab rewritten: grouped by Category using CollapsibleSection with count badge ("N of M enabled"). NavigationSidebar: `INavItem` gains optional `featureFlag` field; `isItemVisible()` checks `isFeatureEnabled()` before permission/hubOnly checks; 11 nav items mapped to flags (Pipeline→PipelineDashboard, Go/No-Go Tracker→GoNoGoScorecard, Post-Bid Autopsies→LossAutopsy, New Lead→LeadIntake, Marketing Dashboard→MarketingProjectRecord, Project Record→MarketingProjectRecord, Active Projects→ExecutiveDashboard, Startup Checklist→ProjectStartup, Responsibility→ProjectStartup, Management Plan→ProjectManagementPlan, Monthly Review→MonthlyProjectReview). Fixed ActiveProjectsDashboard FeatureGate bug: `"ActiveProjectsDashboard"` → `"ExecutiveDashboard"`. Added pitfall #37 (FeatureGate featureName case-sensitive match). |
+| 2026-02-12 | §6, §8, §9, §11, §15, §16 | Phase 28B: Feature Flag Route-Level Enforcement & Display Names. `DisplayName: string` added to IFeatureFlag interface. featureFlags.json updated with human-readable DisplayName on all 23 entries (e.g., "GoNoGoScorecard" → "Go/No-Go Scorecard"). columnMappings.ts +DisplayName on FEATURE_FLAGS_COLUMNS. AdminPanel: flag table column, confirm dialog, and audit log detail all show DisplayName instead of FeatureName. App.tsx: FeatureGate imported from guards; 20 routes wrapped with `<FeatureGate featureName="X" fallback={<NotFoundPage />}>` — LeadIntake (1 route), GoNoGoScorecard (3 routes), PipelineDashboard (3 routes), LossAutopsy (3 routes), EstimatingTracker (3 routes), TurnoverWorkflow (1 route), ProjectStartup (4 routes), ProjectManagementPlan (1 route), MonthlyProjectReview (1 route). FeatureGate wraps outermost (outside ProtectedRoute/ProjectRequiredRoute). NavigationSidebar: +featureFlag: 'EstimatingTracker' on 3 items (Estimating Dashboard, Precon Tracker, Estimate Log). §8 routes table gains Feature Gate column. Added pitfall #38 (FeatureGate wrapping order). |
+| 2026-02-12 | §2, §6, §15, §16 | Phase 29: Site Provisioning Workflow Enhancements. 4 enhancements: (A) Project Setup Tracker widget on DashboardPage — useProvisioningTracker hook with 10s auto-refresh, 7-dot step progress, summary KPI chips, RoleGate + FeatureGate, retry for failed items; (B) useProvisioningValidation hook composing validators.ts + async duplicate-provisioning check, integrated into JobNumberRequestForm replacing local validate(); (C) ProvisioningService.provisionSiteWithFallback() three-tier fallback (PowerAutomate → local → offline queue), transparent in mock mode; (D) featureFlagName + isSkippable on IWorkflowStep, skipped + skipReason on IResolvedWorkflowStep, MockDataService resolveWorkflowChain feature flag gating, WorkflowStepCard purple flag badge, WorkflowPreview skipped step styling. 2 new hooks, 10 modified files. +2 new fields on IWorkflowStep, +2 on IResolvedWorkflowStep. +2 column mappings (WORKFLOW_STEPS_COLUMNS). GO_NO_GO step 2 (Precon Director Review) gets featureFlagName:"MeetingScheduler" + isSkippable:true. Added pitfalls #39-#40. |

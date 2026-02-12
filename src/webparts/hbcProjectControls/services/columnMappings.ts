@@ -87,10 +87,12 @@ export const APP_ROLES_COLUMNS = {
 export const FEATURE_FLAGS_COLUMNS = {
   id: 'ID',                                    // SP: Auto-generated
   FeatureName: 'FeatureName',                  // SP: Single Line of Text
+  DisplayName: 'DisplayName',                  // SP: Single Line of Text
   Enabled: 'Enabled',                          // SP: Yes/No
   EnabledForRoles: 'EnabledForRoles',          // SP: Multiple Lines of Text (JSON array of RoleName)
   TargetDate: 'TargetDate',                    // SP: DateTime
   Notes: 'Notes',                              // SP: Multiple Lines of Text
+  Category: 'Category',                        // SP: Choice
 } as const;
 
 /**

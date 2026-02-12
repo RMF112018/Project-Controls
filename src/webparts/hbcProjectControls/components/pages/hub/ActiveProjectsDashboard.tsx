@@ -324,7 +324,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
   );
 
   return (
-    <FeatureGate featureName="ActiveProjectsDashboard">
+    <FeatureGate featureName="ExecutiveDashboard">
       <RoleGate
         allowedRoles={[RoleName.ExecutiveLeadership, RoleName.DepartmentDirector, RoleName.OperationsTeam]}
         fallback={
