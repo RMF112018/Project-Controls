@@ -1375,6 +1375,8 @@ export const WORKFLOW_STEPS_COLUMNS = {
   conditionDescription: 'ConditionDescription',// SP: Single Line of Text
   actionLabel: 'ActionLabel',                  // SP: Single Line of Text
   canChairMeeting: 'CanChairMeeting',          // SP: Yes/No
+  featureFlagName: 'FeatureFlagName',          // SP: Single Line of Text (matches FeatureFlag.FeatureName)
+  isSkippable: 'IsSkippable',                  // SP: Yes/No
 } as const;
 
 /**

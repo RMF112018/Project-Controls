@@ -25,6 +25,8 @@ export interface IWorkflowStep {
   conditionDescription?: string;
   actionLabel: string;
   canChairMeeting?: boolean;
+  featureFlagName?: string;
+  isSkippable?: boolean;
 }
 
 export interface IPersonAssignment {
@@ -68,4 +70,6 @@ export interface IResolvedWorkflowStep {
   conditionMet: boolean;
   actionLabel: string;
   canChairMeeting: boolean;
+  skipped?: boolean;
+  skipReason?: string;
 }

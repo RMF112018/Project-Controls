@@ -18,6 +18,7 @@ import {
 import { useLeads } from '../../hooks/useLeads';
 import { useEstimating } from '../../hooks/useEstimating';
 import { useActionInbox } from '../../hooks/useActionInbox';
+import { useProvisioningTracker } from '../../hooks/useProvisioningTracker';
 import { usePersistedState } from '../../hooks/usePersistedState';
 import { useResponsive } from '../../hooks/useResponsive';
 import { PageHeader } from '../../shared/PageHeader';
@@ -31,7 +32,8 @@ import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { PipelineChart } from '../../shared/PipelineChart';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { RoleGate } from '../../guards/RoleGate';
-import { ILead, IEstimatingTracker, IActionInboxItem, Stage, Region, Division, GoNoGoDecision, AwardStatus, RoleName, ActionPriority } from '../../../models';
+import { FeatureGate } from '../../guards/FeatureGate';
+import { ILead, IEstimatingTracker, IActionInboxItem, IProvisioningLog, Stage, Region, Division, GoNoGoDecision, AwardStatus, RoleName, ActionPriority, ProvisioningStatus, PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS } from '../../../models';
 import { useAppContext } from '../../contexts/AppContext';
 import { ISelectedProject } from '../../contexts/AppContext';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
@@ -60,8 +62,10 @@ export const DashboardPage: React.FC = () => {
   const { leads, isLoading: leadsLoading, fetchLeads } = useLeads();
   const { records, isLoading: estLoading, fetchRecords } = useEstimating();
   const { items: actionItems, loading: actionLoading, totalCount: actionTotal, urgentCount, refresh: refreshActions } = useActionInbox();
+  const { logs: provLogs, isLoading: provLoading, summary: provSummary, refresh: refreshProvisioning } = useProvisioningTracker();
   const { isMobile, isTablet } = useResponsive();
   const [showAllActions, setShowAllActions] = React.useState(false);
+  const [showAllProv, setShowAllProv] = React.useState(false);
 
   const [chartMode, setChartMode] = React.useState<'count' | 'value'>('count');
   const [yearFilter, setYearFilter] = usePersistedState<string>('dashboard-year', 'All');
@@ -443,6 +447,20 @@ export const DashboardPage: React.FC = () => {
           )}
         </div>
 
+        {/* Project Setup Tracker */}
+        <RoleGate allowedRoles={[RoleName.ExecutiveLeadership, RoleName.DepartmentDirector, RoleName.OperationsTeam, RoleName.SharePointAdmin]}>
+          <FeatureGate featureName="AutoSiteProvisioning">
+            <ProvisioningTrackerWidget
+              logs={provLogs}
+              isLoading={provLoading}
+              summary={provSummary}
+              showAll={showAllProv}
+              onToggleShowAll={() => setShowAllProv(!showAllProv)}
+              onRefresh={refreshProvisioning}
+            />
+          </FeatureGate>
+        </RoleGate>
+
         {/* KPI Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: kpiGridCols, gap: '16px', marginBottom: '32px' }}>
           <KPICard title="Active Projects" value={kpis.activeProjects} subtitle="Across all stages" onClick={() => navigate('/')} />
@@ -667,5 +685,154 @@ export const DashboardPage: React.FC = () => {
           </div>
         </RoleGate>
       </div>
+  );
+};
+
+/* ─── Internal: Project Setup Tracker Widget ─── */
+
+interface IProvisioningTrackerWidgetProps {
+  logs: IProvisioningLog[];
+  isLoading: boolean;
+  summary: { inProgress: number; completed: number; failed: number; queued: number; total: number };
+  showAll: boolean;
+  onToggleShowAll: () => void;
+  onRefresh: () => Promise<void>;
+}
+
+const STATUS_CHIP_STYLES: Record<string, { bg: string; color: string }> = {
+  Queued: { bg: HBC_COLORS.infoLight, color: HBC_COLORS.info },
+  InProgress: { bg: '#FFF7ED', color: HBC_COLORS.orange },
+  Completed: { bg: HBC_COLORS.successLight, color: '#065F46' },
+  Failed: { bg: HBC_COLORS.errorLight, color: '#991B1B' },
+};
+
+const ProvisioningTrackerWidget: React.FC<IProvisioningTrackerWidgetProps> = ({
+  logs, isLoading, summary, showAll, onToggleShowAll, onRefresh,
+}) => {
+  const activeCount = summary.inProgress + summary.queued;
+  const activeLogs = logs.filter(l =>
+    l.status === ProvisioningStatus.InProgress ||
+    l.status === ProvisioningStatus.Queued ||
+    l.status === ProvisioningStatus.Failed ||
+    l.status === ProvisioningStatus.PartialFailure
+  );
+  const displayLogs = showAll ? activeLogs : activeLogs.slice(0, 5);
+
+  return (
+    <div style={{
+      backgroundColor: '#fff',
+      borderRadius: '8px',
+      padding: '16px 20px',
+      boxShadow: ELEVATION.level1,
+      marginBottom: '24px',
+      border: `1px solid ${summary.failed > 0 ? HBC_COLORS.error : HBC_COLORS.gray200}`,
+    }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: activeLogs.length > 0 ? '12px' : '0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '16px', fontWeight: 600, color: HBC_COLORS.navy }}>Project Setup Tracker</span>
+          {activeCount > 0 && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              minWidth: '22px', height: '22px', borderRadius: '11px', padding: '0 6px',
+              fontSize: '12px', fontWeight: 600, color: '#fff',
+              backgroundColor: HBC_COLORS.orange,
+            }}>
+              {activeCount}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => { onRefresh().catch(console.error); }}
+          style={{
+            padding: '4px 12px', fontSize: '12px', color: HBC_COLORS.navy,
+            backgroundColor: 'transparent', border: `1px solid ${HBC_COLORS.gray300}`,
+            borderRadius: '4px', cursor: 'pointer',
+          }}
+        >
+          Refresh
+        </button>
+      </div>
+
+      {/* Summary chips */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: activeLogs.length > 0 ? '12px' : '0' }}>
+        {([
+          { label: 'Queued', count: summary.queued, key: 'Queued' },
+          { label: 'In Progress', count: summary.inProgress, key: 'InProgress' },
+          { label: 'Completed', count: summary.completed, key: 'Completed' },
+          { label: 'Failed', count: summary.failed, key: 'Failed' },
+        ] as const).map(chip => (
+          <span key={chip.key} style={{
+            display: 'inline-flex', alignItems: 'center', gap: '4px',
+            padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 600,
+            backgroundColor: STATUS_CHIP_STYLES[chip.key].bg,
+            color: STATUS_CHIP_STYLES[chip.key].color,
+          }}>
+            {chip.label}: {chip.count}
+          </span>
+        ))}
+      </div>
+
+      {/* Active items */}
+      {isLoading ? (
+        <LoadingSpinner size="small" label="Loading provisioning status..." />
+      ) : activeLogs.length === 0 ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: HBC_COLORS.gray500, fontSize: '14px', padding: '8px 0' }}>
+          <span style={{ color: HBC_COLORS.success, fontSize: '18px' }}>&#10003;</span>
+          No active provisioning
+        </div>
+      ) : (
+        <>
+          {displayLogs.map(log => (
+            <div
+              key={log.id}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 0',
+                borderBottom: `1px solid ${HBC_COLORS.gray100}`,
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: '14px', color: HBC_COLORS.navy }}>{log.projectName}</div>
+                <div style={{ fontSize: '12px', color: HBC_COLORS.gray600, marginTop: '2px' }}>{log.projectCode}</div>
+              </div>
+              {/* Step dots */}
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginRight: '12px' }}>
+                {PROVISIONING_STEPS.map(s => {
+                  let dotColor: string = HBC_COLORS.gray300;
+                  if (s.step <= log.completedSteps) dotColor = HBC_COLORS.success;
+                  else if (s.step === log.currentStep && log.status === ProvisioningStatus.InProgress) dotColor = HBC_COLORS.info;
+                  else if (s.step === log.failedStep) dotColor = HBC_COLORS.error;
+                  return (
+                    <span
+                      key={s.step}
+                      title={s.label}
+                      style={{
+                        width: '10px', height: '10px', borderRadius: '50%',
+                        backgroundColor: dotColor, display: 'inline-block',
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              <span style={{ fontSize: '11px', color: HBC_COLORS.gray500, whiteSpace: 'nowrap' }}>
+                {log.completedSteps}/{TOTAL_PROVISIONING_STEPS}
+              </span>
+            </div>
+          ))}
+          {activeLogs.length > 5 && (
+            <button
+              onClick={onToggleShowAll}
+              style={{
+                marginTop: '8px', padding: '4px 0', fontSize: '13px', color: HBC_COLORS.orange,
+                backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 500,
+              }}
+            >
+              {showAll ? 'Show less' : `Show all (${activeLogs.length})`}
+            </button>
+          )}
+        </>
+      )}
+    </div>
   );
 };

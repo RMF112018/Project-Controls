@@ -1,5 +1,7 @@
 import { IDataService } from './IDataService';
 import { NotificationService } from './NotificationService';
+import { PowerAutomateService } from './PowerAutomateService';
+import { OfflineQueueService } from './OfflineQueueService';
 import { IHubNavigationService } from './HubNavigationService';
 import { IProvisioningLog, ProvisioningStatus, PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS, NotificationEvent, AuditAction, EntityType } from '../models';
 import { HubNavLinkStatus } from '../models/IProvisioningLog';
@@ -22,11 +24,23 @@ export class ProvisioningService {
   private dataService: IDataService;
   private notificationService: NotificationService;
   private hubNavService?: IHubNavigationService;
+  private powerAutomateService?: PowerAutomateService;
+  private offlineQueueService?: OfflineQueueService;
+  private usePowerAutomate: boolean;
 
-  constructor(dataService: IDataService, hubNavService?: IHubNavigationService) {
+  constructor(
+    dataService: IDataService,
+    hubNavService?: IHubNavigationService,
+    powerAutomateService?: PowerAutomateService,
+    offlineQueueService?: OfflineQueueService,
+    usePowerAutomate?: boolean
+  ) {
     this.dataService = dataService;
     this.notificationService = new NotificationService(dataService);
     this.hubNavService = hubNavService;
+    this.powerAutomateService = powerAutomateService;
+    this.offlineQueueService = offlineQueueService;
+    this.usePowerAutomate = usePowerAutomate ?? false;
   }
 
   /**
@@ -58,6 +72,77 @@ export class ProvisioningService {
     this.runSteps(input).catch(console.error);
 
     return log;
+  }
+
+  /**
+   * Provision with a three-tier fallback chain:
+   * 1. PowerAutomate (if usePowerAutomate=true)
+   * 2. Local 7-step engine (provisionSite)
+   * 3. Offline queue (if offlineQueueService provided)
+   */
+  public async provisionSiteWithFallback(input: IProvisioningInput): Promise<IProvisioningLog> {
+    // Try 1: Power Automate
+    if (this.usePowerAutomate && this.powerAutomateService) {
+      try {
+        await this.powerAutomateService.triggerProvisioning({
+          leadId: input.leadId,
+          projectCode: input.projectCode,
+          projectName: input.projectName,
+          clientName: input.clientName,
+          division: input.division,
+          region: input.region,
+          sector: '',
+          requestedBy: input.requestedBy,
+          requestedAt: new Date().toISOString(),
+        });
+        // PA accepted — create log and return
+        const log = await this.dataService.triggerProvisioning(
+          input.leadId, input.projectCode, input.projectName, input.requestedBy
+        );
+        this.dataService.logAudit({
+          Action: AuditAction.SiteProvisioningTriggered,
+          EntityType: EntityType.Project,
+          EntityId: String(input.leadId),
+          ProjectCode: input.projectCode,
+          User: input.requestedBy,
+          Details: `Site provisioning triggered via Power Automate for "${input.projectName}" (${input.projectCode})`,
+        }).catch(console.error);
+        return log;
+      } catch (err) {
+        // PA failed — log warning and fall through
+        this.dataService.logAudit({
+          Action: AuditAction.SiteProvisioningTriggered,
+          EntityType: EntityType.Project,
+          EntityId: String(input.leadId),
+          ProjectCode: input.projectCode,
+          User: input.requestedBy,
+          Details: `Power Automate provisioning failed, falling back to local engine: ${err instanceof Error ? err.message : String(err)}`,
+        }).catch(console.error);
+      }
+    }
+
+    // Try 2: Local 7-step engine
+    try {
+      return await this.provisionSite(input);
+    } catch (localErr) {
+      // Local engine failed — try offline queue
+      if (this.offlineQueueService) {
+        this.offlineQueueService.enqueue('create', 'provisioning', input);
+        const log = await this.dataService.triggerProvisioning(
+          input.leadId, input.projectCode, input.projectName, input.requestedBy
+        );
+        this.dataService.logAudit({
+          Action: AuditAction.SiteProvisioningTriggered,
+          EntityType: EntityType.Project,
+          EntityId: String(input.leadId),
+          ProjectCode: input.projectCode,
+          User: input.requestedBy,
+          Details: `Provisioning queued offline for "${input.projectName}" (${input.projectCode})`,
+        }).catch(console.error);
+        return log;
+      }
+      throw localErr;
+    }
   }
 
   /**
