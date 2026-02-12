@@ -6,9 +6,16 @@ import { IPropertyPaneConfiguration, PropertyPaneTextField } from '@microsoft/sp
 import { App, IAppProps } from './components/App';
 import { IDataService } from './services/IDataService';
 import { MockDataService } from './services/MockDataService';
+import { SharePointDataService } from './services/SharePointDataService';
+import { graphService } from './services/GraphService';
 
 export interface IHbcProjectControlsWebPartProps {
   description?: string;
+  /**
+   * Set to 'sharepoint' to use live SharePoint data service.
+   * Defaults to 'mock' for development.
+   */
+  dataServiceMode?: 'mock' | 'sharepoint';
 }
 
 export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHbcProjectControlsWebPartProps> {
@@ -16,8 +23,47 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
 
   protected async onInit(): Promise<void> {
     await super.onInit();
-    // Use MockDataService for development; swap to SharePointDataService for production
-    this._dataService = new MockDataService();
+
+    const useSP = this.properties.dataServiceMode === 'sharepoint';
+
+    if (useSP) {
+      // Production: use SharePointDataService with PnP JS
+      const spService = new SharePointDataService();
+
+      // Initialize PnP SP instance
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { spfi, SPFx } = require('@pnp/sp');
+      require('@pnp/sp/webs');
+      require('@pnp/sp/lists');
+      require('@pnp/sp/items');
+      require('@pnp/sp/folders');
+      require('@pnp/sp/files');
+      require('@pnp/sp/batching');
+      const sp = spfi().using(SPFx(this.context));
+      spService.initialize(sp);
+
+      // Provide SPFx page context user info for getCurrentUser()
+      const pageUser = this.context.pageContext.user;
+      spService.initializeContext({
+        displayName: pageUser.displayName,
+        email: pageUser.email,
+        loginName: pageUser.loginName,
+        id: 0, // SP user ID resolved at runtime
+      });
+
+      this._dataService = spService;
+
+      // Initialize GraphService for calendar/email/Teams integration
+      try {
+        const graphClient = await this.context.msGraphClientFactory.getClient('3');
+        graphService.initialize(graphClient);
+      } catch (err) {
+        console.warn('[HBC] Failed to initialize Graph client:', err);
+      }
+    } else {
+      // Development: use MockDataService
+      this._dataService = new MockDataService();
+    }
   }
 
   public render(): void {
