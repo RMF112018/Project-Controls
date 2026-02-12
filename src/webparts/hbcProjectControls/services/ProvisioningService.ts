@@ -155,7 +155,7 @@ export class ProvisioningService {
     const siteSuffix = input.siteNameOverride
       ? input.siteNameOverride.replace(/[^a-zA-Z0-9-]/g, '')
       : projectCode.replace(/-/g, '');
-    const siteUrl = `https://hedrickbrothers.sharepoint.com/sites/${siteSuffix}`;
+    const siteUrl = `https://hedrickbrotherscom.sharepoint.com/sites/${siteSuffix}`;
 
     for (let step = 1; step <= TOTAL_PROVISIONING_STEPS; step++) {
       // Mark step as in-progress
@@ -256,7 +256,7 @@ export class ProvisioningService {
       });
     }
 
-    const siteUrl = `https://hedrickbrothers.sharepoint.com/sites/${projectCode.replace(/-/g, '')}`;
+    const siteUrl = `https://hedrickbrotherscom.sharepoint.com/sites/${projectCode.replace(/-/g, '')}`;
     await this.dataService.updateProvisioningLog(projectCode, {
       status: ProvisioningStatus.Completed,
       currentStep: TOTAL_PROVISIONING_STEPS,

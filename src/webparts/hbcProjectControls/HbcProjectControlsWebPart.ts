@@ -57,6 +57,8 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
       try {
         const graphClient = await this.context.msGraphClientFactory.getClient('3');
         graphService.initialize(graphClient);
+        // Wire audit logger so Graph API calls are recorded in the audit trail
+        graphService.setAuditLogger((entry) => this._dataService.logAudit(entry));
       } catch (err) {
         console.warn('[HBC] Failed to initialize Graph client:', err);
       }
