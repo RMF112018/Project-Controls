@@ -58,60 +58,119 @@ export function usePermissionEngine(): IUsePermissionEngineResult {
   }, [dataService]);
 
   const resolvePermissions = React.useCallback(async (userEmail: string, projectCode: string | null) => {
-    return dataService.resolveUserPermissions(userEmail, projectCode);
+    try {
+      return await dataService.resolveUserPermissions(userEmail, projectCode);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to resolve permissions');
+      throw err;
+    }
   }, [dataService]);
 
   const getAccessibleProjects = React.useCallback(async (userEmail: string) => {
-    return dataService.getAccessibleProjects(userEmail);
+    try {
+      return await dataService.getAccessibleProjects(userEmail);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to get accessible projects');
+      return [];
+    }
   }, [dataService]);
 
   const getProjectTeam = React.useCallback(async (projectCode: string) => {
-    return dataService.getProjectTeamAssignments(projectCode);
+    try {
+      return await dataService.getProjectTeamAssignments(projectCode);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to get project team');
+      return [];
+    }
   }, [dataService]);
 
   const getAllAssignments = React.useCallback(async () => {
-    return dataService.getAllProjectTeamAssignments();
+    try {
+      return await dataService.getAllProjectTeamAssignments();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to get all assignments');
+      return [];
+    }
   }, [dataService]);
 
   const inviteToSiteGroup = React.useCallback(async (
     projectCode: string, userEmail: string, role: string
   ) => {
-    return dataService.inviteToProjectSiteGroup(projectCode, userEmail, role);
+    try {
+      return await dataService.inviteToProjectSiteGroup(projectCode, userEmail, role);
+    } catch (err) {
+      console.warn('inviteToProjectSiteGroup failed (non-blocking):', err);
+    }
   }, [dataService]);
 
   const assignToProject = React.useCallback(async (data: Partial<IProjectTeamAssignment>) => {
-    return dataService.createProjectTeamAssignment(data);
+    try {
+      return await dataService.createProjectTeamAssignment(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to assign to project');
+      throw err;
+    }
   }, [dataService]);
 
   const removeFromProject = React.useCallback(async (id: number) => {
-    await dataService.removeProjectTeamAssignment(id);
+    try {
+      await dataService.removeProjectTeamAssignment(id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove from project');
+      throw err;
+    }
   }, [dataService]);
 
   const updateAssignment = React.useCallback(async (id: number, data: Partial<IProjectTeamAssignment>) => {
-    return dataService.updateProjectTeamAssignment(id, data);
+    try {
+      return await dataService.updateProjectTeamAssignment(id, data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update assignment');
+      throw err;
+    }
   }, [dataService]);
 
   const createTemplate = React.useCallback(async (data: Partial<IPermissionTemplate>) => {
-    const result = await dataService.createPermissionTemplate(data);
-    setTemplates(prev => [...prev, result]);
-    return result;
+    try {
+      const result = await dataService.createPermissionTemplate(data);
+      setTemplates(prev => [...prev, result]);
+      return result;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create template');
+      throw err;
+    }
   }, [dataService]);
 
   const updateTemplate = React.useCallback(async (id: number, data: Partial<IPermissionTemplate>) => {
-    const result = await dataService.updatePermissionTemplate(id, data);
-    setTemplates(prev => prev.map(t => t.id === id ? result : t));
-    return result;
+    try {
+      const result = await dataService.updatePermissionTemplate(id, data);
+      setTemplates(prev => prev.map(t => t.id === id ? result : t));
+      return result;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update template');
+      throw err;
+    }
   }, [dataService]);
 
   const deleteTemplate = React.useCallback(async (id: number) => {
-    await dataService.deletePermissionTemplate(id);
-    setTemplates(prev => prev.filter(t => t.id !== id));
+    try {
+      await dataService.deletePermissionTemplate(id);
+      setTemplates(prev => prev.filter(t => t.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete template');
+      throw err;
+    }
   }, [dataService]);
 
   const updateMapping = React.useCallback(async (id: number, data: Partial<ISecurityGroupMapping>) => {
-    const result = await dataService.updateSecurityGroupMapping(id, data);
-    setSecurityGroupMappings(prev => prev.map(m => m.id === id ? result : m));
-    return result;
+    try {
+      const result = await dataService.updateSecurityGroupMapping(id, data);
+      setSecurityGroupMappings(prev => prev.map(m => m.id === id ? result : m));
+      return result;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update mapping');
+      throw err;
+    }
   }, [dataService]);
 
   return {

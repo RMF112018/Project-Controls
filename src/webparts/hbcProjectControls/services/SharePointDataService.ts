@@ -31,23 +31,46 @@ import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowSt
 import { ITurnoverAgenda, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
 import { IActionInboxItem } from '../models/IActionInbox';
 import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions } from '../models/IPermissionTemplate';
-import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
+import { GoNoGoDecision, Stage, RoleName, WorkflowKey } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
+import { ROLE_PERMISSIONS } from '../utils/permissions';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 
 /**
  * SharePoint Data Service — Live implementation using PnP JS.
  *
- * This is a stub. Each method will be implemented when connecting
- * to real SharePoint lists. For development, use MockDataService.
+ * Methods are progressively implemented. Unimplemented stubs log
+ * console warnings (Pattern A: silent empty returns) or throw errors
+ * (Pattern B: mutations). See docs/DEPLOYMENT_READINESS.md for status.
  */
 export class SharePointDataService implements IDataService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private sp: any; // SPFI instance
 
+  // SPFx page context info, set via initializeContext()
+  private _pageContextUser: {
+    displayName: string;
+    email: string;
+    loginName: string;
+    id: number;
+  } | null = null;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   initialize(spInstance: any): void {
     this.sp = spInstance;
+  }
+
+  /**
+   * Set SPFx page context user info for getCurrentUser().
+   * Must be called from WebPart.onInit() before any data fetching.
+   */
+  initializeContext(pageContextUser: {
+    displayName: string;
+    email: string;
+    loginName: string;
+    id: number;
+  }): void {
+    this._pageContextUser = pageContextUser;
   }
 
   // --- Leads ---
@@ -173,8 +196,42 @@ export class SharePointDataService implements IDataService {
 
   // --- RBAC ---
   async getCurrentUser(): Promise<ICurrentUser> {
-    // Will be populated from SPFx context + App_Roles
-    throw new Error('Not implemented - use SPFx context');
+    if (!this._pageContextUser) {
+      throw new Error('SharePointDataService.initializeContext() must be called before getCurrentUser()');
+    }
+
+    const { displayName, email, loginName, id } = this._pageContextUser;
+
+    // Fetch roles from App_Roles list — match user email against UserOrGroup array
+    const roles: RoleName[] = [];
+    const allPermissions: string[] = [];
+    try {
+      const roleItems = await this.getRoles();
+      const emailLower = email.toLowerCase();
+      for (const role of roleItems) {
+        if (!role.IsActive) continue;
+        const isMatch = role.UserOrGroup?.some(
+          (u: string) => u.toLowerCase() === emailLower
+        );
+        if (isMatch) {
+          roles.push(role.Title);
+          const rolePerms = ROLE_PERMISSIONS[role.Title] || [];
+          allPermissions.push(...rolePerms);
+        }
+      }
+    } catch {
+      console.warn('[SP] Failed to fetch roles from App_Roles list, falling back to empty roles');
+    }
+
+    // If no roles matched, the user has no permissions (view-only)
+    return {
+      id,
+      displayName,
+      email,
+      loginName,
+      roles,
+      permissions: new Set(allPermissions),
+    };
   }
 
   async getRoles(): Promise<IRole[]> {
@@ -398,104 +455,104 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Startup Checklist ---
-  async getStartupChecklist(_projectCode: string): Promise<IStartupChecklistItem[]> { return []; }
-  async updateChecklistItem(_projectCode: string, _itemId: number, _data: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> { throw new Error('Not implemented'); }
-  async addChecklistItem(_projectCode: string, _item: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> { throw new Error('Not implemented'); }
-  async removeChecklistItem(_projectCode: string, _itemId: number): Promise<void> { throw new Error('Not implemented'); }
+  async getStartupChecklist(_projectCode: string): Promise<IStartupChecklistItem[]> { console.warn('[STUB] getStartupChecklist not implemented'); return []; }
+  async updateChecklistItem(_projectCode: string, _itemId: number, _data: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> { throw new Error('SharePoint implementation pending: updateChecklistItem'); }
+  async addChecklistItem(_projectCode: string, _item: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> { throw new Error('SharePoint implementation pending: addChecklistItem'); }
+  async removeChecklistItem(_projectCode: string, _itemId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeChecklistItem'); }
 
   // --- Internal Matrix ---
-  async getInternalMatrix(_projectCode: string): Promise<IInternalMatrixTask[]> { return []; }
-  async updateInternalMatrixTask(_projectCode: string, _taskId: number, _data: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask> { throw new Error('Not implemented'); }
-  async addInternalMatrixTask(_projectCode: string, _task: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask> { throw new Error('Not implemented'); }
-  async removeInternalMatrixTask(_projectCode: string, _taskId: number): Promise<void> { throw new Error('Not implemented'); }
+  async getInternalMatrix(_projectCode: string): Promise<IInternalMatrixTask[]> { console.warn('[STUB] getInternalMatrix not implemented'); return []; }
+  async updateInternalMatrixTask(_projectCode: string, _taskId: number, _data: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask> { throw new Error('SharePoint implementation pending: updateInternalMatrixTask'); }
+  async addInternalMatrixTask(_projectCode: string, _task: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask> { throw new Error('SharePoint implementation pending: addInternalMatrixTask'); }
+  async removeInternalMatrixTask(_projectCode: string, _taskId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeInternalMatrixTask'); }
 
   // --- Team Assignments ---
-  async getTeamRoleAssignments(_projectCode: string): Promise<ITeamRoleAssignment[]> { return []; }
-  async updateTeamRoleAssignment(_projectCode: string, _role: string, _person: string, _email?: string): Promise<ITeamRoleAssignment> { throw new Error('Not implemented'); }
+  async getTeamRoleAssignments(_projectCode: string): Promise<ITeamRoleAssignment[]> { console.warn('[STUB] getTeamRoleAssignments not implemented'); return []; }
+  async updateTeamRoleAssignment(_projectCode: string, _role: string, _person: string, _email?: string): Promise<ITeamRoleAssignment> { throw new Error('SharePoint implementation pending: updateTeamRoleAssignment'); }
 
   // --- Owner Contract Matrix ---
-  async getOwnerContractMatrix(_projectCode: string): Promise<IOwnerContractArticle[]> { return []; }
-  async updateOwnerContractArticle(_projectCode: string, _itemId: number, _data: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle> { throw new Error('Not implemented'); }
-  async addOwnerContractArticle(_projectCode: string, _item: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle> { throw new Error('Not implemented'); }
-  async removeOwnerContractArticle(_projectCode: string, _itemId: number): Promise<void> { throw new Error('Not implemented'); }
+  async getOwnerContractMatrix(_projectCode: string): Promise<IOwnerContractArticle[]> { console.warn('[STUB] getOwnerContractMatrix not implemented'); return []; }
+  async updateOwnerContractArticle(_projectCode: string, _itemId: number, _data: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle> { throw new Error('SharePoint implementation pending: updateOwnerContractArticle'); }
+  async addOwnerContractArticle(_projectCode: string, _item: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle> { throw new Error('SharePoint implementation pending: addOwnerContractArticle'); }
+  async removeOwnerContractArticle(_projectCode: string, _itemId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeOwnerContractArticle'); }
 
   // --- Sub-Contract Matrix ---
-  async getSubContractMatrix(_projectCode: string): Promise<ISubContractClause[]> { return []; }
-  async updateSubContractClause(_projectCode: string, _itemId: number, _data: Partial<ISubContractClause>): Promise<ISubContractClause> { throw new Error('Not implemented'); }
-  async addSubContractClause(_projectCode: string, _item: Partial<ISubContractClause>): Promise<ISubContractClause> { throw new Error('Not implemented'); }
-  async removeSubContractClause(_projectCode: string, _itemId: number): Promise<void> { throw new Error('Not implemented'); }
+  async getSubContractMatrix(_projectCode: string): Promise<ISubContractClause[]> { console.warn('[STUB] getSubContractMatrix not implemented'); return []; }
+  async updateSubContractClause(_projectCode: string, _itemId: number, _data: Partial<ISubContractClause>): Promise<ISubContractClause> { throw new Error('SharePoint implementation pending: updateSubContractClause'); }
+  async addSubContractClause(_projectCode: string, _item: Partial<ISubContractClause>): Promise<ISubContractClause> { throw new Error('SharePoint implementation pending: addSubContractClause'); }
+  async removeSubContractClause(_projectCode: string, _itemId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeSubContractClause'); }
 
   // --- Marketing Project Record ---
-  async getMarketingProjectRecord(_projectCode: string): Promise<IMarketingProjectRecord | null> { return null; }
-  async createMarketingProjectRecord(_data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> { throw new Error('Not implemented'); }
-  async updateMarketingProjectRecord(_projectCode: string, _data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> { throw new Error('Not implemented'); }
-  async getAllMarketingProjectRecords(): Promise<IMarketingProjectRecord[]> { return []; }
+  async getMarketingProjectRecord(_projectCode: string): Promise<IMarketingProjectRecord | null> { console.warn('[STUB] getMarketingProjectRecord not implemented'); return null; }
+  async createMarketingProjectRecord(_data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> { throw new Error('SharePoint implementation pending: createMarketingProjectRecord'); }
+  async updateMarketingProjectRecord(_projectCode: string, _data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> { throw new Error('SharePoint implementation pending: updateMarketingProjectRecord'); }
+  async getAllMarketingProjectRecords(): Promise<IMarketingProjectRecord[]> { console.warn('[STUB] getAllMarketingProjectRecords not implemented'); return []; }
 
   // --- Risk & Cost ---
-  async getRiskCostManagement(_projectCode: string): Promise<IRiskCostManagement | null> { return null; }
-  async updateRiskCostManagement(_projectCode: string, _data: Partial<IRiskCostManagement>): Promise<IRiskCostManagement> { throw new Error('Not implemented'); }
-  async addRiskCostItem(_projectCode: string, _item: Partial<IRiskCostItem>): Promise<IRiskCostItem> { throw new Error('Not implemented'); }
-  async updateRiskCostItem(_projectCode: string, _itemId: number, _data: Partial<IRiskCostItem>): Promise<IRiskCostItem> { throw new Error('Not implemented'); }
+  async getRiskCostManagement(_projectCode: string): Promise<IRiskCostManagement | null> { console.warn('[STUB] getRiskCostManagement not implemented'); return null; }
+  async updateRiskCostManagement(_projectCode: string, _data: Partial<IRiskCostManagement>): Promise<IRiskCostManagement> { throw new Error('SharePoint implementation pending: updateRiskCostManagement'); }
+  async addRiskCostItem(_projectCode: string, _item: Partial<IRiskCostItem>): Promise<IRiskCostItem> { throw new Error('SharePoint implementation pending: addRiskCostItem'); }
+  async updateRiskCostItem(_projectCode: string, _itemId: number, _data: Partial<IRiskCostItem>): Promise<IRiskCostItem> { throw new Error('SharePoint implementation pending: updateRiskCostItem'); }
 
   // --- Quality Concerns ---
-  async getQualityConcerns(_projectCode: string): Promise<IQualityConcern[]> { return []; }
-  async addQualityConcern(_projectCode: string, _concern: Partial<IQualityConcern>): Promise<IQualityConcern> { throw new Error('Not implemented'); }
-  async updateQualityConcern(_projectCode: string, _concernId: number, _data: Partial<IQualityConcern>): Promise<IQualityConcern> { throw new Error('Not implemented'); }
+  async getQualityConcerns(_projectCode: string): Promise<IQualityConcern[]> { console.warn('[STUB] getQualityConcerns not implemented'); return []; }
+  async addQualityConcern(_projectCode: string, _concern: Partial<IQualityConcern>): Promise<IQualityConcern> { throw new Error('SharePoint implementation pending: addQualityConcern'); }
+  async updateQualityConcern(_projectCode: string, _concernId: number, _data: Partial<IQualityConcern>): Promise<IQualityConcern> { throw new Error('SharePoint implementation pending: updateQualityConcern'); }
 
   // --- Safety Concerns ---
-  async getSafetyConcerns(_projectCode: string): Promise<ISafetyConcern[]> { return []; }
-  async addSafetyConcern(_projectCode: string, _concern: Partial<ISafetyConcern>): Promise<ISafetyConcern> { throw new Error('Not implemented'); }
-  async updateSafetyConcern(_projectCode: string, _concernId: number, _data: Partial<ISafetyConcern>): Promise<ISafetyConcern> { throw new Error('Not implemented'); }
+  async getSafetyConcerns(_projectCode: string): Promise<ISafetyConcern[]> { console.warn('[STUB] getSafetyConcerns not implemented'); return []; }
+  async addSafetyConcern(_projectCode: string, _concern: Partial<ISafetyConcern>): Promise<ISafetyConcern> { throw new Error('SharePoint implementation pending: addSafetyConcern'); }
+  async updateSafetyConcern(_projectCode: string, _concernId: number, _data: Partial<ISafetyConcern>): Promise<ISafetyConcern> { throw new Error('SharePoint implementation pending: updateSafetyConcern'); }
 
   // --- Schedule & Critical Path ---
-  async getProjectSchedule(_projectCode: string): Promise<IProjectScheduleCriticalPath | null> { return null; }
-  async updateProjectSchedule(_projectCode: string, _data: Partial<IProjectScheduleCriticalPath>): Promise<IProjectScheduleCriticalPath> { throw new Error('Not implemented'); }
-  async addCriticalPathItem(_projectCode: string, _item: Partial<ICriticalPathItem>): Promise<ICriticalPathItem> { throw new Error('Not implemented'); }
+  async getProjectSchedule(_projectCode: string): Promise<IProjectScheduleCriticalPath | null> { console.warn('[STUB] getProjectSchedule not implemented'); return null; }
+  async updateProjectSchedule(_projectCode: string, _data: Partial<IProjectScheduleCriticalPath>): Promise<IProjectScheduleCriticalPath> { throw new Error('SharePoint implementation pending: updateProjectSchedule'); }
+  async addCriticalPathItem(_projectCode: string, _item: Partial<ICriticalPathItem>): Promise<ICriticalPathItem> { throw new Error('SharePoint implementation pending: addCriticalPathItem'); }
 
   // --- Superintendent Plan ---
-  async getSuperintendentPlan(_projectCode: string): Promise<ISuperintendentPlan | null> { return null; }
-  async updateSuperintendentPlanSection(_projectCode: string, _sectionId: number, _data: Partial<ISuperintendentPlanSection>): Promise<ISuperintendentPlanSection> { throw new Error('Not implemented'); }
-  async createSuperintendentPlan(_projectCode: string, _data: Partial<ISuperintendentPlan>): Promise<ISuperintendentPlan> { throw new Error('Not implemented'); }
+  async getSuperintendentPlan(_projectCode: string): Promise<ISuperintendentPlan | null> { console.warn('[STUB] getSuperintendentPlan not implemented'); return null; }
+  async updateSuperintendentPlanSection(_projectCode: string, _sectionId: number, _data: Partial<ISuperintendentPlanSection>): Promise<ISuperintendentPlanSection> { throw new Error('SharePoint implementation pending: updateSuperintendentPlanSection'); }
+  async createSuperintendentPlan(_projectCode: string, _data: Partial<ISuperintendentPlan>): Promise<ISuperintendentPlan> { throw new Error('SharePoint implementation pending: createSuperintendentPlan'); }
 
   // --- Lessons Learned ---
-  async getLessonsLearned(_projectCode: string): Promise<ILessonLearned[]> { return []; }
-  async addLessonLearned(_projectCode: string, _lesson: Partial<ILessonLearned>): Promise<ILessonLearned> { throw new Error('Not implemented'); }
-  async updateLessonLearned(_projectCode: string, _lessonId: number, _data: Partial<ILessonLearned>): Promise<ILessonLearned> { throw new Error('Not implemented'); }
+  async getLessonsLearned(_projectCode: string): Promise<ILessonLearned[]> { console.warn('[STUB] getLessonsLearned not implemented'); return []; }
+  async addLessonLearned(_projectCode: string, _lesson: Partial<ILessonLearned>): Promise<ILessonLearned> { throw new Error('SharePoint implementation pending: addLessonLearned'); }
+  async updateLessonLearned(_projectCode: string, _lessonId: number, _data: Partial<ILessonLearned>): Promise<ILessonLearned> { throw new Error('SharePoint implementation pending: updateLessonLearned'); }
 
   // --- Project Management Plan ---
-  async getProjectManagementPlan(_projectCode: string): Promise<IProjectManagementPlan | null> { return null; }
-  async updateProjectManagementPlan(_projectCode: string, _data: Partial<IProjectManagementPlan>): Promise<IProjectManagementPlan> { throw new Error('Not implemented'); }
-  async submitPMPForApproval(_projectCode: string, _submittedBy: string): Promise<IProjectManagementPlan> { throw new Error('Not implemented'); }
-  async respondToPMPApproval(_projectCode: string, _stepId: number, _approved: boolean, _comment: string): Promise<IProjectManagementPlan> { throw new Error('Not implemented'); }
-  async signPMP(_projectCode: string, _signatureId: number, _comment: string): Promise<IProjectManagementPlan> { throw new Error('Not implemented'); }
-  async getDivisionApprovers(): Promise<IDivisionApprover[]> { return []; }
-  async getPMPBoilerplate(): Promise<IPMPBoilerplateSection[]> { return []; }
+  async getProjectManagementPlan(_projectCode: string): Promise<IProjectManagementPlan | null> { console.warn('[STUB] getProjectManagementPlan not implemented'); return null; }
+  async updateProjectManagementPlan(_projectCode: string, _data: Partial<IProjectManagementPlan>): Promise<IProjectManagementPlan> { throw new Error('SharePoint implementation pending: updateProjectManagementPlan'); }
+  async submitPMPForApproval(_projectCode: string, _submittedBy: string): Promise<IProjectManagementPlan> { throw new Error('SharePoint implementation pending: submitPMPForApproval'); }
+  async respondToPMPApproval(_projectCode: string, _stepId: number, _approved: boolean, _comment: string): Promise<IProjectManagementPlan> { throw new Error('SharePoint implementation pending: respondToPMPApproval'); }
+  async signPMP(_projectCode: string, _signatureId: number, _comment: string): Promise<IProjectManagementPlan> { throw new Error('SharePoint implementation pending: signPMP'); }
+  async getDivisionApprovers(): Promise<IDivisionApprover[]> { console.warn('[STUB] getDivisionApprovers not implemented'); return []; }
+  async getPMPBoilerplate(): Promise<IPMPBoilerplateSection[]> { console.warn('[STUB] getPMPBoilerplate not implemented'); return []; }
 
   // --- Monthly Review ---
-  async getMonthlyReviews(_projectCode: string): Promise<IMonthlyProjectReview[]> { return []; }
-  async getMonthlyReview(_reviewId: number): Promise<IMonthlyProjectReview | null> { return null; }
-  async updateMonthlyReview(_reviewId: number, _data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> { throw new Error('Not implemented'); }
-  async createMonthlyReview(_data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> { throw new Error('Not implemented'); }
+  async getMonthlyReviews(_projectCode: string): Promise<IMonthlyProjectReview[]> { console.warn('[STUB] getMonthlyReviews not implemented'); return []; }
+  async getMonthlyReview(_reviewId: number): Promise<IMonthlyProjectReview | null> { console.warn('[STUB] getMonthlyReview not implemented'); return null; }
+  async updateMonthlyReview(_reviewId: number, _data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> { throw new Error('SharePoint implementation pending: updateMonthlyReview'); }
+  async createMonthlyReview(_data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> { throw new Error('SharePoint implementation pending: createMonthlyReview'); }
 
   // --- Estimating Kick-Off ---
-  async getEstimatingKickoff(_projectCode: string): Promise<IEstimatingKickoff | null> { return null; }
-  async getEstimatingKickoffByLeadId(_leadId: number): Promise<IEstimatingKickoff | null> { return null; }
-  async createEstimatingKickoff(_data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> { throw new Error('Not implemented'); }
-  async updateEstimatingKickoff(_id: number, _data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> { throw new Error('Not implemented'); }
-  async updateKickoffItem(_kickoffId: number, _itemId: number, _data: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> { throw new Error('Not implemented'); }
-  async addKickoffItem(_kickoffId: number, _item: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> { throw new Error('Not implemented'); }
-  async removeKickoffItem(_kickoffId: number, _itemId: number): Promise<void> { throw new Error('Not implemented'); }
-  async updateKickoffKeyPersonnel(_kickoffId: number, _personnel: import('../models/IEstimatingKickoff').IKeyPersonnelEntry[]): Promise<import('../models/IEstimatingKickoff').IEstimatingKickoff> { throw new Error('Not implemented'); }
+  async getEstimatingKickoff(_projectCode: string): Promise<IEstimatingKickoff | null> { console.warn('[STUB] getEstimatingKickoff not implemented'); return null; }
+  async getEstimatingKickoffByLeadId(_leadId: number): Promise<IEstimatingKickoff | null> { console.warn('[STUB] getEstimatingKickoffByLeadId not implemented'); return null; }
+  async createEstimatingKickoff(_data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> { throw new Error('SharePoint implementation pending: createEstimatingKickoff'); }
+  async updateEstimatingKickoff(_id: number, _data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> { throw new Error('SharePoint implementation pending: updateEstimatingKickoff'); }
+  async updateKickoffItem(_kickoffId: number, _itemId: number, _data: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> { throw new Error('SharePoint implementation pending: updateKickoffItem'); }
+  async addKickoffItem(_kickoffId: number, _item: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> { throw new Error('SharePoint implementation pending: addKickoffItem'); }
+  async removeKickoffItem(_kickoffId: number, _itemId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeKickoffItem'); }
+  async updateKickoffKeyPersonnel(_kickoffId: number, _personnel: import('../models/IEstimatingKickoff').IKeyPersonnelEntry[]): Promise<import('../models/IEstimatingKickoff').IEstimatingKickoff> { throw new Error('SharePoint implementation pending: updateKickoffKeyPersonnel'); }
 
   // --- Job Number Requests ---
-  async getJobNumberRequests(_status?: JobNumberRequestStatus): Promise<IJobNumberRequest[]> { return []; }
-  async getJobNumberRequestByLeadId(_leadId: number): Promise<IJobNumberRequest | null> { return null; }
-  async createJobNumberRequest(_data: Partial<IJobNumberRequest>): Promise<IJobNumberRequest> { throw new Error('Not implemented'); }
-  async finalizeJobNumber(_requestId: number, _jobNumber: string, _assignedBy: string): Promise<IJobNumberRequest> { throw new Error('Not implemented'); }
+  async getJobNumberRequests(_status?: JobNumberRequestStatus): Promise<IJobNumberRequest[]> { console.warn('[STUB] getJobNumberRequests not implemented'); return []; }
+  async getJobNumberRequestByLeadId(_leadId: number): Promise<IJobNumberRequest | null> { console.warn('[STUB] getJobNumberRequestByLeadId not implemented'); return null; }
+  async createJobNumberRequest(_data: Partial<IJobNumberRequest>): Promise<IJobNumberRequest> { throw new Error('SharePoint implementation pending: createJobNumberRequest'); }
+  async finalizeJobNumber(_requestId: number, _jobNumber: string, _assignedBy: string): Promise<IJobNumberRequest> { throw new Error('SharePoint implementation pending: finalizeJobNumber'); }
 
   // --- Reference Data ---
-  async getProjectTypes(): Promise<IProjectType[]> { return []; }
-  async getStandardCostCodes(): Promise<IStandardCostCode[]> { return []; }
+  async getProjectTypes(): Promise<IProjectType[]> { console.warn('[STUB] getProjectTypes not implemented'); return []; }
+  async getStandardCostCodes(): Promise<IStandardCostCode[]> { console.warn('[STUB] getStandardCostCodes not implemented'); return []; }
 
   // --- Buyout Log ---
 
@@ -1254,43 +1311,43 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Scorecard Workflow (Phase 16) ---
-  async submitScorecard(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending'); }
-  async respondToScorecardSubmission(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending'); }
-  async enterCommitteeScores(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending'); }
-  async recordFinalDecision(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending'); }
-  async unlockScorecard(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending'); }
-  async relockScorecard(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending'); }
-  async getScorecardVersions(): Promise<IScorecardVersion[]> { throw new Error('SharePoint implementation pending'); }
+  async submitScorecard(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: submitScorecard'); }
+  async respondToScorecardSubmission(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: respondToScorecardSubmission'); }
+  async enterCommitteeScores(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: enterCommitteeScores'); }
+  async recordFinalDecision(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: recordFinalDecision'); }
+  async unlockScorecard(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: unlockScorecard'); }
+  async relockScorecard(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: relockScorecard'); }
+  async getScorecardVersions(): Promise<IScorecardVersion[]> { throw new Error('SharePoint implementation pending: getScorecardVersions'); }
 
   // --- Workflow Definitions ---
-  async getWorkflowDefinitions(): Promise<IWorkflowDefinition[]> { return []; }
-  async getWorkflowDefinition(_workflowKey: WorkflowKey): Promise<IWorkflowDefinition | null> { return null; }
-  async updateWorkflowStep(_workflowId: number, _stepId: number, _data: Partial<IWorkflowStep>): Promise<IWorkflowStep> { throw new Error('Not implemented'); }
-  async addConditionalAssignment(_stepId: number, _assignment: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> { throw new Error('Not implemented'); }
-  async updateConditionalAssignment(_assignmentId: number, _data: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> { throw new Error('Not implemented'); }
-  async removeConditionalAssignment(_assignmentId: number): Promise<void> { throw new Error('Not implemented'); }
-  async getWorkflowOverrides(_projectCode: string): Promise<IWorkflowStepOverride[]> { return []; }
-  async setWorkflowStepOverride(_override: Partial<IWorkflowStepOverride>): Promise<IWorkflowStepOverride> { throw new Error('Not implemented'); }
-  async removeWorkflowStepOverride(_overrideId: number): Promise<void> { throw new Error('Not implemented'); }
-  async resolveWorkflowChain(_workflowKey: WorkflowKey, _projectCode: string): Promise<IResolvedWorkflowStep[]> { return []; }
+  async getWorkflowDefinitions(): Promise<IWorkflowDefinition[]> { console.warn('[STUB] getWorkflowDefinitions not implemented'); return []; }
+  async getWorkflowDefinition(_workflowKey: WorkflowKey): Promise<IWorkflowDefinition | null> { console.warn('[STUB] getWorkflowDefinition not implemented'); return null; }
+  async updateWorkflowStep(_workflowId: number, _stepId: number, _data: Partial<IWorkflowStep>): Promise<IWorkflowStep> { throw new Error('SharePoint implementation pending: updateWorkflowStep'); }
+  async addConditionalAssignment(_stepId: number, _assignment: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> { throw new Error('SharePoint implementation pending: addConditionalAssignment'); }
+  async updateConditionalAssignment(_assignmentId: number, _data: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> { throw new Error('SharePoint implementation pending: updateConditionalAssignment'); }
+  async removeConditionalAssignment(_assignmentId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeConditionalAssignment'); }
+  async getWorkflowOverrides(_projectCode: string): Promise<IWorkflowStepOverride[]> { console.warn('[STUB] getWorkflowOverrides not implemented'); return []; }
+  async setWorkflowStepOverride(_override: Partial<IWorkflowStepOverride>): Promise<IWorkflowStepOverride> { throw new Error('SharePoint implementation pending: setWorkflowStepOverride'); }
+  async removeWorkflowStepOverride(_overrideId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeWorkflowStepOverride'); }
+  async resolveWorkflowChain(_workflowKey: WorkflowKey, _projectCode: string): Promise<IResolvedWorkflowStep[]> { console.warn('[STUB] resolveWorkflowChain not implemented'); return []; }
 
   // --- Turnover Agenda ---
-  async getTurnoverAgenda(_projectCode: string): Promise<ITurnoverAgenda | null> { return null; }
-  async createTurnoverAgenda(_projectCode: string, _leadId: number): Promise<ITurnoverAgenda> { throw new Error('Not implemented'); }
-  async updateTurnoverAgenda(_projectCode: string, _data: Partial<ITurnoverAgenda>): Promise<ITurnoverAgenda> { throw new Error('Not implemented'); }
-  async updateTurnoverPrerequisite(_prerequisiteId: number, _data: Partial<ITurnoverPrerequisite>): Promise<ITurnoverPrerequisite> { throw new Error('Not implemented'); }
-  async updateTurnoverDiscussionItem(_itemId: number, _data: Partial<ITurnoverDiscussionItem>): Promise<ITurnoverDiscussionItem> { throw new Error('Not implemented'); }
-  async addTurnoverDiscussionAttachment(_itemId: number, _file: File): Promise<ITurnoverAttachment> { throw new Error('Not implemented'); }
-  async removeTurnoverDiscussionAttachment(_attachmentId: number): Promise<void> { throw new Error('Not implemented'); }
-  async addTurnoverSubcontractor(_turnoverAgendaId: number, _data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor> { throw new Error('Not implemented'); }
-  async updateTurnoverSubcontractor(_subId: number, _data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor> { throw new Error('Not implemented'); }
-  async removeTurnoverSubcontractor(_subId: number): Promise<void> { throw new Error('Not implemented'); }
-  async updateTurnoverExhibit(_exhibitId: number, _data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit> { throw new Error('Not implemented'); }
-  async addTurnoverExhibit(_turnoverAgendaId: number, _data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit> { throw new Error('Not implemented'); }
-  async removeTurnoverExhibit(_exhibitId: number): Promise<void> { throw new Error('Not implemented'); }
-  async uploadTurnoverExhibitFile(_exhibitId: number, _file: File): Promise<{ fileUrl: string; fileName: string }> { throw new Error('Not implemented'); }
-  async signTurnoverAgenda(_signatureId: number, _comment?: string): Promise<ITurnoverSignature> { throw new Error('Not implemented'); }
-  async updateTurnoverEstimateOverview(_projectCode: string, _data: Partial<ITurnoverEstimateOverview>): Promise<ITurnoverEstimateOverview> { throw new Error('Not implemented'); }
+  async getTurnoverAgenda(_projectCode: string): Promise<ITurnoverAgenda | null> { console.warn('[STUB] getTurnoverAgenda not implemented'); return null; }
+  async createTurnoverAgenda(_projectCode: string, _leadId: number): Promise<ITurnoverAgenda> { throw new Error('SharePoint implementation pending: createTurnoverAgenda'); }
+  async updateTurnoverAgenda(_projectCode: string, _data: Partial<ITurnoverAgenda>): Promise<ITurnoverAgenda> { throw new Error('SharePoint implementation pending: updateTurnoverAgenda'); }
+  async updateTurnoverPrerequisite(_prerequisiteId: number, _data: Partial<ITurnoverPrerequisite>): Promise<ITurnoverPrerequisite> { throw new Error('SharePoint implementation pending: updateTurnoverPrerequisite'); }
+  async updateTurnoverDiscussionItem(_itemId: number, _data: Partial<ITurnoverDiscussionItem>): Promise<ITurnoverDiscussionItem> { throw new Error('SharePoint implementation pending: updateTurnoverDiscussionItem'); }
+  async addTurnoverDiscussionAttachment(_itemId: number, _file: File): Promise<ITurnoverAttachment> { throw new Error('SharePoint implementation pending: addTurnoverDiscussionAttachment'); }
+  async removeTurnoverDiscussionAttachment(_attachmentId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeTurnoverDiscussionAttachment'); }
+  async addTurnoverSubcontractor(_turnoverAgendaId: number, _data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor> { throw new Error('SharePoint implementation pending: addTurnoverSubcontractor'); }
+  async updateTurnoverSubcontractor(_subId: number, _data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor> { throw new Error('SharePoint implementation pending: updateTurnoverSubcontractor'); }
+  async removeTurnoverSubcontractor(_subId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeTurnoverSubcontractor'); }
+  async updateTurnoverExhibit(_exhibitId: number, _data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit> { throw new Error('SharePoint implementation pending: updateTurnoverExhibit'); }
+  async addTurnoverExhibit(_turnoverAgendaId: number, _data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit> { throw new Error('SharePoint implementation pending: addTurnoverExhibit'); }
+  async removeTurnoverExhibit(_exhibitId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeTurnoverExhibit'); }
+  async uploadTurnoverExhibitFile(_exhibitId: number, _file: File): Promise<{ fileUrl: string; fileName: string }> { throw new Error('SharePoint implementation pending: uploadTurnoverExhibitFile'); }
+  async signTurnoverAgenda(_signatureId: number, _comment?: string): Promise<ITurnoverSignature> { throw new Error('SharePoint implementation pending: signTurnoverAgenda'); }
+  async updateTurnoverEstimateOverview(_projectCode: string, _data: Partial<ITurnoverEstimateOverview>): Promise<ITurnoverEstimateOverview> { throw new Error('SharePoint implementation pending: updateTurnoverEstimateOverview'); }
 
   // --- Hub Site URL Configuration ---
   async getHubSiteUrl(): Promise<string> {
@@ -1303,59 +1360,59 @@ export class SharePointDataService implements IDataService {
       return 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral';
     }
   }
-  async setHubSiteUrl(_url: string): Promise<void> { throw new Error('Not implemented'); }
+  async setHubSiteUrl(_url: string): Promise<void> { throw new Error('SharePoint implementation pending: setHubSiteUrl'); }
 
-  async getActionItems(_userEmail: string): Promise<IActionInboxItem[]> { return []; }
+  async getActionItems(_userEmail: string): Promise<IActionInboxItem[]> { console.warn('[STUB] getActionItems not implemented'); return []; }
 
   // --- Permission Templates ---
-  async getPermissionTemplates(): Promise<IPermissionTemplate[]> { return []; }
-  async getPermissionTemplate(_id: number): Promise<IPermissionTemplate | null> { return null; }
-  async createPermissionTemplate(_data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> { throw new Error('Not implemented'); }
-  async updatePermissionTemplate(_id: number, _data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> { throw new Error('Not implemented'); }
-  async deletePermissionTemplate(_id: number): Promise<void> { throw new Error('Not implemented'); }
+  async getPermissionTemplates(): Promise<IPermissionTemplate[]> { console.warn('[STUB] getPermissionTemplates not implemented'); return []; }
+  async getPermissionTemplate(_id: number): Promise<IPermissionTemplate | null> { console.warn('[STUB] getPermissionTemplate not implemented'); return null; }
+  async createPermissionTemplate(_data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> { throw new Error('SharePoint implementation pending: createPermissionTemplate'); }
+  async updatePermissionTemplate(_id: number, _data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> { throw new Error('SharePoint implementation pending: updatePermissionTemplate'); }
+  async deletePermissionTemplate(_id: number): Promise<void> { throw new Error('SharePoint implementation pending: deletePermissionTemplate'); }
 
   // --- Security Group Mappings ---
-  async getSecurityGroupMappings(): Promise<ISecurityGroupMapping[]> { return []; }
-  async createSecurityGroupMapping(_data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> { throw new Error('Not implemented'); }
-  async updateSecurityGroupMapping(_id: number, _data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> { throw new Error('Not implemented'); }
+  async getSecurityGroupMappings(): Promise<ISecurityGroupMapping[]> { console.warn('[STUB] getSecurityGroupMappings not implemented'); return []; }
+  async createSecurityGroupMapping(_data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> { throw new Error('SharePoint implementation pending: createSecurityGroupMapping'); }
+  async updateSecurityGroupMapping(_id: number, _data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> { throw new Error('SharePoint implementation pending: updateSecurityGroupMapping'); }
 
   // --- Project Team Assignments ---
-  async getProjectTeamAssignments(_projectCode: string): Promise<IProjectTeamAssignment[]> { return []; }
-  async getMyProjectAssignments(_userEmail: string): Promise<IProjectTeamAssignment[]> { return []; }
-  async createProjectTeamAssignment(_data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> { throw new Error('Not implemented'); }
-  async updateProjectTeamAssignment(_id: number, _data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> { throw new Error('Not implemented'); }
-  async removeProjectTeamAssignment(_id: number): Promise<void> { throw new Error('Not implemented'); }
-  async getAllProjectTeamAssignments(): Promise<IProjectTeamAssignment[]> { throw new Error('Not implemented'); }
-  async inviteToProjectSiteGroup(_projectCode: string, _userEmail: string, _role: string): Promise<void> { throw new Error('Not implemented'); }
+  async getProjectTeamAssignments(_projectCode: string): Promise<IProjectTeamAssignment[]> { console.warn('[STUB] getProjectTeamAssignments not implemented'); return []; }
+  async getMyProjectAssignments(_userEmail: string): Promise<IProjectTeamAssignment[]> { console.warn('[STUB] getMyProjectAssignments not implemented'); return []; }
+  async createProjectTeamAssignment(_data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> { throw new Error('SharePoint implementation pending: createProjectTeamAssignment'); }
+  async updateProjectTeamAssignment(_id: number, _data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> { throw new Error('SharePoint implementation pending: updateProjectTeamAssignment'); }
+  async removeProjectTeamAssignment(_id: number): Promise<void> { throw new Error('SharePoint implementation pending: removeProjectTeamAssignment'); }
+  async getAllProjectTeamAssignments(): Promise<IProjectTeamAssignment[]> { console.warn('[STUB] getAllProjectTeamAssignments not implemented'); return []; }
+  async inviteToProjectSiteGroup(_projectCode: string, _userEmail: string, _role: string): Promise<void> { console.warn('[STUB] inviteToProjectSiteGroup not implemented (non-blocking)'); }
 
   // --- Permission Resolution ---
-  async resolveUserPermissions(_userEmail: string, _projectCode: string | null): Promise<IResolvedPermissions> { throw new Error('Not implemented'); }
-  async getAccessibleProjects(_userEmail: string): Promise<string[]> { return []; }
+  async resolveUserPermissions(_userEmail: string, _projectCode: string | null): Promise<IResolvedPermissions> { throw new Error('SharePoint implementation pending: resolveUserPermissions'); }
+  async getAccessibleProjects(_userEmail: string): Promise<string[]> { console.warn('[STUB] getAccessibleProjects not implemented'); return []; }
 
   // --- Environment Configuration ---
-  async getEnvironmentConfig(): Promise<import('../models/IEnvironmentConfig').IEnvironmentConfig> { throw new Error('Not implemented'); }
-  async promoteTemplates(_fromTier: import('../models/IEnvironmentConfig').EnvironmentTier, _toTier: import('../models/IEnvironmentConfig').EnvironmentTier, _promotedBy: string): Promise<void> { throw new Error('Not implemented'); }
+  async getEnvironmentConfig(): Promise<import('../models/IEnvironmentConfig').IEnvironmentConfig> { throw new Error('SharePoint implementation pending: getEnvironmentConfig'); }
+  async promoteTemplates(_fromTier: import('../models/IEnvironmentConfig').EnvironmentTier, _toTier: import('../models/IEnvironmentConfig').EnvironmentTier, _promotedBy: string): Promise<void> { throw new Error('SharePoint implementation pending: promoteTemplates'); }
 
   // --- Sector Definitions ---
-  async getSectorDefinitions(): Promise<import('../models/ISectorDefinition').ISectorDefinition[]> { return []; }
-  async createSectorDefinition(_data: Partial<import('../models/ISectorDefinition').ISectorDefinition>): Promise<import('../models/ISectorDefinition').ISectorDefinition> { throw new Error('Not implemented'); }
-  async updateSectorDefinition(_id: number, _data: Partial<import('../models/ISectorDefinition').ISectorDefinition>): Promise<import('../models/ISectorDefinition').ISectorDefinition> { throw new Error('Not implemented'); }
+  async getSectorDefinitions(): Promise<import('../models/ISectorDefinition').ISectorDefinition[]> { console.warn('[STUB] getSectorDefinitions not implemented'); return []; }
+  async createSectorDefinition(_data: Partial<import('../models/ISectorDefinition').ISectorDefinition>): Promise<import('../models/ISectorDefinition').ISectorDefinition> { throw new Error('SharePoint implementation pending: createSectorDefinition'); }
+  async updateSectorDefinition(_id: number, _data: Partial<import('../models/ISectorDefinition').ISectorDefinition>): Promise<import('../models/ISectorDefinition').ISectorDefinition> { throw new Error('SharePoint implementation pending: updateSectorDefinition'); }
 
   // --- BD Leads Folder Operations ---
-  async createBdLeadFolder(_leadTitle: string, _originatorName: string): Promise<void> { throw new Error('Not implemented'); }
-  async checkFolderExists(_path: string): Promise<boolean> { throw new Error('Not implemented'); }
-  async createFolder(_path: string): Promise<void> { throw new Error('Not implemented'); }
-  async renameFolder(_oldPath: string, _newPath: string): Promise<void> { throw new Error('Not implemented'); }
+  async createBdLeadFolder(_leadTitle: string, _originatorName: string): Promise<void> { throw new Error('SharePoint implementation pending: createBdLeadFolder'); }
+  async checkFolderExists(_path: string): Promise<boolean> { throw new Error('SharePoint implementation pending: checkFolderExists'); }
+  async createFolder(_path: string): Promise<void> { throw new Error('SharePoint implementation pending: createFolder'); }
+  async renameFolder(_oldPath: string, _newPath: string): Promise<void> { throw new Error('SharePoint implementation pending: renameFolder'); }
 
   // --- Assignment Mappings ---
-  async getAssignmentMappings(): Promise<import('../models/IAssignmentMapping').IAssignmentMapping[]> { return []; }
-  async createAssignmentMapping(_data: Partial<import('../models/IAssignmentMapping').IAssignmentMapping>): Promise<import('../models/IAssignmentMapping').IAssignmentMapping> { throw new Error('Not implemented'); }
-  async updateAssignmentMapping(_id: number, _data: Partial<import('../models/IAssignmentMapping').IAssignmentMapping>): Promise<import('../models/IAssignmentMapping').IAssignmentMapping> { throw new Error('Not implemented'); }
-  async deleteAssignmentMapping(_id: number): Promise<void> { throw new Error('Not implemented'); }
+  async getAssignmentMappings(): Promise<import('../models/IAssignmentMapping').IAssignmentMapping[]> { console.warn('[STUB] getAssignmentMappings not implemented'); return []; }
+  async createAssignmentMapping(_data: Partial<import('../models/IAssignmentMapping').IAssignmentMapping>): Promise<import('../models/IAssignmentMapping').IAssignmentMapping> { throw new Error('SharePoint implementation pending: createAssignmentMapping'); }
+  async updateAssignmentMapping(_id: number, _data: Partial<import('../models/IAssignmentMapping').IAssignmentMapping>): Promise<import('../models/IAssignmentMapping').IAssignmentMapping> { throw new Error('SharePoint implementation pending: updateAssignmentMapping'); }
+  async deleteAssignmentMapping(_id: number): Promise<void> { throw new Error('SharePoint implementation pending: deleteAssignmentMapping'); }
 
   // --- Scorecard Reject / Archive ---
-  async rejectScorecard(_scorecardId: number, _reason: string): Promise<IGoNoGoScorecard> { throw new Error('Not implemented'); }
-  async archiveScorecard(_scorecardId: number, _archivedBy: string): Promise<IGoNoGoScorecard> { throw new Error('Not implemented'); }
+  async rejectScorecard(_scorecardId: number, _reason: string): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: rejectScorecard'); }
+  async archiveScorecard(_scorecardId: number, _archivedBy: string): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: archiveScorecard'); }
 
   // --- Project Site URL Targeting ---
   private _projectSiteUrl: string | null = null;
