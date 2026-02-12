@@ -4264,6 +4264,30 @@ export class MockDataService implements IDataService {
     const resolved: IResolvedWorkflowStep[] = [];
 
     for (const step of workflow.steps) {
+      // 0. Feature flag gating
+      if (step.featureFlagName) {
+        const flag = this.featureFlags.find(f => f.FeatureName === step.featureFlagName);
+        const isEnabled = flag ? flag.Enabled : true; // Default enabled if flag not found
+        if (!isEnabled) {
+          if (step.isSkippable) {
+            resolved.push({
+              stepId: step.id,
+              stepOrder: step.stepOrder,
+              name: step.name,
+              assignee: { userId: '', displayName: '(Skipped)', email: '' },
+              assignmentSource: 'Default',
+              isConditional: false,
+              conditionMet: false,
+              actionLabel: step.actionLabel,
+              canChairMeeting: false,
+              skipped: true,
+              skipReason: `Feature flag '${step.featureFlagName}' is disabled`,
+            });
+          }
+          continue; // Skip step (skippable → added as skipped; non-skippable → omitted)
+        }
+      }
+
       // 1. Check overrides first
       const override = overrides.find(o => o.stepId === step.id);
       if (override) {

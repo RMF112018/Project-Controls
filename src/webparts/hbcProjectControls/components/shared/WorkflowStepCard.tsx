@@ -96,6 +96,21 @@ export const WorkflowStepCard: React.FC<IWorkflowStepCardProps> = ({
                 Conditional
               </span>
             )}
+            {step.featureFlagName && (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '2px 8px',
+                borderRadius: '10px',
+                fontSize: '10px',
+                fontWeight: 600,
+                color: '#6B21A8',
+                backgroundColor: '#F3E8FF',
+              }}>
+                &#9873; {step.featureFlagName}
+              </span>
+            )}
           </div>
           <div style={{ fontSize: '12px', color: HBC_COLORS.gray500, marginTop: '2px' }}>
             {isProjectRole

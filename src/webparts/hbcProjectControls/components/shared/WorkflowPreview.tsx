@@ -210,7 +210,8 @@ export const WorkflowPreview: React.FC<IWorkflowPreviewProps> = ({ workflowKey, 
             <div>
               {resolvedSteps.map((step, idx) => {
                 const sourceStyle = SOURCE_COLORS[step.assignmentSource] || SOURCE_COLORS.Default;
-                const isUnresolved = !step.assignee.userId;
+                const isUnresolved = !step.assignee.userId && !step.skipped;
+                const isSkipped = step.skipped === true;
 
                 return (
                   <React.Fragment key={step.stepId}>
@@ -220,15 +221,20 @@ export const WorkflowPreview: React.FC<IWorkflowPreviewProps> = ({ workflowKey, 
                       gap: '12px',
                       padding: '12px',
                       borderRadius: '8px',
-                      border: `1px solid ${isUnresolved ? HBC_COLORS.error : HBC_COLORS.gray200}`,
-                      backgroundColor: isUnresolved ? HBC_COLORS.errorLight : '#fff',
+                      border: isSkipped
+                        ? `2px dashed ${HBC_COLORS.gray300}`
+                        : `1px solid ${isUnresolved ? HBC_COLORS.error : HBC_COLORS.gray200}`,
+                      backgroundColor: isSkipped
+                        ? HBC_COLORS.gray50
+                        : isUnresolved ? HBC_COLORS.errorLight : '#fff',
+                      opacity: isSkipped ? 0.7 : 1,
                     }}>
                       {/* Step number */}
                       <div style={{
                         width: '28px',
                         height: '28px',
                         borderRadius: '50%',
-                        backgroundColor: isUnresolved ? HBC_COLORS.error : HBC_COLORS.navy,
+                        backgroundColor: isSkipped ? HBC_COLORS.gray400 : isUnresolved ? HBC_COLORS.error : HBC_COLORS.navy,
                         color: '#fff',
                         display: 'flex',
                         alignItems: 'center',
@@ -242,35 +248,55 @@ export const WorkflowPreview: React.FC<IWorkflowPreviewProps> = ({ workflowKey, 
 
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '13px', fontWeight: 600, color: HBC_COLORS.navy }}>{step.name}</span>
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '1px 6px',
-                            borderRadius: '8px',
-                            fontSize: '10px',
-                            fontWeight: 600,
-                            color: sourceStyle.color,
-                            backgroundColor: sourceStyle.bg,
-                          }}>
-                            {step.assignmentSource}
-                          </span>
-                          {step.canChairMeeting && (
+                          <span style={{ fontSize: '13px', fontWeight: 600, color: isSkipped ? HBC_COLORS.gray400 : HBC_COLORS.navy }}>{step.name}</span>
+                          {isSkipped ? (
                             <span style={{
                               display: 'inline-block',
                               padding: '1px 6px',
                               borderRadius: '8px',
                               fontSize: '10px',
                               fontWeight: 600,
-                              color: HBC_COLORS.gray600,
-                              backgroundColor: HBC_COLORS.gray100,
+                              color: HBC_COLORS.gray500,
+                              backgroundColor: HBC_COLORS.gray200,
                             }}>
-                              Chair
+                              (Skipped)
                             </span>
+                          ) : (
+                            <>
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '1px 6px',
+                                borderRadius: '8px',
+                                fontSize: '10px',
+                                fontWeight: 600,
+                                color: sourceStyle.color,
+                                backgroundColor: sourceStyle.bg,
+                              }}>
+                                {step.assignmentSource}
+                              </span>
+                              {step.canChairMeeting && (
+                                <span style={{
+                                  display: 'inline-block',
+                                  padding: '1px 6px',
+                                  borderRadius: '8px',
+                                  fontSize: '10px',
+                                  fontWeight: 600,
+                                  color: HBC_COLORS.gray600,
+                                  backgroundColor: HBC_COLORS.gray100,
+                                }}>
+                                  Chair
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
-                        <div style={{ fontSize: '12px', color: isUnresolved ? HBC_COLORS.error : HBC_COLORS.gray500, marginTop: '2px' }}>
-                          {step.assignee.displayName}
-                          {step.assignee.email && ` (${step.assignee.email})`}
+                        <div style={{ fontSize: '12px', color: isSkipped ? HBC_COLORS.gray400 : isUnresolved ? HBC_COLORS.error : HBC_COLORS.gray500, marginTop: '2px' }}>
+                          {isSkipped ? (step.skipReason || 'Skipped due to disabled feature flag') : (
+                            <>
+                              {step.assignee.displayName}
+                              {step.assignee.email && ` (${step.assignee.email})`}
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>

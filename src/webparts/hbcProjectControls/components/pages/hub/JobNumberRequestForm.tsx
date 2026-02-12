@@ -4,6 +4,7 @@ import { HBC_COLORS } from '../../../theme/tokens';
 import { useAppContext } from '../../contexts/AppContext';
 import { useJobNumberRequest } from '../../hooks/useJobNumberRequest';
 import { useLeads } from '../../hooks/useLeads';
+import { useProvisioningValidation, IValidationWarning } from '../../hooks/useProvisioningValidation';
 import { IProjectType } from '../../../models/IProjectType';
 import { IStandardCostCode } from '../../../models/IStandardCostCode';
 import { NotificationEvent, Region } from '../../../models/enums';
@@ -24,6 +25,7 @@ export const JobNumberRequestForm: React.FC = () => {
   const { dataService, currentUser } = useAppContext();
   const { projectTypes, costCodes, fetchReferenceData, createRequest, fetchRequestByLeadId } = useJobNumberRequest();
   const { leads, fetchLeads, getLeadById } = useLeads();
+  const { validateForProvisioning, lastResult: provValidation } = useProvisioningValidation();
 
   const [lead, setLead] = React.useState<{ Title: string; ClientName: string; ProjectCode?: string; Division: string; Region: string } | null>(null);
   const [existingRequest, setExistingRequest] = React.useState<boolean>(false);
@@ -48,6 +50,7 @@ export const JobNumberRequestForm: React.FC = () => {
   const [notes, setNotes] = React.useState('');
   const [costCodeSearch, setCostCodeSearch] = React.useState('');
   const [projectTypeSearch, setProjectTypeSearch] = React.useState('');
+  const [provWarnings, setProvWarnings] = React.useState<IValidationWarning[]>([]);
 
   React.useEffect(() => {
     const init = async (): Promise<void> => {
@@ -133,11 +136,27 @@ export const JobNumberRequestForm: React.FC = () => {
         currentUser.email
       ).catch(console.error);
 
-      // If not holding provisioning, trigger site creation
+      // If not holding provisioning, validate and trigger site creation
       if (!holdProvisioning && lead.ProjectCode) {
+        // Run pre-provisioning validation on the full lead if available
+        const hasLead2 = Number.isFinite(leadId);
+        if (hasLead2) {
+          const fullLead = await getLeadById(leadId);
+          if (fullLead) {
+            const provResult = await validateForProvisioning(fullLead, lead.ProjectCode);
+            setProvWarnings(provResult.warnings);
+            if (!provResult.isValid) {
+              // Show provisioning validation errors as a single error
+              setErrors({ submit: provResult.errors.map(e => e.message).join('; ') });
+              setIsSaving(false);
+              return;
+            }
+          }
+        }
+
         const hubNavSvc = new MockHubNavigationService();
         const provisioningService = new ProvisioningService(dataService, hubNavSvc);
-        provisioningService.provisionSite({
+        provisioningService.provisionSiteWithFallback({
           leadId,
           projectCode: lead.ProjectCode,
           projectName: lead.Title,
@@ -511,6 +530,18 @@ export const JobNumberRequestForm: React.FC = () => {
           style={{ ...inputStyle, resize: 'vertical' }}
         />
       </div>
+
+      {/* Provisioning Warnings */}
+      {provWarnings.length > 0 && (
+        <div style={{ marginTop: 24, padding: '12px 16px', background: '#FEF3C7', color: '#92400E', borderRadius: 6, fontSize: 13 }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Provisioning Warnings</div>
+          {provWarnings.map((w, i) => (
+            <div key={i} style={{ marginTop: 2 }}>
+              {w.severity === 'high' ? '\u26A0' : '\u2139'} {w.message}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Submit Buttons */}
       <div style={{ marginTop: 32, display: 'flex', gap: 12, justifyContent: 'flex-end', borderTop: `1px solid ${HBC_COLORS.gray200}`, paddingTop: 24 }}>

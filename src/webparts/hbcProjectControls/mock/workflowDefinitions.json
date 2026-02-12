@@ -32,7 +32,9 @@
         "conditionalAssignees": [],
         "isConditional": false,
         "actionLabel": "Review & Schedule Meeting",
-        "canChairMeeting": true
+        "canChairMeeting": true,
+        "featureFlagName": "MeetingScheduler",
+        "isSkippable": true
       },
       {
         "id": 3,
