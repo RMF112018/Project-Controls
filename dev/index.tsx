@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { App } from '@components/App';
 import { MockDataService } from '@services/MockDataService';
 import { RoleName } from '@models/enums';
@@ -38,4 +38,7 @@ const DevRoot: React.FC = () => {
   );
 };
 
-ReactDOM.render(<DevRoot />, document.getElementById('root'));
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  createRoot(rootElement).render(<DevRoot />);
+}

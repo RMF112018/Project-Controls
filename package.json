@@ -34,12 +34,32 @@
     "@pnp/sp": "^4.4.1",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.2",
-    "react": "17.0.1",
-    "react-dom": "17.0.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "react-router-dom": "^6.22.3",
     "recharts": "^2.12.3",
     "tslib": "^2.6.2",
     "xlsx": "^0.18.5"
+  },
+  "overrides": {
+    "@microsoft/sp-core-library": {
+      "react": "$react",
+      "react-dom": "$react-dom",
+      "@types/react": "$@types/react",
+      "@types/react-dom": "$@types/react-dom"
+    },
+    "@microsoft/sp-webpart-base": {
+      "react": "$react",
+      "react-dom": "$react-dom",
+      "@types/react": "$@types/react",
+      "@types/react-dom": "$@types/react-dom"
+    },
+    "@microsoft/sp-property-pane": {
+      "react": "$react",
+      "react-dom": "$react-dom",
+      "@types/react": "$@types/react",
+      "@types/react-dom": "$@types/react-dom"
+    }
   },
   "devDependencies": {
     "@microsoft/eslint-config-spfx": "1.21.1",
@@ -48,10 +68,10 @@
     "@microsoft/sp-build-web": "1.21.1",
     "@microsoft/sp-module-interfaces": "1.21.1",
     "@testing-library/jest-dom": "^6.4.2",
-    "@testing-library/react": "^12.1.5",
+    "@testing-library/react": "^14.0.0",
     "@types/jest": "^29.5.12",
-    "@types/react": "17.0.67",
-    "@types/react-dom": "17.0.21",
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.0",
     "@types/react-router-dom": "^5.3.3",
     "@types/webpack-env": "^1.18.8",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
