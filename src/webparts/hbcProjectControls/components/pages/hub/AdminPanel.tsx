@@ -112,7 +112,7 @@ if (typeof window !== 'undefined') {
   window.onerror = (message, source, _line, _col, _error) => {
     errorBuffer.capture(String(message), String(source || 'unknown'));
     if (originalOnError) {
-      return (originalOnError as Function)(message, source, _line, _col, _error);
+      return (originalOnError as (...args: unknown[]) => boolean)(message, source, _line, _col, _error);
     }
     return false;
   };

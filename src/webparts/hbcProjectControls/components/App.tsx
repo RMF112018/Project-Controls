@@ -44,6 +44,7 @@ const ComplianceLog = lazyNamed(() => import('./pages/hub/ComplianceLog'));
 // Lazy page imports — Admin
 // ---------------------------------------------------------------------------
 const AdminPanel = lazyNamed(() => import('./pages/hub/AdminPanel'));
+const PerformanceDashboard = lazyNamed(() => import('./pages/hub/PerformanceDashboard'));
 
 // ---------------------------------------------------------------------------
 // Lazy page imports — Precon
@@ -308,6 +309,13 @@ const AppRoutes: React.FC = () => (
         <ProtectedRoute permission={PERMISSIONS.ADMIN_CONFIG}>
           <AdminPanel />
         </ProtectedRoute>
+      } />
+      <Route path="/admin/performance" element={
+        <FeatureGate featureName="PerformanceMonitoring" fallback={<NotFoundPage />}>
+          <ProtectedRoute permission={PERMISSIONS.ADMIN_CONFIG}>
+            <PerformanceDashboard />
+          </ProtectedRoute>
+        </FeatureGate>
       } />
 
       {/* System */}

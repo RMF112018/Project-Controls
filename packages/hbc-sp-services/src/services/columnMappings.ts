@@ -1605,3 +1605,25 @@ export const ASSIGNMENT_MAPPINGS_COLUMNS = {
   assigneeDisplayName: 'AssigneeDisplayName',  // SP: Single Line of Text
   assigneeEmail: 'AssigneeEmail',              // SP: Single Line of Text
 } as const;
+
+/**
+ * List: Performance_Logs
+ * Interface: IPerformanceLog
+ */
+export const PERFORMANCE_LOGS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  SessionId: 'SessionId',                      // SP: Single Line of Text
+  Timestamp: 'Timestamp',                      // SP: DateTime
+  UserEmail: 'UserEmail',                      // SP: Single Line of Text
+  SiteUrl: 'SiteUrl',                          // SP: Single Line of Text
+  ProjectCode: 'ProjectCode',                  // SP: Single Line of Text
+  IsProjectSite: 'IsProjectSite',              // SP: Yes/No
+  WebPartLoadMs: 'WebPartLoadMs',              // SP: Number
+  AppInitMs: 'AppInitMs',                      // SP: Number
+  DataFetchMs: 'DataFetchMs',                  // SP: Number
+  TotalLoadMs: 'TotalLoadMs',                  // SP: Number
+  Marks: 'Marks',                              // SP: Multiple Lines of Text (JSON)
+  UserAgent: 'UserAgent',                      // SP: Multiple Lines of Text
+  SpfxVersion: 'SpfxVersion',                  // SP: Single Line of Text
+  Notes: 'Notes',                              // SP: Multiple Lines of Text
+} as const;

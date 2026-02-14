@@ -36,3 +36,4 @@ export { useSectorDefinitions } from './useSectorDefinitions';
 export { useAssignmentMappings } from './useAssignmentMappings';
 export { useProvisioningTracker } from './useProvisioningTracker';
 export { useProvisioningValidation } from './useProvisioningValidation';
+export { usePerformanceMetrics } from './usePerformanceMetrics';

@@ -129,7 +129,7 @@ src/webparts/hbcProjectControls/
 │   │   ├── ProjectRequiredRoute.tsx      # Shows "No Project Selected" if no selectedProject
 │   │   ├── RoleGate.tsx                  # Renders children only if user has allowed role
 │   │   └── index.ts
-│   ├── hooks/                             # 38 custom hooks (see §7 for service method mapping)
+│   ├── hooks/                             # 39 custom hooks (see §7 for service method mapping)
 │   │   ├── useActionInbox.ts             # Action inbox aggregation with auto-refresh
 │   │   ├── useActiveProjects.ts          # Active projects portfolio
 │   │   ├── useAssignmentMappings.ts     # Assignment mapping CRUD + resolution
@@ -164,6 +164,7 @@ src/webparts/hbcProjectControls/
 │   │   ├── useTabFromUrl.ts            # URL-synced tab state for deep linking
 │   │   ├── useTurnoverAgenda.ts       # Turnover meeting agenda CRUD + computed state + workflow
 │   │   ├── useWorkflow.ts              # Composite workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy, stage transitions)
+│   │   ├── usePerformanceMetrics.ts      # Performance dashboard data + auto-refresh
 │   │   ├── usePermissionEngine.ts     # Permission engine hook
 │   │   ├── useProvisioningTracker.ts  # Provisioning log aggregation + summary KPIs for dashboard widget
 │   │   ├── useProvisioningValidation.ts # Centralized pre-provisioning validation composing validators.ts
@@ -187,6 +188,7 @@ src/webparts/hbcProjectControls/
 │   │   │   ├── LeadDetailPage.tsx
 │   │   │   ├── LeadFormPage.tsx
 │   │   │   ├── MarketingDashboard.tsx
+│   │   │   ├── PerformanceDashboard.tsx
 │   │   │   ├── PermissionTemplateEditor.tsx
 │   │   │   ├── PipelinePage.tsx
 │   │   │   ├── ProjectAssignmentsPanel.tsx
@@ -309,13 +311,13 @@ packages/hbc-sp-services/
 ├── src/
 │   ├── index.ts              # Public barrel: re-exports models + services + utils + MOCK_USERS
 │   ├── models/               # 45 files — all I*.ts + enums.ts + index.ts (see §6)
-│   ├── services/             # 14 files — all service classes + index.ts (see §7)
-│   │   ├── IDataService.ts   # Service interface (212 methods)
-│   │   ├── MockDataService.ts # Mock implementation (all 212 implemented)
-│   │   ├── SharePointDataService.ts # SP implementation (129 impl, 77 stubs, 6 delegation)
+│   ├── services/             # 15 files — all service classes + index.ts (see §7)
+│   │   ├── IDataService.ts   # Service interface (215 methods)
+│   │   ├── MockDataService.ts # Mock implementation (all 215 implemented)
+│   │   ├── SharePointDataService.ts # SP implementation (129 impl, 80 stubs, 6 delegation)
 │   │   ├── AuditService.ts, CacheService.ts, ExportService.ts
 │   │   ├── GraphService.ts, HubNavigationService.ts, NotificationService.ts
-│   │   ├── OfflineQueueService.ts, PowerAutomateService.ts, ProvisioningService.ts
+│   │   ├── OfflineQueueService.ts, PerformanceService.ts, PowerAutomateService.ts, ProvisioningService.ts
 │   │   ├── columnMappings.ts  # SP column name mappings for all lists (1267 lines)
 │   │   └── index.ts
 │   ├── utils/                # 13 files — all utility functions (see §13)
@@ -394,7 +396,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | Component Tree | `FluentProvider` → `ErrorBoundary` → `AppProvider(dataService, siteUrl?)` → `HashRouter` → `AppShell` → `Suspense(PageLoader)` → `AppRoutes` |
 | Router Type | `HashRouter` from react-router-dom |
 | Code Splitting | 40 page components lazy-loaded via `React.lazy()` + `lazyNamed()` helper; shell/guards/providers in main bundle |
-| Route Count | 49 routes (see §8) |
+| Route Count | 50 routes (see §8) |
 
 ---
 
@@ -608,6 +610,10 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | IResolvedPermissions | models/IPermissionTemplate.ts | userId, projectCode, templateId, templateName, source, toolLevels, granularFlags, permissions: Set<string>, globalAccess | — | — |
 | IEnvironmentConfig | models/IEnvironmentConfig.ts | currentTier: EnvironmentTier, label, color, isReadOnly, promotionHistory: IPromotionRecord[] | Environment_Config | Hub |
 | IPromotionRecord | models/IEnvironmentConfig.ts | fromTier: EnvironmentTier, toTier: EnvironmentTier, promotedBy, promotedDate, templateCount | — | — |
+| IPerformanceLog | models/IPerformanceLog.ts | id, SessionId, Timestamp, UserEmail, SiteUrl, ProjectCode?, IsProjectSite, WebPartLoadMs, AppInitMs, DataFetchMs?, TotalLoadMs, Marks: IPerformanceMark[], UserAgent, SpfxVersion | Performance_Logs | Hub |
+| IPerformanceMark | models/IPerformanceLog.ts | name, startTime, endTime, durationMs | — | — |
+| IPerformanceQueryOptions | models/IPerformanceLog.ts | startDate?, endDate?, userEmail?, siteUrl?, minLoadMs? | — | — |
+| IPerformanceSummary | models/IPerformanceLog.ts | totalSessions, avgWebPartLoadMs, avgAppInitMs, avgTotalLoadMs, p95TotalLoadMs, slowSessionCount, sessionsByDay | — | — |
 
 ### Enums (models/enums.ts)
 
@@ -626,8 +632,8 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | RoleName | BDRepresentative, EstimatingCoordinator, AccountingManager, PreconstructionTeam, OperationsTeam, ExecutiveLeadership, Legal, RiskManagement, Marketing, QualityControl, Safety, IDS, DepartmentDirector, SharePointAdmin |
 | ProvisioningStatus | Queued, InProgress, Completed, PartialFailure, Failed |
 | TurnoverStatus | Draft, PrerequisitesInProgress, MeetingScheduled, MeetingComplete, PendingSignatures, Signed, Complete |
-| AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved, TurnoverAgendaCreated, TurnoverPrerequisiteCompleted, TurnoverItemDiscussed, TurnoverSubcontractorAdded, TurnoverSubcontractorRemoved, TurnoverExhibitReviewed, TurnoverExhibitAdded, TurnoverExhibitRemoved, TurnoverSigned, TurnoverAgendaCompleted, HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated, TemplateCreated, TemplateUpdated, TemplateDeleted, ProjectTeamAssigned, ProjectTeamRemoved, ProjectTeamOverridden, SecurityGroupMappingChanged, PermissionResolved, ScorecardArchived, LeadFolderCreated, AssignmentMappingUpdated, GraphApiCallSucceeded, GraphApiCallFailed, GraphGroupMemberAdded, GraphGroupMemberAddFailed |
-| EntityType | Lead, Scorecard, Estimate, Project, Permission, Config, Checklist, Matrix, ProjectRecord, RiskCost, Quality, Safety, Schedule, SuperintendentPlan, LessonLearned, PMP, MonthlyReview, WorkflowDefinition, TurnoverAgenda, PermissionTemplate, ProjectTeamAssignment, AssignmentMapping, GraphApi |
+| AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved, TurnoverAgendaCreated, TurnoverPrerequisiteCompleted, TurnoverItemDiscussed, TurnoverSubcontractorAdded, TurnoverSubcontractorRemoved, TurnoverExhibitReviewed, TurnoverExhibitAdded, TurnoverExhibitRemoved, TurnoverSigned, TurnoverAgendaCompleted, HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated, TemplateCreated, TemplateUpdated, TemplateDeleted, ProjectTeamAssigned, ProjectTeamRemoved, ProjectTeamOverridden, SecurityGroupMappingChanged, PermissionResolved, ScorecardArchived, LeadFolderCreated, AssignmentMappingUpdated, GraphApiCallSucceeded, GraphApiCallFailed, GraphGroupMemberAdded, GraphGroupMemberAddFailed, PerformanceLogRecorded, PerformanceAlertTriggered |
+| EntityType | Lead, Scorecard, Estimate, Project, Permission, Config, Checklist, Matrix, ProjectRecord, RiskCost, Quality, Safety, Schedule, SuperintendentPlan, LessonLearned, PMP, MonthlyReview, WorkflowDefinition, TurnoverAgenda, PermissionTemplate, ProjectTeamAssignment, AssignmentMapping, GraphApi, Performance |
 | DeliverableStatus | NotStarted, InProgress, InReview, Complete |
 | ActionItemStatus | Open, InProgress, Complete |
 | Priority | Low, Medium, High, Critical |
@@ -690,7 +696,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 
 ## §7 Service Methods
 
-212 methods on IDataService. Source: `services/IDataService.ts`
+215 methods on IDataService. Source: `services/IDataService.ts`
 
 | # | Method | Signature | Mock | SP | Hook Caller | Mock JSON |
 |---|--------|-----------|------|-----|-------------|-----------|
@@ -898,6 +904,9 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 201 | setProjectSiteUrl | (siteUrl: string \| null) → void | Impl | Impl | AppContext | — |
 | 202 | getAllProjectTeamAssignments | () → Promise<IProjectTeamAssignment[]> | Impl | Impl | usePermissionEngine | projectTeamAssignments.json |
 | 203 | inviteToProjectSiteGroup | (projectCode: string, userEmail: string, role: string) → Promise<void> | Impl | Impl | usePermissionEngine | in-memory |
+| 204 | logPerformanceEntry | (entry: Partial<IPerformanceLog>) → Promise<IPerformanceLog> | Impl | Stub | usePerformanceMetrics | in-memory |
+| 205 | getPerformanceLogs | (options?: IPerformanceQueryOptions) → Promise<IPerformanceLog[]> | Impl | Stub | usePerformanceMetrics | in-memory |
+| 206 | getPerformanceSummary | (options?: IPerformanceQueryOptions) → Promise<IPerformanceSummary> | Impl | Stub | usePerformanceMetrics | aggregated |
 
 ---
 
@@ -954,6 +963,7 @@ Source: `components/App.tsx`
 | /job-request/:leadId | JobNumberRequestForm | pages/hub/JobNumberRequestForm.tsx | No | — | — |
 | /accounting-queue | AccountingQueuePage | pages/hub/AccountingQueuePage.tsx | No | ACCOUNTING_QUEUE_VIEW | — |
 | /admin | AdminPanel | pages/hub/AdminPanel.tsx | No | ADMIN_CONFIG | — |
+| /admin/performance | PerformanceDashboard | pages/hub/PerformanceDashboard.tsx | No | ADMIN_CONFIG | PerformanceMonitoring |
 | /access-denied | AccessDeniedPage | pages/shared/AccessDeniedPage.tsx | No | — | — |
 | * | NotFoundPage | (inline in App.tsx) | No | — | — |
 
@@ -1007,7 +1017,8 @@ Operations                                   [roles: Ops Team, Exec Leadership, 
       └── Lessons Learned                     [/operations/lessons-learned, requiresProject]
 ─────────────────────────────────────────────
 Admin                                        [roles: Executive Leadership]
-  └── Admin Panel                             [/admin, permission: admin:config]
+  ├── Admin Panel                             [/admin, permission: admin:config]
+  └── Performance                             [/admin/performance, permission: admin:config, featureFlag: PerformanceMonitoring]
 ```
 
 Items with `requiresProject` are disabled (grayed out) when no project is selected. Items with `permission` are hidden if user lacks that permission. Items with `hubOnly` are hidden when a project is selected (both hub-with-selection and project-site modes). Items with `featureFlag` are hidden if that feature flag is disabled (checked via `isFeatureEnabled()`). Dynamic items (Lead Detail, Go/No-Go) appear under Preconstruction only when `selectedProject?.leadId` is set.
@@ -1147,6 +1158,7 @@ Source: `mock/featureFlags.json`
 | MonthlyProjectReview | 21 | Monthly Project Review | true | Project Execution | Monthly project review |
 | WorkflowDefinitions | 22 | Workflow Definitions | true | Preconstruction | Workflow definition configuration |
 | PermissionEngine | 23 | Permission Engine | true | Infrastructure | Permission engine: template-based authorization, project access scoping |
+| PerformanceMonitoring | 24 | Performance Monitoring | false | Infrastructure | Performance telemetry logging + admin dashboard |
 
 ---
 
@@ -1165,7 +1177,7 @@ Source: `mock/`
 | divisionApprovers.json | IDivisionApprover | 2 | N/A |
 | estimating.json | IEstimatingTracker | 23 | 25-038-01, 25-035-01, 25-041-01, 25-039-01, 25-033-01, 26-004-01, 26-005-01, 25-030-01, 25-028-01, 25-012-01, 24-052-01, 24-042-01, 24-078-01, 24-008-01, 25-022-01, 25-025-01, 25-019-01, 25-015-01, 25-020-01, 25-027-01, 26-001-01, 25-018-01, 25-010-01 |
 | estimatingKickoffs.json | IEstimatingKickoff | 1 | 25-042-01 |
-| featureFlags.json | IFeatureFlag (with Category) | 23 | N/A |
+| featureFlags.json | IFeatureFlag (with Category) | 24 | N/A |
 | internalMatrix.json | IInternalMatrixTask + ITeamRoleAssignment + IRecurringCalendarItem | 100 | 25-042-01 |
 | jobNumberRequests.json | IJobNumberRequest | 3 | N/A (TempProjectCode: 25-041-01) |
 | leads.json | ILead | 29 | 25-038-01, 25-035-01, 25-041-01, 25-039-01, 25-033-01, 25-030-01, 25-028-01, 25-012-01, 24-078-01, 24-052-01, 24-042-01, 24-008-01, 23-065-01, 25-042-01 |
@@ -1241,6 +1253,7 @@ Source: `utils/constants.ts`, `theme/tokens.ts`
   PROJECT_TEAM_ASSIGNMENTS: 'Project_Team_Assignments',
   SECTOR_DEFINITIONS: 'Sector_Definitions',
   ASSIGNMENT_MAPPINGS: 'Assignment_Mappings',
+  PERFORMANCE_LOGS: 'Performance_Logs',
 }
 ```
 
@@ -1380,6 +1393,7 @@ Source: `utils/constants.ts`, `theme/tokens.ts`
   JOB_REQUEST_LEAD: '/job-request/:leadId',
   ACCOUNTING_QUEUE: '/accounting-queue',
   ADMIN: '/admin',
+  ADMIN_PERFORMANCE: '/admin/performance',
   ACCESS_DENIED: '/access-denied',
 }
 ```
@@ -1401,6 +1415,8 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 BD_LEADS_SITE_URL = 'https://hedrickbrotherscom.sharepoint.com/sites/PXPortfolioDashboard'
 BD_LEADS_LIBRARY = 'BD Leads'
 BD_LEADS_SUBFOLDERS = ['Client Information', 'Correspondence', 'Proposal Documents', 'Site and Project Plans', 'Financial Estimates', 'Evaluations and Scorecards', 'Contracts and Legal', 'Media and Visuals', 'Archives']
+
+PERFORMANCE_THRESHOLDS = { SLOW_SESSION_MS: 5000, WARNING_MS: 3000 }
 ```
 
 ### UI Constants (theme/tokens.ts)
@@ -1514,9 +1530,11 @@ Steps 1-6 modify `packages/hbc-sp-services/` (the shared library). Steps 7-12 mo
 | CI-1 | GitHub Actions CI/CD Pipeline — ci.yml (full build on push/PR with .sppkg artifact upload), release.yml (tag-triggered GitHub Release with .sppkg asset), pr-validation.yml (fast type-check + lint for PRs), dependabot.yml (weekly npm + GitHub Actions updates, SPFx packages pinned to patch-only). Node 18.18.2 in CI (within engines range). Zero source code files touched. | .github/workflows/ci.yml, .github/workflows/release.yml, .github/workflows/pr-validation.yml, .github/dependabot.yml | CLAUDE.md (§1 +CI/CD table, §2 +.github dir, §15 +Phase CI-1) |
 >>>>>>> main
 
+| Perf-2 | Performance Monitoring — Admin performance dashboard with telemetry logging. PerformanceService singleton (mark-based timing for WebPart load, App init, data fetch). IPerformanceLog model (session metrics, marks array, user agent, SPFx version). usePerformanceMetrics hook (30s auto-refresh, date range filter, summary KPIs). PerformanceDashboard page (Recharts line+bar charts, session table, p95/avg metrics, slow session alerts). Feature-flagged via PerformanceMonitoring (id: 24, default: false). | IPerformanceLog.ts, PerformanceService.ts, usePerformanceMetrics.ts, PerformanceDashboard.tsx | IDataService.ts (+3 methods, 215 total), MockDataService.ts (+3 implementations), SharePointDataService.ts (+3 stubs), enums.ts (+2 AuditAction, +1 EntityType), models/index.ts, services/index.ts, featureFlags.json (+id:24), constants.ts (+PERFORMANCE_LOGS, +ADMIN_PERFORMANCE, +PERFORMANCE_THRESHOLDS), columnMappings.ts (+PERFORMANCE_LOGS_COLUMNS), App.tsx (+1 lazy route), NavigationSidebar.tsx (+Performance nav item), hooks/index.ts (+1 export), pages/hub/index.ts (+1 export) |
+
 ### Known Stubs / Placeholders
 
-- **SharePointDataService**: 83 of 212 methods are stubs. Breakdown: 21 Pattern A stubs (`[STUB]` console.warn + empty return), 56 Pattern B stubs (`implementation pending` throw), 6 delegation stubs (intentionally delegate to GraphService/PowerAutomate — will never be SP list operations). Remaining stubs: all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP (7), all monthly review (4), all estimating kickoff (8 incl. updateKickoffKeyPersonnel), all job number requests (4), all turnover agenda (16), all sector definitions (2 mutations), all assignment mappings (3 mutations), reference data (2), scorecard workflow (7), scorecard archive (2), action inbox (SP). `setProjectSiteUrl()` is implemented (creates cross-site Web via `_getProjectWeb()`). All Pattern A stubs log `console.warn('[STUB] methodName not implemented')`. All Pattern B stubs throw `Error('SharePoint implementation pending: methodName')`. Delegation stubs: getCalendarAvailability, createMeeting, getMeetings (→GraphService), sendNotification, getNotifications (→PowerAutomate), purgeOldAuditEntries (→Power Automate scheduled flow).
+- **SharePointDataService**: 86 of 215 methods are stubs. Breakdown: 24 Pattern A stubs (`[STUB]` console.warn + empty return), 56 Pattern B stubs (`implementation pending` throw), 6 delegation stubs (intentionally delegate to GraphService/PowerAutomate — will never be SP list operations). Remaining stubs: all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP (7), all monthly review (4), all estimating kickoff (8 incl. updateKickoffKeyPersonnel), all job number requests (4), all turnover agenda (16), all sector definitions (2 mutations), all assignment mappings (3 mutations), reference data (2), scorecard workflow (7), scorecard archive (2), action inbox (SP), performance monitoring (3). `setProjectSiteUrl()` is implemented (creates cross-site Web via `_getProjectWeb()`). All Pattern A stubs log `console.warn('[STUB] methodName not implemented')`. All Pattern B stubs throw `Error('SharePoint implementation pending: methodName')`. Delegation stubs: getCalendarAvailability, createMeeting, getMeetings (→GraphService), sendNotification, getNotifications (→PowerAutomate), purgeOldAuditEntries (→Power Automate scheduled flow).
 - **HubNavigationService**: SharePointHubNavigationService is a stub (all 3 methods throw).
 - **Column Mappings**: `columnMappings.ts` has mappings for all lists. Permission Templates, Security Group Mappings, Project Team Assignments, Provisioning Log, Workflow Definitions (4 lists), Startup Checklist, Checklist Activity Log, Internal Matrix, Team Role Assignments, Owner Contract Matrix, Sub Contract Matrix, and Marketing Project Records now use column mappings in SharePointDataService.
 - **Offline Support**: `OfflineQueueService.ts` exists but feature flag `OfflineSupport` is disabled.
@@ -1527,9 +1545,9 @@ Steps 1-6 modify `packages/hbc-sp-services/` (the shared library). Steps 7-12 mo
 
 ### SharePointDataService Status
 
-- **Implemented (129 of 212)**: Leads CRUD, Go/No-Go CRUD (base 5), Estimating CRUD, Roles/Flags CRUD, Audit log/read, **Provisioning CRUD** (trigger/update/retry/read/list), Phase 6 workflow (team, deliverables, interview, contract, turnover items, closeout, loss autopsy — 17 methods), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read/write, **getCurrentUser** (Phase 31), **Permission Templates CRUD** (5), **Security Group Mappings CRUD** (3), **Project Team Assignments CRUD + soft delete** (7), **inviteToProjectSiteGroup** (fire-and-forget SP group add), **resolveUserPermissions** (full resolution chain), **getAccessibleProjects** (computed), **getEnvironmentConfig** (with fallback), **promoteTemplates** (batch update + config write), **BD Leads folder ops** (create/check/mkdir/rename via cross-site Web()), **syncDenormalizedFields** (5-list batch), **promoteToHub** (cross-site lessons + PMP close), **rekeyProjectCode** (6-list batch), **Workflow Definitions CRUD** (10 — definitions read/assembly, step/conditional mutations, override upsert, resolveWorkflowChain 4-tier resolution), **Startup Checklist CRUD** (4 — 2-list join for reads with activity log grouping), **Internal Matrix CRUD** (4), **Team Role Assignments** (2 — upsert by role), **Owner Contract Matrix CRUD** (4), **Sub-Contract Matrix CRUD** (4), **Marketing Project Records CRUD** (4 — 88-column mapping with JSON array parse/stringify)
+- **Implemented (129 of 215)**: Leads CRUD, Go/No-Go CRUD (base 5), Estimating CRUD, Roles/Flags CRUD, Audit log/read, **Provisioning CRUD** (trigger/update/retry/read/list), Phase 6 workflow (team, deliverables, interview, contract, turnover items, closeout, loss autopsy — 17 methods), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read/write, **getCurrentUser** (Phase 31), **Permission Templates CRUD** (5), **Security Group Mappings CRUD** (3), **Project Team Assignments CRUD + soft delete** (7), **inviteToProjectSiteGroup** (fire-and-forget SP group add), **resolveUserPermissions** (full resolution chain), **getAccessibleProjects** (computed), **getEnvironmentConfig** (with fallback), **promoteTemplates** (batch update + config write), **BD Leads folder ops** (create/check/mkdir/rename via cross-site Web()), **syncDenormalizedFields** (5-list batch), **promoteToHub** (cross-site lessons + PMP close), **rekeyProjectCode** (6-list batch), **Workflow Definitions CRUD** (10 — definitions read/assembly, step/conditional mutations, override upsert, resolveWorkflowChain 4-tier resolution), **Startup Checklist CRUD** (4 — 2-list join for reads with activity log grouping), **Internal Matrix CRUD** (4), **Team Role Assignments** (2 — upsert by role), **Owner Contract Matrix CRUD** (4), **Sub-Contract Matrix CRUD** (4), **Marketing Project Records CRUD** (4 — 88-column mapping with JSON array parse/stringify)
 - **Delegation stubs (6)**: getCalendarAvailability, createMeeting, getMeetings (→GraphService), sendNotification, getNotifications (→PowerAutomate), purgeOldAuditEntries (→Power Automate flow) — intentionally NOT SP list operations
-- **Stubbed (77)**: All risk/cost/quality/safety/schedule (10), all superintendent plan (3), all lessons learned (3), all PMP incl. signPMP/getDivisionApprovers/getPMPBoilerplate (7), all monthly review (4), all estimating kickoff incl. updateKickoffKeyPersonnel (8), all job number requests (4), all turnover agenda (16), sector definitions mutations (2), assignment mapping mutations (3), reference data (2), scorecard workflow (7 — submit/respond/enterCommittee/recordFinal/unlock/relock/getVersions), scorecard archive (2 — reject/archive), action inbox (1), getSectorDefinitions (1), getAssignmentMappings (1)
+- **Stubbed (80)**: All risk/cost/quality/safety/schedule (10), all superintendent plan (3), all lessons learned (3), all PMP incl. signPMP/getDivisionApprovers/getPMPBoilerplate (7), all monthly review (4), all estimating kickoff incl. updateKickoffKeyPersonnel (8), all job number requests (4), all turnover agenda (16), sector definitions mutations (2), assignment mapping mutations (3), reference data (2), scorecard workflow (7 — submit/respond/enterCommittee/recordFinal/unlock/relock/getVersions), scorecard archive (2 — reject/archive), action inbox (1), getSectorDefinitions (1), getAssignmentMappings (1), performance monitoring (3 — logPerformanceEntry/getPerformanceLogs/getPerformanceSummary)
 
 ---
 
@@ -1693,6 +1711,8 @@ Steps 1-6 modify `packages/hbc-sp-services/` (the shared library). Steps 7-12 mo
 
 79. **`gulpfile.js` has `@hbc/sp-services` webpack alias** — The SPFx build pipeline (`@microsoft/sp-build-web`) generates its own webpack config that does NOT inherit tsconfig path aliases or dev webpack aliases. `build.configureWebpack.mergeConfig()` in `gulpfile.js` adds the `@hbc/sp-services` → `packages/hbc-sp-services/src` alias so `gulp serve` and `gulp bundle --ship` can resolve the workspace package imports.
 
+80. **`performanceService` is a singleton — do not instantiate per component** — `PerformanceService` is created once in `HbcProjectControlsWebPart.onInit()` (or `DevRoot` for dev server) and passed through context. Components call `performanceService.mark()` / `performanceService.endMark()` for timing. Creating multiple instances resets the marks array and produces incomplete telemetry. The singleton is wired into `AppProvider` props alongside `dataService`.
+
 ---
 
 ## Audit Log
@@ -1740,3 +1760,4 @@ Steps 1-6 modify `packages/hbc-sp-services/` (the shared library). Steps 7-12 mo
 | 2026-02-14 | §16 | Fixed dev server resolution for React 18 + monorepo after library extraction. Added react/react-dom/react-dom/client webpack aliases and resolve.modules to dev/webpack.config.js. Added react-dom scheduler override to package.json. |
 | 2026-02-14 | §1, §16 | Pinned @fluentui/react-icons to exact 2.0.319 (was ^2.0.230). Added webpack alias in dev/webpack.config.js, npm override in root package.json, and workspace package peer/dev dep in packages/hbc-sp-services/package.json to prevent nested module resolution failures. |
 | 2026-02-14 | §1, §16 | Hardened monorepo dependency resolution. Replaced overrides block with comprehensive top-level react/react-dom/scheduler pins (prevents SPFx nesting). Added `postinstall` (auto build:lib) and `clean:dev` (nuclear reinstall) scripts. Added scheduler webpack alias. |
+| 2026-02-14 | §2, §6, §7, §8, §9, §11, §12, §13, §15, §16 | Phase Perf-2: Performance Monitoring. §2: +usePerformanceMetrics hook (39 total), +PerformanceDashboard.tsx in pages/hub, +PerformanceService.ts in services (15 files), service method counts 212→215, stubs 77→80. §6: +IPerformanceLog/IPerformanceMark/IPerformanceQueryOptions/IPerformanceSummary interfaces, +2 AuditAction (PerformanceLogRecorded, PerformanceAlertTriggered), +1 EntityType (Performance). §7: 215 methods total, +3 new (logPerformanceEntry, getPerformanceLogs, getPerformanceSummary). §8: +/admin/performance route. §9: Admin group gains Performance nav item. §11: +PerformanceMonitoring flag (id:24, false, Infrastructure). §12: featureFlags.json 23→24. §13: +PERFORMANCE_LOGS HUB_LIST, +ADMIN_PERFORMANCE route, +PERFORMANCE_THRESHOLDS constant. §15: +Perf-2 phase, stubs 83→86 of 215 (Pattern A 21→24). §16: +pitfall #80 (performanceService singleton). |

@@ -6,7 +6,8 @@ import {
   Stage,
   IResolvedPermissions,
   detectSiteContext,
-  DEFAULT_HUB_SITE_URL
+  DEFAULT_HUB_SITE_URL,
+  performanceService,
 } from '@hbc/sp-services';
 
 export interface ISelectedProject {
@@ -73,16 +74,20 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, siteUrl,
 
   React.useEffect(() => {
     const init = async (): Promise<void> => {
+      performanceService.startMark('app:contextInit');
       try {
         setIsLoading(true);
+        performanceService.startMark('app:userFlagsFetch');
         const [user, flags] = await Promise.all([
           dataService.getCurrentUser(),
           dataService.getFeatureFlags(),
         ]);
+        performanceService.endMark('app:userFlagsFetch');
 
         // If PermissionEngine flag is enabled, resolve permissions via the engine
         const engineEnabled = flags.find(f => f.FeatureName === 'PermissionEngine')?.Enabled === true;
         if (engineEnabled) {
+          performanceService.startMark('app:permissionResolve');
           try {
             const resolved = await dataService.resolveUserPermissions(user.email, null);
             user.permissions = resolved.permissions;
@@ -91,6 +96,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, siteUrl,
             // Fallback: keep ROLE_PERMISSIONS-based permissions (already set by getCurrentUser)
             console.warn('Permission engine resolution failed, using role-based fallback');
           }
+          performanceService.endMark('app:permissionResolve');
         }
 
         setCurrentUser(user);
@@ -98,6 +104,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, siteUrl,
 
         // Auto-select project on project-specific sites
         if (isProjectSite && siteContext.projectCode) {
+          performanceService.startMark('app:projectAutoSelect');
           try {
             const results = await dataService.searchLeads(siteContext.projectCode);
             const lead = results.find(l => l.ProjectCode === siteContext.projectCode);
@@ -115,8 +122,20 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, siteUrl,
           } catch {
             console.warn('Auto-select failed for project code:', siteContext.projectCode);
           }
+          performanceService.endMark('app:projectAutoSelect');
         }
+
+        performanceService.endMark('app:contextInit');
+
+        // Fire-and-forget performance log
+        performanceService.logWebPartLoad({
+          userEmail: user.email,
+          siteUrl: siteUrl || window.location.href,
+          projectCode: undefined,
+          isProjectSite,
+        }).catch(console.warn);
       } catch (err) {
+        performanceService.endMark('app:contextInit');
         setError(err instanceof Error ? err.message : 'Failed to initialize');
       } finally {
         setIsLoading(false);

@@ -4,7 +4,7 @@ import { Version } from '@microsoft/sp-core-library';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IPropertyPaneConfiguration, PropertyPaneTextField } from '@microsoft/sp-property-pane';
 import { App, IAppProps } from './components/App';
-import { IDataService, MockDataService, SharePointDataService, graphService } from '@hbc/sp-services';
+import { IDataService, MockDataService, SharePointDataService, graphService, performanceService } from '@hbc/sp-services';
 
 export interface IHbcProjectControlsWebPartProps {
   description?: string;
@@ -20,6 +20,7 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
   private _root: Root | null = null;
 
   protected async onInit(): Promise<void> {
+    performanceService.startMark('webpart:onInit');
     await super.onInit();
 
     const useSP = this.properties.dataServiceMode === 'sharepoint';
@@ -29,6 +30,7 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
       const spService = new SharePointDataService();
 
       // Initialize PnP SP instance
+      performanceService.startMark('webpart:pnpInit');
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { spfi, SPFx } = require('@pnp/sp');
       require('@pnp/sp/webs');
@@ -39,8 +41,10 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
       require('@pnp/sp/batching');
       const sp = spfi().using(SPFx(this.context));
       spService.initialize(sp);
+      performanceService.endMark('webpart:pnpInit');
 
       // Provide SPFx page context user info for getCurrentUser()
+      performanceService.startMark('webpart:contextInit');
       const pageUser = this.context.pageContext.user;
       spService.initializeContext({
         displayName: pageUser.displayName,
@@ -48,10 +52,12 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
         loginName: pageUser.loginName,
         id: 0, // SP user ID resolved at runtime
       });
+      performanceService.endMark('webpart:contextInit');
 
       this._dataService = spService;
 
       // Initialize GraphService for calendar/email/Teams integration
+      performanceService.startMark('webpart:graphInit');
       try {
         const graphClient = await this.context.msGraphClientFactory.getClient('3');
         graphService.initialize(graphClient);
@@ -60,13 +66,20 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
       } catch (err) {
         console.warn('[HBC] Failed to initialize Graph client:', err);
       }
+      performanceService.endMark('webpart:graphInit');
     } else {
       // Development: use MockDataService
       this._dataService = new MockDataService();
     }
+
+    // Initialize PerformanceService with logging function
+    performanceService.initialize((entry) => this._dataService.logPerformanceEntry(entry));
+    performanceService.endMark('webpart:onInit');
   }
 
   public render(): void {
+    performanceService.startMark('webpart:render');
+
     const element: React.ReactElement<IAppProps> = React.createElement(App, {
       dataService: this._dataService,
       siteUrl: this.context.pageContext.web.absoluteUrl,
@@ -76,6 +89,8 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
       this._root = createRoot(this.domElement);
     }
     this._root.render(element);
+
+    performanceService.endMark('webpart:render');
   }
 
   protected onDispose(): void {

@@ -17,4 +17,5 @@ export { ProvisioningService } from './ProvisioningService';
 export type { IProvisioningInput } from './ProvisioningService';
 export { MockHubNavigationService, SharePointHubNavigationService, projectCodeToYearLabel, buildNavLinkDisplayText } from './HubNavigationService';
 export type { IHubNavigationService, IHubNavResult, IHubNavNode } from './HubNavigationService';
+export { PerformanceService, performanceService } from './PerformanceService';
 export * from './columnMappings';
