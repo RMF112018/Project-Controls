@@ -30,11 +30,18 @@ import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../m
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
 import { IActionInboxItem } from '../models/IActionInbox';
-import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions } from '../models/IPermissionTemplate';
-import { GoNoGoDecision, Stage, RoleName, WorkflowKey } from '../models/enums';
+import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions, IToolAccess, IGranularFlagOverride } from '../models/IPermissionTemplate';
+import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfig';
+import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 import { ROLE_PERMISSIONS } from '../utils/permissions';
+import { resolveToolPermissions, TOOL_DEFINITIONS } from '../utils/toolPermissionMap';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
+import {
+  PERMISSION_TEMPLATES_COLUMNS,
+  SECURITY_GROUP_MAPPINGS_COLUMNS,
+  PROJECT_TEAM_ASSIGNMENTS_COLUMNS,
+} from './columnMappings';
 
 /**
  * SharePoint Data Service — Live implementation using PnP JS.
@@ -733,6 +740,68 @@ export class SharePointDataService implements IDataService {
     };
   }
 
+  private mapToPermissionTemplate(item: Record<string, unknown>): IPermissionTemplate {
+    let toolAccess: IToolAccess[] = [];
+    try {
+      const raw = item[PERMISSION_TEMPLATES_COLUMNS.toolAccess];
+      if (typeof raw === 'string' && raw) {
+        toolAccess = JSON.parse(raw) as IToolAccess[];
+      }
+    } catch { /* default to empty array */ }
+
+    return {
+      id: item[PERMISSION_TEMPLATES_COLUMNS.id] as number || item.Id as number,
+      name: item[PERMISSION_TEMPLATES_COLUMNS.name] as string || '',
+      description: item[PERMISSION_TEMPLATES_COLUMNS.description] as string || '',
+      isGlobal: !!(item[PERMISSION_TEMPLATES_COLUMNS.isGlobal]),
+      globalAccess: !!(item[PERMISSION_TEMPLATES_COLUMNS.globalAccess]),
+      identityType: (item[PERMISSION_TEMPLATES_COLUMNS.identityType] as 'Internal' | 'External') || 'Internal',
+      toolAccess,
+      isDefault: !!(item[PERMISSION_TEMPLATES_COLUMNS.isDefault]),
+      isActive: !!(item[PERMISSION_TEMPLATES_COLUMNS.isActive]),
+      version: (item.Version as number) || 1,
+      promotedFromTier: item.PromotedFromTier as EnvironmentTier | undefined,
+      createdBy: item[PERMISSION_TEMPLATES_COLUMNS.createdBy] as string || '',
+      createdDate: item[PERMISSION_TEMPLATES_COLUMNS.createdDate] as string || '',
+      lastModifiedBy: item[PERMISSION_TEMPLATES_COLUMNS.lastModifiedBy] as string || '',
+      lastModifiedDate: item[PERMISSION_TEMPLATES_COLUMNS.lastModifiedDate] as string || '',
+    };
+  }
+
+  private mapToSecurityGroupMapping(item: Record<string, unknown>): ISecurityGroupMapping {
+    return {
+      id: item[SECURITY_GROUP_MAPPINGS_COLUMNS.id] as number || item.Id as number,
+      securityGroupId: item[SECURITY_GROUP_MAPPINGS_COLUMNS.securityGroupId] as string || '',
+      securityGroupName: item[SECURITY_GROUP_MAPPINGS_COLUMNS.securityGroupName] as string || '',
+      defaultTemplateId: item[SECURITY_GROUP_MAPPINGS_COLUMNS.defaultTemplateId] as number || 0,
+      isActive: !!(item[SECURITY_GROUP_MAPPINGS_COLUMNS.isActive]),
+    };
+  }
+
+  private mapToProjectTeamAssignment(item: Record<string, unknown>): IProjectTeamAssignment {
+    let granularFlagOverrides: IGranularFlagOverride[] | undefined;
+    try {
+      const raw = item[PROJECT_TEAM_ASSIGNMENTS_COLUMNS.granularFlagOverrides];
+      if (typeof raw === 'string' && raw) {
+        granularFlagOverrides = JSON.parse(raw) as IGranularFlagOverride[];
+      }
+    } catch { /* default to undefined */ }
+
+    return {
+      id: item[PROJECT_TEAM_ASSIGNMENTS_COLUMNS.id] as number || item.Id as number,
+      projectCode: item[PROJECT_TEAM_ASSIGNMENTS_COLUMNS.projectCode] as string || '',
+      userId: item[PROJECT_TEAM_ASSIGNMENTS_COLUMNS.userId] as string || '',
+      userDisplayName: item[PROJECT_TEAM_ASSIGNMENTS_COLUMNS.userDisplayName] as string || '',
+      userEmail: item[PROJECT_TEAM_ASSIGNMENTS_COLUMNS.userEmail] as string || '',
+      assignedRole: item[PROJECT_TEAM_ASSIGNMENTS_COLUMNS.assignedRole] as string || '',
+      templateOverrideId: item[PROJECT_TEAM_ASSIGNMENTS_COLUMNS.templateOverrideId] as number | undefined,
+      granularFlagOverrides,
+      assignedBy: item[PROJECT_TEAM_ASSIGNMENTS_COLUMNS.assignedBy] as string || '',
+      assignedDate: item[PROJECT_TEAM_ASSIGNMENTS_COLUMNS.assignedDate] as string || '',
+      isActive: !!(item[PROJECT_TEAM_ASSIGNMENTS_COLUMNS.isActive]),
+    };
+  }
+
   // --- Commitment Approval ---
 
   async submitCommitmentForApproval(projectCode: string, entryId: number, _submittedBy: string): Promise<IBuyoutEntry> {
@@ -1360,38 +1429,434 @@ export class SharePointDataService implements IDataService {
       return 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral';
     }
   }
-  async setHubSiteUrl(_url: string): Promise<void> { throw new Error('SharePoint implementation pending: setHubSiteUrl'); }
+  async setHubSiteUrl(url: string): Promise<void> {
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG)
+        .items.filter("SiteURL eq 'HUB_SITE_URL'").top(1)();
+      if (items.length > 0) {
+        await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG)
+          .items.getById(items[0].Id).update({ AppTitle: url });
+      } else {
+        await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG)
+          .items.add({ SiteURL: 'HUB_SITE_URL', AppTitle: url });
+      }
+    } catch (err) {
+      console.error('[SP] setHubSiteUrl failed:', err);
+      throw err;
+    }
+  }
 
   async getActionItems(_userEmail: string): Promise<IActionInboxItem[]> { console.warn('[STUB] getActionItems not implemented'); return []; }
 
   // --- Permission Templates ---
-  async getPermissionTemplates(): Promise<IPermissionTemplate[]> { console.warn('[STUB] getPermissionTemplates not implemented'); return []; }
-  async getPermissionTemplate(_id: number): Promise<IPermissionTemplate | null> { console.warn('[STUB] getPermissionTemplate not implemented'); return null; }
-  async createPermissionTemplate(_data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> { throw new Error('SharePoint implementation pending: createPermissionTemplate'); }
-  async updatePermissionTemplate(_id: number, _data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> { throw new Error('SharePoint implementation pending: updatePermissionTemplate'); }
-  async deletePermissionTemplate(_id: number): Promise<void> { throw new Error('SharePoint implementation pending: deletePermissionTemplate'); }
+  async getPermissionTemplates(): Promise<IPermissionTemplate[]> {
+    const items = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.PERMISSION_TEMPLATES).items();
+    return (items as Record<string, unknown>[]).map(i => this.mapToPermissionTemplate(i));
+  }
+
+  async getPermissionTemplate(id: number): Promise<IPermissionTemplate | null> {
+    try {
+      const item = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.PERMISSION_TEMPLATES).items.getById(id)();
+      return this.mapToPermissionTemplate(item as Record<string, unknown>);
+    } catch {
+      return null;
+    }
+  }
+
+  async createPermissionTemplate(data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> {
+    const now = new Date().toISOString();
+    const spItem: Record<string, unknown> = {
+      [PERMISSION_TEMPLATES_COLUMNS.name]: data.name || '',
+      [PERMISSION_TEMPLATES_COLUMNS.description]: data.description || '',
+      [PERMISSION_TEMPLATES_COLUMNS.isGlobal]: data.isGlobal ?? false,
+      [PERMISSION_TEMPLATES_COLUMNS.globalAccess]: data.globalAccess ?? false,
+      [PERMISSION_TEMPLATES_COLUMNS.identityType]: data.identityType || 'Internal',
+      [PERMISSION_TEMPLATES_COLUMNS.toolAccess]: JSON.stringify(data.toolAccess || []),
+      [PERMISSION_TEMPLATES_COLUMNS.isDefault]: data.isDefault ?? false,
+      [PERMISSION_TEMPLATES_COLUMNS.isActive]: data.isActive ?? true,
+      [PERMISSION_TEMPLATES_COLUMNS.createdBy]: data.createdBy || '',
+      [PERMISSION_TEMPLATES_COLUMNS.createdDate]: data.createdDate || now,
+      [PERMISSION_TEMPLATES_COLUMNS.lastModifiedBy]: data.lastModifiedBy || data.createdBy || '',
+      [PERMISSION_TEMPLATES_COLUMNS.lastModifiedDate]: data.lastModifiedDate || now,
+    };
+    const result = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.PERMISSION_TEMPLATES).items.add(spItem);
+    return this.mapToPermissionTemplate(result as Record<string, unknown>);
+  }
+
+  async updatePermissionTemplate(id: number, data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> {
+    const updateData: Record<string, unknown> = {};
+    if (data.name !== undefined) updateData[PERMISSION_TEMPLATES_COLUMNS.name] = data.name;
+    if (data.description !== undefined) updateData[PERMISSION_TEMPLATES_COLUMNS.description] = data.description;
+    if (data.isGlobal !== undefined) updateData[PERMISSION_TEMPLATES_COLUMNS.isGlobal] = data.isGlobal;
+    if (data.globalAccess !== undefined) updateData[PERMISSION_TEMPLATES_COLUMNS.globalAccess] = data.globalAccess;
+    if (data.identityType !== undefined) updateData[PERMISSION_TEMPLATES_COLUMNS.identityType] = data.identityType;
+    if (data.toolAccess !== undefined) updateData[PERMISSION_TEMPLATES_COLUMNS.toolAccess] = JSON.stringify(data.toolAccess);
+    if (data.isDefault !== undefined) updateData[PERMISSION_TEMPLATES_COLUMNS.isDefault] = data.isDefault;
+    if (data.isActive !== undefined) updateData[PERMISSION_TEMPLATES_COLUMNS.isActive] = data.isActive;
+    if (data.lastModifiedBy !== undefined) updateData[PERMISSION_TEMPLATES_COLUMNS.lastModifiedBy] = data.lastModifiedBy;
+    updateData[PERMISSION_TEMPLATES_COLUMNS.lastModifiedDate] = new Date().toISOString();
+
+    await this.sp.web.lists
+      .getByTitle(LIST_NAMES.PERMISSION_TEMPLATES).items.getById(id).update(updateData);
+    const updated = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.PERMISSION_TEMPLATES).items.getById(id)();
+    return this.mapToPermissionTemplate(updated as Record<string, unknown>);
+  }
+
+  async deletePermissionTemplate(id: number): Promise<void> {
+    await this.sp.web.lists
+      .getByTitle(LIST_NAMES.PERMISSION_TEMPLATES).items.getById(id).delete();
+  }
 
   // --- Security Group Mappings ---
-  async getSecurityGroupMappings(): Promise<ISecurityGroupMapping[]> { console.warn('[STUB] getSecurityGroupMappings not implemented'); return []; }
-  async createSecurityGroupMapping(_data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> { throw new Error('SharePoint implementation pending: createSecurityGroupMapping'); }
-  async updateSecurityGroupMapping(_id: number, _data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> { throw new Error('SharePoint implementation pending: updateSecurityGroupMapping'); }
+  async getSecurityGroupMappings(): Promise<ISecurityGroupMapping[]> {
+    const items = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.SECURITY_GROUP_MAPPINGS).items();
+    return (items as Record<string, unknown>[]).map(i => this.mapToSecurityGroupMapping(i));
+  }
+
+  async createSecurityGroupMapping(data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> {
+    const spItem: Record<string, unknown> = {
+      [SECURITY_GROUP_MAPPINGS_COLUMNS.securityGroupId]: data.securityGroupId || '',
+      [SECURITY_GROUP_MAPPINGS_COLUMNS.securityGroupName]: data.securityGroupName || '',
+      [SECURITY_GROUP_MAPPINGS_COLUMNS.defaultTemplateId]: data.defaultTemplateId || 0,
+      [SECURITY_GROUP_MAPPINGS_COLUMNS.isActive]: data.isActive ?? true,
+    };
+    const result = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.SECURITY_GROUP_MAPPINGS).items.add(spItem);
+    return this.mapToSecurityGroupMapping(result as Record<string, unknown>);
+  }
+
+  async updateSecurityGroupMapping(id: number, data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> {
+    const updateData: Record<string, unknown> = {};
+    if (data.securityGroupId !== undefined) updateData[SECURITY_GROUP_MAPPINGS_COLUMNS.securityGroupId] = data.securityGroupId;
+    if (data.securityGroupName !== undefined) updateData[SECURITY_GROUP_MAPPINGS_COLUMNS.securityGroupName] = data.securityGroupName;
+    if (data.defaultTemplateId !== undefined) updateData[SECURITY_GROUP_MAPPINGS_COLUMNS.defaultTemplateId] = data.defaultTemplateId;
+    if (data.isActive !== undefined) updateData[SECURITY_GROUP_MAPPINGS_COLUMNS.isActive] = data.isActive;
+
+    await this.sp.web.lists
+      .getByTitle(LIST_NAMES.SECURITY_GROUP_MAPPINGS).items.getById(id).update(updateData);
+    const updated = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.SECURITY_GROUP_MAPPINGS).items.getById(id)();
+    return this.mapToSecurityGroupMapping(updated as Record<string, unknown>);
+  }
 
   // --- Project Team Assignments ---
-  async getProjectTeamAssignments(_projectCode: string): Promise<IProjectTeamAssignment[]> { console.warn('[STUB] getProjectTeamAssignments not implemented'); return []; }
-  async getMyProjectAssignments(_userEmail: string): Promise<IProjectTeamAssignment[]> { console.warn('[STUB] getMyProjectAssignments not implemented'); return []; }
-  async createProjectTeamAssignment(_data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> { throw new Error('SharePoint implementation pending: createProjectTeamAssignment'); }
-  async updateProjectTeamAssignment(_id: number, _data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> { throw new Error('SharePoint implementation pending: updateProjectTeamAssignment'); }
-  async removeProjectTeamAssignment(_id: number): Promise<void> { throw new Error('SharePoint implementation pending: removeProjectTeamAssignment'); }
-  async getAllProjectTeamAssignments(): Promise<IProjectTeamAssignment[]> { console.warn('[STUB] getAllProjectTeamAssignments not implemented'); return []; }
-  async inviteToProjectSiteGroup(_projectCode: string, _userEmail: string, _role: string): Promise<void> { console.warn('[STUB] inviteToProjectSiteGroup not implemented (non-blocking)'); }
+  async getProjectTeamAssignments(projectCode: string): Promise<IProjectTeamAssignment[]> {
+    const col = PROJECT_TEAM_ASSIGNMENTS_COLUMNS;
+    const items = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS)
+      .items.filter(`${col.projectCode} eq '${projectCode}' and ${col.isActive} eq 1`)();
+    return (items as Record<string, unknown>[]).map(i => this.mapToProjectTeamAssignment(i));
+  }
+
+  async getMyProjectAssignments(userEmail: string): Promise<IProjectTeamAssignment[]> {
+    const col = PROJECT_TEAM_ASSIGNMENTS_COLUMNS;
+    const emailLower = userEmail.toLowerCase();
+    // OData tolower for case-insensitive email matching
+    const items = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS)
+      .items.filter(`tolower(${col.userEmail}) eq '${emailLower}' and ${col.isActive} eq 1`)();
+    return (items as Record<string, unknown>[]).map(i => this.mapToProjectTeamAssignment(i));
+  }
+
+  async createProjectTeamAssignment(data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> {
+    const col = PROJECT_TEAM_ASSIGNMENTS_COLUMNS;
+    const now = new Date().toISOString();
+    const spItem: Record<string, unknown> = {
+      [col.projectCode]: data.projectCode || '',
+      [col.userId]: data.userId || '',
+      [col.userDisplayName]: data.userDisplayName || '',
+      [col.userEmail]: data.userEmail || '',
+      [col.assignedRole]: data.assignedRole || '',
+      [col.templateOverrideId]: data.templateOverrideId || null,
+      [col.granularFlagOverrides]: data.granularFlagOverrides ? JSON.stringify(data.granularFlagOverrides) : null,
+      [col.assignedBy]: data.assignedBy || '',
+      [col.assignedDate]: data.assignedDate || now,
+      [col.isActive]: data.isActive ?? true,
+    };
+    const result = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS).items.add(spItem);
+    return this.mapToProjectTeamAssignment(result as Record<string, unknown>);
+  }
+
+  async updateProjectTeamAssignment(id: number, data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> {
+    const col = PROJECT_TEAM_ASSIGNMENTS_COLUMNS;
+    const updateData: Record<string, unknown> = {};
+    if (data.projectCode !== undefined) updateData[col.projectCode] = data.projectCode;
+    if (data.userId !== undefined) updateData[col.userId] = data.userId;
+    if (data.userDisplayName !== undefined) updateData[col.userDisplayName] = data.userDisplayName;
+    if (data.userEmail !== undefined) updateData[col.userEmail] = data.userEmail;
+    if (data.assignedRole !== undefined) updateData[col.assignedRole] = data.assignedRole;
+    if (data.templateOverrideId !== undefined) updateData[col.templateOverrideId] = data.templateOverrideId;
+    if (data.granularFlagOverrides !== undefined) updateData[col.granularFlagOverrides] = JSON.stringify(data.granularFlagOverrides);
+    if (data.isActive !== undefined) updateData[col.isActive] = data.isActive;
+
+    await this.sp.web.lists
+      .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS).items.getById(id).update(updateData);
+    const updated = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS).items.getById(id)();
+    return this.mapToProjectTeamAssignment(updated as Record<string, unknown>);
+  }
+
+  async removeProjectTeamAssignment(id: number): Promise<void> {
+    // Soft delete: set isActive to false
+    await this.sp.web.lists
+      .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS)
+      .items.getById(id).update({ [PROJECT_TEAM_ASSIGNMENTS_COLUMNS.isActive]: false });
+  }
+
+  async getAllProjectTeamAssignments(): Promise<IProjectTeamAssignment[]> {
+    const items = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS)
+      .items.filter(`${PROJECT_TEAM_ASSIGNMENTS_COLUMNS.isActive} eq 1`)();
+    return (items as Record<string, unknown>[]).map(i => this.mapToProjectTeamAssignment(i));
+  }
+
+  async inviteToProjectSiteGroup(projectCode: string, userEmail: string, role: string): Promise<void> {
+    // Fire-and-forget: add user to the project site's SP group by convention
+    try {
+      // Derive SP group name from role: Owners for PX/Exec, Members for most, Visitors for read-only
+      const ownerRoles = ['Executive Leadership', 'Department Director'];
+      const visitorRoles = ['Legal', 'Risk Management', 'Marketing', 'Quality Control', 'Safety'];
+      let groupSuffix = 'Members';
+      if (ownerRoles.includes(role)) groupSuffix = 'Owners';
+      else if (visitorRoles.includes(role)) groupSuffix = 'Visitors';
+
+      const groupName = `${projectCode} ${groupSuffix}`;
+      const siteGroup = this.sp.web.siteGroups.getByName(groupName);
+      await siteGroup.users.add(userEmail);
+    } catch (err) {
+      // Non-blocking — log but do not throw
+      console.warn(`[SP] inviteToProjectSiteGroup failed for ${userEmail} on ${projectCode}:`, err);
+    }
+  }
 
   // --- Permission Resolution ---
-  async resolveUserPermissions(_userEmail: string, _projectCode: string | null): Promise<IResolvedPermissions> { throw new Error('SharePoint implementation pending: resolveUserPermissions'); }
-  async getAccessibleProjects(_userEmail: string): Promise<string[]> { console.warn('[STUB] getAccessibleProjects not implemented'); return []; }
+  async resolveUserPermissions(userEmail: string, projectCode: string | null): Promise<IResolvedPermissions> {
+    const email = userEmail.toLowerCase();
+
+    // Step 1: Determine the user's security group → default template
+    // Map roles to Azure AD security group names (same convention as MockDataService)
+    const roleToGroupMap: Record<string, string> = {
+      'Executive Leadership': 'HBC - Executive Leadership',
+      'Department Director': 'HBC - Project Executives',
+      'Operations Team': 'HBC - Project Managers',
+      'Preconstruction Team': 'HBC - Estimating',
+      'BD Representative': 'HBC - Business Development',
+      'Estimating Coordinator': 'HBC - Estimating',
+      'Accounting Manager': 'HBC - Accounting',
+      'Legal': 'HBC - Read Only',
+      'Risk Management': 'HBC - Read Only',
+      'Marketing': 'HBC - Read Only',
+      'Quality Control': 'HBC - Read Only',
+      'Safety': 'HBC - Read Only',
+      'IDS': 'HBC - Read Only',
+      'SharePoint Admin': 'HBC - SharePoint Admins',
+    };
+
+    // Get user's roles from getCurrentUser
+    const currentUser = await this.getCurrentUser();
+    const userRoles = currentUser.roles;
+
+    // Find the first matching security group mapping
+    const securityGroupMappings = await this.getSecurityGroupMappings();
+    let defaultTemplateId = 0;
+    for (const role of userRoles) {
+      const groupName = roleToGroupMap[role];
+      if (!groupName) continue;
+      const mapping = securityGroupMappings.find(m => m.securityGroupName === groupName && m.isActive);
+      if (mapping) {
+        defaultTemplateId = mapping.defaultTemplateId;
+        break;
+      }
+    }
+
+    // Fallback: find the Read-Only mapping as default
+    if (!defaultTemplateId) {
+      const readOnlyMapping = securityGroupMappings.find(m => m.securityGroupName === 'HBC - Read Only' && m.isActive);
+      defaultTemplateId = readOnlyMapping?.defaultTemplateId || 0;
+    }
+
+    let templateId = defaultTemplateId;
+    let source: 'SecurityGroupDefault' | 'ProjectOverride' | 'DirectAssignment' = 'SecurityGroupDefault';
+
+    // Step 2: Check for project-level template override
+    if (projectCode) {
+      const col = PROJECT_TEAM_ASSIGNMENTS_COLUMNS;
+      const assignments = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS)
+        .items.filter(`tolower(${col.userEmail}) eq '${email}' and ${col.projectCode} eq '${projectCode}' and ${col.isActive} eq 1`)();
+      const assignment = assignments.length > 0 ? this.mapToProjectTeamAssignment(assignments[0] as Record<string, unknown>) : null;
+      if (assignment?.templateOverrideId) {
+        templateId = assignment.templateOverrideId;
+        source = 'ProjectOverride';
+      }
+    }
+
+    // Step 3: Load template
+    const template = templateId ? await this.getPermissionTemplate(templateId) : null;
+    if (!template) {
+      return {
+        userId: email,
+        projectCode,
+        templateId: 0,
+        templateName: 'Unknown',
+        source,
+        toolLevels: {},
+        granularFlags: {},
+        permissions: new Set<string>(),
+        globalAccess: false,
+      };
+    }
+
+    // Step 4: Merge granular flag overrides from project assignment
+    const toolAccess: IToolAccess[] = [...template.toolAccess];
+    if (projectCode) {
+      const col = PROJECT_TEAM_ASSIGNMENTS_COLUMNS;
+      const assignments = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS)
+        .items.filter(`tolower(${col.userEmail}) eq '${email}' and ${col.projectCode} eq '${projectCode}' and ${col.isActive} eq 1`)();
+      if (assignments.length > 0) {
+        const assignment = this.mapToProjectTeamAssignment(assignments[0] as Record<string, unknown>);
+        if (assignment.granularFlagOverrides) {
+          for (const override of assignment.granularFlagOverrides) {
+            const existingTool = toolAccess.find(ta => ta.toolKey === override.toolKey);
+            if (existingTool) {
+              existingTool.granularFlags = [
+                ...(existingTool.granularFlags || []),
+                ...override.flags,
+              ];
+            }
+          }
+        }
+      }
+    }
+
+    // Step 5: Flatten to permission strings
+    const permissionStrings = resolveToolPermissions(toolAccess, TOOL_DEFINITIONS);
+    const permissions = new Set<string>(permissionStrings);
+
+    // Build toolLevels and granularFlags maps
+    const toolLevels: Record<string, PermissionLevel> = {};
+    const granularFlags: Record<string, string[]> = {};
+    for (const ta of toolAccess) {
+      toolLevels[ta.toolKey] = ta.level;
+      if (ta.granularFlags && ta.granularFlags.length > 0) {
+        granularFlags[ta.toolKey] = ta.granularFlags;
+      }
+    }
+
+    return {
+      userId: email,
+      projectCode,
+      templateId: template.id,
+      templateName: template.name,
+      source,
+      toolLevels,
+      granularFlags,
+      permissions,
+      globalAccess: template.globalAccess,
+    };
+  }
+
+  async getAccessibleProjects(userEmail: string): Promise<string[]> {
+    const email = userEmail.toLowerCase();
+
+    // Check if user has globalAccess via their template
+    const resolved = await this.resolveUserPermissions(email, null);
+    if (resolved.globalAccess) {
+      // Return all project codes from Leads_Master that have project codes
+      const items = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.LEADS_MASTER)
+        .items.filter("ProjectCode ne null").select('ProjectCode').top(5000)();
+      const codes = (items as Record<string, unknown>[])
+        .map(i => i.ProjectCode as string)
+        .filter(Boolean);
+      return [...new Set(codes)];
+    }
+
+    // Otherwise return only assigned project codes
+    const col = PROJECT_TEAM_ASSIGNMENTS_COLUMNS;
+    const assignments = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS)
+      .items.filter(`tolower(${col.userEmail}) eq '${email}' and ${col.isActive} eq 1`)
+      .select(col.projectCode)();
+    const codes = (assignments as Record<string, unknown>[])
+      .map(i => i[col.projectCode] as string)
+      .filter(Boolean);
+    return [...new Set(codes)];
+  }
 
   // --- Environment Configuration ---
-  async getEnvironmentConfig(): Promise<import('../models/IEnvironmentConfig').IEnvironmentConfig> { throw new Error('SharePoint implementation pending: getEnvironmentConfig'); }
-  async promoteTemplates(_fromTier: import('../models/IEnvironmentConfig').EnvironmentTier, _toTier: import('../models/IEnvironmentConfig').EnvironmentTier, _promotedBy: string): Promise<void> { throw new Error('SharePoint implementation pending: promoteTemplates'); }
+  async getEnvironmentConfig(): Promise<IEnvironmentConfig> {
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG)
+        .items.filter("SiteURL eq 'ENVIRONMENT_CONFIG'").select('AppTitle').top(1)();
+      if (items.length > 0 && items[0].AppTitle) {
+        return JSON.parse(items[0].AppTitle) as IEnvironmentConfig;
+      }
+    } catch {
+      // Fallback to default
+    }
+    return {
+      currentTier: 'prod' as EnvironmentTier,
+      label: 'Production',
+      color: '#10B981',
+      isReadOnly: false,
+      promotionHistory: [],
+    };
+  }
+
+  async promoteTemplates(fromTier: EnvironmentTier, toTier: EnvironmentTier, promotedBy: string): Promise<void> {
+    // Fetch all active templates
+    const templates = await this.getPermissionTemplates();
+    const activeTemplates = templates.filter(t => t.isActive);
+    const now = new Date().toISOString();
+
+    // Batch update each template: increment version, set promotedFromTier
+    for (const template of activeTemplates) {
+      await this.sp.web.lists
+        .getByTitle(LIST_NAMES.PERMISSION_TEMPLATES)
+        .items.getById(template.id)
+        .update({
+          Version: (template.version || 0) + 1,
+          PromotedFromTier: fromTier,
+          [PERMISSION_TEMPLATES_COLUMNS.lastModifiedBy]: promotedBy,
+          [PERMISSION_TEMPLATES_COLUMNS.lastModifiedDate]: now,
+        });
+    }
+
+    // Update environment config with promotion record
+    const envConfig = await this.getEnvironmentConfig();
+    const promotionRecord = {
+      fromTier,
+      toTier,
+      promotedBy,
+      promotedDate: now,
+      templateCount: activeTemplates.length,
+    };
+    envConfig.promotionHistory = [...(envConfig.promotionHistory || []), promotionRecord];
+    envConfig.currentTier = toTier;
+
+    // Write back config
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG)
+        .items.filter("SiteURL eq 'ENVIRONMENT_CONFIG'").top(1)();
+      if (items.length > 0) {
+        await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG)
+          .items.getById(items[0].Id).update({ AppTitle: JSON.stringify(envConfig) });
+      } else {
+        await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG)
+          .items.add({ SiteURL: 'ENVIRONMENT_CONFIG', AppTitle: JSON.stringify(envConfig) });
+      }
+    } catch (err) {
+      console.error('[SP] Failed to update environment config after promotion:', err);
+    }
+  }
 
   // --- Sector Definitions ---
   async getSectorDefinitions(): Promise<import('../models/ISectorDefinition').ISectorDefinition[]> { console.warn('[STUB] getSectorDefinitions not implemented'); return []; }
