@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactDom from 'react-dom';
+import { createRoot, Root } from 'react-dom/client';
 import { Version } from '@microsoft/sp-core-library';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IPropertyPaneConfiguration, PropertyPaneTextField } from '@microsoft/sp-property-pane';
@@ -20,6 +20,7 @@ export interface IHbcProjectControlsWebPartProps {
 
 export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHbcProjectControlsWebPartProps> {
   private _dataService!: IDataService;
+  private _root: Root | null = null;
 
   protected async onInit(): Promise<void> {
     await super.onInit();
@@ -74,11 +75,15 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
       siteUrl: this.context.pageContext.web.absoluteUrl,
     });
 
-    ReactDom.render(element, this.domElement);
+    if (!this._root) {
+      this._root = createRoot(this.domElement);
+    }
+    this._root.render(element);
   }
 
   protected onDispose(): void {
-    ReactDom.unmountComponentAtNode(this.domElement);
+    this._root?.unmount();
+    this._root = null;
   }
 
   protected get dataVersion(): Version {

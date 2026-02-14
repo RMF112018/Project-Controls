@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-14 — Fluent UI v9 Theming + makeStyles Migration
+**Last Updated:** 2026-02-14 — React 18.2.0 Migration + createRoot API
 
 ---
 
@@ -34,7 +34,7 @@
 | Item | Value |
 |------|-------|
 | Framework | SharePoint Framework (SPFx) 1.21.1 |
-| UI Library | React 17.0.1 |
+| UI Library | React 18.2.0 |
 | TypeScript | ~5.3.3 |
 | Component Library | @fluentui/react-components ^9.46.0, @fluentui/react-icons ^2.0.230 |
 | Styling | Griffel makeStyles (Fluent UI v9 CSS-in-JS) + Fluent tokens, minimal inline for dynamic values |
@@ -43,7 +43,7 @@
 | Charts | recharts ^2.12.3 |
 | Export | jspdf ^2.5.2, html2canvas ^1.4.1, xlsx ^0.18.5 |
 | Build Tool | gulp ^4.0.2, webpack ^5.90.0 |
-| Test | jest ^29.7.0, @testing-library/react ^12.1.5 |
+| Test | jest ^29.7.0, @testing-library/react ^14.0.0 |
 | Lint | eslint ^8.57.0, @microsoft/eslint-config-spfx 1.21.1 |
 | Node (Volta) | 22.14.0 |
 | Node (engines) | >=18.17.1 <19.0.0 |
@@ -352,7 +352,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | Class | `HbcProjectControlsWebPart extends BaseClientSideWebPart<IHbcProjectControlsWebPartProps>` |
 | Props | `description?`, `dataServiceMode?: 'mock' \| 'sharepoint'` — controls which data service is instantiated |
 | onInit() | If `dataServiceMode === 'sharepoint'`: creates `SharePointDataService`, initializes PnP SP via `spfi().using(SPFx(this.context))`, calls `spService.initializeContext()` with page context user, initializes `graphService` via `msGraphClientFactory.getClient('3')`, wires `graphService.setAuditLogger()` with dataService.logAudit. Otherwise: creates `MockDataService`. |
-| render() | Mounts `<App dataService={dataService} siteUrl={pageContext.web.absoluteUrl} />` via ReactDOM to `this.domElement` |
+| render() | Creates `Root` via `createRoot(this.domElement)` (once), then calls `root.render(<App>)`. Uses React 18 concurrent-capable root API. |
 
 ### Standalone Dev Server
 
@@ -360,7 +360,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 |------|-------|
 | File | dev/index.tsx |
 | Component | `DevRoot` wraps `<App>` with `<RoleSwitcher>` |
-| Bootstrap | Creates `MockDataService`, mounts to `#root` via `ReactDOM.render` |
+| Bootstrap | Creates `MockDataService`, mounts to `#root` via `createRoot().render()` |
 | Features | Role switching, hash reset on role change |
 
 ### App.tsx
@@ -1476,6 +1476,8 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 | Theme-1 | Fluent UI v9 Full Theming + makeStyles Migration — Enhanced hbcTheme.ts from 4→30+ token overrides (brand foreground/background, neutral foreground/background, stroke, subtle, status, shadows). Expanded globalStyles.ts from 13→40+ reusable Griffel classes (layout, card variants, form patterns, table patterns, action bar, KPI grid, status badges, dropdown overlay, pagination, spinner). Converted 10 shared components from inline `style={{}}` to `makeStyles`: AppShell, NavigationSidebar, DataTable, KPICard, PageHeader, SearchBar, StageBadge, StatusBadge, ExportButtons, LoadingSpinner. Added TRANSITION constant to tokens.ts (fast/normal/slow). Updated tsconfig.json `jsx: "react"` → `"react-jsx"` (automatic JSX transform, React 17.0.1 compatible). No data service, model, or workflow files touched. | TRANSITION added to tokens.ts | hbcTheme.ts (30+ token overrides), globalStyles.ts (40+ classes), tokens.ts (+TRANSITION), tsconfig.json (jsx: react-jsx), AppShell.tsx, NavigationSidebar.tsx, DataTable.tsx, KPICard.tsx, PageHeader.tsx, SearchBar.tsx, StageBadge.tsx, StatusBadge.tsx, ExportButtons.tsx, LoadingSpinner.tsx |
 
+| React18 | React 18.2.0 Migration — Bumped react/react-dom from 17.0.1→18.2.0, @types/react/@types/react-dom from 17.x→18.2.0, @testing-library/react from ^12.1.5→^14.0.0. Added npm `overrides` for 3 SPFx packages (`@microsoft/sp-core-library`, `sp-webpart-base`, `sp-property-pane`) to bypass `<18.0.0` peer dep constraints. WebPart `render()`→`createRoot()` + `Root` lifecycle (`_root` field, lazy init, `unmount()` in `onDispose`). Dev server `ReactDOM.render()`→`createRoot().render()`. Zero component/style/service/workflow files touched. `tsc --noEmit` passes with zero errors. | (none) | package.json (react 18.2.0, types 18.2.0, +overrides, @testing-library/react ^14), HbcProjectControlsWebPart.ts (createRoot + Root), dev/index.tsx (createRoot) |
+
 ### Known Stubs / Placeholders
 
 - **SharePointDataService**: 83 of 212 methods are stubs. Breakdown: 21 Pattern A stubs (`[STUB]` console.warn + empty return), 56 Pattern B stubs (`implementation pending` throw), 6 delegation stubs (intentionally delegate to GraphService/PowerAutomate — will never be SP list operations). Remaining stubs: all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP (7), all monthly review (4), all estimating kickoff (8 incl. updateKickoffKeyPersonnel), all job number requests (4), all turnover agenda (16), all sector definitions (2 mutations), all assignment mappings (3 mutations), reference data (2), scorecard workflow (7), scorecard archive (2), action inbox (SP). `setProjectSiteUrl()` is implemented (creates cross-site Web via `_getProjectWeb()`). All Pattern A stubs log `console.warn('[STUB] methodName not implemented')`. All Pattern B stubs throw `Error('SharePoint implementation pending: methodName')`. Delegation stubs: getCalendarAvailability, createMeeting, getMeetings (→GraphService), sendNotification, getNotifications (→PowerAutomate), purgeOldAuditEntries (→Power Automate scheduled flow).
@@ -1625,7 +1627,13 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 64. **`mergeClasses()` for conditional class names** — Use `mergeClasses()` from `@fluentui/react-components` instead of ternary style objects or string concatenation. Pattern: `mergeClasses(styles.base, isActive ? styles.active : styles.inactive)`. Pass `undefined` (not empty string) for absent classes: `mergeClasses(styles.btn, isDisabled ? styles.disabled : undefined)`.
 
-65. **`jsx: "react-jsx"` in tsconfig.json** — The automatic JSX transform is enabled. React 17.0.1 supports this via `react/jsx-runtime`. Existing `import * as React from 'react'` imports remain valid and should NOT be removed (they're needed for hooks like `React.useState`). New files can omit the React import if they don't use hooks or `React.*` references, but this is not required.
+65. **`jsx: "react-jsx"` in tsconfig.json** — The automatic JSX transform is enabled. React 18.2.0 supports this natively via `react/jsx-runtime`. Existing `import * as React from 'react'` imports remain valid and should NOT be removed (they're needed for hooks like `React.useState`). New files can omit the React import if they don't use hooks or `React.*` references, but this is not required.
+
+66. **npm `overrides` required for React 18 with SPFx 1.21.1** — SPFx 1.21.1 packages declare `peerDependencies: { "react": "<18.0.0" }`. The `overrides` block in `package.json` forces npm to accept React 18.2.0. If a new `@microsoft/sp-*` package is added to dependencies, it may also need an entry in `overrides` to avoid peer dep install failures. The `$react` syntax means "use the version from root dependencies."
+
+67. **`createRoot` lifecycle in WebPart** — `HbcProjectControlsWebPart` stores a `private _root: Root | null` field. `createRoot(this.domElement)` is called lazily on first `render()` and reused on subsequent renders (SPFx calls `render()` on property pane changes). `onDispose()` calls `this._root?.unmount()` then nulls the reference. Never call `ReactDOM.render()` or `ReactDOM.unmountComponentAtNode()` — these are removed in React 19 and deprecated in React 18.
+
+68. **`@testing-library/react` v14 for React 18** — `@testing-library/react@^12` has a peer dep on `react-dom <18.0.0`. The project uses `^14.0.0` which supports React 18. If writing tests, use `render()` from `@testing-library/react` — it internally uses `createRoot`. Do not import `react-dom/client` in test files.
 
 ---
 
@@ -1667,3 +1675,4 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-14 | §7, §13, §15, §16 | SP Service Chunk 4: Checklists, Matrices & Marketing Records. §7: 22 methods changed from SP Stub→Impl (methods 56-77). §13: +TEAM_ROLE_ASSIGNMENTS to PROJECT_LISTS. §15: Phase SP-4 entry added. Known Stubs updated (removed checklist, matrices, marketing). Column Mappings note updated (+7 list column mappings in use). §16: Added pitfalls #56-60 (2-list checklist join, 88-column marketing mapper, team role upsert, recycle soft delete, _getProjectWeb helper). Files modified: SharePointDataService.ts (+7 column mapping imports, +1 model import, +8 private helpers incl. _getProjectWeb, 22 stub→implementations), columnMappings.ts (+TEAM_ROLE_ASSIGNMENTS_COLUMNS), constants.ts (+TEAM_ROLE_ASSIGNMENTS). |
 | 2026-02-14 | §7, §15 | IDataService method count audit. §7: Total method count corrected from 204→212 (8 methods added in later phases without updating header count). §15: Comprehensive stub audit via grep — corrected counts: 129 implemented, 6 delegation stubs (GraphService/PowerAutomate), 77 pending stubs (21 Pattern A + 56 Pattern B). Total 212. Historical SP chunk entries left as-written; current status sections now reflect audited counts. |
 | 2026-02-14 | §1, §4, §13, §15, §16 | Fluent UI v9 Theming + makeStyles Migration. §1: Added Styling row (Griffel makeStyles + Fluent tokens), updated tsconfig description (+jsx react-jsx). §4: Replaced "Inline CSS Pattern" with "Hybrid CSS Pattern" (makeStyles for structural, inline for dynamic, tokens vs HBC_COLORS rules, mergeClasses for conditional). §13: TRANSITION constant added to tokens.ts (fast/normal/slow). §15: Phase Theme-1 entry (hbcTheme 30+ overrides, globalStyles 40+ classes, 10 component conversions, tsconfig jsx transform). §16: Added pitfalls #61-65 (makeStyles vs inline decision rule, tokens before HBC_COLORS, TRANSITION import, mergeClasses pattern, jsx react-jsx). Files modified: hbcTheme.ts, globalStyles.ts, tokens.ts (+TRANSITION), tsconfig.json (jsx: react-jsx), AppShell.tsx, NavigationSidebar.tsx, DataTable.tsx, KPICard.tsx, PageHeader.tsx, SearchBar.tsx, StageBadge.tsx, StatusBadge.tsx, ExportButtons.tsx, LoadingSpinner.tsx. Zero data service or workflow files touched. |
+| 2026-02-14 | §1, §3, §15, §16 | React 18.2.0 Migration. §1: React 17.0.1→18.2.0, @testing-library/react ^12.1.5→^14.0.0. §3: WebPart render() uses createRoot + Root lifecycle, dev server uses createRoot. §15: Phase React18 entry (package.json overrides, createRoot in WebPart + dev, zero component changes). §16: Added pitfalls #66-68 (npm overrides for SPFx peer deps, createRoot lifecycle, @testing-library/react v14). Files modified: package.json (react 18.2.0, types 18.2.0, +overrides, @testing-library/react ^14), HbcProjectControlsWebPart.ts (createRoot + Root), dev/index.tsx (createRoot). Zero component, style, data-service, or workflow files touched. |
