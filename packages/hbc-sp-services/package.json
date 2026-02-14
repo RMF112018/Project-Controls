@@ -6,7 +6,10 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "clean": "rm -rf lib"
+    "clean": "rm -rf lib",
+    "test": "jest --config jest.config.js",
+    "test:coverage": "jest --config jest.config.js --coverage",
+    "test:ci": "jest --config jest.config.js --coverage --ci"
   },
   "peerDependencies": {
     "@pnp/sp": "^4.4.1",

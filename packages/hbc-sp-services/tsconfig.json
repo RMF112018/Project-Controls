@@ -22,6 +22,6 @@
     "jsx": "react-jsx",
     "isolatedModules": false
   },
-  "include": ["src/**/*.ts", "src/**/*.json"],
+  "include": ["src/**/*.ts", "src/**/*.test.ts", "src/**/*.json"],
   "exclude": ["node_modules", "lib"]
 }
