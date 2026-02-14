@@ -1,15 +1,16 @@
-import * as React from 'react';
-import { useResponsibilityMatrix } from '../../hooks/useResponsibilityMatrix';
-import { useAppContext } from '../../contexts/AppContext';
-import { PERMISSIONS } from '../../../utils/permissions';
 import {
+  PERMISSIONS,
+  AuditAction,
+  EntityType,
   SUB_ROLE_COLUMNS,
   SUB_ROLE_LABELS,
   ASSIGNMENT_CYCLE,
   MatrixAssignment,
-  ISubContractClause,
-} from '../../../models/IResponsibilityMatrix';
-import { AuditAction, EntityType } from '../../../models';
+  ISubContractClause
+} from '@hbc/sp-services';
+import * as React from 'react';
+import { useResponsibilityMatrix } from '../../hooks/useResponsibilityMatrix';
+import { useAppContext } from '../../contexts/AppContext';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';

@@ -6,9 +6,13 @@ import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { AzureADPeoplePicker } from '../../shared/AzureADPeoplePicker';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { StatusBadge } from '../../shared/StatusBadge';
-import { IProjectTeamAssignment, IPermissionTemplate } from '../../../models/IPermissionTemplate';
-import { IPersonAssignment } from '../../../models/IWorkflowDefinition';
-import { AuditAction, EntityType } from '../../../models/enums';
+import {
+  IProjectTeamAssignment,
+  IPermissionTemplate,
+  IPersonAssignment,
+  AuditAction,
+  EntityType
+} from '@hbc/sp-services';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 
 interface IProjectTeamPanelProps {

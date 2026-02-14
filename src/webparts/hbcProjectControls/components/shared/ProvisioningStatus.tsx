@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { HBC_COLORS, SPACING } from '../../theme/tokens';
-import { IProvisioningLog, ProvisioningStatus as ProvStatus, PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS } from '../../models';
+import { IProvisioningLog, ProvisioningStatus as ProvStatus, PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS } from '@hbc/sp-services';
 import { useAppContext } from '../contexts/AppContext';
 import { LoadingSpinner } from './LoadingSpinner';
 

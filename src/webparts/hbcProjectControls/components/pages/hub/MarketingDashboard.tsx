@@ -3,19 +3,24 @@ import { useLocation } from 'react-router-dom';
 import { useMarketingRecord } from '../../hooks/useMarketingRecord';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLeads } from '../../hooks/useLeads';
-import { PERMISSIONS } from '../../../utils/permissions';
+import {
+  PERMISSIONS,
+  buildBreadcrumbs,
+  IMarketingProjectRecord,
+  RoleName,
+  formatCurrency,
+  formatDate,
+  formatPercent
+} from '@hbc/sp-services';
 import { RoleGate } from '../../guards/RoleGate';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { KPICard } from '../../shared/KPICard';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ExportButtons } from '../../shared/ExportButtons';
-import { IMarketingProjectRecord, RoleName } from '../../../models';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
-import { formatCurrency, formatDate, formatPercent } from '../../../utils/formatters';
 
 // ---------------------------------------------------------------------------
 // Styles

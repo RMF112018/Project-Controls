@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IBuyoutEntry } from '../../models/IBuyoutEntry';
-import { ICommitmentApproval } from '../../models/ICommitmentApproval';
+import { IBuyoutEntry, ICommitmentApproval } from '@hbc/sp-services';
 
 export function useCommitmentApproval() {
   const { dataService } = useAppContext();

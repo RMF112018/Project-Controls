@@ -1,6 +1,12 @@
 import * as React from 'react';
-import { IConditionalAssignment, IAssignmentCondition } from '../../models/IWorkflowDefinition';
-import { ConditionField, Region, Division, Sector } from '../../models/enums';
+import {
+  IConditionalAssignment,
+  IAssignmentCondition,
+  ConditionField,
+  Region,
+  Division,
+  Sector
+} from '@hbc/sp-services';
 import { useSectorDefinitions } from '../hooks/useSectorDefinitions';
 import { AzureADPeoplePicker } from './AzureADPeoplePicker';
 import { HBC_COLORS } from '../../theme/tokens';

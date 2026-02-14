@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { ISectorDefinition } from '../../models/ISectorDefinition';
+import { ISectorDefinition } from '@hbc/sp-services';
 
 export interface IUseSectorDefinitions {
   sectors: ISectorDefinition[];

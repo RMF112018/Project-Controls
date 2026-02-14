@@ -7,9 +7,16 @@ import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
-import { ILead, IActionItem, RoleName, AuditAction, EntityType, ActionItemStatus } from '../../../models';
+import {
+  ILead,
+  IActionItem,
+  RoleName,
+  AuditAction,
+  EntityType,
+  ActionItemStatus,
+  buildBreadcrumbs
+} from '@hbc/sp-services';
 import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: '#fff', borderRadius: 8, padding: 24,

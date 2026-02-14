@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { IBuyoutEntry, CompassPreQualStatus, EVerifyStatus } from '../../../models/IBuyoutEntry';
-import { evaluateCommitmentRisk } from '../../../utils/riskEngine';
+import { IBuyoutEntry, CompassPreQualStatus, EVerifyStatus, evaluateCommitmentRisk } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../../theme/tokens';
 
 export interface ICommitmentFormProps {

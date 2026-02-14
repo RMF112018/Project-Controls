@@ -8,11 +8,16 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { ILead, Stage } from '../../models';
+import {
+  ILead,
+  Stage,
+  STAGE_COLORS,
+  STAGE_ORDER,
+  getStageLabel,
+  isArchived,
+  formatCurrencyCompact
+} from '@hbc/sp-services';
 import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
-import { STAGE_COLORS, STAGE_ORDER } from '../../utils/constants';
-import { getStageLabel, isArchived } from '../../utils/stageEngine';
-import { formatCurrencyCompact } from '../../utils/formatters';
 
 interface IPipelineChartProps {
   leads: ILead[];

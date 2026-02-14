@@ -5,16 +5,29 @@ import { useLeads } from '../../hooks/useLeads';
 import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import {
+  buildBreadcrumbs,
+  ILead,
+  Stage,
+  Region,
+  Sector,
+  Division,
+  DepartmentOfOrigin,
+  DeliveryMethod,
+  GoNoGoDecision,
+  AuditAction,
+  EntityType,
+  formatCurrency,
+  formatDate,
+  formatSquareFeet,
+  PERMISSIONS
+} from '@hbc/sp-services';
 import { StageBadge } from '../../shared/StageBadge';
 import { ScoreTierBadge } from '../../shared/ScoreTierBadge';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
-import { ILead, Stage, Region, Sector, Division, DepartmentOfOrigin, DeliveryMethod, GoNoGoDecision, AuditAction, EntityType } from '../../../models';
 import { useSectorDefinitions } from '../../hooks/useSectorDefinitions';
 import { ProvisioningStatusView } from '../../shared/ProvisioningStatus';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
-import { formatCurrency, formatDate, formatSquareFeet } from '../../../utils/formatters';
-import { PERMISSIONS } from '../../../utils/permissions';
 import { useToast } from '../../shared/ToastContainer';
 
 const US_STATES = [

@@ -1,9 +1,8 @@
 import * as React from 'react';
-import { MeetingType } from '../../models/enums';
+import { MeetingType, ICalendarAvailability, ITimeSlot } from '@hbc/sp-services';
 import { useMeetings } from '../hooks/useMeetings';
 import { useAppContext } from '../contexts/AppContext';
 import { HBC_COLORS } from '../../theme/tokens';
-import { ICalendarAvailability, ITimeSlot } from '../../models/IMeeting';
 
 interface IAutopsyMeetingSchedulerProps {
   attendeeEmails: string[];

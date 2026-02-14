@@ -14,7 +14,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "lib",
-    "rootDir": "src",
+    "rootDir": ".",
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -36,12 +36,11 @@
     "paths": {
       "@webparts/*": ["src/webparts/*"],
       "@components/*": ["src/webparts/hbcProjectControls/components/*"],
-      "@services/*": ["src/webparts/hbcProjectControls/services/*"],
-      "@models/*": ["src/webparts/hbcProjectControls/models/*"],
       "@hooks/*": ["src/webparts/hbcProjectControls/components/hooks/*"],
       "@contexts/*": ["src/webparts/hbcProjectControls/components/contexts/*"],
-      "@utils/*": ["src/webparts/hbcProjectControls/utils/*"],
-      "@theme/*": ["src/webparts/hbcProjectControls/theme/*"]
+      "@theme/*": ["src/webparts/hbcProjectControls/theme/*"],
+      "@hbc/sp-services": ["packages/hbc-sp-services/src/index.ts"],
+      "@hbc/sp-services/*": ["packages/hbc-sp-services/src/*"]
     },
     "types": [
       "jest",

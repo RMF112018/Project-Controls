@@ -2,12 +2,17 @@
   "name": "hbc-project-controls",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "main": "lib/index.js",
   "engines": {
     "node": ">=18.17.1 <19.0.0"
   },
   "scripts": {
-    "build": "gulp bundle --ship && gulp package-solution --ship",
+    "build:lib": "cd packages/hbc-sp-services && npm run build",
+    "build:app": "gulp bundle --ship && gulp package-solution --ship",
+    "build": "npm run build:lib && npm run build:app",
     "clean": "gulp clean",
     "test": "jest --config jest.config.js",
     "test:watch": "jest --watch",
@@ -18,11 +23,14 @@
     "package-solution:ship": "gulp package-solution --ship",
     "lint": "eslint src/ --ext .ts,.tsx",
     "lint:fix": "eslint src/ --ext .ts,.tsx --fix",
-    "dev": "webpack serve --config dev/webpack.config.js --mode development"
+    "dev": "webpack serve --config dev/webpack.config.js --mode development",
+    "postinstall": "npm run build:lib",
+    "clean:dev": "rm -rf node_modules packages/hbc-sp-services/node_modules packages/hbc-sp-services/lib dev/dist && npm install"
   },
   "dependencies": {
     "@fluentui/react-components": "^9.46.0",
-    "@fluentui/react-icons": "^2.0.230",
+    "@fluentui/react-icons": "2.0.319",
+    "@hbc/sp-services": "*",
     "@microsoft/sp-core-library": "1.21.1",
     "@microsoft/sp-lodash-subset": "1.21.1",
     "@microsoft/sp-office-ui-fabric-core": "1.21.1",
@@ -40,28 +48,6 @@
     "recharts": "^2.12.3",
     "tslib": "^2.6.2",
     "xlsx": "^0.18.5"
-  },
-  "overrides": {
-    "@fluentui/react-avatar": "9.59.0",
-    "@fluentui/react-badge": "9.59.0",
-    "@fluentui/react-card": "9.59.0",
-    "@fluentui/react-carousel": "9.59.0",
-    "@fluentui/react-checkbox": "9.59.0",
-    "@fluentui/react-dialog": "9.59.0",
-    "@fluentui/react-drawer": "9.59.0",
-    "@fluentui/react-field": "9.59.0",
-    "@fluentui/react-infolabel": "9.59.0",
-    "@fluentui/react-label": "9.59.0",
-    "@fluentui/react-link": "9.59.0",
-    "@fluentui/react-message-bar": "9.59.0",
-    "@fluentui/react-nav": "9.59.0",
-    "@fluentui/react-persona": "9.59.0",
-    "@fluentui/react-radio": "9.59.0",
-    "@fluentui/react-spinner": "9.59.0",
-    "@fluentui/react-switch": "9.59.0",
-    "@fluentui/react-text": "9.59.0",
-    "@fluentui/react-tooltip": "9.59.0",
-    "@fluentui/react-components": "9.59.0"
   },
   "devDependencies": {
     "@microsoft/eslint-config-spfx": "1.21.1",
@@ -82,17 +68,23 @@
     "eslint-plugin-react": "^7.34.1",
     "eslint-plugin-react-hooks": "^4.6.0",
     "gulp": "^4.0.2",
+    "html-webpack-plugin": "^5.6.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "ts-jest": "^29.1.2",
+    "ts-loader": "^9.5.1",
     "typescript": "~5.3.3",
     "webpack": "^5.90.0",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^5.0.0",
-    "html-webpack-plugin": "^5.6.0",
-    "ts-loader": "^9.5.1"
+    "webpack-dev-server": "^5.0.0"
   },
   "volta": {
     "node": "22.14.0"
+  },
+  "overrides": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "scheduler": "^0.23.2",
+    "@fluentui/react-icons": "2.0.319"
   }
 }

@@ -5,12 +5,9 @@ import { useComplianceLog } from '../../hooks/useComplianceLog';
 import { useResponsive } from '../../hooks/useResponsive';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import { buildBreadcrumbs, IComplianceEntry, EVerifyStatus, CommitmentStatus } from '@hbc/sp-services';
 import { KPICard } from '../../shared/KPICard';
 import { ExportButtons } from '../../shared/ExportButtons';
-import { IComplianceEntry } from '../../../models/IComplianceSummary';
-import { EVerifyStatus } from '../../../models/IBuyoutEntry';
-import { CommitmentStatus } from '../../../models/ICommitmentApproval';
 
 // ---------------------------------------------------------------------------
 // Helpers

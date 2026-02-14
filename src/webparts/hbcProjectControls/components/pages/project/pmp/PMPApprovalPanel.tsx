@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { HBC_COLORS, ELEVATION } from '../../../../theme/tokens';
-import { IProjectManagementPlan, IPMPApprovalCycle } from '../../../../models/IProjectManagementPlan';
+import { IProjectManagementPlan, IPMPApprovalCycle } from '@hbc/sp-services';
 
 interface IPMPApprovalPanelProps {
   pmp: IProjectManagementPlan;

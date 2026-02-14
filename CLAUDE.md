@@ -25,7 +25,11 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
+<<<<<<< extract-common-services
+**Last Updated:** 2026-02-14 — Fix `@hbc/sp-services` import resolution (workspace symlink, lib build, SPFx alias)
+=======
 **Last Updated:** 2026-02-14 — GitHub Actions CI/CD Pipeline
+>>>>>>> main
 
 ---
 
@@ -47,6 +51,7 @@
 | Lint | eslint ^8.57.0, @microsoft/eslint-config-spfx 1.21.1 |
 | Node (Volta) | 22.14.0 |
 | Code Splitting | React.lazy() + Suspense — 40 page components lazy-loaded, shell in main bundle |
+| Monorepo | npm workspaces — `packages/hbc-sp-services` (data layer) consumed by app |
 | Node (engines) | >=18.17.1 <19.0.0 |
 
 ### Build Commands
@@ -56,7 +61,9 @@ gulp serve --nobrowser          # SPFx local workbench
 gulp bundle --ship              # Production bundle
 gulp package-solution --ship    # Create .sppkg
 npm run dev                     # Standalone dev server (port 3000)
-npm run build                   # bundle --ship + package-solution --ship
+npm run build:lib               # Build @hbc/sp-services library only
+npm run build:app               # SPFx bundle --ship + package-solution --ship
+npm run build                   # build:lib then build:app (full pipeline)
 npm run test                    # Jest tests
 npm run lint                    # ESLint
 ```
@@ -80,7 +87,8 @@ npm run lint                    # ESLint
 | config/serve.json | Port 4321, HTTPS, initial workbench page |
 | config/config.json | Bundle entry: ./lib/webparts/hbcProjectControls/HbcProjectControlsWebPart.js |
 | tsconfig.json | Target es2017, module esnext, jsx react-jsx, path aliases (@components/*, @services/*, etc.) |
-| gulpfile.js | SPFx build, suppresses SASS non-camelCase warning |
+| gulpfile.js | SPFx build, suppresses SASS non-camelCase warning, @hbc/sp-services webpack alias |
+| .npmrc | legacy-peer-deps=true (SPFx + React 18 peer dep conflicts) |
 | dev/webpack.config.js | Dev server port 3000, REACT_APP_USE_MOCK=true |
 | dev/tsconfig.json | Extends root tsconfig, includes dev/**/* |
 
@@ -90,12 +98,13 @@ npm run lint                    # ESLint
 |-------|--------|
 | @webparts/* | src/webparts/* |
 | @components/* | src/webparts/hbcProjectControls/components/* |
-| @services/* | src/webparts/hbcProjectControls/services/* |
-| @models/* | src/webparts/hbcProjectControls/models/* |
 | @hooks/* | src/webparts/hbcProjectControls/components/hooks/* |
 | @contexts/* | src/webparts/hbcProjectControls/components/contexts/* |
-| @utils/* | src/webparts/hbcProjectControls/utils/* |
 | @theme/* | src/webparts/hbcProjectControls/theme/* |
+| @hbc/sp-services | packages/hbc-sp-services/src/index.ts |
+| @hbc/sp-services/* | packages/hbc-sp-services/src/* |
+
+**Removed aliases:** `@services/*`, `@models/*`, `@utils/*` — these now live in `@hbc/sp-services`.
 
 ---
 
@@ -120,7 +129,7 @@ src/webparts/hbcProjectControls/
 │   │   ├── ProjectRequiredRoute.tsx      # Shows "No Project Selected" if no selectedProject
 │   │   ├── RoleGate.tsx                  # Renders children only if user has allowed role
 │   │   └── index.ts
-│   ├── hooks/                             # 38 custom hooks (see §7 for service method mapping)
+│   ├── hooks/                             # 39 custom hooks (see §7 for service method mapping)
 │   │   ├── useActionInbox.ts             # Action inbox aggregation with auto-refresh
 │   │   ├── useActiveProjects.ts          # Active projects portfolio
 │   │   ├── useAssignmentMappings.ts     # Assignment mapping CRUD + resolution
@@ -155,6 +164,7 @@ src/webparts/hbcProjectControls/
 │   │   ├── useTabFromUrl.ts            # URL-synced tab state for deep linking
 │   │   ├── useTurnoverAgenda.ts       # Turnover meeting agenda CRUD + computed state + workflow
 │   │   ├── useWorkflow.ts              # Composite workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy, stage transitions)
+│   │   ├── usePerformanceMetrics.ts      # Performance dashboard data + auto-refresh
 │   │   ├── usePermissionEngine.ts     # Permission engine hook
 │   │   ├── useProvisioningTracker.ts  # Provisioning log aggregation + summary KPIs for dashboard widget
 │   │   ├── useProvisioningValidation.ts # Centralized pre-provisioning validation composing validators.ts
@@ -178,6 +188,7 @@ src/webparts/hbcProjectControls/
 │   │   │   ├── LeadDetailPage.tsx
 │   │   │   ├── LeadFormPage.tsx
 │   │   │   ├── MarketingDashboard.tsx
+│   │   │   ├── PerformanceDashboard.tsx
 │   │   │   ├── PermissionTemplateEditor.tsx
 │   │   │   ├── PipelinePage.tsx
 │   │   │   ├── ProjectAssignmentsPanel.tsx
@@ -263,46 +274,15 @@ src/webparts/hbcProjectControls/
 │       ├── WorkflowPreview.tsx
 │       ├── WorkflowStepCard.tsx
 │       └── index.ts
-├── mock/                                  # 41 JSON mock data files (see §12)
-├── models/                                # 45 TypeScript model files (see §6)
-│   ├── enums.ts                          # All shared enums (31 enums)
-│   ├── I*.ts                             # Interface files (one per entity)
-│   └── index.ts                          # Barrel export
 ├── provisioning/
 │   └── site-template.json                # SP site template definition
-├── services/
-│   ├── IDataService.ts                   # Service interface (192 methods)
-│   ├── MockDataService.ts               # Mock implementation (all 192 implemented)
-│   ├── SharePointDataService.ts         # SP implementation (49 implemented, 143 stubs)
-│   ├── AuditService.ts                  # Fire-and-forget audit queue with 2s debounce
-│   ├── CacheService.ts                  # Two-tier cache (memory + sessionStorage), 15min TTL
-│   ├── columnMappings.ts                # SP column name mappings for all lists (1267 lines)
-│   ├── ExportService.ts                 # PDF/Excel/CSV export with branded headers
-│   ├── GraphService.ts                  # MS Graph: users, photos, calendar, mail, Teams
-│   ├── HubNavigationService.ts          # Hub site nav link management (Mock + SP stub)
-│   ├── NotificationService.ts           # Event-driven notification builder (20+ event types)
-│   ├── OfflineQueueService.ts           # Offline write queue, auto-retry 30s, max 100 items
-│   ├── PowerAutomateService.ts          # HTTP triggers: provisioning, notification, archive flows
-│   ├── ProvisioningService.ts           # 7-step SP site provisioning with retry
-│   └── index.ts
 ├── theme/
 │   ├── globalStyles.ts                   # Global CSS injection
 │   ├── hbcTheme.ts                      # Fluent UI v9 theme
 │   └── tokens.ts                        # HBC_COLORS, BREAKPOINTS, SPACING, ELEVATION, TRANSITION
-└── utils/
-    ├── breadcrumbs.ts                    # Route-to-breadcrumb builder
-    ├── buyoutTemplate.ts                 # 20 standard buyout divisions (CSI MasterFormat)
-    ├── constants.ts                      # HUB_LISTS, PROJECT_LISTS, ROUTES, STAGE_ORDER, STAGE_COLORS, etc.
-    ├── estimatingKickoffTemplate.ts     # 3 sections, 58 template items
-    ├── turnoverAgendaTemplate.ts        # Default prerequisites, discussion items, exhibits, signatures
-    ├── formatters.ts                     # Currency, date, number, percentage, relative time formatters
-    ├── permissions.ts                    # PERMISSIONS, ROLE_PERMISSIONS, NAV_GROUP_ROLES
-    ├── riskEngine.ts                     # Commitment risk assessment ($50k bond, $250k escalation)
-    ├── scoreCalculator.ts               # Go/No-Go score totals and tier calculation
-    ├── siteDetector.ts                  # Hub vs project site detection from URL
-    ├── stageEngine.ts                   # Stage transition state machine (11 stages)
-    ├── toolPermissionMap.ts             # Tool permission map: 23 tool definitions, resolveToolPermissions()
-    └── validators.ts                    # Lead form, project code (yy-nnn-0m), email validation
+│
+│   NOTE: models/, services/, utils/, mock/ have moved to packages/hbc-sp-services/src/
+│   All app code imports from '@hbc/sp-services' instead of relative paths.
 ```
 
 ### dev/
@@ -320,6 +300,29 @@ dev/
 │   ├── sp-property-pane.ts   # Shim for @microsoft/sp-property-pane
 │   └── sp-webpart-base.ts   # Shim for @microsoft/sp-webpart-base
 └── dist/                     # Built dev output (gitignored)
+```
+
+### packages/hbc-sp-services/ (shared data layer library)
+
+```
+packages/hbc-sp-services/
+├── package.json              # @hbc/sp-services, private, peerDeps on @pnp/*
+├── tsconfig.json             # Standalone config (target es2017, module esnext)
+├── src/
+│   ├── index.ts              # Public barrel: re-exports models + services + utils + MOCK_USERS
+│   ├── models/               # 45 files — all I*.ts + enums.ts + index.ts (see §6)
+│   ├── services/             # 15 files — all service classes + index.ts (see §7)
+│   │   ├── IDataService.ts   # Service interface (215 methods)
+│   │   ├── MockDataService.ts # Mock implementation (all 215 implemented)
+│   │   ├── SharePointDataService.ts # SP implementation (129 impl, 80 stubs, 6 delegation)
+│   │   ├── AuditService.ts, CacheService.ts, ExportService.ts
+│   │   ├── GraphService.ts, HubNavigationService.ts, NotificationService.ts
+│   │   ├── OfflineQueueService.ts, PerformanceService.ts, PowerAutomateService.ts, ProvisioningService.ts
+│   │   ├── columnMappings.ts  # SP column name mappings for all lists (1267 lines)
+│   │   └── index.ts
+│   ├── utils/                # 13 files — all utility functions (see §13)
+│   └── mock/                 # 42 JSON files — mock data (see §12)
+└── lib/                      # Compiled output (gitignored)
 ```
 
 ### config/
@@ -393,7 +396,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | Component Tree | `FluentProvider` → `ErrorBoundary` → `AppProvider(dataService, siteUrl?)` → `HashRouter` → `AppShell` → `Suspense(PageLoader)` → `AppRoutes` |
 | Router Type | `HashRouter` from react-router-dom |
 | Code Splitting | 40 page components lazy-loaded via `React.lazy()` + `lazyNamed()` helper; shell/guards/providers in main bundle |
-| Route Count | 49 routes (see §8) |
+| Route Count | 50 routes (see §8) |
 
 ---
 
@@ -607,6 +610,10 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | IResolvedPermissions | models/IPermissionTemplate.ts | userId, projectCode, templateId, templateName, source, toolLevels, granularFlags, permissions: Set<string>, globalAccess | — | — |
 | IEnvironmentConfig | models/IEnvironmentConfig.ts | currentTier: EnvironmentTier, label, color, isReadOnly, promotionHistory: IPromotionRecord[] | Environment_Config | Hub |
 | IPromotionRecord | models/IEnvironmentConfig.ts | fromTier: EnvironmentTier, toTier: EnvironmentTier, promotedBy, promotedDate, templateCount | — | — |
+| IPerformanceLog | models/IPerformanceLog.ts | id, SessionId, Timestamp, UserEmail, SiteUrl, ProjectCode?, IsProjectSite, WebPartLoadMs, AppInitMs, DataFetchMs?, TotalLoadMs, Marks: IPerformanceMark[], UserAgent, SpfxVersion | Performance_Logs | Hub |
+| IPerformanceMark | models/IPerformanceLog.ts | name, startTime, endTime, durationMs | — | — |
+| IPerformanceQueryOptions | models/IPerformanceLog.ts | startDate?, endDate?, userEmail?, siteUrl?, minLoadMs? | — | — |
+| IPerformanceSummary | models/IPerformanceLog.ts | totalSessions, avgWebPartLoadMs, avgAppInitMs, avgTotalLoadMs, p95TotalLoadMs, slowSessionCount, sessionsByDay | — | — |
 
 ### Enums (models/enums.ts)
 
@@ -625,8 +632,8 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | RoleName | BDRepresentative, EstimatingCoordinator, AccountingManager, PreconstructionTeam, OperationsTeam, ExecutiveLeadership, Legal, RiskManagement, Marketing, QualityControl, Safety, IDS, DepartmentDirector, SharePointAdmin |
 | ProvisioningStatus | Queued, InProgress, Completed, PartialFailure, Failed |
 | TurnoverStatus | Draft, PrerequisitesInProgress, MeetingScheduled, MeetingComplete, PendingSignatures, Signed, Complete |
-| AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved, TurnoverAgendaCreated, TurnoverPrerequisiteCompleted, TurnoverItemDiscussed, TurnoverSubcontractorAdded, TurnoverSubcontractorRemoved, TurnoverExhibitReviewed, TurnoverExhibitAdded, TurnoverExhibitRemoved, TurnoverSigned, TurnoverAgendaCompleted, HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated, TemplateCreated, TemplateUpdated, TemplateDeleted, ProjectTeamAssigned, ProjectTeamRemoved, ProjectTeamOverridden, SecurityGroupMappingChanged, PermissionResolved, ScorecardArchived, LeadFolderCreated, AssignmentMappingUpdated, GraphApiCallSucceeded, GraphApiCallFailed, GraphGroupMemberAdded, GraphGroupMemberAddFailed |
-| EntityType | Lead, Scorecard, Estimate, Project, Permission, Config, Checklist, Matrix, ProjectRecord, RiskCost, Quality, Safety, Schedule, SuperintendentPlan, LessonLearned, PMP, MonthlyReview, WorkflowDefinition, TurnoverAgenda, PermissionTemplate, ProjectTeamAssignment, AssignmentMapping, GraphApi |
+| AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved, TurnoverAgendaCreated, TurnoverPrerequisiteCompleted, TurnoverItemDiscussed, TurnoverSubcontractorAdded, TurnoverSubcontractorRemoved, TurnoverExhibitReviewed, TurnoverExhibitAdded, TurnoverExhibitRemoved, TurnoverSigned, TurnoverAgendaCompleted, HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated, TemplateCreated, TemplateUpdated, TemplateDeleted, ProjectTeamAssigned, ProjectTeamRemoved, ProjectTeamOverridden, SecurityGroupMappingChanged, PermissionResolved, ScorecardArchived, LeadFolderCreated, AssignmentMappingUpdated, GraphApiCallSucceeded, GraphApiCallFailed, GraphGroupMemberAdded, GraphGroupMemberAddFailed, PerformanceLogRecorded, PerformanceAlertTriggered |
+| EntityType | Lead, Scorecard, Estimate, Project, Permission, Config, Checklist, Matrix, ProjectRecord, RiskCost, Quality, Safety, Schedule, SuperintendentPlan, LessonLearned, PMP, MonthlyReview, WorkflowDefinition, TurnoverAgenda, PermissionTemplate, ProjectTeamAssignment, AssignmentMapping, GraphApi, Performance |
 | DeliverableStatus | NotStarted, InProgress, InReview, Complete |
 | ActionItemStatus | Open, InProgress, Complete |
 | Priority | Low, Medium, High, Critical |
@@ -689,7 +696,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 
 ## §7 Service Methods
 
-212 methods on IDataService. Source: `services/IDataService.ts`
+215 methods on IDataService. Source: `services/IDataService.ts`
 
 | # | Method | Signature | Mock | SP | Hook Caller | Mock JSON |
 |---|--------|-----------|------|-----|-------------|-----------|
@@ -897,6 +904,9 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 201 | setProjectSiteUrl | (siteUrl: string \| null) → void | Impl | Impl | AppContext | — |
 | 202 | getAllProjectTeamAssignments | () → Promise<IProjectTeamAssignment[]> | Impl | Impl | usePermissionEngine | projectTeamAssignments.json |
 | 203 | inviteToProjectSiteGroup | (projectCode: string, userEmail: string, role: string) → Promise<void> | Impl | Impl | usePermissionEngine | in-memory |
+| 204 | logPerformanceEntry | (entry: Partial<IPerformanceLog>) → Promise<IPerformanceLog> | Impl | Stub | usePerformanceMetrics | in-memory |
+| 205 | getPerformanceLogs | (options?: IPerformanceQueryOptions) → Promise<IPerformanceLog[]> | Impl | Stub | usePerformanceMetrics | in-memory |
+| 206 | getPerformanceSummary | (options?: IPerformanceQueryOptions) → Promise<IPerformanceSummary> | Impl | Stub | usePerformanceMetrics | aggregated |
 
 ---
 
@@ -953,6 +963,7 @@ Source: `components/App.tsx`
 | /job-request/:leadId | JobNumberRequestForm | pages/hub/JobNumberRequestForm.tsx | No | — | — |
 | /accounting-queue | AccountingQueuePage | pages/hub/AccountingQueuePage.tsx | No | ACCOUNTING_QUEUE_VIEW | — |
 | /admin | AdminPanel | pages/hub/AdminPanel.tsx | No | ADMIN_CONFIG | — |
+| /admin/performance | PerformanceDashboard | pages/hub/PerformanceDashboard.tsx | No | ADMIN_CONFIG | PerformanceMonitoring |
 | /access-denied | AccessDeniedPage | pages/shared/AccessDeniedPage.tsx | No | — | — |
 | * | NotFoundPage | (inline in App.tsx) | No | — | — |
 
@@ -1006,7 +1017,8 @@ Operations                                   [roles: Ops Team, Exec Leadership, 
       └── Lessons Learned                     [/operations/lessons-learned, requiresProject]
 ─────────────────────────────────────────────
 Admin                                        [roles: Executive Leadership]
-  └── Admin Panel                             [/admin, permission: admin:config]
+  ├── Admin Panel                             [/admin, permission: admin:config]
+  └── Performance                             [/admin/performance, permission: admin:config, featureFlag: PerformanceMonitoring]
 ```
 
 Items with `requiresProject` are disabled (grayed out) when no project is selected. Items with `permission` are hidden if user lacks that permission. Items with `hubOnly` are hidden when a project is selected (both hub-with-selection and project-site modes). Items with `featureFlag` are hidden if that feature flag is disabled (checked via `isFeatureEnabled()`). Dynamic items (Lead Detail, Go/No-Go) appear under Preconstruction only when `selectedProject?.leadId` is set.
@@ -1146,6 +1158,7 @@ Source: `mock/featureFlags.json`
 | MonthlyProjectReview | 21 | Monthly Project Review | true | Project Execution | Monthly project review |
 | WorkflowDefinitions | 22 | Workflow Definitions | true | Preconstruction | Workflow definition configuration |
 | PermissionEngine | 23 | Permission Engine | true | Infrastructure | Permission engine: template-based authorization, project access scoping |
+| PerformanceMonitoring | 24 | Performance Monitoring | false | Infrastructure | Performance telemetry logging + admin dashboard |
 
 ---
 
@@ -1164,7 +1177,7 @@ Source: `mock/`
 | divisionApprovers.json | IDivisionApprover | 2 | N/A |
 | estimating.json | IEstimatingTracker | 23 | 25-038-01, 25-035-01, 25-041-01, 25-039-01, 25-033-01, 26-004-01, 26-005-01, 25-030-01, 25-028-01, 25-012-01, 24-052-01, 24-042-01, 24-078-01, 24-008-01, 25-022-01, 25-025-01, 25-019-01, 25-015-01, 25-020-01, 25-027-01, 26-001-01, 25-018-01, 25-010-01 |
 | estimatingKickoffs.json | IEstimatingKickoff | 1 | 25-042-01 |
-| featureFlags.json | IFeatureFlag (with Category) | 23 | N/A |
+| featureFlags.json | IFeatureFlag (with Category) | 24 | N/A |
 | internalMatrix.json | IInternalMatrixTask + ITeamRoleAssignment + IRecurringCalendarItem | 100 | 25-042-01 |
 | jobNumberRequests.json | IJobNumberRequest | 3 | N/A (TempProjectCode: 25-041-01) |
 | leads.json | ILead | 29 | 25-038-01, 25-035-01, 25-041-01, 25-039-01, 25-033-01, 25-030-01, 25-028-01, 25-012-01, 24-078-01, 24-052-01, 24-042-01, 24-008-01, 23-065-01, 25-042-01 |
@@ -1240,6 +1253,7 @@ Source: `utils/constants.ts`, `theme/tokens.ts`
   PROJECT_TEAM_ASSIGNMENTS: 'Project_Team_Assignments',
   SECTOR_DEFINITIONS: 'Sector_Definitions',
   ASSIGNMENT_MAPPINGS: 'Assignment_Mappings',
+  PERFORMANCE_LOGS: 'Performance_Logs',
 }
 ```
 
@@ -1379,6 +1393,7 @@ Source: `utils/constants.ts`, `theme/tokens.ts`
   JOB_REQUEST_LEAD: '/job-request/:leadId',
   ACCOUNTING_QUEUE: '/accounting-queue',
   ADMIN: '/admin',
+  ADMIN_PERFORMANCE: '/admin/performance',
   ACCESS_DENIED: '/access-denied',
 }
 ```
@@ -1400,6 +1415,8 @@ SPACING = { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px
 BD_LEADS_SITE_URL = 'https://hedrickbrotherscom.sharepoint.com/sites/PXPortfolioDashboard'
 BD_LEADS_LIBRARY = 'BD Leads'
 BD_LEADS_SUBFOLDERS = ['Client Information', 'Correspondence', 'Proposal Documents', 'Site and Project Plans', 'Financial Estimates', 'Evaluations and Scorecards', 'Contracts and Legal', 'Media and Visuals', 'Archives']
+
+PERFORMANCE_THRESHOLDS = { SLOW_SESSION_MS: 5000, WARNING_MS: 3000 }
 ```
 
 ### UI Constants (theme/tokens.ts)
@@ -1428,19 +1445,22 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 ### New Feature Workflow (Standard Sequence)
 
-1. **Model** — Create `models/INewEntity.ts` with interface, add to `models/index.ts` barrel
-2. **Mock JSON** — Create `mock/newEntities.json` with sample data
-3. **Service Methods** — Add methods to `services/IDataService.ts` interface
-4. **MockDataService** — Implement methods in `services/MockDataService.ts` reading from mock JSON
-5. **SharePointDataService** — Add stubs in `services/SharePointDataService.ts`
-6. **Column Mappings** — Add to `services/columnMappings.ts` if new SP list
-7. **Hook** — Create `components/hooks/useNewEntity.ts`, add to `hooks/index.ts` barrel
+Steps 1-6 modify `packages/hbc-sp-services/` (the shared library). Steps 7-12 modify the app (`src/`).
+
+1. **Model** — Create `packages/hbc-sp-services/src/models/INewEntity.ts`, add to `models/index.ts` barrel
+2. **Mock JSON** — Create `packages/hbc-sp-services/src/mock/newEntities.json` with sample data
+3. **Service Methods** — Add methods to `packages/hbc-sp-services/src/services/IDataService.ts`
+4. **MockDataService** — Implement in `packages/hbc-sp-services/src/services/MockDataService.ts`
+5. **SharePointDataService** — Add stubs in `packages/hbc-sp-services/src/services/SharePointDataService.ts`
+6. **Column Mappings** — Add to `packages/hbc-sp-services/src/services/columnMappings.ts` if new SP list
+7. **Hook** — Create `src/.../components/hooks/useNewEntity.ts`, add to `hooks/index.ts` barrel
 8. **Component** — Create page component in appropriate `pages/` subdirectory, add to its `index.ts`
 9. **Route** — Add route in `components/App.tsx`
 10. **Navigation** — Add nav item in `components/layouts/NavigationSidebar.tsx`
-11. **Constants** — Add list name to `HUB_LISTS` or `PROJECT_LISTS` in `utils/constants.ts` if new SP list
-12. **Permissions** — Add permission keys to `utils/permissions.ts` if new access control needed
-13. **Update CLAUDE.md** — Update all affected sections
+11. **Constants** — Add list name to `HUB_LISTS` or `PROJECT_LISTS` in `packages/hbc-sp-services/src/utils/constants.ts`
+12. **Permissions** — Add permission keys to `packages/hbc-sp-services/src/utils/permissions.ts`
+13. **Barrel** — If adding new util exports, add to `packages/hbc-sp-services/src/index.ts`
+14. **Update CLAUDE.md** — Update all affected sections
 
 ---
 
@@ -1504,11 +1524,17 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 | Perf-1 | Route-based Code Splitting — Replaced 40 static page imports in App.tsx with `React.lazy()` + `lazyNamed()` helper for named-export modules. Single `React.Suspense` boundary wraps `<Routes>` with `<PageLoader />` fallback (centered Fluent Spinner, makeStyles). Shell stays in main bundle: FluentProvider, AppProvider, HashRouter, AppShell, NavigationSidebar, ErrorBoundary, ToastProvider, guards (ProtectedRoute, ProjectRequiredRoute, FeatureGate), NotFoundPage, AccessDeniedPage. 2 dead imports removed (GoNoGoTracker, PreconKickoff — were imported but never routed). Zero route guard, service, model, or styling changes. `tsc --noEmit` clean. | PageLoader.tsx | App.tsx (40 static→lazy imports, +Suspense boundary, +lazyNamed helper, -2 dead imports), shared/PageLoader.tsx (new), shared/index.ts (+PageLoader export) |
 
+<<<<<<< extract-common-services
+| Lib-1 | Extract `@hbc/sp-services` Shared Library — Moved 114 files (45 models + 14 services + 13 utils + 42 mock JSON) from `src/webparts/hbcProjectControls/` into `packages/hbc-sp-services/src/` as a standalone npm workspace package. Monorepo structure via npm workspaces (`"workspaces": ["packages/*"]`). Package barrel `index.ts` re-exports all models, services, utils, and `MOCK_USERS` from mock/users.json. All ~106 app files rewritten from relative imports (`../../models`, `../../services/*`, `../../utils/*`) to `from '@hbc/sp-services'`. Duplicate imports consolidated. Root tsconfig `rootDir` changed from `"src"` to `"."` to accommodate path alias resolution into packages/. Old path aliases (`@services/*`, `@models/*`, `@utils/*`) removed; new `@hbc/sp-services` alias added. Webpack dev config updated. `tsc --noEmit` passes on all 3 tsconfigs (root, dev, package). Webpack dev build compiles successfully. Zero model, service, utility, or component logic changes — purely structural refactor. | packages/hbc-sp-services/ (package.json, tsconfig.json, src/index.ts) | ~106 app files (import rewrites), package.json (workspaces, dependency, build scripts), tsconfig.json (rootDir, paths), dev/webpack.config.js (aliases), services/index.ts (added missing singleton/type exports), AzureADPeoplePicker.tsx (MOCK_USERS import), PursuitDetail.tsx (inline import type fix) |
+=======
 | CI-1 | GitHub Actions CI/CD Pipeline — ci.yml (full build on push/PR with .sppkg artifact upload), release.yml (tag-triggered GitHub Release with .sppkg asset), pr-validation.yml (fast type-check + lint for PRs), dependabot.yml (weekly npm + GitHub Actions updates, SPFx packages pinned to patch-only). Node 18.18.2 in CI (within engines range). Zero source code files touched. | .github/workflows/ci.yml, .github/workflows/release.yml, .github/workflows/pr-validation.yml, .github/dependabot.yml | CLAUDE.md (§1 +CI/CD table, §2 +.github dir, §15 +Phase CI-1) |
+>>>>>>> main
+
+| Perf-2 | Performance Monitoring — Admin performance dashboard with telemetry logging. PerformanceService singleton (mark-based timing for WebPart load, App init, data fetch). IPerformanceLog model (session metrics, marks array, user agent, SPFx version). usePerformanceMetrics hook (30s auto-refresh, date range filter, summary KPIs). PerformanceDashboard page (Recharts line+bar charts, session table, p95/avg metrics, slow session alerts). Feature-flagged via PerformanceMonitoring (id: 24, default: false). | IPerformanceLog.ts, PerformanceService.ts, usePerformanceMetrics.ts, PerformanceDashboard.tsx | IDataService.ts (+3 methods, 215 total), MockDataService.ts (+3 implementations), SharePointDataService.ts (+3 stubs), enums.ts (+2 AuditAction, +1 EntityType), models/index.ts, services/index.ts, featureFlags.json (+id:24), constants.ts (+PERFORMANCE_LOGS, +ADMIN_PERFORMANCE, +PERFORMANCE_THRESHOLDS), columnMappings.ts (+PERFORMANCE_LOGS_COLUMNS), App.tsx (+1 lazy route), NavigationSidebar.tsx (+Performance nav item), hooks/index.ts (+1 export), pages/hub/index.ts (+1 export) |
 
 ### Known Stubs / Placeholders
 
-- **SharePointDataService**: 83 of 212 methods are stubs. Breakdown: 21 Pattern A stubs (`[STUB]` console.warn + empty return), 56 Pattern B stubs (`implementation pending` throw), 6 delegation stubs (intentionally delegate to GraphService/PowerAutomate — will never be SP list operations). Remaining stubs: all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP (7), all monthly review (4), all estimating kickoff (8 incl. updateKickoffKeyPersonnel), all job number requests (4), all turnover agenda (16), all sector definitions (2 mutations), all assignment mappings (3 mutations), reference data (2), scorecard workflow (7), scorecard archive (2), action inbox (SP). `setProjectSiteUrl()` is implemented (creates cross-site Web via `_getProjectWeb()`). All Pattern A stubs log `console.warn('[STUB] methodName not implemented')`. All Pattern B stubs throw `Error('SharePoint implementation pending: methodName')`. Delegation stubs: getCalendarAvailability, createMeeting, getMeetings (→GraphService), sendNotification, getNotifications (→PowerAutomate), purgeOldAuditEntries (→Power Automate scheduled flow).
+- **SharePointDataService**: 86 of 215 methods are stubs. Breakdown: 24 Pattern A stubs (`[STUB]` console.warn + empty return), 56 Pattern B stubs (`implementation pending` throw), 6 delegation stubs (intentionally delegate to GraphService/PowerAutomate — will never be SP list operations). Remaining stubs: all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP (7), all monthly review (4), all estimating kickoff (8 incl. updateKickoffKeyPersonnel), all job number requests (4), all turnover agenda (16), all sector definitions (2 mutations), all assignment mappings (3 mutations), reference data (2), scorecard workflow (7), scorecard archive (2), action inbox (SP), performance monitoring (3). `setProjectSiteUrl()` is implemented (creates cross-site Web via `_getProjectWeb()`). All Pattern A stubs log `console.warn('[STUB] methodName not implemented')`. All Pattern B stubs throw `Error('SharePoint implementation pending: methodName')`. Delegation stubs: getCalendarAvailability, createMeeting, getMeetings (→GraphService), sendNotification, getNotifications (→PowerAutomate), purgeOldAuditEntries (→Power Automate scheduled flow).
 - **HubNavigationService**: SharePointHubNavigationService is a stub (all 3 methods throw).
 - **Column Mappings**: `columnMappings.ts` has mappings for all lists. Permission Templates, Security Group Mappings, Project Team Assignments, Provisioning Log, Workflow Definitions (4 lists), Startup Checklist, Checklist Activity Log, Internal Matrix, Team Role Assignments, Owner Contract Matrix, Sub Contract Matrix, and Marketing Project Records now use column mappings in SharePointDataService.
 - **Offline Support**: `OfflineQueueService.ts` exists but feature flag `OfflineSupport` is disabled.
@@ -1519,9 +1545,9 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 ### SharePointDataService Status
 
-- **Implemented (129 of 212)**: Leads CRUD, Go/No-Go CRUD (base 5), Estimating CRUD, Roles/Flags CRUD, Audit log/read, **Provisioning CRUD** (trigger/update/retry/read/list), Phase 6 workflow (team, deliverables, interview, contract, turnover items, closeout, loss autopsy — 17 methods), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read/write, **getCurrentUser** (Phase 31), **Permission Templates CRUD** (5), **Security Group Mappings CRUD** (3), **Project Team Assignments CRUD + soft delete** (7), **inviteToProjectSiteGroup** (fire-and-forget SP group add), **resolveUserPermissions** (full resolution chain), **getAccessibleProjects** (computed), **getEnvironmentConfig** (with fallback), **promoteTemplates** (batch update + config write), **BD Leads folder ops** (create/check/mkdir/rename via cross-site Web()), **syncDenormalizedFields** (5-list batch), **promoteToHub** (cross-site lessons + PMP close), **rekeyProjectCode** (6-list batch), **Workflow Definitions CRUD** (10 — definitions read/assembly, step/conditional mutations, override upsert, resolveWorkflowChain 4-tier resolution), **Startup Checklist CRUD** (4 — 2-list join for reads with activity log grouping), **Internal Matrix CRUD** (4), **Team Role Assignments** (2 — upsert by role), **Owner Contract Matrix CRUD** (4), **Sub-Contract Matrix CRUD** (4), **Marketing Project Records CRUD** (4 — 88-column mapping with JSON array parse/stringify)
+- **Implemented (129 of 215)**: Leads CRUD, Go/No-Go CRUD (base 5), Estimating CRUD, Roles/Flags CRUD, Audit log/read, **Provisioning CRUD** (trigger/update/retry/read/list), Phase 6 workflow (team, deliverables, interview, contract, turnover items, closeout, loss autopsy — 17 methods), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read/write, **getCurrentUser** (Phase 31), **Permission Templates CRUD** (5), **Security Group Mappings CRUD** (3), **Project Team Assignments CRUD + soft delete** (7), **inviteToProjectSiteGroup** (fire-and-forget SP group add), **resolveUserPermissions** (full resolution chain), **getAccessibleProjects** (computed), **getEnvironmentConfig** (with fallback), **promoteTemplates** (batch update + config write), **BD Leads folder ops** (create/check/mkdir/rename via cross-site Web()), **syncDenormalizedFields** (5-list batch), **promoteToHub** (cross-site lessons + PMP close), **rekeyProjectCode** (6-list batch), **Workflow Definitions CRUD** (10 — definitions read/assembly, step/conditional mutations, override upsert, resolveWorkflowChain 4-tier resolution), **Startup Checklist CRUD** (4 — 2-list join for reads with activity log grouping), **Internal Matrix CRUD** (4), **Team Role Assignments** (2 — upsert by role), **Owner Contract Matrix CRUD** (4), **Sub-Contract Matrix CRUD** (4), **Marketing Project Records CRUD** (4 — 88-column mapping with JSON array parse/stringify)
 - **Delegation stubs (6)**: getCalendarAvailability, createMeeting, getMeetings (→GraphService), sendNotification, getNotifications (→PowerAutomate), purgeOldAuditEntries (→Power Automate flow) — intentionally NOT SP list operations
-- **Stubbed (77)**: All risk/cost/quality/safety/schedule (10), all superintendent plan (3), all lessons learned (3), all PMP incl. signPMP/getDivisionApprovers/getPMPBoilerplate (7), all monthly review (4), all estimating kickoff incl. updateKickoffKeyPersonnel (8), all job number requests (4), all turnover agenda (16), sector definitions mutations (2), assignment mapping mutations (3), reference data (2), scorecard workflow (7 — submit/respond/enterCommittee/recordFinal/unlock/relock/getVersions), scorecard archive (2 — reject/archive), action inbox (1), getSectorDefinitions (1), getAssignmentMappings (1)
+- **Stubbed (80)**: All risk/cost/quality/safety/schedule (10), all superintendent plan (3), all lessons learned (3), all PMP incl. signPMP/getDivisionApprovers/getPMPBoilerplate (7), all monthly review (4), all estimating kickoff incl. updateKickoffKeyPersonnel (8), all job number requests (4), all turnover agenda (16), sector definitions mutations (2), assignment mapping mutations (3), reference data (2), scorecard workflow (7 — submit/respond/enterCommittee/recordFinal/unlock/relock/getVersions), scorecard archive (2 — reject/archive), action inbox (1), getSectorDefinitions (1), getAssignmentMappings (1), performance monitoring (3 — logPerformanceEntry/getPerformanceLogs/getPerformanceSummary)
 
 ---
 
@@ -1671,6 +1697,22 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 72. **AccessDeniedPage and NotFoundPage are NOT lazy-loaded** — These two tiny pages remain in the main bundle (static import / inline). AccessDeniedPage is the redirect target for ProtectedRoute failures — it must be available synchronously. NotFoundPage is the `*` catch-all fallback. Do not lazy-load either.
 
+73. **All data layer imports use `from '@hbc/sp-services'`** — After the Lib-1 extraction, models, services, utils, and mock data live in `packages/hbc-sp-services/src/`. App components import everything from the package barrel: `import { ILead, MockDataService, formatCurrency } from '@hbc/sp-services'`. Never use relative paths like `../../models` or `../../services` — those directories no longer exist in the app. The old path aliases (`@services/*`, `@models/*`, `@utils/*`) have been removed from tsconfig.
+
+74. **New data layer files go in `packages/hbc-sp-services/src/`, not in the app** — When adding new models (`I*.ts`), service methods, utility functions, or mock JSON files, create them in the package directory (`packages/hbc-sp-services/src/models/`, `services/`, `utils/`, `mock/`). Update the package barrel export (`packages/hbc-sp-services/src/index.ts`) or the appropriate sub-barrel (`models/index.ts`, `services/index.ts`). The app (`src/webparts/`) contains only UI components, hooks, contexts, guards, layouts, and theme.
+
+75. **Build library before app for production** — The root `npm run build` chains `build:lib` then `build:app`. In development, the webpack dev server resolves `@hbc/sp-services` directly to package source (no compilation needed). But for SPFx production builds (`gulp bundle --ship`), the library must be compiled first: `cd packages/hbc-sp-services && npm run build`. The `build:lib` script handles this.
+
+76. **`MOCK_USERS` is exported from the package barrel for UI components** — `AzureADPeoplePicker.tsx` needs the mock users list for its dropdown. It imports `MOCK_USERS` from `@hbc/sp-services` (which re-exports the default from `mock/users.json`). If other UI components need direct access to mock data, add similar named exports to the package `index.ts` rather than importing JSON files with relative paths.
+
+77. **Root tsconfig `rootDir` is `"."` not `"src"`** — Changed from `"src"` to `"."` to accommodate TypeScript path alias resolution into `packages/hbc-sp-services/src/`. If `rootDir` is set to `"src"`, TypeScript throws TS6059 errors because files resolved via the `@hbc/sp-services` alias are outside the root directory. Do not revert this.
+
+78. **`npm install` required after workspace changes** — After any change to root `package.json` `workspaces` array or after cloning the repo, run `npm install` to create the `node_modules/@hbc/sp-services` symlink. Without this symlink, the SPFx `gulp bundle --ship` build will fail with `Cannot find module '@hbc/sp-services'`. The dev webpack server (`npm run dev`) masks this issue because it resolves via a direct webpack alias. Additionally, the library must be compiled (`npm run build:lib`) before the SPFx production build — the `npm run build` script chains this automatically. The `.npmrc` file sets `legacy-peer-deps=true` to handle SPFx `@types/react <18.0.0` peer dep conflicts with React 18.
+
+79. **`gulpfile.js` has `@hbc/sp-services` webpack alias** — The SPFx build pipeline (`@microsoft/sp-build-web`) generates its own webpack config that does NOT inherit tsconfig path aliases or dev webpack aliases. `build.configureWebpack.mergeConfig()` in `gulpfile.js` adds the `@hbc/sp-services` → `packages/hbc-sp-services/src` alias so `gulp serve` and `gulp bundle --ship` can resolve the workspace package imports.
+
+80. **`performanceService` is a singleton — do not instantiate per component** — `PerformanceService` is created once in `HbcProjectControlsWebPart.onInit()` (or `DevRoot` for dev server) and passed through context. Components call `performanceService.mark()` / `performanceService.endMark()` for timing. Creating multiple instances resets the marks array and produces incomplete telemetry. The singleton is wired into `AppProvider` props alongside `dataService`.
+
 ---
 
 ## Audit Log
@@ -1713,3 +1755,9 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-14 | §1, §4, §13, §15, §16 | Fluent UI v9 Theming + makeStyles Migration. §1: Added Styling row (Griffel makeStyles + Fluent tokens), updated tsconfig description (+jsx react-jsx). §4: Replaced "Inline CSS Pattern" with "Hybrid CSS Pattern" (makeStyles for structural, inline for dynamic, tokens vs HBC_COLORS rules, mergeClasses for conditional). §13: TRANSITION constant added to tokens.ts (fast/normal/slow). §15: Phase Theme-1 entry (hbcTheme 30+ overrides, globalStyles 40+ classes, 10 component conversions, tsconfig jsx transform). §16: Added pitfalls #61-65 (makeStyles vs inline decision rule, tokens before HBC_COLORS, TRANSITION import, mergeClasses pattern, jsx react-jsx). Files modified: hbcTheme.ts, globalStyles.ts, tokens.ts (+TRANSITION), tsconfig.json (jsx: react-jsx), AppShell.tsx, NavigationSidebar.tsx, DataTable.tsx, KPICard.tsx, PageHeader.tsx, SearchBar.tsx, StageBadge.tsx, StatusBadge.tsx, ExportButtons.tsx, LoadingSpinner.tsx. Zero data service or workflow files touched. |
 | 2026-02-14 | §1, §3, §15, §16 | React 18.2.0 Migration. §1: React 17.0.1→18.2.0, @testing-library/react ^12.1.5→^14.0.0. §3: WebPart render() uses createRoot + Root lifecycle, dev server uses createRoot. §15: Phase React18 entry (package.json overrides, createRoot in WebPart + dev, zero component changes). §16: Added pitfalls #66-68 (npm overrides for SPFx peer deps, createRoot lifecycle, @testing-library/react v14). Files modified: package.json (react 18.2.0, types 18.2.0, +overrides, @testing-library/react ^14), HbcProjectControlsWebPart.ts (createRoot + Root), dev/index.tsx (createRoot). Zero component, style, data-service, or workflow files touched. |
 | 2026-02-14 | §1, §2, §3, §5, §15, §16 | Route-based Code Splitting. §1: +Code Splitting row (React.lazy + Suspense, 40 lazy pages). §2: +PageLoader.tsx in shared/ (34 components). §3: Component tree updated with Suspense(PageLoader), +Code Splitting row. §5: +PageLoader component. §15: Phase Perf-1 entry (40 lazy imports, lazyNamed helper, PageLoader, -2 dead imports). §16: Added pitfalls #69-72 (lazy page imports only, lazyNamed first-key behavior, Suspense inside AppShell, AccessDeniedPage/NotFoundPage not lazy). Files: App.tsx (rewritten — 40 static→lazy imports, +Suspense, +lazyNamed, -GoNoGoTracker/-PreconKickoff dead imports), shared/PageLoader.tsx (new), shared/index.ts (+1 export). Zero route guard, service, model, or styling files touched. |
+| 2026-02-14 | §1, §2, §14, §15, §16 | Extract `@hbc/sp-services` Shared Library (Lib-1). §1: +Monorepo row (npm workspaces), updated build commands (build:lib → build:app chain), updated path aliases (-@services/-@models/-@utils, +@hbc/sp-services). §2: Removed models/, services/, utils/, mock/ from app directory tree, added packages/hbc-sp-services/ directory tree, noted moved files. §14: Updated New Feature Workflow to reference package paths for models/services/utils/mock. §15: Phase Lib-1 entry (114 files moved, ~106 files rewritten, 3 new package scaffold files). §16: Added pitfalls #73-77 (@hbc/sp-services imports, new files go in package, build:lib before app, MOCK_USERS export, rootDir constraint). Files created: packages/hbc-sp-services/package.json, tsconfig.json, src/index.ts. Files modified: root package.json (+workspaces, +dependency, +scripts), root tsconfig.json (rootDir "." + new paths), dev/webpack.config.js (new aliases), services/index.ts (added missing exports), ~106 app files (import rewrites), AzureADPeoplePicker.tsx (MOCK_USERS), PursuitDetail.tsx (inline import fix). Directories moved via git mv: models/ → packages/hbc-sp-services/src/models/, services/ → .../services/, utils/ → .../utils/, mock/ → .../mock/. |
+| 2026-02-14 | §1, §16 | Fix @hbc/sp-services import resolution. §1: +.npmrc to Key Config Files, updated gulpfile.js description. §16: Added pitfalls #78 (npm install for workspace symlink + .npmrc legacy-peer-deps), #79 (gulpfile.js SPFx webpack alias). Files created: .npmrc (legacy-peer-deps=true). Files modified: gulpfile.js (+build.configureWebpack.mergeConfig with @hbc/sp-services alias), .gitignore (+packages/hbc-sp-services/lib/), package.json (removed broken Fluent UI sub-package overrides that referenced non-existent 9.59.0 versions). npm install now succeeds, creating node_modules/@hbc/sp-services workspace symlink. Library compiles to packages/hbc-sp-services/lib/. |
+| 2026-02-14 | §16 | Fixed dev server resolution for React 18 + monorepo after library extraction. Added react/react-dom/react-dom/client webpack aliases and resolve.modules to dev/webpack.config.js. Added react-dom scheduler override to package.json. |
+| 2026-02-14 | §1, §16 | Pinned @fluentui/react-icons to exact 2.0.319 (was ^2.0.230). Added webpack alias in dev/webpack.config.js, npm override in root package.json, and workspace package peer/dev dep in packages/hbc-sp-services/package.json to prevent nested module resolution failures. |
+| 2026-02-14 | §1, §16 | Hardened monorepo dependency resolution. Replaced overrides block with comprehensive top-level react/react-dom/scheduler pins (prevents SPFx nesting). Added `postinstall` (auto build:lib) and `clean:dev` (nuclear reinstall) scripts. Added scheduler webpack alias. |
+| 2026-02-14 | §2, §6, §7, §8, §9, §11, §12, §13, §15, §16 | Phase Perf-2: Performance Monitoring. §2: +usePerformanceMetrics hook (39 total), +PerformanceDashboard.tsx in pages/hub, +PerformanceService.ts in services (15 files), service method counts 212→215, stubs 77→80. §6: +IPerformanceLog/IPerformanceMark/IPerformanceQueryOptions/IPerformanceSummary interfaces, +2 AuditAction (PerformanceLogRecorded, PerformanceAlertTriggered), +1 EntityType (Performance). §7: 215 methods total, +3 new (logPerformanceEntry, getPerformanceLogs, getPerformanceSummary). §8: +/admin/performance route. §9: Admin group gains Performance nav item. §11: +PerformanceMonitoring flag (id:24, false, Infrastructure). §12: featureFlags.json 23→24. §13: +PERFORMANCE_LOGS HUB_LIST, +ADMIN_PERFORMANCE route, +PERFORMANCE_THRESHOLDS constant. §15: +Perf-2 phase, stubs 83→86 of 215 (Pattern A 21→24). §16: +pitfall #80 (performanceService singleton). |

@@ -41,6 +41,7 @@ import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IRe
 import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfig';
 import { ISectorDefinition } from '../models/ISectorDefinition';
 import { IAssignmentMapping } from '../models/IAssignmentMapping';
+import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '../models/IPerformanceLog';
 import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -385,6 +386,11 @@ export interface IDataService {
   // Scorecard archive (Phase 22)
   rejectScorecard(scorecardId: number, reason: string): Promise<IGoNoGoScorecard>;
   archiveScorecard(scorecardId: number, archivedBy: string): Promise<IGoNoGoScorecard>;
+
+  // Performance monitoring
+  logPerformanceEntry(entry: Partial<IPerformanceLog>): Promise<IPerformanceLog>;
+  getPerformanceLogs(options?: IPerformanceQueryOptions): Promise<IPerformanceLog[]>;
+  getPerformanceSummary(options?: IPerformanceQueryOptions): Promise<IPerformanceSummary>;
 
   // Project site URL targeting (Phase 26)
   setProjectSiteUrl(siteUrl: string | null): void;

@@ -42,3 +42,4 @@ export * from './IPermissionTemplate';
 export * from './IEnvironmentConfig';
 export * from './ISectorDefinition';
 export * from './IAssignmentMapping';
+export * from './IPerformanceLog';

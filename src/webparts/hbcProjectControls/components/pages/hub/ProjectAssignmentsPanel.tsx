@@ -11,10 +11,14 @@ import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { AzureADPeoplePicker } from '../../shared/AzureADPeoplePicker';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { StatusBadge } from '../../shared/StatusBadge';
-import { IProjectTeamAssignment } from '../../../models/IPermissionTemplate';
-import { IPersonAssignment } from '../../../models/IWorkflowDefinition';
-import { ILead } from '../../../models/ILead';
-import { RoleName, AuditAction, EntityType } from '../../../models/enums';
+import {
+  IProjectTeamAssignment,
+  IPersonAssignment,
+  ILead,
+  RoleName,
+  AuditAction,
+  EntityType
+} from '@hbc/sp-services';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 
 const ROLE_OPTIONS = Object.values(RoleName);

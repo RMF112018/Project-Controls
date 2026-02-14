@@ -1,8 +1,12 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../../models/IComplianceSummary';
-import { EVerifyStatus } from '../../models/IBuyoutEntry';
-import { CommitmentStatus } from '../../models/ICommitmentApproval';
+import {
+  IComplianceEntry,
+  IComplianceSummary,
+  IComplianceLogFilter,
+  EVerifyStatus,
+  CommitmentStatus
+} from '@hbc/sp-services';
 
 export function useComplianceLog() {
   const { dataService } = useAppContext();

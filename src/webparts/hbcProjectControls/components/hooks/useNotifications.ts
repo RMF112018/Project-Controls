@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { INotification, NotificationEvent } from '../../models';
-import { NotificationService, INotificationContext } from '../../services/NotificationService';
+import { INotification, NotificationEvent, NotificationService, INotificationContext } from '@hbc/sp-services';
 
 interface IUseNotificationsResult {
   notifications: INotification[];

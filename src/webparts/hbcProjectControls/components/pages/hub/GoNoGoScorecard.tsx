@@ -1,19 +1,7 @@
-import * as React from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Button, Input, Textarea } from '@fluentui/react-components';
-import { useGoNoGo } from '../../hooks/useGoNoGo';
-import { useLeads } from '../../hooks/useLeads';
-import { useNotifications } from '../../hooks/useNotifications';
-import { useAppContext } from '../../contexts/AppContext';
-import { PageHeader } from '../../shared/PageHeader';
-import { Breadcrumb } from '../../shared/Breadcrumb';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
-import { SkeletonLoader } from '../../shared/SkeletonLoader';
-import { ScoreTierBadge } from '../../shared/ScoreTierBadge';
-import { ExportButtons } from '../../shared/ExportButtons';
-import { ConfirmDialog } from '../../shared/ConfirmDialog';
-import { AzureADPeoplePicker } from '../../shared/AzureADPeoplePicker';
 import {
+  buildBreadcrumbs,
+  PERMISSIONS,
+  ExportService,
   IGoNoGoScorecard as IScorecardModel,
   SCORECARD_CRITERIA,
   IScorecardCriterion,
@@ -27,20 +15,29 @@ import {
   NotificationEvent,
   AuditAction,
   EntityType,
-} from '../../../models';
-import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
-import { PERMISSIONS } from '../../../utils/permissions';
-import { ExportService } from '../../../services/ExportService';
-import { useToast } from '../../shared/ToastContainer';
-import {
   calculateTotalScore,
   getScoreTier,
   getScoreTierLabel,
   getScoreTierColor,
   isScorecardComplete,
-  getCompletionPercentage,
-} from '../../../utils/scoreCalculator';
-
+  getCompletionPercentage
+} from '@hbc/sp-services';
+import * as React from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { Button, Input, Textarea } from '@fluentui/react-components';
+import { useGoNoGo } from '../../hooks/useGoNoGo';
+import { useLeads } from '../../hooks/useLeads';
+import { useNotifications } from '../../hooks/useNotifications';
+import { useAppContext } from '../../contexts/AppContext';
+import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
+import { ScoreTierBadge } from '../../shared/ScoreTierBadge';
+import { ExportButtons } from '../../shared/ExportButtons';
+import { ConfirmDialog } from '../../shared/ConfirmDialog';
+import { AzureADPeoplePicker } from '../../shared/AzureADPeoplePicker';
+import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
+import { useToast } from '../../shared/ToastContainer';
 type ScoreLevel = 'high' | 'avg' | 'low';
 
 const TIER_DESCRIPTORS: Record<number, Record<ScoreLevel, string>> = {

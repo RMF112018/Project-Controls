@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IAssignmentMapping, AssignmentType } from '../../models';
+import { IAssignmentMapping, AssignmentType } from '@hbc/sp-services';
 
 interface IUseAssignmentMappingsResult {
   mappings: IAssignmentMapping[];

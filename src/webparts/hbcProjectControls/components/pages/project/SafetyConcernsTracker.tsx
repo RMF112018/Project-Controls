@@ -6,10 +6,14 @@ import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
-import { PERMISSIONS } from '../../../utils/permissions';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
-import { AuditAction, EntityType } from '../../../models/enums';
-import { SafetyConcernStatus, SafetyConcernSeverity } from '../../../models/ISafetyConcerns';
+import {
+  PERMISSIONS,
+  buildBreadcrumbs,
+  AuditAction,
+  EntityType,
+  SafetyConcernStatus,
+  SafetyConcernSeverity
+} from '@hbc/sp-services';
 
 const SEVERITY_COLORS: Record<string, string> = {
   Critical: '#DC2626',

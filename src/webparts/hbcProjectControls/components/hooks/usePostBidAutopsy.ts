@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { ILossAutopsy } from '../../models/ILossAutopsy';
-import { ILead } from '../../models/ILead';
+import { ILossAutopsy, ILead } from '@hbc/sp-services';
 
 interface IUsePostBidAutopsyResult {
   autopsy: ILossAutopsy | null;

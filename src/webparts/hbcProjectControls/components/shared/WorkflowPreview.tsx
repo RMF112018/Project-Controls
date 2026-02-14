@@ -3,11 +3,9 @@ import { Button } from '@fluentui/react-components';
 import { useWorkflowDefinitions } from '../hooks/useWorkflowDefinitions';
 import { useAppContext } from '../contexts/AppContext';
 import { useLeads } from '../hooks/useLeads';
-import { IResolvedWorkflowStep } from '../../models/IWorkflowDefinition';
-import { WorkflowKey, Stage } from '../../models/enums';
+import { IResolvedWorkflowStep, WorkflowKey, Stage, isActiveStage } from '@hbc/sp-services';
 import { ISelectedProject } from '../contexts/AppContext';
 import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
-import { isActiveStage } from '../../utils/stageEngine';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface IWorkflowPreviewProps {

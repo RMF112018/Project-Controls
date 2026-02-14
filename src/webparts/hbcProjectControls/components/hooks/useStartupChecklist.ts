@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IStartupChecklistItem, IStartupChecklistSummary } from '../../models/IStartupChecklist';
+import { IStartupChecklistItem, IStartupChecklistSummary } from '@hbc/sp-services';
 
 interface IUseStartupChecklistResult {
   items: IStartupChecklistItem[];

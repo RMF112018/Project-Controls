@@ -21,5 +21,6 @@
   { "id": 20, "FeatureName": "ProjectManagementPlan", "DisplayName": "Project Management Plan", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 10 PMP and operational modules", "Category": "Project Execution" },
   { "id": 21, "FeatureName": "MonthlyProjectReview", "DisplayName": "Monthly Project Review", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 10 monthly project review", "Category": "Project Execution" },
   { "id": 22, "FeatureName": "WorkflowDefinitions", "DisplayName": "Workflow Definitions", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 13 workflow definition configuration", "Category": "Preconstruction" },
-  { "id": 23, "FeatureName": "PermissionEngine", "DisplayName": "Permission Engine", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 19 Procore-modeled permission engine with templates and project scoping", "Category": "Infrastructure" }
+  { "id": 23, "FeatureName": "PermissionEngine", "DisplayName": "Permission Engine", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 19 Procore-modeled permission engine with templates and project scoping", "Category": "Infrastructure" },
+  { "id": 24, "FeatureName": "PerformanceMonitoring", "DisplayName": "Performance Monitoring", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Web part performance monitoring with dashboard", "Category": "Infrastructure" }
 ]

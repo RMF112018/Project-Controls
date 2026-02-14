@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { HBC_COLORS } from '../../../../theme/tokens';
-import { IPMPSignature } from '../../../../models/IProjectManagementPlan';
+import { IPMPSignature } from '@hbc/sp-services';
 
 interface IPMPSignatureBlockProps {
   signature: IPMPSignature;

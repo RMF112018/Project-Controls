@@ -16,16 +16,29 @@ module.exports = {
 
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
+    modules: [
+      path.resolve(__dirname, '../node_modules'),
+      'node_modules',
+    ],
     alias: {
-      // tsconfig path aliases
+      // tsconfig path aliases (app-only)
       '@webparts': path.resolve(__dirname, '../src/webparts'),
       '@components': path.resolve(srcRoot, 'components'),
-      '@services': path.resolve(srcRoot, 'services'),
-      '@models': path.resolve(srcRoot, 'models'),
       '@hooks': path.resolve(srcRoot, 'components/hooks'),
       '@contexts': path.resolve(srcRoot, 'components/contexts'),
-      '@utils': path.resolve(srcRoot, 'utils'),
       '@theme': path.resolve(srcRoot, 'theme'),
+
+      // Point to source for HMR during dev
+      '@hbc/sp-services': path.resolve(__dirname, '../packages/hbc-sp-services/src'),
+
+      // Prevent nested @fluentui/react-icons copies
+      '@fluentui/react-icons': path.resolve(__dirname, '../node_modules/@fluentui/react-icons'),
+
+      // Force React 18 from root (SPFx packages nest react-dom@17 which lacks client.js)
+      'react': path.resolve(__dirname, '../node_modules/react'),
+      'react-dom': path.resolve(__dirname, '../node_modules/react-dom'),
+      'react-dom/client': path.resolve(__dirname, '../node_modules/react-dom/client'),
+      'scheduler': path.resolve(__dirname, '../node_modules/scheduler'),
 
       // SP shims — safety net for transitive imports
       '@microsoft/sp-core-library': path.resolve(__dirname, 'shims/sp-core-library.ts'),

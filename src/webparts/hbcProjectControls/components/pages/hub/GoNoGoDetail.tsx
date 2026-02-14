@@ -1,3 +1,13 @@
+import {
+  buildBreadcrumbs,
+  IGoNoGoScorecard,
+  SCORECARD_CRITERIA,
+  ILead,
+  GoNoGoDecision,
+  calculateTotalScore,
+  getScoreTierColor,
+  getScoreTierLabel
+} from '@hbc/sp-services';
 import * as React from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from '@fluentui/react-components';
@@ -5,23 +15,10 @@ import { useGoNoGo } from '../../hooks/useGoNoGo';
 import { useLeads } from '../../hooks/useLeads';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ScoreTierBadge } from '../../shared/ScoreTierBadge';
 import { ExportButtons } from '../../shared/ExportButtons';
-import {
-  IGoNoGoScorecard,
-  SCORECARD_CRITERIA,
-  ILead,
-  GoNoGoDecision,
-} from '../../../models';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
-import {
-  calculateTotalScore,
-  getScoreTierColor,
-  getScoreTierLabel,
-} from '../../../utils/scoreCalculator';
-
 export const GoNoGoDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();

@@ -1,7 +1,5 @@
 import * as React from 'react';
-import { Stage } from '../../models/enums';
-import { STAGE_COLORS, STAGE_ORDER } from '../../utils/constants';
-import { getStageLabel, isArchived } from '../../utils/stageEngine';
+import { Stage, STAGE_COLORS, STAGE_ORDER, getStageLabel, isArchived } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../theme/tokens';
 
 interface IStageIndicatorProps {

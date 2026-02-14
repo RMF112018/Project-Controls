@@ -1,6 +1,11 @@
 import * as React from 'react';
-import { IWorkflowStep, IConditionalAssignment } from '../../models/IWorkflowDefinition';
-import { StepAssignmentType, RoleName, ConditionField } from '../../models/enums';
+import {
+  IWorkflowStep,
+  IConditionalAssignment,
+  StepAssignmentType,
+  RoleName,
+  ConditionField
+} from '@hbc/sp-services';
 import { AzureADPeoplePicker } from './AzureADPeoplePicker';
 import { ConditionBuilder } from './ConditionBuilder';
 import { HBC_COLORS } from '../../theme/tokens';

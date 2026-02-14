@@ -1,3 +1,26 @@
+import {
+  buildBreadcrumbs,
+  ILead,
+  IEstimatingTracker,
+  IActionInboxItem,
+  IProvisioningLog,
+  Stage,
+  Region,
+  Division,
+  GoNoGoDecision,
+  AwardStatus,
+  RoleName,
+  ActionPriority,
+  ProvisioningStatus,
+  PROVISIONING_STEPS,
+  TOTAL_PROVISIONING_STEPS,
+  isActiveStage,
+  formatCurrencyCompact,
+  formatDate,
+  formatPercent,
+  getDaysUntil,
+  getUrgencyColor
+} from '@hbc/sp-services';
 import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Select } from '@fluentui/react-components';
@@ -23,7 +46,6 @@ import { usePersistedState } from '../../hooks/usePersistedState';
 import { useResponsive } from '../../hooks/useResponsive';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { KPICard } from '../../shared/KPICard';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { StatusBadge } from '../../shared/StatusBadge';
@@ -33,19 +55,9 @@ import { PipelineChart } from '../../shared/PipelineChart';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { RoleGate } from '../../guards/RoleGate';
 import { FeatureGate } from '../../guards/FeatureGate';
-import { ILead, IEstimatingTracker, IActionInboxItem, IProvisioningLog, Stage, Region, Division, GoNoGoDecision, AwardStatus, RoleName, ActionPriority, ProvisioningStatus, PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS } from '../../../models';
 import { useAppContext } from '../../contexts/AppContext';
 import { ISelectedProject } from '../../contexts/AppContext';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
-import {
-  formatCurrencyCompact,
-  formatDate,
-  formatPercent,
-  getDaysUntil,
-  getUrgencyColor,
-} from '../../../utils/formatters';
-import { isActiveStage } from '../../../utils/stageEngine';
-
 // Chart colors
 const PIE_COLORS = {
   [GoNoGoDecision.Go]: HBC_COLORS.success,

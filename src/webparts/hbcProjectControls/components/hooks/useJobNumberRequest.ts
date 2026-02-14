@@ -1,8 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IJobNumberRequest, JobNumberRequestStatus } from '../../models/IJobNumberRequest';
-import { IProjectType } from '../../models/IProjectType';
-import { IStandardCostCode } from '../../models/IStandardCostCode';
+import { IJobNumberRequest, JobNumberRequestStatus, IProjectType, IStandardCostCode } from '@hbc/sp-services';
 
 interface IUseJobNumberRequestResult {
   requests: IJobNumberRequest[];

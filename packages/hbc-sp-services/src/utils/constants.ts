@@ -46,6 +46,7 @@ export const HUB_LISTS = {
   PROJECT_TEAM_ASSIGNMENTS: 'Project_Team_Assignments',
   SECTOR_DEFINITIONS: 'Sector_Definitions',
   ASSIGNMENT_MAPPINGS: 'Assignment_Mappings',
+  PERFORMANCE_LOGS: 'Performance_Logs',
 } as const;
 
 export const PROJECT_LISTS = {
@@ -154,6 +155,7 @@ export const ROUTES = {
 
   // Admin
   ADMIN: '/admin',
+  ADMIN_PERFORMANCE: '/admin/performance',
 
   // System
   ACCESS_DENIED: '/access-denied',
@@ -266,6 +268,12 @@ export const SCORE_THRESHOLDS = {
 } as const;
 
 export const DEFAULT_HUB_SITE_URL = 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral';
+
+export const PERFORMANCE_THRESHOLDS = {
+  SLOW_LOAD_MS: 5000,
+  WARNING_LOAD_MS: 3000,
+  SAMPLE_RATE: 1.0,
+} as const;
 
 // BD Leads Document Library
 export const BD_LEADS_SITE_URL = 'https://hedrickbrotherscom.sharepoint.com/sites/PXPortfolioDashboard';

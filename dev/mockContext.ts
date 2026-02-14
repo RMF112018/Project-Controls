@@ -1,4 +1,4 @@
-import { RoleName } from '@models/enums';
+import { RoleName } from '@hbc/sp-services';
 
 // ---------------------------------------------------------------------------
 // Dev-only mock role state

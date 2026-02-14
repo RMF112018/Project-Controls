@@ -6,10 +6,15 @@ import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
-import { PERMISSIONS } from '../../../utils/permissions';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
-import { AuditAction, EntityType } from '../../../models/enums';
-import { MonthlyReviewStatus, MONTHLY_CHECKLIST_SECTIONS, IMonthlyChecklistItem } from '../../../models/IMonthlyProjectReview';
+import {
+  PERMISSIONS,
+  buildBreadcrumbs,
+  AuditAction,
+  EntityType,
+  MonthlyReviewStatus,
+  MONTHLY_CHECKLIST_SECTIONS,
+  IMonthlyChecklistItem
+} from '@hbc/sp-services';
 
 const STATUS_STEPS: MonthlyReviewStatus[] = ['NotStarted', 'InProgress', 'PendingPXReview', 'PXReviewComplete', 'PMRevising', 'PendingPXValidation', 'SubmittedToLeadership', 'FollowUpPending', 'Complete'];
 const STATUS_LABELS: Record<string, string> = {

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IProjectManagementPlan, IDivisionApprover, IPMPBoilerplateSection } from '../../models/IProjectManagementPlan';
+import { IProjectManagementPlan, IDivisionApprover, IPMPBoilerplateSection } from '@hbc/sp-services';
 
 interface IUseProjectManagementPlanResult {
   pmp: IProjectManagementPlan | null;

@@ -136,6 +136,7 @@ import mockEnvironmentConfig from '../mock/environmentConfig.json';
 import mockSectorDefinitions from '../mock/sectorDefinitions.json';
 import mockAssignmentMappings from '../mock/assignmentMappings.json';
 import { IAssignmentMapping } from '../models/IAssignmentMapping';
+import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '../models/IPerformanceLog';
 import { DEFAULT_PREREQUISITES, DEFAULT_DISCUSSION_ITEMS, DEFAULT_EXHIBITS, DEFAULT_SIGNATURES, TURNOVER_SIGNATURE_AFFIDAVIT } from '../utils/turnoverAgendaTemplate';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
@@ -207,6 +208,7 @@ export class MockDataService implements IDataService {
   private permissionTemplates: IPermissionTemplate[];
   private securityGroupMappings: ISecurityGroupMapping[];
   private projectTeamAssignments: IProjectTeamAssignment[];
+  private performanceLogs: IPerformanceLog[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -374,6 +376,7 @@ export class MockDataService implements IDataService {
     this.permissionTemplates = JSON.parse(JSON.stringify(mockPermissionTemplates)) as IPermissionTemplate[];
     this.securityGroupMappings = JSON.parse(JSON.stringify(mockSecurityGroupMappings)) as ISecurityGroupMapping[];
     this.projectTeamAssignments = JSON.parse(JSON.stringify(mockProjectTeamAssignments)) as IProjectTeamAssignment[];
+    this.performanceLogs = [];
 
     this.nextId = 1000;
   }
@@ -5430,5 +5433,109 @@ export class MockDataService implements IDataService {
 
     this.scorecards[index] = scorecard;
     return { ...scorecard };
+  }
+
+  // ── Performance Monitoring ──────────────────────────────────────────────
+
+  async logPerformanceEntry(entry: Partial<IPerformanceLog>): Promise<IPerformanceLog> {
+    await delay();
+    const log: IPerformanceLog = {
+      id: this.nextId++,
+      SessionId: entry.SessionId || 'unknown',
+      Timestamp: entry.Timestamp || new Date().toISOString(),
+      UserEmail: entry.UserEmail || 'unknown',
+      SiteUrl: entry.SiteUrl || '',
+      ProjectCode: entry.ProjectCode,
+      IsProjectSite: entry.IsProjectSite ?? false,
+      WebPartLoadMs: entry.WebPartLoadMs ?? 0,
+      AppInitMs: entry.AppInitMs ?? 0,
+      DataFetchMs: entry.DataFetchMs,
+      TotalLoadMs: entry.TotalLoadMs ?? 0,
+      Marks: entry.Marks || [],
+      UserAgent: entry.UserAgent || 'unknown',
+      SpfxVersion: entry.SpfxVersion || '1.0.0',
+      Notes: entry.Notes,
+    };
+    this.performanceLogs.push(log);
+    return JSON.parse(JSON.stringify(log));
+  }
+
+  async getPerformanceLogs(options?: IPerformanceQueryOptions): Promise<IPerformanceLog[]> {
+    await delay();
+    let logs = [...this.performanceLogs];
+
+    if (options?.startDate) {
+      logs = logs.filter(l => l.Timestamp >= options.startDate!);
+    }
+    if (options?.endDate) {
+      logs = logs.filter(l => l.Timestamp <= options.endDate!);
+    }
+    if (options?.siteUrl) {
+      logs = logs.filter(l => l.SiteUrl === options.siteUrl);
+    }
+    if (options?.projectCode) {
+      logs = logs.filter(l => l.ProjectCode === options.projectCode);
+    }
+
+    // Sort newest first
+    logs.sort((a, b) => b.Timestamp.localeCompare(a.Timestamp));
+
+    if (options?.limit && options.limit > 0) {
+      logs = logs.slice(0, options.limit);
+    }
+
+    return JSON.parse(JSON.stringify(logs));
+  }
+
+  async getPerformanceSummary(options?: IPerformanceQueryOptions): Promise<IPerformanceSummary> {
+    const logs = await this.getPerformanceLogs(options);
+
+    if (logs.length === 0) {
+      return {
+        avgTotalLoadMs: 0,
+        avgWebPartLoadMs: 0,
+        avgAppInitMs: 0,
+        p95TotalLoadMs: 0,
+        totalSessions: 0,
+        slowSessionCount: 0,
+        byDay: [],
+      };
+    }
+
+    const totalLoads = logs.map(l => l.TotalLoadMs);
+    const sorted = [...totalLoads].sort((a, b) => a - b);
+    const p95Index = Math.floor(sorted.length * 0.95);
+
+    const avgTotal = Math.round(totalLoads.reduce((a, b) => a + b, 0) / logs.length);
+    const avgWebPart = Math.round(logs.reduce((a, l) => a + l.WebPartLoadMs, 0) / logs.length);
+    const avgAppInit = Math.round(logs.reduce((a, l) => a + l.AppInitMs, 0) / logs.length);
+
+    // Group by day
+    const dayMap = new Map<string, { total: number; count: number }>();
+    for (const log of logs) {
+      const day = log.Timestamp.split('T')[0];
+      const existing = dayMap.get(day) || { total: 0, count: 0 };
+      existing.total += log.TotalLoadMs;
+      existing.count += 1;
+      dayMap.set(day, existing);
+    }
+
+    const byDay = Array.from(dayMap.entries())
+      .map(([date, { total, count }]) => ({
+        date,
+        avgMs: Math.round(total / count),
+        count,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      avgTotalLoadMs: avgTotal,
+      avgWebPartLoadMs: avgWebPart,
+      avgAppInitMs: avgAppInit,
+      p95TotalLoadMs: sorted[p95Index] ?? sorted[sorted.length - 1],
+      totalSessions: logs.length,
+      slowSessionCount: logs.filter(l => l.TotalLoadMs > 5000).length,
+      byDay,
+    };
   }
 }

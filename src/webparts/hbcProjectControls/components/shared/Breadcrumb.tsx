@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HBC_COLORS } from '../../theme/tokens';
-import { IBreadcrumbItem } from '../../utils/breadcrumbs';
+import { IBreadcrumbItem } from '@hbc/sp-services';
 
 interface IBreadcrumbProps {
   items: IBreadcrumbItem[];

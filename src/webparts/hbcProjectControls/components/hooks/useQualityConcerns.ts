@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IQualityConcern } from '../../models/IQualityConcerns';
+import { IQualityConcern } from '@hbc/sp-services';
 
 interface IUseQualityConcernsResult {
   concerns: IQualityConcern[];

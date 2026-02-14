@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
-import { APP_VERSION } from '../../utils/constants';
+import { APP_VERSION } from '@hbc/sp-services';
 
 interface IChangelogEntry {
   version: string;

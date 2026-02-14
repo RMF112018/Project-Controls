@@ -32,6 +32,7 @@ import { ITurnoverAgenda, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurno
 import { IActionInboxItem } from '../models/IActionInbox';
 import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions, IToolAccess, IGranularFlagOverride } from '../models/IPermissionTemplate';
 import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfig';
+import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '../models/IPerformanceLog';
 import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 import { ROLE_PERMISSIONS } from '../utils/permissions';
@@ -3236,5 +3237,22 @@ export class SharePointDataService implements IDataService {
     if (data.sectionCompletion !== undefined) result[col.sectionCompletion] = JSON.stringify(data.sectionCompletion);
 
     return result;
+  }
+
+  // ── Performance Monitoring (Pattern A stubs) ──────────────────────────
+
+  async logPerformanceEntry(entry: Partial<IPerformanceLog>): Promise<IPerformanceLog> {
+    console.warn('[STUB] logPerformanceEntry not implemented');
+    return { id: 0, ...entry } as IPerformanceLog;
+  }
+
+  async getPerformanceLogs(_options?: IPerformanceQueryOptions): Promise<IPerformanceLog[]> {
+    console.warn('[STUB] getPerformanceLogs not implemented');
+    return [];
+  }
+
+  async getPerformanceSummary(_options?: IPerformanceQueryOptions): Promise<IPerformanceSummary> {
+    console.warn('[STUB] getPerformanceSummary not implemented');
+    return { avgTotalLoadMs: 0, avgWebPartLoadMs: 0, avgAppInitMs: 0, p95TotalLoadMs: 0, totalSessions: 0, slowSessionCount: 0, byDay: [] };
   }
 }

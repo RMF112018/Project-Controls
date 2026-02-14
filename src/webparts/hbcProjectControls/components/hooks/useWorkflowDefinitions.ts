@@ -1,14 +1,13 @@
-import * as React from 'react';
-import { useAppContext } from '../contexts/AppContext';
 import {
   IWorkflowDefinition,
   IWorkflowStep,
   IConditionalAssignment,
   IWorkflowStepOverride,
   IResolvedWorkflowStep,
-} from '../../models/IWorkflowDefinition';
-import { WorkflowKey } from '../../models/enums';
-
+  WorkflowKey
+} from '@hbc/sp-services';
+import * as React from 'react';
+import { useAppContext } from '../contexts/AppContext';
 export interface IUseWorkflowDefinitionsReturn {
   workflows: IWorkflowDefinition[];
   loading: boolean;

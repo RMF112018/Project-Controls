@@ -16,10 +16,18 @@ import {
 import { useActiveProjects } from '../../hooks/useActiveProjects';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useAppContext } from '../../contexts/AppContext';
-import { Stage } from '../../../models/enums';
+import {
+  Stage,
+  buildBreadcrumbs,
+  IActiveProject,
+  ProjectStatus,
+  SectorType,
+  RoleName,
+  formatCurrencyCompact,
+  formatPercent
+} from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { KPICard } from '../../shared/KPICard';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { StatusBadge } from '../../shared/StatusBadge';
@@ -27,10 +35,7 @@ import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { RoleGate } from '../../guards/RoleGate';
-import { IActiveProject, ProjectStatus, SectorType } from '../../../models/IActiveProject';
-import { RoleName } from '../../../models/enums';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
-import { formatCurrencyCompact, formatPercent } from '../../../utils/formatters';
 
 // Status colors
 const STATUS_COLORS: Record<ProjectStatus, { color: string; bg: string }> = {

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IEstimatingKickoff, IEstimatingKickoffItem, IKeyPersonnelEntry } from '../../models/IEstimatingKickoff';
+import { IEstimatingKickoff, IEstimatingKickoffItem, IKeyPersonnelEntry } from '@hbc/sp-services';
 
 interface IUseEstimatingKickoffResult {
   kickoff: IEstimatingKickoff | null;

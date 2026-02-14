@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IProjectScheduleCriticalPath, ICriticalPathItem } from '../../models/IProjectScheduleCriticalPath';
+import { IProjectScheduleCriticalPath, ICriticalPathItem } from '@hbc/sp-services';
 
 interface IUseProjectScheduleResult {
   schedule: IProjectScheduleCriticalPath | null;

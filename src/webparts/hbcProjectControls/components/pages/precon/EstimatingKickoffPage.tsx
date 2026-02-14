@@ -4,12 +4,15 @@ import { HBC_COLORS } from '../../../theme/tokens';
 import { useEstimatingKickoff } from '../../hooks/useEstimatingKickoff';
 import { useEstimating } from '../../hooks/useEstimating';
 import { useLeads } from '../../hooks/useLeads';
-import { IEstimatingKickoffItem, IKeyPersonnelEntry } from '../../../models/IEstimatingKickoff';
-import { IPersonAssignment } from '../../../models/IWorkflowDefinition';
-import { IEstimatingTracker } from '../../../models/IEstimatingTracker';
+import {
+  IEstimatingKickoffItem,
+  IKeyPersonnelEntry,
+  IPersonAssignment,
+  IEstimatingTracker,
+  PERMISSIONS,
+  RoleName
+} from '@hbc/sp-services';
 import { useAppContext } from '../../contexts/AppContext';
-import { PERMISSIONS } from '../../../utils/permissions';
-import { RoleName } from '../../../models/enums';
 import { AzureADPeoplePicker } from '../../shared/AzureADPeoplePicker';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';

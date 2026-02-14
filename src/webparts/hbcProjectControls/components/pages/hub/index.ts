@@ -9,3 +9,4 @@ export { AdminPanel } from './AdminPanel';
 export { MarketingDashboard } from './MarketingDashboard';
 export { PermissionTemplateEditor } from './PermissionTemplateEditor';
 export { ProjectAssignmentsPanel } from './ProjectAssignmentsPanel';
+export { PerformanceDashboard } from './PerformanceDashboard';

@@ -1,13 +1,13 @@
-import * as React from 'react';
-import { useAppContext } from '../contexts/AppContext';
 import {
   IPermissionTemplate,
   ISecurityGroupMapping,
   IProjectTeamAssignment,
   IResolvedPermissions,
-} from '../../models/IPermissionTemplate';
-import { AuditAction, EntityType } from '../../models/enums';
-
+  AuditAction,
+  EntityType
+} from '@hbc/sp-services';
+import * as React from 'react';
+import { useAppContext } from '../contexts/AppContext';
 export interface IUsePermissionEngineResult {
   templates: IPermissionTemplate[];
   securityGroupMappings: ISecurityGroupMapping[];

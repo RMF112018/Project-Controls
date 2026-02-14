@@ -1,14 +1,22 @@
 import * as React from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { HBC_COLORS, SPACING } from '../../../theme/tokens';
-import { MeetingType, RoleName, ILead, IMeeting, NotificationEvent, AuditAction, EntityType } from '../../../models';
+import {
+  MeetingType,
+  RoleName,
+  ILead,
+  IMeeting,
+  NotificationEvent,
+  AuditAction,
+  EntityType,
+  buildBreadcrumbs
+} from '@hbc/sp-services';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLeads } from '../../hooks/useLeads';
 import { useNotifications } from '../../hooks/useNotifications';
 import { MeetingScheduler } from '../../shared/MeetingScheduler';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
 

@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { ILead, GoNoGoDecision } from '../../models';
-import { IValidationError, validateProjectCode } from '../../utils/validators';
+import { ILead, GoNoGoDecision, IValidationError, validateProjectCode } from '@hbc/sp-services';
 
 export interface IValidationWarning {
   field: string;
