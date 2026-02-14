@@ -42,24 +42,26 @@
     "xlsx": "^0.18.5"
   },
   "overrides": {
-    "@microsoft/sp-core-library": {
-      "react": "$react",
-      "react-dom": "$react-dom",
-      "@types/react": "$@types/react",
-      "@types/react-dom": "$@types/react-dom"
-    },
-    "@microsoft/sp-webpart-base": {
-      "react": "$react",
-      "react-dom": "$react-dom",
-      "@types/react": "$@types/react",
-      "@types/react-dom": "$@types/react-dom"
-    },
-    "@microsoft/sp-property-pane": {
-      "react": "$react",
-      "react-dom": "$react-dom",
-      "@types/react": "$@types/react",
-      "@types/react-dom": "$@types/react-dom"
-    }
+    "@fluentui/react-avatar": "9.59.0",
+    "@fluentui/react-badge": "9.59.0",
+    "@fluentui/react-card": "9.59.0",
+    "@fluentui/react-carousel": "9.59.0",
+    "@fluentui/react-checkbox": "9.59.0",
+    "@fluentui/react-dialog": "9.59.0",
+    "@fluentui/react-drawer": "9.59.0",
+    "@fluentui/react-field": "9.59.0",
+    "@fluentui/react-infolabel": "9.59.0",
+    "@fluentui/react-label": "9.59.0",
+    "@fluentui/react-link": "9.59.0",
+    "@fluentui/react-message-bar": "9.59.0",
+    "@fluentui/react-nav": "9.59.0",
+    "@fluentui/react-persona": "9.59.0",
+    "@fluentui/react-radio": "9.59.0",
+    "@fluentui/react-spinner": "9.59.0",
+    "@fluentui/react-switch": "9.59.0",
+    "@fluentui/react-text": "9.59.0",
+    "@fluentui/react-tooltip": "9.59.0",
+    "@fluentui/react-components": "9.59.0"
   },
   "devDependencies": {
     "@microsoft/eslint-config-spfx": "1.21.1",
