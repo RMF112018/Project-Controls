@@ -41,7 +41,9 @@ import {
   PERMISSION_TEMPLATES_COLUMNS,
   SECURITY_GROUP_MAPPINGS_COLUMNS,
   PROJECT_TEAM_ASSIGNMENTS_COLUMNS,
+  PROVISIONING_LOG_COLUMNS,
 } from './columnMappings';
+import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
 
 /**
  * SharePoint Data Service — Live implementation using PnP JS.
@@ -307,9 +309,23 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Provisioning ---
-  async triggerProvisioning(_leadId: number, _projectCode: string, _projectName: string, _requestedBy: string): Promise<IProvisioningLog> {
-    // Delegated to PowerAutomateService
-    throw new Error('Use PowerAutomateService directly');
+  async triggerProvisioning(leadId: number, projectCode: string, projectName: string, requestedBy: string): Promise<IProvisioningLog> {
+    const col = PROVISIONING_LOG_COLUMNS;
+    const addData: Record<string, unknown> = {
+      [col.projectCode]: projectCode,
+      [col.projectName]: projectName,
+      [col.leadId]: leadId,
+      [col.status]: 'Queued',
+      [col.currentStep]: 0,
+      [col.completedSteps]: 0,
+      [col.retryCount]: 0,
+      [col.requestedBy]: requestedBy,
+      [col.requestedAt]: new Date().toISOString(),
+    };
+    const result = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items.add(addData);
+    const newId = (result.data as Record<string, unknown>).Id as number;
+    const item = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items.getById(newId)();
+    return item as IProvisioningLog;
   }
 
   async getProvisioningStatus(projectCode: string): Promise<IProvisioningLog | null> {
@@ -321,8 +337,27 @@ export class SharePointDataService implements IDataService {
     return items[0] as IProvisioningLog;
   }
 
-  async updateProvisioningLog(_projectCode: string, _data: Partial<IProvisioningLog>): Promise<IProvisioningLog> {
-    throw new Error('Use PowerAutomateService directly');
+  async updateProvisioningLog(projectCode: string, data: Partial<IProvisioningLog>): Promise<IProvisioningLog> {
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items
+      .filter(`ProjectCode eq '${projectCode}'`).orderBy('RequestedAt', false).top(1)();
+    if (items.length === 0) throw new Error(`Provisioning log for ${projectCode} not found`);
+
+    const itemId = items[0].Id as number;
+    const col = PROVISIONING_LOG_COLUMNS;
+    const updateData: Record<string, unknown> = {};
+    if (data.status !== undefined) updateData[col.status] = data.status;
+    if (data.currentStep !== undefined) updateData[col.currentStep] = data.currentStep;
+    if (data.completedSteps !== undefined) updateData[col.completedSteps] = data.completedSteps;
+    if (data.failedStep !== undefined) updateData[col.failedStep] = data.failedStep;
+    if (data.errorMessage !== undefined) updateData[col.errorMessage] = data.errorMessage;
+    if (data.retryCount !== undefined) updateData[col.retryCount] = data.retryCount;
+    if (data.siteUrl !== undefined) updateData[col.siteUrl] = data.siteUrl;
+    if (data.completedAt !== undefined) updateData[col.completedAt] = data.completedAt;
+    if (data.hubNavLinkStatus !== undefined) updateData[col.hubNavLinkStatus] = data.hubNavLinkStatus;
+
+    await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items.getById(itemId).update(updateData);
+    const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items.getById(itemId)();
+    return updated as IProvisioningLog;
   }
 
   async getProvisioningLogs(): Promise<IProvisioningLog[]> {
@@ -332,9 +367,25 @@ export class SharePointDataService implements IDataService {
     return items as IProvisioningLog[];
   }
 
-  async retryProvisioning(_projectCode: string, _fromStep: number): Promise<IProvisioningLog> {
-    // Delegated to PowerAutomateService
-    throw new Error('Use PowerAutomateService directly');
+  async retryProvisioning(projectCode: string, fromStep: number): Promise<IProvisioningLog> {
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items
+      .filter(`ProjectCode eq '${projectCode}'`).orderBy('RequestedAt', false).top(1)();
+    if (items.length === 0) throw new Error(`Provisioning log for ${projectCode} not found`);
+
+    const itemId = items[0].Id as number;
+    const currentRetryCount = (items[0].retryCount as number) || 0;
+    const col = PROVISIONING_LOG_COLUMNS;
+
+    await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items.getById(itemId).update({
+      [col.status]: 'InProgress',
+      [col.currentStep]: fromStep,
+      [col.failedStep]: null,
+      [col.errorMessage]: null,
+      [col.retryCount]: currentRetryCount + 1,
+    });
+
+    const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items.getById(itemId)();
+    return updated as IProvisioningLog;
   }
 
   // --- Phase 6: Workflow ---
@@ -1051,7 +1102,35 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Re-Key ---
-  async rekeyProjectCode(_oldCode: string, _newCode: string, _leadId: number): Promise<void> { throw new Error('Not implemented'); }
+  async rekeyProjectCode(oldCode: string, newCode: string, leadId: number): Promise<void> {
+    // 1. Update Leads_Master
+    await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER)
+      .items.getById(leadId).update({ ProjectCode: newCode, OfficialJobNumber: newCode });
+
+    // Helper: batch-update all items in a list where column eq oldCode
+    const batchRekey = async (listName: string, columnName: string): Promise<void> => {
+      const items = await this.sp.web.lists.getByTitle(listName)
+        .items.filter(`${columnName} eq '${oldCode}'`).select('Id')();
+      if (items.length === 0) return;
+      const batch = this.sp.web.createBatch();
+      for (const item of items) {
+        this.sp.web.lists.getByTitle(listName)
+          .items.getById(item.Id).inBatch(batch).update({ [columnName]: newCode });
+      }
+      await batch.execute();
+    };
+
+    // 2-6. Hub lists with project code references
+    await batchRekey(LIST_NAMES.ESTIMATING_TRACKER, 'ProjectCode');
+    await batchRekey(LIST_NAMES.MARKETING_PROJECT_RECORDS, 'projectCode');
+    await batchRekey(LIST_NAMES.PROVISIONING_LOG, 'ProjectCode');
+    await batchRekey(LIST_NAMES.BUYOUT_LOG, 'ProjectCode');
+    await batchRekey(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS, PROJECT_TEAM_ASSIGNMENTS_COLUMNS.projectCode);
+
+    // Note: Project-site lists (17 lists) require manual admin re-key since
+    // the site URL contains the project code. Use Web([sp.web, newSiteUrl])
+    // to batch-update each project-level list when supported.
+  }
 
   // --- Active Projects Portfolio ---
 
@@ -1368,15 +1447,120 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Data Integrity ---
-  async syncDenormalizedFields(_leadId: number): Promise<void> {
-    // TODO: Implement via batch update across SP lists when lead fields change
-    throw new Error('Not implemented');
+  async syncDenormalizedFields(leadId: number): Promise<void> {
+    const lead = await this.getLeadById(leadId);
+    if (!lead) return;
+
+    // 1. Estimating_Tracker — Title by LeadID
+    const estItems = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER)
+      .items.filter(`LeadID eq ${leadId}`).select('Id')();
+    if (estItems.length > 0) {
+      const batch = this.sp.web.createBatch();
+      for (const item of estItems) {
+        this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER)
+          .items.getById(item.Id).inBatch(batch).update({ Title: lead.Title });
+      }
+      await batch.execute();
+    }
+
+    if (!lead.ProjectCode) return;
+
+    // 2. Project_Management_Plans — projectName by projectCode
+    const pmpItems = await this.sp.web.lists.getByTitle(LIST_NAMES.PMP)
+      .items.filter(`projectCode eq '${lead.ProjectCode}'`).select('Id')();
+    if (pmpItems.length > 0) {
+      const b2 = this.sp.web.createBatch();
+      for (const i of pmpItems) {
+        this.sp.web.lists.getByTitle(LIST_NAMES.PMP)
+          .items.getById(i.Id).inBatch(b2).update({ projectName: lead.Title });
+      }
+      await b2.execute();
+    }
+
+    // 3. Marketing_Project_Records — projectName by projectCode
+    const mktItems = await this.sp.web.lists.getByTitle(LIST_NAMES.MARKETING_PROJECT_RECORDS)
+      .items.filter(`projectCode eq '${lead.ProjectCode}'`).select('Id')();
+    if (mktItems.length > 0) {
+      const b3 = this.sp.web.createBatch();
+      for (const i of mktItems) {
+        this.sp.web.lists.getByTitle(LIST_NAMES.MARKETING_PROJECT_RECORDS)
+          .items.getById(i.Id).inBatch(b3).update({ projectName: lead.Title });
+      }
+      await b3.execute();
+    }
+
+    // 4. Provisioning_Log — projectName by ProjectCode
+    const provItems = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG)
+      .items.filter(`ProjectCode eq '${lead.ProjectCode}'`).select('Id')();
+    if (provItems.length > 0) {
+      const b4 = this.sp.web.createBatch();
+      for (const i of provItems) {
+        this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG)
+          .items.getById(i.Id).inBatch(b4).update({ projectName: lead.Title });
+      }
+      await b4.execute();
+    }
+
+    // 5. Job_Number_Requests — PE/PM by LeadID
+    const jnrItems = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS)
+      .items.filter(`LeadID eq ${leadId}`).select('Id')();
+    if (jnrItems.length > 0) {
+      const upd: Record<string, unknown> = {};
+      if ((lead as unknown as Record<string, unknown>).ProjectExecutive) upd.ProjectExecutive = (lead as unknown as Record<string, unknown>).ProjectExecutive;
+      if ((lead as unknown as Record<string, unknown>).ProjectManager) upd.ProjectManager = (lead as unknown as Record<string, unknown>).ProjectManager;
+      if (Object.keys(upd).length > 0) {
+        const b5 = this.sp.web.createBatch();
+        for (const i of jnrItems) {
+          this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS)
+            .items.getById(i.Id).inBatch(b5).update(upd);
+        }
+        await b5.execute();
+      }
+    }
   }
 
   // --- Closeout Promotion ---
-  async promoteToHub(_projectCode: string): Promise<void> {
-    // TODO: Copy lessons learned to hub Lessons_Learned_Hub list, update PMP status
-    throw new Error('Not implemented');
+  async promoteToHub(projectCode: string): Promise<void> {
+    // 1. Read lessons from project site (requires _projectSiteUrl)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let projectLessons: Record<string, any>[] = [];
+    if (this._projectSiteUrl) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { Web } = require('@pnp/sp/webs');
+      const projectWeb = Web([this.sp.web, this._projectSiteUrl]);
+      projectLessons = await projectWeb.lists.getByTitle('Lessons_Learned')
+        .items.filter(`projectCode eq '${projectCode}' and isIncludedInFinalRecord eq 1`)();
+    } else {
+      console.warn('[SP] promoteToHub: _projectSiteUrl not set, skipping lessons copy');
+    }
+
+    // 2. Copy to hub Lessons_Learned_Hub (skip duplicates by projectCode + title)
+    for (const lesson of projectLessons) {
+      const title = String(lesson.title || '').replace(/'/g, "''");
+      const existing = await this.sp.web.lists.getByTitle(LIST_NAMES.LESSONS_LEARNED_HUB)
+        .items.filter(`projectCode eq '${projectCode}' and title eq '${title}'`).top(1)();
+      if (existing.length === 0) {
+        await this.sp.web.lists.getByTitle(LIST_NAMES.LESSONS_LEARNED_HUB).items.add({
+          projectCode: lesson.projectCode,
+          title: lesson.title,
+          category: lesson.category,
+          impact: lesson.impact,
+          description: lesson.description,
+          recommendation: lesson.recommendation,
+          isIncludedInFinalRecord: true,
+        });
+      }
+    }
+
+    // 3. Close PMP on hub
+    const pmpItems = await this.sp.web.lists.getByTitle(LIST_NAMES.PMP)
+      .items.filter(`projectCode eq '${projectCode}'`).select('Id', 'status')();
+    for (const pmp of pmpItems) {
+      if (pmp.status !== 'Closed') {
+        await this.sp.web.lists.getByTitle(LIST_NAMES.PMP)
+          .items.getById(pmp.Id).update({ status: 'Closed', lastUpdatedAt: new Date().toISOString() });
+      }
+    }
   }
 
   // --- Scorecard Workflow (Phase 16) ---
@@ -1864,10 +2048,82 @@ export class SharePointDataService implements IDataService {
   async updateSectorDefinition(_id: number, _data: Partial<import('../models/ISectorDefinition').ISectorDefinition>): Promise<import('../models/ISectorDefinition').ISectorDefinition> { throw new Error('SharePoint implementation pending: updateSectorDefinition'); }
 
   // --- BD Leads Folder Operations ---
-  async createBdLeadFolder(_leadTitle: string, _originatorName: string): Promise<void> { throw new Error('SharePoint implementation pending: createBdLeadFolder'); }
-  async checkFolderExists(_path: string): Promise<boolean> { throw new Error('SharePoint implementation pending: checkFolderExists'); }
-  async createFolder(_path: string): Promise<void> { throw new Error('SharePoint implementation pending: createFolder'); }
-  async renameFolder(_oldPath: string, _newPath: string): Promise<void> { throw new Error('SharePoint implementation pending: renameFolder'); }
+
+  /**
+   * Creates a BD Leads folder structure on the PX Portfolio Dashboard site.
+   * Folder hierarchy: BD Leads / {year} / {leadTitle} - {originatorName} / {9 subfolders}
+   * Uses Web() factory for cross-site access (SPFx tokens are tenant-scoped).
+   */
+  async createBdLeadFolder(leadTitle: string, originatorName: string): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Web } = require('@pnp/sp/webs');
+    const bdWeb = Web([this.sp.web, BD_LEADS_SITE_URL]);
+    const libraryRoot = bdWeb.lists.getByTitle(BD_LEADS_LIBRARY).rootFolder;
+
+    const year = new Date().getFullYear().toString();
+    const leadFolderName = `${leadTitle} - ${originatorName}`;
+
+    // Ensure year folder exists (ignore if already exists)
+    try { await libraryRoot.folders.addUsingPath(year); } catch { /* already exists */ }
+    // Create lead folder
+    const yearFolder = libraryRoot.folders.getByUrl(year);
+    await yearFolder.folders.addUsingPath(leadFolderName);
+    // Create 9 subfolders
+    const leadFolder = yearFolder.folders.getByUrl(leadFolderName);
+    for (const sub of BD_LEADS_SUBFOLDERS) {
+      try { await leadFolder.folders.addUsingPath(sub); } catch (err) {
+        console.warn(`[SP] Failed to create subfolder "${sub}":`, err);
+      }
+    }
+  }
+
+  async checkFolderExists(path: string): Promise<boolean> {
+    try {
+      if (path.startsWith(BD_LEADS_LIBRARY)) {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { Web } = require('@pnp/sp/webs');
+        const bdWeb = Web([this.sp.web, BD_LEADS_SITE_URL]);
+        const relativePath = path.substring(BD_LEADS_LIBRARY.length + 1);
+        await bdWeb.lists.getByTitle(BD_LEADS_LIBRARY).rootFolder
+          .folders.getByUrl(relativePath).select('Exists')();
+        return true;
+      }
+      await this.sp.web.getFolderByServerRelativePath(path).select('Exists')();
+      return true;
+    } catch { return false; }
+  }
+
+  async createFolder(path: string): Promise<void> {
+    if (path.startsWith(BD_LEADS_LIBRARY)) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { Web } = require('@pnp/sp/webs');
+      const bdWeb = Web([this.sp.web, BD_LEADS_SITE_URL]);
+      const relativePath = path.substring(BD_LEADS_LIBRARY.length + 1);
+      const segments = relativePath.split('/');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let currentFolder: any = bdWeb.lists.getByTitle(BD_LEADS_LIBRARY).rootFolder;
+      for (const segment of segments) {
+        try { await currentFolder.folders.addUsingPath(segment); } catch { /* already exists */ }
+        currentFolder = currentFolder.folders.getByUrl(segment);
+      }
+    } else {
+      await this.sp.web.folders.addUsingPath(path);
+    }
+  }
+
+  async renameFolder(oldPath: string, newPath: string): Promise<void> {
+    if (oldPath.startsWith(BD_LEADS_LIBRARY)) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { Web } = require('@pnp/sp/webs');
+      const bdWeb = Web([this.sp.web, BD_LEADS_SITE_URL]);
+      const siteInfo = await bdWeb.select('ServerRelativeUrl')();
+      const oldServerPath = `${siteInfo.ServerRelativeUrl}/${oldPath}`;
+      const newServerPath = `${siteInfo.ServerRelativeUrl}/${newPath}`;
+      await bdWeb.getFolderByServerRelativePath(oldServerPath).moveByPath(newServerPath, false);
+    } else {
+      await this.sp.web.getFolderByServerRelativePath(oldPath).moveByPath(newPath, false);
+    }
+  }
 
   // --- Assignment Mappings ---
   async getAssignmentMappings(): Promise<import('../models/IAssignmentMapping').IAssignmentMapping[]> { console.warn('[STUB] getAssignmentMappings not implemented'); return []; }

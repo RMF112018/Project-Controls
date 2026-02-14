@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-14 — SP Service Chunk 1: Permissions & Security
+**Last Updated:** 2026-02-14 — SP Service Chunk 2: Provisioning & Infrastructure
 
 ---
 
@@ -696,11 +696,11 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 31 | logAudit | (entry: Partial<IAuditEntry>) → Promise<void> | Impl | Impl | useWorkflow, various hooks | in-memory |
 | 32 | getAuditLog | (entityType?: string, entityId?: string, startDate?: string, endDate?: string) → Promise<IAuditEntry[]> | Impl | Impl | AdminPanel | in-memory |
 | 33 | purgeOldAuditEntries | (olderThanDays: number) → Promise<number> | Impl | Stub | AdminPanel | in-memory |
-| 34 | triggerProvisioning | (leadId: number, projectCode: string, projectName: string, requestedBy: string) → Promise<IProvisioningLog> | Impl | Stub | GoNoGoScorecard | in-memory |
+| 34 | triggerProvisioning | (leadId: number, projectCode: string, projectName: string, requestedBy: string) → Promise<IProvisioningLog> | Impl | Impl | GoNoGoScorecard | in-memory |
 | 35 | getProvisioningStatus | (projectCode: string) → Promise<IProvisioningLog \| null> | Impl | Impl | ProvisioningStatus | in-memory |
-| 36 | updateProvisioningLog | (projectCode: string, data: Partial<IProvisioningLog>) → Promise<IProvisioningLog> | Impl | Stub | — | in-memory |
+| 36 | updateProvisioningLog | (projectCode: string, data: Partial<IProvisioningLog>) → Promise<IProvisioningLog> | Impl | Impl | — | in-memory |
 | 37 | getProvisioningLogs | () → Promise<IProvisioningLog[]> | Impl | Impl | AdminPanel | in-memory |
-| 38 | retryProvisioning | (projectCode: string, fromStep: number) → Promise<IProvisioningLog> | Impl | Stub | AdminPanel | in-memory |
+| 38 | retryProvisioning | (projectCode: string, fromStep: number) → Promise<IProvisioningLog> | Impl | Impl | AdminPanel | in-memory |
 | 39 | getTeamMembers | (projectCode: string) → Promise<ITeamMember[]> | Impl | Impl | useWorkflow | teamMembers.json |
 | 40 | getDeliverables | (projectCode: string) → Promise<IDeliverable[]> | Impl | Impl | useWorkflow | deliverables.json |
 | 41 | createDeliverable | (data: Partial<IDeliverable>) → Promise<IDeliverable> | Impl | Impl | useWorkflow | deliverables.json |
@@ -784,7 +784,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 118 | finalizeJobNumber | (requestId: number, jobNumber: string, assignedBy: string) → Promise<IJobNumberRequest> | Impl | Stub | useJobNumberRequest | jobNumberRequests.json |
 | 119 | getProjectTypes | () → Promise<IProjectType[]> | Impl | Stub | useJobNumberRequest | projectTypes.json |
 | 120 | getStandardCostCodes | () → Promise<IStandardCostCode[]> | Impl | Stub | useJobNumberRequest | standardCostCodes.json |
-| 121 | rekeyProjectCode | (oldCode: string, newCode: string, leadId: number) → Promise<void> | Impl | Stub | — | in-memory |
+| 121 | rekeyProjectCode | (oldCode: string, newCode: string, leadId: number) → Promise<void> | Impl | Impl | — | in-memory |
 | 122 | getBuyoutEntries | (projectCode: string) → Promise<IBuyoutEntry[]> | Impl | Impl | useBuyoutLog | buyoutEntries.json |
 | 123 | initializeBuyoutLog | (projectCode: string) → Promise<IBuyoutEntry[]> | Impl | Impl | useBuyoutLog | buyoutEntries.json |
 | 124 | addBuyoutEntry | (projectCode: string, entry: Partial<IBuyoutEntry>) → Promise<IBuyoutEntry> | Impl | Impl | useBuyoutLog | buyoutEntries.json |
@@ -804,8 +804,8 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 138 | getPortfolioSummary | (filters?: IActiveProjectsFilter) → Promise<IPortfolioSummary> | Impl | Impl | useActiveProjects | generated |
 | 139 | getPersonnelWorkload | (role?: 'PX' \| 'PM' \| 'Super') → Promise<IPersonnelWorkload[]> | Impl | Impl | useActiveProjects | generated |
 | 140 | triggerPortfolioSync | () → Promise<void> | Impl | Impl | useActiveProjects | generated |
-| 141 | syncDenormalizedFields | (leadId: number) → Promise<void> | Impl | Stub | — | in-memory |
-| 142 | promoteToHub | (projectCode: string) → Promise<void> | Impl | Stub | — | in-memory |
+| 141 | syncDenormalizedFields | (leadId: number) → Promise<void> | Impl | Impl | — | in-memory |
+| 142 | promoteToHub | (projectCode: string) → Promise<void> | Impl | Impl | — | in-memory |
 | 143 | getWorkflowDefinitions | () → Promise<IWorkflowDefinition[]> | Impl | Stub | useWorkflowDefinitions | workflowDefinitions.json |
 | 144 | getWorkflowDefinition | (workflowKey: WorkflowKey) → Promise<IWorkflowDefinition \| null> | Impl | Stub | useWorkflowDefinitions | workflowDefinitions.json |
 | 145 | updateWorkflowStep | (workflowId: number, stepId: number, data: Partial<IWorkflowStep>) → Promise<IWorkflowStep> | Impl | Stub | useWorkflowDefinitions | workflowDefinitions.json |
@@ -856,10 +856,10 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 190 | getSectorDefinitions | () → Promise<ISectorDefinition[]> | Impl | Stub | useSectorDefinitions | sectorDefinitions.json |
 | 191 | createSectorDefinition | (data: Partial<ISectorDefinition>) → Promise<ISectorDefinition> | Impl | Stub | AdminPanel | sectorDefinitions.json |
 | 192 | updateSectorDefinition | (id: number, data: Partial<ISectorDefinition>) → Promise<ISectorDefinition> | Impl | Stub | AdminPanel | sectorDefinitions.json |
-| 193 | createBdLeadFolder | (leadTitle: string, originatorName: string) → Promise<void> | Impl | Stub | LeadFormPage | in-memory |
-| 194 | checkFolderExists | (path: string) → Promise<boolean> | Impl | Stub | — | in-memory |
-| 195 | createFolder | (path: string) → Promise<void> | Impl | Stub | — | in-memory |
-| 196 | renameFolder | (oldPath: string, newPath: string) → Promise<void> | Impl | Stub | useGoNoGo | in-memory |
+| 193 | createBdLeadFolder | (leadTitle: string, originatorName: string) → Promise<void> | Impl | Impl | LeadFormPage | in-memory |
+| 194 | checkFolderExists | (path: string) → Promise<boolean> | Impl | Impl | — | in-memory |
+| 195 | createFolder | (path: string) → Promise<void> | Impl | Impl | — | in-memory |
+| 196 | renameFolder | (oldPath: string, newPath: string) → Promise<void> | Impl | Impl | useGoNoGo | in-memory |
 | 197 | getAssignmentMappings | () → Promise<IAssignmentMapping[]> | Impl | Stub | useAssignmentMappings | assignmentMappings.json |
 | 198 | createAssignmentMapping | (data: Partial<IAssignmentMapping>) → Promise<IAssignmentMapping> | Impl | Stub | useAssignmentMappings | assignmentMappings.json |
 | 199 | updateAssignmentMapping | (id: number, data: Partial<IAssignmentMapping>) → Promise<IAssignmentMapping> | Impl | Stub | useAssignmentMappings | assignmentMappings.json |
@@ -1462,12 +1462,13 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 31 | Tier 0 Deployment Gate Remediation — Implemented all 4 Tier 0 items from the Stub Risk Analysis plan: (0.1) `getCurrentUser()` implemented in SharePointDataService using SPFx page context + App_Roles SP list lookup + ROLE_PERMISSIONS mapping, (0.2) GraphService initialized in WebPart.onInit() via `msGraphClientFactory.getClient('3')`, (0.3) Added try/catch error handling to all 12 unprotected useGoNoGo callbacks and all 12 unprotected usePermissionEngine callbacks, (0.4) Added `[STUB]` console.warn logging to all ~35 Pattern A stubs and descriptive error messages to all ~93 Pattern B stubs. WebPart entry point now supports `dataServiceMode` property ('mock' \| 'sharepoint') for service switching. | (none) | HbcProjectControlsWebPart.ts (dataServiceMode property, PnP SP init, initializeContext(), GraphService init), SharePointDataService.ts (getCurrentUser impl, initializeContext method, [STUB] logging on all Pattern A stubs, descriptive errors on Pattern B stubs), useGoNoGo.ts (+try/catch on 12 callbacks), usePermissionEngine.ts (+try/catch on 12 callbacks) |
 | 32 | Permissions & Security Remediation — Removed 2 unused Graph API scopes (`User.Read.All`, `Sites.ReadWrite.All`) from package-solution.json (10→8 scopes). Fixed provisioning URL domain mismatch (`hedrickbrothers` → `hedrickbrotherscom` in ProvisioningService.ts lines 158 and 259). Added audit logging to all 8 GraphService methods via `GraphAuditLogger` callback pattern (mutations log success+failure, reads log failure only). `setAuditLogger()` wired in WebPart.onInit() after dataService creation. Fire-and-forget `inviteToSiteGroup` in usePermissionEngine.ts now logs 403/failure to audit trail. 4 new AuditAction values, 1 new EntityType value. Updated docs/DEPLOYMENT_READINESS.md with phased admin consent strategy, corrected scope counts, marked Phase 31 fixes as resolved. | (none) | config/package-solution.json (-User.Read.All, -Sites.ReadWrite.All, 8 scopes), services/GraphService.ts (+GraphAuditLogger type, +setAuditLogger(), +logGraphCall(), try/catch + audit on all 8 methods), services/index.ts (+GraphAuditLogger export), HbcProjectControlsWebPart.ts (+graphService.setAuditLogger wiring), services/ProvisioningService.ts (URL fix lines 158, 259), models/enums.ts (+4 AuditAction, +1 EntityType), components/hooks/usePermissionEngine.ts (+audit log on inviteToSiteGroup failure), docs/DEPLOYMENT_READINESS.md (scope analysis rewrite, phased consent, getCurrentUser resolved, domain fix noted) |
 | SP-1 | SharePointDataService Chunk 1: Permissions & Security — Replaced 20 stubs with live PnP/SP implementations (51→71 implemented, 153→133 stubs). Permission Templates CRUD (5 methods), Security Group Mappings CRUD (3), Project Team Assignments CRUD + soft delete (7), inviteToProjectSiteGroup (fire-and-forget SP group add by role convention), resolveUserPermissions (full 5-step resolution chain: roles → security group mapping → template → project override → granular flags → resolveToolPermissions), getAccessibleProjects (globalAccess check + filtered assignments), getEnvironmentConfig (App_Context_Config with prod fallback), promoteTemplates (batch version increment + promotion history), setHubSiteUrl (upsert on App_Context_Config). 3 private mapper helpers added (mapToPermissionTemplate, mapToSecurityGroupMapping, mapToProjectTeamAssignment) using column mappings with JSON parse/stringify for toolAccess and granularFlagOverrides. | (none) | SharePointDataService.ts (20 stubs→implementations, +3 mapper helpers, +7 imports), CLAUDE.md (§15, §16) |
+| SP-2 | SharePointDataService Chunk 2: Provisioning & Infrastructure — Replaced 10 stubs with live PnP/SP implementations (71→81 implemented, 133→123 stubs). Provisioning Core (3 methods): triggerProvisioning (creates Provisioning_Log item via PROVISIONING_LOG_COLUMNS), updateProvisioningLog (find-by-projectCode + partial update + re-read), retryProvisioning (reset failure state + increment retryCount). BD Leads Folder Operations (4 methods): createBdLeadFolder (cross-site Web() factory to PX Portfolio Dashboard, year/lead/9 subfolder hierarchy), checkFolderExists (BD Leads library or hub site), createFolder (recursive segment creation), renameFolder (moveByPath). Data Integrity (3 methods): syncDenormalizedFields (5 hub lists via PnP batch — Estimating_Tracker, PMP, Marketing_Project_Records, Provisioning_Log, Job_Number_Requests), promoteToHub (cross-site Lessons_Learned copy + PMP close), rekeyProjectCode (6 hub lists via batch helper). Added hubNavLinkStatus to PROVISIONING_LOG_COLUMNS. | (none) | SharePointDataService.ts (10 stubs→implementations, +2 imports), columnMappings.ts (+hubNavLinkStatus), CLAUDE.md (§7, §15, §16) |
 
 ### Known Stubs / Placeholders
 
-- **SharePointDataService**: 133 of 204 methods are stubs (return empty with `[STUB]` console.warn / throw with descriptive error). All Phase 7+ project-level list operations are stubbed. `setProjectSiteUrl()` is implemented (stores URL for future dual-web PnP usage). All Pattern A stubs now log `console.warn('[STUB] methodName not implemented')` for developer visibility. All Pattern B stubs now throw `Error('SharePoint implementation pending: methodName')` for clear identification.
+- **SharePointDataService**: 123 of 204 methods are stubs (return empty with `[STUB]` console.warn / throw with descriptive error). All Phase 7+ project-level list operations are stubbed. `setProjectSiteUrl()` is implemented (stores URL for future dual-web PnP usage). All Pattern A stubs now log `console.warn('[STUB] methodName not implemented')` for developer visibility. All Pattern B stubs now throw `Error('SharePoint implementation pending: methodName')` for clear identification.
 - **HubNavigationService**: SharePointHubNavigationService is a stub (all 3 methods throw).
-- **Column Mappings**: `columnMappings.ts` has mappings for all lists. Permission Templates, Security Group Mappings, and Project Team Assignments now use column mappings in SharePointDataService. Other list operations still stub.
+- **Column Mappings**: `columnMappings.ts` has mappings for all lists. Permission Templates, Security Group Mappings, Project Team Assignments, and Provisioning Log now use column mappings in SharePointDataService. Other list operations still stub.
 - **Offline Support**: `OfflineQueueService.ts` exists but feature flag `OfflineSupport` is disabled.
 - **Dual Notifications**: `DualNotifications` feature flag exists but is disabled.
 - **Audit Trail UI**: `AuditTrail` feature flag exists but detailed UI not built.
@@ -1476,8 +1477,8 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 ### SharePointDataService Status
 
-- **Implemented (71)**: Leads CRUD, Go/No-Go CRUD, Estimating CRUD, Roles/Flags CRUD, Audit log/read, Provisioning read, Phase 6 workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read/write, **getCurrentUser** (Phase 31), **Permission Templates CRUD** (5), **Security Group Mappings CRUD** (3), **Project Team Assignments CRUD + soft delete** (7), **inviteToProjectSiteGroup** (fire-and-forget SP group add), **resolveUserPermissions** (full resolution chain), **getAccessibleProjects** (computed), **getEnvironmentConfig** (with fallback), **promoteTemplates** (batch update + config write)
-- **Stubbed (133)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff (incl. updateKickoffKeyPersonnel), all job number requests, all workflow definitions, all turnover agenda, all sector definitions, all assignment mappings, all BD Leads folder operations, reference data, re-key, sync, promote, meetings, notifications, provisioning triggers, action inbox (SP)
+- **Implemented (81)**: Leads CRUD, Go/No-Go CRUD, Estimating CRUD, Roles/Flags CRUD, Audit log/read, **Provisioning CRUD** (trigger/update/retry/read/list), Phase 6 workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read/write, **getCurrentUser** (Phase 31), **Permission Templates CRUD** (5), **Security Group Mappings CRUD** (3), **Project Team Assignments CRUD + soft delete** (7), **inviteToProjectSiteGroup** (fire-and-forget SP group add), **resolveUserPermissions** (full resolution chain), **getAccessibleProjects** (computed), **getEnvironmentConfig** (with fallback), **promoteTemplates** (batch update + config write), **BD Leads folder ops** (create/check/mkdir/rename via cross-site Web()), **syncDenormalizedFields** (5-list batch), **promoteToHub** (cross-site lessons + PMP close), **rekeyProjectCode** (6-list batch)
+- **Stubbed (123)**: All startup checklist, all matrices, all marketing records, all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP, all monthly review, all estimating kickoff (incl. updateKickoffKeyPersonnel), all job number requests, all workflow definitions, all turnover agenda, all sector definitions, all assignment mappings, reference data, meetings, notifications, action inbox (SP)
 
 ---
 
@@ -1579,6 +1580,14 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 48. **Graph API scopes reduced from 10 to 8 in Phase 32** — `User.Read.All` and `Sites.ReadWrite.All` were removed from `config/package-solution.json` because no code path used them. If future features need directory user lookups (e.g., real AzureADPeoplePicker), re-add `User.Read.All` and request admin consent. If future features need cross-site PnP writes (e.g., writing to a project site from hub context), re-add `Sites.ReadWrite.All`.
 
+49. **BD Leads folder operations target a different SP site** — `createBdLeadFolder`, `checkFolderExists`, `createFolder`, `renameFolder` use `Web([this.sp.web, BD_LEADS_SITE_URL])` to access the PX Portfolio Dashboard site. SPFx context tokens are tenant-scoped, so cross-site PnP calls work without additional auth. The folder hierarchy is: `BD Leads / {year} / {leadTitle} - {originatorName} / {9 subfolders}`.
+
+50. **`rekeyProjectCode` only updates hub-level lists** — 6 hub lists are updated via batch (Leads_Master, Estimating_Tracker, Marketing_Project_Records, Provisioning_Log, Buyout_Log, Project_Team_Assignments). 17 project-site lists require manual admin operation since the site URL contains the project code. Future enhancement: accept new site URL and use `Web()` factory to batch-update project lists.
+
+51. **`promoteToHub` requires `_projectSiteUrl` to be set** — Reads `Lessons_Learned` from the project site via `Web([this.sp.web, _projectSiteUrl])`. Falls back with `console.warn` if `_projectSiteUrl` is null (lessons copy skipped, PMP close still runs). Ensure `setProjectSiteUrl()` is called before `promoteToHub()`.
+
+52. **`updateProvisioningLog` is called ~14 times per provisioning run** — Each invocation does find-by-projectCode + update + re-read (3 SP calls). Acceptable for current volume (<50 projects). For high-volume scenarios, consider caching the item ID after `triggerProvisioning`.
+
 ---
 
 ## Audit Log
@@ -1614,3 +1623,4 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-12 | §1, §3, §6, §15, §16 | Phase 32: Permissions & Security Remediation. §1: package-solution.json Graph scopes 10→8. §3: WebPart.onInit() wires `graphService.setAuditLogger()`. §6: +4 AuditAction (GraphApiCallSucceeded/Failed, GraphGroupMemberAdded/AddFailed), +1 EntityType (GraphApi). §15: Phase 32 entry, pitfalls #47-#48. Files: config/package-solution.json (-User.Read.All, -Sites.ReadWrite.All), GraphService.ts (+audit logging on all 8 methods), ProvisioningService.ts (URL domain fix), enums.ts (+4 AuditAction, +1 EntityType), usePermissionEngine.ts (+audit on inviteToSiteGroup failure), HbcProjectControlsWebPart.ts (+setAuditLogger wiring), services/index.ts (+GraphAuditLogger export), docs/DEPLOYMENT_READINESS.md (scope analysis rewrite, phased consent, resolved items). |
 | 2026-02-12 | §2 | Post-Phase 32 Security Analysis. Created docs/SECURITY_ANALYSIS.md — comprehensive permissions & security posture document covering: Graph API scope inventory (8 scopes), audit coverage summary, resolved issues (7 items across Phases 31-32), remaining deployment configuration risks (mock group IDs, PowerAutomate endpoints, admin consent), accepted risks (4 items), phased admin consent strategy (4 phases: MVD→Calendar→Email→Teams), architecture notes. No code changes — documentation only. |
 | 2026-02-14 | §7, §15 | SP Service Chunk 1: Permissions & Security. §7: 20 methods changed from SP Stub→Impl (methods 171, 173-189, 202-203). §15: Phase SP-1 entry added. SharePointDataService status updated: 71 implemented / 133 stubs. Known Stubs updated to remove permission-related items. Column Mappings note updated. Files modified: SharePointDataService.ts (+464 lines: 7 new imports, 3 private mapper helpers, 20 method implementations replacing stubs). |
+| 2026-02-14 | §7, §15, §16 | SP Service Chunk 2: Provisioning & Infrastructure. §7: 10 methods changed from SP Stub→Impl (methods 34, 36, 38, 121, 141, 142, 193-196). §15: Phase SP-2 entry added. SharePointDataService status updated: 81 implemented / 123 stubs. Known Stubs updated (removed provisioning, folder, re-key, sync, promote). Column Mappings note updated (Provisioning Log). §16: Added pitfalls #49-52 (cross-site folder ops, rekeyProjectCode hub-only, promoteToHub requires projectSiteUrl, updateProvisioningLog call frequency). Files modified: SharePointDataService.ts (+2 imports, 10 stub→implementations), columnMappings.ts (+hubNavLinkStatus). |
