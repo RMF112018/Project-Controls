@@ -10,6 +10,7 @@ release/
 
 # SPFx solution package
 sharepoint/solution/*.sppkg
+sharepoint/solution/debug/
 
 # Bundle analysis
 *.stats.html
