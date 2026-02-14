@@ -34,3 +34,4 @@ export { ActivityTimeline } from './ActivityTimeline';
 export type { ITimelineEntry } from './ActivityTimeline';
 export { ToolPermissionMatrix } from './ToolPermissionMatrix';
 export { GranularFlagEditor } from './GranularFlagEditor';
+export { PageLoader } from './PageLoader';
