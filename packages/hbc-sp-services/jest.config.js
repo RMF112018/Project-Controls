@@ -1,9 +1,7 @@
-const path = require('path');
-
 module.exports = {
   displayName: 'sp-services',
-  // Use the v29 jest-environment-node nested under jest (SPFx hoists v25 to root)
-  testEnvironment: path.resolve(__dirname, '../../node_modules/jest/node_modules/jest-environment-node'),
+  preset: 'ts-jest',
+  testEnvironment: 'node',
   rootDir: '.',
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts'],

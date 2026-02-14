@@ -87,6 +87,9 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "scheduler": "^0.23.2",
-    "@fluentui/react-icons": "2.0.319"
+    "@fluentui/react-icons": "2.0.319",
+    "jest-cli": "^29.7.0",
+    "@jest/core": "^29.7.0",
+    "@jest/transform": "^29.7.0"
   }
 }
