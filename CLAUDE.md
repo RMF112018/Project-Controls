@@ -25,11 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-<<<<<<< extract-common-services
-**Last Updated:** 2026-02-14 — Fix `@hbc/sp-services` import resolution (workspace symlink, lib build, SPFx alias)
-=======
-**Last Updated:** 2026-02-14 — GitHub Actions CI/CD Pipeline
->>>>>>> main
+**Last Updated:** 2026-02-14 — Unit test coverage for @hbc/sp-services (245 tests, 10 suites)
 
 ---
 
@@ -64,7 +60,10 @@ npm run dev                     # Standalone dev server (port 3000)
 npm run build:lib               # Build @hbc/sp-services library only
 npm run build:app               # SPFx bundle --ship + package-solution --ship
 npm run build                   # build:lib then build:app (full pipeline)
-npm run test                    # Jest tests
+npm run test                    # Jest tests (workspace: hbc-sp-services)
+npm run test:coverage           # Jest with coverage report
+npm run test:ci                 # Jest with coverage + CI mode
+npm run test:watch              # Jest in watch mode
 npm run lint                    # ESLint
 ```
 
@@ -74,9 +73,9 @@ npm run lint                    # ESLint
 
 | Workflow | Trigger | What it does |
 |----------|---------|-------------|
-| CI (`ci.yml`) | Push to main, PRs | npm ci → tsc --noEmit → lint → gulp bundle --ship → gulp package-solution --ship → upload .sppkg artifact |
+| CI (`ci.yml`) | Push to main, PRs | npm ci → **test with coverage** → tsc --noEmit → lint → gulp bundle --ship → gulp package-solution --ship → upload .sppkg artifact |
 | Release (`release.yml`) | Tag `v*` | Full build → GitHub Release with .sppkg asset |
-| PR Validation (`pr-validation.yml`) | PRs only | npm ci → tsc --noEmit → lint (fast feedback) |
+| PR Validation (`pr-validation.yml`) | PRs only | npm ci → **test** → tsc --noEmit → lint (fast feedback) |
 | Dependabot (`dependabot.yml`) | Weekly (Monday) | npm + GitHub Actions updates, SPFx packages ignored for major/minor |
 
 ### Key Config Files
@@ -1524,13 +1523,13 @@ Steps 1-6 modify `packages/hbc-sp-services/` (the shared library). Steps 7-12 mo
 
 | Perf-1 | Route-based Code Splitting — Replaced 40 static page imports in App.tsx with `React.lazy()` + `lazyNamed()` helper for named-export modules. Single `React.Suspense` boundary wraps `<Routes>` with `<PageLoader />` fallback (centered Fluent Spinner, makeStyles). Shell stays in main bundle: FluentProvider, AppProvider, HashRouter, AppShell, NavigationSidebar, ErrorBoundary, ToastProvider, guards (ProtectedRoute, ProjectRequiredRoute, FeatureGate), NotFoundPage, AccessDeniedPage. 2 dead imports removed (GoNoGoTracker, PreconKickoff — were imported but never routed). Zero route guard, service, model, or styling changes. `tsc --noEmit` clean. | PageLoader.tsx | App.tsx (40 static→lazy imports, +Suspense boundary, +lazyNamed helper, -2 dead imports), shared/PageLoader.tsx (new), shared/index.ts (+PageLoader export) |
 
-<<<<<<< extract-common-services
 | Lib-1 | Extract `@hbc/sp-services` Shared Library — Moved 114 files (45 models + 14 services + 13 utils + 42 mock JSON) from `src/webparts/hbcProjectControls/` into `packages/hbc-sp-services/src/` as a standalone npm workspace package. Monorepo structure via npm workspaces (`"workspaces": ["packages/*"]`). Package barrel `index.ts` re-exports all models, services, utils, and `MOCK_USERS` from mock/users.json. All ~106 app files rewritten from relative imports (`../../models`, `../../services/*`, `../../utils/*`) to `from '@hbc/sp-services'`. Duplicate imports consolidated. Root tsconfig `rootDir` changed from `"src"` to `"."` to accommodate path alias resolution into packages/. Old path aliases (`@services/*`, `@models/*`, `@utils/*`) removed; new `@hbc/sp-services` alias added. Webpack dev config updated. `tsc --noEmit` passes on all 3 tsconfigs (root, dev, package). Webpack dev build compiles successfully. Zero model, service, utility, or component logic changes — purely structural refactor. | packages/hbc-sp-services/ (package.json, tsconfig.json, src/index.ts) | ~106 app files (import rewrites), package.json (workspaces, dependency, build scripts), tsconfig.json (rootDir, paths), dev/webpack.config.js (aliases), services/index.ts (added missing singleton/type exports), AzureADPeoplePicker.tsx (MOCK_USERS import), PursuitDetail.tsx (inline import type fix) |
-=======
+
 | CI-1 | GitHub Actions CI/CD Pipeline — ci.yml (full build on push/PR with .sppkg artifact upload), release.yml (tag-triggered GitHub Release with .sppkg asset), pr-validation.yml (fast type-check + lint for PRs), dependabot.yml (weekly npm + GitHub Actions updates, SPFx packages pinned to patch-only). Node 18.18.2 in CI (within engines range). Zero source code files touched. | .github/workflows/ci.yml, .github/workflows/release.yml, .github/workflows/pr-validation.yml, .github/dependabot.yml | CLAUDE.md (§1 +CI/CD table, §2 +.github dir, §15 +Phase CI-1) |
->>>>>>> main
 
 | Perf-2 | Performance Monitoring — Admin performance dashboard with telemetry logging. PerformanceService singleton (mark-based timing for WebPart load, App init, data fetch). IPerformanceLog model (session metrics, marks array, user agent, SPFx version). usePerformanceMetrics hook (30s auto-refresh, date range filter, summary KPIs). PerformanceDashboard page (Recharts line+bar charts, session table, p95/avg metrics, slow session alerts). Feature-flagged via PerformanceMonitoring (id: 24, default: false). | IPerformanceLog.ts, PerformanceService.ts, usePerformanceMetrics.ts, PerformanceDashboard.tsx | IDataService.ts (+3 methods, 215 total), MockDataService.ts (+3 implementations), SharePointDataService.ts (+3 stubs), enums.ts (+2 AuditAction, +1 EntityType), models/index.ts, services/index.ts, featureFlags.json (+id:24), constants.ts (+PERFORMANCE_LOGS, +ADMIN_PERFORMANCE, +PERFORMANCE_THRESHOLDS), columnMappings.ts (+PERFORMANCE_LOGS_COLUMNS), App.tsx (+1 lazy route), NavigationSidebar.tsx (+Performance nav item), hooks/index.ts (+1 export), pages/hub/index.ts (+1 export) |
+
+| Test-1 | Unit & Integration Test Coverage for `@hbc/sp-services` — Jest 29 + ts-jest configured in `packages/hbc-sp-services/`. 10 test suites, 245 tests across 10 files. Coverage: AuditService 100%, CacheService 100%, PerformanceService 89%, ProvisioningService 72%, MockDataService 22.7% (5,537 LOC), NotificationService 88%, scoreCalculator 100%, validators 100%, stageEngine 95%, permissions 100%. Global thresholds: 30% stmts / 20% branches / 25% functions / 30% lines. CI integration: `npm run test:ci` in ci.yml (with coverage), `npm run test` in pr-validation.yml. Excluded from coverage: SharePointDataService (3,256 LOC SP-specific), ExportService (DOM mocks), GraphService, HubNavigationService, OfflineQueueService, PowerAutomateService, breadcrumbs, formatters, riskEngine, siteDetector. | jest.config.js, test-helpers.ts, MockDataService.test.ts, AuditService.test.ts, PerformanceService.test.ts, ProvisioningService.test.ts, CacheService.test.ts, NotificationService.test.ts, scoreCalculator.test.ts, validators.test.ts, stageEngine.test.ts, permissions.test.ts | packages/hbc-sp-services/package.json (+test scripts), packages/hbc-sp-services/tsconfig.json (+test includes), package.json (+root test scripts), .github/workflows/ci.yml (+test:ci step), .github/workflows/pr-validation.yml (+test step), CLAUDE.md (§1, §15, §16) |
 
 ### Known Stubs / Placeholders
 
@@ -1713,6 +1712,12 @@ Steps 1-6 modify `packages/hbc-sp-services/` (the shared library). Steps 7-12 mo
 
 80. **`performanceService` is a singleton — do not instantiate per component** — `PerformanceService` is created once in `HbcProjectControlsWebPart.onInit()` (or `DevRoot` for dev server) and passed through context. Components call `performanceService.mark()` / `performanceService.endMark()` for timing. Creating multiple instances resets the marks array and produces incomplete telemetry. The singleton is wired into `AppProvider` props alongside `dataService`.
 
+81. **Jest 29 requires npm overrides for `jest-cli`, `@jest/core`, and `@jest/transform`** — SPFx 1.21.1 hoists `jest-cli@25`, `@jest/core@25`, and `@jest/transform@25` to the root `node_modules/`. Without overrides, `jest@29` delegates to `jest-cli@25` (via `importLocal`), which uses `@jest/core@25` → `jest-runner@25`. The v25 runner calls `jest-environment-node@29` with v25's flat constructor signature, causing `TypeError: Cannot read properties of undefined (reading 'testEnvironmentOptions')`. Additionally, `@jest/transform@25` is incompatible with `ts-jest@29` (missing `process` function). Root `package.json` overrides force `jest-cli`, `@jest/core`, and `@jest/transform` to `^29.7.0`. The workspace `packages/hbc-sp-services/package.json` also has `jest`, `jest-environment-node`, `ts-jest`, and `@types/jest` as explicit devDependencies. Do not remove these overrides — SPFx's v25 hoisting will resurface.
+
+82. **Use `jest.advanceTimersByTimeAsync()` for async flush methods** — When testing services that use `setTimeout` + `async` callbacks (e.g., `AuditService.flush()` iterates with `await logFn(entry)`), synchronous `jest.advanceTimersByTime()` fires the timer but doesn't flush async microtasks. Use `await jest.advanceTimersByTimeAsync()` instead. Similarly, for methods that `await new Promise(resolve => setTimeout(resolve, delay))` (e.g., `ProvisioningService.createBuyoutLogList`), start the promise first, then `await jest.advanceTimersByTimeAsync(delay)`, then await the promise — otherwise the `await` deadlocks before the test can advance timers.
+
+83. **ts-jest requires `diagnostics: false` + `isolatedModules: true` in monorepo** — Without these options in the `jest.config.js` transform block, ts-jest attempts full type-checking which fails with `Cannot find module 'jest-util'` or `globsToMatcher` import errors due to SPFx's jest@25 being on the resolution path. Setting `diagnostics: false` skips type-checking in tests (TypeScript checking is done separately via `tsc --noEmit`). Setting `isolatedModules: true` enables faster transpile-only mode.
+
 ---
 
 ## Audit Log
@@ -1761,3 +1766,4 @@ Steps 1-6 modify `packages/hbc-sp-services/` (the shared library). Steps 7-12 mo
 | 2026-02-14 | §1, §16 | Pinned @fluentui/react-icons to exact 2.0.319 (was ^2.0.230). Added webpack alias in dev/webpack.config.js, npm override in root package.json, and workspace package peer/dev dep in packages/hbc-sp-services/package.json to prevent nested module resolution failures. |
 | 2026-02-14 | §1, §16 | Hardened monorepo dependency resolution. Replaced overrides block with comprehensive top-level react/react-dom/scheduler pins (prevents SPFx nesting). Added `postinstall` (auto build:lib) and `clean:dev` (nuclear reinstall) scripts. Added scheduler webpack alias. |
 | 2026-02-14 | §2, §6, §7, §8, §9, §11, §12, §13, §15, §16 | Phase Perf-2: Performance Monitoring. §2: +usePerformanceMetrics hook (39 total), +PerformanceDashboard.tsx in pages/hub, +PerformanceService.ts in services (15 files), service method counts 212→215, stubs 77→80. §6: +IPerformanceLog/IPerformanceMark/IPerformanceQueryOptions/IPerformanceSummary interfaces, +2 AuditAction (PerformanceLogRecorded, PerformanceAlertTriggered), +1 EntityType (Performance). §7: 215 methods total, +3 new (logPerformanceEntry, getPerformanceLogs, getPerformanceSummary). §8: +/admin/performance route. §9: Admin group gains Performance nav item. §11: +PerformanceMonitoring flag (id:24, false, Infrastructure). §12: featureFlags.json 23→24. §13: +PERFORMANCE_LOGS HUB_LIST, +ADMIN_PERFORMANCE route, +PERFORMANCE_THRESHOLDS constant. §15: +Perf-2 phase, stubs 83→86 of 215 (Pattern A 21→24). §16: +pitfall #80 (performanceService singleton). |
+| 2026-02-14 | §1, §15, §16 | Phase Test-1: Unit & Integration Test Coverage. §1: +test:coverage, +test:ci, +test:watch to build commands; CI table updated (ci.yml +test:ci step, pr-validation.yml +test step). §15: +Test-1 phase entry (10 suites, 245 tests, Jest 29 + ts-jest, coverage thresholds, excluded files list). §16: Added pitfalls #81-83 (Jest/SPFx v25 testEnvironment conflict, advanceTimersByTimeAsync for async flush, ts-jest diagnostics:false + isolatedModules:true). Files created: jest.config.js, test-helpers.ts, 10 test files in __tests__/ dirs. Files modified: packages/hbc-sp-services/package.json (+test scripts), packages/hbc-sp-services/tsconfig.json (+test includes), package.json (+root test scripts), ci.yml (+test:ci), pr-validation.yml (+test). |
