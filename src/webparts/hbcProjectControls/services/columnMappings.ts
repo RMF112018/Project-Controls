@@ -154,6 +154,7 @@ export const PROVISIONING_LOG_COLUMNS = {
   requestedBy: 'requestedBy',                  // SP: Single Line of Text
   requestedAt: 'requestedAt',                  // SP: DateTime
   completedAt: 'completedAt',                  // SP: DateTime
+  hubNavLinkStatus: 'hubNavLinkStatus',        // SP: Choice (HubNavLinkStatus)
 } as const;
 
 /**
