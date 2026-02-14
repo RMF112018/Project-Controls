@@ -1,19 +1,149 @@
 import * as React from 'react';
+import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
 import { useAppContext } from '../contexts/AppContext';
 import { NavigationSidebar } from './NavigationSidebar';
-import { LoadingSpinner } from '../shared/LoadingSpinner';
 import { SkeletonLoader } from '../shared/SkeletonLoader';
 import { SearchBar } from '../shared/SearchBar';
 import { SyncStatusIndicator } from '../shared/SyncStatusIndicator';
 import { WhatsNewModal, shouldShowWhatsNew } from '../shared/WhatsNewModal';
 import { useResponsive } from '../hooks/useResponsive';
 import { IEnvironmentConfig } from '../../models/IEnvironmentConfig';
-import { HBC_COLORS } from '../../theme/tokens';
+import { HBC_COLORS, SPACING, ELEVATION } from '../../theme/tokens';
 import { APP_VERSION } from '../../utils/constants';
 
-interface IAppShellProps {
-  children: React.ReactNode;
-}
+const useStyles = makeStyles({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100%',
+  },
+  // Loading state
+  loadingContainer: {
+    ...shorthands.padding(SPACING.lg),
+    maxWidth: '1200px',
+    ...shorthands.margin('0', 'auto'),
+  },
+  // Error state
+  errorContainer: {
+    ...shorthands.padding(SPACING.lg),
+    textAlign: 'center',
+    color: tokens.colorStatusDangerForeground1,
+  },
+  // Skip link (a11y)
+  skipLink: {
+    position: 'absolute',
+    top: '-100px',
+    left: '16px',
+    zIndex: 3000,
+    ...shorthands.padding('8px', '16px'),
+    backgroundColor: HBC_COLORS.navy,
+    color: '#fff',
+    ...shorthands.borderRadius('0', '0', '4px', '4px'),
+    fontSize: '14px',
+    fontWeight: '600',
+    textDecoration: 'none',
+  },
+  // Header
+  header: {
+    backgroundColor: HBC_COLORS.navy,
+    color: '#FFFFFF',
+    ...shorthands.padding('0', SPACING.lg),
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: '48px',
+    flexShrink: 0,
+    ...shorthands.gap('12px'),
+  },
+  headerLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap('12px'),
+  },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap('12px'),
+  },
+  hamburger: {
+    ...shorthands.border('0'),
+    backgroundColor: 'transparent',
+    color: '#fff',
+    fontSize: '20px',
+    cursor: 'pointer',
+    ...shorthands.padding('4px'),
+    lineHeight: '1',
+  },
+  brandName: {
+    fontWeight: '700',
+    fontSize: '16px',
+    color: HBC_COLORS.orange,
+  },
+  appTitle: {
+    fontSize: '14px',
+    opacity: 0.9,
+  },
+  envBadge: {
+    ...shorthands.padding('2px', '8px'),
+    ...shorthands.borderRadius('4px'),
+    fontSize: '10px',
+    fontWeight: '700',
+    letterSpacing: '0.5px',
+  },
+  userName: {
+    fontSize: '13px',
+    opacity: 0.8,
+  },
+  version: {
+    fontSize: '11px',
+    color: 'rgba(255,255,255,0.5)',
+    cursor: 'pointer',
+  },
+  // Body layout
+  body: {
+    display: 'flex',
+    flexGrow: 1,
+    position: 'relative',
+  },
+  // Mobile overlay
+  mobileOverlay: {
+    position: 'fixed',
+    top: '48px',
+    left: '0',
+    right: '0',
+    bottom: '0',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    zIndex: 999,
+  },
+  mobileNav: {
+    position: 'fixed',
+    top: '48px',
+    left: '0',
+    bottom: '0',
+    width: '260px',
+    zIndex: 1000,
+    backgroundColor: tokens.colorNeutralBackground1,
+    boxShadow: ELEVATION.level3,
+    overflowY: 'auto',
+  },
+  // Desktop sidebar
+  desktopNav: {
+    flexShrink: 0,
+  },
+  // Main content
+  main: {
+    flexGrow: 1,
+    backgroundColor: tokens.colorNeutralBackground2,
+    overflowY: 'auto',
+    ...shorthands.outline('none'),
+  },
+  mainDesktop: {
+    ...shorthands.padding(SPACING.lg),
+  },
+  mainMobile: {
+    ...shorthands.padding(SPACING.md),
+  },
+});
 
 const ENV_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
   dev: { bg: '#3B82F6', text: '#fff' },
@@ -27,7 +157,12 @@ const ENV_BADGE_LABELS: Record<string, string> = {
   prod: 'PROD',
 };
 
+interface IAppShellProps {
+  children: React.ReactNode;
+}
+
 export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
+  const styles = useStyles();
   const { isLoading, error, currentUser, dataService, isFeatureEnabled } = useAppContext();
   const { isMobile, isTablet } = useResponsive();
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
@@ -52,7 +187,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div className={styles.loadingContainer}>
         <SkeletonLoader variant="text" rows={1} style={{ marginBottom: '24px', maxWidth: '300px' }} />
         <SkeletonLoader variant="kpi-grid" columns={4} style={{ marginBottom: '32px' }} />
         <SkeletonLoader variant="table" rows={8} columns={5} />
@@ -62,7 +197,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
 
   if (error) {
     return (
-      <div style={{ padding: '24px', textAlign: 'center', color: HBC_COLORS.error }}>
+      <div className={styles.errorContainer}>
         <h2>Unable to load application</h2>
         <p>{error}</p>
       </div>
@@ -72,66 +207,30 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
   const sidebarWidth = isMobile ? 0 : isTablet ? 48 : 220;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+    <div className={styles.root}>
       {/* Skip to main content — accessibility */}
-      <a
-        href="#hbc-main-content"
-        className="hbc-skip-link"
-        style={{
-          position: 'absolute',
-          top: '-100px',
-          left: '16px',
-          zIndex: 3000,
-          padding: '8px 16px',
-          backgroundColor: HBC_COLORS.navy,
-          color: '#fff',
-          borderRadius: '0 0 4px 4px',
-          fontSize: '14px',
-          fontWeight: 600,
-          textDecoration: 'none',
-        }}
-      >
+      <a href="#hbc-main-content" className={mergeClasses('hbc-skip-link', styles.skipLink)}>
         Skip to main content
       </a>
+
       {/* Header */}
-      <header data-print-hide role="banner" style={{
-        backgroundColor: HBC_COLORS.navy,
-        color: '#FFFFFF',
-        padding: '0 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        height: '48px',
-        flexShrink: 0,
-        gap: '12px',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Mobile hamburger */}
+      <header data-print-hide role="banner" className={styles.header}>
+        <div className={styles.headerLeft}>
           {isMobile && (
-            <button
-              onClick={() => setMobileNavOpen(!mobileNavOpen)}
-              style={{
-                background: 'none', border: 'none', color: '#fff', fontSize: '20px',
-                cursor: 'pointer', padding: '4px', lineHeight: 1,
-              }}
-            >
+            <button onClick={() => setMobileNavOpen(!mobileNavOpen)} className={styles.hamburger}>
               {mobileNavOpen ? '\u2715' : '\u2630'}
             </button>
           )}
-          <span style={{ fontWeight: 700, fontSize: '16px', color: HBC_COLORS.orange }}>HBC</span>
-          {!isMobile && (
-            <span style={{ fontSize: '14px', opacity: 0.9 }}>Project Controls</span>
-          )}
+          <span className={styles.brandName}>HBC</span>
+          {!isMobile && <span className={styles.appTitle}>Project Controls</span>}
           {envConfig && envConfig.currentTier !== 'prod' && (
-            <span style={{
-              padding: '2px 8px',
-              borderRadius: '4px',
-              fontSize: '10px',
-              fontWeight: 700,
-              letterSpacing: '0.5px',
-              backgroundColor: ENV_BADGE_COLORS[envConfig.currentTier]?.bg || '#3B82F6',
-              color: ENV_BADGE_COLORS[envConfig.currentTier]?.text || '#fff',
-            }}>
+            <span
+              className={styles.envBadge}
+              style={{
+                backgroundColor: ENV_BADGE_COLORS[envConfig.currentTier]?.bg || '#3B82F6',
+                color: ENV_BADGE_COLORS[envConfig.currentTier]?.text || '#fff',
+              }}
+            >
               {ENV_BADGE_LABELS[envConfig.currentTier] || envConfig.currentTier.toUpperCase()}
             </span>
           )}
@@ -139,41 +238,23 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
 
         {!isMobile && <SearchBar />}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className={styles.headerRight}>
           <SyncStatusIndicator />
           {currentUser && !isMobile && (
-            <span style={{ fontSize: '13px', opacity: 0.8 }}>{currentUser.displayName}</span>
+            <span className={styles.userName}>{currentUser.displayName}</span>
           )}
-          <span
-            onClick={() => setWhatsNewOpen(true)}
-            style={{
-              fontSize: '11px',
-              color: 'rgba(255,255,255,0.5)',
-              cursor: 'pointer',
-            }}
-            title="What's New"
-          >
+          <span onClick={() => setWhatsNewOpen(true)} className={styles.version} title="What's New">
             v{APP_VERSION}
           </span>
         </div>
       </header>
 
-      <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
+      <div className={styles.body}>
         {/* Mobile nav overlay */}
         {isMobile && mobileNavOpen && (
           <>
-            <div
-              style={{
-                position: 'fixed', top: '48px', left: 0, right: 0, bottom: 0,
-                backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 999,
-              }}
-              onClick={() => setMobileNavOpen(false)}
-            />
-            <div style={{
-              position: 'fixed', top: '48px', left: 0, bottom: 0,
-              width: '260px', zIndex: 1000, backgroundColor: '#fff',
-              boxShadow: '4px 0 16px rgba(0,0,0,0.15)', overflow: 'auto',
-            }}>
+            <div className={styles.mobileOverlay} onClick={() => setMobileNavOpen(false)} />
+            <div className={styles.mobileNav}>
               <NavigationSidebar />
             </div>
           </>
@@ -181,12 +262,21 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
 
         {/* Desktop/Tablet sidebar */}
         {!isMobile && (
-          <nav data-print-hide aria-label="Main navigation" style={{ width: `${sidebarWidth}px`, flexShrink: 0, overflow: isTablet ? 'hidden' : 'auto' }}>
+          <nav
+            data-print-hide
+            aria-label="Main navigation"
+            className={styles.desktopNav}
+            style={{ width: `${sidebarWidth}px`, overflow: isTablet ? 'hidden' : 'auto' }}
+          >
             <NavigationSidebar />
           </nav>
         )}
 
-        <main id="hbc-main-content" tabIndex={-1} style={{ flex: 1, padding: isMobile ? '16px' : '24px', backgroundColor: HBC_COLORS.gray50, overflow: 'auto', outline: 'none' }}>
+        <main
+          id="hbc-main-content"
+          tabIndex={-1}
+          className={mergeClasses(styles.main, isMobile ? styles.mainMobile : styles.mainDesktop)}
+        >
           {children}
         </main>
       </div>

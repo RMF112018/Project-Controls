@@ -1,22 +1,35 @@
 import * as React from 'react';
-import { Button } from '@fluentui/react-components';
+import { Button, makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { ExportService } from '../../services/ExportService';
-import { HBC_COLORS } from '../../theme/tokens';
+
+const useStyles = makeStyles({
+  container: {
+    display: 'flex',
+    ...shorthands.gap('4px'),
+    alignItems: 'center',
+  },
+  label: {
+    fontSize: '12px',
+    color: tokens.colorNeutralForeground4,
+    marginRight: '4px',
+  },
+  btn: {
+    fontSize: '12px',
+    minWidth: 'auto',
+  },
+});
 
 interface IExportButtonsProps {
-  /** Element ID for PDF export (captures the element as PDF) */
   pdfElementId?: string;
-  /** Data rows for Excel/CSV export */
   data?: Record<string, unknown>[];
-  /** Base filename without extension */
   filename: string;
-  /** Optional title for exported files */
   title?: string;
 }
 
 const exportService = new ExportService();
 
 export const ExportButtons: React.FC<IExportButtonsProps> = ({ pdfElementId, data, filename, title }) => {
+  const styles = useStyles();
   const [exporting, setExporting] = React.useState<string | null>(null);
 
   const handleExport = async (format: 'pdf' | 'excel' | 'csv'): Promise<void> => {
@@ -36,40 +49,20 @@ export const ExportButtons: React.FC<IExportButtonsProps> = ({ pdfElementId, dat
     }
   };
 
-  const btnStyle: React.CSSProperties = { fontSize: '12px', minWidth: 'auto' };
-
   return (
-    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-      <span style={{ fontSize: '12px', color: HBC_COLORS.gray400, marginRight: '4px' }}>Export:</span>
+    <div className={styles.container}>
+      <span className={styles.label}>Export:</span>
       {pdfElementId && (
-        <Button
-          size="small"
-          appearance="subtle"
-          style={btnStyle}
-          disabled={!!exporting}
-          onClick={() => handleExport('pdf')}
-        >
+        <Button size="small" appearance="subtle" className={styles.btn} disabled={!!exporting} onClick={() => handleExport('pdf')}>
           {exporting === 'pdf' ? '...' : 'PDF'}
         </Button>
       )}
       {data && (
         <>
-          <Button
-            size="small"
-            appearance="subtle"
-            style={btnStyle}
-            disabled={!!exporting}
-            onClick={() => handleExport('excel')}
-          >
+          <Button size="small" appearance="subtle" className={styles.btn} disabled={!!exporting} onClick={() => handleExport('excel')}>
             {exporting === 'excel' ? '...' : 'Excel'}
           </Button>
-          <Button
-            size="small"
-            appearance="subtle"
-            style={btnStyle}
-            disabled={!!exporting}
-            onClick={() => handleExport('csv')}
-          >
+          <Button size="small" appearance="subtle" className={styles.btn} disabled={!!exporting} onClick={() => handleExport('csv')}>
             {exporting === 'csv' ? '...' : 'CSV'}
           </Button>
         </>

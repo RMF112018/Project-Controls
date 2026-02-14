@@ -63,6 +63,12 @@ export const ELEVATION = {
   level4: '0 8px 32px rgba(0,0,0,0.18)',
 } as const;
 
+export const TRANSITION = {
+  fast: '150ms ease',
+  normal: '250ms ease',
+  slow: '350ms ease',
+} as const;
+
 export const RISK_INDICATOR = {
   style: (color: string, glow?: boolean): React.CSSProperties => ({
     borderLeft: `4px solid ${color}`,

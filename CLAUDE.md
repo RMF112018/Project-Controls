@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-14 — SP Service Chunk 4 + IDataService method count audit (204→212)
+**Last Updated:** 2026-02-14 — Fluent UI v9 Theming + makeStyles Migration
 
 ---
 
@@ -37,6 +37,7 @@
 | UI Library | React 17.0.1 |
 | TypeScript | ~5.3.3 |
 | Component Library | @fluentui/react-components ^9.46.0, @fluentui/react-icons ^2.0.230 |
+| Styling | Griffel makeStyles (Fluent UI v9 CSS-in-JS) + Fluent tokens, minimal inline for dynamic values |
 | Router | react-router-dom ^6.22.3 |
 | SP Data | @pnp/sp ^4.4.1, @pnp/graph ^4.4.1 |
 | Charts | recharts ^2.12.3 |
@@ -68,7 +69,7 @@ npm run lint                    # ESLint
 | config/package-solution.json | Solution ID, Graph permissions, skip feature deployment |
 | config/serve.json | Port 4321, HTTPS, initial workbench page |
 | config/config.json | Bundle entry: ./lib/webparts/hbcProjectControls/HbcProjectControlsWebPart.js |
-| tsconfig.json | Target es2017, module esnext, path aliases (@components/*, @services/*, etc.) |
+| tsconfig.json | Target es2017, module esnext, jsx react-jsx, path aliases (@components/*, @services/*, etc.) |
 | gulpfile.js | SPFx build, suppresses SASS non-camelCase warning |
 | dev/webpack.config.js | Dev server port 3000, REACT_APP_USE_MOCK=true |
 | dev/tsconfig.json | Extends root tsconfig, includes dev/**/* |
@@ -408,10 +409,15 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 - `Feature_Flags` SP list (mock: `featureFlags.json`) → loaded at app init → `isFeatureEnabled(name)` checks enabled + role filter
 - `<FeatureGate featureName="X">` conditionally renders children
 
-### Inline CSS Pattern
-- All styling uses inline `style={{}}` objects with `HBC_COLORS` from `theme/tokens.ts`
-- No CSS modules, no SCSS files, no CSS-in-JS libraries
-- Consistent pattern: `color: HBC_COLORS.navy`, `backgroundColor: HBC_COLORS.gray50`, etc.
+### Hybrid CSS Pattern (makeStyles + minimal inline)
+- **Structural styles**: Use `makeStyles()` from `@fluentui/react-components` (Griffel CSS-in-JS) — layout, spacing, borders, fonts, hover states, transitions
+- **Dynamic/data-driven styles**: Keep as minimal inline `style={{}}` — colors from props, computed widths, per-item config values
+- **Fluent tokens**: Use `tokens.*` for semantic colors where a matching token exists (e.g., `tokens.colorNeutralBackground1` instead of `HBC_COLORS.white`)
+- **HBC brand colors**: Use `HBC_COLORS.*` for brand-specific colors with no Fluent equivalent (e.g., `HBC_COLORS.orange`, `HBC_COLORS.navy`, score tier colors)
+- **Conditional classes**: Use `mergeClasses()` for state-based class application (active/inactive, expanded/collapsed)
+- **Global reusable classes**: `theme/globalStyles.ts` provides 40+ shared Griffel classes (card, formGrid, kpiGrid, actionBar, etc.)
+- **No CSS modules or SCSS files** — all styling is either makeStyles or inline
+- **Legacy pages**: Many page-level components still use inline `style={{}}` — shared components (AppShell, NavigationSidebar, DataTable, KPICard, SearchBar, PageHeader, StageBadge, StatusBadge, ExportButtons, LoadingSpinner) have been migrated to makeStyles
 
 ### Denormalized Field Pattern
 - Fields copied from source (usually `Leads_Master`) are annotated with `/** @denormalized — source: Leads_Master.FieldName */`
@@ -1468,6 +1474,8 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 | SP-4 | SharePointDataService Chunk 4: Checklists, Matrices & Marketing Records — Replaced 22 stubs with live PnP/SP implementations (107→129 implemented, 105→83 stubs remaining of 212 total). Startup Checklist (4 methods): getStartupChecklist (2-list parallel read Startup_Checklist + Checklist_Activity_Log, grouped activity map), updateChecklistItem (partial update + activity log write + re-read), addChecklistItem, removeChecklistItem (recycle). Internal Matrix (4 methods): getInternalMatrix, updateInternalMatrixTask, addInternalMatrixTask, removeInternalMatrixTask. Team Role Assignments (2 methods): getTeamRoleAssignments, updateTeamRoleAssignment (upsert: filter by projectCode+role, update or create). Owner Contract Matrix (4 methods): getOwnerContractMatrix, updateOwnerContractArticle, addOwnerContractArticle, removeOwnerContractArticle. Sub-Contract Matrix (4 methods): getSubContractMatrix, updateSubContractClause, addSubContractClause, removeSubContractClause. Marketing Project Records (4 methods): getMarketingProjectRecord (find by projectCode), createMarketingProjectRecord (buildMarketingUpdateData reverse mapper), updateMarketingProjectRecord (find-by-code + partial update), getAllMarketingProjectRecords. Added `_getProjectWeb()` private helper (Web() factory for cross-site project access, fallback to sp.web). 7 private mapper helpers added (mapToStartupChecklistItem, mapToChecklistActivityEntry, mapToInternalMatrixTask, mapToOwnerContractArticle, mapToSubContractClause, mapToMarketingProjectRecord, buildMarketingUpdateData). New column mapping: TEAM_ROLE_ASSIGNMENTS_COLUMNS. New PROJECT_LIST: Team_Role_Assignments. | (none) | SharePointDataService.ts (22 stubs→implementations, +7 column mapping imports, +1 model import, +8 private helpers incl. _getProjectWeb), columnMappings.ts (+TEAM_ROLE_ASSIGNMENTS_COLUMNS), constants.ts (+TEAM_ROLE_ASSIGNMENTS to PROJECT_LISTS), CLAUDE.md (§7, §13, §15, §16) |
 
+| Theme-1 | Fluent UI v9 Full Theming + makeStyles Migration — Enhanced hbcTheme.ts from 4→30+ token overrides (brand foreground/background, neutral foreground/background, stroke, subtle, status, shadows). Expanded globalStyles.ts from 13→40+ reusable Griffel classes (layout, card variants, form patterns, table patterns, action bar, KPI grid, status badges, dropdown overlay, pagination, spinner). Converted 10 shared components from inline `style={{}}` to `makeStyles`: AppShell, NavigationSidebar, DataTable, KPICard, PageHeader, SearchBar, StageBadge, StatusBadge, ExportButtons, LoadingSpinner. Added TRANSITION constant to tokens.ts (fast/normal/slow). Updated tsconfig.json `jsx: "react"` → `"react-jsx"` (automatic JSX transform, React 17.0.1 compatible). No data service, model, or workflow files touched. | TRANSITION added to tokens.ts | hbcTheme.ts (30+ token overrides), globalStyles.ts (40+ classes), tokens.ts (+TRANSITION), tsconfig.json (jsx: react-jsx), AppShell.tsx, NavigationSidebar.tsx, DataTable.tsx, KPICard.tsx, PageHeader.tsx, SearchBar.tsx, StageBadge.tsx, StatusBadge.tsx, ExportButtons.tsx, LoadingSpinner.tsx |
+
 ### Known Stubs / Placeholders
 
 - **SharePointDataService**: 83 of 212 methods are stubs. Breakdown: 21 Pattern A stubs (`[STUB]` console.warn + empty return), 56 Pattern B stubs (`implementation pending` throw), 6 delegation stubs (intentionally delegate to GraphService/PowerAutomate — will never be SP list operations). Remaining stubs: all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP (7), all monthly review (4), all estimating kickoff (8 incl. updateKickoffKeyPersonnel), all job number requests (4), all turnover agenda (16), all sector definitions (2 mutations), all assignment mappings (3 mutations), reference data (2), scorecard workflow (7), scorecard archive (2), action inbox (SP). `setProjectSiteUrl()` is implemented (creates cross-site Web via `_getProjectWeb()`). All Pattern A stubs log `console.warn('[STUB] methodName not implemented')`. All Pattern B stubs throw `Error('SharePoint implementation pending: methodName')`. Delegation stubs: getCalendarAvailability, createMeeting, getMeetings (→GraphService), sendNotification, getNotifications (→PowerAutomate), purgeOldAuditEntries (→Power Automate scheduled flow).
@@ -1505,7 +1513,7 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 8. **HashRouter, not BrowserRouter** — SPFx uses `HashRouter`. All navigation uses hash-based URLs (`#/operations/buyout-log`). Do not switch to `BrowserRouter`.
 
-9. **Inline styles only** — No CSS modules or SCSS. All styling uses `style={{}}` with `HBC_COLORS` from tokens.ts. Do not introduce CSS files.
+9. **makeStyles + minimal inline styles** — No CSS modules or SCSS. Shared components use `makeStyles()` with Fluent `tokens.*` and `HBC_COLORS`. Pages may still use inline `style={{}}`. Do not introduce CSS files. See §4 Hybrid CSS Pattern for the decision rule.
 
 10. **Fire-and-forget audit calls** — `logAudit()` calls should not be awaited in the UI flow. They are non-blocking. Wrapping them in `try/catch` with no re-throw is the pattern.
 
@@ -1609,6 +1617,16 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 60. **`_getProjectWeb()` enables cross-site project list access** — Returns `Web([this.sp.web, this._projectSiteUrl])` when `_projectSiteUrl` is set, otherwise falls back to `this.sp.web`. All Chunk 4 project-site methods (checklist, matrices) use this helper. Hub-site methods (marketing records) use `this.sp.web` directly.
 
+61. **makeStyles vs inline `style={{}}` decision rule** — Use `makeStyles` for all structural styles (layout, spacing, borders, fonts, hover states, transitions). Keep inline `style={{}}` ONLY for truly data-driven values that change per-item: colors from props (e.g., StageBadge backgroundColor from `STAGE_COLORS[stage]`), computed widths (e.g., sidebar width from responsive breakpoint), per-column table widths. If a style value is constant, it belongs in makeStyles, not inline.
+
+62. **Use `tokens.*` before `HBC_COLORS.*` for standard semantic colors** — When a Fluent semantic token matches the intent, prefer it over hardcoded `HBC_COLORS.*`. Examples: `tokens.colorNeutralBackground1` (not `HBC_COLORS.white`), `tokens.colorNeutralForeground3` (not `HBC_COLORS.gray500`), `tokens.colorStatusSuccessForeground1` (not hardcoded green). Reserve `HBC_COLORS.*` for: brand identity (navy, orange), score tiers, and colors with no Fluent equivalent.
+
+63. **TRANSITION constant must be imported from tokens.ts** — `TRANSITION` (`{ fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }`) was added to `theme/tokens.ts` alongside `ELEVATION`. Use `TRANSITION.fast` for hover effects and chevron rotations, `TRANSITION.normal` for card elevation changes, `TRANSITION.slow` for panel slides. Always import from `'../../theme/tokens'` (or appropriate relative path), never inline transition strings.
+
+64. **`mergeClasses()` for conditional class names** — Use `mergeClasses()` from `@fluentui/react-components` instead of ternary style objects or string concatenation. Pattern: `mergeClasses(styles.base, isActive ? styles.active : styles.inactive)`. Pass `undefined` (not empty string) for absent classes: `mergeClasses(styles.btn, isDisabled ? styles.disabled : undefined)`.
+
+65. **`jsx: "react-jsx"` in tsconfig.json** — The automatic JSX transform is enabled. React 17.0.1 supports this via `react/jsx-runtime`. Existing `import * as React from 'react'` imports remain valid and should NOT be removed (they're needed for hooks like `React.useState`). New files can omit the React import if they don't use hooks or `React.*` references, but this is not required.
+
 ---
 
 ## Audit Log
@@ -1648,3 +1666,4 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-14 | §7, §15, §16 | SP Service Chunk 3: Workflow Definitions. §7: 10 methods changed from SP Stub→Impl (methods 143-152). §15: Phase SP-3 entry added. SharePointDataService status updated: 91 implemented / 113 stubs. Known Stubs updated (removed workflow definitions). Column Mappings note updated (Workflow Definitions 4 lists). §16: Added pitfalls #53-55 (3-list assembly, upsert override, resolveWorkflowChain 7 data sources). Files modified: SharePointDataService.ts (+4 column mapping imports, +2 enum imports, +6 private helpers, 10 stub→implementations). |
 | 2026-02-14 | §7, §13, §15, §16 | SP Service Chunk 4: Checklists, Matrices & Marketing Records. §7: 22 methods changed from SP Stub→Impl (methods 56-77). §13: +TEAM_ROLE_ASSIGNMENTS to PROJECT_LISTS. §15: Phase SP-4 entry added. Known Stubs updated (removed checklist, matrices, marketing). Column Mappings note updated (+7 list column mappings in use). §16: Added pitfalls #56-60 (2-list checklist join, 88-column marketing mapper, team role upsert, recycle soft delete, _getProjectWeb helper). Files modified: SharePointDataService.ts (+7 column mapping imports, +1 model import, +8 private helpers incl. _getProjectWeb, 22 stub→implementations), columnMappings.ts (+TEAM_ROLE_ASSIGNMENTS_COLUMNS), constants.ts (+TEAM_ROLE_ASSIGNMENTS). |
 | 2026-02-14 | §7, §15 | IDataService method count audit. §7: Total method count corrected from 204→212 (8 methods added in later phases without updating header count). §15: Comprehensive stub audit via grep — corrected counts: 129 implemented, 6 delegation stubs (GraphService/PowerAutomate), 77 pending stubs (21 Pattern A + 56 Pattern B). Total 212. Historical SP chunk entries left as-written; current status sections now reflect audited counts. |
+| 2026-02-14 | §1, §4, §13, §15, §16 | Fluent UI v9 Theming + makeStyles Migration. §1: Added Styling row (Griffel makeStyles + Fluent tokens), updated tsconfig description (+jsx react-jsx). §4: Replaced "Inline CSS Pattern" with "Hybrid CSS Pattern" (makeStyles for structural, inline for dynamic, tokens vs HBC_COLORS rules, mergeClasses for conditional). §13: TRANSITION constant added to tokens.ts (fast/normal/slow). §15: Phase Theme-1 entry (hbcTheme 30+ overrides, globalStyles 40+ classes, 10 component conversions, tsconfig jsx transform). §16: Added pitfalls #61-65 (makeStyles vs inline decision rule, tokens before HBC_COLORS, TRANSITION import, mergeClasses pattern, jsx react-jsx). Files modified: hbcTheme.ts, globalStyles.ts, tokens.ts (+TRANSITION), tsconfig.json (jsx: react-jsx), AppShell.tsx, NavigationSidebar.tsx, DataTable.tsx, KPICard.tsx, PageHeader.tsx, SearchBar.tsx, StageBadge.tsx, StatusBadge.tsx, ExportButtons.tsx, LoadingSpinner.tsx. Zero data service or workflow files touched. |
