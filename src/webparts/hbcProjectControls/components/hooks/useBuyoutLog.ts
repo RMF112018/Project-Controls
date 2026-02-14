@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IBuyoutEntry } from '../../models/IBuyoutEntry';
+import { IBuyoutEntry } from '@hbc/sp-services';
 
 export interface IBuyoutMetrics {
   totalOriginalBudget: number;

@@ -6,7 +6,7 @@ import { InternalResponsibilityMatrix } from './InternalResponsibilityMatrix';
 import { OwnerContractMatrix } from './OwnerContractMatrix';
 import { SubContractMatrix } from './SubContractMatrix';
 import { HBC_COLORS } from '../../../theme/tokens';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import { buildBreadcrumbs } from '@hbc/sp-services';
 
 const TAB_PATHS = ['/operations/responsibility', '/operations/responsibility/owner-contract', '/operations/responsibility/sub-contract'];
 const TAB_LABELS = ['Internal', 'Owner Contract', 'Sub-Contract'];

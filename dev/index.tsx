@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from '@components/App';
-import { MockDataService } from '@services/MockDataService';
-import { RoleName } from '@models/enums';
+import { MockDataService, RoleName } from '@hbc/sp-services';
 import { RoleSwitcher } from './RoleSwitcher';
 import { setMockUserRole, getMockUserRole } from './mockContext';
 

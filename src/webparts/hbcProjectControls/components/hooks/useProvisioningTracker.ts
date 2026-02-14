@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IProvisioningLog, ProvisioningStatus } from '../../models';
+import { IProvisioningLog, ProvisioningStatus } from '@hbc/sp-services';
 
 export interface IProvisioningTrackerSummary {
   inProgress: number;

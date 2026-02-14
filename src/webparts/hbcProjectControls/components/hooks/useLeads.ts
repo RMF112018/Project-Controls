@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { ILead, ILeadFormData, Stage } from '../../models';
-import { IPagedResult, IListQueryOptions } from '../../services/IDataService';
+import { ILead, ILeadFormData, Stage, IPagedResult, IListQueryOptions } from '@hbc/sp-services';
 
 interface IUseLeadsResult {
   leads: ILead[];

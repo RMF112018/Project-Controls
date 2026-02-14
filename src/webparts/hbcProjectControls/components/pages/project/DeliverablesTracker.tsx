@@ -8,10 +8,16 @@ import { KPICard } from '../../shared/KPICard';
 import { DataTable } from '../../shared/DataTable';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
-import { IDeliverable, RoleName, DeliverableStatus } from '../../../models';
+import {
+  IDeliverable,
+  RoleName,
+  DeliverableStatus,
+  buildBreadcrumbs,
+  formatDate,
+  getDaysUntil,
+  getUrgencyColor
+} from '@hbc/sp-services';
 import { HBC_COLORS, SPACING, ELEVATION } from '../../../theme/tokens';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
-import { formatDate, getDaysUntil, getUrgencyColor } from '../../../utils/formatters';
 import type { IDataTableColumn } from '../../shared/DataTable';
 
 type DeliverableDepartment = IDeliverable['department'];

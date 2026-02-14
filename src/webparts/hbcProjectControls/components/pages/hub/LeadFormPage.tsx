@@ -7,11 +7,23 @@ import { useAppContext } from '../../contexts/AppContext';
 import { RoleGate } from '../../guards/RoleGate';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
-import { ILeadFormData, Stage, Region, Sector, Division, DepartmentOfOrigin, DeliveryMethod, RoleName, NotificationEvent, AuditAction, EntityType } from '../../../models';
+import {
+  buildBreadcrumbs,
+  ILeadFormData,
+  Stage,
+  Region,
+  Sector,
+  Division,
+  DepartmentOfOrigin,
+  DeliveryMethod,
+  RoleName,
+  NotificationEvent,
+  AuditAction,
+  EntityType,
+  validateLeadForm
+} from '@hbc/sp-services';
 import { useSectorDefinitions } from '../../hooks/useSectorDefinitions';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
-import { validateLeadForm } from '../../../utils/validators';
 import { useToast } from '../../shared/ToastContainer';
 
 const US_STATES = [

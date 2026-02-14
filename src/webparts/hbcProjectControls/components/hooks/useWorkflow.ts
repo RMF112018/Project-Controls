@@ -1,5 +1,3 @@
-import * as React from 'react';
-import { useAppContext } from '../contexts/AppContext';
 import {
   IDeliverable,
   ITeamMember,
@@ -16,9 +14,10 @@ import {
   NotificationType,
   MeetingType,
   AwardStatus,
-} from '../../models';
-import { validateTransition } from '../../utils/stageEngine';
-
+  validateTransition
+} from '@hbc/sp-services';
+import * as React from 'react';
+import { useAppContext } from '../contexts/AppContext';
 interface IUseWorkflowResult {
   // Team Members
   teamMembers: ITeamMember[];

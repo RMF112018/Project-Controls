@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getScoreTierLabel, getScoreTierColor } from '../../utils/scoreCalculator';
+import { getScoreTierLabel, getScoreTierColor } from '@hbc/sp-services';
 
 interface IScoreTierBadgeProps {
   score: number;

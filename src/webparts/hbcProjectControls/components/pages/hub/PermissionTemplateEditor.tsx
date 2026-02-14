@@ -6,11 +6,16 @@ import { ToolPermissionMatrix } from '../../shared/ToolPermissionMatrix';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { StatusBadge } from '../../shared/StatusBadge';
-import { IPermissionTemplate, IToolAccess, ISecurityGroupMapping } from '../../../models/IPermissionTemplate';
-import { IEnvironmentConfig } from '../../../models/IEnvironmentConfig';
-import { AuditAction, EntityType } from '../../../models/enums';
+import {
+  IPermissionTemplate,
+  IToolAccess,
+  ISecurityGroupMapping,
+  IEnvironmentConfig,
+  AuditAction,
+  EntityType,
+  formatDateTime
+} from '@hbc/sp-services';
 import { HBC_COLORS, SPACING } from '../../../theme/tokens';
-import { formatDateTime } from '../../../utils/formatters';
 
 export const PermissionTemplateEditor: React.FC = () => {
   const { dataService, currentUser } = useAppContext();

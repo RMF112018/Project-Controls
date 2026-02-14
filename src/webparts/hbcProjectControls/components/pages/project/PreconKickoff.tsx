@@ -9,10 +9,16 @@ import { KPICard } from '../../shared/KPICard';
 import { DataTable } from '../../shared/DataTable';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
-import { ILead, ITeamMember, RoleName } from '../../../models';
+import {
+  ILead,
+  ITeamMember,
+  RoleName,
+  buildBreadcrumbs,
+  formatCurrency,
+  formatDate,
+  formatSquareFeet
+} from '@hbc/sp-services';
 import { HBC_COLORS, SPACING, ELEVATION } from '../../../theme/tokens';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
-import { formatCurrency, formatDate, formatSquareFeet } from '../../../utils/formatters';
 import type { IDataTableColumn } from '../../shared/DataTable';
 
 const cardStyle: React.CSSProperties = {

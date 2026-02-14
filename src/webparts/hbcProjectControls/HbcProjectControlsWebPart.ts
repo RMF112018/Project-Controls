@@ -4,10 +4,7 @@ import { Version } from '@microsoft/sp-core-library';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IPropertyPaneConfiguration, PropertyPaneTextField } from '@microsoft/sp-property-pane';
 import { App, IAppProps } from './components/App';
-import { IDataService } from './services/IDataService';
-import { MockDataService } from './services/MockDataService';
-import { SharePointDataService } from './services/SharePointDataService';
-import { graphService } from './services/GraphService';
+import { IDataService, MockDataService, SharePointDataService, graphService } from '@hbc/sp-services';
 
 export interface IHbcProjectControlsWebPartProps {
   description?: string;

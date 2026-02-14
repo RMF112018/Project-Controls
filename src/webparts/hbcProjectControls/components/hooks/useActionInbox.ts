@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IActionInboxItem, ActionPriority } from '../../models';
+import { IActionInboxItem, ActionPriority } from '@hbc/sp-services';
 
 const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 

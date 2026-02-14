@@ -1,3 +1,17 @@
+import {
+  ILead,
+  ITurnoverItem,
+  RoleName,
+  Stage,
+  TurnoverCategory,
+  AuditAction,
+  EntityType,
+  NotificationType,
+  TurnoverStatus,
+  MeetingType,
+  buildBreadcrumbs,
+  PERMISSIONS
+} from '@hbc/sp-services';
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
@@ -12,15 +26,7 @@ import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
 import { PermissionGate } from '../../guards/PermissionGate';
 import { MeetingScheduler } from '../../shared/MeetingScheduler';
-import {
-  ILead, ITurnoverItem, RoleName, Stage, TurnoverCategory,
-  AuditAction, EntityType, NotificationType, TurnoverStatus,
-  MeetingType,
-} from '../../../models';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
-import { PERMISSIONS } from '../../../utils/permissions';
-
 const cardStyle: React.CSSProperties = {
   backgroundColor: '#fff', borderRadius: 8, padding: 24,
   boxShadow: ELEVATION.level1, marginBottom: 24,

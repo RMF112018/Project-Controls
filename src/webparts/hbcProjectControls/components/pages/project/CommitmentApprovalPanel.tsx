@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { IBuyoutEntry } from '../../../models/IBuyoutEntry';
-import { ICommitmentApproval, CommitmentStatus } from '../../../models/ICommitmentApproval';
+import { IBuyoutEntry, ICommitmentApproval, CommitmentStatus } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../../theme/tokens';
 
 export interface ICommitmentApprovalPanelProps {

@@ -1,0 +1,30 @@
+{
+  "name": "@hbc/sp-services",
+  "version": "1.0.0",
+  "private": true,
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf lib"
+  },
+  "peerDependencies": {
+    "@pnp/sp": "^4.4.1",
+    "@pnp/graph": "^4.4.1",
+    "@pnp/logging": "^4.4.1",
+    "@pnp/queryable": "^4.4.1",
+    "@fluentui/react-icons": "^2.0.230",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@fluentui/react-icons": "2.0.319",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "typescript": "~5.3.3"
+  },
+  "overrides": {
+    "react": "$react",
+    "react-dom": "$react-dom"
+  }
+}

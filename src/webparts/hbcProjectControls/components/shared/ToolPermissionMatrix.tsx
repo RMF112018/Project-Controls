@@ -1,7 +1,5 @@
 import * as React from 'react';
-import { IToolAccess } from '../../models/IPermissionTemplate';
-import { PermissionLevel } from '../../models/enums';
-import { TOOL_DEFINITIONS, TOOL_GROUPS, getToolsByGroup } from '../../utils/toolPermissionMap';
+import { IToolAccess, PermissionLevel, TOOL_DEFINITIONS, TOOL_GROUPS, getToolsByGroup } from '@hbc/sp-services';
 import { GranularFlagEditor } from './GranularFlagEditor';
 import { HBC_COLORS } from '../../theme/tokens';
 

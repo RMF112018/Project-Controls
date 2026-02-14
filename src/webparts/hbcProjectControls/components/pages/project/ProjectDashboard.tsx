@@ -9,15 +9,22 @@ import { KPICard } from '../../shared/KPICard';
 import { StageBadge } from '../../shared/StageBadge';
 import { StageIndicator } from '../../shared/StageIndicator';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
-import { ILead, Stage, GoNoGoDecision } from '../../../models';
+import {
+  ILead,
+  Stage,
+  GoNoGoDecision,
+  PERMISSIONS,
+  buildBreadcrumbs,
+  formatCurrency,
+  formatDate,
+  formatSquareFeet,
+  getStageScreens,
+  getStageLabel
+} from '@hbc/sp-services';
 import { PermissionGate } from '../../guards';
-import { PERMISSIONS } from '../../../utils/permissions';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { ProjectTeamPanel } from './ProjectTeamPanel';
 import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
-import { formatCurrency, formatDate, formatSquareFeet } from '../../../utils/formatters';
-import { getStageScreens, getStageLabel } from '../../../utils/stageEngine';
 
 const SCREEN_META: Record<string, { label: string; path: string; description: string; color: string }> = {
   kickoff: { label: 'Precon Kickoff', path: '/operations/startup-checklist', description: 'Team, dates, and kickoff meeting', color: '#3B82F6' },

@@ -1,5 +1,3 @@
-import * as React from 'react';
-import { useAppContext } from '../contexts/AppContext';
 import {
   ITurnoverAgenda,
   ITurnoverPrerequisite,
@@ -9,10 +7,12 @@ import {
   ITurnoverSignature,
   ITurnoverEstimateOverview,
   ITurnoverAttachment,
-} from '../../models/ITurnoverAgenda';
-import { IResolvedWorkflowStep } from '../../models/IWorkflowDefinition';
-import { WorkflowKey, TurnoverStatus } from '../../models/enums';
-
+  IResolvedWorkflowStep,
+  WorkflowKey,
+  TurnoverStatus
+} from '@hbc/sp-services';
+import * as React from 'react';
+import { useAppContext } from '../contexts/AppContext';
 interface IUseTurnoverAgendaResult {
   agenda: ITurnoverAgenda | null;
   resolvedChain: IResolvedWorkflowStep[];

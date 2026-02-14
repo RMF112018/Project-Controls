@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { ISuperintendentPlan, ISuperintendentPlanSection } from '../../models/ISuperintendentPlan';
+import { ISuperintendentPlan, ISuperintendentPlanSection } from '@hbc/sp-services';
 
 interface IUseSuperintendentPlanResult {
   plan: ISuperintendentPlan | null;

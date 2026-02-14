@@ -5,6 +5,7 @@ node_modules/
 dist/
 dev/dist/
 lib/
+packages/hbc-sp-services/lib/
 temp/
 release/
 

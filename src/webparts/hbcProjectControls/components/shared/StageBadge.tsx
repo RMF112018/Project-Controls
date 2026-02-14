@@ -1,8 +1,6 @@
 import * as React from 'react';
 import { makeStyles, shorthands } from '@fluentui/react-components';
-import { Stage } from '../../models/enums';
-import { STAGE_COLORS } from '../../utils/constants';
-import { getStageLabel } from '../../utils/stageEngine';
+import { Stage, STAGE_COLORS, getStageLabel } from '@hbc/sp-services';
 
 const useStyles = makeStyles({
   badgeSmall: {

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IMeeting, ICalendarAvailability } from '../../models';
+import { IMeeting, ICalendarAvailability } from '@hbc/sp-services';
 
 interface IUseMeetingsResult {
   meetings: IMeeting[];

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { RoleName } from '@models/enums';
+import { RoleName } from '@hbc/sp-services';
 
 const DEV_SUPER_ADMIN = 'DEV_SUPER_ADMIN';
 type RoleValue = RoleName | typeof DEV_SUPER_ADMIN;

@@ -1,9 +1,13 @@
 import * as React from 'react';
-import { IDataService } from '../../services/IDataService';
-import { ICurrentUser, IFeatureFlag, Stage } from '../../models';
-import { IResolvedPermissions } from '../../models/IPermissionTemplate';
-import { detectSiteContext } from '../../utils/siteDetector';
-import { DEFAULT_HUB_SITE_URL } from '../../utils/constants';
+import {
+  IDataService,
+  ICurrentUser,
+  IFeatureFlag,
+  Stage,
+  IResolvedPermissions,
+  detectSiteContext,
+  DEFAULT_HUB_SITE_URL
+} from '@hbc/sp-services';
 
 export interface ISelectedProject {
   projectCode: string;

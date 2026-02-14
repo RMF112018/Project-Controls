@@ -4,10 +4,16 @@ import { useAppContext } from '../../contexts/AppContext';
 import { usePostBidAutopsy } from '../../hooks/usePostBidAutopsy';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import {
+  buildBreadcrumbs,
+  ILossAutopsy,
+  AutopsyAnswer,
+  AUTOPSY_QUESTIONS,
+  ActionItemStatus,
+  AuditAction,
+  EntityType
+} from '@hbc/sp-services';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
-import { ILossAutopsy, AutopsyAnswer, AUTOPSY_QUESTIONS } from '../../../models/ILossAutopsy';
-import { ActionItemStatus, AuditAction, EntityType } from '../../../models/enums';
 import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 
 /** Calculate process score from the 11 yes/no questions */

@@ -5,13 +5,27 @@ import { useLeads } from '../../hooks/useLeads';
 import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import {
+  buildBreadcrumbs,
+  IEstimatingTracker,
+  ILead,
+  AwardStatus,
+  EstimateSource,
+  DeliverableType,
+  WinLossDecision,
+  GoNoGoDecision,
+  AuditAction,
+  EntityType,
+  RoleName,
+  formatCurrency,
+  formatDate,
+  getDaysUntil,
+  getUrgencyColor,
+  PERMISSIONS
+} from '@hbc/sp-services';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
-import { IEstimatingTracker, AwardStatus, EstimateSource, DeliverableType, WinLossDecision, GoNoGoDecision, AuditAction, EntityType, RoleName } from '../../../models';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
-import { formatCurrency, formatDate, getDaysUntil, getUrgencyColor } from '../../../utils/formatters';
-import { PERMISSIONS } from '../../../utils/permissions';
 
 const AWARD_STATUS_OPTIONS: AwardStatus[] = [
   AwardStatus.Pending,
@@ -59,7 +73,7 @@ export const PursuitDetail: React.FC = () => {
   const { updateLead, getLeadById } = useLeads();
 
   const [record, setRecord] = React.useState<IEstimatingTracker | null>(null);
-  const [lead, setLead] = React.useState<import('../../../models').ILead | null>(null);
+  const [lead, setLead] = React.useState<ILead | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   const [formData, setFormData] = React.useState<Partial<IEstimatingTracker>>({});

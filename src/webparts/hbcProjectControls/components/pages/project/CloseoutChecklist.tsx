@@ -8,9 +8,8 @@ import { Breadcrumb } from '../../shared/Breadcrumb';
 import { KPICard } from '../../shared/KPICard';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
-import { ILead, ICloseoutItem, RoleName, Stage, AuditAction, EntityType } from '../../../models';
+import { ILead, ICloseoutItem, RoleName, Stage, AuditAction, EntityType, buildBreadcrumbs } from '@hbc/sp-services';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: '#fff', borderRadius: 8, padding: 24,

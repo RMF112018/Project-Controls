@@ -1,21 +1,24 @@
+import {
+  PERMISSIONS,
+  IMarketingProjectRecord,
+  AuditAction,
+  EntityType,
+  formatCurrency,
+  formatDate,
+  buildBreadcrumbs,
+  PROJECT_RECORD_SECTIONS,
+  OPS_EDITABLE_SECTIONS,
+  PROJECT_RECORD_CONTRACT_TYPES,
+  PROJECT_RECORD_DELIVERY_METHODS
+} from '@hbc/sp-services';
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useMarketingRecord } from '../../hooks/useMarketingRecord';
 import { useAppContext } from '../../contexts/AppContext';
-import { PERMISSIONS } from '../../../utils/permissions';
-import {
-  PROJECT_RECORD_SECTIONS,
-  OPS_EDITABLE_SECTIONS,
-  PROJECT_RECORD_CONTRACT_TYPES,
-  PROJECT_RECORD_DELIVERY_METHODS,
-} from '../../../models/IMarketingProjectRecord';
-import { IMarketingProjectRecord, AuditAction, EntityType } from '../../../models';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ExportButtons } from '../../shared/ExportButtons';
-import { formatCurrency, formatDate } from '../../../utils/formatters';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IMarketingProjectRecord } from '../../models/IMarketingProjectRecord';
+import { IMarketingProjectRecord } from '@hbc/sp-services';
 
 interface IUseMarketingRecordResult {
   record: IMarketingProjectRecord | null;

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { IGranularFlagDef } from '../../models/IPermissionTemplate';
+import { IGranularFlagDef } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../theme/tokens';
 
 interface IGranularFlagEditorProps {

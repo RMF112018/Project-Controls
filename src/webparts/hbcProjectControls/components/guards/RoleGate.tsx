@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { RoleName } from '../../models';
+import { RoleName } from '@hbc/sp-services';
 import { useAppContext } from '../contexts/AppContext';
 
 export interface IRoleGateProps {

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { ILessonLearned } from '../../models/ILessonsLearned';
+import { ILessonLearned } from '@hbc/sp-services';
 
 interface IUseLessonsLearnedResult {
   lessons: ILessonLearned[];

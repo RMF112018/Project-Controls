@@ -1,14 +1,13 @@
-import { useState, useCallback, useMemo } from 'react';
-import { useAppContext } from '../contexts/AppContext';
 import {
   IActiveProject,
   IPortfolioSummary,
   IPersonnelWorkload,
   ProjectStatus,
   SectorType,
-} from '../../models/IActiveProject';
-import { IActiveProjectsFilter } from '../../services/IDataService';
-
+  IActiveProjectsFilter
+} from '@hbc/sp-services';
+import { useState, useCallback, useMemo } from 'react';
+import { useAppContext } from '../contexts/AppContext';
 export interface IActiveProjectsFilters {
   status?: ProjectStatus;
   sector?: SectorType;

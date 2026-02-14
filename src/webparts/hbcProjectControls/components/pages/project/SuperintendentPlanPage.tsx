@@ -6,10 +6,13 @@ import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
-import { PERMISSIONS } from '../../../utils/permissions';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
-import { AuditAction, EntityType } from '../../../models/enums';
-import { SUPERINTENDENT_PLAN_SECTIONS } from '../../../models/ISuperintendentPlan';
+import {
+  PERMISSIONS,
+  buildBreadcrumbs,
+  AuditAction,
+  EntityType,
+  SUPERINTENDENT_PLAN_SECTIONS
+} from '@hbc/sp-services';
 
 const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, boxShadow: ELEVATION.level1, marginBottom: 12, overflow: 'hidden' };
 

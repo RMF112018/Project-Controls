@@ -7,10 +7,8 @@ import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
-import { ILead, RoleName, Stage, ContractStatus } from '../../../models';
+import { ILead, RoleName, Stage, ContractStatus, buildBreadcrumbs, formatCurrency } from '@hbc/sp-services';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
-import { formatCurrency } from '../../../utils/formatters';
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: '#fff', borderRadius: 8, padding: 24,

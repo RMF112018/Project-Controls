@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { HBC_COLORS, SPACING } from '../../theme/tokens';
-import { IMeeting, ICalendarAvailability, ITimeSlot, MeetingType } from '../../models';
+import { IMeeting, ICalendarAvailability, ITimeSlot, MeetingType } from '@hbc/sp-services';
 import { useMeetings } from '../hooks/useMeetings';
 import { LoadingSpinner } from './LoadingSpinner';
 

@@ -7,9 +7,8 @@ import { SearchBar } from '../shared/SearchBar';
 import { SyncStatusIndicator } from '../shared/SyncStatusIndicator';
 import { WhatsNewModal, shouldShowWhatsNew } from '../shared/WhatsNewModal';
 import { useResponsive } from '../hooks/useResponsive';
-import { IEnvironmentConfig } from '../../models/IEnvironmentConfig';
+import { IEnvironmentConfig, APP_VERSION } from '@hbc/sp-services';
 import { HBC_COLORS, SPACING, ELEVATION } from '../../theme/tokens';
-import { APP_VERSION } from '../../utils/constants';
 
 const useStyles = makeStyles({
   root: {

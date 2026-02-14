@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IEstimatingTracker } from '../../models';
-import { IListQueryOptions } from '../../services/IDataService';
+import { IEstimatingTracker, IListQueryOptions } from '@hbc/sp-services';
 
 interface IUseEstimatingResult {
   records: IEstimatingTracker[];

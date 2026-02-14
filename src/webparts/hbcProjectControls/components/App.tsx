@@ -7,9 +7,8 @@ import { AppShell } from './layouts/AppShell';
 import { ErrorBoundary } from './shared/ErrorBoundary';
 import { ToastProvider } from './shared/ToastContainer';
 import { PageLoader } from './shared/PageLoader';
-import { IDataService } from '../services/IDataService';
+import { IDataService, PERMISSIONS } from '@hbc/sp-services';
 import { ProtectedRoute, ProjectRequiredRoute, FeatureGate } from './guards';
-import { PERMISSIONS } from '../utils/permissions';
 
 // ---------------------------------------------------------------------------
 // Helper: wrap React.lazy() for named exports

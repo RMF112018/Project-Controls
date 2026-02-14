@@ -6,10 +6,15 @@ import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
-import { PERMISSIONS } from '../../../utils/permissions';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
-import { AuditAction, EntityType } from '../../../models/enums';
-import { IRiskCostItem, RiskCostCategory, RiskCostItemStatus } from '../../../models/IRiskCostManagement';
+import {
+  PERMISSIONS,
+  buildBreadcrumbs,
+  AuditAction,
+  EntityType,
+  IRiskCostItem,
+  RiskCostCategory,
+  RiskCostItemStatus
+} from '@hbc/sp-services';
 
 const STATUS_COLORS: Record<string, string> = {
   Open: HBC_COLORS.warning,

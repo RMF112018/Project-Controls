@@ -5,11 +5,9 @@ import { useLeads } from '../../hooks/useLeads';
 import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import { buildBreadcrumbs, ILead, Stage, PERMISSIONS } from '@hbc/sp-services';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
-import { ILead, Stage } from '../../../models';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
-import { PERMISSIONS } from '../../../utils/permissions';
 
 export const PostBidAutopsyList: React.FC = () => {
   const navigate = useNavigate();

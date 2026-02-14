@@ -7,7 +7,22 @@ import { useAppContext } from '../../contexts/AppContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import {
+  buildBreadcrumbs,
+  ILead,
+  IGoNoGoScorecard,
+  Stage,
+  Region,
+  Sector,
+  Division,
+  GoNoGoDecision,
+  ScorecardStatus,
+  formatCurrencyCompact,
+  formatDate,
+  formatPercent,
+  isActiveStage,
+  PERMISSIONS
+} from '@hbc/sp-services';
 import { KPICard } from '../../shared/KPICard';
 import { PipelineChart } from '../../shared/PipelineChart';
 import { StageBadge } from '../../shared/StageBadge';
@@ -16,12 +31,8 @@ import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { FeatureGate } from '../../guards/FeatureGate';
-import { ILead, IGoNoGoScorecard, Stage, Region, Sector, Division, GoNoGoDecision, ScorecardStatus } from '../../../models';
 import { useSectorDefinitions } from '../../hooks/useSectorDefinitions';
 import { HBC_COLORS } from '../../../theme/tokens';
-import { formatCurrencyCompact, formatDate, formatPercent } from '../../../utils/formatters';
-import { isActiveStage } from '../../../utils/stageEngine';
-import { PERMISSIONS } from '../../../utils/permissions';
 
 const TAB_PATHS = ['/preconstruction/pipeline', '/preconstruction/pipeline/gonogo'];
 const TAB_LABELS = ['Pipeline', 'Go/No-Go Tracker'];

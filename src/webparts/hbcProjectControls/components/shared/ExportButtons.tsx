@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, makeStyles, shorthands, tokens } from '@fluentui/react-components';
-import { ExportService } from '../../services/ExportService';
+import { ExportService } from '@hbc/sp-services';
 
 const useStyles = makeStyles({
   container: {

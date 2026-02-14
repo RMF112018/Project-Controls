@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { ISafetyConcern } from '../../models/ISafetyConcerns';
+import { ISafetyConcern } from '@hbc/sp-services';
 
 interface IUseSafetyConcernsResult {
   concerns: ISafetyConcern[];

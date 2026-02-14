@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IInternalMatrixTask, ITeamRoleAssignment, IOwnerContractArticle, ISubContractClause } from '../../models/IResponsibilityMatrix';
+import { IInternalMatrixTask, ITeamRoleAssignment, IOwnerContractArticle, ISubContractClause } from '@hbc/sp-services';
 
 interface IUseResponsibilityMatrixResult {
   internalTasks: IInternalMatrixTask[];

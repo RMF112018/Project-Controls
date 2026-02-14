@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IRiskCostManagement, IRiskCostItem } from '../../models/IRiskCostManagement';
+import { IRiskCostManagement, IRiskCostItem } from '@hbc/sp-services';
 
 interface IUseRiskCostManagementResult {
   data: IRiskCostManagement | null;

@@ -4,7 +4,7 @@ import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-co
 import { useAppContext } from '../contexts/AppContext';
 import { ProjectPicker } from '../shared/ProjectPicker';
 import { HBC_COLORS, TRANSITION } from '../../theme/tokens';
-import { NAV_GROUP_ROLES, PERMISSIONS } from '../../utils/permissions';
+import { NAV_GROUP_ROLES, PERMISSIONS } from '@hbc/sp-services';
 
 const useStyles = makeStyles({
   nav: {

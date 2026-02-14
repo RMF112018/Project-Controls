@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { offlineQueueService, ConnectivityStatus } from '../../services/OfflineQueueService';
+import { offlineQueueService, ConnectivityStatus } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../theme/tokens';
 
 const STATUS_CONFIG: Record<ConnectivityStatus, { color: string; label: string }> = {

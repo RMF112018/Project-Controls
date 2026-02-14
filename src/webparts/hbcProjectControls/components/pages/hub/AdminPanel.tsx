@@ -1,18 +1,14 @@
-import * as React from 'react';
-import { useLocation } from 'react-router-dom';
-import { Button } from '@fluentui/react-components';
-import { useAppContext } from '../../contexts/AppContext';
-import { PageHeader } from '../../shared/PageHeader';
-import { Breadcrumb } from '../../shared/Breadcrumb';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
-import { DataTable, IDataTableColumn } from '../../shared/DataTable';
-import { StatusBadge } from '../../shared/StatusBadge';
-import { LoadingSpinner } from '../../shared/LoadingSpinner';
-import { SkeletonLoader } from '../../shared/SkeletonLoader';
-import { ExportButtons } from '../../shared/ExportButtons';
-import { ProvisioningStatusView } from '../../shared/ProvisioningStatus';
-import { RoleGate } from '../../guards/RoleGate';
 import {
+  buildBreadcrumbs,
+  FeatureFlagCategory,
+  ProvisioningService,
+  MockHubNavigationService,
+  HubNavLinkStatus,
+  IAssignmentMapping,
+  AssignmentType,
+  ISectorDefinition,
+  formatDateTime,
+  PERMISSIONS,
   IRole,
   IFeatureFlag,
   IAuditEntry,
@@ -20,12 +16,21 @@ import {
   ProvisioningStatus,
   RoleName,
   AuditAction,
-  EntityType,
-} from '../../../models';
-import { FeatureFlagCategory } from '../../../models/IFeatureFlag';
-import { ProvisioningService } from '../../../services/ProvisioningService';
-import { MockHubNavigationService } from '../../../services/HubNavigationService';
-import { HubNavLinkStatus } from '../../../models/IProvisioningLog';
+  EntityType
+} from '@hbc/sp-services';
+import * as React from 'react';
+import { useLocation } from 'react-router-dom';
+import { Button } from '@fluentui/react-components';
+import { useAppContext } from '../../contexts/AppContext';
+import { PageHeader } from '../../shared/PageHeader';
+import { Breadcrumb } from '../../shared/Breadcrumb';
+import { DataTable, IDataTableColumn } from '../../shared/DataTable';
+import { StatusBadge } from '../../shared/StatusBadge';
+import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
+import { ExportButtons } from '../../shared/ExportButtons';
+import { ProvisioningStatusView } from '../../shared/ProvisioningStatus';
+import { RoleGate } from '../../guards/RoleGate';
 import { CollapsibleSection } from '../../shared/CollapsibleSection';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { WorkflowDefinitionsPanel } from './WorkflowDefinitionsPanel';
@@ -34,11 +39,7 @@ import { ProjectAssignmentsPanel } from './ProjectAssignmentsPanel';
 import { useTabFromUrl } from '../../hooks/useTabFromUrl';
 import { useSectorDefinitions } from '../../hooks/useSectorDefinitions';
 import { useAssignmentMappings } from '../../hooks/useAssignmentMappings';
-import { IAssignmentMapping, AssignmentType } from '../../../models';
-import { ISectorDefinition } from '../../../models/ISectorDefinition';
 import { HBC_COLORS, SPACING } from '../../../theme/tokens';
-import { formatDateTime } from '../../../utils/formatters';
-import { PERMISSIONS } from '../../../utils/permissions';
 
 const TAB_KEYS = ['connections', 'roles', 'flags', 'provisioning', 'workflows', 'permissions', 'sectors', 'assignments', 'audit'] as const;
 type AdminTab = typeof TAB_KEYS[number];

@@ -1,13 +1,14 @@
+import {
+  PERMISSIONS,
+  AuditAction,
+  EntityType,
+  OWNER_CONTRACT_PARTIES,
+  OwnerContractParty,
+  IOwnerContractArticle
+} from '@hbc/sp-services';
 import * as React from 'react';
 import { useResponsibilityMatrix } from '../../hooks/useResponsibilityMatrix';
 import { useAppContext } from '../../contexts/AppContext';
-import { PERMISSIONS } from '../../../utils/permissions';
-import {
-  OWNER_CONTRACT_PARTIES,
-  OwnerContractParty,
-  IOwnerContractArticle,
-} from '../../../models/IResponsibilityMatrix';
-import { AuditAction, EntityType } from '../../../models';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';

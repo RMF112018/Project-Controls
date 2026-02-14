@@ -3,13 +3,11 @@ import { useLocation } from 'react-router-dom';
 import { useLeads } from '../../hooks/useLeads';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { buildBreadcrumbs } from '../../../utils/breadcrumbs';
+import { buildBreadcrumbs, ILead, GoNoGoDecision, formatDate } from '@hbc/sp-services';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
-import { ILead, GoNoGoDecision } from '../../../models';
 import { HBC_COLORS } from '../../../theme/tokens';
-import { formatDate } from '../../../utils/formatters';
 
 const CheckIcon: React.FC = () => (
   <span style={{ color: HBC_COLORS.success, fontSize: '16px', fontWeight: 700 }}>&#10003;</span>

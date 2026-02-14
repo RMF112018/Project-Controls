@@ -1,5 +1,3 @@
-import * as React from 'react';
-import { useAppContext } from '../contexts/AppContext';
 import {
   IGoNoGoScorecard,
   GoNoGoDecision,
@@ -7,10 +5,11 @@ import {
   IScorecardVersion,
   IPersonAssignment,
   RoleName,
-} from '../../models';
-import { PERMISSIONS } from '../../utils/permissions';
-import { getRecommendedDecision } from '../../utils/scoreCalculator';
-
+  PERMISSIONS,
+  getRecommendedDecision
+} from '@hbc/sp-services';
+import * as React from 'react';
+import { useAppContext } from '../contexts/AppContext';
 interface IRecommendation {
   decision: GoNoGoDecision;
   confidence: 'Strong' | 'Moderate' | 'Weak';

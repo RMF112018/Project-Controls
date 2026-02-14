@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IMonthlyProjectReview, MonthlyReviewStatus, IMonthlyFollowUp } from '../../models/IMonthlyProjectReview';
+import { IMonthlyProjectReview, MonthlyReviewStatus, IMonthlyFollowUp } from '@hbc/sp-services';
 
 interface IUseMonthlyReviewResult {
   reviews: IMonthlyProjectReview[];

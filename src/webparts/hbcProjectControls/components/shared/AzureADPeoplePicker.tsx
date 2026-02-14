@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { IPersonAssignment } from '../../models/IWorkflowDefinition';
+import { IPersonAssignment, MOCK_USERS } from '@hbc/sp-services';
 import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
-import mockUsers from '../../mock/users.json';
 
 type IAzureADPeoplePickerProps = (
   | {
@@ -48,15 +47,15 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = (props) 
   }, [multiSelect, multiSelect ? props.selectedUsers : props.selectedUser]);
 
   const filtered = React.useMemo(() => {
-    if (!query.trim()) return mockUsers;
+    if (!query.trim()) return MOCK_USERS;
     const q = query.toLowerCase();
-    return mockUsers.filter(u =>
+    return MOCK_USERS.filter(u =>
       u.displayName.toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q)
     );
   }, [query]);
 
-  const handleSelectUser = (user: typeof mockUsers[0]): void => {
+  const handleSelectUser = (user: typeof MOCK_USERS[0]): void => {
     const person: IPersonAssignment = {
       userId: String(user.id),
       displayName: user.displayName,

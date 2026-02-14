@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-14 — Route-based Code Splitting (React.lazy + Suspense)
+**Last Updated:** 2026-02-14 — Fix `@hbc/sp-services` import resolution (workspace symlink, lib build, SPFx alias)
 
 ---
 
@@ -47,6 +47,7 @@
 | Lint | eslint ^8.57.0, @microsoft/eslint-config-spfx 1.21.1 |
 | Node (Volta) | 22.14.0 |
 | Code Splitting | React.lazy() + Suspense — 40 page components lazy-loaded, shell in main bundle |
+| Monorepo | npm workspaces — `packages/hbc-sp-services` (data layer) consumed by app |
 | Node (engines) | >=18.17.1 <19.0.0 |
 
 ### Build Commands
@@ -56,7 +57,9 @@ gulp serve --nobrowser          # SPFx local workbench
 gulp bundle --ship              # Production bundle
 gulp package-solution --ship    # Create .sppkg
 npm run dev                     # Standalone dev server (port 3000)
-npm run build                   # bundle --ship + package-solution --ship
+npm run build:lib               # Build @hbc/sp-services library only
+npm run build:app               # SPFx bundle --ship + package-solution --ship
+npm run build                   # build:lib then build:app (full pipeline)
 npm run test                    # Jest tests
 npm run lint                    # ESLint
 ```
@@ -71,7 +74,8 @@ npm run lint                    # ESLint
 | config/serve.json | Port 4321, HTTPS, initial workbench page |
 | config/config.json | Bundle entry: ./lib/webparts/hbcProjectControls/HbcProjectControlsWebPart.js |
 | tsconfig.json | Target es2017, module esnext, jsx react-jsx, path aliases (@components/*, @services/*, etc.) |
-| gulpfile.js | SPFx build, suppresses SASS non-camelCase warning |
+| gulpfile.js | SPFx build, suppresses SASS non-camelCase warning, @hbc/sp-services webpack alias |
+| .npmrc | legacy-peer-deps=true (SPFx + React 18 peer dep conflicts) |
 | dev/webpack.config.js | Dev server port 3000, REACT_APP_USE_MOCK=true |
 | dev/tsconfig.json | Extends root tsconfig, includes dev/**/* |
 
@@ -81,12 +85,13 @@ npm run lint                    # ESLint
 |-------|--------|
 | @webparts/* | src/webparts/* |
 | @components/* | src/webparts/hbcProjectControls/components/* |
-| @services/* | src/webparts/hbcProjectControls/services/* |
-| @models/* | src/webparts/hbcProjectControls/models/* |
 | @hooks/* | src/webparts/hbcProjectControls/components/hooks/* |
 | @contexts/* | src/webparts/hbcProjectControls/components/contexts/* |
-| @utils/* | src/webparts/hbcProjectControls/utils/* |
 | @theme/* | src/webparts/hbcProjectControls/theme/* |
+| @hbc/sp-services | packages/hbc-sp-services/src/index.ts |
+| @hbc/sp-services/* | packages/hbc-sp-services/src/* |
+
+**Removed aliases:** `@services/*`, `@models/*`, `@utils/*` — these now live in `@hbc/sp-services`.
 
 ---
 
@@ -254,46 +259,15 @@ src/webparts/hbcProjectControls/
 │       ├── WorkflowPreview.tsx
 │       ├── WorkflowStepCard.tsx
 │       └── index.ts
-├── mock/                                  # 41 JSON mock data files (see §12)
-├── models/                                # 45 TypeScript model files (see §6)
-│   ├── enums.ts                          # All shared enums (31 enums)
-│   ├── I*.ts                             # Interface files (one per entity)
-│   └── index.ts                          # Barrel export
 ├── provisioning/
 │   └── site-template.json                # SP site template definition
-├── services/
-│   ├── IDataService.ts                   # Service interface (192 methods)
-│   ├── MockDataService.ts               # Mock implementation (all 192 implemented)
-│   ├── SharePointDataService.ts         # SP implementation (49 implemented, 143 stubs)
-│   ├── AuditService.ts                  # Fire-and-forget audit queue with 2s debounce
-│   ├── CacheService.ts                  # Two-tier cache (memory + sessionStorage), 15min TTL
-│   ├── columnMappings.ts                # SP column name mappings for all lists (1267 lines)
-│   ├── ExportService.ts                 # PDF/Excel/CSV export with branded headers
-│   ├── GraphService.ts                  # MS Graph: users, photos, calendar, mail, Teams
-│   ├── HubNavigationService.ts          # Hub site nav link management (Mock + SP stub)
-│   ├── NotificationService.ts           # Event-driven notification builder (20+ event types)
-│   ├── OfflineQueueService.ts           # Offline write queue, auto-retry 30s, max 100 items
-│   ├── PowerAutomateService.ts          # HTTP triggers: provisioning, notification, archive flows
-│   ├── ProvisioningService.ts           # 7-step SP site provisioning with retry
-│   └── index.ts
 ├── theme/
 │   ├── globalStyles.ts                   # Global CSS injection
 │   ├── hbcTheme.ts                      # Fluent UI v9 theme
 │   └── tokens.ts                        # HBC_COLORS, BREAKPOINTS, SPACING, ELEVATION, TRANSITION
-└── utils/
-    ├── breadcrumbs.ts                    # Route-to-breadcrumb builder
-    ├── buyoutTemplate.ts                 # 20 standard buyout divisions (CSI MasterFormat)
-    ├── constants.ts                      # HUB_LISTS, PROJECT_LISTS, ROUTES, STAGE_ORDER, STAGE_COLORS, etc.
-    ├── estimatingKickoffTemplate.ts     # 3 sections, 58 template items
-    ├── turnoverAgendaTemplate.ts        # Default prerequisites, discussion items, exhibits, signatures
-    ├── formatters.ts                     # Currency, date, number, percentage, relative time formatters
-    ├── permissions.ts                    # PERMISSIONS, ROLE_PERMISSIONS, NAV_GROUP_ROLES
-    ├── riskEngine.ts                     # Commitment risk assessment ($50k bond, $250k escalation)
-    ├── scoreCalculator.ts               # Go/No-Go score totals and tier calculation
-    ├── siteDetector.ts                  # Hub vs project site detection from URL
-    ├── stageEngine.ts                   # Stage transition state machine (11 stages)
-    ├── toolPermissionMap.ts             # Tool permission map: 23 tool definitions, resolveToolPermissions()
-    └── validators.ts                    # Lead form, project code (yy-nnn-0m), email validation
+│
+│   NOTE: models/, services/, utils/, mock/ have moved to packages/hbc-sp-services/src/
+│   All app code imports from '@hbc/sp-services' instead of relative paths.
 ```
 
 ### dev/
@@ -311,6 +285,29 @@ dev/
 │   ├── sp-property-pane.ts   # Shim for @microsoft/sp-property-pane
 │   └── sp-webpart-base.ts   # Shim for @microsoft/sp-webpart-base
 └── dist/                     # Built dev output (gitignored)
+```
+
+### packages/hbc-sp-services/ (shared data layer library)
+
+```
+packages/hbc-sp-services/
+├── package.json              # @hbc/sp-services, private, peerDeps on @pnp/*
+├── tsconfig.json             # Standalone config (target es2017, module esnext)
+├── src/
+│   ├── index.ts              # Public barrel: re-exports models + services + utils + MOCK_USERS
+│   ├── models/               # 45 files — all I*.ts + enums.ts + index.ts (see §6)
+│   ├── services/             # 14 files — all service classes + index.ts (see §7)
+│   │   ├── IDataService.ts   # Service interface (212 methods)
+│   │   ├── MockDataService.ts # Mock implementation (all 212 implemented)
+│   │   ├── SharePointDataService.ts # SP implementation (129 impl, 77 stubs, 6 delegation)
+│   │   ├── AuditService.ts, CacheService.ts, ExportService.ts
+│   │   ├── GraphService.ts, HubNavigationService.ts, NotificationService.ts
+│   │   ├── OfflineQueueService.ts, PowerAutomateService.ts, ProvisioningService.ts
+│   │   ├── columnMappings.ts  # SP column name mappings for all lists (1267 lines)
+│   │   └── index.ts
+│   ├── utils/                # 13 files — all utility functions (see §13)
+│   └── mock/                 # 42 JSON files — mock data (see §12)
+└── lib/                      # Compiled output (gitignored)
 ```
 
 ### config/
@@ -1408,19 +1405,22 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 ### New Feature Workflow (Standard Sequence)
 
-1. **Model** — Create `models/INewEntity.ts` with interface, add to `models/index.ts` barrel
-2. **Mock JSON** — Create `mock/newEntities.json` with sample data
-3. **Service Methods** — Add methods to `services/IDataService.ts` interface
-4. **MockDataService** — Implement methods in `services/MockDataService.ts` reading from mock JSON
-5. **SharePointDataService** — Add stubs in `services/SharePointDataService.ts`
-6. **Column Mappings** — Add to `services/columnMappings.ts` if new SP list
-7. **Hook** — Create `components/hooks/useNewEntity.ts`, add to `hooks/index.ts` barrel
+Steps 1-6 modify `packages/hbc-sp-services/` (the shared library). Steps 7-12 modify the app (`src/`).
+
+1. **Model** — Create `packages/hbc-sp-services/src/models/INewEntity.ts`, add to `models/index.ts` barrel
+2. **Mock JSON** — Create `packages/hbc-sp-services/src/mock/newEntities.json` with sample data
+3. **Service Methods** — Add methods to `packages/hbc-sp-services/src/services/IDataService.ts`
+4. **MockDataService** — Implement in `packages/hbc-sp-services/src/services/MockDataService.ts`
+5. **SharePointDataService** — Add stubs in `packages/hbc-sp-services/src/services/SharePointDataService.ts`
+6. **Column Mappings** — Add to `packages/hbc-sp-services/src/services/columnMappings.ts` if new SP list
+7. **Hook** — Create `src/.../components/hooks/useNewEntity.ts`, add to `hooks/index.ts` barrel
 8. **Component** — Create page component in appropriate `pages/` subdirectory, add to its `index.ts`
 9. **Route** — Add route in `components/App.tsx`
 10. **Navigation** — Add nav item in `components/layouts/NavigationSidebar.tsx`
-11. **Constants** — Add list name to `HUB_LISTS` or `PROJECT_LISTS` in `utils/constants.ts` if new SP list
-12. **Permissions** — Add permission keys to `utils/permissions.ts` if new access control needed
-13. **Update CLAUDE.md** — Update all affected sections
+11. **Constants** — Add list name to `HUB_LISTS` or `PROJECT_LISTS` in `packages/hbc-sp-services/src/utils/constants.ts`
+12. **Permissions** — Add permission keys to `packages/hbc-sp-services/src/utils/permissions.ts`
+13. **Barrel** — If adding new util exports, add to `packages/hbc-sp-services/src/index.ts`
+14. **Update CLAUDE.md** — Update all affected sections
 
 ---
 
@@ -1483,6 +1483,8 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | React18 | React 18.2.0 Migration — Bumped react/react-dom from 17.0.1→18.2.0, @types/react/@types/react-dom from 17.x→18.2.0, @testing-library/react from ^12.1.5→^14.0.0. Added npm `overrides` for 3 SPFx packages (`@microsoft/sp-core-library`, `sp-webpart-base`, `sp-property-pane`) to bypass `<18.0.0` peer dep constraints. WebPart `render()`→`createRoot()` + `Root` lifecycle (`_root` field, lazy init, `unmount()` in `onDispose`). Dev server `ReactDOM.render()`→`createRoot().render()`. Zero component/style/service/workflow files touched. `tsc --noEmit` passes with zero errors. | (none) | package.json (react 18.2.0, types 18.2.0, +overrides, @testing-library/react ^14), HbcProjectControlsWebPart.ts (createRoot + Root), dev/index.tsx (createRoot) |
 
 | Perf-1 | Route-based Code Splitting — Replaced 40 static page imports in App.tsx with `React.lazy()` + `lazyNamed()` helper for named-export modules. Single `React.Suspense` boundary wraps `<Routes>` with `<PageLoader />` fallback (centered Fluent Spinner, makeStyles). Shell stays in main bundle: FluentProvider, AppProvider, HashRouter, AppShell, NavigationSidebar, ErrorBoundary, ToastProvider, guards (ProtectedRoute, ProjectRequiredRoute, FeatureGate), NotFoundPage, AccessDeniedPage. 2 dead imports removed (GoNoGoTracker, PreconKickoff — were imported but never routed). Zero route guard, service, model, or styling changes. `tsc --noEmit` clean. | PageLoader.tsx | App.tsx (40 static→lazy imports, +Suspense boundary, +lazyNamed helper, -2 dead imports), shared/PageLoader.tsx (new), shared/index.ts (+PageLoader export) |
+
+| Lib-1 | Extract `@hbc/sp-services` Shared Library — Moved 114 files (45 models + 14 services + 13 utils + 42 mock JSON) from `src/webparts/hbcProjectControls/` into `packages/hbc-sp-services/src/` as a standalone npm workspace package. Monorepo structure via npm workspaces (`"workspaces": ["packages/*"]`). Package barrel `index.ts` re-exports all models, services, utils, and `MOCK_USERS` from mock/users.json. All ~106 app files rewritten from relative imports (`../../models`, `../../services/*`, `../../utils/*`) to `from '@hbc/sp-services'`. Duplicate imports consolidated. Root tsconfig `rootDir` changed from `"src"` to `"."` to accommodate path alias resolution into packages/. Old path aliases (`@services/*`, `@models/*`, `@utils/*`) removed; new `@hbc/sp-services` alias added. Webpack dev config updated. `tsc --noEmit` passes on all 3 tsconfigs (root, dev, package). Webpack dev build compiles successfully. Zero model, service, utility, or component logic changes — purely structural refactor. | packages/hbc-sp-services/ (package.json, tsconfig.json, src/index.ts) | ~106 app files (import rewrites), package.json (workspaces, dependency, build scripts), tsconfig.json (rootDir, paths), dev/webpack.config.js (aliases), services/index.ts (added missing singleton/type exports), AzureADPeoplePicker.tsx (MOCK_USERS import), PursuitDetail.tsx (inline import type fix) |
 
 ### Known Stubs / Placeholders
 
@@ -1649,6 +1651,20 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 72. **AccessDeniedPage and NotFoundPage are NOT lazy-loaded** — These two tiny pages remain in the main bundle (static import / inline). AccessDeniedPage is the redirect target for ProtectedRoute failures — it must be available synchronously. NotFoundPage is the `*` catch-all fallback. Do not lazy-load either.
 
+73. **All data layer imports use `from '@hbc/sp-services'`** — After the Lib-1 extraction, models, services, utils, and mock data live in `packages/hbc-sp-services/src/`. App components import everything from the package barrel: `import { ILead, MockDataService, formatCurrency } from '@hbc/sp-services'`. Never use relative paths like `../../models` or `../../services` — those directories no longer exist in the app. The old path aliases (`@services/*`, `@models/*`, `@utils/*`) have been removed from tsconfig.
+
+74. **New data layer files go in `packages/hbc-sp-services/src/`, not in the app** — When adding new models (`I*.ts`), service methods, utility functions, or mock JSON files, create them in the package directory (`packages/hbc-sp-services/src/models/`, `services/`, `utils/`, `mock/`). Update the package barrel export (`packages/hbc-sp-services/src/index.ts`) or the appropriate sub-barrel (`models/index.ts`, `services/index.ts`). The app (`src/webparts/`) contains only UI components, hooks, contexts, guards, layouts, and theme.
+
+75. **Build library before app for production** — The root `npm run build` chains `build:lib` then `build:app`. In development, the webpack dev server resolves `@hbc/sp-services` directly to package source (no compilation needed). But for SPFx production builds (`gulp bundle --ship`), the library must be compiled first: `cd packages/hbc-sp-services && npm run build`. The `build:lib` script handles this.
+
+76. **`MOCK_USERS` is exported from the package barrel for UI components** — `AzureADPeoplePicker.tsx` needs the mock users list for its dropdown. It imports `MOCK_USERS` from `@hbc/sp-services` (which re-exports the default from `mock/users.json`). If other UI components need direct access to mock data, add similar named exports to the package `index.ts` rather than importing JSON files with relative paths.
+
+77. **Root tsconfig `rootDir` is `"."` not `"src"`** — Changed from `"src"` to `"."` to accommodate TypeScript path alias resolution into `packages/hbc-sp-services/src/`. If `rootDir` is set to `"src"`, TypeScript throws TS6059 errors because files resolved via the `@hbc/sp-services` alias are outside the root directory. Do not revert this.
+
+78. **`npm install` required after workspace changes** — After any change to root `package.json` `workspaces` array or after cloning the repo, run `npm install` to create the `node_modules/@hbc/sp-services` symlink. Without this symlink, the SPFx `gulp bundle --ship` build will fail with `Cannot find module '@hbc/sp-services'`. The dev webpack server (`npm run dev`) masks this issue because it resolves via a direct webpack alias. Additionally, the library must be compiled (`npm run build:lib`) before the SPFx production build — the `npm run build` script chains this automatically. The `.npmrc` file sets `legacy-peer-deps=true` to handle SPFx `@types/react <18.0.0` peer dep conflicts with React 18.
+
+79. **`gulpfile.js` has `@hbc/sp-services` webpack alias** — The SPFx build pipeline (`@microsoft/sp-build-web`) generates its own webpack config that does NOT inherit tsconfig path aliases or dev webpack aliases. `build.configureWebpack.mergeConfig()` in `gulpfile.js` adds the `@hbc/sp-services` → `packages/hbc-sp-services/src` alias so `gulp serve` and `gulp bundle --ship` can resolve the workspace package imports.
+
 ---
 
 ## Audit Log
@@ -1691,3 +1707,8 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-14 | §1, §4, §13, §15, §16 | Fluent UI v9 Theming + makeStyles Migration. §1: Added Styling row (Griffel makeStyles + Fluent tokens), updated tsconfig description (+jsx react-jsx). §4: Replaced "Inline CSS Pattern" with "Hybrid CSS Pattern" (makeStyles for structural, inline for dynamic, tokens vs HBC_COLORS rules, mergeClasses for conditional). §13: TRANSITION constant added to tokens.ts (fast/normal/slow). §15: Phase Theme-1 entry (hbcTheme 30+ overrides, globalStyles 40+ classes, 10 component conversions, tsconfig jsx transform). §16: Added pitfalls #61-65 (makeStyles vs inline decision rule, tokens before HBC_COLORS, TRANSITION import, mergeClasses pattern, jsx react-jsx). Files modified: hbcTheme.ts, globalStyles.ts, tokens.ts (+TRANSITION), tsconfig.json (jsx: react-jsx), AppShell.tsx, NavigationSidebar.tsx, DataTable.tsx, KPICard.tsx, PageHeader.tsx, SearchBar.tsx, StageBadge.tsx, StatusBadge.tsx, ExportButtons.tsx, LoadingSpinner.tsx. Zero data service or workflow files touched. |
 | 2026-02-14 | §1, §3, §15, §16 | React 18.2.0 Migration. §1: React 17.0.1→18.2.0, @testing-library/react ^12.1.5→^14.0.0. §3: WebPart render() uses createRoot + Root lifecycle, dev server uses createRoot. §15: Phase React18 entry (package.json overrides, createRoot in WebPart + dev, zero component changes). §16: Added pitfalls #66-68 (npm overrides for SPFx peer deps, createRoot lifecycle, @testing-library/react v14). Files modified: package.json (react 18.2.0, types 18.2.0, +overrides, @testing-library/react ^14), HbcProjectControlsWebPart.ts (createRoot + Root), dev/index.tsx (createRoot). Zero component, style, data-service, or workflow files touched. |
 | 2026-02-14 | §1, §2, §3, §5, §15, §16 | Route-based Code Splitting. §1: +Code Splitting row (React.lazy + Suspense, 40 lazy pages). §2: +PageLoader.tsx in shared/ (34 components). §3: Component tree updated with Suspense(PageLoader), +Code Splitting row. §5: +PageLoader component. §15: Phase Perf-1 entry (40 lazy imports, lazyNamed helper, PageLoader, -2 dead imports). §16: Added pitfalls #69-72 (lazy page imports only, lazyNamed first-key behavior, Suspense inside AppShell, AccessDeniedPage/NotFoundPage not lazy). Files: App.tsx (rewritten — 40 static→lazy imports, +Suspense, +lazyNamed, -GoNoGoTracker/-PreconKickoff dead imports), shared/PageLoader.tsx (new), shared/index.ts (+1 export). Zero route guard, service, model, or styling files touched. |
+| 2026-02-14 | §1, §2, §14, §15, §16 | Extract `@hbc/sp-services` Shared Library (Lib-1). §1: +Monorepo row (npm workspaces), updated build commands (build:lib → build:app chain), updated path aliases (-@services/-@models/-@utils, +@hbc/sp-services). §2: Removed models/, services/, utils/, mock/ from app directory tree, added packages/hbc-sp-services/ directory tree, noted moved files. §14: Updated New Feature Workflow to reference package paths for models/services/utils/mock. §15: Phase Lib-1 entry (114 files moved, ~106 files rewritten, 3 new package scaffold files). §16: Added pitfalls #73-77 (@hbc/sp-services imports, new files go in package, build:lib before app, MOCK_USERS export, rootDir constraint). Files created: packages/hbc-sp-services/package.json, tsconfig.json, src/index.ts. Files modified: root package.json (+workspaces, +dependency, +scripts), root tsconfig.json (rootDir "." + new paths), dev/webpack.config.js (new aliases), services/index.ts (added missing exports), ~106 app files (import rewrites), AzureADPeoplePicker.tsx (MOCK_USERS), PursuitDetail.tsx (inline import fix). Directories moved via git mv: models/ → packages/hbc-sp-services/src/models/, services/ → .../services/, utils/ → .../utils/, mock/ → .../mock/. |
+| 2026-02-14 | §1, §16 | Fix @hbc/sp-services import resolution. §1: +.npmrc to Key Config Files, updated gulpfile.js description. §16: Added pitfalls #78 (npm install for workspace symlink + .npmrc legacy-peer-deps), #79 (gulpfile.js SPFx webpack alias). Files created: .npmrc (legacy-peer-deps=true). Files modified: gulpfile.js (+build.configureWebpack.mergeConfig with @hbc/sp-services alias), .gitignore (+packages/hbc-sp-services/lib/), package.json (removed broken Fluent UI sub-package overrides that referenced non-existent 9.59.0 versions). npm install now succeeds, creating node_modules/@hbc/sp-services workspace symlink. Library compiles to packages/hbc-sp-services/lib/. |
+| 2026-02-14 | §16 | Fixed dev server resolution for React 18 + monorepo after library extraction. Added react/react-dom/react-dom/client webpack aliases and resolve.modules to dev/webpack.config.js. Added react-dom scheduler override to package.json. |
+| 2026-02-14 | §1, §16 | Pinned @fluentui/react-icons to exact 2.0.319 (was ^2.0.230). Added webpack alias in dev/webpack.config.js, npm override in root package.json, and workspace package peer/dev dep in packages/hbc-sp-services/package.json to prevent nested module resolution failures. |
+| 2026-02-14 | §1, §16 | Hardened monorepo dependency resolution. Replaced overrides block with comprehensive top-level react/react-dom/scheduler pins (prevents SPFx nesting). Added `postinstall` (auto build:lib) and `clean:dev` (nuclear reinstall) scripts. Added scheduler webpack alias. |
