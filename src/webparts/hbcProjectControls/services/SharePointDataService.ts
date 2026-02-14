@@ -27,12 +27,12 @@ import { IBuyoutEntry, BuyoutStatus, EVerifyStatus } from '../models/IBuyoutEntr
 import { ICommitmentApproval, CommitmentStatus, WaiverType, ApprovalStep } from '../models/ICommitmentApproval';
 import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType, DEFAULT_ALERT_THRESHOLDS } from '../models/IActiveProject';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
-import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
+import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep, IPersonAssignment, IAssignmentCondition } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
 import { IActionInboxItem } from '../models/IActionInbox';
 import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions, IToolAccess, IGranularFlagOverride } from '../models/IPermissionTemplate';
 import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfig';
-import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel } from '../models/enums';
+import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 import { ROLE_PERMISSIONS } from '../utils/permissions';
 import { resolveToolPermissions, TOOL_DEFINITIONS } from '../utils/toolPermissionMap';
@@ -42,6 +42,10 @@ import {
   SECURITY_GROUP_MAPPINGS_COLUMNS,
   PROJECT_TEAM_ASSIGNMENTS_COLUMNS,
   PROVISIONING_LOG_COLUMNS,
+  WORKFLOW_DEFINITIONS_COLUMNS,
+  WORKFLOW_STEPS_COLUMNS,
+  WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS,
+  WORKFLOW_STEP_OVERRIDES_COLUMNS,
 } from './columnMappings';
 import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
 
@@ -1573,16 +1577,479 @@ export class SharePointDataService implements IDataService {
   async getScorecardVersions(): Promise<IScorecardVersion[]> { throw new Error('SharePoint implementation pending: getScorecardVersions'); }
 
   // --- Workflow Definitions ---
-  async getWorkflowDefinitions(): Promise<IWorkflowDefinition[]> { console.warn('[STUB] getWorkflowDefinitions not implemented'); return []; }
-  async getWorkflowDefinition(_workflowKey: WorkflowKey): Promise<IWorkflowDefinition | null> { console.warn('[STUB] getWorkflowDefinition not implemented'); return null; }
-  async updateWorkflowStep(_workflowId: number, _stepId: number, _data: Partial<IWorkflowStep>): Promise<IWorkflowStep> { throw new Error('SharePoint implementation pending: updateWorkflowStep'); }
-  async addConditionalAssignment(_stepId: number, _assignment: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> { throw new Error('SharePoint implementation pending: addConditionalAssignment'); }
-  async updateConditionalAssignment(_assignmentId: number, _data: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> { throw new Error('SharePoint implementation pending: updateConditionalAssignment'); }
-  async removeConditionalAssignment(_assignmentId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeConditionalAssignment'); }
-  async getWorkflowOverrides(_projectCode: string): Promise<IWorkflowStepOverride[]> { console.warn('[STUB] getWorkflowOverrides not implemented'); return []; }
-  async setWorkflowStepOverride(_override: Partial<IWorkflowStepOverride>): Promise<IWorkflowStepOverride> { throw new Error('SharePoint implementation pending: setWorkflowStepOverride'); }
-  async removeWorkflowStepOverride(_overrideId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeWorkflowStepOverride'); }
-  async resolveWorkflowChain(_workflowKey: WorkflowKey, _projectCode: string): Promise<IResolvedWorkflowStep[]> { console.warn('[STUB] resolveWorkflowChain not implemented'); return []; }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private mapToWorkflowDefinition(item: Record<string, any>, steps: IWorkflowStep[]): IWorkflowDefinition {
+    return {
+      id: item[WORKFLOW_DEFINITIONS_COLUMNS.id] as number || item.Id as number,
+      workflowKey: item[WORKFLOW_DEFINITIONS_COLUMNS.workflowKey] as WorkflowKey,
+      name: item[WORKFLOW_DEFINITIONS_COLUMNS.name] as string || '',
+      description: item[WORKFLOW_DEFINITIONS_COLUMNS.description] as string || '',
+      steps,
+      isActive: !!(item[WORKFLOW_DEFINITIONS_COLUMNS.isActive]),
+      lastModifiedBy: item[WORKFLOW_DEFINITIONS_COLUMNS.lastModifiedBy] as string || '',
+      lastModifiedDate: item[WORKFLOW_DEFINITIONS_COLUMNS.lastModifiedDate] as string || '',
+    };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private mapToWorkflowStep(item: Record<string, any>, conditionalAssignees: IConditionalAssignment[]): IWorkflowStep {
+    let defaultAssignee: IPersonAssignment | undefined;
+    try {
+      const raw = item[WORKFLOW_STEPS_COLUMNS.defaultAssignee];
+      if (typeof raw === 'string' && raw) {
+        defaultAssignee = JSON.parse(raw) as IPersonAssignment;
+      }
+    } catch { /* default to undefined */ }
+
+    return {
+      id: item[WORKFLOW_STEPS_COLUMNS.id] as number || item.Id as number,
+      workflowId: item[WORKFLOW_STEPS_COLUMNS.workflowId] as number || 0,
+      stepOrder: item[WORKFLOW_STEPS_COLUMNS.stepOrder] as number || 0,
+      name: item[WORKFLOW_STEPS_COLUMNS.name] as string || '',
+      description: item[WORKFLOW_STEPS_COLUMNS.description] as string || undefined,
+      assignmentType: item[WORKFLOW_STEPS_COLUMNS.assignmentType] as StepAssignmentType || StepAssignmentType.NamedPerson,
+      projectRole: item[WORKFLOW_STEPS_COLUMNS.projectRole] as string || undefined,
+      defaultAssignee,
+      conditionalAssignees,
+      isConditional: !!(item[WORKFLOW_STEPS_COLUMNS.isConditional]),
+      conditionDescription: item[WORKFLOW_STEPS_COLUMNS.conditionDescription] as string || undefined,
+      actionLabel: item[WORKFLOW_STEPS_COLUMNS.actionLabel] as string || '',
+      canChairMeeting: !!(item[WORKFLOW_STEPS_COLUMNS.canChairMeeting]),
+      featureFlagName: item[WORKFLOW_STEPS_COLUMNS.featureFlagName] as string || undefined,
+      isSkippable: !!(item[WORKFLOW_STEPS_COLUMNS.isSkippable]),
+    };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private mapToConditionalAssignment(item: Record<string, any>): IConditionalAssignment {
+    let conditions: IAssignmentCondition[] = [];
+    let assignee: IPersonAssignment = { userId: '', displayName: '', email: '' };
+    try {
+      const rawConds = item[WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.conditions];
+      if (typeof rawConds === 'string' && rawConds) {
+        conditions = JSON.parse(rawConds) as IAssignmentCondition[];
+      }
+    } catch { /* default to empty */ }
+    try {
+      const rawAssignee = item[WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.assignee];
+      if (typeof rawAssignee === 'string' && rawAssignee) {
+        assignee = JSON.parse(rawAssignee) as IPersonAssignment;
+      }
+    } catch { /* default to empty */ }
+
+    return {
+      id: item[WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.id] as number || item.Id as number,
+      stepId: item[WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.stepId] as number || 0,
+      conditions,
+      assignee,
+      priority: item[WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.priority] as number || 0,
+    };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private mapToWorkflowStepOverride(item: Record<string, any>): IWorkflowStepOverride {
+    let overrideAssignee: IPersonAssignment = { userId: '', displayName: '', email: '' };
+    try {
+      const raw = item[WORKFLOW_STEP_OVERRIDES_COLUMNS.overrideAssignee];
+      if (typeof raw === 'string' && raw) {
+        overrideAssignee = JSON.parse(raw) as IPersonAssignment;
+      }
+    } catch { /* default to empty */ }
+
+    return {
+      id: item[WORKFLOW_STEP_OVERRIDES_COLUMNS.id] as number || item.Id as number,
+      projectCode: item[WORKFLOW_STEP_OVERRIDES_COLUMNS.projectCode] as string || '',
+      workflowKey: item[WORKFLOW_STEP_OVERRIDES_COLUMNS.workflowKey] as WorkflowKey,
+      stepId: item[WORKFLOW_STEP_OVERRIDES_COLUMNS.stepId] as number || 0,
+      overrideAssignee,
+      overrideReason: item[WORKFLOW_STEP_OVERRIDES_COLUMNS.overrideReason] as string || undefined,
+      overriddenBy: item[WORKFLOW_STEP_OVERRIDES_COLUMNS.overriddenBy] as string || '',
+      overriddenDate: item[WORKFLOW_STEP_OVERRIDES_COLUMNS.overriddenDate] as string || '',
+    };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private getLeadFieldValue(lead: Record<string, any>, field: ConditionField): string {
+    switch (field) {
+      case ConditionField.Division: return (lead.Division as string) || '';
+      case ConditionField.Region: return (lead.Region as string) || '';
+      case ConditionField.Sector: return (lead.Sector as string) || '';
+      default: return '';
+    }
+  }
+
+  /**
+   * Reads all 3 workflow lists and assembles full hierarchy.
+   * Used internally by getWorkflowDefinitions() and getWorkflowDefinition().
+   */
+  private async assembleAllWorkflowDefinitions(): Promise<IWorkflowDefinition[]> {
+    // Read all 3 lists in parallel
+    const [defItems, stepItems, caItems] = await Promise.all([
+      this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_DEFINITIONS).items(),
+      this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEPS).items(),
+      this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_CONDITIONAL_ASSIGNMENTS).items(),
+    ]);
+
+    // Map conditional assignments and group by stepId
+    const caByStepId = new Map<number, IConditionalAssignment[]>();
+    for (const caItem of caItems) {
+      const ca = this.mapToConditionalAssignment(caItem);
+      const existing = caByStepId.get(ca.stepId) || [];
+      existing.push(ca);
+      caByStepId.set(ca.stepId, existing);
+    }
+
+    // Map steps and group by workflowId
+    const stepsByWorkflowId = new Map<number, IWorkflowStep[]>();
+    for (const stepItem of stepItems) {
+      const stepId = stepItem[WORKFLOW_STEPS_COLUMNS.id] as number || stepItem.Id as number;
+      const workflowId = stepItem[WORKFLOW_STEPS_COLUMNS.workflowId] as number || 0;
+      const step = this.mapToWorkflowStep(stepItem, caByStepId.get(stepId) || []);
+      const existing = stepsByWorkflowId.get(workflowId) || [];
+      existing.push(step);
+      stepsByWorkflowId.set(workflowId, existing);
+    }
+
+    // Sort steps by stepOrder within each workflow
+    for (const [, steps] of stepsByWorkflowId) {
+      steps.sort((a, b) => a.stepOrder - b.stepOrder);
+    }
+
+    // Map definitions with their steps
+    return defItems.map((defItem: Record<string, unknown>) => {
+      const defId = defItem[WORKFLOW_DEFINITIONS_COLUMNS.id] as number || defItem.Id as number;
+      return this.mapToWorkflowDefinition(defItem, stepsByWorkflowId.get(defId) || []);
+    });
+  }
+
+  async getWorkflowDefinitions(): Promise<IWorkflowDefinition[]> {
+    return this.assembleAllWorkflowDefinitions();
+  }
+
+  async getWorkflowDefinition(workflowKey: WorkflowKey): Promise<IWorkflowDefinition | null> {
+    // Filter definition by WorkflowKey, then read steps + conditionals for that definition
+    const defItems = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_DEFINITIONS).items
+      .filter(`${WORKFLOW_DEFINITIONS_COLUMNS.workflowKey} eq '${workflowKey}'`)();
+    if (defItems.length === 0) return null;
+
+    const defItem = defItems[0];
+    const defId = defItem[WORKFLOW_DEFINITIONS_COLUMNS.id] as number || defItem.Id as number;
+
+    // Read steps for this definition
+    const stepItems = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEPS).items
+      .filter(`${WORKFLOW_STEPS_COLUMNS.workflowId} eq ${defId}`)();
+
+    // Collect step IDs for conditional assignment lookup
+    const stepIds = stepItems.map((s: Record<string, unknown>) =>
+      s[WORKFLOW_STEPS_COLUMNS.id] as number || s.Id as number
+    );
+
+    // Read conditional assignments for these steps
+    let caItems: Record<string, unknown>[] = [];
+    if (stepIds.length > 0) {
+      // Build filter for all step IDs
+      const caFilter = stepIds.map((id: number) => `${WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.stepId} eq ${id}`).join(' or ');
+      caItems = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_CONDITIONAL_ASSIGNMENTS).items
+        .filter(caFilter)();
+    }
+
+    // Group conditional assignments by stepId
+    const caByStepId = new Map<number, IConditionalAssignment[]>();
+    for (const caItem of caItems) {
+      const ca = this.mapToConditionalAssignment(caItem);
+      const existing = caByStepId.get(ca.stepId) || [];
+      existing.push(ca);
+      caByStepId.set(ca.stepId, existing);
+    }
+
+    // Map steps with their conditional assignees
+    const steps = stepItems.map((stepItem: Record<string, unknown>) => {
+      const stepId = stepItem[WORKFLOW_STEPS_COLUMNS.id] as number || stepItem.Id as number;
+      return this.mapToWorkflowStep(stepItem, caByStepId.get(stepId) || []);
+    }).sort((a: IWorkflowStep, b: IWorkflowStep) => a.stepOrder - b.stepOrder);
+
+    return this.mapToWorkflowDefinition(defItem, steps);
+  }
+
+  async updateWorkflowStep(workflowId: number, stepId: number, data: Partial<IWorkflowStep>): Promise<IWorkflowStep> {
+    // Build SP update payload with column mappings
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {};
+    if (data.name !== undefined) updateData[WORKFLOW_STEPS_COLUMNS.name] = data.name;
+    if (data.description !== undefined) updateData[WORKFLOW_STEPS_COLUMNS.description] = data.description;
+    if (data.stepOrder !== undefined) updateData[WORKFLOW_STEPS_COLUMNS.stepOrder] = data.stepOrder;
+    if (data.assignmentType !== undefined) updateData[WORKFLOW_STEPS_COLUMNS.assignmentType] = data.assignmentType;
+    if (data.projectRole !== undefined) updateData[WORKFLOW_STEPS_COLUMNS.projectRole] = data.projectRole;
+    if (data.defaultAssignee !== undefined) updateData[WORKFLOW_STEPS_COLUMNS.defaultAssignee] = JSON.stringify(data.defaultAssignee);
+    if (data.isConditional !== undefined) updateData[WORKFLOW_STEPS_COLUMNS.isConditional] = data.isConditional;
+    if (data.conditionDescription !== undefined) updateData[WORKFLOW_STEPS_COLUMNS.conditionDescription] = data.conditionDescription;
+    if (data.actionLabel !== undefined) updateData[WORKFLOW_STEPS_COLUMNS.actionLabel] = data.actionLabel;
+    if (data.canChairMeeting !== undefined) updateData[WORKFLOW_STEPS_COLUMNS.canChairMeeting] = data.canChairMeeting;
+    if (data.featureFlagName !== undefined) updateData[WORKFLOW_STEPS_COLUMNS.featureFlagName] = data.featureFlagName;
+    if (data.isSkippable !== undefined) updateData[WORKFLOW_STEPS_COLUMNS.isSkippable] = data.isSkippable;
+
+    await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEPS).items.getById(stepId).update(updateData);
+
+    // Update parent definition's lastModifiedDate
+    await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_DEFINITIONS).items.getById(workflowId).update({
+      [WORKFLOW_DEFINITIONS_COLUMNS.lastModifiedDate]: new Date().toISOString(),
+    });
+
+    // Re-read the updated step with its conditional assignees
+    const updatedItem = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEPS).items.getById(stepId)();
+    const caItems = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_CONDITIONAL_ASSIGNMENTS).items
+      .filter(`${WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.stepId} eq ${stepId}`)();
+    const cas = caItems.map((ca: Record<string, unknown>) => this.mapToConditionalAssignment(ca));
+    return this.mapToWorkflowStep(updatedItem, cas);
+  }
+
+  async addConditionalAssignment(stepId: number, assignment: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const addData: Record<string, any> = {
+      [WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.stepId]: stepId,
+      [WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.conditions]: JSON.stringify(assignment.conditions || []),
+      [WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.assignee]: JSON.stringify(assignment.assignee || { userId: '', displayName: '', email: '' }),
+      [WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.priority]: assignment.priority || 1,
+    };
+
+    const result = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_CONDITIONAL_ASSIGNMENTS).items.add(addData);
+    const newId = result.Id || result.data?.Id;
+
+    // Update parent workflow definition's lastModifiedDate
+    // Find the workflow that owns this step
+    const stepItem = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEPS).items.getById(stepId)();
+    const workflowId = stepItem[WORKFLOW_STEPS_COLUMNS.workflowId] as number;
+    if (workflowId) {
+      await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_DEFINITIONS).items.getById(workflowId).update({
+        [WORKFLOW_DEFINITIONS_COLUMNS.lastModifiedDate]: new Date().toISOString(),
+      });
+    }
+
+    // Re-read the created item
+    const createdItem = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_CONDITIONAL_ASSIGNMENTS).items.getById(newId)();
+    return this.mapToConditionalAssignment(createdItem);
+  }
+
+  async updateConditionalAssignment(assignmentId: number, data: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {};
+    if (data.conditions !== undefined) updateData[WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.conditions] = JSON.stringify(data.conditions);
+    if (data.assignee !== undefined) updateData[WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.assignee] = JSON.stringify(data.assignee);
+    if (data.priority !== undefined) updateData[WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.priority] = data.priority;
+
+    await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_CONDITIONAL_ASSIGNMENTS).items.getById(assignmentId).update(updateData);
+
+    // Re-read to get current item for stepId lookup
+    const updatedItem = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_CONDITIONAL_ASSIGNMENTS).items.getById(assignmentId)();
+    const stepId = updatedItem[WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.stepId] as number;
+
+    // Update parent workflow definition's lastModifiedDate
+    if (stepId) {
+      const stepItem = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEPS).items.getById(stepId)();
+      const workflowId = stepItem[WORKFLOW_STEPS_COLUMNS.workflowId] as number;
+      if (workflowId) {
+        await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_DEFINITIONS).items.getById(workflowId).update({
+          [WORKFLOW_DEFINITIONS_COLUMNS.lastModifiedDate]: new Date().toISOString(),
+        });
+      }
+    }
+
+    return this.mapToConditionalAssignment(updatedItem);
+  }
+
+  async removeConditionalAssignment(assignmentId: number): Promise<void> {
+    // Read item first to find parent workflow for lastModifiedDate update
+    const item = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_CONDITIONAL_ASSIGNMENTS).items.getById(assignmentId)();
+    const stepId = item[WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.stepId] as number;
+
+    // Soft delete (recycle)
+    await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_CONDITIONAL_ASSIGNMENTS).items.getById(assignmentId).recycle();
+
+    // Update parent workflow definition's lastModifiedDate
+    if (stepId) {
+      const stepItem = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEPS).items.getById(stepId)();
+      const workflowId = stepItem[WORKFLOW_STEPS_COLUMNS.workflowId] as number;
+      if (workflowId) {
+        await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_DEFINITIONS).items.getById(workflowId).update({
+          [WORKFLOW_DEFINITIONS_COLUMNS.lastModifiedDate]: new Date().toISOString(),
+        });
+      }
+    }
+  }
+
+  async getWorkflowOverrides(projectCode: string): Promise<IWorkflowStepOverride[]> {
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEP_OVERRIDES).items
+      .filter(`${WORKFLOW_STEP_OVERRIDES_COLUMNS.projectCode} eq '${projectCode}'`)();
+    return items.map((item: Record<string, unknown>) => this.mapToWorkflowStepOverride(item));
+  }
+
+  async setWorkflowStepOverride(override: Partial<IWorkflowStepOverride>): Promise<IWorkflowStepOverride> {
+    // Upsert: delete existing override for same projectCode+stepId, then add new
+    if (override.projectCode && override.stepId) {
+      const existing = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEP_OVERRIDES).items
+        .filter(`${WORKFLOW_STEP_OVERRIDES_COLUMNS.projectCode} eq '${override.projectCode}' and ${WORKFLOW_STEP_OVERRIDES_COLUMNS.stepId} eq ${override.stepId}`)();
+      for (const ex of existing) {
+        const exId = ex[WORKFLOW_STEP_OVERRIDES_COLUMNS.id] as number || ex.Id as number;
+        await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEP_OVERRIDES).items.getById(exId).recycle();
+      }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const addData: Record<string, any> = {
+      [WORKFLOW_STEP_OVERRIDES_COLUMNS.projectCode]: override.projectCode || '',
+      [WORKFLOW_STEP_OVERRIDES_COLUMNS.workflowKey]: override.workflowKey || WorkflowKey.GO_NO_GO,
+      [WORKFLOW_STEP_OVERRIDES_COLUMNS.stepId]: override.stepId || 0,
+      [WORKFLOW_STEP_OVERRIDES_COLUMNS.overrideAssignee]: JSON.stringify(override.overrideAssignee || { userId: '', displayName: '', email: '' }),
+      [WORKFLOW_STEP_OVERRIDES_COLUMNS.overrideReason]: override.overrideReason || '',
+      [WORKFLOW_STEP_OVERRIDES_COLUMNS.overriddenBy]: override.overriddenBy || '',
+      [WORKFLOW_STEP_OVERRIDES_COLUMNS.overriddenDate]: new Date().toISOString(),
+    };
+
+    const result = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEP_OVERRIDES).items.add(addData);
+    const newId = result.Id || result.data?.Id;
+    const createdItem = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEP_OVERRIDES).items.getById(newId)();
+    return this.mapToWorkflowStepOverride(createdItem);
+  }
+
+  async removeWorkflowStepOverride(overrideId: number): Promise<void> {
+    await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEP_OVERRIDES).items.getById(overrideId).recycle();
+  }
+
+  async resolveWorkflowChain(workflowKey: WorkflowKey, projectCode: string): Promise<IResolvedWorkflowStep[]> {
+    // 1. Get the workflow definition (reuses getWorkflowDefinition)
+    const workflow = await this.getWorkflowDefinition(workflowKey);
+    if (!workflow) return [];
+
+    // 2. Get overrides for this project+workflow
+    const allOverrides = await this.getWorkflowOverrides(projectCode);
+    const overrides = allOverrides.filter(o => o.workflowKey === workflowKey);
+
+    // 3. Get team members for ProjectRole resolution
+    const teamMembers = await this.getTeamMembers(projectCode);
+
+    // 4. Get lead for condition evaluation
+    const leadItems = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items
+      .filter(`ProjectCode eq '${projectCode}'`).top(1)();
+    const lead = leadItems.length > 0 ? leadItems[0] : null;
+
+    // 5. Get feature flags for flag gating
+    const featureFlags = await this.getFeatureFlags();
+
+    const resolved: IResolvedWorkflowStep[] = [];
+
+    for (const step of workflow.steps) {
+      // 0. Feature flag gating
+      if (step.featureFlagName) {
+        const flag = featureFlags.find(f => f.FeatureName === step.featureFlagName);
+        const isEnabled = flag ? flag.Enabled : true; // Default enabled if flag not found
+        if (!isEnabled) {
+          if (step.isSkippable) {
+            resolved.push({
+              stepId: step.id,
+              stepOrder: step.stepOrder,
+              name: step.name,
+              assignee: { userId: '', displayName: '(Skipped)', email: '' },
+              assignmentSource: 'Default',
+              isConditional: false,
+              conditionMet: false,
+              actionLabel: step.actionLabel,
+              canChairMeeting: false,
+              skipped: true,
+              skipReason: `Feature flag '${step.featureFlagName}' is disabled`,
+            });
+          }
+          continue; // Skip step (skippable → added as skipped; non-skippable → omitted)
+        }
+      }
+
+      // 1. Check overrides first
+      const override = overrides.find(o => o.stepId === step.id);
+      if (override) {
+        resolved.push({
+          stepId: step.id,
+          stepOrder: step.stepOrder,
+          name: step.name,
+          assignee: override.overrideAssignee,
+          assignmentSource: 'Override',
+          isConditional: step.isConditional,
+          conditionMet: true,
+          actionLabel: step.actionLabel,
+          canChairMeeting: step.canChairMeeting || false,
+        });
+        continue;
+      }
+
+      // 2. ProjectRole: lookup from team members
+      if (step.assignmentType === StepAssignmentType.ProjectRole && step.projectRole) {
+        const member = teamMembers.find(tm => tm.role === step.projectRole);
+        if (member) {
+          resolved.push({
+            stepId: step.id,
+            stepOrder: step.stepOrder,
+            name: step.name,
+            assignee: { userId: String(member.id), displayName: member.name, email: member.email },
+            assignmentSource: 'ProjectRole',
+            isConditional: step.isConditional,
+            conditionMet: true,
+            actionLabel: step.actionLabel,
+            canChairMeeting: step.canChairMeeting || false,
+          });
+        } else {
+          resolved.push({
+            stepId: step.id,
+            stepOrder: step.stepOrder,
+            name: step.name,
+            assignee: { userId: '', displayName: `(No ${step.projectRole} assigned)`, email: '' },
+            assignmentSource: 'ProjectRole',
+            isConditional: step.isConditional,
+            conditionMet: false,
+            actionLabel: step.actionLabel,
+            canChairMeeting: step.canChairMeeting || false,
+          });
+        }
+        continue;
+      }
+
+      // 3. NamedPerson: evaluate conditional assignments
+      if (step.assignmentType === StepAssignmentType.NamedPerson) {
+        let assignee = step.defaultAssignee;
+        let source: 'Condition' | 'Default' = 'Default';
+        let conditionMet = !step.isConditional;
+
+        if (step.conditionalAssignees.length > 0 && lead) {
+          const sorted = [...step.conditionalAssignees].sort((a, b) => a.priority - b.priority);
+          for (const ca of sorted) {
+            const allMatch = ca.conditions.every(cond => {
+              const fieldValue = this.getLeadFieldValue(lead, cond.field);
+              return fieldValue === cond.value;
+            });
+            if (allMatch) {
+              assignee = ca.assignee;
+              source = 'Condition';
+              conditionMet = true;
+              break;
+            }
+          }
+        }
+
+        resolved.push({
+          stepId: step.id,
+          stepOrder: step.stepOrder,
+          name: step.name,
+          assignee: assignee || { userId: '', displayName: '(Unassigned)', email: '' },
+          assignmentSource: source,
+          isConditional: step.isConditional,
+          conditionMet,
+          actionLabel: step.actionLabel,
+          canChairMeeting: step.canChairMeeting || false,
+        });
+        continue;
+      }
+    }
+
+    return resolved;
+  }
 
   // --- Turnover Agenda ---
   async getTurnoverAgenda(_projectCode: string): Promise<ITurnoverAgenda | null> { console.warn('[STUB] getTurnoverAgenda not implemented'); return null; }
