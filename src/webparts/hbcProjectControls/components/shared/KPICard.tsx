@@ -1,6 +1,52 @@
 import * as React from 'react';
-import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
+import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import { ELEVATION, TRANSITION } from '../../theme/tokens';
 import { SlideDrawer } from './SlideDrawer';
+
+const useStyles = makeStyles({
+  card: {
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.borderRadius('8px'),
+    ...shorthands.padding('20px'),
+    boxShadow: ELEVATION.level1,
+    minWidth: '200px',
+    transitionProperty: 'box-shadow',
+    transitionDuration: TRANSITION.normal,
+  },
+  clickable: {
+    cursor: 'pointer',
+    ':hover': {
+      boxShadow: ELEVATION.level2,
+    },
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  title: {
+    fontSize: '13px',
+    color: tokens.colorNeutralForeground3,
+    marginBottom: '4px',
+  },
+  value: {
+    fontSize: '28px',
+    fontWeight: '700',
+    color: tokens.colorBrandForeground1,
+  },
+  subtitle: {
+    fontSize: '12px',
+    color: tokens.colorNeutralForeground4,
+    marginTop: '4px',
+  },
+  trend: {
+    fontSize: '12px',
+    marginTop: '6px',
+  },
+  icon: {
+    color: tokens.colorNeutralForeground4,
+  },
+});
 
 interface IKPICardProps {
   title: string;
@@ -13,6 +59,7 @@ interface IKPICardProps {
 }
 
 export const KPICard: React.FC<IKPICardProps> = ({ title, value, subtitle, icon, trend, onClick, drillDown }) => {
+  const styles = useStyles();
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
   const isClickable = !!(onClick || drillDown);
@@ -29,30 +76,20 @@ export const KPICard: React.FC<IKPICardProps> = ({ title, value, subtitle, icon,
     <>
       <div
         onClick={isClickable ? handleClick : undefined}
-        style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: '8px',
-          padding: '20px',
-          boxShadow: ELEVATION.level1,
-          cursor: isClickable ? 'pointer' : 'default',
-          transition: 'box-shadow 0.2s',
-          minWidth: '200px',
-        }}
-        onMouseEnter={e => isClickable && ((e.currentTarget as HTMLElement).style.boxShadow = ELEVATION.level2)}
-        onMouseLeave={e => isClickable && ((e.currentTarget as HTMLElement).style.boxShadow = ELEVATION.level1)}
+        className={`${styles.card}${isClickable ? ` ${styles.clickable}` : ''}`}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className={styles.header}>
           <div>
-            <div style={{ fontSize: '13px', color: HBC_COLORS.gray500, marginBottom: '4px' }}>{title}</div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: HBC_COLORS.navy }}>{value}</div>
-            {subtitle && <div style={{ fontSize: '12px', color: HBC_COLORS.gray400, marginTop: '4px' }}>{subtitle}</div>}
+            <div className={styles.title}>{title}</div>
+            <div className={styles.value}>{value}</div>
+            {subtitle && <div className={styles.subtitle}>{subtitle}</div>}
             {trend && (
-              <div style={{ fontSize: '12px', marginTop: '6px', color: trend.isPositive ? HBC_COLORS.success : HBC_COLORS.error }}>
+              <div className={styles.trend} style={{ color: trend.isPositive ? tokens.colorStatusSuccessForeground1 : tokens.colorStatusDangerForeground1 }}>
                 {trend.isPositive ? '+' : ''}{trend.value}%
               </div>
             )}
           </div>
-          {icon && <div style={{ color: HBC_COLORS.gray400 }}>{icon}</div>}
+          {icon && <div className={styles.icon}>{icon}</div>}
         </div>
       </div>
       {drillDown && (

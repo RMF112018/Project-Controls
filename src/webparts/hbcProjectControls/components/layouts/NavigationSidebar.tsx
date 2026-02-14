@@ -1,9 +1,102 @@
 import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
 import { useAppContext } from '../contexts/AppContext';
 import { ProjectPicker } from '../shared/ProjectPicker';
-import { HBC_COLORS } from '../../theme/tokens';
+import { HBC_COLORS, TRANSITION } from '../../theme/tokens';
 import { NAV_GROUP_ROLES, PERMISSIONS } from '../../utils/permissions';
+
+const useStyles = makeStyles({
+  nav: {
+    width: '100%',
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRight: `1px solid ${tokens.colorNeutralStroke1}`,
+    height: '100%',
+    overflowY: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  dashboardSection: {
+    borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
+  },
+
+  // NavItem styles
+  navItem: {
+    fontSize: '13px',
+    transitionProperty: 'all',
+    transitionDuration: TRANSITION.fast,
+    whiteSpace: 'nowrap',
+    overflowX: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  navItemActive: {
+    fontWeight: '600',
+    color: HBC_COLORS.navy,
+    backgroundColor: tokens.colorNeutralBackground3,
+    borderLeft: `3px solid ${HBC_COLORS.orange}`,
+  },
+  navItemInactive: {
+    fontWeight: '400',
+    color: tokens.colorNeutralForeground2,
+    borderLeft: '3px solid transparent',
+    cursor: 'pointer',
+    ':hover': {
+      backgroundColor: tokens.colorNeutralBackground2,
+    },
+  },
+  navItemDisabled: {
+    fontWeight: '400',
+    color: tokens.colorNeutralForegroundDisabled,
+    borderLeft: '3px solid transparent',
+    cursor: 'default',
+  },
+
+  // NavGroup styles
+  groupContainer: {
+    borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
+  },
+  groupHeader: {
+    ...shorthands.padding('10px', '16px'),
+    fontSize: '11px',
+    fontWeight: '700',
+    color: tokens.colorNeutralForeground3,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    userSelect: 'none',
+  },
+  groupChevron: {
+    fontSize: '10px',
+    transitionProperty: 'transform',
+    transitionDuration: TRANSITION.fast,
+  },
+  groupChevronExpanded: {
+    transform: 'rotate(90deg)',
+  },
+
+  // NavSubGroup styles
+  subGroupHeader: {
+    ...shorthands.padding('6px', '16px', '6px', '20px'),
+    fontSize: '10px',
+    fontWeight: '600',
+    color: tokens.colorNeutralForeground4,
+    textTransform: 'uppercase',
+    letterSpacing: '0.4px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap('4px'),
+    userSelect: 'none',
+  },
+  subGroupChevron: {
+    fontSize: '8px',
+    transitionProperty: 'transform',
+    transitionDuration: TRANSITION.fast,
+  },
+});
 
 interface INavItem {
   label: string;
@@ -100,7 +193,7 @@ const NAV_STRUCTURE: INavGroupDef[] = [
 ];
 
 // NavItem component
-const NavItem: React.FC<{
+const NavItemComponent: React.FC<{
   label: string;
   path: string;
   isActive: boolean;
@@ -108,26 +201,16 @@ const NavItem: React.FC<{
   disabled?: boolean;
   onClick: () => void;
 }> = ({ label, isActive, indent = 0, disabled, onClick }) => {
-  const [hovered, setHovered] = React.useState(false);
+  const styles = useStyles();
 
   return (
     <div
       onClick={disabled ? undefined : onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        padding: `7px 16px 7px ${16 + indent * 12}px`,
-        cursor: disabled ? 'default' : 'pointer',
-        fontSize: '13px',
-        fontWeight: isActive ? 600 : 400,
-        color: disabled ? HBC_COLORS.gray300 : isActive ? HBC_COLORS.navy : HBC_COLORS.gray600,
-        backgroundColor: isActive ? HBC_COLORS.gray100 : hovered && !disabled ? HBC_COLORS.gray50 : 'transparent',
-        borderLeft: isActive ? `3px solid ${HBC_COLORS.orange}` : '3px solid transparent',
-        transition: 'all 0.15s',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-      }}
+      className={mergeClasses(
+        styles.navItem,
+        isActive ? styles.navItemActive : disabled ? styles.navItemDisabled : styles.navItemInactive,
+      )}
+      style={{ padding: `7px 16px 7px ${16 + indent * 12}px` }}
     >
       {label}
     </div>
@@ -140,28 +223,14 @@ const NavGroup: React.FC<{
   children: React.ReactNode;
   defaultExpanded?: boolean;
 }> = ({ label, children, defaultExpanded = false }) => {
+  const styles = useStyles();
   const [expanded, setExpanded] = React.useState(defaultExpanded);
 
   return (
-    <div style={{ borderBottom: `1px solid ${HBC_COLORS.gray200}` }}>
-      <div
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          padding: '10px 16px',
-          fontSize: '11px',
-          fontWeight: 700,
-          color: HBC_COLORS.gray500,
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          userSelect: 'none',
-        }}
-      >
+    <div className={styles.groupContainer}>
+      <div onClick={() => setExpanded(!expanded)} className={styles.groupHeader}>
         <span>{label}</span>
-        <span style={{ fontSize: '10px', transition: 'transform 0.15s', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+        <span className={mergeClasses(styles.groupChevron, expanded ? styles.groupChevronExpanded : undefined)}>
           &#9654;
         </span>
       </div>
@@ -175,27 +244,13 @@ const NavSubGroup: React.FC<{
   label: string;
   children: React.ReactNode;
 }> = ({ label, children }) => {
+  const styles = useStyles();
   const [expanded, setExpanded] = React.useState(true);
 
   return (
     <div>
-      <div
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          padding: '6px 16px 6px 20px',
-          fontSize: '10px',
-          fontWeight: 600,
-          color: HBC_COLORS.gray400,
-          textTransform: 'uppercase',
-          letterSpacing: '0.4px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px',
-          userSelect: 'none',
-        }}
-      >
-        <span style={{ fontSize: '8px', transition: 'transform 0.15s', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+      <div onClick={() => setExpanded(!expanded)} className={styles.subGroupHeader}>
+        <span className={mergeClasses(styles.subGroupChevron, expanded ? styles.groupChevronExpanded : undefined)}>
           &#9654;
         </span>
         <span>{label}</span>
@@ -206,6 +261,7 @@ const NavSubGroup: React.FC<{
 };
 
 export const NavigationSidebar: React.FC = () => {
+  const styles = useStyles();
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, selectedProject, setSelectedProject, hasPermission, isFeatureEnabled, isProjectSite } = useAppContext();
@@ -225,30 +281,22 @@ export const NavigationSidebar: React.FC = () => {
     return true;
   };
 
-  const isActive = (path: string): boolean => {
+  const isActivePath = (path: string): boolean => {
     if (path === '/') return location.pathname === '/';
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
   return (
-    <nav style={{
-      width: '100%',
-      backgroundColor: '#FFFFFF',
-      borderRight: `1px solid ${HBC_COLORS.gray200}`,
-      height: '100%',
-      overflowY: 'auto',
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
+    <nav className={styles.nav}>
       {/* Project Picker */}
       <ProjectPicker selected={selectedProject} onSelect={setSelectedProject} locked={isProjectSite} />
 
       {/* Dashboard — always visible */}
-      <div style={{ borderBottom: `1px solid ${HBC_COLORS.gray200}` }}>
-        <NavItem
+      <div className={styles.dashboardSection}>
+        <NavItemComponent
           label="Dashboard"
           path="/"
-          isActive={isActive('/')}
+          isActive={isActivePath('/')}
           onClick={() => navigate('/')}
         />
       </div>
@@ -262,16 +310,15 @@ export const NavigationSidebar: React.FC = () => {
 
         return (
           <NavGroup key={group.groupKey} label={group.label} defaultExpanded={
-            // Auto-expand if current location is within this group
-            group.items.some(i => isActive(i.path)) ||
-            (group.subGroups?.some(sg => sg.items.some(i => isActive(i.path))) ?? false)
+            group.items.some(i => isActivePath(i.path)) ||
+            (group.subGroups?.some(sg => sg.items.some(i => isActivePath(i.path))) ?? false)
           }>
             {visibleItems.map(item => (
-              <NavItem
+              <NavItemComponent
                 key={item.path}
                 label={item.label}
                 path={item.path}
-                isActive={isActive(item.path)}
+                isActive={isActivePath(item.path)}
                 disabled={item.requiresProject && !selectedProject}
                 onClick={() => navigate(item.path)}
               />
@@ -280,16 +327,16 @@ export const NavigationSidebar: React.FC = () => {
             {/* Dynamic project-scoped items when a project is selected */}
             {group.groupKey === 'Preconstruction' && selectedProject?.leadId && (
               <>
-                <NavItem
+                <NavItemComponent
                   label="Lead Detail"
                   path={`/lead/${selectedProject.leadId}`}
-                  isActive={isActive(`/lead/${selectedProject.leadId}`)}
+                  isActive={isActivePath(`/lead/${selectedProject.leadId}`)}
                   onClick={() => navigate(`/lead/${selectedProject.leadId}`)}
                 />
-                <NavItem
+                <NavItemComponent
                   label="Go/No-Go"
                   path={`/lead/${selectedProject.leadId}/gonogo`}
-                  isActive={isActive(`/lead/${selectedProject.leadId}/gonogo`)}
+                  isActive={isActivePath(`/lead/${selectedProject.leadId}/gonogo`)}
                   onClick={() => navigate(`/lead/${selectedProject.leadId}/gonogo`)}
                 />
               </>
@@ -301,11 +348,11 @@ export const NavigationSidebar: React.FC = () => {
               return (
                 <NavSubGroup key={sg.label} label={sg.label}>
                   {sgItems.map(item => (
-                    <NavItem
+                    <NavItemComponent
                       key={item.path}
                       label={item.label}
                       path={item.path}
-                      isActive={isActive(item.path)}
+                      isActive={isActivePath(item.path)}
                       indent={1}
                       disabled={item.requiresProject && !selectedProject}
                       onClick={() => navigate(item.path)}

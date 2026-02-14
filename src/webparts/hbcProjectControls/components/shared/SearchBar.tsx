@@ -1,10 +1,89 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Input } from '@fluentui/react-components';
+import { Input, makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
 import { useAppContext } from '../contexts/AppContext';
 import { ILead, IEstimatingTracker, IGoNoGoScorecard } from '../../models';
-import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
+import { ELEVATION } from '../../theme/tokens';
 import { formatCurrencyCompact } from '../../utils/formatters';
+
+const useStyles = makeStyles({
+  root: {
+    position: 'relative',
+    minWidth: '280px',
+    maxWidth: '400px',
+  },
+  dropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: '0',
+    right: '0',
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.borderRadius('0', '0', '8px', '8px'),
+    boxShadow: ELEVATION.level3,
+    zIndex: 1000,
+  },
+  dropdownScrollable: {
+    maxHeight: '400px',
+    overflowY: 'auto',
+  },
+  groupHeader: {
+    ...shorthands.padding('8px', '16px'),
+    fontSize: '11px',
+    fontWeight: '600',
+    color: tokens.colorNeutralForeground4,
+    textTransform: 'uppercase',
+  },
+  groupHeaderBg: {
+    backgroundColor: tokens.colorNeutralBackground2,
+    borderTop: `1px solid ${tokens.colorNeutralBackground3}`,
+  },
+  resultItem: {
+    ...shorthands.padding('10px', '16px'),
+    cursor: 'pointer',
+    borderBottom: `1px solid ${tokens.colorNeutralBackground3}`,
+    ':hover': {
+      backgroundColor: tokens.colorNeutralBackground2,
+    },
+  },
+  resultItemActive: {
+    backgroundColor: tokens.colorNeutralBackground3,
+  },
+  resultTitle: {
+    fontSize: '13px',
+    fontWeight: '500',
+    color: tokens.colorBrandForeground1,
+  },
+  resultExtra: {
+    fontSize: '11px',
+    color: tokens.colorNeutralForeground4,
+    fontFamily: 'monospace',
+  },
+  resultSubtitle: {
+    fontSize: '12px',
+    color: tokens.colorNeutralForeground3,
+    marginTop: '2px',
+  },
+  messageText: {
+    ...shorthands.padding('12px', '16px'),
+    fontSize: '13px',
+    color: tokens.colorNeutralForeground3,
+  },
+  recentItem: {
+    ...shorthands.padding('8px', '16px'),
+    fontSize: '13px',
+    color: tokens.colorNeutralForeground2,
+    cursor: 'pointer',
+    borderTop: `1px solid ${tokens.colorNeutralBackground3}`,
+    ':hover': {
+      backgroundColor: tokens.colorNeutralBackground2,
+    },
+  },
+  resultHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+});
 
 interface ISearchBarProps {
   placeholder?: string;
@@ -44,6 +123,7 @@ function saveRecentSearch(query: string): void {
 }
 
 export const SearchBar: React.FC<ISearchBarProps> = ({ placeholder = 'Search projects, clients, codes...' }) => {
+  const styles = useStyles();
   const navigate = useNavigate();
   const { dataService } = useAppContext();
   const [query, setQuery] = React.useState('');
@@ -66,7 +146,6 @@ export const SearchBar: React.FC<ISearchBarProps> = ({ placeholder = 'Search pro
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Reset active index when results change
   React.useEffect(() => {
     setActiveIndex(-1);
   }, [results]);
@@ -87,14 +166,12 @@ export const SearchBar: React.FC<ISearchBarProps> = ({ placeholder = 'Search pro
         setIsSearching(true);
         const q = value.toLowerCase();
 
-        // Fetch all entities in parallel
         const [leadResults, estResult, scorecards] = await Promise.all([
           dataService.searchLeads(value),
           dataService.getEstimatingRecords(),
           dataService.getScorecards(),
         ]);
 
-        // Map leads
         const leadItems: ISearchResult[] = leadResults.slice(0, MAX_PER_GROUP).map((l: ILead) => ({
           type: 'lead' as const,
           id: l.id,
@@ -104,7 +181,6 @@ export const SearchBar: React.FC<ISearchBarProps> = ({ placeholder = 'Search pro
           navigateTo: `/lead/${l.id}`,
         }));
 
-        // Filter estimates client-side
         const estItems: ISearchResult[] = estResult.items
           .filter((r: IEstimatingTracker) =>
             r.Title?.toLowerCase().includes(q) ||
@@ -121,7 +197,6 @@ export const SearchBar: React.FC<ISearchBarProps> = ({ placeholder = 'Search pro
             navigateTo: `/preconstruction/pursuit/${r.id}`,
           }));
 
-        // Filter scorecards client-side
         const scItems: ISearchResult[] = scorecards
           .filter((s: IGoNoGoScorecard) =>
             s.ProjectCode?.toLowerCase().includes(q)
@@ -139,7 +214,6 @@ export const SearchBar: React.FC<ISearchBarProps> = ({ placeholder = 'Search pro
         setResults(all);
         setIsOpen(true);
 
-        // Save to recent
         saveRecentSearch(value.trim());
       } catch {
         setResults([]);
@@ -176,7 +250,6 @@ export const SearchBar: React.FC<ISearchBarProps> = ({ placeholder = 'Search pro
 
     if (!isOpen || results.length === 0) return;
 
-    // Get flat list of selectable items (skip group headers)
     const selectableCount = results.length;
 
     if (e.key === 'ArrowDown') {
@@ -191,7 +264,6 @@ export const SearchBar: React.FC<ISearchBarProps> = ({ placeholder = 'Search pro
     }
   };
 
-  // Group results by type
   const groupedResults = React.useMemo(() => {
     const groups: { type: SearchResultType; label: string; items: ISearchResult[] }[] = [];
     const typeLabels: Record<SearchResultType, string> = {
@@ -209,7 +281,6 @@ export const SearchBar: React.FC<ISearchBarProps> = ({ placeholder = 'Search pro
     return groups;
   }, [results]);
 
-  // Build a flat index mapping for keyboard nav
   const flatIndexMap = React.useMemo(() => {
     const map: ISearchResult[] = [];
     groupedResults.forEach(g => g.items.forEach(item => map.push(item)));
@@ -219,7 +290,7 @@ export const SearchBar: React.FC<ISearchBarProps> = ({ placeholder = 'Search pro
   const recentSearches = showRecent ? getRecentSearches() : [];
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', minWidth: '280px', maxWidth: '400px' }}>
+    <div ref={containerRef} className={styles.root}>
       <Input
         placeholder={placeholder}
         value={query}
@@ -232,32 +303,13 @@ export const SearchBar: React.FC<ISearchBarProps> = ({ placeholder = 'Search pro
 
       {/* Recent Searches */}
       {showRecent && recentSearches.length > 0 && !isOpen && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
-          backgroundColor: '#fff',
-          borderRadius: '0 0 8px 8px',
-          boxShadow: ELEVATION.level3,
-          zIndex: 1000,
-        }}>
-          <div style={{ padding: '8px 16px', fontSize: '11px', fontWeight: 600, color: HBC_COLORS.gray400, textTransform: 'uppercase' }}>
-            Recent Searches
-          </div>
+        <div className={styles.dropdown}>
+          <div className={styles.groupHeader}>Recent Searches</div>
           {recentSearches.map((s, i) => (
             <div
               key={i}
               onClick={() => { setShowRecent(false); handleSearch(s); }}
-              style={{
-                padding: '8px 16px',
-                fontSize: '13px',
-                color: HBC_COLORS.gray600,
-                cursor: 'pointer',
-                borderTop: `1px solid ${HBC_COLORS.gray100}`,
-              }}
-              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.backgroundColor = HBC_COLORS.gray50)}
-              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.backgroundColor = '')}
+              className={styles.recentItem}
             >
               {s}
             </div>
@@ -267,75 +319,35 @@ export const SearchBar: React.FC<ISearchBarProps> = ({ placeholder = 'Search pro
 
       {/* Search Results */}
       {isOpen && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
-          backgroundColor: '#fff',
-          borderRadius: '0 0 8px 8px',
-          boxShadow: ELEVATION.level3,
-          zIndex: 1000,
-          maxHeight: '400px',
-          overflow: 'auto',
-        }}>
+        <div className={mergeClasses(styles.dropdown, styles.dropdownScrollable)}>
           {isSearching && (
-            <div style={{ padding: '12px 16px', fontSize: '13px', color: HBC_COLORS.gray500 }}>
-              Searching...
-            </div>
+            <div className={styles.messageText}>Searching...</div>
           )}
           {!isSearching && results.length === 0 && query.trim() && (
-            <div style={{ padding: '12px 16px', fontSize: '13px', color: HBC_COLORS.gray500 }}>
-              No results found
-            </div>
+            <div className={styles.messageText}>No results found</div>
           )}
           {groupedResults.map(group => (
             <div key={group.type}>
-              <div style={{
-                padding: '8px 16px',
-                fontSize: '11px',
-                fontWeight: 600,
-                color: HBC_COLORS.gray400,
-                textTransform: 'uppercase',
-                backgroundColor: HBC_COLORS.gray50,
-                borderTop: `1px solid ${HBC_COLORS.gray100}`,
-              }}>
+              <div className={mergeClasses(styles.groupHeader, styles.groupHeaderBg)}>
                 {group.label}
               </div>
               {group.items.map(result => {
                 const flatIdx = flatIndexMap.indexOf(result);
-                const isActive = flatIdx === activeIndex;
+                const isActiveItem = flatIdx === activeIndex;
                 return (
                   <div
                     key={`${result.type}-${result.id}`}
                     onClick={() => handleSelect(result)}
-                    style={{
-                      padding: '10px 16px',
-                      cursor: 'pointer',
-                      borderBottom: `1px solid ${HBC_COLORS.gray100}`,
-                      backgroundColor: isActive ? HBC_COLORS.gray100 : undefined,
-                    }}
-                    onMouseEnter={e => {
-                      (e.currentTarget as HTMLElement).style.backgroundColor = HBC_COLORS.gray50;
-                      setActiveIndex(flatIdx);
-                    }}
-                    onMouseLeave={e => {
-                      (e.currentTarget as HTMLElement).style.backgroundColor = isActive ? HBC_COLORS.gray100 : '';
-                    }}
+                    className={mergeClasses(styles.resultItem, isActiveItem ? styles.resultItemActive : undefined)}
+                    onMouseEnter={() => setActiveIndex(flatIdx)}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 500, color: HBC_COLORS.navy }}>
-                        {result.title}
-                      </span>
+                    <div className={styles.resultHeader}>
+                      <span className={styles.resultTitle}>{result.title}</span>
                       {result.extra && (
-                        <span style={{ fontSize: '11px', color: HBC_COLORS.gray400, fontFamily: 'monospace' }}>
-                          {result.extra}
-                        </span>
+                        <span className={styles.resultExtra}>{result.extra}</span>
                       )}
                     </div>
-                    <div style={{ fontSize: '12px', color: HBC_COLORS.gray500, marginTop: '2px' }}>
-                      {result.subtitle}
-                    </div>
+                    <div className={styles.resultSubtitle}>{result.subtitle}</div>
                   </div>
                 );
               })}

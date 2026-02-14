@@ -1,8 +1,74 @@
 import * as React from 'react';
-import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
+import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
+import { ELEVATION } from '../../theme/tokens';
 import { useResponsive } from '../hooks/useResponsive';
 import { SkeletonLoader } from './SkeletonLoader';
 import { EmptyState } from './EmptyState';
+
+const useStyles = makeStyles({
+  tableWrapper: {
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.borderRadius('8px'),
+    boxShadow: ELEVATION.level1,
+    overflowX: 'auto',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+  },
+  th: {
+    ...shorthands.padding('8px', '12px'),
+    textAlign: 'left',
+    fontSize: '12px',
+    fontWeight: '600',
+    color: tokens.colorNeutralForeground3,
+    borderBottom: `2px solid ${tokens.colorNeutralStroke1}`,
+    whiteSpace: 'nowrap',
+  },
+  thSortable: {
+    cursor: 'pointer',
+    userSelect: 'none',
+  },
+  td: {
+    ...shorthands.padding('10px', '12px'),
+    fontSize: '13px',
+    borderBottom: `1px solid ${tokens.colorNeutralBackground3}`,
+    color: tokens.colorNeutralForeground1,
+  },
+  rowClickable: {
+    cursor: 'pointer',
+    ':hover': {
+      backgroundColor: tokens.colorNeutralBackground2,
+    },
+  },
+  sortArrow: {
+    marginLeft: '4px',
+  },
+  paginationContainer: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: '12px',
+    fontSize: '13px',
+    color: tokens.colorNeutralForeground3,
+  },
+  paginationButtons: {
+    display: 'flex',
+    ...shorthands.gap('4px'),
+  },
+  pageBtn: {
+    ...shorthands.padding('4px', '12px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
+    ...shorthands.borderRadius('4px'),
+    backgroundColor: tokens.colorNeutralBackground1,
+    cursor: 'pointer',
+    fontSize: '13px',
+  },
+  pageBtnDisabled: {
+    cursor: 'not-allowed',
+    opacity: 0.5,
+  },
+});
 
 export interface IDataTableColumn<T> {
   key: string;
@@ -41,10 +107,10 @@ export function DataTable<T>({
   onSort,
   pageSize = 25,
 }: IDataTableProps<T>): React.ReactElement {
+  const styles = useStyles();
   const { isMobile } = useResponsive();
   const [currentPage, setCurrentPage] = React.useState(0);
 
-  // Filter out columns hidden on mobile
   const visibleColumns = React.useMemo(
     () => isMobile ? columns.filter(c => !c.hideOnMobile) : columns,
     [columns, isMobile]
@@ -53,26 +119,9 @@ export function DataTable<T>({
   const totalPages = Math.ceil(items.length / pageSize);
   const pagedItems = items.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
-  // Reset to first page when items change
   React.useEffect(() => {
     setCurrentPage(0);
   }, [items.length]);
-
-  const headerStyle: React.CSSProperties = {
-    padding: '8px 12px',
-    textAlign: 'left',
-    fontSize: '12px',
-    fontWeight: 600,
-    color: HBC_COLORS.gray500,
-    borderBottom: `2px solid ${HBC_COLORS.gray200}`,
-    whiteSpace: 'nowrap',
-  };
-  const cellStyle: React.CSSProperties = {
-    padding: '10px 12px',
-    fontSize: '13px',
-    borderBottom: `1px solid ${HBC_COLORS.gray100}`,
-    color: HBC_COLORS.gray800,
-  };
 
   if (isLoading) return <SkeletonLoader variant="table" rows={5} columns={visibleColumns.length || 5} />;
 
@@ -82,30 +131,20 @@ export function DataTable<T>({
 
   return (
     <div>
-      <div style={{
-        backgroundColor: '#fff',
-        borderRadius: '8px',
-        boxShadow: ELEVATION.level1,
-        overflow: 'auto',
-      }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div className={styles.tableWrapper}>
+        <table className={styles.table}>
           <thead>
             <tr>
               {visibleColumns.map(col => (
                 <th
                   key={col.key}
-                  style={{
-                    ...headerStyle,
-                    cursor: col.sortable && onSort ? 'pointer' : 'default',
-                    userSelect: col.sortable ? 'none' : undefined,
-                    width: col.width,
-                    minWidth: col.minWidth,
-                  }}
+                  className={mergeClasses(styles.th, col.sortable && onSort ? styles.thSortable : undefined)}
+                  style={{ width: col.width, minWidth: col.minWidth }}
                   onClick={() => col.sortable && onSort && onSort(col.key)}
                 >
                   {col.header}
                   {col.sortable && sortField === col.key && (
-                    <span style={{ marginLeft: '4px' }}>{sortAsc ? '\u2191' : '\u2193'}</span>
+                    <span className={styles.sortArrow}>{sortAsc ? '\u2191' : '\u2193'}</span>
                   )}
                 </th>
               ))}
@@ -116,12 +155,10 @@ export function DataTable<T>({
               <tr
                 key={keyExtractor(item)}
                 onClick={() => onRowClick && onRowClick(item)}
-                style={{ cursor: onRowClick ? 'pointer' : 'default' }}
-                onMouseEnter={e => onRowClick && ((e.currentTarget as HTMLElement).style.backgroundColor = HBC_COLORS.gray50)}
-                onMouseLeave={e => onRowClick && ((e.currentTarget as HTMLElement).style.backgroundColor = '')}
+                className={onRowClick ? styles.rowClickable : undefined}
               >
                 {visibleColumns.map(col => (
-                  <td key={col.key} style={cellStyle}>{col.render(item)}</td>
+                  <td key={col.key} className={styles.td}>{col.render(item)}</td>
                 ))}
               </tr>
             ))}
@@ -129,45 +166,22 @@ export function DataTable<T>({
         </table>
       </div>
       {totalPages > 1 && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginTop: '12px',
-          fontSize: '13px',
-          color: HBC_COLORS.gray500,
-        }}>
+        <div className={styles.paginationContainer}>
           <span>
             Showing {currentPage * pageSize + 1}-{Math.min((currentPage + 1) * pageSize, items.length)} of {items.length}
           </span>
-          <div style={{ display: 'flex', gap: '4px' }}>
+          <div className={styles.paginationButtons}>
             <button
               disabled={currentPage === 0}
               onClick={() => setCurrentPage(p => p - 1)}
-              style={{
-                padding: '4px 12px',
-                border: `1px solid ${HBC_COLORS.gray200}`,
-                borderRadius: '4px',
-                backgroundColor: '#fff',
-                cursor: currentPage === 0 ? 'not-allowed' : 'pointer',
-                opacity: currentPage === 0 ? 0.5 : 1,
-                fontSize: '13px',
-              }}
+              className={mergeClasses(styles.pageBtn, currentPage === 0 ? styles.pageBtnDisabled : undefined)}
             >
               Previous
             </button>
             <button
               disabled={currentPage >= totalPages - 1}
               onClick={() => setCurrentPage(p => p + 1)}
-              style={{
-                padding: '4px 12px',
-                border: `1px solid ${HBC_COLORS.gray200}`,
-                borderRadius: '4px',
-                backgroundColor: '#fff',
-                cursor: currentPage >= totalPages - 1 ? 'not-allowed' : 'pointer',
-                opacity: currentPage >= totalPages - 1 ? 0.5 : 1,
-                fontSize: '13px',
-              }}
+              className={mergeClasses(styles.pageBtn, currentPage >= totalPages - 1 ? styles.pageBtnDisabled : undefined)}
             >
               Next
             </button>
