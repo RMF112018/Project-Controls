@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-14 — Route-based Code Splitting (React.lazy + Suspense)
+**Last Updated:** 2026-02-14 — GitHub Actions CI/CD Pipeline
 
 ---
 
@@ -62,6 +62,15 @@ npm run lint                    # ESLint
 ```
 
 **Important:** Prefix gulp commands with `volta run --node 22.14.0` when needed.
+
+### CI/CD (GitHub Actions)
+
+| Workflow | Trigger | What it does |
+|----------|---------|-------------|
+| CI (`ci.yml`) | Push to main, PRs | npm ci → tsc --noEmit → lint → gulp bundle --ship → gulp package-solution --ship → upload .sppkg artifact |
+| Release (`release.yml`) | Tag `v*` | Full build → GitHub Release with .sppkg asset |
+| PR Validation (`pr-validation.yml`) | PRs only | npm ci → tsc --noEmit → lint (fast feedback) |
+| Dependabot (`dependabot.yml`) | Weekly (Monday) | npm + GitHub Actions updates, SPFx packages ignored for major/minor |
 
 ### Key Config Files
 
@@ -331,6 +340,17 @@ docs/
 ├── DATA_ARCHITECTURE.md      # Data architecture documentation
 ├── PERMISSION_STRATEGY.md    # Permission strategy documentation
 └── SECURITY_ANALYSIS.md      # Post-Phase 32 permissions & security analysis
+```
+
+### .github/
+
+```
+.github/
+├── workflows/
+│   ├── ci.yml                    # Full build + artifact upload
+│   ├── release.yml               # Tag-triggered GitHub Release
+│   └── pr-validation.yml         # Fast type-check + lint for PRs
+└── dependabot.yml                # Dependency update automation
 ```
 
 ### Other Root Directories
@@ -1483,6 +1503,8 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | React18 | React 18.2.0 Migration — Bumped react/react-dom from 17.0.1→18.2.0, @types/react/@types/react-dom from 17.x→18.2.0, @testing-library/react from ^12.1.5→^14.0.0. Added npm `overrides` for 3 SPFx packages (`@microsoft/sp-core-library`, `sp-webpart-base`, `sp-property-pane`) to bypass `<18.0.0` peer dep constraints. WebPart `render()`→`createRoot()` + `Root` lifecycle (`_root` field, lazy init, `unmount()` in `onDispose`). Dev server `ReactDOM.render()`→`createRoot().render()`. Zero component/style/service/workflow files touched. `tsc --noEmit` passes with zero errors. | (none) | package.json (react 18.2.0, types 18.2.0, +overrides, @testing-library/react ^14), HbcProjectControlsWebPart.ts (createRoot + Root), dev/index.tsx (createRoot) |
 
 | Perf-1 | Route-based Code Splitting — Replaced 40 static page imports in App.tsx with `React.lazy()` + `lazyNamed()` helper for named-export modules. Single `React.Suspense` boundary wraps `<Routes>` with `<PageLoader />` fallback (centered Fluent Spinner, makeStyles). Shell stays in main bundle: FluentProvider, AppProvider, HashRouter, AppShell, NavigationSidebar, ErrorBoundary, ToastProvider, guards (ProtectedRoute, ProjectRequiredRoute, FeatureGate), NotFoundPage, AccessDeniedPage. 2 dead imports removed (GoNoGoTracker, PreconKickoff — were imported but never routed). Zero route guard, service, model, or styling changes. `tsc --noEmit` clean. | PageLoader.tsx | App.tsx (40 static→lazy imports, +Suspense boundary, +lazyNamed helper, -2 dead imports), shared/PageLoader.tsx (new), shared/index.ts (+PageLoader export) |
+
+| CI-1 | GitHub Actions CI/CD Pipeline — ci.yml (full build on push/PR with .sppkg artifact upload), release.yml (tag-triggered GitHub Release with .sppkg asset), pr-validation.yml (fast type-check + lint for PRs), dependabot.yml (weekly npm + GitHub Actions updates, SPFx packages pinned to patch-only). Node 18.18.2 in CI (within engines range). Zero source code files touched. | .github/workflows/ci.yml, .github/workflows/release.yml, .github/workflows/pr-validation.yml, .github/dependabot.yml | CLAUDE.md (§1 +CI/CD table, §2 +.github dir, §15 +Phase CI-1) |
 
 ### Known Stubs / Placeholders
 

@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18.18.2'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint src/ --ext .ts,.tsx
+
+      - name: Bundle (production)
+        run: npx gulp bundle --ship
+
+      - name: Package solution
+        run: npx gulp package-solution --ship
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: sharepoint/solution/hbc-project-controls.sppkg
+          generate_release_notes: true
