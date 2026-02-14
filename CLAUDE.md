@@ -25,7 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-**Last Updated:** 2026-02-14 — React 18.2.0 Migration + createRoot API
+**Last Updated:** 2026-02-14 — Route-based Code Splitting (React.lazy + Suspense)
 
 ---
 
@@ -46,6 +46,7 @@
 | Test | jest ^29.7.0, @testing-library/react ^14.0.0 |
 | Lint | eslint ^8.57.0, @microsoft/eslint-config-spfx 1.21.1 |
 | Node (Volta) | 22.14.0 |
+| Code Splitting | React.lazy() + Suspense — 40 page components lazy-loaded, shell in main bundle |
 | Node (engines) | >=18.17.1 <19.0.0 |
 
 ### Build Commands
@@ -217,7 +218,7 @@ src/webparts/hbcProjectControls/
 │   │   │   └── index.ts
 │   │   └── shared/
 │   │       └── AccessDeniedPage.tsx
-│   └── shared/                           # 33 reusable components (see §5)
+│   └── shared/                           # 34 reusable components (see §5)
 │       ├── ActivityTimeline.tsx
 │       ├── AutopsyMeetingScheduler.tsx
 │       ├── AzureADPeoplePicker.tsx
@@ -235,6 +236,7 @@ src/webparts/hbcProjectControls/
 │       ├── LoadingSpinner.tsx
 │       ├── MeetingScheduler.tsx
 │       ├── PageHeader.tsx
+│       ├── PageLoader.tsx
 │       ├── PipelineChart.tsx
 │       ├── ProjectPicker.tsx
 │       ├── ProvisioningStatus.tsx
@@ -368,8 +370,9 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | Item | Value |
 |------|-------|
 | File | src/webparts/hbcProjectControls/components/App.tsx |
-| Component Tree | `FluentProvider` → `ErrorBoundary` → `AppProvider(dataService, siteUrl?)` → `HashRouter` → `AppShell` → `AppRoutes` |
+| Component Tree | `FluentProvider` → `ErrorBoundary` → `AppProvider(dataService, siteUrl?)` → `HashRouter` → `AppShell` → `Suspense(PageLoader)` → `AppRoutes` |
 | Router Type | `HashRouter` from react-router-dom |
+| Code Splitting | 40 page components lazy-loaded via `React.lazy()` + `lazyNamed()` helper; shell/guards/providers in main bundle |
 | Route Count | 49 routes (see §8) |
 
 ---
@@ -455,6 +458,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | LoadingSpinner | components/shared/LoadingSpinner.tsx | label?, size? ('tiny'\|'small'\|'medium'\|'large') | ~30+ |
 | MeetingScheduler | components/shared/MeetingScheduler.tsx | meetingType, subject, attendeeEmails, leadId?, projectCode?, startDate, endDate, onScheduled, onCancel? | ~1 |
 | PageHeader | components/shared/PageHeader.tsx | title, subtitle?, actions?, breadcrumb? | ~30+ |
+| PageLoader | components/shared/PageLoader.tsx | (none) | 1 (App.tsx Suspense fallback) |
 | PipelineChart | components/shared/PipelineChart.tsx | leads, mode? ('count'\|'value'), height? | ~2 |
 | ProjectPicker | components/shared/ProjectPicker.tsx | selected, onSelect, locked? | 1 (NavigationSidebar) |
 | ProvisioningStatus | components/shared/ProvisioningStatus.tsx | projectCode, log?, pollInterval?, compact? | ~3 |
@@ -1478,6 +1482,8 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 | React18 | React 18.2.0 Migration — Bumped react/react-dom from 17.0.1→18.2.0, @types/react/@types/react-dom from 17.x→18.2.0, @testing-library/react from ^12.1.5→^14.0.0. Added npm `overrides` for 3 SPFx packages (`@microsoft/sp-core-library`, `sp-webpart-base`, `sp-property-pane`) to bypass `<18.0.0` peer dep constraints. WebPart `render()`→`createRoot()` + `Root` lifecycle (`_root` field, lazy init, `unmount()` in `onDispose`). Dev server `ReactDOM.render()`→`createRoot().render()`. Zero component/style/service/workflow files touched. `tsc --noEmit` passes with zero errors. | (none) | package.json (react 18.2.0, types 18.2.0, +overrides, @testing-library/react ^14), HbcProjectControlsWebPart.ts (createRoot + Root), dev/index.tsx (createRoot) |
 
+| Perf-1 | Route-based Code Splitting — Replaced 40 static page imports in App.tsx with `React.lazy()` + `lazyNamed()` helper for named-export modules. Single `React.Suspense` boundary wraps `<Routes>` with `<PageLoader />` fallback (centered Fluent Spinner, makeStyles). Shell stays in main bundle: FluentProvider, AppProvider, HashRouter, AppShell, NavigationSidebar, ErrorBoundary, ToastProvider, guards (ProtectedRoute, ProjectRequiredRoute, FeatureGate), NotFoundPage, AccessDeniedPage. 2 dead imports removed (GoNoGoTracker, PreconKickoff — were imported but never routed). Zero route guard, service, model, or styling changes. `tsc --noEmit` clean. | PageLoader.tsx | App.tsx (40 static→lazy imports, +Suspense boundary, +lazyNamed helper, -2 dead imports), shared/PageLoader.tsx (new), shared/index.ts (+PageLoader export) |
+
 ### Known Stubs / Placeholders
 
 - **SharePointDataService**: 83 of 212 methods are stubs. Breakdown: 21 Pattern A stubs (`[STUB]` console.warn + empty return), 56 Pattern B stubs (`implementation pending` throw), 6 delegation stubs (intentionally delegate to GraphService/PowerAutomate — will never be SP list operations). Remaining stubs: all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP (7), all monthly review (4), all estimating kickoff (8 incl. updateKickoffKeyPersonnel), all job number requests (4), all turnover agenda (16), all sector definitions (2 mutations), all assignment mappings (3 mutations), reference data (2), scorecard workflow (7), scorecard archive (2), action inbox (SP). `setProjectSiteUrl()` is implemented (creates cross-site Web via `_getProjectWeb()`). All Pattern A stubs log `console.warn('[STUB] methodName not implemented')`. All Pattern B stubs throw `Error('SharePoint implementation pending: methodName')`. Delegation stubs: getCalendarAvailability, createMeeting, getMeetings (→GraphService), sendNotification, getNotifications (→PowerAutomate), purgeOldAuditEntries (→Power Automate scheduled flow).
@@ -1635,6 +1641,14 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 
 68. **`@testing-library/react` v14 for React 18** — `@testing-library/react@^12` has a peer dep on `react-dom <18.0.0`. The project uses `^14.0.0` which supports React 18. If writing tests, use `render()` from `@testing-library/react` — it internally uses `createRoot`. Do not import `react-dom/client` in test files.
 
+69. **All page components are lazy-loaded — never import them statically in App.tsx** — Every page in `pages/hub/`, `pages/precon/`, and `pages/project/` is loaded via `React.lazy()` in App.tsx. When adding a new page route, use the `lazyNamed()` helper (e.g., `const NewPage = lazyNamed(() => import('./pages/hub/NewPage'))`). Never add a static `import { NewPage } from './pages/hub/NewPage'` — this defeats code splitting and pulls the page into the main bundle.
+
+70. **`lazyNamed()` helper picks the first exported key** — The `lazyNamed()` utility in App.tsx resolves named exports for `React.lazy()` by taking `Object.keys(mod)[0]`. This works because each page file has a single primary export. If a page file exports multiple components (e.g., a page + a sub-component), the helper will pick whichever comes first alphabetically. Keep page files to a single export, or use a direct `React.lazy(() => import(...).then(m => ({ default: m.SpecificExport })))` pattern.
+
+71. **`React.Suspense` boundary is inside `AppShell`, not outside it** — The `<React.Suspense fallback={<PageLoader />}>` wraps only `<Routes>` inside `AppRoutes`, not the entire app. This means the sidebar, header, and navigation remain visible during chunk loading — users see a spinner in the content area only. Do not move the Suspense boundary above `<AppShell>` as this would flash the entire page.
+
+72. **AccessDeniedPage and NotFoundPage are NOT lazy-loaded** — These two tiny pages remain in the main bundle (static import / inline). AccessDeniedPage is the redirect target for ProtectedRoute failures — it must be available synchronously. NotFoundPage is the `*` catch-all fallback. Do not lazy-load either.
+
 ---
 
 ## Audit Log
@@ -1676,3 +1690,4 @@ TRANSITION = { fast: '150ms ease', normal: '250ms ease', slow: '350ms ease' }
 | 2026-02-14 | §7, §15 | IDataService method count audit. §7: Total method count corrected from 204→212 (8 methods added in later phases without updating header count). §15: Comprehensive stub audit via grep — corrected counts: 129 implemented, 6 delegation stubs (GraphService/PowerAutomate), 77 pending stubs (21 Pattern A + 56 Pattern B). Total 212. Historical SP chunk entries left as-written; current status sections now reflect audited counts. |
 | 2026-02-14 | §1, §4, §13, §15, §16 | Fluent UI v9 Theming + makeStyles Migration. §1: Added Styling row (Griffel makeStyles + Fluent tokens), updated tsconfig description (+jsx react-jsx). §4: Replaced "Inline CSS Pattern" with "Hybrid CSS Pattern" (makeStyles for structural, inline for dynamic, tokens vs HBC_COLORS rules, mergeClasses for conditional). §13: TRANSITION constant added to tokens.ts (fast/normal/slow). §15: Phase Theme-1 entry (hbcTheme 30+ overrides, globalStyles 40+ classes, 10 component conversions, tsconfig jsx transform). §16: Added pitfalls #61-65 (makeStyles vs inline decision rule, tokens before HBC_COLORS, TRANSITION import, mergeClasses pattern, jsx react-jsx). Files modified: hbcTheme.ts, globalStyles.ts, tokens.ts (+TRANSITION), tsconfig.json (jsx: react-jsx), AppShell.tsx, NavigationSidebar.tsx, DataTable.tsx, KPICard.tsx, PageHeader.tsx, SearchBar.tsx, StageBadge.tsx, StatusBadge.tsx, ExportButtons.tsx, LoadingSpinner.tsx. Zero data service or workflow files touched. |
 | 2026-02-14 | §1, §3, §15, §16 | React 18.2.0 Migration. §1: React 17.0.1→18.2.0, @testing-library/react ^12.1.5→^14.0.0. §3: WebPart render() uses createRoot + Root lifecycle, dev server uses createRoot. §15: Phase React18 entry (package.json overrides, createRoot in WebPart + dev, zero component changes). §16: Added pitfalls #66-68 (npm overrides for SPFx peer deps, createRoot lifecycle, @testing-library/react v14). Files modified: package.json (react 18.2.0, types 18.2.0, +overrides, @testing-library/react ^14), HbcProjectControlsWebPart.ts (createRoot + Root), dev/index.tsx (createRoot). Zero component, style, data-service, or workflow files touched. |
+| 2026-02-14 | §1, §2, §3, §5, §15, §16 | Route-based Code Splitting. §1: +Code Splitting row (React.lazy + Suspense, 40 lazy pages). §2: +PageLoader.tsx in shared/ (34 components). §3: Component tree updated with Suspense(PageLoader), +Code Splitting row. §5: +PageLoader component. §15: Phase Perf-1 entry (40 lazy imports, lazyNamed helper, PageLoader, -2 dead imports). §16: Added pitfalls #69-72 (lazy page imports only, lazyNamed first-key behavior, Suspense inside AppShell, AccessDeniedPage/NotFoundPage not lazy). Files: App.tsx (rewritten — 40 static→lazy imports, +Suspense, +lazyNamed, -GoNoGoTracker/-PreconKickoff dead imports), shared/PageLoader.tsx (new), shared/index.ts (+1 export). Zero route guard, service, model, or styling files touched. |
