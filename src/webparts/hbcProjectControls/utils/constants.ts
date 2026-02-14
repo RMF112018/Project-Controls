@@ -59,6 +59,7 @@ export const PROJECT_LISTS = {
   STARTUP_CHECKLIST: 'Startup_Checklist',
   CHECKLIST_ACTIVITY_LOG: 'Checklist_Activity_Log',
   INTERNAL_MATRIX: 'Internal_Matrix',
+  TEAM_ROLE_ASSIGNMENTS: 'Team_Role_Assignments',
   OWNER_CONTRACT_MATRIX: 'Owner_Contract_Matrix',
   SUB_CONTRACT_MATRIX: 'Sub_Contract_Matrix',
   RISK_COST_MANAGEMENT: 'Risk_Cost_Management',
