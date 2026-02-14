@@ -953,6 +953,18 @@ export const SUB_CONTRACT_MATRIX_COLUMNS = {
 } as const;
 
 /**
+ * List: Team_Role_Assignments
+ * Interface: ITeamRoleAssignment
+ * Project-level list: stores role→person mappings for Internal Responsibility Matrix
+ */
+export const TEAM_ROLE_ASSIGNMENTS_COLUMNS = {
+  projectCode: 'ProjectCode',                  // SP: Single Line of Text
+  roleAbbreviation: 'RoleAbbreviation',        // SP: Single Line of Text
+  assignedPerson: 'AssignedPerson',            // SP: Single Line of Text
+  assignedPersonEmail: 'AssignedPersonEmail',  // SP: Single Line of Text
+} as const;
+
+/**
  * List: Risk_Cost_Management
  * Interface: IRiskCostManagement
  * Note: buyoutOpportunities[], potentialRisks[], potentialSavings[] stored in child list → Risk_Cost_Items

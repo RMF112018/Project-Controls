@@ -8,7 +8,7 @@ import { IMeeting, ICalendarAvailability } from '../models/IMeeting';
 import { INotification } from '../models/INotification';
 import { IAuditEntry } from '../models/IAuditEntry';
 import { IProvisioningLog } from '../models/IProvisioningLog';
-import { IStartupChecklistItem } from '../models/IStartupChecklist';
+import { IStartupChecklistItem, IChecklistActivityEntry } from '../models/IStartupChecklist';
 import { IInternalMatrixTask, ITeamRoleAssignment, IOwnerContractArticle, ISubContractClause } from '../models/IResponsibilityMatrix';
 import { IMarketingProjectRecord } from '../models/IMarketingProjectRecord';
 import { IRiskCostManagement, IRiskCostItem } from '../models/IRiskCostManagement';
@@ -46,6 +46,13 @@ import {
   WORKFLOW_STEPS_COLUMNS,
   WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS,
   WORKFLOW_STEP_OVERRIDES_COLUMNS,
+  STARTUP_CHECKLIST_COLUMNS,
+  CHECKLIST_ACTIVITY_LOG_COLUMNS,
+  INTERNAL_MATRIX_COLUMNS,
+  TEAM_ROLE_ASSIGNMENTS_COLUMNS,
+  OWNER_CONTRACT_MATRIX_COLUMNS,
+  SUB_CONTRACT_MATRIX_COLUMNS,
+  MARKETING_PROJECT_RECORDS_COLUMNS,
 } from './columnMappings';
 import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
 
@@ -516,39 +523,379 @@ export class SharePointDataService implements IDataService {
     return items.map((i: Record<string, unknown>) => String(i.Title || ''));
   }
 
-  // --- Startup Checklist ---
-  async getStartupChecklist(_projectCode: string): Promise<IStartupChecklistItem[]> { console.warn('[STUB] getStartupChecklist not implemented'); return []; }
-  async updateChecklistItem(_projectCode: string, _itemId: number, _data: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> { throw new Error('SharePoint implementation pending: updateChecklistItem'); }
-  async addChecklistItem(_projectCode: string, _item: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> { throw new Error('SharePoint implementation pending: addChecklistItem'); }
-  async removeChecklistItem(_projectCode: string, _itemId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeChecklistItem'); }
+  // ═══════════════════════════════════════════════════════════════════
+  // ──── Startup Checklist (Project Site) ────
+  // ═══════════════════════════════════════════════════════════════════
 
-  // --- Internal Matrix ---
-  async getInternalMatrix(_projectCode: string): Promise<IInternalMatrixTask[]> { console.warn('[STUB] getInternalMatrix not implemented'); return []; }
-  async updateInternalMatrixTask(_projectCode: string, _taskId: number, _data: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask> { throw new Error('SharePoint implementation pending: updateInternalMatrixTask'); }
-  async addInternalMatrixTask(_projectCode: string, _task: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask> { throw new Error('SharePoint implementation pending: addInternalMatrixTask'); }
-  async removeInternalMatrixTask(_projectCode: string, _taskId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeInternalMatrixTask'); }
+  async getStartupChecklist(projectCode: string): Promise<IStartupChecklistItem[]> {
+    const web = this._getProjectWeb();
+    const col = STARTUP_CHECKLIST_COLUMNS;
+    const actCol = CHECKLIST_ACTIVITY_LOG_COLUMNS;
 
-  // --- Team Assignments ---
-  async getTeamRoleAssignments(_projectCode: string): Promise<ITeamRoleAssignment[]> { console.warn('[STUB] getTeamRoleAssignments not implemented'); return []; }
-  async updateTeamRoleAssignment(_projectCode: string, _role: string, _person: string, _email?: string): Promise<ITeamRoleAssignment> { throw new Error('SharePoint implementation pending: updateTeamRoleAssignment'); }
+    // Read checklist items and activity log in parallel
+    const [items, activityItems] = await Promise.all([
+      web.lists.getByTitle(LIST_NAMES.STARTUP_CHECKLIST).items
+        .filter(`${col.projectCode} eq '${projectCode}'`)
+        .orderBy(col.sortOrder, true)
+        .top(500)(),
+      web.lists.getByTitle(LIST_NAMES.CHECKLIST_ACTIVITY_LOG).items
+        .filter(`${actCol.projectCode} eq '${projectCode}'`)
+        .top(5000)(),
+    ]);
 
-  // --- Owner Contract Matrix ---
-  async getOwnerContractMatrix(_projectCode: string): Promise<IOwnerContractArticle[]> { console.warn('[STUB] getOwnerContractMatrix not implemented'); return []; }
-  async updateOwnerContractArticle(_projectCode: string, _itemId: number, _data: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle> { throw new Error('SharePoint implementation pending: updateOwnerContractArticle'); }
-  async addOwnerContractArticle(_projectCode: string, _item: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle> { throw new Error('SharePoint implementation pending: addOwnerContractArticle'); }
-  async removeOwnerContractArticle(_projectCode: string, _itemId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeOwnerContractArticle'); }
+    // Group activity entries by checklistItemId
+    const activityMap = new Map<number, IChecklistActivityEntry[]>();
+    for (const a of activityItems) {
+      const entry = this.mapToChecklistActivityEntry(a);
+      const key = entry.checklistItemId || 0;
+      if (!activityMap.has(key)) activityMap.set(key, []);
+      activityMap.get(key)!.push(entry);
+    }
 
-  // --- Sub-Contract Matrix ---
-  async getSubContractMatrix(_projectCode: string): Promise<ISubContractClause[]> { console.warn('[STUB] getSubContractMatrix not implemented'); return []; }
-  async updateSubContractClause(_projectCode: string, _itemId: number, _data: Partial<ISubContractClause>): Promise<ISubContractClause> { throw new Error('SharePoint implementation pending: updateSubContractClause'); }
-  async addSubContractClause(_projectCode: string, _item: Partial<ISubContractClause>): Promise<ISubContractClause> { throw new Error('SharePoint implementation pending: addSubContractClause'); }
-  async removeSubContractClause(_projectCode: string, _itemId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeSubContractClause'); }
+    return items.map((item: Record<string, unknown>) => this.mapToStartupChecklistItem(item, activityMap.get(item.Id as number)));
+  }
 
-  // --- Marketing Project Record ---
-  async getMarketingProjectRecord(_projectCode: string): Promise<IMarketingProjectRecord | null> { console.warn('[STUB] getMarketingProjectRecord not implemented'); return null; }
-  async createMarketingProjectRecord(_data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> { throw new Error('SharePoint implementation pending: createMarketingProjectRecord'); }
-  async updateMarketingProjectRecord(_projectCode: string, _data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> { throw new Error('SharePoint implementation pending: updateMarketingProjectRecord'); }
-  async getAllMarketingProjectRecords(): Promise<IMarketingProjectRecord[]> { console.warn('[STUB] getAllMarketingProjectRecords not implemented'); return []; }
+  async updateChecklistItem(projectCode: string, itemId: number, data: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> {
+    const web = this._getProjectWeb();
+    const col = STARTUP_CHECKLIST_COLUMNS;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {};
+    if (data.response !== undefined) updateData[col.response] = data.response;
+    if (data.status !== undefined) updateData[col.status] = data.status;
+    if (data.respondedBy !== undefined) updateData[col.respondedBy] = data.respondedBy;
+    if (data.respondedDate !== undefined) updateData[col.respondedDate] = data.respondedDate;
+    if (data.assignedTo !== undefined) updateData[col.assignedTo] = data.assignedTo;
+    if (data.assignedToName !== undefined) updateData[col.assignedToName] = data.assignedToName;
+    if (data.comment !== undefined) updateData[col.comment] = data.comment;
+    if (data.isHidden !== undefined) updateData[col.isHidden] = data.isHidden;
+    if (data.label !== undefined) updateData[col.label] = data.label;
+    if (data.sortOrder !== undefined) updateData[col.sortOrder] = data.sortOrder;
+
+    await web.lists.getByTitle(LIST_NAMES.STARTUP_CHECKLIST).items.getById(itemId).update(updateData);
+
+    // If there's activity log data to write, add it
+    if (data.activityLog && data.activityLog.length > 0) {
+      const actCol = CHECKLIST_ACTIVITY_LOG_COLUMNS;
+      const latestEntry = data.activityLog[data.activityLog.length - 1];
+      await web.lists.getByTitle(LIST_NAMES.CHECKLIST_ACTIVITY_LOG).items.add({
+        [actCol.checklistItemId]: itemId,
+        [actCol.projectCode]: projectCode,
+        [actCol.timestamp]: latestEntry.timestamp,
+        [actCol.user]: latestEntry.user,
+        [actCol.previousValue]: latestEntry.previousValue,
+        [actCol.newValue]: latestEntry.newValue,
+        [actCol.comment]: latestEntry.comment || null,
+      });
+    }
+
+    // Re-read the updated item
+    const updated = await web.lists.getByTitle(LIST_NAMES.STARTUP_CHECKLIST).items.getById(itemId)();
+    const actItems = await web.lists.getByTitle(LIST_NAMES.CHECKLIST_ACTIVITY_LOG).items
+      .filter(`${CHECKLIST_ACTIVITY_LOG_COLUMNS.checklistItemId} eq ${itemId}`)();
+    return this.mapToStartupChecklistItem(updated, actItems.map((a: Record<string, unknown>) => this.mapToChecklistActivityEntry(a)));
+  }
+
+  async addChecklistItem(projectCode: string, item: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> {
+    const web = this._getProjectWeb();
+    const col = STARTUP_CHECKLIST_COLUMNS;
+    const addData = {
+      [col.projectCode]: projectCode,
+      [col.sectionNumber]: item.sectionNumber || 0,
+      [col.sectionName]: item.sectionName || '',
+      [col.itemNumber]: item.itemNumber || '',
+      [col.label]: item.label || '',
+      [col.responseType]: item.responseType || 'yesNoNA',
+      [col.response]: item.response ?? null,
+      [col.status]: item.status || 'NoResponse',
+      [col.respondedBy]: item.respondedBy || null,
+      [col.respondedDate]: item.respondedDate || null,
+      [col.assignedTo]: item.assignedTo || null,
+      [col.assignedToName]: item.assignedToName || null,
+      [col.comment]: item.comment || null,
+      [col.isHidden]: item.isHidden || false,
+      [col.isCustom]: item.isCustom ?? true,
+      [col.sortOrder]: item.sortOrder || 0,
+    };
+    const result = await web.lists.getByTitle(LIST_NAMES.STARTUP_CHECKLIST).items.add(addData);
+    return this.mapToStartupChecklistItem(result, []);
+  }
+
+  async removeChecklistItem(_projectCode: string, itemId: number): Promise<void> {
+    const web = this._getProjectWeb();
+    await web.lists.getByTitle(LIST_NAMES.STARTUP_CHECKLIST).items.getById(itemId).recycle();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ──── Internal Matrix (Project Site) ────
+  // ═══════════════════════════════════════════════════════════════════
+
+  async getInternalMatrix(projectCode: string): Promise<IInternalMatrixTask[]> {
+    const web = this._getProjectWeb();
+    const col = INTERNAL_MATRIX_COLUMNS;
+    const items = await web.lists.getByTitle(LIST_NAMES.INTERNAL_MATRIX).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .orderBy(col.sortOrder, true)
+      .top(500)();
+    return items.map((item: Record<string, unknown>) => this.mapToInternalMatrixTask(item));
+  }
+
+  async updateInternalMatrixTask(projectCode: string, taskId: number, data: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask> {
+    const web = this._getProjectWeb();
+    const col = INTERNAL_MATRIX_COLUMNS;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {};
+    if (data.sortOrder !== undefined) updateData[col.sortOrder] = data.sortOrder;
+    if (data.taskCategory !== undefined) updateData[col.taskCategory] = data.taskCategory;
+    if (data.taskDescription !== undefined) updateData[col.taskDescription] = data.taskDescription;
+    if (data.PX !== undefined) updateData[col.PX] = data.PX;
+    if (data.SrPM !== undefined) updateData[col.SrPM] = data.SrPM;
+    if (data.PM2 !== undefined) updateData[col.PM2] = data.PM2;
+    if (data.PM1 !== undefined) updateData[col.PM1] = data.PM1;
+    if (data.PA !== undefined) updateData[col.PA] = data.PA;
+    if (data.QAQC !== undefined) updateData[col.QAQC] = data.QAQC;
+    if (data.ProjAcct !== undefined) updateData[col.ProjAcct] = data.ProjAcct;
+    if (data.isHidden !== undefined) updateData[col.isHidden] = data.isHidden;
+    if (data.isCustom !== undefined) updateData[col.isCustom] = data.isCustom;
+
+    await web.lists.getByTitle(LIST_NAMES.INTERNAL_MATRIX).items.getById(taskId).update(updateData);
+    const updated = await web.lists.getByTitle(LIST_NAMES.INTERNAL_MATRIX).items.getById(taskId)();
+    return this.mapToInternalMatrixTask(updated);
+  }
+
+  async addInternalMatrixTask(projectCode: string, task: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask> {
+    const web = this._getProjectWeb();
+    const col = INTERNAL_MATRIX_COLUMNS;
+    const addData = {
+      [col.projectCode]: projectCode,
+      [col.sortOrder]: task.sortOrder || 0,
+      [col.taskCategory]: task.taskCategory || '',
+      [col.taskDescription]: task.taskDescription || '',
+      [col.PX]: task.PX || '',
+      [col.SrPM]: task.SrPM || '',
+      [col.PM2]: task.PM2 || '',
+      [col.PM1]: task.PM1 || '',
+      [col.PA]: task.PA || '',
+      [col.QAQC]: task.QAQC || '',
+      [col.ProjAcct]: task.ProjAcct || '',
+      [col.isHidden]: task.isHidden || false,
+      [col.isCustom]: task.isCustom ?? true,
+    };
+    const result = await web.lists.getByTitle(LIST_NAMES.INTERNAL_MATRIX).items.add(addData);
+    return this.mapToInternalMatrixTask(result);
+  }
+
+  async removeInternalMatrixTask(_projectCode: string, taskId: number): Promise<void> {
+    const web = this._getProjectWeb();
+    await web.lists.getByTitle(LIST_NAMES.INTERNAL_MATRIX).items.getById(taskId).recycle();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ──── Team Role Assignments (Project Site) ────
+  // ═══════════════════════════════════════════════════════════════════
+
+  async getTeamRoleAssignments(projectCode: string): Promise<ITeamRoleAssignment[]> {
+    const web = this._getProjectWeb();
+    const col = TEAM_ROLE_ASSIGNMENTS_COLUMNS;
+    const items = await web.lists.getByTitle(LIST_NAMES.TEAM_ROLE_ASSIGNMENTS).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .top(100)();
+    return items.map((item: Record<string, unknown>) => ({
+      projectCode: (item[col.projectCode] as string) || '',
+      roleAbbreviation: (item[col.roleAbbreviation] as string) || '',
+      assignedPerson: (item[col.assignedPerson] as string) || '',
+      assignedPersonEmail: (item[col.assignedPersonEmail] as string) || '',
+    }));
+  }
+
+  async updateTeamRoleAssignment(projectCode: string, role: string, person: string, email?: string): Promise<ITeamRoleAssignment> {
+    const web = this._getProjectWeb();
+    const col = TEAM_ROLE_ASSIGNMENTS_COLUMNS;
+    const listTitle = LIST_NAMES.TEAM_ROLE_ASSIGNMENTS;
+
+    // Upsert: check if record exists for this projectCode + role
+    const existing = await web.lists.getByTitle(listTitle).items
+      .filter(`${col.projectCode} eq '${projectCode}' and ${col.roleAbbreviation} eq '${role}'`)
+      .top(1)();
+
+    if (existing.length > 0) {
+      // Update existing
+      const itemId = existing[0].Id as number;
+      await web.lists.getByTitle(listTitle).items.getById(itemId).update({
+        [col.assignedPerson]: person,
+        [col.assignedPersonEmail]: email || '',
+      });
+    } else {
+      // Create new
+      await web.lists.getByTitle(listTitle).items.add({
+        [col.projectCode]: projectCode,
+        [col.roleAbbreviation]: role,
+        [col.assignedPerson]: person,
+        [col.assignedPersonEmail]: email || '',
+      });
+    }
+
+    return { projectCode, roleAbbreviation: role, assignedPerson: person, assignedPersonEmail: email || '' };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ──── Owner Contract Matrix (Project Site) ────
+  // ═══════════════════════════════════════════════════════════════════
+
+  async getOwnerContractMatrix(projectCode: string): Promise<IOwnerContractArticle[]> {
+    const web = this._getProjectWeb();
+    const col = OWNER_CONTRACT_MATRIX_COLUMNS;
+    const items = await web.lists.getByTitle(LIST_NAMES.OWNER_CONTRACT_MATRIX).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .orderBy(col.sortOrder, true)
+      .top(500)();
+    return items.map((item: Record<string, unknown>) => this.mapToOwnerContractArticle(item));
+  }
+
+  async updateOwnerContractArticle(projectCode: string, itemId: number, data: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle> {
+    const web = this._getProjectWeb();
+    const col = OWNER_CONTRACT_MATRIX_COLUMNS;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {};
+    if (data.sortOrder !== undefined) updateData[col.sortOrder] = data.sortOrder;
+    if (data.articleNumber !== undefined) updateData[col.articleNumber] = data.articleNumber;
+    if (data.pageNumber !== undefined) updateData[col.pageNumber] = data.pageNumber;
+    if (data.responsibleParty !== undefined) updateData[col.responsibleParty] = data.responsibleParty;
+    if (data.description !== undefined) updateData[col.description] = data.description;
+    if (data.isHidden !== undefined) updateData[col.isHidden] = data.isHidden;
+    if (data.isCustom !== undefined) updateData[col.isCustom] = data.isCustom;
+
+    await web.lists.getByTitle(LIST_NAMES.OWNER_CONTRACT_MATRIX).items.getById(itemId).update(updateData);
+    const updated = await web.lists.getByTitle(LIST_NAMES.OWNER_CONTRACT_MATRIX).items.getById(itemId)();
+    return this.mapToOwnerContractArticle(updated);
+  }
+
+  async addOwnerContractArticle(projectCode: string, item: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle> {
+    const web = this._getProjectWeb();
+    const col = OWNER_CONTRACT_MATRIX_COLUMNS;
+    const addData = {
+      [col.projectCode]: projectCode,
+      [col.sortOrder]: item.sortOrder || 0,
+      [col.articleNumber]: item.articleNumber || '',
+      [col.pageNumber]: item.pageNumber || '',
+      [col.responsibleParty]: item.responsibleParty || '',
+      [col.description]: item.description || '',
+      [col.isHidden]: item.isHidden || false,
+      [col.isCustom]: item.isCustom ?? true,
+    };
+    const result = await web.lists.getByTitle(LIST_NAMES.OWNER_CONTRACT_MATRIX).items.add(addData);
+    return this.mapToOwnerContractArticle(result);
+  }
+
+  async removeOwnerContractArticle(_projectCode: string, itemId: number): Promise<void> {
+    const web = this._getProjectWeb();
+    await web.lists.getByTitle(LIST_NAMES.OWNER_CONTRACT_MATRIX).items.getById(itemId).recycle();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ──── Sub-Contract Matrix (Project Site) ────
+  // ═══════════════════════════════════════════════════════════════════
+
+  async getSubContractMatrix(projectCode: string): Promise<ISubContractClause[]> {
+    const web = this._getProjectWeb();
+    const col = SUB_CONTRACT_MATRIX_COLUMNS;
+    const items = await web.lists.getByTitle(LIST_NAMES.SUB_CONTRACT_MATRIX).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .orderBy(col.sortOrder, true)
+      .top(500)();
+    return items.map((item: Record<string, unknown>) => this.mapToSubContractClause(item));
+  }
+
+  async updateSubContractClause(projectCode: string, itemId: number, data: Partial<ISubContractClause>): Promise<ISubContractClause> {
+    const web = this._getProjectWeb();
+    const col = SUB_CONTRACT_MATRIX_COLUMNS;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {};
+    if (data.sortOrder !== undefined) updateData[col.sortOrder] = data.sortOrder;
+    if (data.refNumber !== undefined) updateData[col.refNumber] = data.refNumber;
+    if (data.pageNumber !== undefined) updateData[col.pageNumber] = data.pageNumber;
+    if (data.clauseDescription !== undefined) updateData[col.clauseDescription] = data.clauseDescription;
+    if (data.ProjExec !== undefined) updateData[col.ProjExec] = data.ProjExec;
+    if (data.ProjMgr !== undefined) updateData[col.ProjMgr] = data.ProjMgr;
+    if (data.AsstPM !== undefined) updateData[col.AsstPM] = data.AsstPM;
+    if (data.Super !== undefined) updateData[col.Super] = data.Super;
+    if (data.ProjAdmin !== undefined) updateData[col.ProjAdmin] = data.ProjAdmin;
+    if (data.isHidden !== undefined) updateData[col.isHidden] = data.isHidden;
+    if (data.isCustom !== undefined) updateData[col.isCustom] = data.isCustom;
+
+    await web.lists.getByTitle(LIST_NAMES.SUB_CONTRACT_MATRIX).items.getById(itemId).update(updateData);
+    const updated = await web.lists.getByTitle(LIST_NAMES.SUB_CONTRACT_MATRIX).items.getById(itemId)();
+    return this.mapToSubContractClause(updated);
+  }
+
+  async addSubContractClause(projectCode: string, item: Partial<ISubContractClause>): Promise<ISubContractClause> {
+    const web = this._getProjectWeb();
+    const col = SUB_CONTRACT_MATRIX_COLUMNS;
+    const addData = {
+      [col.projectCode]: projectCode,
+      [col.sortOrder]: item.sortOrder || 0,
+      [col.refNumber]: item.refNumber || '',
+      [col.pageNumber]: item.pageNumber || '',
+      [col.clauseDescription]: item.clauseDescription || '',
+      [col.ProjExec]: item.ProjExec || '',
+      [col.ProjMgr]: item.ProjMgr || '',
+      [col.AsstPM]: item.AsstPM || '',
+      [col.Super]: item.Super || '',
+      [col.ProjAdmin]: item.ProjAdmin || '',
+      [col.isHidden]: item.isHidden || false,
+      [col.isCustom]: item.isCustom ?? true,
+    };
+    const result = await web.lists.getByTitle(LIST_NAMES.SUB_CONTRACT_MATRIX).items.add(addData);
+    return this.mapToSubContractClause(result);
+  }
+
+  async removeSubContractClause(_projectCode: string, itemId: number): Promise<void> {
+    const web = this._getProjectWeb();
+    await web.lists.getByTitle(LIST_NAMES.SUB_CONTRACT_MATRIX).items.getById(itemId).recycle();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ──── Marketing Project Records (Hub Site) ────
+  // ═══════════════════════════════════════════════════════════════════
+
+  async getMarketingProjectRecord(projectCode: string): Promise<IMarketingProjectRecord | null> {
+    const col = MARKETING_PROJECT_RECORDS_COLUMNS;
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.MARKETING_PROJECT_RECORDS).items
+        .filter(`${col.projectCode} eq '${projectCode}'`)
+        .top(1)();
+      if (items.length === 0) return null;
+      return this.mapToMarketingProjectRecord(items[0]);
+    } catch {
+      return null;
+    }
+  }
+
+  async createMarketingProjectRecord(data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> {
+    const addData = this.buildMarketingUpdateData(data);
+    const result = await this.sp.web.lists.getByTitle(LIST_NAMES.MARKETING_PROJECT_RECORDS).items.add(addData);
+    return this.mapToMarketingProjectRecord(result);
+  }
+
+  async updateMarketingProjectRecord(projectCode: string, data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> {
+    const col = MARKETING_PROJECT_RECORDS_COLUMNS;
+    // Find existing item by projectCode
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.MARKETING_PROJECT_RECORDS).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .top(1)();
+    if (items.length === 0) throw new Error(`Marketing project record not found for projectCode: ${projectCode}`);
+    const itemId = items[0].Id as number;
+
+    const updateData = this.buildMarketingUpdateData(data);
+    await this.sp.web.lists.getByTitle(LIST_NAMES.MARKETING_PROJECT_RECORDS).items.getById(itemId).update(updateData);
+    const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.MARKETING_PROJECT_RECORDS).items.getById(itemId)();
+    return this.mapToMarketingProjectRecord(updated);
+  }
+
+  async getAllMarketingProjectRecords(): Promise<IMarketingProjectRecord[]> {
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.MARKETING_PROJECT_RECORDS).items
+      .top(500)();
+    return items.map((item: Record<string, unknown>) => this.mapToMarketingProjectRecord(item));
+  }
 
   // --- Risk & Cost ---
   async getRiskCostManagement(_projectCode: string): Promise<IRiskCostManagement | null> { console.warn('[STUB] getRiskCostManagement not implemented'); return null; }
@@ -2602,12 +2949,292 @@ export class SharePointDataService implements IDataService {
   async rejectScorecard(_scorecardId: number, _reason: string): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: rejectScorecard'); }
   async archiveScorecard(_scorecardId: number, _archivedBy: string): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: archiveScorecard'); }
 
-  // --- Project Site URL Targeting ---
+  // ═══════════════════════════════════════════════════════════════════
+  // ──── Project Site URL Targeting & Web Factory ────
+  // ═══════════════════════════════════════════════════════════════════
+
   private _projectSiteUrl: string | null = null;
 
   public setProjectSiteUrl(siteUrl: string | null): void {
     this._projectSiteUrl = siteUrl;
-    // When PnP project-web methods are implemented, this will create
-    // a new SPFI web instance: this._projectWeb = Web([this.sp.web, siteUrl])
+  }
+
+  /**
+   * Returns a PnP web instance for the project site.
+   * Uses Web() factory for cross-site access when _projectSiteUrl is set,
+   * otherwise falls back to the current web context.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _getProjectWeb(): any {
+    if (this._projectSiteUrl) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { Web } = require('@pnp/sp/webs');
+      return Web([this.sp.web, this._projectSiteUrl]);
+    }
+    return this.sp.web;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ──── Private Mapper Helpers — Chunk 4 ────
+  // ═══════════════════════════════════════════════════════════════════
+
+  private mapToStartupChecklistItem(
+    item: Record<string, unknown>,
+    activityLog?: IChecklistActivityEntry[]
+  ): IStartupChecklistItem {
+    const col = STARTUP_CHECKLIST_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      sectionNumber: (item[col.sectionNumber] as number) || 0,
+      sectionName: (item[col.sectionName] as string) || '',
+      itemNumber: (item[col.itemNumber] as string) || '',
+      label: (item[col.label] as string) || '',
+      responseType: (item[col.responseType] as IStartupChecklistItem['responseType']) || 'yesNoNA',
+      response: item[col.response] as string | number | null ?? null,
+      status: (item[col.status] as IStartupChecklistItem['status']) || 'NoResponse',
+      respondedBy: (item[col.respondedBy] as string) || null,
+      respondedDate: (item[col.respondedDate] as string) || null,
+      assignedTo: (item[col.assignedTo] as string) || null,
+      assignedToName: (item[col.assignedToName] as string) || null,
+      comment: (item[col.comment] as string) || null,
+      isHidden: !!(item[col.isHidden]),
+      isCustom: !!(item[col.isCustom]),
+      sortOrder: (item[col.sortOrder] as number) || 0,
+      activityLog: activityLog || [],
+    };
+  }
+
+  private mapToChecklistActivityEntry(item: Record<string, unknown>): IChecklistActivityEntry {
+    const col = CHECKLIST_ACTIVITY_LOG_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      checklistItemId: (item[col.checklistItemId] as number) || undefined,
+      projectCode: (item[col.projectCode] as string) || undefined,
+      timestamp: (item[col.timestamp] as string) || '',
+      user: (item[col.user] as string) || '',
+      previousValue: (item[col.previousValue] as string) || null,
+      newValue: (item[col.newValue] as string) || null,
+      comment: (item[col.comment] as string) || undefined,
+    };
+  }
+
+  private mapToInternalMatrixTask(item: Record<string, unknown>): IInternalMatrixTask {
+    const col = INTERNAL_MATRIX_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      sortOrder: (item[col.sortOrder] as number) || 0,
+      taskCategory: (item[col.taskCategory] as string) || '',
+      taskDescription: (item[col.taskDescription] as string) || '',
+      PX: (item[col.PX] as IInternalMatrixTask['PX']) || '',
+      SrPM: (item[col.SrPM] as IInternalMatrixTask['SrPM']) || '',
+      PM2: (item[col.PM2] as IInternalMatrixTask['PM2']) || '',
+      PM1: (item[col.PM1] as IInternalMatrixTask['PM1']) || '',
+      PA: (item[col.PA] as IInternalMatrixTask['PA']) || '',
+      QAQC: (item[col.QAQC] as IInternalMatrixTask['QAQC']) || '',
+      ProjAcct: (item[col.ProjAcct] as IInternalMatrixTask['ProjAcct']) || '',
+      isHidden: !!(item[col.isHidden]),
+      isCustom: !!(item[col.isCustom]),
+    };
+  }
+
+  private mapToOwnerContractArticle(item: Record<string, unknown>): IOwnerContractArticle {
+    const col = OWNER_CONTRACT_MATRIX_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      sortOrder: (item[col.sortOrder] as number) || 0,
+      articleNumber: (item[col.articleNumber] as string) || '',
+      pageNumber: (item[col.pageNumber] as string) || '',
+      responsibleParty: (item[col.responsibleParty] as IOwnerContractArticle['responsibleParty']) || '',
+      description: (item[col.description] as string) || '',
+      isHidden: !!(item[col.isHidden]),
+      isCustom: !!(item[col.isCustom]),
+    };
+  }
+
+  private mapToSubContractClause(item: Record<string, unknown>): ISubContractClause {
+    const col = SUB_CONTRACT_MATRIX_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      sortOrder: (item[col.sortOrder] as number) || 0,
+      refNumber: (item[col.refNumber] as string) || '',
+      pageNumber: (item[col.pageNumber] as string) || '',
+      clauseDescription: (item[col.clauseDescription] as string) || '',
+      ProjExec: (item[col.ProjExec] as ISubContractClause['ProjExec']) || '',
+      ProjMgr: (item[col.ProjMgr] as ISubContractClause['ProjMgr']) || '',
+      AsstPM: (item[col.AsstPM] as ISubContractClause['AsstPM']) || '',
+      Super: (item[col.Super] as ISubContractClause['Super']) || '',
+      ProjAdmin: (item[col.ProjAdmin] as ISubContractClause['ProjAdmin']) || '',
+      isHidden: !!(item[col.isHidden]),
+      isCustom: !!(item[col.isCustom]),
+    };
+  }
+
+  private mapToMarketingProjectRecord(item: Record<string, unknown>): IMarketingProjectRecord {
+    const col = MARKETING_PROJECT_RECORDS_COLUMNS;
+
+    // Parse JSON arrays with safe fallbacks
+    let contractType: string[] = [];
+    try {
+      const raw = item[col.contractType];
+      if (typeof raw === 'string' && raw) contractType = JSON.parse(raw);
+      else if (Array.isArray(raw)) contractType = raw as string[];
+    } catch { /* default empty */ }
+
+    let renderingUrls: string[] = [];
+    try {
+      const raw = item[col.renderingUrls];
+      if (typeof raw === 'string' && raw) renderingUrls = JSON.parse(raw);
+      else if (Array.isArray(raw)) renderingUrls = raw as string[];
+    } catch { /* default empty */ }
+
+    let finalPhotoUrls: string[] = [];
+    try {
+      const raw = item[col.finalPhotoUrls];
+      if (typeof raw === 'string' && raw) finalPhotoUrls = JSON.parse(raw);
+      else if (Array.isArray(raw)) finalPhotoUrls = raw as string[];
+    } catch { /* default empty */ }
+
+    let sectionCompletion: Record<string, number> = {};
+    try {
+      const raw = item[col.sectionCompletion];
+      if (typeof raw === 'string' && raw) sectionCompletion = JSON.parse(raw);
+      else if (raw && typeof raw === 'object') sectionCompletion = raw as Record<string, number>;
+    } catch { /* default empty */ }
+
+    return {
+      projectName: (item[col.projectName] as string) || '',
+      projectCode: (item[col.projectCode] as string) || '',
+      leadId: (item[col.leadId] as number) || null,
+      contractType,
+      deliveryMethod: (item[col.deliveryMethod] as string) || '',
+      architect: (item[col.architect] as string) || '',
+      landscapeArchitect: (item[col.landscapeArchitect] as string) || '',
+      interiorDesigner: (item[col.interiorDesigner] as string) || '',
+      engineer: (item[col.engineer] as string) || '',
+      buildingSystemType: (item[col.buildingSystemType] as string) || '',
+      projectDescription: (item[col.projectDescription] as string) || '',
+      uniqueCharacteristics: (item[col.uniqueCharacteristics] as string) || '',
+      renderingUrls,
+      finalPhotoUrls,
+      contractBudget: (item[col.contractBudget] as number) || null,
+      contractFinalCost: (item[col.contractFinalCost] as number) || null,
+      totalCostPerGSF: (item[col.totalCostPerGSF] as number) || null,
+      totalBudgetVariance: (item[col.totalBudgetVariance] as number) || null,
+      budgetExplanation: (item[col.budgetExplanation] as string) || '',
+      CO_OwnerDirected_Count: (item[col.CO_OwnerDirected_Count] as number) || null,
+      CO_OwnerDirected_Value: (item[col.CO_OwnerDirected_Value] as number) || null,
+      CO_MunicipalityDirected_Count: (item[col.CO_MunicipalityDirected_Count] as number) || null,
+      CO_MunicipalityDirected_Value: (item[col.CO_MunicipalityDirected_Value] as number) || null,
+      CO_EO_Count: (item[col.CO_EO_Count] as number) || null,
+      CO_EO_Value: (item[col.CO_EO_Value] as number) || null,
+      CO_ContractorDirected_Count: (item[col.CO_ContractorDirected_Count] as number) || null,
+      savingsReturned: (item[col.savingsReturned] as number) || null,
+      savingsReturnedPct: (item[col.savingsReturnedPct] as number) || null,
+      scheduleStartAnticipated: (item[col.scheduleStartAnticipated] as string) || null,
+      scheduleStartActual: (item[col.scheduleStartActual] as string) || null,
+      scheduleEndAnticipated: (item[col.scheduleEndAnticipated] as string) || null,
+      scheduleEndActual: (item[col.scheduleEndActual] as string) || null,
+      onSchedule: (item[col.onSchedule] as string) || '',
+      scheduleExplanation: (item[col.scheduleExplanation] as string) || '',
+      substantialCompletionDate: (item[col.substantialCompletionDate] as string) || null,
+      finalCompletionDate: (item[col.finalCompletionDate] as string) || null,
+      punchListItems: (item[col.punchListItems] as number) || null,
+      punchListDaysToComplete: (item[col.punchListDaysToComplete] as number) || null,
+      innovativeSafetyPrograms: (item[col.innovativeSafetyPrograms] as string) || '',
+      mwbeRequirement: (item[col.mwbeRequirement] as string) || '',
+      mwbeAchievement: (item[col.mwbeAchievement] as string) || '',
+      sbeRequirement: (item[col.sbeRequirement] as string) || '',
+      sbeAchievement: (item[col.sbeAchievement] as string) || '',
+      localRequirement: (item[col.localRequirement] as string) || '',
+      localAchievement: (item[col.localAchievement] as string) || '',
+      leedDesignation: (item[col.leedDesignation] as string) || '',
+      sustainabilityFeatures: (item[col.sustainabilityFeatures] as string) || '',
+      leedAdditionalCost: (item[col.leedAdditionalCost] as number) || null,
+      CS_Conflicts: (item[col.CS_Conflicts] as string) || '',
+      CS_CostControl: (item[col.CS_CostControl] as string) || '',
+      CS_ValueEngineering: (item[col.CS_ValueEngineering] as string) || '',
+      CS_QualityControl: (item[col.CS_QualityControl] as string) || '',
+      CS_Schedule: (item[col.CS_Schedule] as string) || '',
+      CS_Team: (item[col.CS_Team] as string) || '',
+      CS_Safety: (item[col.CS_Safety] as string) || '',
+      CS_LEED: (item[col.CS_LEED] as string) || '',
+      CS_SupplierDiversity: (item[col.CS_SupplierDiversity] as string) || '',
+      CS_Challenges: (item[col.CS_Challenges] as string) || '',
+      CS_InnovativeSolutions: (item[col.CS_InnovativeSolutions] as string) || '',
+      CS_ProductsSystems: (item[col.CS_ProductsSystems] as string) || '',
+      CS_ClientService: (item[col.CS_ClientService] as string) || '',
+      CS_LessonsLearned: (item[col.CS_LessonsLearned] as string) || '',
+      sectionCompletion,
+      overallCompletion: (item[col.overallCompletion] as number) || 0,
+      lastUpdatedBy: (item[col.lastUpdatedBy] as string) || '',
+      lastUpdatedAt: (item[col.lastUpdatedAt] as string) || '',
+      createdBy: (item[col.createdBy] as string) || '',
+      createdAt: (item[col.createdAt] as string) || '',
+    };
+  }
+
+  /**
+   * Reverse mapper: converts Partial<IMarketingProjectRecord> to SP column-keyed object.
+   * Only includes fields that are present in the input data to avoid overwriting unchanged data.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private buildMarketingUpdateData(data: Partial<IMarketingProjectRecord>): Record<string, any> {
+    const col = MARKETING_PROJECT_RECORDS_COLUMNS;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: Record<string, any> = {};
+
+    // String fields — map if present
+    const stringFields: (keyof IMarketingProjectRecord & keyof typeof col)[] = [
+      'projectName', 'projectCode', 'deliveryMethod', 'architect',
+      'landscapeArchitect', 'interiorDesigner', 'engineer',
+      'buildingSystemType', 'projectDescription', 'uniqueCharacteristics',
+      'budgetExplanation', 'onSchedule', 'scheduleExplanation',
+      'innovativeSafetyPrograms', 'mwbeRequirement', 'mwbeAchievement',
+      'sbeRequirement', 'sbeAchievement', 'localRequirement', 'localAchievement',
+      'leedDesignation', 'sustainabilityFeatures',
+      'CS_Conflicts', 'CS_CostControl', 'CS_ValueEngineering', 'CS_QualityControl',
+      'CS_Schedule', 'CS_Team', 'CS_Safety', 'CS_LEED', 'CS_SupplierDiversity',
+      'CS_Challenges', 'CS_InnovativeSolutions', 'CS_ProductsSystems',
+      'CS_ClientService', 'CS_LessonsLearned',
+      'lastUpdatedBy', 'lastUpdatedAt', 'createdBy', 'createdAt',
+    ];
+    for (const field of stringFields) {
+      if (data[field] !== undefined) result[col[field]] = data[field];
+    }
+
+    // Number fields
+    const numberFields: (keyof IMarketingProjectRecord & keyof typeof col)[] = [
+      'leadId', 'contractBudget', 'contractFinalCost', 'totalCostPerGSF',
+      'totalBudgetVariance', 'CO_OwnerDirected_Count', 'CO_OwnerDirected_Value',
+      'CO_MunicipalityDirected_Count', 'CO_MunicipalityDirected_Value',
+      'CO_EO_Count', 'CO_EO_Value', 'CO_ContractorDirected_Count',
+      'savingsReturned', 'savingsReturnedPct', 'punchListItems',
+      'punchListDaysToComplete', 'leedAdditionalCost', 'overallCompletion',
+    ];
+    for (const field of numberFields) {
+      if (data[field] !== undefined) result[col[field]] = data[field];
+    }
+
+    // Date fields
+    const dateFields: (keyof IMarketingProjectRecord & keyof typeof col)[] = [
+      'scheduleStartAnticipated', 'scheduleStartActual',
+      'scheduleEndAnticipated', 'scheduleEndActual',
+      'substantialCompletionDate', 'finalCompletionDate',
+    ];
+    for (const field of dateFields) {
+      if (data[field] !== undefined) result[col[field]] = data[field];
+    }
+
+    // JSON array fields
+    if (data.contractType !== undefined) result[col.contractType] = JSON.stringify(data.contractType);
+    if (data.renderingUrls !== undefined) result[col.renderingUrls] = JSON.stringify(data.renderingUrls);
+    if (data.finalPhotoUrls !== undefined) result[col.finalPhotoUrls] = JSON.stringify(data.finalPhotoUrls);
+    if (data.sectionCompletion !== undefined) result[col.sectionCompletion] = JSON.stringify(data.sectionCompletion);
+
+    return result;
   }
 }
