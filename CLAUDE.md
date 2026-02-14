@@ -25,7 +25,11 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
+<<<<<<< extract-common-services
 **Last Updated:** 2026-02-14 — Fix `@hbc/sp-services` import resolution (workspace symlink, lib build, SPFx alias)
+=======
+**Last Updated:** 2026-02-14 — GitHub Actions CI/CD Pipeline
+>>>>>>> main
 
 ---
 
@@ -65,6 +69,15 @@ npm run lint                    # ESLint
 ```
 
 **Important:** Prefix gulp commands with `volta run --node 22.14.0` when needed.
+
+### CI/CD (GitHub Actions)
+
+| Workflow | Trigger | What it does |
+|----------|---------|-------------|
+| CI (`ci.yml`) | Push to main, PRs | npm ci → tsc --noEmit → lint → gulp bundle --ship → gulp package-solution --ship → upload .sppkg artifact |
+| Release (`release.yml`) | Tag `v*` | Full build → GitHub Release with .sppkg asset |
+| PR Validation (`pr-validation.yml`) | PRs only | npm ci → tsc --noEmit → lint (fast feedback) |
+| Dependabot (`dependabot.yml`) | Weekly (Monday) | npm + GitHub Actions updates, SPFx packages ignored for major/minor |
 
 ### Key Config Files
 
@@ -328,6 +341,17 @@ docs/
 ├── DATA_ARCHITECTURE.md      # Data architecture documentation
 ├── PERMISSION_STRATEGY.md    # Permission strategy documentation
 └── SECURITY_ANALYSIS.md      # Post-Phase 32 permissions & security analysis
+```
+
+### .github/
+
+```
+.github/
+├── workflows/
+│   ├── ci.yml                    # Full build + artifact upload
+│   ├── release.yml               # Tag-triggered GitHub Release
+│   └── pr-validation.yml         # Fast type-check + lint for PRs
+└── dependabot.yml                # Dependency update automation
 ```
 
 ### Other Root Directories
@@ -1484,7 +1508,11 @@ Steps 1-6 modify `packages/hbc-sp-services/` (the shared library). Steps 7-12 mo
 
 | Perf-1 | Route-based Code Splitting — Replaced 40 static page imports in App.tsx with `React.lazy()` + `lazyNamed()` helper for named-export modules. Single `React.Suspense` boundary wraps `<Routes>` with `<PageLoader />` fallback (centered Fluent Spinner, makeStyles). Shell stays in main bundle: FluentProvider, AppProvider, HashRouter, AppShell, NavigationSidebar, ErrorBoundary, ToastProvider, guards (ProtectedRoute, ProjectRequiredRoute, FeatureGate), NotFoundPage, AccessDeniedPage. 2 dead imports removed (GoNoGoTracker, PreconKickoff — were imported but never routed). Zero route guard, service, model, or styling changes. `tsc --noEmit` clean. | PageLoader.tsx | App.tsx (40 static→lazy imports, +Suspense boundary, +lazyNamed helper, -2 dead imports), shared/PageLoader.tsx (new), shared/index.ts (+PageLoader export) |
 
+<<<<<<< extract-common-services
 | Lib-1 | Extract `@hbc/sp-services` Shared Library — Moved 114 files (45 models + 14 services + 13 utils + 42 mock JSON) from `src/webparts/hbcProjectControls/` into `packages/hbc-sp-services/src/` as a standalone npm workspace package. Monorepo structure via npm workspaces (`"workspaces": ["packages/*"]`). Package barrel `index.ts` re-exports all models, services, utils, and `MOCK_USERS` from mock/users.json. All ~106 app files rewritten from relative imports (`../../models`, `../../services/*`, `../../utils/*`) to `from '@hbc/sp-services'`. Duplicate imports consolidated. Root tsconfig `rootDir` changed from `"src"` to `"."` to accommodate path alias resolution into packages/. Old path aliases (`@services/*`, `@models/*`, `@utils/*`) removed; new `@hbc/sp-services` alias added. Webpack dev config updated. `tsc --noEmit` passes on all 3 tsconfigs (root, dev, package). Webpack dev build compiles successfully. Zero model, service, utility, or component logic changes — purely structural refactor. | packages/hbc-sp-services/ (package.json, tsconfig.json, src/index.ts) | ~106 app files (import rewrites), package.json (workspaces, dependency, build scripts), tsconfig.json (rootDir, paths), dev/webpack.config.js (aliases), services/index.ts (added missing singleton/type exports), AzureADPeoplePicker.tsx (MOCK_USERS import), PursuitDetail.tsx (inline import type fix) |
+=======
+| CI-1 | GitHub Actions CI/CD Pipeline — ci.yml (full build on push/PR with .sppkg artifact upload), release.yml (tag-triggered GitHub Release with .sppkg asset), pr-validation.yml (fast type-check + lint for PRs), dependabot.yml (weekly npm + GitHub Actions updates, SPFx packages pinned to patch-only). Node 18.18.2 in CI (within engines range). Zero source code files touched. | .github/workflows/ci.yml, .github/workflows/release.yml, .github/workflows/pr-validation.yml, .github/dependabot.yml | CLAUDE.md (§1 +CI/CD table, §2 +.github dir, §15 +Phase CI-1) |
+>>>>>>> main
 
 ### Known Stubs / Placeholders
 
