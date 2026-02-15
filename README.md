@@ -3,11 +3,11 @@
 **Unified project lifecycle management for Hedrick Brothers Construction**
 
 ![SPFx 1.21.1](https://img.shields.io/badge/SPFx-1.21.1-green)
-![React 17](https://img.shields.io/badge/React-17.0.1-61dafb)
+![React 18](https://img.shields.io/badge/React-18.2.0-61dafb)
 ![TypeScript 5.3](https://img.shields.io/badge/TypeScript-5.3.3-3178c6)
 ![Fluent UI v9](https://img.shields.io/badge/Fluent_UI-v9-0078d4)
 ![Node 22.14](https://img.shields.io/badge/Node-22.14.0_(Volta)-339933)
-![Last Updated](https://img.shields.io/badge/Last_Updated-2026--02--14-blue)
+![Last Updated](https://img.shields.io/badge/Last_Updated-2026--02--15-blue)
 
 ---
 
@@ -23,7 +23,7 @@ The application runs inside SharePoint Online as a single-page app with hash-bas
 
 - **Context-aware** — automatically detects hub vs. project site and adjusts UI
 - **Role-based access** — 14 roles with 70+ granular permissions, plus a template-based permission engine for project-level scoping
-- **Feature-flagged** — 23 flags across 5 categories control what's visible per role and environment
+- **Feature-flagged** — 25 flags across 5 categories control what's visible per role and environment
 - **AI-assisted development** — built with Claude + Cursor using a living blueprint (`CLAUDE.md`) that documents every model, route, permission, and service method
 
 ---
@@ -47,21 +47,21 @@ The application runs inside SharePoint Online as a single-page app with hash-bas
 graph TB
     subgraph "SharePoint Online"
         WP["SPFx Web Part<br/>HbcProjectControlsWebPart.ts"]
-        SP_HUB["Hub Site<br/>36 SP Lists"]
-        SP_PROJ["Project Sites<br/>40 SP Lists each"]
+        SP_HUB["Hub Site<br/>38 SP Lists"]
+        SP_PROJ["Project Sites<br/>41 SP Lists each"]
     end
 
     subgraph "React Application"
         APP["App.tsx<br/>FluentProvider + HashRouter"]
         CTX["AppContext<br/>Auth + Permissions + Flags"]
         SHELL["AppShell<br/>Sidebar + Header + Content"]
-        ROUTES["49 Routes<br/>5 Route Groups"]
+        ROUTES["51 Routes<br/>5 Route Groups"]
     end
 
     subgraph "Data Layer"
-        IDS["IDataService<br/>204 methods"]
-        MOCK["MockDataService<br/>42 JSON files"]
-        SPDS["SharePointDataService<br/>51 impl / 153 stub"]
+        IDS["IDataService<br/>221 methods"]
+        MOCK["MockDataService<br/>43 JSON files"]
+        SPDS["SharePointDataService<br/>176 impl / 39 stub"]
         GRAPH["GraphService<br/>MS Graph API"]
     end
 
@@ -114,7 +114,7 @@ Azure AD Groups --> RoleName (14 roles) --> ROLE_PERMISSIONS --> Set<string>
 
 ### Routing
 
-Hash-based routing (`HashRouter`) with 49 routes across 5 groups:
+Hash-based routing (`HashRouter`) with 51 routes across 5 groups:
 
 | Group | Prefix | Example Routes |
 |-------|--------|----------------|
@@ -131,17 +131,21 @@ Hash-based routing (`HashRouter`) with 49 routes across 5 groups:
 | Layer | Technology | Version |
 |-------|-----------|---------|
 | Framework | SharePoint Framework (SPFx) | 1.21.1 |
-| UI Library | React | 17.0.1 |
+| UI Library | React | 18.2.0 |
 | Language | TypeScript | ~5.3.3 |
 | Components | Fluent UI v9 (`@fluentui/react-components`) | ^9.46.0 |
-| Icons | `@fluentui/react-icons` | ^2.0.230 |
+| Icons | `@fluentui/react-icons` | 2.0.319 |
 | Routing | react-router-dom | ^6.22.3 |
 | SharePoint Data | @pnp/sp, @pnp/graph | ^4.4.1 |
+| Guided Tours | react-joyride | ^2.9.3 |
 | Charts | Recharts | ^2.12.3 |
 | PDF Export | jsPDF + html2canvas | ^2.5.2 / ^1.4.1 |
 | Excel Export | SheetJS (xlsx) | ^0.18.5 |
 | Build | gulp + webpack | ^4.0.2 / ^5.90.0 |
-| Tests | Jest + React Testing Library | ^29.7.0 / ^12.1.5 |
+| Tests | Jest + React Testing Library | ^29.7.0 / ^14.0.0 |
+| Styling | Griffel makeStyles (Fluent UI v9 CSS-in-JS) | (bundled) |
+| Code Splitting | React.lazy() + Suspense | 40 lazy-loaded pages |
+| Monorepo | npm workspaces (`@hbc/sp-services`) | — |
 | Linting | ESLint + SPFx config | ^8.57.0 |
 | Node (Volta) | Node.js | 22.14.0 |
 
@@ -202,13 +206,14 @@ Runs `gulp bundle --ship && gulp package-solution --ship`. Outputs `sharepoint/s
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Standalone dev server (port 3000, mock data) |
-| `npm run build` | Production bundle + package |
+| `npm run build` | Build library + production bundle + package |
+| `npm run build:lib` | Build `@hbc/sp-services` library only |
+| `npm run build:app` | SPFx bundle + package only |
 | `npm run test` | Run Jest tests |
+| `npm run test:coverage` | Jest with coverage report |
+| `npm run test:ci` | Jest with coverage + CI mode |
 | `npm run lint` | ESLint check |
-| `npm run lint:fix` | ESLint auto-fix |
 | `gulp serve --nobrowser` | SPFx workbench (prefix with `volta run --node 22.14.0`) |
-| `gulp bundle --ship` | Production bundle only |
-| `gulp package-solution --ship` | Package .sppkg only |
 
 ---
 
@@ -221,34 +226,42 @@ src/webparts/hbcProjectControls/
 │   ├── App.tsx                          # Root: FluentProvider → HashRouter → AppShell → Routes
 │   ├── contexts/AppContext.tsx          # Global state: user, permissions, flags, project
 │   ├── guards/                          # RoleGate, FeatureGate, PermissionGate, ProtectedRoute, ProjectRequiredRoute
-│   ├── hooks/                           # 39 custom hooks (useLeads, useGoNoGo, useWorkflow, etc.)
+│   ├── hooks/                           # 41 custom hooks (useLeads, useGoNoGo, useWorkflow, etc.)
 │   ├── layouts/                         # AppShell, NavigationSidebar
 │   ├── pages/
 │   │   ├── hub/                         # Dashboard, Pipeline, Admin, Leads, Go/No-Go (17 pages)
 │   │   ├── precon/                      # Estimating, Pursuits, Autopsies (7 pages)
 │   │   ├── project/                     # Operations, PMP, Controls, Matrices (26 pages + pmp/)
 │   │   └── shared/                      # AccessDeniedPage
-│   └── shared/                          # 33 reusable components (DataTable, KPICard, ExportButtons, etc.)
-├── mock/                                # 42 JSON mock data files
-├── models/                              # 45 TypeScript model files (enums.ts + I*.ts interfaces)
+│   └── shared/                          # 34 reusable components (DataTable, KPICard, ExportButtons, etc.)
+│
+│   NOTE: models/, services/, utils/, mock/ have moved to packages/hbc-sp-services/src/
+│   All app code imports from '@hbc/sp-services' instead of relative paths.
+
+packages/hbc-sp-services/src/           # Shared data layer library (@hbc/sp-services)
+├── mock/                                # 43 JSON mock data files
+├── models/                              # 46 TypeScript model files (enums.ts + I*.ts interfaces)
 ├── services/
-│   ├── IDataService.ts                  # 204-method interface
+│   ├── IDataService.ts                  # 221-method interface
 │   ├── MockDataService.ts              # Full mock implementation
-│   ├── SharePointDataService.ts        # SP implementation (51 impl, 153 stubs)
+│   ├── SharePointDataService.ts        # SP implementation (176 impl, 39 stubs, 6 delegation)
 │   ├── GraphService.ts                 # MS Graph: users, photos, calendar, mail, Teams
 │   ├── AuditService.ts                 # Fire-and-forget audit queue
 │   ├── CacheService.ts                 # Two-tier cache (memory + sessionStorage)
 │   ├── NotificationService.ts          # 20+ event-driven notification handlers
 │   ├── ProvisioningService.ts          # 7-step site provisioning engine
 │   ├── ExportService.ts               # Branded PDF/Excel/CSV export
-│   ├── columnMappings.ts              # SP column name mappings (1,267 lines)
-│   └── ...                             # OfflineQueue, PowerAutomate, HubNavigation
-├── theme/                               # HBC brand colors, Fluent UI v9 theme, global styles
-└── utils/                               # Permissions, validators, formatters, stage engine, constants
+│   ├── columnMappings.ts              # SP column name mappings (1,290+ lines)
+│   └── ...                             # OfflineQueue, PowerAutomate, HubNavigation, Performance
+├── utils/                               # Permissions, validators, formatters, stage engine, constants
+└── index.ts                             # Public barrel: re-exports models + services + utils
+
+theme/                                    # HBC brand colors, Fluent UI v9 theme, global Griffel styles
 
 dev/                                      # Standalone dev server + RoleSwitcher + mock context
 config/                                   # SPFx config (package-solution, serve, config)
 docs/                                     # DATA_ARCHITECTURE.md, PERMISSION_STRATEGY.md, SECURITY_ANALYSIS.md
+.github/workflows/                        # CI, release, PR validation pipelines
 ```
 
 ---
@@ -257,7 +270,7 @@ docs/                                     # DATA_ARCHITECTURE.md, PERMISSION_STR
 
 The application reads from and writes to SharePoint lists organized across two site types:
 
-### Hub Site Lists (36)
+### Hub Site Lists (38)
 
 Centralized data shared across all projects:
 
@@ -269,9 +282,9 @@ Centralized data shared across all projects:
 | Scorecard | Scorecard_Approval_Cycles, Scorecard_Approval_Steps, Scorecard_Versions |
 | Permissions | Permission_Templates, Security_Group_Mappings, Project_Team_Assignments |
 | Reference | Active_Projects_Portfolio, Job_Number_Requests, Project_Types, Standard_Cost_Codes, Sector_Definitions, Assignment_Mappings, Template_Registry, Marketing_Project_Records, Lessons_Learned_Hub |
-| Infrastructure | Provisioning_Log, App_Context_Config, Regions, Sectors, Autopsy_Attendees |
+| Infrastructure | Provisioning_Log, App_Context_Config, Performance_Logs, Help_Guides, Regions, Sectors, Autopsy_Attendees, Division_Approvers, PMP_Boilerplate |
 
-### Per-Project Site Lists (40)
+### Per-Project Site Lists (41)
 
 Created during site provisioning for each project:
 
@@ -279,7 +292,7 @@ Created during site provisioning for each project:
 |----------|-------|
 | Team & Deliverables | Team_Members, Deliverables, Action_Items |
 | Startup | Startup_Checklist, Checklist_Activity_Log |
-| Matrices | Internal_Matrix, Owner_Contract_Matrix, Sub_Contract_Matrix |
+| Matrices | Internal_Matrix, Team_Role_Assignments, Owner_Contract_Matrix, Sub_Contract_Matrix |
 | PMP | Project_Management_Plans, PMP_Signatures, PMP_Approval_Cycles, PMP_Approval_Steps |
 | Controls | Risk_Cost_Management, Risk_Cost_Items, Quality_Concerns, Safety_Concerns, Project_Schedule, Critical_Path_Items |
 | Operations | Superintendent_Plan, Superintendent_Plan_Sections, Lessons_Learned, Buyout_Log, Commitment_Approvals |
@@ -333,9 +346,9 @@ Created during site provisioning for each project:
 | `ProtectedRoute` | Redirects to `/access-denied` if permission is missing |
 | `ProjectRequiredRoute` | Shows "No Project Selected" if no project is selected |
 
-### Feature Flags (23)
+### Feature Flags (25)
 
-Organized into 5 categories: **Core Platform** (6), **Preconstruction** (3), **Project Execution** (4), **Infrastructure** (5), **Integrations** (5).
+Organized into 5 categories: **Core Platform** (6), **Preconstruction** (3), **Project Execution** (4), **Infrastructure** (7), **Integrations** (5).
 
 Feature flags control visibility at both the **navigation level** (sidebar items) and the **route level** (page access). Flags can be restricted to specific roles.
 
@@ -372,7 +385,7 @@ All mock data lives in `mock/*.json`. `MockDataService` loads these files and ma
 
 ### Styling
 
-All styling uses inline `style={{}}` with `HBC_COLORS` from `theme/tokens.ts`. No CSS modules, SCSS, or CSS-in-JS libraries. This is intentional for SPFx compatibility and consistency.
+Uses a hybrid CSS pattern — **Griffel `makeStyles()`** (Fluent UI v9 CSS-in-JS) for structural styles and **minimal inline `style={{}}`** for dynamic/data-driven values only. Shared components (AppShell, NavigationSidebar, DataTable, KPICard, SearchBar, etc.) are fully migrated to makeStyles. Fluent `tokens.*` are preferred for semantic colors; `HBC_COLORS` from `theme/tokens.ts` for brand-specific colors. Global reusable Griffel classes (40+) are defined in `theme/globalStyles.ts`. No CSS modules or SCSS files.
 
 ---
 
@@ -395,7 +408,7 @@ All styling uses inline `style={{}}` with `HBC_COLORS` from `theme/tokens.ts`. N
 
 ## Roadmap
 
-### Completed (32 Phases)
+### Completed (45+ Phases)
 
 | Phase | Milestone |
 |-------|-----------|
@@ -410,12 +423,20 @@ All styling uses inline `style={{}}` with `HBC_COLORS` from `theme/tokens.ts`. N
 | 20–24 | UX — SharePoint Admin role, nav cleanup, BD Rep / EC enhancements |
 | 25–29 | Polish — Job number form, site detection, admin assignments, autopsies, provisioning |
 | 30–32 | Deployment — Readiness assessment, Tier 0 remediation, security audit |
+| SP-1–7 | SharePointDataService — 7 implementation chunks (permissions, provisioning, workflows, checklists, controls, hub CRUD, PMP) |
+| Theme-1 | Fluent UI v9 makeStyles migration (10 shared components, 40+ global classes) |
+| React18 | React 18.2.0 migration (createRoot, concurrent features) |
+| Perf-1–2 | Performance — Route-based code splitting (40 lazy pages), performance monitoring |
+| Lib-1 | Monorepo — Extract `@hbc/sp-services` shared data layer library |
+| CI-1 | GitHub Actions CI/CD pipeline (build, test, release) |
+| Help-1–4 | Help system — Contextual guides, guided tours, contact support |
+| Test-1 | Unit tests — 10 suites, 245 tests, Jest 29 + ts-jest |
 
 ### Upcoming
 
 | Priority | Item |
 |----------|------|
-| **P1** | SharePointDataService stub implementation (153 remaining methods) |
+| **P1** | SharePointDataService stub completion (39 remaining methods — monthly review, turnover, scorecards workflow) |
 | **P2** | ERP integrations (Unanet, Sage 300) |
 | **P3** | AI contract review (Document Crunch) |
 | **P4** | Offline support with queue sync |
