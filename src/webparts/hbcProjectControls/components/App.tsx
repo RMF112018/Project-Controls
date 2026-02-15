@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route } from 'react-router-dom';
 import { FluentProvider } from '@fluentui/react-components';
 import { hbcLightTheme } from '../theme/hbcTheme';
 import { AppProvider } from './contexts/AppContext';
+import { HelpProvider } from './contexts/HelpContext';
 import { AppShell } from './layouts/AppShell';
 import { ErrorBoundary } from './shared/ErrorBoundary';
 import { ToastProvider } from './shared/ToastContainer';
@@ -45,6 +46,7 @@ const ComplianceLog = lazyNamed(() => import('./pages/hub/ComplianceLog'));
 // ---------------------------------------------------------------------------
 const AdminPanel = lazyNamed(() => import('./pages/hub/AdminPanel'));
 const PerformanceDashboard = lazyNamed(() => import('./pages/hub/PerformanceDashboard'));
+const ApplicationSupportPage = lazyNamed(() => import('./pages/hub/ApplicationSupportPage'));
 
 // ---------------------------------------------------------------------------
 // Lazy page imports — Precon
@@ -317,6 +319,13 @@ const AppRoutes: React.FC = () => (
           </ProtectedRoute>
         </FeatureGate>
       } />
+      <Route path="/admin/application-support" element={
+        <FeatureGate featureName="EnableHelpSystem" fallback={<NotFoundPage />}>
+          <ProtectedRoute permission={PERMISSIONS.ADMIN_CONFIG}>
+            <ApplicationSupportPage />
+          </ProtectedRoute>
+        </FeatureGate>
+      } />
 
       {/* System */}
       <Route path="/access-denied" element={<AccessDeniedPage />} />
@@ -330,13 +339,15 @@ export const App: React.FC<IAppProps> = ({ dataService, siteUrl }) => {
     <FluentProvider theme={hbcLightTheme}>
       <ErrorBoundary>
         <AppProvider dataService={dataService} siteUrl={siteUrl}>
-          <ToastProvider>
-            <HashRouter>
-              <AppShell>
-                <AppRoutes />
-              </AppShell>
-            </HashRouter>
-          </ToastProvider>
+          <HelpProvider>
+            <ToastProvider>
+              <HashRouter>
+                <AppShell>
+                  <AppRoutes />
+                </AppShell>
+              </HashRouter>
+            </ToastProvider>
+          </HelpProvider>
         </AppProvider>
       </ErrorBoundary>
     </FluentProvider>

@@ -62,7 +62,13 @@
       "Bash(chmod:*)",
       "Bash(npm run build:lib:*)",
       "Bash(npm run dev:*)",
-      "Bash(npm view:*)"
+      "Bash(npm view:*)",
+      "Bash(npx jest:*)",
+      "Bash(npm run test:*)",
+      "Bash(node:*)",
+      "Bash(NODE_DEBUG=module node:*)",
+      "Bash(npm run test:ci:*)",
+      "WebFetch(domain:docs.react-joyride.com)"
     ]
   }
 }

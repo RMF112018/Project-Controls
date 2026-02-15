@@ -1,0 +1,95 @@
+[
+  {
+    "id": 1,
+    "moduleKey": "dashboard",
+    "title": "Dashboard Overview",
+    "content": "The Dashboard is your central hub for project controls. View action items awaiting your attention, key performance indicators, and quick access to recent projects. Use the Project Picker in the sidebar to select a specific project for detailed operations.",
+    "guideType": "walkthrough",
+    "sortOrder": 1,
+    "targetSelector": "[data-help='dashboard-kpis']",
+    "isActive": true,
+    "lastModifiedBy": "System",
+    "lastModifiedDate": "2026-02-15T00:00:00Z"
+  },
+  {
+    "id": 2,
+    "moduleKey": "pipeline",
+    "title": "Pipeline & Go/No-Go Tracker",
+    "content": "The Pipeline page visualizes all leads by stage. Use the Pipeline tab to see the funnel view and the Go/No-Go Tracker tab to monitor scorecard statuses. Filter by Region, Sector, BD Rep, or Status. Click any lead row to navigate to its detail page.",
+    "guideType": "walkthrough",
+    "sortOrder": 1,
+    "targetSelector": "[data-help='pipeline-chart']",
+    "isActive": true,
+    "lastModifiedBy": "System",
+    "lastModifiedDate": "2026-02-15T00:00:00Z"
+  },
+  {
+    "id": 3,
+    "moduleKey": "lead-form",
+    "title": "Creating a New Lead",
+    "content": "Fill in the required fields marked with an asterisk (*): Project Name, Client Name, City, and State. The system will auto-populate City Location from your City entry. After submission, a BD Leads folder is automatically created in the document library.",
+    "guideType": "walkthrough",
+    "sortOrder": 1,
+    "targetSelector": "[data-help='lead-form']",
+    "isActive": true,
+    "lastModifiedBy": "System",
+    "lastModifiedDate": "2026-02-14T00:00:00Z"
+  },
+  {
+    "id": 4,
+    "moduleKey": "gonogo",
+    "title": "Go/No-Go Scorecard Process",
+    "content": "The Go/No-Go scorecard follows a multi-step workflow: BD Rep drafts and submits scores, the Director reviews (approve/return/reject), then the Committee scores and makes a final Go, No-Go, or Conditional Go decision. Scores are based on 13 criteria totaling 92 points maximum.",
+    "guideType": "walkthrough",
+    "sortOrder": 1,
+    "targetSelector": "[data-help='gonogo-criteria']",
+    "isActive": true,
+    "lastModifiedBy": "System",
+    "lastModifiedDate": "2026-02-15T00:00:00Z"
+  },
+  {
+    "id": 5,
+    "moduleKey": "estimating",
+    "title": "Estimating Dashboard",
+    "content": "The Estimating Dashboard has three tabs: Current Pursuits (active estimates), Precon Tracker (preconstruction engagements), and Estimate Log (historical). Click any row to edit inline. Use the Request New Project Number button to initiate a job number request for Go decisions.",
+    "guideType": "walkthrough",
+    "sortOrder": 1,
+    "targetSelector": "[data-help='estimating-table']",
+    "isActive": true,
+    "lastModifiedBy": "System",
+    "lastModifiedDate": "2026-02-15T00:00:00Z"
+  },
+  {
+    "id": 6,
+    "moduleKey": "buyout-log",
+    "title": "Buyout Log & Commitments",
+    "content": "The Buyout Log tracks subcontractor commitments by CSI division. Each entry flows through a commitment approval workflow: submit for approval, PX review, compliance check (if waiver needed), and CFO escalation for high-value items. E-Verify status is tracked per subcontractor.",
+    "guideType": "article",
+    "sortOrder": 1,
+    "isActive": true,
+    "lastModifiedBy": "System",
+    "lastModifiedDate": "2026-02-14T00:00:00Z"
+  },
+  {
+    "id": 7,
+    "moduleKey": "admin",
+    "title": "Admin Panel Overview",
+    "content": "The Admin Panel provides system configuration across multiple tabs: Connections (SP hub URL), Roles, Feature Flags, Provisioning logs, Workflows (approval chains and assignment mappings), Permissions (templates and security groups), Sectors, Assignments (project team management), and Audit Log.",
+    "guideType": "article",
+    "sortOrder": 1,
+    "isActive": true,
+    "lastModifiedBy": "System",
+    "lastModifiedDate": "2026-02-14T00:00:00Z"
+  },
+  {
+    "id": 8,
+    "moduleKey": "pmp",
+    "title": "Project Management Plan",
+    "content": "The PMP consolidates 16 sections of project planning information. It pulls data from standalone modules (Risk/Cost, Schedule, Quality, Safety, Superintendent Plan). The PMP follows a signature and approval workflow: team signatures, then division-based approval cycles.",
+    "guideType": "article",
+    "sortOrder": 1,
+    "isActive": true,
+    "lastModifiedBy": "System",
+    "lastModifiedDate": "2026-02-14T00:00:00Z"
+  }
+]

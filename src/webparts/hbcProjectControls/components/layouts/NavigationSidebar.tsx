@@ -189,6 +189,7 @@ const NAV_STRUCTURE: INavGroupDef[] = [
     items: [
       { label: 'Admin Panel', path: '/admin', permission: PERMISSIONS.ADMIN_CONFIG },
       { label: 'Performance', path: '/admin/performance', permission: PERMISSIONS.ADMIN_CONFIG, featureFlag: 'PerformanceMonitoring' },
+      { label: 'Application Support', path: '/admin/application-support', permission: PERMISSIONS.ADMIN_CONFIG, featureFlag: 'EnableHelpSystem' },
     ],
   },
 ];

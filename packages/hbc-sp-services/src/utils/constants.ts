@@ -47,6 +47,7 @@ export const HUB_LISTS = {
   SECTOR_DEFINITIONS: 'Sector_Definitions',
   ASSIGNMENT_MAPPINGS: 'Assignment_Mappings',
   PERFORMANCE_LOGS: 'Performance_Logs',
+  HELP_GUIDES: 'Help_Guides',
 } as const;
 
 export const PROJECT_LISTS = {
@@ -156,6 +157,7 @@ export const ROUTES = {
   // Admin
   ADMIN: '/admin',
   ADMIN_PERFORMANCE: '/admin/performance',
+  ADMIN_APPLICATION_SUPPORT: '/admin/application-support',
 
   // System
   ACCESS_DENIED: '/access-denied',

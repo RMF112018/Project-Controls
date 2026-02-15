@@ -33,6 +33,7 @@ import { IActionInboxItem } from '../models/IActionInbox';
 import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions, IToolAccess, IGranularFlagOverride } from '../models/IPermissionTemplate';
 import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfig';
 import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '../models/IPerformanceLog';
+import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
 import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 import { ROLE_PERMISSIONS } from '../utils/permissions';
@@ -3254,5 +3255,35 @@ export class SharePointDataService implements IDataService {
   async getPerformanceSummary(_options?: IPerformanceQueryOptions): Promise<IPerformanceSummary> {
     console.warn('[STUB] getPerformanceSummary not implemented');
     return { avgTotalLoadMs: 0, avgWebPartLoadMs: 0, avgAppInitMs: 0, p95TotalLoadMs: 0, totalSessions: 0, slowSessionCount: 0, byDay: [] };
+  }
+
+  // ── Help & Support ──────────────────────────────────────────────────────
+
+  async getHelpGuides(_moduleKey?: string): Promise<IHelpGuide[]> {
+    console.warn('[STUB] getHelpGuides not implemented');
+    return [];
+  }
+
+  async getHelpGuideById(_id: number): Promise<IHelpGuide | null> {
+    console.warn('[STUB] getHelpGuideById not implemented');
+    return null;
+  }
+
+  async getSupportConfig(): Promise<ISupportConfig> {
+    console.warn('[STUB] getSupportConfig not implemented');
+    return { supportEmail: 'support@hedrickbrothers.com' };
+  }
+
+  async updateHelpGuide(_id: number, _data: Partial<IHelpGuide>): Promise<IHelpGuide> {
+    console.warn('[STUB] updateHelpGuide not implemented');
+    throw new Error('SharePoint implementation pending: updateHelpGuide');
+  }
+
+  async sendSupportEmail(_to: string, _subject: string, _htmlBody: string, _fromUserEmail: string): Promise<void> {
+    console.warn('[STUB] sendSupportEmail not implemented — will delegate to GraphService.sendEmail()');
+  }
+
+  async updateSupportConfig(_config: Partial<ISupportConfig>): Promise<ISupportConfig> {
+    throw new Error('SharePoint implementation pending: updateSupportConfig');
   }
 }

@@ -194,6 +194,8 @@ export enum AuditAction {
   GraphGroupMemberAddFailed = 'Graph.GroupMemberAddFailed',
   PerformanceLogRecorded = 'Performance.LogRecorded',
   PerformanceAlertTriggered = 'Performance.AlertTriggered',
+  SupportEmailSent = 'Support.EmailSent',
+  SupportConfigUpdated = 'Support.ConfigUpdated',
 }
 
 export enum EntityType {
@@ -221,6 +223,7 @@ export enum EntityType {
   AssignmentMapping = 'AssignmentMapping',
   GraphApi = 'GraphApi',
   Performance = 'Performance',
+  SupportRequest = 'SupportRequest',
 }
 
 export enum DeliverableStatus {

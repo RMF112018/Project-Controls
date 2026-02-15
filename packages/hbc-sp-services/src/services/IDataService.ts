@@ -42,6 +42,7 @@ import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfi
 import { ISectorDefinition } from '../models/ISectorDefinition';
 import { IAssignmentMapping } from '../models/IAssignmentMapping';
 import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '../models/IPerformanceLog';
+import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
 import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -391,6 +392,14 @@ export interface IDataService {
   logPerformanceEntry(entry: Partial<IPerformanceLog>): Promise<IPerformanceLog>;
   getPerformanceLogs(options?: IPerformanceQueryOptions): Promise<IPerformanceLog[]>;
   getPerformanceSummary(options?: IPerformanceQueryOptions): Promise<IPerformanceSummary>;
+
+  // Help & Support
+  getHelpGuides(moduleKey?: string): Promise<IHelpGuide[]>;
+  getHelpGuideById(id: number): Promise<IHelpGuide | null>;
+  getSupportConfig(): Promise<ISupportConfig>;
+  updateHelpGuide(id: number, data: Partial<IHelpGuide>): Promise<IHelpGuide>;
+  sendSupportEmail(to: string, subject: string, htmlBody: string, fromUserEmail: string): Promise<void>;
+  updateSupportConfig(config: Partial<ISupportConfig>): Promise<ISupportConfig>;
 
   // Project site URL targeting (Phase 26)
   setProjectSiteUrl(siteUrl: string | null): void;
