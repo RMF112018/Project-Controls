@@ -44,3 +44,4 @@ export * from './ISectorDefinition';
 export * from './IAssignmentMapping';
 export * from './IPerformanceLog';
 export * from './IHelpGuide';
+export * from './ISignalRMessage';

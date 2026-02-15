@@ -39,3 +39,5 @@ export { useProvisioningValidation } from './useProvisioningValidation';
 export { usePerformanceMetrics } from './usePerformanceMetrics';
 export { useCurrentModule } from './useCurrentModule';
 export { useAppStateSummary } from './useAppStateSummary';
+export { useSignalR } from './useSignalR';
+export type { IUseSignalROptions, IUseSignalRResult } from './useSignalR';

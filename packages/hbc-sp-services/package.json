@@ -17,6 +17,7 @@
     "@pnp/logging": "^4.4.1",
     "@pnp/queryable": "^4.4.1",
     "@fluentui/react-icons": "^2.0.230",
+    "@microsoft/signalr": "^8.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },

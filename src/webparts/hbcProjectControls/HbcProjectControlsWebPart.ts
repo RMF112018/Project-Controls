@@ -4,7 +4,7 @@ import { Version } from '@microsoft/sp-core-library';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IPropertyPaneConfiguration, PropertyPaneTextField } from '@microsoft/sp-property-pane';
 import { App, IAppProps } from './components/App';
-import { IDataService, MockDataService, SharePointDataService, graphService, performanceService } from '@hbc/sp-services';
+import { IDataService, MockDataService, SharePointDataService, graphService, performanceService, signalRService } from '@hbc/sp-services';
 
 export interface IHbcProjectControlsWebPartProps {
   description?: string;
@@ -74,6 +74,18 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
 
     // Initialize PerformanceService with logging function
     performanceService.initialize((entry) => this._dataService.logPerformanceEntry(entry));
+
+    // Initialize SignalR real-time service (connection deferred until feature flag checked)
+    if (useSP) {
+      signalRService.initialize(
+        'https://func-hbc-signalr-prod.azurewebsites.net/api',
+        async () => {
+          const tokenProvider = await this.context.aadTokenProviderFactory.getTokenProvider();
+          return tokenProvider.getToken('api://func-hbc-signalr-prod.azurewebsites.net');
+        }
+      );
+    }
+
     performanceService.endMark('webpart:onInit');
   }
 
@@ -94,6 +106,7 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
   }
 
   protected onDispose(): void {
+    signalRService.dispose();
     this._root?.unmount();
     this._root = null;
   }
