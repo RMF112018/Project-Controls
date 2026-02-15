@@ -1593,6 +1593,19 @@ export const PROJECT_TEAM_ASSIGNMENTS_COLUMNS = {
 } as const;
 
 /**
+ * List: Sector_Definitions
+ * Interface: ISectorDefinition
+ */
+export const SECTOR_DEFINITIONS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  code: 'Code',                                // SP: Single Line of Text
+  label: 'Title',                              // SP: Single Line of Text (default)
+  isActive: 'IsActive',                        // SP: Yes/No
+  parentDivision: 'ParentDivision',            // SP: Single Line of Text
+  sortOrder: 'SortOrder',                      // SP: Number
+} as const;
+
+/**
  * List: Assignment_Mappings
  * Interface: IAssignmentMapping
  */
@@ -1626,6 +1639,30 @@ export const PERFORMANCE_LOGS_COLUMNS = {
   UserAgent: 'UserAgent',                      // SP: Multiple Lines of Text
   SpfxVersion: 'SpfxVersion',                  // SP: Single Line of Text
   Notes: 'Notes',                              // SP: Multiple Lines of Text
+} as const;
+
+/**
+ * List: Division_Approvers (Hub site)
+ * Interface: IDivisionApprover
+ */
+export const DIVISION_APPROVERS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  division: 'division',                        // SP: Choice (Commercial, Luxury Residential)
+  approverName: 'approverName',                // SP: Single Line of Text
+  approverEmail: 'approverEmail',              // SP: Single Line of Text
+  approverTitle: 'approverTitle',              // SP: Single Line of Text
+} as const;
+
+/**
+ * List: PMP_Boilerplate (Hub site)
+ * Interface: IPMPBoilerplateSection
+ */
+export const PMP_BOILERPLATE_COLUMNS = {
+  sectionNumber: 'sectionNumber',              // SP: Single Line of Text
+  sectionTitle: 'sectionTitle',                // SP: Single Line of Text
+  content: 'content',                          // SP: Multiple Lines of Text
+  sourceDocumentUrl: 'sourceDocumentUrl',       // SP: Hyperlink
+  lastSourceUpdate: 'lastSourceUpdate',         // SP: DateTime
 } as const;
 
 /**

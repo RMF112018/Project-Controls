@@ -48,6 +48,8 @@ export const HUB_LISTS = {
   ASSIGNMENT_MAPPINGS: 'Assignment_Mappings',
   PERFORMANCE_LOGS: 'Performance_Logs',
   HELP_GUIDES: 'Help_Guides',
+  DIVISION_APPROVERS: 'Division_Approvers',
+  PMP_BOILERPLATE: 'PMP_Boilerplate',
 } as const;
 
 export const PROJECT_LISTS = {

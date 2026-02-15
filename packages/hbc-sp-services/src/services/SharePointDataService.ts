@@ -17,9 +17,9 @@ import { ISafetyConcern } from '../models/ISafetyConcerns';
 import { IProjectScheduleCriticalPath, ICriticalPathItem } from '../models/IProjectScheduleCriticalPath';
 import { ISuperintendentPlan, ISuperintendentPlanSection } from '../models/ISuperintendentPlan';
 import { ILessonLearned } from '../models/ILessonsLearned';
-import { IProjectManagementPlan, IDivisionApprover, IPMPBoilerplateSection } from '../models/IProjectManagementPlan';
+import { IProjectManagementPlan, IPMPSignature, IPMPApprovalCycle, IPMPApprovalStep, IDivisionApprover, IPMPBoilerplateSection } from '../models/IProjectManagementPlan';
 import { IMonthlyProjectReview } from '../models/IMonthlyProjectReview';
-import { IEstimatingKickoff, IEstimatingKickoffItem } from '../models/IEstimatingKickoff';
+import { IEstimatingKickoff, IEstimatingKickoffItem, IKeyPersonnelEntry } from '../models/IEstimatingKickoff';
 import { IJobNumberRequest, JobNumberRequestStatus } from '../models/IJobNumberRequest';
 import { IProjectType } from '../models/IProjectType';
 import { IStandardCostCode } from '../models/IStandardCostCode';
@@ -30,6 +30,8 @@ import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../m
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep, IPersonAssignment, IAssignmentCondition } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
 import { IActionInboxItem } from '../models/IActionInbox';
+import { ISectorDefinition } from '../models/ISectorDefinition';
+import { IAssignmentMapping } from '../models/IAssignmentMapping';
 import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions, IToolAccess, IGranularFlagOverride } from '../models/IPermissionTemplate';
 import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfig';
 import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '../models/IPerformanceLog';
@@ -55,6 +57,28 @@ import {
   OWNER_CONTRACT_MATRIX_COLUMNS,
   SUB_CONTRACT_MATRIX_COLUMNS,
   MARKETING_PROJECT_RECORDS_COLUMNS,
+  RISK_COST_MANAGEMENT_COLUMNS,
+  RISK_COST_ITEMS_COLUMNS,
+  QUALITY_CONCERNS_COLUMNS,
+  SAFETY_CONCERNS_COLUMNS,
+  PROJECT_SCHEDULE_COLUMNS,
+  CRITICAL_PATH_ITEMS_COLUMNS,
+  SUPERINTENDENT_PLAN_COLUMNS,
+  SUPERINTENDENT_PLAN_SECTIONS_COLUMNS,
+  LESSONS_LEARNED_COLUMNS,
+  ESTIMATING_KICKOFFS_COLUMNS,
+  ESTIMATING_KICKOFF_ITEMS_COLUMNS,
+  JOB_NUMBER_REQUESTS_COLUMNS,
+  PROJECT_TYPES_COLUMNS,
+  STANDARD_COST_CODES_COLUMNS,
+  SECTOR_DEFINITIONS_COLUMNS,
+  ASSIGNMENT_MAPPINGS_COLUMNS,
+  PMP_COLUMNS,
+  PMP_SIGNATURES_COLUMNS,
+  PMP_APPROVAL_CYCLES_COLUMNS,
+  PMP_APPROVAL_STEPS_COLUMNS,
+  DIVISION_APPROVERS_COLUMNS,
+  PMP_BOILERPLATE_COLUMNS,
 } from './columnMappings';
 import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
 
@@ -900,44 +924,732 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Risk & Cost ---
-  async getRiskCostManagement(_projectCode: string): Promise<IRiskCostManagement | null> { console.warn('[STUB] getRiskCostManagement not implemented'); return null; }
-  async updateRiskCostManagement(_projectCode: string, _data: Partial<IRiskCostManagement>): Promise<IRiskCostManagement> { throw new Error('SharePoint implementation pending: updateRiskCostManagement'); }
-  async addRiskCostItem(_projectCode: string, _item: Partial<IRiskCostItem>): Promise<IRiskCostItem> { throw new Error('SharePoint implementation pending: addRiskCostItem'); }
-  async updateRiskCostItem(_projectCode: string, _itemId: number, _data: Partial<IRiskCostItem>): Promise<IRiskCostItem> { throw new Error('SharePoint implementation pending: updateRiskCostItem'); }
+
+  async getRiskCostManagement(projectCode: string): Promise<IRiskCostManagement | null> {
+    const web = this._getProjectWeb();
+    const col = RISK_COST_MANAGEMENT_COLUMNS;
+    const itemCol = RISK_COST_ITEMS_COLUMNS;
+
+    const [parents, items] = await Promise.all([
+      web.lists.getByTitle(LIST_NAMES.RISK_COST_MANAGEMENT).items
+        .filter(`${col.projectCode} eq '${projectCode}'`)
+        .top(1)(),
+      web.lists.getByTitle(LIST_NAMES.RISK_COST_ITEMS).items
+        .filter(`${itemCol.projectCode} eq '${projectCode}'`)
+        .top(500)(),
+    ]);
+
+    if (parents.length === 0) return null;
+
+    const parent = this.mapToRiskCostManagement(parents[0]);
+    const mappedItems = items.map((i: Record<string, unknown>) => this.mapToRiskCostItem(i));
+
+    return {
+      ...parent,
+      buyoutOpportunities: mappedItems.filter((i: IRiskCostItem) => i.category === 'Buyout'),
+      potentialRisks: mappedItems.filter((i: IRiskCostItem) => i.category === 'Risk'),
+      potentialSavings: mappedItems.filter((i: IRiskCostItem) => i.category === 'Savings'),
+    };
+  }
+
+  async updateRiskCostManagement(projectCode: string, data: Partial<IRiskCostManagement>): Promise<IRiskCostManagement> {
+    const web = this._getProjectWeb();
+    const col = RISK_COST_MANAGEMENT_COLUMNS;
+
+    const parents = await web.lists.getByTitle(LIST_NAMES.RISK_COST_MANAGEMENT).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .top(1)();
+
+    if (parents.length === 0) throw new Error(`Risk/Cost record for ${projectCode} not found`);
+
+    const updateData: Record<string, unknown> = {};
+    if (data.contractType !== undefined) updateData[col.contractType] = data.contractType;
+    if (data.contractAmount !== undefined) updateData[col.contractAmount] = data.contractAmount;
+    if (data.lastUpdatedBy !== undefined) updateData[col.lastUpdatedBy] = data.lastUpdatedBy;
+    updateData[col.lastUpdatedAt] = new Date().toISOString();
+
+    const itemId = (parents[0] as Record<string, unknown>).Id as number;
+    await web.lists.getByTitle(LIST_NAMES.RISK_COST_MANAGEMENT).items.getById(itemId).update(updateData);
+
+    // Re-read and assemble
+    return (await this.getRiskCostManagement(projectCode))!;
+  }
+
+  async addRiskCostItem(projectCode: string, item: Partial<IRiskCostItem>): Promise<IRiskCostItem> {
+    const web = this._getProjectWeb();
+    const col = RISK_COST_ITEMS_COLUMNS;
+    const parentCol = RISK_COST_MANAGEMENT_COLUMNS;
+
+    // Look up parent to get riskCostId
+    const parents = await web.lists.getByTitle(LIST_NAMES.RISK_COST_MANAGEMENT).items
+      .filter(`${parentCol.projectCode} eq '${projectCode}'`)
+      .top(1)();
+
+    const riskCostId = parents.length > 0 ? (parents[0] as Record<string, unknown>).Id as number : undefined;
+
+    const now = new Date().toISOString();
+    const addData: Record<string, unknown> = {
+      [col.projectCode]: projectCode,
+      [col.riskCostId]: riskCostId,
+      [col.category]: item.category ?? 'Risk',
+      [col.letter]: item.letter ?? '',
+      [col.description]: item.description ?? '',
+      [col.estimatedValue]: item.estimatedValue ?? 0,
+      [col.status]: item.status ?? 'Open',
+      [col.notes]: item.notes ?? '',
+      [col.createdDate]: now,
+      [col.updatedDate]: now,
+    };
+
+    const result = await web.lists.getByTitle(LIST_NAMES.RISK_COST_ITEMS).items.add(addData);
+    return this.mapToRiskCostItem(result.data);
+  }
+
+  async updateRiskCostItem(projectCode: string, itemId: number, data: Partial<IRiskCostItem>): Promise<IRiskCostItem> {
+    const web = this._getProjectWeb();
+    const col = RISK_COST_ITEMS_COLUMNS;
+
+    const updateData: Record<string, unknown> = {};
+    if (data.category !== undefined) updateData[col.category] = data.category;
+    if (data.letter !== undefined) updateData[col.letter] = data.letter;
+    if (data.description !== undefined) updateData[col.description] = data.description;
+    if (data.estimatedValue !== undefined) updateData[col.estimatedValue] = data.estimatedValue;
+    if (data.status !== undefined) updateData[col.status] = data.status;
+    if (data.notes !== undefined) updateData[col.notes] = data.notes;
+    updateData[col.updatedDate] = new Date().toISOString();
+
+    await web.lists.getByTitle(LIST_NAMES.RISK_COST_ITEMS).items.getById(itemId).update(updateData);
+
+    const updated = await web.lists.getByTitle(LIST_NAMES.RISK_COST_ITEMS).items.getById(itemId)();
+    return this.mapToRiskCostItem(updated);
+  }
 
   // --- Quality Concerns ---
-  async getQualityConcerns(_projectCode: string): Promise<IQualityConcern[]> { console.warn('[STUB] getQualityConcerns not implemented'); return []; }
-  async addQualityConcern(_projectCode: string, _concern: Partial<IQualityConcern>): Promise<IQualityConcern> { throw new Error('SharePoint implementation pending: addQualityConcern'); }
-  async updateQualityConcern(_projectCode: string, _concernId: number, _data: Partial<IQualityConcern>): Promise<IQualityConcern> { throw new Error('SharePoint implementation pending: updateQualityConcern'); }
+
+  async getQualityConcerns(projectCode: string): Promise<IQualityConcern[]> {
+    const web = this._getProjectWeb();
+    const col = QUALITY_CONCERNS_COLUMNS;
+
+    const items = await web.lists.getByTitle(LIST_NAMES.QUALITY_CONCERNS).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .orderBy(col.letter, true)
+      .top(500)();
+
+    return items.map((item: Record<string, unknown>) => this.mapToQualityConcern(item));
+  }
+
+  async addQualityConcern(projectCode: string, concern: Partial<IQualityConcern>): Promise<IQualityConcern> {
+    const web = this._getProjectWeb();
+    const col = QUALITY_CONCERNS_COLUMNS;
+
+    const addData: Record<string, unknown> = {
+      [col.projectCode]: projectCode,
+      [col.letter]: concern.letter ?? '',
+      [col.description]: concern.description ?? '',
+      [col.raisedBy]: concern.raisedBy ?? '',
+      [col.raisedDate]: concern.raisedDate ?? new Date().toISOString(),
+      [col.status]: concern.status ?? 'Open',
+      [col.resolution]: concern.resolution ?? '',
+      [col.resolvedDate]: concern.resolvedDate ?? null,
+      [col.notes]: concern.notes ?? '',
+    };
+
+    const result = await web.lists.getByTitle(LIST_NAMES.QUALITY_CONCERNS).items.add(addData);
+    return this.mapToQualityConcern(result.data);
+  }
+
+  async updateQualityConcern(projectCode: string, concernId: number, data: Partial<IQualityConcern>): Promise<IQualityConcern> {
+    const web = this._getProjectWeb();
+    const col = QUALITY_CONCERNS_COLUMNS;
+
+    const updateData: Record<string, unknown> = {};
+    if (data.letter !== undefined) updateData[col.letter] = data.letter;
+    if (data.description !== undefined) updateData[col.description] = data.description;
+    if (data.raisedBy !== undefined) updateData[col.raisedBy] = data.raisedBy;
+    if (data.raisedDate !== undefined) updateData[col.raisedDate] = data.raisedDate;
+    if (data.status !== undefined) updateData[col.status] = data.status;
+    if (data.resolution !== undefined) updateData[col.resolution] = data.resolution;
+    if (data.resolvedDate !== undefined) updateData[col.resolvedDate] = data.resolvedDate;
+    if (data.notes !== undefined) updateData[col.notes] = data.notes;
+
+    await web.lists.getByTitle(LIST_NAMES.QUALITY_CONCERNS).items.getById(concernId).update(updateData);
+
+    const updated = await web.lists.getByTitle(LIST_NAMES.QUALITY_CONCERNS).items.getById(concernId)();
+    return this.mapToQualityConcern(updated);
+  }
 
   // --- Safety Concerns ---
-  async getSafetyConcerns(_projectCode: string): Promise<ISafetyConcern[]> { console.warn('[STUB] getSafetyConcerns not implemented'); return []; }
-  async addSafetyConcern(_projectCode: string, _concern: Partial<ISafetyConcern>): Promise<ISafetyConcern> { throw new Error('SharePoint implementation pending: addSafetyConcern'); }
-  async updateSafetyConcern(_projectCode: string, _concernId: number, _data: Partial<ISafetyConcern>): Promise<ISafetyConcern> { throw new Error('SharePoint implementation pending: updateSafetyConcern'); }
+
+  async getSafetyConcerns(projectCode: string): Promise<ISafetyConcern[]> {
+    const web = this._getProjectWeb();
+    const col = SAFETY_CONCERNS_COLUMNS;
+
+    const items = await web.lists.getByTitle(LIST_NAMES.SAFETY_CONCERNS).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .orderBy(col.letter, true)
+      .top(500)();
+
+    return items.map((item: Record<string, unknown>) => this.mapToSafetyConcern(item));
+  }
+
+  async addSafetyConcern(projectCode: string, concern: Partial<ISafetyConcern>): Promise<ISafetyConcern> {
+    const web = this._getProjectWeb();
+    const col = SAFETY_CONCERNS_COLUMNS;
+
+    const addData: Record<string, unknown> = {
+      [col.projectCode]: projectCode,
+      [col.safetyOfficerName]: concern.safetyOfficerName ?? '',
+      [col.safetyOfficerEmail]: concern.safetyOfficerEmail ?? '',
+      [col.letter]: concern.letter ?? '',
+      [col.description]: concern.description ?? '',
+      [col.severity]: concern.severity ?? 'Medium',
+      [col.raisedBy]: concern.raisedBy ?? '',
+      [col.raisedDate]: concern.raisedDate ?? new Date().toISOString(),
+      [col.status]: concern.status ?? 'Open',
+      [col.resolution]: concern.resolution ?? '',
+      [col.resolvedDate]: concern.resolvedDate ?? null,
+      [col.notes]: concern.notes ?? '',
+    };
+
+    const result = await web.lists.getByTitle(LIST_NAMES.SAFETY_CONCERNS).items.add(addData);
+    return this.mapToSafetyConcern(result.data);
+  }
+
+  async updateSafetyConcern(projectCode: string, concernId: number, data: Partial<ISafetyConcern>): Promise<ISafetyConcern> {
+    const web = this._getProjectWeb();
+    const col = SAFETY_CONCERNS_COLUMNS;
+
+    const updateData: Record<string, unknown> = {};
+    if (data.safetyOfficerName !== undefined) updateData[col.safetyOfficerName] = data.safetyOfficerName;
+    if (data.safetyOfficerEmail !== undefined) updateData[col.safetyOfficerEmail] = data.safetyOfficerEmail;
+    if (data.letter !== undefined) updateData[col.letter] = data.letter;
+    if (data.description !== undefined) updateData[col.description] = data.description;
+    if (data.severity !== undefined) updateData[col.severity] = data.severity;
+    if (data.raisedBy !== undefined) updateData[col.raisedBy] = data.raisedBy;
+    if (data.raisedDate !== undefined) updateData[col.raisedDate] = data.raisedDate;
+    if (data.status !== undefined) updateData[col.status] = data.status;
+    if (data.resolution !== undefined) updateData[col.resolution] = data.resolution;
+    if (data.resolvedDate !== undefined) updateData[col.resolvedDate] = data.resolvedDate;
+    if (data.notes !== undefined) updateData[col.notes] = data.notes;
+
+    await web.lists.getByTitle(LIST_NAMES.SAFETY_CONCERNS).items.getById(concernId).update(updateData);
+
+    const updated = await web.lists.getByTitle(LIST_NAMES.SAFETY_CONCERNS).items.getById(concernId)();
+    return this.mapToSafetyConcern(updated);
+  }
 
   // --- Schedule & Critical Path ---
-  async getProjectSchedule(_projectCode: string): Promise<IProjectScheduleCriticalPath | null> { console.warn('[STUB] getProjectSchedule not implemented'); return null; }
-  async updateProjectSchedule(_projectCode: string, _data: Partial<IProjectScheduleCriticalPath>): Promise<IProjectScheduleCriticalPath> { throw new Error('SharePoint implementation pending: updateProjectSchedule'); }
-  async addCriticalPathItem(_projectCode: string, _item: Partial<ICriticalPathItem>): Promise<ICriticalPathItem> { throw new Error('SharePoint implementation pending: addCriticalPathItem'); }
+
+  async getProjectSchedule(projectCode: string): Promise<IProjectScheduleCriticalPath | null> {
+    const web = this._getProjectWeb();
+    const col = PROJECT_SCHEDULE_COLUMNS;
+    const itemCol = CRITICAL_PATH_ITEMS_COLUMNS;
+
+    const [parents, items] = await Promise.all([
+      web.lists.getByTitle(LIST_NAMES.PROJECT_SCHEDULE).items
+        .filter(`${col.projectCode} eq '${projectCode}'`)
+        .top(1)(),
+      web.lists.getByTitle(LIST_NAMES.CRITICAL_PATH_ITEMS).items
+        .filter(`${itemCol.projectCode} eq '${projectCode}'`)
+        .orderBy(itemCol.letter, true)
+        .top(500)(),
+    ]);
+
+    if (parents.length === 0) return null;
+
+    const schedule = this.mapToProjectSchedule(parents[0]);
+    return {
+      ...schedule,
+      criticalPathConcerns: items.map((i: Record<string, unknown>) => this.mapToCriticalPathItem(i)),
+    };
+  }
+
+  async updateProjectSchedule(projectCode: string, data: Partial<IProjectScheduleCriticalPath>): Promise<IProjectScheduleCriticalPath> {
+    const web = this._getProjectWeb();
+    const col = PROJECT_SCHEDULE_COLUMNS;
+
+    const parents = await web.lists.getByTitle(LIST_NAMES.PROJECT_SCHEDULE).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .top(1)();
+
+    if (parents.length === 0) throw new Error(`Schedule record for ${projectCode} not found`);
+
+    const updateData: Record<string, unknown> = {};
+    if (data.startDate !== undefined) updateData[col.startDate] = data.startDate;
+    if (data.substantialCompletionDate !== undefined) updateData[col.substantialCompletionDate] = data.substantialCompletionDate;
+    if (data.ntpDate !== undefined) updateData[col.ntpDate] = data.ntpDate;
+    if (data.nocDate !== undefined) updateData[col.nocDate] = data.nocDate;
+    if (data.contractCalendarDays !== undefined) updateData[col.contractCalendarDays] = data.contractCalendarDays;
+    if (data.contractBasisType !== undefined) updateData[col.contractBasisType] = data.contractBasisType;
+    if (data.teamGoalDaysAhead !== undefined) updateData[col.teamGoalDaysAhead] = data.teamGoalDaysAhead;
+    if (data.teamGoalDescription !== undefined) updateData[col.teamGoalDescription] = data.teamGoalDescription;
+    if (data.hasLiquidatedDamages !== undefined) updateData[col.hasLiquidatedDamages] = data.hasLiquidatedDamages;
+    if (data.liquidatedDamagesAmount !== undefined) updateData[col.liquidatedDamagesAmount] = data.liquidatedDamagesAmount;
+    if (data.liquidatedDamagesTerms !== undefined) updateData[col.liquidatedDamagesTerms] = data.liquidatedDamagesTerms;
+    if (data.lastUpdatedBy !== undefined) updateData[col.lastUpdatedBy] = data.lastUpdatedBy;
+    updateData[col.lastUpdatedAt] = new Date().toISOString();
+
+    const itemId = (parents[0] as Record<string, unknown>).Id as number;
+    await web.lists.getByTitle(LIST_NAMES.PROJECT_SCHEDULE).items.getById(itemId).update(updateData);
+
+    return (await this.getProjectSchedule(projectCode))!;
+  }
+
+  async addCriticalPathItem(projectCode: string, item: Partial<ICriticalPathItem>): Promise<ICriticalPathItem> {
+    const web = this._getProjectWeb();
+    const col = CRITICAL_PATH_ITEMS_COLUMNS;
+    const parentCol = PROJECT_SCHEDULE_COLUMNS;
+
+    // Look up parent to get scheduleId
+    const parents = await web.lists.getByTitle(LIST_NAMES.PROJECT_SCHEDULE).items
+      .filter(`${parentCol.projectCode} eq '${projectCode}'`)
+      .top(1)();
+
+    const scheduleId = parents.length > 0 ? (parents[0] as Record<string, unknown>).Id as number : undefined;
+
+    const now = new Date().toISOString();
+    const addData: Record<string, unknown> = {
+      [col.projectCode]: projectCode,
+      [col.scheduleId]: scheduleId,
+      [col.letter]: item.letter ?? '',
+      [col.description]: item.description ?? '',
+      [col.impactDescription]: item.impactDescription ?? '',
+      [col.status]: item.status ?? 'Active',
+      [col.mitigationPlan]: item.mitigationPlan ?? '',
+      [col.createdDate]: now,
+      [col.updatedDate]: now,
+    };
+
+    const result = await web.lists.getByTitle(LIST_NAMES.CRITICAL_PATH_ITEMS).items.add(addData);
+    return this.mapToCriticalPathItem(result.data);
+  }
 
   // --- Superintendent Plan ---
-  async getSuperintendentPlan(_projectCode: string): Promise<ISuperintendentPlan | null> { console.warn('[STUB] getSuperintendentPlan not implemented'); return null; }
-  async updateSuperintendentPlanSection(_projectCode: string, _sectionId: number, _data: Partial<ISuperintendentPlanSection>): Promise<ISuperintendentPlanSection> { throw new Error('SharePoint implementation pending: updateSuperintendentPlanSection'); }
-  async createSuperintendentPlan(_projectCode: string, _data: Partial<ISuperintendentPlan>): Promise<ISuperintendentPlan> { throw new Error('SharePoint implementation pending: createSuperintendentPlan'); }
+
+  async getSuperintendentPlan(projectCode: string): Promise<ISuperintendentPlan | null> {
+    const web = this._getProjectWeb();
+    const col = SUPERINTENDENT_PLAN_COLUMNS;
+    const secCol = SUPERINTENDENT_PLAN_SECTIONS_COLUMNS;
+
+    const parents = await web.lists.getByTitle(LIST_NAMES.SUPERINTENDENT_PLAN).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .top(1)();
+
+    if (parents.length === 0) return null;
+
+    const plan = this.mapToSuperintendentPlan(parents[0]);
+
+    const sections = await web.lists.getByTitle(LIST_NAMES.SUPERINTENDENT_PLAN_SECTIONS).items
+      .filter(`${secCol.superintendentPlanId} eq ${plan.id}`)
+      .top(500)();
+
+    return {
+      ...plan,
+      sections: sections.map((s: Record<string, unknown>) => this.mapToSuperintendentPlanSection(s)),
+    };
+  }
+
+  async updateSuperintendentPlanSection(projectCode: string, sectionId: number, data: Partial<ISuperintendentPlanSection>): Promise<ISuperintendentPlanSection> {
+    const web = this._getProjectWeb();
+    const secCol = SUPERINTENDENT_PLAN_SECTIONS_COLUMNS;
+    const col = SUPERINTENDENT_PLAN_COLUMNS;
+
+    const updateData: Record<string, unknown> = {};
+    if (data.sectionTitle !== undefined) updateData[secCol.sectionTitle] = data.sectionTitle;
+    if (data.content !== undefined) updateData[secCol.content] = data.content;
+    if (data.isComplete !== undefined) updateData[secCol.isComplete] = data.isComplete;
+    if (data.attachmentUrls !== undefined) updateData[secCol.attachmentUrls] = JSON.stringify(data.attachmentUrls);
+
+    await web.lists.getByTitle(LIST_NAMES.SUPERINTENDENT_PLAN_SECTIONS).items.getById(sectionId).update(updateData);
+
+    // Update parent's lastUpdatedAt
+    const parents = await web.lists.getByTitle(LIST_NAMES.SUPERINTENDENT_PLAN).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .top(1)();
+    if (parents.length > 0) {
+      const parentId = (parents[0] as Record<string, unknown>).Id as number;
+      await web.lists.getByTitle(LIST_NAMES.SUPERINTENDENT_PLAN).items.getById(parentId).update({
+        [col.lastUpdatedAt]: new Date().toISOString(),
+      });
+    }
+
+    const updated = await web.lists.getByTitle(LIST_NAMES.SUPERINTENDENT_PLAN_SECTIONS).items.getById(sectionId)();
+    return this.mapToSuperintendentPlanSection(updated);
+  }
+
+  async createSuperintendentPlan(projectCode: string, data: Partial<ISuperintendentPlan>): Promise<ISuperintendentPlan> {
+    const web = this._getProjectWeb();
+    const col = SUPERINTENDENT_PLAN_COLUMNS;
+    const secCol = SUPERINTENDENT_PLAN_SECTIONS_COLUMNS;
+
+    const now = new Date().toISOString();
+    const addData: Record<string, unknown> = {
+      [col.projectCode]: projectCode,
+      [col.superintendentName]: data.superintendentName ?? '',
+      [col.createdBy]: data.createdBy ?? '',
+      [col.createdAt]: now,
+      [col.lastUpdatedBy]: data.lastUpdatedBy ?? data.createdBy ?? '',
+      [col.lastUpdatedAt]: now,
+    };
+
+    const result = await web.lists.getByTitle(LIST_NAMES.SUPERINTENDENT_PLAN).items.add(addData);
+    const planId = (result.data as Record<string, unknown>).Id as number;
+
+    // Batch-create sections if provided
+    if (data.sections && data.sections.length > 0) {
+      for (const sec of data.sections) {
+        const secData: Record<string, unknown> = {
+          [secCol.superintendentPlanId]: planId,
+          [secCol.projectCode]: projectCode,
+          [secCol.sectionKey]: sec.sectionKey ?? '',
+          [secCol.sectionTitle]: sec.sectionTitle ?? '',
+          [secCol.content]: sec.content ?? '',
+          [secCol.attachmentUrls]: JSON.stringify(sec.attachmentUrls ?? []),
+          [secCol.isComplete]: sec.isComplete ?? false,
+        };
+        await web.lists.getByTitle(LIST_NAMES.SUPERINTENDENT_PLAN_SECTIONS).items.add(secData);
+      }
+    }
+
+    // Re-read and assemble
+    return (await this.getSuperintendentPlan(projectCode))!;
+  }
 
   // --- Lessons Learned ---
-  async getLessonsLearned(_projectCode: string): Promise<ILessonLearned[]> { console.warn('[STUB] getLessonsLearned not implemented'); return []; }
-  async addLessonLearned(_projectCode: string, _lesson: Partial<ILessonLearned>): Promise<ILessonLearned> { throw new Error('SharePoint implementation pending: addLessonLearned'); }
-  async updateLessonLearned(_projectCode: string, _lessonId: number, _data: Partial<ILessonLearned>): Promise<ILessonLearned> { throw new Error('SharePoint implementation pending: updateLessonLearned'); }
+
+  async getLessonsLearned(projectCode: string): Promise<ILessonLearned[]> {
+    const web = this._getProjectWeb();
+    const col = LESSONS_LEARNED_COLUMNS;
+
+    const items = await web.lists.getByTitle(LIST_NAMES.LESSONS_LEARNED).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .top(500)();
+
+    return items.map((item: Record<string, unknown>) => this.mapToLessonLearned(item));
+  }
+
+  async addLessonLearned(projectCode: string, lesson: Partial<ILessonLearned>): Promise<ILessonLearned> {
+    const web = this._getProjectWeb();
+    const col = LESSONS_LEARNED_COLUMNS;
+
+    const addData: Record<string, unknown> = {
+      [col.projectCode]: projectCode,
+      [col.title]: lesson.title ?? '',
+      [col.category]: lesson.category ?? 'Other',
+      [col.impact]: lesson.impact ?? 'Neutral',
+      [col.description]: lesson.description ?? '',
+      [col.recommendation]: lesson.recommendation ?? '',
+      [col.raisedBy]: lesson.raisedBy ?? '',
+      [col.raisedDate]: lesson.raisedDate ?? new Date().toISOString(),
+      [col.phase]: lesson.phase ?? '',
+      [col.isIncludedInFinalRecord]: lesson.isIncludedInFinalRecord ?? false,
+      [col.tags]: JSON.stringify(lesson.tags ?? []),
+    };
+
+    const result = await web.lists.getByTitle(LIST_NAMES.LESSONS_LEARNED).items.add(addData);
+    return this.mapToLessonLearned(result.data);
+  }
+
+  async updateLessonLearned(projectCode: string, lessonId: number, data: Partial<ILessonLearned>): Promise<ILessonLearned> {
+    const web = this._getProjectWeb();
+    const col = LESSONS_LEARNED_COLUMNS;
+
+    const updateData: Record<string, unknown> = {};
+    if (data.title !== undefined) updateData[col.title] = data.title;
+    if (data.category !== undefined) updateData[col.category] = data.category;
+    if (data.impact !== undefined) updateData[col.impact] = data.impact;
+    if (data.description !== undefined) updateData[col.description] = data.description;
+    if (data.recommendation !== undefined) updateData[col.recommendation] = data.recommendation;
+    if (data.raisedBy !== undefined) updateData[col.raisedBy] = data.raisedBy;
+    if (data.raisedDate !== undefined) updateData[col.raisedDate] = data.raisedDate;
+    if (data.phase !== undefined) updateData[col.phase] = data.phase;
+    if (data.isIncludedInFinalRecord !== undefined) updateData[col.isIncludedInFinalRecord] = data.isIncludedInFinalRecord;
+    if (data.tags !== undefined) updateData[col.tags] = JSON.stringify(data.tags);
+
+    await web.lists.getByTitle(LIST_NAMES.LESSONS_LEARNED).items.getById(lessonId).update(updateData);
+
+    const updated = await web.lists.getByTitle(LIST_NAMES.LESSONS_LEARNED).items.getById(lessonId)();
+    return this.mapToLessonLearned(updated);
+  }
 
   // --- Project Management Plan ---
-  async getProjectManagementPlan(_projectCode: string): Promise<IProjectManagementPlan | null> { console.warn('[STUB] getProjectManagementPlan not implemented'); return null; }
-  async updateProjectManagementPlan(_projectCode: string, _data: Partial<IProjectManagementPlan>): Promise<IProjectManagementPlan> { throw new Error('SharePoint implementation pending: updateProjectManagementPlan'); }
-  async submitPMPForApproval(_projectCode: string, _submittedBy: string): Promise<IProjectManagementPlan> { throw new Error('SharePoint implementation pending: submitPMPForApproval'); }
-  async respondToPMPApproval(_projectCode: string, _stepId: number, _approved: boolean, _comment: string): Promise<IProjectManagementPlan> { throw new Error('SharePoint implementation pending: respondToPMPApproval'); }
-  async signPMP(_projectCode: string, _signatureId: number, _comment: string): Promise<IProjectManagementPlan> { throw new Error('SharePoint implementation pending: signPMP'); }
-  async getDivisionApprovers(): Promise<IDivisionApprover[]> { console.warn('[STUB] getDivisionApprovers not implemented'); return []; }
-  async getPMPBoilerplate(): Promise<IPMPBoilerplateSection[]> { console.warn('[STUB] getPMPBoilerplate not implemented'); return []; }
+
+  async getProjectManagementPlan(projectCode: string): Promise<IProjectManagementPlan | null> {
+    const web = this._getProjectWeb();
+    const col = PMP_COLUMNS;
+
+    // Read parent PMP
+    const parents = await web.lists.getByTitle(LIST_NAMES.PMP).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .top(1)();
+    if (parents.length === 0) return null;
+
+    const pmp = this.mapToPMP(parents[0]);
+
+    // Read all 3 child lists in parallel
+    const [sigItems, cycleItems, stepItems] = await Promise.all([
+      web.lists.getByTitle(LIST_NAMES.PMP_SIGNATURES).items
+        .filter(`${PMP_SIGNATURES_COLUMNS.pmpId} eq ${pmp.id}`)
+        .top(500)(),
+      web.lists.getByTitle(LIST_NAMES.PMP_APPROVAL_CYCLES).items
+        .filter(`${PMP_APPROVAL_CYCLES_COLUMNS.pmpId} eq ${pmp.id}`)
+        .top(500)(),
+      web.lists.getByTitle(LIST_NAMES.PMP_APPROVAL_STEPS).items
+        .filter(`${PMP_APPROVAL_STEPS_COLUMNS.projectCode} eq '${projectCode}'`)
+        .top(500)(),
+    ]);
+
+    const signatures = sigItems.map((s: Record<string, unknown>) => this.mapToPMPSignature(s));
+    const cycles = cycleItems.map((c: Record<string, unknown>) => this.mapToPMPApprovalCycle(c));
+    const steps = stepItems.map((s: Record<string, unknown>) => this.mapToPMPApprovalStep(s));
+
+    return this.assemblePMPFromParts(pmp, signatures, cycles, steps);
+  }
+
+  async updateProjectManagementPlan(projectCode: string, data: Partial<IProjectManagementPlan>): Promise<IProjectManagementPlan> {
+    const web = this._getProjectWeb();
+    const col = PMP_COLUMNS;
+
+    // Find PMP by projectCode
+    const parents = await web.lists.getByTitle(LIST_NAMES.PMP).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .top(1)();
+    if (parents.length === 0) throw new Error(`PMP for ${projectCode} not found`);
+
+    const pmpId = (parents[0].ID as number) || (parents[0].Id as number);
+    const now = new Date().toISOString();
+    const updateData: Record<string, unknown> = { [col.lastUpdatedAt]: now };
+
+    // Conditional partial update — string/number fields
+    if (data.projectName !== undefined) updateData[col.projectName] = data.projectName;
+    if (data.jobNumber !== undefined) updateData[col.jobNumber] = data.jobNumber;
+    if (data.status !== undefined) updateData[col.status] = data.status;
+    if (data.division !== undefined) updateData[col.division] = data.division;
+    if (data.currentCycleNumber !== undefined) updateData[col.currentCycleNumber] = data.currentCycleNumber;
+    if (data.superintendentPlan !== undefined) updateData[col.superintendentPlan] = data.superintendentPlan;
+    if (data.preconMeetingNotes !== undefined) updateData[col.preconMeetingNotes] = data.preconMeetingNotes;
+    if (data.siteManagementNotes !== undefined) updateData[col.siteManagementNotes] = data.siteManagementNotes;
+    if (data.projectAdminBuyoutDate !== undefined) updateData[col.projectAdminBuyoutDate] = data.projectAdminBuyoutDate;
+    if (data.lastUpdatedBy !== undefined) updateData[col.lastUpdatedBy] = data.lastUpdatedBy;
+
+    // JSON array/object fields
+    if (data.attachmentUrls !== undefined) updateData[col.attachmentUrls] = JSON.stringify(data.attachmentUrls);
+    if (data.riskCostData !== undefined) updateData[col.riskCostData] = JSON.stringify(data.riskCostData);
+    if (data.qualityConcerns !== undefined) updateData[col.qualityConcerns] = JSON.stringify(data.qualityConcerns);
+    if (data.safetyConcerns !== undefined) updateData[col.safetyConcerns] = JSON.stringify(data.safetyConcerns);
+    if (data.scheduleData !== undefined) updateData[col.scheduleData] = JSON.stringify(data.scheduleData);
+    if (data.superintendentPlanData !== undefined) updateData[col.superintendentPlanData] = JSON.stringify(data.superintendentPlanData);
+    if (data.lessonsLearned !== undefined) updateData[col.lessonsLearned] = JSON.stringify(data.lessonsLearned);
+    if (data.teamAssignments !== undefined) updateData[col.teamAssignments] = JSON.stringify(data.teamAssignments);
+    if (data.boilerplate !== undefined) updateData[col.boilerplate] = JSON.stringify(data.boilerplate);
+
+    await web.lists.getByTitle(LIST_NAMES.PMP).items.getById(pmpId).update(updateData);
+
+    // Re-read assembled
+    const result = await this.getProjectManagementPlan(projectCode);
+    if (!result) throw new Error(`PMP for ${projectCode} not found after update`);
+    return result;
+  }
+
+  async submitPMPForApproval(projectCode: string, submittedBy: string): Promise<IProjectManagementPlan> {
+    const web = this._getProjectWeb();
+    const col = PMP_COLUMNS;
+    const cycCol = PMP_APPROVAL_CYCLES_COLUMNS;
+    const stepCol = PMP_APPROVAL_STEPS_COLUMNS;
+
+    // Find PMP
+    const parents = await web.lists.getByTitle(LIST_NAMES.PMP).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .top(1)();
+    if (parents.length === 0) throw new Error(`PMP for ${projectCode} not found`);
+
+    const pmpId = (parents[0].ID as number) || (parents[0].Id as number);
+    const currentCycle = (parents[0][col.currentCycleNumber] as number) || 0;
+    const division = (parents[0][col.division] as string) || '';
+    const newCycleNumber = currentCycle + 1;
+    const now = new Date().toISOString();
+
+    // Get division approvers from hub site
+    const divisionApprovers = await this.getDivisionApprovers();
+    const divApprover = divisionApprovers.find(d => d.division === division);
+
+    // Create approval cycle
+    const cycleResult = await web.lists.getByTitle(LIST_NAMES.PMP_APPROVAL_CYCLES).items.add({
+      [cycCol.pmpId]: pmpId,
+      [cycCol.projectCode]: projectCode,
+      [cycCol.cycleNumber]: newCycleNumber,
+      [cycCol.submittedBy]: submittedBy,
+      [cycCol.submittedDate]: now,
+      [cycCol.status]: 'InProgress',
+      [cycCol.changesFromPrevious]: '[]',
+    });
+    const newCycleId = (cycleResult.Id as number) || (cycleResult.data?.Id as number);
+
+    // Create Step 1: Project Executive (always)
+    await web.lists.getByTitle(LIST_NAMES.PMP_APPROVAL_STEPS).items.add({
+      [stepCol.approvalCycleId]: newCycleId,
+      [stepCol.projectCode]: projectCode,
+      [stepCol.stepOrder]: 1,
+      [stepCol.approverRole]: 'Project Executive',
+      [stepCol.approverName]: 'Kim Foster',
+      [stepCol.approverEmail]: 'kfoster@hedrickbrothers.com',
+      [stepCol.status]: 'Pending',
+      [stepCol.comment]: '',
+      [stepCol.actionDate]: null,
+      [stepCol.approvalCycleNumber]: newCycleNumber,
+    });
+
+    // Create Step 2: Division Head (if division approver exists)
+    if (divApprover) {
+      await web.lists.getByTitle(LIST_NAMES.PMP_APPROVAL_STEPS).items.add({
+        [stepCol.approvalCycleId]: newCycleId,
+        [stepCol.projectCode]: projectCode,
+        [stepCol.stepOrder]: 2,
+        [stepCol.approverRole]: 'Division Head',
+        [stepCol.approverName]: divApprover.approverName,
+        [stepCol.approverEmail]: divApprover.approverEmail,
+        [stepCol.status]: 'Pending',
+        [stepCol.comment]: '',
+        [stepCol.actionDate]: null,
+        [stepCol.approvalCycleNumber]: newCycleNumber,
+      });
+    }
+
+    // Update PMP parent status
+    await web.lists.getByTitle(LIST_NAMES.PMP).items.getById(pmpId).update({
+      [col.currentCycleNumber]: newCycleNumber,
+      [col.status]: 'PendingApproval',
+      [col.lastUpdatedAt]: now,
+    });
+
+    // Re-read assembled
+    const result = await this.getProjectManagementPlan(projectCode);
+    if (!result) throw new Error(`PMP for ${projectCode} not found after submission`);
+    return result;
+  }
+
+  async respondToPMPApproval(projectCode: string, stepId: number, approved: boolean, comment: string): Promise<IProjectManagementPlan> {
+    const web = this._getProjectWeb();
+    const col = PMP_COLUMNS;
+    const stepCol = PMP_APPROVAL_STEPS_COLUMNS;
+    const cycCol = PMP_APPROVAL_CYCLES_COLUMNS;
+    const now = new Date().toISOString();
+
+    // Find PMP
+    const parents = await web.lists.getByTitle(LIST_NAMES.PMP).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .top(1)();
+    if (parents.length === 0) throw new Error(`PMP for ${projectCode} not found`);
+    const pmpId = (parents[0].ID as number) || (parents[0].Id as number);
+
+    // Read the approval step to get its cycleId
+    const step = await web.lists.getByTitle(LIST_NAMES.PMP_APPROVAL_STEPS).items.getById(stepId)();
+    const cycleId = (step[stepCol.approvalCycleId] as number);
+
+    // Update the step
+    await web.lists.getByTitle(LIST_NAMES.PMP_APPROVAL_STEPS).items.getById(stepId).update({
+      [stepCol.status]: approved ? 'Approved' : 'Returned',
+      [stepCol.comment]: comment,
+      [stepCol.actionDate]: now,
+    });
+
+    // Read all steps for this cycle to determine cascade
+    const cycleSteps = await web.lists.getByTitle(LIST_NAMES.PMP_APPROVAL_STEPS).items
+      .filter(`${stepCol.approvalCycleId} eq ${cycleId}`)
+      .top(100)();
+
+    if (!approved) {
+      // Any rejection → cycle Returned, PMP Returned
+      await web.lists.getByTitle(LIST_NAMES.PMP_APPROVAL_CYCLES).items.getById(cycleId).update({
+        [cycCol.status]: 'Returned',
+      });
+      await web.lists.getByTitle(LIST_NAMES.PMP).items.getById(pmpId).update({
+        [col.status]: 'Returned',
+        [col.lastUpdatedAt]: now,
+      });
+    } else {
+      // Check if ALL steps in cycle are Approved
+      const allApproved = cycleSteps.every((s: Record<string, unknown>) => {
+        const sid = (s.ID as number) || (s.Id as number);
+        // The step we just updated may still show old status in the re-read, so check explicitly
+        if (sid === stepId) return true; // we just approved this one
+        return (s[stepCol.status] as string) === 'Approved';
+      });
+
+      if (allApproved) {
+        await web.lists.getByTitle(LIST_NAMES.PMP_APPROVAL_CYCLES).items.getById(cycleId).update({
+          [cycCol.status]: 'Approved',
+        });
+        await web.lists.getByTitle(LIST_NAMES.PMP).items.getById(pmpId).update({
+          [col.status]: 'Approved',
+          [col.lastUpdatedAt]: now,
+        });
+      } else {
+        // Just update PMP timestamp
+        await web.lists.getByTitle(LIST_NAMES.PMP).items.getById(pmpId).update({
+          [col.lastUpdatedAt]: now,
+        });
+      }
+    }
+
+    // Re-read assembled
+    const result = await this.getProjectManagementPlan(projectCode);
+    if (!result) throw new Error(`PMP for ${projectCode} not found after approval response`);
+    return result;
+  }
+
+  async signPMP(projectCode: string, signatureId: number, comment: string): Promise<IProjectManagementPlan> {
+    const web = this._getProjectWeb();
+    const col = PMP_COLUMNS;
+    const sigCol = PMP_SIGNATURES_COLUMNS;
+    const now = new Date().toISOString();
+
+    // Find PMP
+    const parents = await web.lists.getByTitle(LIST_NAMES.PMP).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .top(1)();
+    if (parents.length === 0) throw new Error(`PMP for ${projectCode} not found`);
+    const pmpId = (parents[0].ID as number) || (parents[0].Id as number);
+
+    // Read signature and verify it belongs to this PMP
+    const sig = await web.lists.getByTitle(LIST_NAMES.PMP_SIGNATURES).items.getById(signatureId)();
+    if ((sig[sigCol.pmpId] as number) !== pmpId) {
+      throw new Error(`Signature ${signatureId} does not belong to PMP for ${projectCode}`);
+    }
+
+    // Update signature
+    await web.lists.getByTitle(LIST_NAMES.PMP_SIGNATURES).items.getById(signatureId).update({
+      [sigCol.status]: 'Signed',
+      [sigCol.signedDate]: now,
+      [sigCol.comment]: comment,
+    });
+
+    // Update PMP timestamp
+    await web.lists.getByTitle(LIST_NAMES.PMP).items.getById(pmpId).update({
+      [col.lastUpdatedAt]: now,
+    });
+
+    // Re-read assembled
+    const result = await this.getProjectManagementPlan(projectCode);
+    if (!result) throw new Error(`PMP for ${projectCode} not found after signing`);
+    return result;
+  }
+
+  async getDivisionApprovers(): Promise<IDivisionApprover[]> {
+    // Hub-site list — use this.sp.web, NOT _getProjectWeb()
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.DIVISION_APPROVERS).items
+      .top(100)();
+    return items.map((item: Record<string, unknown>) => this.mapToDivisionApprover(item));
+  }
+
+  async getPMPBoilerplate(): Promise<IPMPBoilerplateSection[]> {
+    // Hub-site list — use this.sp.web, NOT _getProjectWeb()
+    const col = PMP_BOILERPLATE_COLUMNS;
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.PMP_BOILERPLATE).items
+      .orderBy(col.sectionNumber, true)
+      .top(100)();
+    return items.map((item: Record<string, unknown>) => this.mapToPMPBoilerplateSection(item));
+  }
 
   // --- Monthly Review ---
   async getMonthlyReviews(_projectCode: string): Promise<IMonthlyProjectReview[]> { console.warn('[STUB] getMonthlyReviews not implemented'); return []; }
@@ -946,24 +1658,371 @@ export class SharePointDataService implements IDataService {
   async createMonthlyReview(_data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> { throw new Error('SharePoint implementation pending: createMonthlyReview'); }
 
   // --- Estimating Kick-Off ---
-  async getEstimatingKickoff(_projectCode: string): Promise<IEstimatingKickoff | null> { console.warn('[STUB] getEstimatingKickoff not implemented'); return null; }
-  async getEstimatingKickoffByLeadId(_leadId: number): Promise<IEstimatingKickoff | null> { console.warn('[STUB] getEstimatingKickoffByLeadId not implemented'); return null; }
-  async createEstimatingKickoff(_data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> { throw new Error('SharePoint implementation pending: createEstimatingKickoff'); }
-  async updateEstimatingKickoff(_id: number, _data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> { throw new Error('SharePoint implementation pending: updateEstimatingKickoff'); }
-  async updateKickoffItem(_kickoffId: number, _itemId: number, _data: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> { throw new Error('SharePoint implementation pending: updateKickoffItem'); }
-  async addKickoffItem(_kickoffId: number, _item: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> { throw new Error('SharePoint implementation pending: addKickoffItem'); }
-  async removeKickoffItem(_kickoffId: number, _itemId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeKickoffItem'); }
-  async updateKickoffKeyPersonnel(_kickoffId: number, _personnel: import('../models/IEstimatingKickoff').IKeyPersonnelEntry[]): Promise<import('../models/IEstimatingKickoff').IEstimatingKickoff> { throw new Error('SharePoint implementation pending: updateKickoffKeyPersonnel'); }
+
+  async getEstimatingKickoff(projectCode: string): Promise<IEstimatingKickoff | null> {
+    const col = ESTIMATING_KICKOFFS_COLUMNS;
+    const itemCol = ESTIMATING_KICKOFF_ITEMS_COLUMNS;
+
+    const parents = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items
+      .filter(`${col.ProjectCode} eq '${projectCode}'`)
+      .top(1)();
+    if (!parents || parents.length === 0) return null;
+
+    const parent = this.mapToEstimatingKickoff(parents[0]);
+
+    const childItems = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items
+      .filter(`${itemCol.kickoffId} eq ${parent.id}`)
+      .orderBy(itemCol.sortOrder, true)
+      .top(500)();
+
+    parent.items = childItems.map((i: Record<string, unknown>) => this.mapToEstimatingKickoffItem(i));
+    return parent;
+  }
+
+  async getEstimatingKickoffByLeadId(leadId: number): Promise<IEstimatingKickoff | null> {
+    const col = ESTIMATING_KICKOFFS_COLUMNS;
+    const itemCol = ESTIMATING_KICKOFF_ITEMS_COLUMNS;
+
+    const parents = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items
+      .filter(`${col.LeadID} eq ${leadId}`)
+      .top(1)();
+    if (!parents || parents.length === 0) return null;
+
+    const parent = this.mapToEstimatingKickoff(parents[0]);
+
+    const childItems = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items
+      .filter(`${itemCol.kickoffId} eq ${parent.id}`)
+      .orderBy(itemCol.sortOrder, true)
+      .top(500)();
+
+    parent.items = childItems.map((i: Record<string, unknown>) => this.mapToEstimatingKickoffItem(i));
+    return parent;
+  }
+
+  async createEstimatingKickoff(data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> {
+    const col = ESTIMATING_KICKOFFS_COLUMNS;
+    const itemCol = ESTIMATING_KICKOFF_ITEMS_COLUMNS;
+    const now = new Date().toISOString();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parentData: Record<string, any> = {
+      [col.LeadID]: data.LeadID ?? 0,
+      [col.ProjectCode]: data.ProjectCode ?? '',
+      [col.CreatedDate]: now,
+      [col.CreatedBy]: data.CreatedBy ?? 'system',
+      [col.ModifiedDate]: now,
+    };
+    if (data.Architect) parentData[col.Architect] = data.Architect;
+    if (data.ProposalDueDateTime) parentData[col.ProposalDueDateTime] = data.ProposalDueDateTime;
+    if (data.ProposalType) parentData[col.ProposalType] = data.ProposalType;
+    if (data.RFIFormat) parentData[col.RFIFormat] = data.RFIFormat;
+    if (data.PrimaryOwnerContact) parentData[col.PrimaryOwnerContact] = data.PrimaryOwnerContact;
+    if (data.ProposalDeliveryMethod) parentData[col.ProposalDeliveryMethod] = data.ProposalDeliveryMethod;
+    if (data.CopiesIfHandDelivered !== undefined) parentData[col.CopiesIfHandDelivered] = data.CopiesIfHandDelivered;
+    if (data.HBProposalDue) parentData[col.HBProposalDue] = data.HBProposalDue;
+    if (data.SubcontractorProposalsDue) parentData[col.SubcontractorProposalsDue] = data.SubcontractorProposalsDue;
+    if (data.PreSubmissionReview) parentData[col.PreSubmissionReview] = data.PreSubmissionReview;
+    if (data.SubcontractorSiteWalkThru) parentData[col.SubcontractorSiteWalkThru] = data.SubcontractorSiteWalkThru;
+    if (data.OwnerEstimateReview) parentData[col.OwnerEstimateReview] = data.OwnerEstimateReview;
+    if (data.keyPersonnel) parentData[col.KeyPersonnel] = JSON.stringify(data.keyPersonnel);
+    if (data.KickoffMeetingId) parentData[col.KickoffMeetingId] = data.KickoffMeetingId;
+    if (data.KickoffMeetingDate) parentData[col.KickoffMeetingDate] = data.KickoffMeetingDate;
+
+    const result = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items.add(parentData);
+    const newId = (result as Record<string, unknown>).Id as number || (result as Record<string, unknown>).id as number;
+
+    // Create child items if provided
+    if (data.items && data.items.length > 0) {
+      for (const item of data.items) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const childData: Record<string, any> = {
+          [itemCol.kickoffId]: newId,
+          [itemCol.projectCode]: data.ProjectCode ?? '',
+          [itemCol.section]: item.section || 'managing',
+          [itemCol.task]: item.task || '',
+          [itemCol.status]: item.status || null,
+          [itemCol.sortOrder]: item.sortOrder ?? 0,
+        };
+        if (item.responsibleParty) childData[itemCol.responsibleParty] = item.responsibleParty;
+        if (item.assignees) childData[itemCol.Assignees] = JSON.stringify(item.assignees);
+        if (item.deadline) childData[itemCol.deadline] = item.deadline;
+        if (item.frequency) childData[itemCol.frequency] = item.frequency;
+        if (item.notes) childData[itemCol.notes] = item.notes;
+        if (item.tabRequired !== undefined) childData[itemCol.tabRequired] = item.tabRequired;
+        if (item.isCustom !== undefined) childData[itemCol.isCustom] = item.isCustom;
+        await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items.add(childData);
+      }
+    }
+
+    // Re-read and assemble
+    return (await this.getEstimatingKickoff(data.ProjectCode ?? ''))!;
+  }
+
+  async updateEstimatingKickoff(id: number, data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> {
+    const col = ESTIMATING_KICKOFFS_COLUMNS;
+    const itemCol = ESTIMATING_KICKOFF_ITEMS_COLUMNS;
+    const now = new Date().toISOString();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = { [col.ModifiedDate]: now };
+    if (data.Architect !== undefined) updateData[col.Architect] = data.Architect;
+    if (data.ProposalDueDateTime !== undefined) updateData[col.ProposalDueDateTime] = data.ProposalDueDateTime;
+    if (data.ProposalType !== undefined) updateData[col.ProposalType] = data.ProposalType;
+    if (data.RFIFormat !== undefined) updateData[col.RFIFormat] = data.RFIFormat;
+    if (data.PrimaryOwnerContact !== undefined) updateData[col.PrimaryOwnerContact] = data.PrimaryOwnerContact;
+    if (data.ProposalDeliveryMethod !== undefined) updateData[col.ProposalDeliveryMethod] = data.ProposalDeliveryMethod;
+    if (data.CopiesIfHandDelivered !== undefined) updateData[col.CopiesIfHandDelivered] = data.CopiesIfHandDelivered;
+    if (data.HBProposalDue !== undefined) updateData[col.HBProposalDue] = data.HBProposalDue;
+    if (data.SubcontractorProposalsDue !== undefined) updateData[col.SubcontractorProposalsDue] = data.SubcontractorProposalsDue;
+    if (data.PreSubmissionReview !== undefined) updateData[col.PreSubmissionReview] = data.PreSubmissionReview;
+    if (data.SubcontractorSiteWalkThru !== undefined) updateData[col.SubcontractorSiteWalkThru] = data.SubcontractorSiteWalkThru;
+    if (data.OwnerEstimateReview !== undefined) updateData[col.OwnerEstimateReview] = data.OwnerEstimateReview;
+    if (data.keyPersonnel !== undefined) updateData[col.KeyPersonnel] = JSON.stringify(data.keyPersonnel);
+    if (data.KickoffMeetingId !== undefined) updateData[col.KickoffMeetingId] = data.KickoffMeetingId;
+    if (data.KickoffMeetingDate !== undefined) updateData[col.KickoffMeetingDate] = data.KickoffMeetingDate;
+    if (data.ModifiedBy !== undefined) updateData[col.ModifiedBy] = data.ModifiedBy;
+
+    await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items.getById(id).update(updateData);
+
+    // If items provided, replace all existing items (delete + recreate)
+    if (data.items) {
+      // Read existing parent to get ProjectCode
+      const parentItem = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items.getById(id)();
+      const projectCode = (parentItem as Record<string, unknown>)[col.ProjectCode] as string || '';
+
+      // Delete existing items for this kickoff
+      const existingItems = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items
+        .filter(`${itemCol.kickoffId} eq ${id}`)
+        .top(500)();
+      for (const existing of existingItems) {
+        await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items
+          .getById((existing as Record<string, unknown>).Id as number || (existing as Record<string, unknown>).ID as number).recycle();
+      }
+
+      // Create new items
+      for (const item of data.items) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const childData: Record<string, any> = {
+          [itemCol.kickoffId]: id,
+          [itemCol.projectCode]: projectCode,
+          [itemCol.section]: item.section || 'managing',
+          [itemCol.task]: item.task || '',
+          [itemCol.status]: item.status || null,
+          [itemCol.sortOrder]: item.sortOrder ?? 0,
+        };
+        if (item.responsibleParty !== undefined) childData[itemCol.responsibleParty] = item.responsibleParty;
+        if (item.assignees) childData[itemCol.Assignees] = JSON.stringify(item.assignees);
+        if (item.deadline !== undefined) childData[itemCol.deadline] = item.deadline;
+        if (item.frequency !== undefined) childData[itemCol.frequency] = item.frequency;
+        if (item.notes !== undefined) childData[itemCol.notes] = item.notes;
+        if (item.tabRequired !== undefined) childData[itemCol.tabRequired] = item.tabRequired;
+        if (item.isCustom !== undefined) childData[itemCol.isCustom] = item.isCustom;
+        await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items.add(childData);
+      }
+    }
+
+    // Re-read the parent to get ProjectCode for re-assembly
+    const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items.getById(id)();
+    const projectCode = (updated as Record<string, unknown>)[col.ProjectCode] as string || '';
+    return (await this.getEstimatingKickoff(projectCode))!;
+  }
+
+  async updateKickoffItem(kickoffId: number, itemId: number, data: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> {
+    const col = ESTIMATING_KICKOFF_ITEMS_COLUMNS;
+    const parentCol = ESTIMATING_KICKOFFS_COLUMNS;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {};
+    if (data.section !== undefined) updateData[col.section] = data.section;
+    if (data.task !== undefined) updateData[col.task] = data.task;
+    if (data.status !== undefined) updateData[col.status] = data.status;
+    if (data.responsibleParty !== undefined) updateData[col.responsibleParty] = data.responsibleParty;
+    if (data.assignees !== undefined) updateData[col.Assignees] = JSON.stringify(data.assignees);
+    if (data.deadline !== undefined) updateData[col.deadline] = data.deadline;
+    if (data.frequency !== undefined) updateData[col.frequency] = data.frequency;
+    if (data.notes !== undefined) updateData[col.notes] = data.notes;
+    if (data.tabRequired !== undefined) updateData[col.tabRequired] = data.tabRequired;
+    if (data.isCustom !== undefined) updateData[col.isCustom] = data.isCustom;
+    if (data.sortOrder !== undefined) updateData[col.sortOrder] = data.sortOrder;
+
+    await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items.getById(itemId).update(updateData);
+
+    // Update parent ModifiedDate
+    await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items.getById(kickoffId).update({
+      [parentCol.ModifiedDate]: new Date().toISOString(),
+    });
+
+    // Re-read the item
+    const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items.getById(itemId)();
+    return this.mapToEstimatingKickoffItem(updated);
+  }
+
+  async addKickoffItem(kickoffId: number, item: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> {
+    const col = ESTIMATING_KICKOFF_ITEMS_COLUMNS;
+    const parentCol = ESTIMATING_KICKOFFS_COLUMNS;
+
+    // Read parent to get ProjectCode
+    const parent = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items.getById(kickoffId)();
+    const projectCode = (parent as Record<string, unknown>)[parentCol.ProjectCode] as string || '';
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const childData: Record<string, any> = {
+      [col.kickoffId]: kickoffId,
+      [col.projectCode]: projectCode,
+      [col.section]: item.section || 'managing',
+      [col.task]: item.task || 'New Task',
+      [col.status]: item.status || null,
+      [col.sortOrder]: item.sortOrder ?? 0,
+      [col.isCustom]: item.isCustom ?? true,
+    };
+    if (item.responsibleParty) childData[col.responsibleParty] = item.responsibleParty;
+    if (item.assignees) childData[col.Assignees] = JSON.stringify(item.assignees);
+    if (item.deadline) childData[col.deadline] = item.deadline;
+    if (item.frequency) childData[col.frequency] = item.frequency;
+    if (item.notes) childData[col.notes] = item.notes;
+    if (item.tabRequired !== undefined) childData[col.tabRequired] = item.tabRequired;
+
+    const result = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items.add(childData);
+    const newId = (result as Record<string, unknown>).Id as number || (result as Record<string, unknown>).id as number;
+
+    // Update parent ModifiedDate
+    await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items.getById(kickoffId).update({
+      [parentCol.ModifiedDate]: new Date().toISOString(),
+    });
+
+    // Re-read the new item
+    const created = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items.getById(newId)();
+    return this.mapToEstimatingKickoffItem(created);
+  }
+
+  async removeKickoffItem(kickoffId: number, itemId: number): Promise<void> {
+    const parentCol = ESTIMATING_KICKOFFS_COLUMNS;
+
+    await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items.getById(itemId).recycle();
+
+    // Update parent ModifiedDate
+    await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items.getById(kickoffId).update({
+      [parentCol.ModifiedDate]: new Date().toISOString(),
+    });
+  }
+
+  async updateKickoffKeyPersonnel(kickoffId: number, personnel: IKeyPersonnelEntry[]): Promise<IEstimatingKickoff> {
+    const col = ESTIMATING_KICKOFFS_COLUMNS;
+    const now = new Date().toISOString();
+
+    await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items.getById(kickoffId).update({
+      [col.KeyPersonnel]: JSON.stringify(personnel),
+      [col.ModifiedDate]: now,
+    });
+
+    // Re-read and assemble
+    const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items.getById(kickoffId)();
+    const projectCode = (updated as Record<string, unknown>)[col.ProjectCode] as string || '';
+    return (await this.getEstimatingKickoff(projectCode))!;
+  }
 
   // --- Job Number Requests ---
-  async getJobNumberRequests(_status?: JobNumberRequestStatus): Promise<IJobNumberRequest[]> { console.warn('[STUB] getJobNumberRequests not implemented'); return []; }
-  async getJobNumberRequestByLeadId(_leadId: number): Promise<IJobNumberRequest | null> { console.warn('[STUB] getJobNumberRequestByLeadId not implemented'); return null; }
-  async createJobNumberRequest(_data: Partial<IJobNumberRequest>): Promise<IJobNumberRequest> { throw new Error('SharePoint implementation pending: createJobNumberRequest'); }
-  async finalizeJobNumber(_requestId: number, _jobNumber: string, _assignedBy: string): Promise<IJobNumberRequest> { throw new Error('SharePoint implementation pending: finalizeJobNumber'); }
+
+  async getJobNumberRequests(status?: JobNumberRequestStatus): Promise<IJobNumberRequest[]> {
+    const col = JOB_NUMBER_REQUESTS_COLUMNS;
+    let query = this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items;
+    if (status) {
+      query = query.filter(`${col.RequestStatus} eq '${status}'`);
+    }
+    const items = await query.orderBy(col.RequestDate, false).top(500)();
+    return items.map((item: Record<string, unknown>) => this.mapToJobNumberRequest(item));
+  }
+
+  async getJobNumberRequestByLeadId(leadId: number): Promise<IJobNumberRequest | null> {
+    const col = JOB_NUMBER_REQUESTS_COLUMNS;
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items
+      .filter(`${col.LeadID} eq ${leadId}`)
+      .orderBy(col.RequestDate, false)
+      .top(1)();
+    if (!items || items.length === 0) return null;
+    return this.mapToJobNumberRequest(items[0]);
+  }
+
+  async createJobNumberRequest(data: Partial<IJobNumberRequest>): Promise<IJobNumberRequest> {
+    const col = JOB_NUMBER_REQUESTS_COLUMNS;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const addData: Record<string, any> = {
+      [col.LeadID]: data.LeadID ?? 0,
+      [col.RequestDate]: data.RequestDate ?? new Date().toISOString().split('T')[0],
+      [col.Originator]: data.Originator ?? '',
+      [col.RequiredByDate]: data.RequiredByDate ?? '',
+      [col.ProjectAddress]: data.ProjectAddress ?? '',
+      [col.ProjectExecutive]: data.ProjectExecutive ?? '',
+      [col.ProjectType]: data.ProjectType ?? '',
+      [col.ProjectTypeLabel]: data.ProjectTypeLabel ?? '',
+      [col.IsEstimatingOnly]: data.IsEstimatingOnly ?? false,
+      [col.RequestedCostCodes]: JSON.stringify(data.RequestedCostCodes ?? []),
+      [col.RequestStatus]: JobNumberRequestStatus.Pending,
+      [col.SiteProvisioningHeld]: data.SiteProvisioningHeld ?? true,
+    };
+    if (data.ProjectManager) addData[col.ProjectManager] = data.ProjectManager;
+    if (data.TempProjectCode) addData[col.TempProjectCode] = data.TempProjectCode;
+    if (data.Notes) addData[col.Notes] = data.Notes;
+
+    const result = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.add(addData);
+    const newId = (result as Record<string, unknown>).Id as number || (result as Record<string, unknown>).id as number;
+
+    // Link the request to the lead
+    if (data.LeadID) {
+      try {
+        await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items.getById(data.LeadID).update({
+          JobNumberRequestId: newId,
+        });
+      } catch { /* non-critical: lead linkage */ }
+    }
+
+    const created = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(newId)();
+    return this.mapToJobNumberRequest(created);
+  }
+
+  async finalizeJobNumber(requestId: number, jobNumber: string, assignedBy: string): Promise<IJobNumberRequest> {
+    const col = JOB_NUMBER_REQUESTS_COLUMNS;
+    const now = new Date().toISOString().split('T')[0];
+
+    // Read the request first to get LeadID
+    const existing = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(requestId)();
+    const leadId = (existing as Record<string, unknown>)[col.LeadID] as number;
+
+    // Update the request
+    await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(requestId).update({
+      [col.RequestStatus]: JobNumberRequestStatus.Completed,
+      [col.AssignedJobNumber]: jobNumber,
+      [col.AssignedBy]: assignedBy,
+      [col.AssignedDate]: now,
+    });
+
+    // Update the lead's ProjectCode
+    if (leadId) {
+      try {
+        await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items.getById(leadId).update({
+          ProjectCode: jobNumber,
+          OfficialJobNumber: jobNumber,
+        });
+      } catch { /* non-critical: lead update */ }
+    }
+
+    // Re-read the request
+    const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(requestId)();
+    return this.mapToJobNumberRequest(updated);
+  }
 
   // --- Reference Data ---
-  async getProjectTypes(): Promise<IProjectType[]> { console.warn('[STUB] getProjectTypes not implemented'); return []; }
-  async getStandardCostCodes(): Promise<IStandardCostCode[]> { console.warn('[STUB] getStandardCostCodes not implemented'); return []; }
+
+  async getProjectTypes(): Promise<IProjectType[]> {
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.PROJECT_TYPES).items.top(500)();
+    return items.map((item: Record<string, unknown>) => this.mapToProjectType(item));
+  }
+
+  async getStandardCostCodes(): Promise<IStandardCostCode[]> {
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.STANDARD_COST_CODES).items.top(500)();
+    return items.map((item: Record<string, unknown>) => this.mapToStandardCostCode(item));
+  }
 
   // --- Buyout Log ---
 
@@ -2859,9 +3918,59 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Sector Definitions ---
-  async getSectorDefinitions(): Promise<import('../models/ISectorDefinition').ISectorDefinition[]> { console.warn('[STUB] getSectorDefinitions not implemented'); return []; }
-  async createSectorDefinition(_data: Partial<import('../models/ISectorDefinition').ISectorDefinition>): Promise<import('../models/ISectorDefinition').ISectorDefinition> { throw new Error('SharePoint implementation pending: createSectorDefinition'); }
-  async updateSectorDefinition(_id: number, _data: Partial<import('../models/ISectorDefinition').ISectorDefinition>): Promise<import('../models/ISectorDefinition').ISectorDefinition> { throw new Error('SharePoint implementation pending: updateSectorDefinition'); }
+
+  async getSectorDefinitions(): Promise<ISectorDefinition[]> {
+    const col = SECTOR_DEFINITIONS_COLUMNS;
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.SECTOR_DEFINITIONS).items
+      .orderBy(col.sortOrder, true)
+      .top(500)();
+    return items.map((item: Record<string, unknown>) => this.mapToSectorDefinition(item));
+  }
+
+  async createSectorDefinition(data: Partial<ISectorDefinition>): Promise<ISectorDefinition> {
+    const col = SECTOR_DEFINITIONS_COLUMNS;
+
+    // Auto-generate code from label if not provided
+    const code = data.code || data.label?.toUpperCase().replace(/[^A-Z0-9]/g, '_') || 'NEW';
+
+    // Determine sortOrder: default to max+1
+    let sortOrder = data.sortOrder;
+    if (sortOrder === undefined) {
+      const existing = await this.sp.web.lists.getByTitle(LIST_NAMES.SECTOR_DEFINITIONS).items
+        .orderBy(col.sortOrder, false).top(1)();
+      const maxSort = existing.length > 0 ? ((existing[0] as Record<string, unknown>)[col.sortOrder] as number || 0) : 0;
+      sortOrder = maxSort + 1;
+    }
+
+    const result = await this.sp.web.lists.getByTitle(LIST_NAMES.SECTOR_DEFINITIONS).items.add({
+      [col.code]: code,
+      [col.label]: data.label || 'New Sector',
+      [col.isActive]: data.isActive ?? true,
+      [col.parentDivision]: data.parentDivision || null,
+      [col.sortOrder]: sortOrder,
+    });
+    const newId = (result as Record<string, unknown>).Id as number || (result as Record<string, unknown>).id as number;
+
+    const created = await this.sp.web.lists.getByTitle(LIST_NAMES.SECTOR_DEFINITIONS).items.getById(newId)();
+    return this.mapToSectorDefinition(created);
+  }
+
+  async updateSectorDefinition(id: number, data: Partial<ISectorDefinition>): Promise<ISectorDefinition> {
+    const col = SECTOR_DEFINITIONS_COLUMNS;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {};
+    if (data.code !== undefined) updateData[col.code] = data.code;
+    if (data.label !== undefined) updateData[col.label] = data.label;
+    if (data.isActive !== undefined) updateData[col.isActive] = data.isActive;
+    if (data.parentDivision !== undefined) updateData[col.parentDivision] = data.parentDivision;
+    if (data.sortOrder !== undefined) updateData[col.sortOrder] = data.sortOrder;
+
+    await this.sp.web.lists.getByTitle(LIST_NAMES.SECTOR_DEFINITIONS).items.getById(id).update(updateData);
+
+    const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.SECTOR_DEFINITIONS).items.getById(id)();
+    return this.mapToSectorDefinition(updated);
+  }
 
   // --- BD Leads Folder Operations ---
 
@@ -2942,10 +4051,52 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Assignment Mappings ---
-  async getAssignmentMappings(): Promise<import('../models/IAssignmentMapping').IAssignmentMapping[]> { console.warn('[STUB] getAssignmentMappings not implemented'); return []; }
-  async createAssignmentMapping(_data: Partial<import('../models/IAssignmentMapping').IAssignmentMapping>): Promise<import('../models/IAssignmentMapping').IAssignmentMapping> { throw new Error('SharePoint implementation pending: createAssignmentMapping'); }
-  async updateAssignmentMapping(_id: number, _data: Partial<import('../models/IAssignmentMapping').IAssignmentMapping>): Promise<import('../models/IAssignmentMapping').IAssignmentMapping> { throw new Error('SharePoint implementation pending: updateAssignmentMapping'); }
-  async deleteAssignmentMapping(_id: number): Promise<void> { throw new Error('SharePoint implementation pending: deleteAssignmentMapping'); }
+
+  async getAssignmentMappings(): Promise<IAssignmentMapping[]> {
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.ASSIGNMENT_MAPPINGS).items.top(500)();
+    return items.map((item: Record<string, unknown>) => this.mapToAssignmentMapping(item));
+  }
+
+  async createAssignmentMapping(data: Partial<IAssignmentMapping>): Promise<IAssignmentMapping> {
+    const col = ASSIGNMENT_MAPPINGS_COLUMNS;
+
+    const result = await this.sp.web.lists.getByTitle(LIST_NAMES.ASSIGNMENT_MAPPINGS).items.add({
+      [col.region]: data.region || 'All Regions',
+      [col.sector]: data.sector || 'All Sectors',
+      [col.assignmentType]: data.assignmentType || 'Director',
+      [col.assigneeUserId]: data.assignee?.userId || '',
+      [col.assigneeDisplayName]: data.assignee?.displayName || '',
+      [col.assigneeEmail]: data.assignee?.email || '',
+    });
+    const newId = (result as Record<string, unknown>).Id as number || (result as Record<string, unknown>).id as number;
+
+    const created = await this.sp.web.lists.getByTitle(LIST_NAMES.ASSIGNMENT_MAPPINGS).items.getById(newId)();
+    return this.mapToAssignmentMapping(created);
+  }
+
+  async updateAssignmentMapping(id: number, data: Partial<IAssignmentMapping>): Promise<IAssignmentMapping> {
+    const col = ASSIGNMENT_MAPPINGS_COLUMNS;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {};
+    if (data.region !== undefined) updateData[col.region] = data.region;
+    if (data.sector !== undefined) updateData[col.sector] = data.sector;
+    if (data.assignmentType !== undefined) updateData[col.assignmentType] = data.assignmentType;
+    if (data.assignee) {
+      updateData[col.assigneeUserId] = data.assignee.userId;
+      updateData[col.assigneeDisplayName] = data.assignee.displayName;
+      updateData[col.assigneeEmail] = data.assignee.email;
+    }
+
+    await this.sp.web.lists.getByTitle(LIST_NAMES.ASSIGNMENT_MAPPINGS).items.getById(id).update(updateData);
+
+    const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.ASSIGNMENT_MAPPINGS).items.getById(id)();
+    return this.mapToAssignmentMapping(updated);
+  }
+
+  async deleteAssignmentMapping(id: number): Promise<void> {
+    await this.sp.web.lists.getByTitle(LIST_NAMES.ASSIGNMENT_MAPPINGS).items.getById(id).recycle();
+  }
 
   // --- Scorecard Reject / Archive ---
   async rejectScorecard(_scorecardId: number, _reason: string): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: rejectScorecard'); }
@@ -3238,6 +4389,473 @@ export class SharePointDataService implements IDataService {
     if (data.sectionCompletion !== undefined) result[col.sectionCompletion] = JSON.stringify(data.sectionCompletion);
 
     return result;
+  }
+
+  // ── Private Mapper Helpers: Project Controls Modules ─────────────────
+
+  private mapToRiskCostManagement(item: Record<string, unknown>): IRiskCostManagement {
+    const col = RISK_COST_MANAGEMENT_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      contractType: (item[col.contractType] as string) || '',
+      contractAmount: (item[col.contractAmount] as number) || 0,
+      buyoutOpportunities: [],
+      potentialRisks: [],
+      potentialSavings: [],
+      createdBy: (item[col.createdBy] as string) || '',
+      createdAt: (item[col.createdAt] as string) || '',
+      lastUpdatedBy: (item[col.lastUpdatedBy] as string) || '',
+      lastUpdatedAt: (item[col.lastUpdatedAt] as string) || '',
+    };
+  }
+
+  private mapToRiskCostItem(item: Record<string, unknown>): IRiskCostItem {
+    const col = RISK_COST_ITEMS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      riskCostId: (item[col.riskCostId] as number) || undefined,
+      category: (item[col.category] as IRiskCostItem['category']) || 'Risk',
+      letter: (item[col.letter] as string) || '',
+      description: (item[col.description] as string) || '',
+      estimatedValue: (item[col.estimatedValue] as number) || 0,
+      status: (item[col.status] as IRiskCostItem['status']) || 'Open',
+      notes: (item[col.notes] as string) || '',
+      createdDate: (item[col.createdDate] as string) || '',
+      updatedDate: (item[col.updatedDate] as string) || '',
+    };
+  }
+
+  private mapToQualityConcern(item: Record<string, unknown>): IQualityConcern {
+    const col = QUALITY_CONCERNS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      letter: (item[col.letter] as string) || '',
+      description: (item[col.description] as string) || '',
+      raisedBy: (item[col.raisedBy] as string) || '',
+      raisedDate: (item[col.raisedDate] as string) || '',
+      status: (item[col.status] as IQualityConcern['status']) || 'Open',
+      resolution: (item[col.resolution] as string) || '',
+      resolvedDate: (item[col.resolvedDate] as string) || null,
+      notes: (item[col.notes] as string) || '',
+    };
+  }
+
+  private mapToSafetyConcern(item: Record<string, unknown>): ISafetyConcern {
+    const col = SAFETY_CONCERNS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      safetyOfficerName: (item[col.safetyOfficerName] as string) || '',
+      safetyOfficerEmail: (item[col.safetyOfficerEmail] as string) || '',
+      letter: (item[col.letter] as string) || '',
+      description: (item[col.description] as string) || '',
+      severity: (item[col.severity] as ISafetyConcern['severity']) || 'Medium',
+      raisedBy: (item[col.raisedBy] as string) || '',
+      raisedDate: (item[col.raisedDate] as string) || '',
+      status: (item[col.status] as ISafetyConcern['status']) || 'Open',
+      resolution: (item[col.resolution] as string) || '',
+      resolvedDate: (item[col.resolvedDate] as string) || null,
+      notes: (item[col.notes] as string) || '',
+    };
+  }
+
+  private mapToProjectSchedule(item: Record<string, unknown>): IProjectScheduleCriticalPath {
+    const col = PROJECT_SCHEDULE_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      startDate: (item[col.startDate] as string) || null,
+      substantialCompletionDate: (item[col.substantialCompletionDate] as string) || null,
+      ntpDate: (item[col.ntpDate] as string) || null,
+      nocDate: (item[col.nocDate] as string) || null,
+      contractCalendarDays: (item[col.contractCalendarDays] as number) ?? null,
+      contractBasisType: (item[col.contractBasisType] as string) || '',
+      teamGoalDaysAhead: (item[col.teamGoalDaysAhead] as number) ?? null,
+      teamGoalDescription: (item[col.teamGoalDescription] as string) || '',
+      hasLiquidatedDamages: !!(item[col.hasLiquidatedDamages]),
+      liquidatedDamagesAmount: (item[col.liquidatedDamagesAmount] as number) ?? null,
+      liquidatedDamagesTerms: (item[col.liquidatedDamagesTerms] as string) || '',
+      criticalPathConcerns: [],
+      createdBy: (item[col.createdBy] as string) || '',
+      createdAt: (item[col.createdAt] as string) || '',
+      lastUpdatedBy: (item[col.lastUpdatedBy] as string) || '',
+      lastUpdatedAt: (item[col.lastUpdatedAt] as string) || '',
+    };
+  }
+
+  private mapToCriticalPathItem(item: Record<string, unknown>): ICriticalPathItem {
+    const col = CRITICAL_PATH_ITEMS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      scheduleId: (item[col.scheduleId] as number) || undefined,
+      letter: (item[col.letter] as string) || '',
+      description: (item[col.description] as string) || '',
+      impactDescription: (item[col.impactDescription] as string) || '',
+      status: (item[col.status] as ICriticalPathItem['status']) || 'Active',
+      mitigationPlan: (item[col.mitigationPlan] as string) || '',
+      createdDate: (item[col.createdDate] as string) || '',
+      updatedDate: (item[col.updatedDate] as string) || '',
+    };
+  }
+
+  private mapToSuperintendentPlan(item: Record<string, unknown>): ISuperintendentPlan {
+    const col = SUPERINTENDENT_PLAN_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      superintendentName: (item[col.superintendentName] as string) || '',
+      sections: [],
+      createdBy: (item[col.createdBy] as string) || '',
+      createdAt: (item[col.createdAt] as string) || '',
+      lastUpdatedBy: (item[col.lastUpdatedBy] as string) || '',
+      lastUpdatedAt: (item[col.lastUpdatedAt] as string) || '',
+    };
+  }
+
+  private mapToSuperintendentPlanSection(item: Record<string, unknown>): ISuperintendentPlanSection {
+    const col = SUPERINTENDENT_PLAN_SECTIONS_COLUMNS;
+    let attachmentUrls: string[] = [];
+    try {
+      const raw = item[col.attachmentUrls];
+      if (typeof raw === 'string' && raw) attachmentUrls = JSON.parse(raw);
+      else if (Array.isArray(raw)) attachmentUrls = raw as string[];
+    } catch { /* safe fallback */ }
+
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      superintendentPlanId: (item[col.superintendentPlanId] as number) || undefined,
+      projectCode: (item[col.projectCode] as string) || '',
+      sectionKey: (item[col.sectionKey] as string) || '',
+      sectionTitle: (item[col.sectionTitle] as string) || '',
+      content: (item[col.content] as string) || '',
+      attachmentUrls,
+      isComplete: !!(item[col.isComplete]),
+    };
+  }
+
+  private mapToLessonLearned(item: Record<string, unknown>): ILessonLearned {
+    const col = LESSONS_LEARNED_COLUMNS;
+    let tags: string[] = [];
+    try {
+      const raw = item[col.tags];
+      if (typeof raw === 'string' && raw) tags = JSON.parse(raw);
+      else if (Array.isArray(raw)) tags = raw as string[];
+    } catch { /* safe fallback */ }
+
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      title: (item[col.title] as string) || '',
+      category: (item[col.category] as ILessonLearned['category']) || 'Other',
+      impact: (item[col.impact] as ILessonLearned['impact']) || 'Neutral',
+      description: (item[col.description] as string) || '',
+      recommendation: (item[col.recommendation] as string) || '',
+      raisedBy: (item[col.raisedBy] as string) || '',
+      raisedDate: (item[col.raisedDate] as string) || '',
+      phase: (item[col.phase] as string) || '',
+      isIncludedInFinalRecord: !!(item[col.isIncludedInFinalRecord]),
+      tags,
+    };
+  }
+
+  // ── Estimating Kickoff Mappers ──────────────────────────────────────
+
+  private mapToEstimatingKickoff(item: Record<string, unknown>): IEstimatingKickoff {
+    const col = ESTIMATING_KICKOFFS_COLUMNS;
+    let keyPersonnel: IKeyPersonnelEntry[] = [];
+    try {
+      const raw = item[col.KeyPersonnel];
+      if (typeof raw === 'string' && raw) keyPersonnel = JSON.parse(raw);
+      else if (Array.isArray(raw)) keyPersonnel = raw as IKeyPersonnelEntry[];
+    } catch { /* safe fallback */ }
+
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      LeadID: (item[col.LeadID] as number) || 0,
+      ProjectCode: (item[col.ProjectCode] as string) || '',
+      Architect: (item[col.Architect] as string) || undefined,
+      ProposalDueDateTime: (item[col.ProposalDueDateTime] as string) || undefined,
+      ProposalType: (item[col.ProposalType] as string) || undefined,
+      RFIFormat: (item[col.RFIFormat] as IEstimatingKickoff['RFIFormat']) || undefined,
+      PrimaryOwnerContact: (item[col.PrimaryOwnerContact] as string) || undefined,
+      ProposalDeliveryMethod: (item[col.ProposalDeliveryMethod] as string) || undefined,
+      CopiesIfHandDelivered: (item[col.CopiesIfHandDelivered] as number) ?? undefined,
+      HBProposalDue: (item[col.HBProposalDue] as string) || undefined,
+      SubcontractorProposalsDue: (item[col.SubcontractorProposalsDue] as string) || undefined,
+      PreSubmissionReview: (item[col.PreSubmissionReview] as string) || undefined,
+      SubcontractorSiteWalkThru: (item[col.SubcontractorSiteWalkThru] as string) || undefined,
+      OwnerEstimateReview: (item[col.OwnerEstimateReview] as string) || undefined,
+      keyPersonnel: keyPersonnel.length > 0 ? keyPersonnel : undefined,
+      items: [], // filled by assembly
+      KickoffMeetingId: (item[col.KickoffMeetingId] as string) || undefined,
+      KickoffMeetingDate: (item[col.KickoffMeetingDate] as string) || undefined,
+      CreatedBy: (item[col.CreatedBy] as string) || '',
+      CreatedDate: (item[col.CreatedDate] as string) || '',
+      ModifiedBy: (item[col.ModifiedBy] as string) || undefined,
+      ModifiedDate: (item[col.ModifiedDate] as string) || undefined,
+    };
+  }
+
+  private mapToEstimatingKickoffItem(item: Record<string, unknown>): IEstimatingKickoffItem {
+    const col = ESTIMATING_KICKOFF_ITEMS_COLUMNS;
+    let assignees: import('../models/IWorkflowDefinition').IPersonAssignment[] | undefined;
+    try {
+      const raw = item[col.Assignees];
+      if (typeof raw === 'string' && raw) assignees = JSON.parse(raw);
+      else if (Array.isArray(raw)) assignees = raw as import('../models/IWorkflowDefinition').IPersonAssignment[];
+    } catch { /* safe fallback */ }
+
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      kickoffId: (item[col.kickoffId] as number) || undefined,
+      projectCode: (item[col.projectCode] as string) || undefined,
+      section: (item[col.section] as IEstimatingKickoffItem['section']) || 'managing',
+      task: (item[col.task] as string) || '',
+      status: (item[col.status] as IEstimatingKickoffItem['status']) || null,
+      responsibleParty: (item[col.responsibleParty] as string) || undefined,
+      assignees,
+      deadline: (item[col.deadline] as string) || undefined,
+      frequency: (item[col.frequency] as string) || undefined,
+      notes: (item[col.notes] as string) || undefined,
+      tabRequired: item[col.tabRequired] !== undefined ? !!(item[col.tabRequired]) : undefined,
+      isCustom: item[col.isCustom] !== undefined ? !!(item[col.isCustom]) : undefined,
+      sortOrder: (item[col.sortOrder] as number) ?? 0,
+    };
+  }
+
+  // ── Job Number Request Mapper ─────────────────────────────────────
+
+  private mapToJobNumberRequest(item: Record<string, unknown>): IJobNumberRequest {
+    const col = JOB_NUMBER_REQUESTS_COLUMNS;
+    let requestedCostCodes: string[] = [];
+    try {
+      const raw = item[col.RequestedCostCodes];
+      if (typeof raw === 'string' && raw) requestedCostCodes = JSON.parse(raw);
+      else if (Array.isArray(raw)) requestedCostCodes = raw as string[];
+    } catch { /* safe fallback */ }
+
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      LeadID: (item[col.LeadID] as number) || 0,
+      RequestDate: (item[col.RequestDate] as string) || '',
+      Originator: (item[col.Originator] as string) || '',
+      RequiredByDate: (item[col.RequiredByDate] as string) || '',
+      ProjectAddress: (item[col.ProjectAddress] as string) || '',
+      ProjectExecutive: (item[col.ProjectExecutive] as string) || '',
+      ProjectManager: (item[col.ProjectManager] as string) || undefined,
+      ProjectType: (item[col.ProjectType] as string) || '',
+      ProjectTypeLabel: (item[col.ProjectTypeLabel] as string) || '',
+      IsEstimatingOnly: !!(item[col.IsEstimatingOnly]),
+      RequestedCostCodes: requestedCostCodes,
+      RequestStatus: (item[col.RequestStatus] as JobNumberRequestStatus) || JobNumberRequestStatus.Pending,
+      AssignedJobNumber: (item[col.AssignedJobNumber] as string) || undefined,
+      AssignedBy: (item[col.AssignedBy] as string) || undefined,
+      AssignedDate: (item[col.AssignedDate] as string) || undefined,
+      SiteProvisioningHeld: !!(item[col.SiteProvisioningHeld]),
+      TempProjectCode: (item[col.TempProjectCode] as string) || undefined,
+      Notes: (item[col.Notes] as string) || undefined,
+    };
+  }
+
+  // ── Reference Data Mappers ────────────────────────────────────────
+
+  private mapToProjectType(item: Record<string, unknown>): IProjectType {
+    const col = PROJECT_TYPES_COLUMNS;
+    return {
+      code: (item[col.code] as string) || '',
+      label: (item[col.label] as string) || '',
+      office: (item[col.office] as string) || '',
+    };
+  }
+
+  private mapToStandardCostCode(item: Record<string, unknown>): IStandardCostCode {
+    const col = STANDARD_COST_CODES_COLUMNS;
+    return {
+      id: (item[col.id] as string) || '',
+      description: (item[col.description] as string) || '',
+      phase: (item[col.phase] as string) || '',
+      division: (item[col.division] as string) || '',
+      isDefault: !!(item[col.isDefault]),
+    };
+  }
+
+  // ── Sector Definition Mapper ──────────────────────────────────────
+
+  private mapToSectorDefinition(item: Record<string, unknown>): ISectorDefinition {
+    const col = SECTOR_DEFINITIONS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      code: (item[col.code] as string) || '',
+      label: (item[col.label] as string) || '',
+      isActive: !!(item[col.isActive]),
+      parentDivision: (item[col.parentDivision] as string) || undefined,
+      sortOrder: (item[col.sortOrder] as number) ?? 0,
+    };
+  }
+
+  // ── Assignment Mapping Mapper ─────────────────────────────────────
+
+  private mapToAssignmentMapping(item: Record<string, unknown>): IAssignmentMapping {
+    const col = ASSIGNMENT_MAPPINGS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      region: (item[col.region] as string) || 'All Regions',
+      sector: (item[col.sector] as string) || 'All Sectors',
+      assignmentType: (item[col.assignmentType] as IAssignmentMapping['assignmentType']) || 'Director',
+      assignee: {
+        userId: (item[col.assigneeUserId] as string) || '',
+        displayName: (item[col.assigneeDisplayName] as string) || '',
+        email: (item[col.assigneeEmail] as string) || '',
+      },
+    };
+  }
+
+  // ── PMP Mappers & Assembly ───────────────────────────────────────────
+
+  private mapToPMP(item: Record<string, unknown>): IProjectManagementPlan {
+    const col = PMP_COLUMNS;
+
+    // Safe JSON parse helper
+    const parseJson = (raw: unknown, fallback: unknown = null): unknown => {
+      try {
+        if (typeof raw === 'string' && raw) return JSON.parse(raw);
+        if (Array.isArray(raw) || (typeof raw === 'object' && raw !== null)) return raw;
+      } catch { /* safe fallback */ }
+      return fallback;
+    };
+
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      projectName: (item[col.projectName] as string) || '',
+      jobNumber: (item[col.jobNumber] as string) || '',
+      status: (item[col.status] as IProjectManagementPlan['status']) || 'Draft',
+      currentCycleNumber: (item[col.currentCycleNumber] as number) || 0,
+      division: (item[col.division] as string) || '',
+      superintendentPlan: (item[col.superintendentPlan] as string) || '',
+      preconMeetingNotes: (item[col.preconMeetingNotes] as string) || '',
+      siteManagementNotes: (item[col.siteManagementNotes] as string) || '',
+      projectAdminBuyoutDate: (item[col.projectAdminBuyoutDate] as string) || null,
+      attachmentUrls: parseJson(item[col.attachmentUrls], []) as string[],
+      riskCostData: parseJson(item[col.riskCostData]) as IProjectManagementPlan['riskCostData'],
+      qualityConcerns: parseJson(item[col.qualityConcerns], []) as string[],
+      safetyConcerns: parseJson(item[col.safetyConcerns], []) as string[],
+      scheduleData: parseJson(item[col.scheduleData]) as IProjectManagementPlan['scheduleData'],
+      superintendentPlanData: parseJson(item[col.superintendentPlanData]) as IProjectManagementPlan['superintendentPlanData'],
+      lessonsLearned: parseJson(item[col.lessonsLearned], []) as string[],
+      teamAssignments: parseJson(item[col.teamAssignments], []) as string[],
+      boilerplate: parseJson(item[col.boilerplate], []) as IPMPBoilerplateSection[],
+      // Child arrays populated by assemblePMPFromParts
+      startupSignatures: [],
+      completionSignatures: [],
+      approvalCycles: [],
+      // Meta
+      createdBy: (item[col.createdBy] as string) || '',
+      createdAt: (item[col.createdAt] as string) || '',
+      lastUpdatedBy: (item[col.lastUpdatedBy] as string) || '',
+      lastUpdatedAt: (item[col.lastUpdatedAt] as string) || '',
+    };
+  }
+
+  private mapToPMPSignature(item: Record<string, unknown>): IPMPSignature {
+    const col = PMP_SIGNATURES_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      pmpId: (item[col.pmpId] as number) || undefined,
+      projectCode: (item[col.projectCode] as string) || '',
+      signatureType: (item[col.signatureType] as IPMPSignature['signatureType']) || 'Startup',
+      role: (item[col.role] as string) || '',
+      personName: (item[col.personName] as string) || '',
+      personEmail: (item[col.personEmail] as string) || '',
+      isRequired: !!(item[col.isRequired]),
+      isLead: !!(item[col.isLead]),
+      status: (item[col.status] as IPMPSignature['status']) || 'Pending',
+      signedDate: (item[col.signedDate] as string) || null,
+      affidavitText: (item[col.affidavitText] as string) || '',
+      comment: (item[col.comment] as string) || '',
+    };
+  }
+
+  private mapToPMPApprovalCycle(item: Record<string, unknown>): IPMPApprovalCycle {
+    const col = PMP_APPROVAL_CYCLES_COLUMNS;
+    let changesFromPrevious: string[] = [];
+    try {
+      const raw = item[col.changesFromPrevious];
+      if (typeof raw === 'string' && raw) changesFromPrevious = JSON.parse(raw);
+      else if (Array.isArray(raw)) changesFromPrevious = raw as string[];
+    } catch { /* safe fallback */ }
+
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      pmpId: (item[col.pmpId] as number) || undefined,
+      projectCode: (item[col.projectCode] as string) || undefined,
+      cycleNumber: (item[col.cycleNumber] as number) || 0,
+      submittedBy: (item[col.submittedBy] as string) || '',
+      submittedDate: (item[col.submittedDate] as string) || '',
+      status: (item[col.status] as IPMPApprovalCycle['status']) || 'InProgress',
+      steps: [], // Populated by assemblePMPFromParts
+      changesFromPrevious,
+    };
+  }
+
+  private mapToPMPApprovalStep(item: Record<string, unknown>): IPMPApprovalStep {
+    const col = PMP_APPROVAL_STEPS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      approvalCycleId: (item[col.approvalCycleId] as number) || undefined,
+      projectCode: (item[col.projectCode] as string) || '',
+      stepOrder: (item[col.stepOrder] as number) || 0,
+      approverRole: (item[col.approverRole] as string) || '',
+      approverName: (item[col.approverName] as string) || '',
+      approverEmail: (item[col.approverEmail] as string) || '',
+      status: (item[col.status] as IPMPApprovalStep['status']) || 'Pending',
+      comment: (item[col.comment] as string) || '',
+      actionDate: (item[col.actionDate] as string) || null,
+      approvalCycleNumber: (item[col.approvalCycleNumber] as number) || 0,
+    };
+  }
+
+  private mapToDivisionApprover(item: Record<string, unknown>): IDivisionApprover {
+    const col = DIVISION_APPROVERS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      division: (item[col.division] as IDivisionApprover['division']) || 'Commercial',
+      approverName: (item[col.approverName] as string) || '',
+      approverEmail: (item[col.approverEmail] as string) || '',
+      approverTitle: (item[col.approverTitle] as string) || '',
+    };
+  }
+
+  private mapToPMPBoilerplateSection(item: Record<string, unknown>): IPMPBoilerplateSection {
+    const col = PMP_BOILERPLATE_COLUMNS;
+    return {
+      sectionNumber: (item[col.sectionNumber] as string) || '',
+      sectionTitle: (item[col.sectionTitle] as string) || '',
+      content: (item[col.content] as string) || '',
+      sourceDocumentUrl: (item[col.sourceDocumentUrl] as string) || '',
+      lastSourceUpdate: (item[col.lastSourceUpdate] as string) || '',
+    };
+  }
+
+  private assemblePMPFromParts(
+    pmp: IProjectManagementPlan,
+    signatures: IPMPSignature[],
+    cycles: IPMPApprovalCycle[],
+    steps: IPMPApprovalStep[]
+  ): IProjectManagementPlan {
+    return {
+      ...pmp,
+      startupSignatures: signatures.filter(s => s.signatureType === 'Startup'),
+      completionSignatures: signatures.filter(s => s.signatureType === 'Completion'),
+      approvalCycles: cycles.map(c => ({
+        ...c,
+        steps: steps.filter(s => s.approvalCycleId === c.id),
+      })),
+    };
   }
 
   // ── Performance Monitoring (Pattern A stubs) ──────────────────────────
