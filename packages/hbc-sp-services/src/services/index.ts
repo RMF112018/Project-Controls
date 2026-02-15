@@ -18,4 +18,6 @@ export type { IProvisioningInput } from './ProvisioningService';
 export { MockHubNavigationService, SharePointHubNavigationService, projectCodeToYearLabel, buildNavLinkDisplayText } from './HubNavigationService';
 export type { IHubNavigationService, IHubNavResult, IHubNavNode } from './HubNavigationService';
 export { PerformanceService, performanceService } from './PerformanceService';
+export { SignalRService, signalRService } from './SignalRService';
+export type { SignalRConnectionStatus } from '../models/ISignalRMessage';
 export * from './columnMappings';

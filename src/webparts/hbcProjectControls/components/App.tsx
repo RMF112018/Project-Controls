@@ -4,6 +4,7 @@ import { FluentProvider } from '@fluentui/react-components';
 import { hbcLightTheme } from '../theme/hbcTheme';
 import { AppProvider } from './contexts/AppContext';
 import { HelpProvider } from './contexts/HelpContext';
+import { SignalRProvider } from './contexts/SignalRContext';
 import { AppShell } from './layouts/AppShell';
 import { ErrorBoundary } from './shared/ErrorBoundary';
 import { ToastProvider } from './shared/ToastContainer';
@@ -339,15 +340,17 @@ export const App: React.FC<IAppProps> = ({ dataService, siteUrl }) => {
     <FluentProvider theme={hbcLightTheme}>
       <ErrorBoundary>
         <AppProvider dataService={dataService} siteUrl={siteUrl}>
-          <HelpProvider>
-            <ToastProvider>
-              <HashRouter>
-                <AppShell>
-                  <AppRoutes />
-                </AppShell>
-              </HashRouter>
-            </ToastProvider>
-          </HelpProvider>
+          <SignalRProvider>
+            <HelpProvider>
+              <ToastProvider>
+                <HashRouter>
+                  <AppShell>
+                    <AppRoutes />
+                  </AppShell>
+                </HashRouter>
+              </ToastProvider>
+            </HelpProvider>
+          </SignalRProvider>
         </AppProvider>
       </ErrorBoundary>
     </FluentProvider>
