@@ -4,10 +4,14 @@ import {
   IProjectTeamAssignment,
   IResolvedPermissions,
   AuditAction,
-  EntityType
+  EntityType,
+  IEntityChangedMessage,
 } from '@hbc/sp-services';
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
+import { useSignalRContext } from '../contexts/SignalRContext';
+import { useSignalR } from './useSignalR';
+
 export interface IUsePermissionEngineResult {
   templates: IPermissionTemplate[];
   securityGroupMappings: ISecurityGroupMapping[];
@@ -30,7 +34,8 @@ export interface IUsePermissionEngineResult {
 }
 
 export function usePermissionEngine(): IUsePermissionEngineResult {
-  const { dataService } = useAppContext();
+  const { dataService, currentUser } = useAppContext();
+  const { broadcastChange } = useSignalRContext();
   const [templates, setTemplates] = React.useState<IPermissionTemplate[]>([]);
   const [securityGroupMappings, setSecurityGroupMappings] = React.useState<ISecurityGroupMapping[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -57,6 +62,54 @@ export function usePermissionEngine(): IUsePermissionEngineResult {
       setError(err instanceof Error ? err.message : 'Failed to load mappings');
     }
   }, [dataService]);
+
+  // SignalR: refresh on Permission entity changes from other users
+  useSignalR({
+    entityType: EntityType.Permission,
+    onEntityChanged: React.useCallback(() => { fetchTemplates(); }, [fetchTemplates]),
+  });
+
+  // SignalR: refresh on ProjectTeamAssignment entity changes from other users
+  useSignalR({
+    entityType: EntityType.ProjectTeamAssignment,
+    onEntityChanged: React.useCallback(() => { fetchMappings(); }, [fetchMappings]),
+  });
+
+  // Helper to broadcast permission changes
+  const broadcastPermissionChange = React.useCallback((
+    entityId: number | string,
+    action: IEntityChangedMessage['action'],
+    summary?: string
+  ) => {
+    broadcastChange({
+      type: 'EntityChanged',
+      entityType: EntityType.Permission,
+      entityId: String(entityId),
+      action,
+      changedBy: currentUser?.email ?? 'unknown',
+      changedByName: currentUser?.displayName,
+      timestamp: new Date().toISOString(),
+      summary,
+    });
+  }, [broadcastChange, currentUser]);
+
+  // Helper to broadcast project team assignment changes
+  const broadcastAssignmentChange = React.useCallback((
+    entityId: number | string,
+    action: IEntityChangedMessage['action'],
+    summary?: string
+  ) => {
+    broadcastChange({
+      type: 'EntityChanged',
+      entityType: EntityType.ProjectTeamAssignment,
+      entityId: String(entityId),
+      action,
+      changedBy: currentUser?.email ?? 'unknown',
+      changedByName: currentUser?.displayName,
+      timestamp: new Date().toISOString(),
+      summary,
+    });
+  }, [broadcastChange, currentUser]);
 
   const resolvePermissions = React.useCallback(async (userEmail: string, projectCode: string | null) => {
     try {
@@ -114,73 +167,82 @@ export function usePermissionEngine(): IUsePermissionEngineResult {
 
   const assignToProject = React.useCallback(async (data: Partial<IProjectTeamAssignment>) => {
     try {
-      return await dataService.createProjectTeamAssignment(data);
+      const result = await dataService.createProjectTeamAssignment(data);
+      broadcastAssignmentChange(result.id, 'created', 'Team member assigned to project');
+      return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to assign to project');
       throw err;
     }
-  }, [dataService]);
+  }, [dataService, broadcastAssignmentChange]);
 
   const removeFromProject = React.useCallback(async (id: number) => {
     try {
       await dataService.removeProjectTeamAssignment(id);
+      broadcastAssignmentChange(id, 'deleted', 'Team member removed from project');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove from project');
       throw err;
     }
-  }, [dataService]);
+  }, [dataService, broadcastAssignmentChange]);
 
   const updateAssignment = React.useCallback(async (id: number, data: Partial<IProjectTeamAssignment>) => {
     try {
-      return await dataService.updateProjectTeamAssignment(id, data);
+      const result = await dataService.updateProjectTeamAssignment(id, data);
+      broadcastAssignmentChange(id, 'updated', 'Team assignment updated');
+      return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update assignment');
       throw err;
     }
-  }, [dataService]);
+  }, [dataService, broadcastAssignmentChange]);
 
   const createTemplate = React.useCallback(async (data: Partial<IPermissionTemplate>) => {
     try {
       const result = await dataService.createPermissionTemplate(data);
       setTemplates(prev => [...prev, result]);
+      broadcastPermissionChange(result.id, 'created', 'Permission template created');
       return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create template');
       throw err;
     }
-  }, [dataService]);
+  }, [dataService, broadcastPermissionChange]);
 
   const updateTemplate = React.useCallback(async (id: number, data: Partial<IPermissionTemplate>) => {
     try {
       const result = await dataService.updatePermissionTemplate(id, data);
       setTemplates(prev => prev.map(t => t.id === id ? result : t));
+      broadcastPermissionChange(id, 'updated', 'Permission template updated');
       return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update template');
       throw err;
     }
-  }, [dataService]);
+  }, [dataService, broadcastPermissionChange]);
 
   const deleteTemplate = React.useCallback(async (id: number) => {
     try {
       await dataService.deletePermissionTemplate(id);
       setTemplates(prev => prev.filter(t => t.id !== id));
+      broadcastPermissionChange(id, 'deleted', 'Permission template deleted');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete template');
       throw err;
     }
-  }, [dataService]);
+  }, [dataService, broadcastPermissionChange]);
 
   const updateMapping = React.useCallback(async (id: number, data: Partial<ISecurityGroupMapping>) => {
     try {
       const result = await dataService.updateSecurityGroupMapping(id, data);
       setSecurityGroupMappings(prev => prev.map(m => m.id === id ? result : m));
+      broadcastPermissionChange(id, 'updated', 'Security group mapping updated');
       return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update mapping');
       throw err;
     }
-  }, [dataService]);
+  }, [dataService, broadcastPermissionChange]);
 
   return {
     templates,

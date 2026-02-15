@@ -6,6 +6,7 @@ import { NavigationSidebar } from './NavigationSidebar';
 import { SkeletonLoader } from '../shared/SkeletonLoader';
 import { SearchBar } from '../shared/SearchBar';
 import { SyncStatusIndicator } from '../shared/SyncStatusIndicator';
+import { PresenceIndicator } from '../shared/PresenceIndicator';
 import { WhatsNewModal, shouldShowWhatsNew } from '../shared/WhatsNewModal';
 import { HelpMenu, HelpPanel, GuidedTour, ContactSupportDialog } from '../help';
 import { FeatureGate } from '../guards';
@@ -267,6 +268,9 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
             <HelpMenu />
           </FeatureGate>
           <SyncStatusIndicator />
+          <FeatureGate featureName="RealTimeUpdates">
+            <PresenceIndicator />
+          </FeatureGate>
           {currentUser && !isMobile && (
             <span className={styles.userName}>{currentUser.displayName}</span>
           )}
