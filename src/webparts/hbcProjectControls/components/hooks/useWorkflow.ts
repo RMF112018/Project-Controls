@@ -14,10 +14,13 @@ import {
   NotificationType,
   MeetingType,
   AwardStatus,
-  validateTransition
+  validateTransition,
+  IEntityChangedMessage,
 } from '@hbc/sp-services';
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
+import { useSignalRContext } from '../contexts/SignalRContext';
+
 interface IUseWorkflowResult {
   // Team Members
   teamMembers: ITeamMember[];
@@ -73,7 +76,8 @@ interface IUseWorkflowResult {
 }
 
 export function useWorkflow(): IUseWorkflowResult {
-  const { dataService } = useAppContext();
+  const { dataService, currentUser } = useAppContext();
+  const { broadcastChange } = useSignalRContext();
   const [teamMembers, setTeamMembers] = React.useState<ITeamMember[]>([]);
   const [deliverables, setDeliverables] = React.useState<IDeliverable[]>([]);
   const [interviewPrep, setInterviewPrep] = React.useState<IInterviewPrep | null>(null);
@@ -83,6 +87,27 @@ export function useWorkflow(): IUseWorkflowResult {
   const [lossAutopsy, setLossAutopsy] = React.useState<ILossAutopsy | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  // Helper to broadcast workflow entity changes
+  const broadcastEntityChange = React.useCallback((
+    entityType: EntityType,
+    entityId: string,
+    action: IEntityChangedMessage['action'],
+    projectCode?: string,
+    summary?: string
+  ) => {
+    broadcastChange({
+      type: 'EntityChanged',
+      entityType,
+      entityId,
+      action,
+      changedBy: currentUser?.email ?? 'unknown',
+      changedByName: currentUser?.displayName,
+      projectCode,
+      timestamp: new Date().toISOString(),
+      summary,
+    });
+  }, [broadcastChange, currentUser]);
 
   // Team Members
   const fetchTeamMembers = React.useCallback(async (projectCode: string) => {
@@ -204,8 +229,9 @@ export function useWorkflow(): IUseWorkflowResult {
       NewValue: toStage,
       Details: `Stage transitioned from ${lead.Stage} to ${toStage}`,
     });
+    broadcastEntityChange(EntityType.Lead, String(lead.id), 'updated', lead.ProjectCode, `Stage: ${lead.Stage} → ${toStage}`);
     return updated;
-  }, [dataService]);
+  }, [dataService, broadcastEntityChange]);
 
   // Win/Loss recording
   const recordWin = React.useCallback(async (lead: ILead, details: { contractValue?: number; finalFeePct?: number; awardDate?: string; contractType?: string }): Promise<ILead> => {
@@ -255,8 +281,10 @@ export function useWorkflow(): IUseWorkflowResult {
       Details: `Win recorded for ${lead.Title}. Contract value: ${details.contractValue}`,
     });
 
+    broadcastEntityChange(EntityType.Lead, String(lead.id), 'updated', lead.ProjectCode, `Win recorded: ${lead.Title}`);
+
     return updated;
-  }, [dataService]);
+  }, [dataService, broadcastEntityChange]);
 
   const recordLoss = React.useCallback(async (lead: ILead, details: { lossReasons: string[]; competitor?: string; autopsyNotes?: string }): Promise<ILead> => {
     const updated = await dataService.updateLead(lead.id, {
@@ -295,8 +323,10 @@ export function useWorkflow(): IUseWorkflowResult {
       Details: `Loss recorded for ${lead.Title}. Reasons: ${details.lossReasons.join(', ')}`,
     });
 
+    broadcastEntityChange(EntityType.Lead, String(lead.id), 'updated', lead.ProjectCode, `Loss recorded: ${lead.Title}`);
+
     return updated;
-  }, [dataService]);
+  }, [dataService, broadcastEntityChange]);
 
   // Meeting schedulers
   const scheduleMeeting = React.useCallback(async (

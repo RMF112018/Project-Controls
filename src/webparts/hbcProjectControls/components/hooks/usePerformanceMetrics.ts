@@ -1,6 +1,10 @@
 import * as React from 'react';
-import { IPerformanceLog, IPerformanceSummary, IPerformanceQueryOptions } from '@hbc/sp-services';
+import { IPerformanceLog, IPerformanceSummary, IPerformanceQueryOptions, EntityType } from '@hbc/sp-services';
 import { useAppContext } from '../contexts/AppContext';
+import { useSignalR } from './useSignalR';
+
+const POLL_INTERVAL_DEFAULT = 30000;   // 30 seconds
+const POLL_INTERVAL_SIGNALR = 120000;  // 120 seconds backup when SignalR connected
 
 interface IUsePerformanceMetricsResult {
   logs: IPerformanceLog[];
@@ -41,17 +45,23 @@ export function usePerformanceMetrics(): IUsePerformanceMetricsResult {
     }
   }, [dataService, dateRange]);
 
+  // SignalR: refresh on Performance entity changes
+  const { isEnabled: signalRConnected } = useSignalR({
+    entityType: EntityType.Performance,
+    onEntityChanged: React.useCallback(() => { fetchData(); }, [fetchData]),
+  });
+
   React.useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Auto-refresh every 30 seconds
+  // Auto-refresh — relax interval when SignalR connected
   React.useEffect(() => {
     const interval = setInterval(() => {
       fetchData();
-    }, 30000);
+    }, signalRConnected ? POLL_INTERVAL_SIGNALR : POLL_INTERVAL_DEFAULT);
     return () => clearInterval(interval);
-  }, [fetchData]);
+  }, [fetchData, signalRConnected]);
 
   return {
     logs,
