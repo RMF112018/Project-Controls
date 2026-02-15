@@ -137,6 +137,8 @@ import mockSectorDefinitions from '../mock/sectorDefinitions.json';
 import mockAssignmentMappings from '../mock/assignmentMappings.json';
 import { IAssignmentMapping } from '../models/IAssignmentMapping';
 import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '../models/IPerformanceLog';
+import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
+import mockHelpGuides from '../mock/helpGuides.json';
 import { DEFAULT_PREREQUISITES, DEFAULT_DISCUSSION_ITEMS, DEFAULT_EXHIBITS, DEFAULT_SIGNATURES, TURNOVER_SIGNATURE_AFFIDAVIT } from '../utils/turnoverAgendaTemplate';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
@@ -209,6 +211,7 @@ export class MockDataService implements IDataService {
   private securityGroupMappings: ISecurityGroupMapping[];
   private projectTeamAssignments: IProjectTeamAssignment[];
   private performanceLogs: IPerformanceLog[];
+  private helpGuides: IHelpGuide[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -377,6 +380,7 @@ export class MockDataService implements IDataService {
     this.securityGroupMappings = JSON.parse(JSON.stringify(mockSecurityGroupMappings)) as ISecurityGroupMapping[];
     this.projectTeamAssignments = JSON.parse(JSON.stringify(mockProjectTeamAssignments)) as IProjectTeamAssignment[];
     this.performanceLogs = [];
+    this.helpGuides = JSON.parse(JSON.stringify(mockHelpGuides)) as IHelpGuide[];
 
     this.nextId = 1000;
   }
@@ -5537,5 +5541,55 @@ export class MockDataService implements IDataService {
       slowSessionCount: logs.filter(l => l.TotalLoadMs > 5000).length,
       byDay,
     };
+  }
+
+  // ── Help & Support ──────────────────────────────────────────────────────
+
+  async getHelpGuides(moduleKey?: string): Promise<IHelpGuide[]> {
+    await delay();
+    let guides = this.helpGuides.filter(g => g.isActive);
+    if (moduleKey) {
+      guides = guides.filter(g => g.moduleKey === moduleKey);
+    }
+    guides.sort((a, b) => a.sortOrder - b.sortOrder);
+    return JSON.parse(JSON.stringify(guides));
+  }
+
+  async getHelpGuideById(id: number): Promise<IHelpGuide | null> {
+    await delay();
+    const guide = this.helpGuides.find(g => g.id === id);
+    return guide ? JSON.parse(JSON.stringify(guide)) : null;
+  }
+
+  private _supportConfig: ISupportConfig = {
+    supportEmail: 'support@hedrickbrothers.com',
+    supportPhone: '(561) 844-2922',
+    knowledgeBaseUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral/SitePages/Help.aspx',
+    feedbackFormUrl: 'https://forms.office.com/r/HBCFeedback',
+    responseTimeHours: 24,
+  };
+
+  async getSupportConfig(): Promise<ISupportConfig> {
+    await delay();
+    return { ...this._supportConfig };
+  }
+
+  async updateHelpGuide(id: number, data: Partial<IHelpGuide>): Promise<IHelpGuide> {
+    await delay();
+    const idx = this.helpGuides.findIndex(g => g.id === id);
+    if (idx === -1) throw new Error(`Help guide not found: ${id}`);
+    this.helpGuides[idx] = { ...this.helpGuides[idx], ...data, lastModifiedDate: new Date().toISOString() };
+    return JSON.parse(JSON.stringify(this.helpGuides[idx]));
+  }
+
+  async sendSupportEmail(to: string, subject: string, htmlBody: string, fromUserEmail: string): Promise<void> {
+    await delay();
+    console.log('[MockDataService] Support email sent:', { to, subject, from: fromUserEmail, bodyLength: htmlBody.length });
+  }
+
+  async updateSupportConfig(config: Partial<ISupportConfig>): Promise<ISupportConfig> {
+    await delay();
+    this._supportConfig = { ...this._supportConfig, ...config };
+    return { ...this._supportConfig };
   }
 }

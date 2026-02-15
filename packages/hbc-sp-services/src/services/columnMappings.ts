@@ -1627,3 +1627,21 @@ export const PERFORMANCE_LOGS_COLUMNS = {
   SpfxVersion: 'SpfxVersion',                  // SP: Single Line of Text
   Notes: 'Notes',                              // SP: Multiple Lines of Text
 } as const;
+
+/**
+ * List: Help_Guides
+ * Interface: IHelpGuide
+ */
+export const HELP_GUIDES_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  moduleKey: 'ModuleKey',                      // SP: Single Line of Text
+  title: 'Title',                              // SP: Single Line of Text (default)
+  content: 'Content',                          // SP: Multiple Lines of Text
+  guideType: 'GuideType',                      // SP: Choice (walkthrough, tooltip, article, video)
+  sortOrder: 'SortOrder',                      // SP: Number
+  targetSelector: 'TargetSelector',            // SP: Single Line of Text
+  videoUrl: 'VideoUrl',                        // SP: Hyperlink
+  isActive: 'IsActive',                        // SP: Yes/No
+  lastModifiedBy: 'LastModifiedBy',            // SP: Single Line of Text
+  lastModifiedDate: 'LastModifiedDate',        // SP: DateTime
+} as const;

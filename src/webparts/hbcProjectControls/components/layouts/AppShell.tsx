@@ -1,12 +1,17 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
 import { useAppContext } from '../contexts/AppContext';
+import { useHelp } from '../contexts/HelpContext';
 import { NavigationSidebar } from './NavigationSidebar';
 import { SkeletonLoader } from '../shared/SkeletonLoader';
 import { SearchBar } from '../shared/SearchBar';
 import { SyncStatusIndicator } from '../shared/SyncStatusIndicator';
 import { WhatsNewModal, shouldShowWhatsNew } from '../shared/WhatsNewModal';
+import { HelpMenu, HelpPanel, GuidedTour, ContactSupportDialog } from '../help';
+import { FeatureGate } from '../guards';
 import { useResponsive } from '../hooks/useResponsive';
+import { useCurrentModule } from '../hooks/useCurrentModule';
+import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import { IEnvironmentConfig, APP_VERSION } from '@hbc/sp-services';
 import { HBC_COLORS, SPACING, ELEVATION } from '../../theme/tokens';
 
@@ -164,9 +169,29 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
   const styles = useStyles();
   const { isLoading, error, currentUser, dataService, isFeatureEnabled } = useAppContext();
   const { isMobile, isTablet } = useResponsive();
+  const { setCurrentModuleKey, isHelpPanelOpen, helpPanelMode, startTour: startHelpTour, isTourActive } = useHelp();
+  const currentModuleKey = useCurrentModule();
+
+  // Shift+? keyboard shortcut to start guided tour
+  useKeyboardShortcut([
+    {
+      key: '?',
+      shiftKey: true,
+      handler: () => {
+        if (isFeatureEnabled('EnableHelpSystem') && currentModuleKey && !isTourActive) {
+          startHelpTour(currentModuleKey);
+        }
+      },
+    },
+  ]);
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
   const [whatsNewOpen, setWhatsNewOpen] = React.useState(false);
   const [envConfig, setEnvConfig] = React.useState<IEnvironmentConfig | null>(null);
+
+  // Sync current module key into HelpContext whenever route changes
+  React.useEffect(() => {
+    setCurrentModuleKey(currentModuleKey);
+  }, [currentModuleKey, setCurrentModuleKey]);
 
   // Load environment config if PermissionEngine is enabled
   React.useEffect(() => {
@@ -238,6 +263,9 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
         {!isMobile && <SearchBar />}
 
         <div className={styles.headerRight}>
+          <FeatureGate featureName="EnableHelpSystem">
+            <HelpMenu />
+          </FeatureGate>
           <SyncStatusIndicator />
           {currentUser && !isMobile && (
             <span className={styles.userName}>{currentUser.displayName}</span>
@@ -281,6 +309,11 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
       </div>
 
       <WhatsNewModal isOpen={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
+      {isHelpPanelOpen && <HelpPanel mode={helpPanelMode} />}
+      <FeatureGate featureName="EnableHelpSystem">
+        <GuidedTour />
+        <ContactSupportDialog />
+      </FeatureGate>
       <style>{`
         .hbc-skip-link:focus {
           top: 0 !important;

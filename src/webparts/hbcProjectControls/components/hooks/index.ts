@@ -37,3 +37,5 @@ export { useAssignmentMappings } from './useAssignmentMappings';
 export { useProvisioningTracker } from './useProvisioningTracker';
 export { useProvisioningValidation } from './useProvisioningValidation';
 export { usePerformanceMetrics } from './usePerformanceMetrics';
+export { useCurrentModule } from './useCurrentModule';
+export { useAppStateSummary } from './useAppStateSummary';

@@ -25,11 +25,7 @@
 ║  Stale documentation is worse than no documentation.                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-<<<<<<< extract-common-services
-**Last Updated:** 2026-02-14 — Fix `@hbc/sp-services` import resolution (workspace symlink, lib build, SPFx alias)
-=======
-**Last Updated:** 2026-02-14 — GitHub Actions CI/CD Pipeline
->>>>>>> main
+**Last Updated:** 2026-02-15 — Smart Contact Support (ContactSupportDialog, useAppStateSummary, ApplicationSupportPage, 2 IDataService methods)
 
 ---
 
@@ -45,6 +41,7 @@
 | Router | react-router-dom ^6.22.3 |
 | SP Data | @pnp/sp ^4.4.1, @pnp/graph ^4.4.1 |
 | Charts | recharts ^2.12.3 |
+| Guided Tours | react-joyride ^2.9.3 |
 | Export | jspdf ^2.5.2, html2canvas ^1.4.1, xlsx ^0.18.5 |
 | Build Tool | gulp ^4.0.2, webpack ^5.90.0 |
 | Test | jest ^29.7.0, @testing-library/react ^14.0.0 |
@@ -121,6 +118,13 @@ src/webparts/hbcProjectControls/
 │   ├── App.tsx                            # Root app: FluentProvider → ErrorBoundary → AppProvider → HashRouter → AppShell → Routes
 │   ├── contexts/
 │   │   ├── AppContext.tsx                 # Global context: dataService, currentUser, featureFlags, selectedProject, hasPermission, isFeatureEnabled
+│   │   ├── HelpContext.tsx               # Help context: guides, supportConfig, panel/tour/contactSupport state, moduleKey tracking
+│   │   └── index.ts
+│   ├── help/
+│   │   ├── ContactSupportDialog.tsx      # Fluent Dialog — subject, description, screenshot, branded HTML email via dataService
+│   │   ├── GuidedTour.tsx                # React Joyride wrapper — walkthrough guides → steps, brand theming, callback handling
+│   │   ├── HelpMenu.tsx                  # Fluent Menu dropdown in header (? icon → 4 items)
+│   │   ├── HelpPanel.tsx                 # Right-side guide panel (targeted + library modes, Accordion, search, support)
 │   │   └── index.ts
 │   ├── guards/
 │   │   ├── FeatureGate.tsx               # Renders children only if feature flag enabled
@@ -129,9 +133,10 @@ src/webparts/hbcProjectControls/
 │   │   ├── ProjectRequiredRoute.tsx      # Shows "No Project Selected" if no selectedProject
 │   │   ├── RoleGate.tsx                  # Renders children only if user has allowed role
 │   │   └── index.ts
-│   ├── hooks/                             # 39 custom hooks (see §7 for service method mapping)
+│   ├── hooks/                             # 41 custom hooks (see §7 for service method mapping)
 │   │   ├── useActionInbox.ts             # Action inbox aggregation with auto-refresh
 │   │   ├── useActiveProjects.ts          # Active projects portfolio
+│   │   ├── useAppStateSummary.ts        # On-demand app state collection for support emails
 │   │   ├── useAssignmentMappings.ts     # Assignment mapping CRUD + resolution
 │   │   ├── useBuyoutLog.ts              # Buyout log CRUD
 │   │   ├── useCommitmentApproval.ts     # Commitment approval workflow
@@ -164,6 +169,7 @@ src/webparts/hbcProjectControls/
 │   │   ├── useTabFromUrl.ts            # URL-synced tab state for deep linking
 │   │   ├── useTurnoverAgenda.ts       # Turnover meeting agenda CRUD + computed state + workflow
 │   │   ├── useWorkflow.ts              # Composite workflow (team, deliverables, interview, contract, turnover, closeout, loss autopsy, stage transitions)
+│   │   ├── useCurrentModule.ts            # Pathname → moduleKey mapper for help context
 │   │   ├── usePerformanceMetrics.ts      # Performance dashboard data + auto-refresh
 │   │   ├── usePermissionEngine.ts     # Permission engine hook
 │   │   ├── useProvisioningTracker.ts  # Provisioning log aggregation + summary KPIs for dashboard widget
@@ -179,6 +185,7 @@ src/webparts/hbcProjectControls/
 │   │   │   ├── AccountingQueuePage.tsx
 │   │   │   ├── ActiveProjectsDashboard.tsx
 │   │   │   ├── AdminPanel.tsx
+│   │   │   ├── ApplicationSupportPage.tsx
 │   │   │   ├── ComplianceLog.tsx
 │   │   │   ├── DashboardPage.tsx
 │   │   │   ├── GoNoGoDetail.tsx
@@ -310,18 +317,18 @@ packages/hbc-sp-services/
 ├── tsconfig.json             # Standalone config (target es2017, module esnext)
 ├── src/
 │   ├── index.ts              # Public barrel: re-exports models + services + utils + MOCK_USERS
-│   ├── models/               # 45 files — all I*.ts + enums.ts + index.ts (see §6)
+│   ├── models/               # 46 files — all I*.ts + enums.ts + index.ts (see §6)
 │   ├── services/             # 15 files — all service classes + index.ts (see §7)
-│   │   ├── IDataService.ts   # Service interface (215 methods)
-│   │   ├── MockDataService.ts # Mock implementation (all 215 implemented)
-│   │   ├── SharePointDataService.ts # SP implementation (129 impl, 80 stubs, 6 delegation)
+│   │   ├── IDataService.ts   # Service interface (221 methods)
+│   │   ├── MockDataService.ts # Mock implementation (all 221 implemented)
+│   │   ├── SharePointDataService.ts # SP implementation (129 impl, 84 stubs, 6 delegation)
 │   │   ├── AuditService.ts, CacheService.ts, ExportService.ts
 │   │   ├── GraphService.ts, HubNavigationService.ts, NotificationService.ts
 │   │   ├── OfflineQueueService.ts, PerformanceService.ts, PowerAutomateService.ts, ProvisioningService.ts
 │   │   ├── columnMappings.ts  # SP column name mappings for all lists (1267 lines)
 │   │   └── index.ts
 │   ├── utils/                # 13 files — all utility functions (see §13)
-│   └── mock/                 # 42 JSON files — mock data (see §12)
+│   └── mock/                 # 43 JSON files — mock data (see §12)
 └── lib/                      # Compiled output (gitignored)
 ```
 
@@ -393,10 +400,10 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | Item | Value |
 |------|-------|
 | File | src/webparts/hbcProjectControls/components/App.tsx |
-| Component Tree | `FluentProvider` → `ErrorBoundary` → `AppProvider(dataService, siteUrl?)` → `HashRouter` → `AppShell` → `Suspense(PageLoader)` → `AppRoutes` |
+| Component Tree | `FluentProvider` → `ErrorBoundary` → `AppProvider(dataService, siteUrl?)` → `HelpProvider` → `ToastProvider` → `HashRouter` → `AppShell` → `Suspense(PageLoader)` → `AppRoutes` |
 | Router Type | `HashRouter` from react-router-dom |
 | Code Splitting | 40 page components lazy-loaded via `React.lazy()` + `lazyNamed()` helper; shell/guards/providers in main bundle |
-| Route Count | 50 routes (see §8) |
+| Route Count | 51 routes (see §8) |
 
 ---
 
@@ -498,6 +505,15 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | WhatsNewModal | components/shared/WhatsNewModal.tsx | isOpen, onClose | 1 (AppShell) |
 | WorkflowPreview | components/shared/WorkflowPreview.tsx | workflowKey, onClose | ~1 |
 | WorkflowStepCard | components/shared/WorkflowStepCard.tsx | step, isExpanded, onToggle, onUpdateStep, onAddCondition, onUpdateCondition, onRemoveCondition, disabled? | ~1 |
+
+### Help Components
+
+| Component | File | Key Props | Used By |
+|-----------|------|-----------|---------|
+| ContactSupportDialog | components/help/ContactSupportDialog.tsx | (none — reads from HelpContext) | 1 (AppShell, FeatureGated, renders Fluent Dialog when isContactSupportOpen) |
+| GuidedTour | components/help/GuidedTour.tsx | (none — reads from HelpContext) | 1 (AppShell, FeatureGated, renders Joyride when isTourActive) |
+| HelpMenu | components/help/HelpMenu.tsx | (none — reads from HelpContext) | 1 (AppShell header, FeatureGated) |
+| HelpPanel | components/help/HelpPanel.tsx | mode: 'targeted' \| 'library' | 1 (AppShell, rendered when isHelpPanelOpen) |
 
 ---
 
@@ -614,6 +630,8 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | IPerformanceMark | models/IPerformanceLog.ts | name, startTime, endTime, durationMs | — | — |
 | IPerformanceQueryOptions | models/IPerformanceLog.ts | startDate?, endDate?, userEmail?, siteUrl?, minLoadMs? | — | — |
 | IPerformanceSummary | models/IPerformanceLog.ts | totalSessions, avgWebPartLoadMs, avgAppInitMs, avgTotalLoadMs, p95TotalLoadMs, slowSessionCount, sessionsByDay | — | — |
+| IHelpGuide | models/IHelpGuide.ts | id, moduleKey, title, content, guideType: HelpGuideType, sortOrder, targetSelector?, videoUrl?, isActive, lastModifiedBy?, lastModifiedDate? | Help_Guides | Hub |
+| ISupportConfig | models/IHelpGuide.ts | supportEmail, supportPhone?, knowledgeBaseUrl?, feedbackFormUrl?, responseTimeHours? | — | — |
 
 ### Enums (models/enums.ts)
 
@@ -632,8 +650,8 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | RoleName | BDRepresentative, EstimatingCoordinator, AccountingManager, PreconstructionTeam, OperationsTeam, ExecutiveLeadership, Legal, RiskManagement, Marketing, QualityControl, Safety, IDS, DepartmentDirector, SharePointAdmin |
 | ProvisioningStatus | Queued, InProgress, Completed, PartialFailure, Failed |
 | TurnoverStatus | Draft, PrerequisitesInProgress, MeetingScheduled, MeetingComplete, PendingSignatures, Signed, Complete |
-| AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved, TurnoverAgendaCreated, TurnoverPrerequisiteCompleted, TurnoverItemDiscussed, TurnoverSubcontractorAdded, TurnoverSubcontractorRemoved, TurnoverExhibitReviewed, TurnoverExhibitAdded, TurnoverExhibitRemoved, TurnoverSigned, TurnoverAgendaCompleted, HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated, TemplateCreated, TemplateUpdated, TemplateDeleted, ProjectTeamAssigned, ProjectTeamRemoved, ProjectTeamOverridden, SecurityGroupMappingChanged, PermissionResolved, ScorecardArchived, LeadFolderCreated, AssignmentMappingUpdated, GraphApiCallSucceeded, GraphApiCallFailed, GraphGroupMemberAdded, GraphGroupMemberAddFailed, PerformanceLogRecorded, PerformanceAlertTriggered |
-| EntityType | Lead, Scorecard, Estimate, Project, Permission, Config, Checklist, Matrix, ProjectRecord, RiskCost, Quality, Safety, Schedule, SuperintendentPlan, LessonLearned, PMP, MonthlyReview, WorkflowDefinition, TurnoverAgenda, PermissionTemplate, ProjectTeamAssignment, AssignmentMapping, GraphApi, Performance |
+| AuditAction | LeadCreated, LeadEdited, GoNoGoScoreSubmitted, GoNoGoDecisionMade, SiteProvisioningTriggered, SiteProvisioningCompleted, EstimateCreated, EstimateStatusChanged, TurnoverInitiated, TurnoverCompleted, PermissionChanged, MeetingScheduled, LossRecorded, AutopsyCompleted, ConfigFeatureFlagChanged, ConfigRoleChanged, ChecklistItemUpdated, ChecklistItemAdded, ChecklistSignedOff, MatrixAssignmentChanged, MatrixTaskAdded, ProjectRecordUpdated, ProjectRecordCreated, PMPSubmitted, PMPApproved, PMPReturned, PMPSigned, RiskItemUpdated, QualityConcernUpdated, SafetyConcernUpdated, ScheduleUpdated, SuperPlanUpdated, LessonAdded, MonthlyReviewSubmitted, MonthlyReviewAdvanced, WorkflowStepUpdated, WorkflowConditionAdded, WorkflowConditionRemoved, WorkflowOverrideSet, WorkflowOverrideRemoved, TurnoverAgendaCreated, TurnoverPrerequisiteCompleted, TurnoverItemDiscussed, TurnoverSubcontractorAdded, TurnoverSubcontractorRemoved, TurnoverExhibitReviewed, TurnoverExhibitAdded, TurnoverExhibitRemoved, TurnoverSigned, TurnoverAgendaCompleted, HubNavLinkCreated, HubNavLinkFailed, HubNavLinkRetried, HubNavLinkRemoved, HubSiteUrlUpdated, TemplateCreated, TemplateUpdated, TemplateDeleted, ProjectTeamAssigned, ProjectTeamRemoved, ProjectTeamOverridden, SecurityGroupMappingChanged, PermissionResolved, ScorecardArchived, LeadFolderCreated, AssignmentMappingUpdated, GraphApiCallSucceeded, GraphApiCallFailed, GraphGroupMemberAdded, GraphGroupMemberAddFailed, PerformanceLogRecorded, PerformanceAlertTriggered, SupportEmailSent, SupportConfigUpdated |
+| EntityType | Lead, Scorecard, Estimate, Project, Permission, Config, Checklist, Matrix, ProjectRecord, RiskCost, Quality, Safety, Schedule, SuperintendentPlan, LessonLearned, PMP, MonthlyReview, WorkflowDefinition, TurnoverAgenda, PermissionTemplate, ProjectTeamAssignment, AssignmentMapping, GraphApi, Performance, SupportRequest |
 | DeliverableStatus | NotStarted, InProgress, InReview, Complete |
 | ActionItemStatus | Open, InProgress, Complete |
 | Priority | Low, Medium, High, Critical |
@@ -696,7 +714,7 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 
 ## §7 Service Methods
 
-215 methods on IDataService. Source: `services/IDataService.ts`
+221 methods on IDataService. Source: `services/IDataService.ts`
 
 | # | Method | Signature | Mock | SP | Hook Caller | Mock JSON |
 |---|--------|-----------|------|-----|-------------|-----------|
@@ -907,6 +925,12 @@ sharepoint/solution/debug/          # SPFx solution package output (auto-generat
 | 204 | logPerformanceEntry | (entry: Partial<IPerformanceLog>) → Promise<IPerformanceLog> | Impl | Stub | usePerformanceMetrics | in-memory |
 | 205 | getPerformanceLogs | (options?: IPerformanceQueryOptions) → Promise<IPerformanceLog[]> | Impl | Stub | usePerformanceMetrics | in-memory |
 | 206 | getPerformanceSummary | (options?: IPerformanceQueryOptions) → Promise<IPerformanceSummary> | Impl | Stub | usePerformanceMetrics | aggregated |
+| 207 | getHelpGuides | (moduleKey?: string) → Promise<IHelpGuide[]> | Impl | Stub | HelpContext | helpGuides.json |
+| 208 | getHelpGuideById | (id: number) → Promise<IHelpGuide \| null> | Impl | Stub | HelpContext | helpGuides.json |
+| 209 | getSupportConfig | () → Promise<ISupportConfig> | Impl | Stub | HelpContext | hardcoded |
+| 210 | updateHelpGuide | (id: number, data: Partial<IHelpGuide>) → Promise<IHelpGuide> | Impl | Stub | — | helpGuides.json |
+| 211 | sendSupportEmail | (to: string, subject: string, htmlBody: string, fromUserEmail: string) → Promise<void> | Impl | Stub | ContactSupportDialog | in-memory |
+| 212 | updateSupportConfig | (config: Partial<ISupportConfig>) → Promise<ISupportConfig> | Impl | Stub | ApplicationSupportPage | in-memory |
 
 ---
 
@@ -964,6 +988,7 @@ Source: `components/App.tsx`
 | /accounting-queue | AccountingQueuePage | pages/hub/AccountingQueuePage.tsx | No | ACCOUNTING_QUEUE_VIEW | — |
 | /admin | AdminPanel | pages/hub/AdminPanel.tsx | No | ADMIN_CONFIG | — |
 | /admin/performance | PerformanceDashboard | pages/hub/PerformanceDashboard.tsx | No | ADMIN_CONFIG | PerformanceMonitoring |
+| /admin/application-support | ApplicationSupportPage | pages/hub/ApplicationSupportPage.tsx | No | ADMIN_CONFIG | EnableHelpSystem |
 | /access-denied | AccessDeniedPage | pages/shared/AccessDeniedPage.tsx | No | — | — |
 | * | NotFoundPage | (inline in App.tsx) | No | — | — |
 
@@ -1018,7 +1043,8 @@ Operations                                   [roles: Ops Team, Exec Leadership, 
 ─────────────────────────────────────────────
 Admin                                        [roles: Executive Leadership]
   ├── Admin Panel                             [/admin, permission: admin:config]
-  └── Performance                             [/admin/performance, permission: admin:config, featureFlag: PerformanceMonitoring]
+  ├── Performance                             [/admin/performance, permission: admin:config, featureFlag: PerformanceMonitoring]
+  └── Application Support                     [/admin/application-support, permission: admin:config, featureFlag: EnableHelpSystem]
 ```
 
 Items with `requiresProject` are disabled (grayed out) when no project is selected. Items with `permission` are hidden if user lacks that permission. Items with `hubOnly` are hidden when a project is selected (both hub-with-selection and project-site modes). Items with `featureFlag` are hidden if that feature flag is disabled (checked via `isFeatureEnabled()`). Dynamic items (Lead Detail, Go/No-Go) appear under Preconstruction only when `selectedProject?.leadId` is set.
@@ -1159,6 +1185,7 @@ Source: `mock/featureFlags.json`
 | WorkflowDefinitions | 22 | Workflow Definitions | true | Preconstruction | Workflow definition configuration |
 | PermissionEngine | 23 | Permission Engine | true | Infrastructure | Permission engine: template-based authorization, project access scoping |
 | PerformanceMonitoring | 24 | Performance Monitoring | false | Infrastructure | Performance telemetry logging + admin dashboard |
+| EnableHelpSystem | 25 | Help & Support System | true | Infrastructure | Contextual help panels, guided tours, and support config |
 
 ---
 
@@ -1210,6 +1237,7 @@ Source: `mock/`
 | securityGroupMappings.json | ISecurityGroupMapping | 9 | N/A |
 | projectTeamAssignments.json | IProjectTeamAssignment | 15 | 25-042-01, 25-115-01 |
 | environmentConfig.json | IEnvironmentConfig | 1 | N/A |
+| helpGuides.json | IHelpGuide | 8 | N/A |
 
 ---
 
@@ -1254,6 +1282,7 @@ Source: `utils/constants.ts`, `theme/tokens.ts`
   SECTOR_DEFINITIONS: 'Sector_Definitions',
   ASSIGNMENT_MAPPINGS: 'Assignment_Mappings',
   PERFORMANCE_LOGS: 'Performance_Logs',
+  HELP_GUIDES: 'Help_Guides',
 }
 ```
 
@@ -1394,6 +1423,7 @@ Source: `utils/constants.ts`, `theme/tokens.ts`
   ACCOUNTING_QUEUE: '/accounting-queue',
   ADMIN: '/admin',
   ADMIN_PERFORMANCE: '/admin/performance',
+  ADMIN_APPLICATION_SUPPORT: '/admin/application-support',
   ACCESS_DENIED: '/access-denied',
 }
 ```
@@ -1524,17 +1554,23 @@ Steps 1-6 modify `packages/hbc-sp-services/` (the shared library). Steps 7-12 mo
 
 | Perf-1 | Route-based Code Splitting — Replaced 40 static page imports in App.tsx with `React.lazy()` + `lazyNamed()` helper for named-export modules. Single `React.Suspense` boundary wraps `<Routes>` with `<PageLoader />` fallback (centered Fluent Spinner, makeStyles). Shell stays in main bundle: FluentProvider, AppProvider, HashRouter, AppShell, NavigationSidebar, ErrorBoundary, ToastProvider, guards (ProtectedRoute, ProjectRequiredRoute, FeatureGate), NotFoundPage, AccessDeniedPage. 2 dead imports removed (GoNoGoTracker, PreconKickoff — were imported but never routed). Zero route guard, service, model, or styling changes. `tsc --noEmit` clean. | PageLoader.tsx | App.tsx (40 static→lazy imports, +Suspense boundary, +lazyNamed helper, -2 dead imports), shared/PageLoader.tsx (new), shared/index.ts (+PageLoader export) |
 
-<<<<<<< extract-common-services
 | Lib-1 | Extract `@hbc/sp-services` Shared Library — Moved 114 files (45 models + 14 services + 13 utils + 42 mock JSON) from `src/webparts/hbcProjectControls/` into `packages/hbc-sp-services/src/` as a standalone npm workspace package. Monorepo structure via npm workspaces (`"workspaces": ["packages/*"]`). Package barrel `index.ts` re-exports all models, services, utils, and `MOCK_USERS` from mock/users.json. All ~106 app files rewritten from relative imports (`../../models`, `../../services/*`, `../../utils/*`) to `from '@hbc/sp-services'`. Duplicate imports consolidated. Root tsconfig `rootDir` changed from `"src"` to `"."` to accommodate path alias resolution into packages/. Old path aliases (`@services/*`, `@models/*`, `@utils/*`) removed; new `@hbc/sp-services` alias added. Webpack dev config updated. `tsc --noEmit` passes on all 3 tsconfigs (root, dev, package). Webpack dev build compiles successfully. Zero model, service, utility, or component logic changes — purely structural refactor. | packages/hbc-sp-services/ (package.json, tsconfig.json, src/index.ts) | ~106 app files (import rewrites), package.json (workspaces, dependency, build scripts), tsconfig.json (rootDir, paths), dev/webpack.config.js (aliases), services/index.ts (added missing singleton/type exports), AzureADPeoplePicker.tsx (MOCK_USERS import), PursuitDetail.tsx (inline import type fix) |
-=======
+
 | CI-1 | GitHub Actions CI/CD Pipeline — ci.yml (full build on push/PR with .sppkg artifact upload), release.yml (tag-triggered GitHub Release with .sppkg asset), pr-validation.yml (fast type-check + lint for PRs), dependabot.yml (weekly npm + GitHub Actions updates, SPFx packages pinned to patch-only). Node 18.18.2 in CI (within engines range). Zero source code files touched. | .github/workflows/ci.yml, .github/workflows/release.yml, .github/workflows/pr-validation.yml, .github/dependabot.yml | CLAUDE.md (§1 +CI/CD table, §2 +.github dir, §15 +Phase CI-1) |
->>>>>>> main
 
 | Perf-2 | Performance Monitoring — Admin performance dashboard with telemetry logging. PerformanceService singleton (mark-based timing for WebPart load, App init, data fetch). IPerformanceLog model (session metrics, marks array, user agent, SPFx version). usePerformanceMetrics hook (30s auto-refresh, date range filter, summary KPIs). PerformanceDashboard page (Recharts line+bar charts, session table, p95/avg metrics, slow session alerts). Feature-flagged via PerformanceMonitoring (id: 24, default: false). | IPerformanceLog.ts, PerformanceService.ts, usePerformanceMetrics.ts, PerformanceDashboard.tsx | IDataService.ts (+3 methods, 215 total), MockDataService.ts (+3 implementations), SharePointDataService.ts (+3 stubs), enums.ts (+2 AuditAction, +1 EntityType), models/index.ts, services/index.ts, featureFlags.json (+id:24), constants.ts (+PERFORMANCE_LOGS, +ADMIN_PERFORMANCE, +PERFORMANCE_THRESHOLDS), columnMappings.ts (+PERFORMANCE_LOGS_COLUMNS), App.tsx (+1 lazy route), NavigationSidebar.tsx (+Performance nav item), hooks/index.ts (+1 export), pages/hub/index.ts (+1 export) |
 
+| Help-1 | Help System Foundation (Data + Context) — IHelpGuide model (moduleKey, guideType, sortOrder, targetSelector, videoUrl), ISupportConfig model, 8 seed guides in helpGuides.json, HelpContext provider (guides, supportConfig, panel/tour state, moduleKey tracking), useCurrentModule hook (pathname→moduleKey mapper for 50+ routes), feature-flagged via EnableHelpSystem (id: 25). 4 new IDataService methods (219 total): getHelpGuides, getHelpGuideById, getSupportConfig, updateHelpGuide. | IHelpGuide.ts, helpGuides.json, HelpContext.tsx, useCurrentModule.ts | IDataService.ts (+4 methods, 219 total), MockDataService.ts (+4 implementations), SharePointDataService.ts (+4 stubs), models/index.ts, columnMappings.ts (+HELP_GUIDES_COLUMNS), constants.ts (+HELP_GUIDES), featureFlags.json (+id:25), contexts/index.ts (+HelpProvider/useHelp), hooks/index.ts (+useCurrentModule) |
+
+| Help-2 | Help Menu & How-To Guides Panel — HelpMenu (Fluent Menu dropdown with QuestionCircle trigger, 4 items: Start Guided Tour, How-To Guides for This Page, Full Help Library, Contact Support), HelpPanel (right-side 420px panel with targeted/library modes, Fluent Accordion for guide display, guide type badges, search in library mode, support section with email/phone/KB/feedback links, Escape/backdrop/X close, slide-in animation). HelpContext extended with `helpPanelMode` state and updated `openHelpPanel(mode?)` signature. `loadGuides` fetches all guides (filtering moved to HelpPanel client-side). HelpProvider wired into App.tsx between AppProvider and ToastProvider. AppShell: useCurrentModule sync, HelpMenu in header (FeatureGated), HelpPanel render. First use of Fluent Accordion/AccordionItem/AccordionHeader/AccordionPanel in codebase. | HelpMenu.tsx, HelpPanel.tsx, help/index.ts | HelpContext.tsx (+helpPanelMode, +openHelpPanel mode param, loadGuides fetches all), App.tsx (+HelpProvider import and wrapping), AppShell.tsx (+HelpMenu in header, +HelpPanel render, +useHelp/useCurrentModule/FeatureGate imports), contexts/index.ts (+HelpPanelMode type export) |
+
+| Help-3 | Guided Tours with React Joyride — GuidedTour.tsx wraps react-joyride, converts IHelpGuide walkthrough records (with targetSelector) into Joyride steps with HBC brand theming (navy Next button, orange highlight). HelpContext extended with `tourModuleKey` state and `startTour(moduleKey?)` optional parameter. HelpMenu "Start Guided Tour" now passes currentModuleKey and disables when null. AppShell renders `<GuidedTour />` inside FeatureGate, adds `Shift+?` keyboard shortcut via useKeyboardShortcut. Mock data: 5 of 8 guides converted to walkthrough type with targetSelector attributes. Tour z-index 1200 (above HelpPanel 1101). No-steps edge case auto-ends tour immediately. | GuidedTour.tsx | HelpContext.tsx (+tourModuleKey state, startTour optional moduleKey param, endTour resets tourModuleKey), HelpMenu.tsx (startTour passes currentModuleKey, disabled when null), AppShell.tsx (+GuidedTour import/render, +useKeyboardShortcut Shift+?), help/index.ts (+GuidedTour export), helpGuides.json (5 guides→walkthrough with targetSelector) |
+
+| Help-4 | Smart Contact Support — ContactSupportDialog (Fluent Dialog with subject, description, html2canvas screenshot, branded HTML email via dataService.sendSupportEmail), useAppStateSummary hook (on-demand user/role/module/project/flags/browser state collection), ApplicationSupportPage admin page (/admin/application-support — support config form + read-only help guides DataTable). ISupportConfig extended with responseTimeHours. HelpContext gains isContactSupportOpen/openContactSupport/closeContactSupport. HelpMenu "Contact Support" wired to dialog. 2 new AuditAction values (SupportEmailSent, SupportConfigUpdated), 1 new EntityType (SupportRequest). Feature-flagged via EnableHelpSystem (id: 25). | ContactSupportDialog.tsx, useAppStateSummary.ts, ApplicationSupportPage.tsx | IHelpGuide.ts (+responseTimeHours on ISupportConfig), enums.ts (+2 AuditAction, +1 EntityType), IDataService.ts (+2 methods, 221 total), MockDataService.ts (+_supportConfig field, +2 implementations), SharePointDataService.ts (+2 stubs), constants.ts (+ADMIN_APPLICATION_SUPPORT route), HelpContext.tsx (+isContactSupportOpen/open/close), HelpMenu.tsx (Contact Support→openContactSupport), help/index.ts (+ContactSupportDialog), AppShell.tsx (+ContactSupportDialog render), App.tsx (+lazy route /admin/application-support), NavigationSidebar.tsx (+Application Support nav item), hooks/index.ts (+useAppStateSummary, +useCurrentModule already exported), pages/hub/index.ts (+ApplicationSupportPage), useCurrentModule.ts (+admin-application-support mapping) |
+
 ### Known Stubs / Placeholders
 
-- **SharePointDataService**: 86 of 215 methods are stubs. Breakdown: 24 Pattern A stubs (`[STUB]` console.warn + empty return), 56 Pattern B stubs (`implementation pending` throw), 6 delegation stubs (intentionally delegate to GraphService/PowerAutomate — will never be SP list operations). Remaining stubs: all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP (7), all monthly review (4), all estimating kickoff (8 incl. updateKickoffKeyPersonnel), all job number requests (4), all turnover agenda (16), all sector definitions (2 mutations), all assignment mappings (3 mutations), reference data (2), scorecard workflow (7), scorecard archive (2), action inbox (SP), performance monitoring (3). `setProjectSiteUrl()` is implemented (creates cross-site Web via `_getProjectWeb()`). All Pattern A stubs log `console.warn('[STUB] methodName not implemented')`. All Pattern B stubs throw `Error('SharePoint implementation pending: methodName')`. Delegation stubs: getCalendarAvailability, createMeeting, getMeetings (→GraphService), sendNotification, getNotifications (→PowerAutomate), purgeOldAuditEntries (→Power Automate scheduled flow).
+- **SharePointDataService**: 92 of 221 methods are stubs. Breakdown: 28 Pattern A stubs (`[STUB]` console.warn + empty return), 58 Pattern B stubs (`implementation pending` throw), 6 delegation stubs (intentionally delegate to GraphService/PowerAutomate — will never be SP list operations). Remaining stubs: all risk/cost/quality/safety/schedule, all superintendent plan, all lessons learned, all PMP (7), all monthly review (4), all estimating kickoff (8 incl. updateKickoffKeyPersonnel), all job number requests (4), all turnover agenda (16), all sector definitions (2 mutations), all assignment mappings (3 mutations), reference data (2), scorecard workflow (7), scorecard archive (2), action inbox (SP), performance monitoring (3), help guides (3 Pattern A reads + 1 Pattern B mutation), support (1 Pattern A sendSupportEmail + 1 Pattern B updateSupportConfig). `setProjectSiteUrl()` is implemented (creates cross-site Web via `_getProjectWeb()`). All Pattern A stubs log `console.warn('[STUB] methodName not implemented')`. All Pattern B stubs throw `Error('SharePoint implementation pending: methodName')`. Delegation stubs: getCalendarAvailability, createMeeting, getMeetings (→GraphService), sendNotification, getNotifications (→PowerAutomate), purgeOldAuditEntries (→Power Automate scheduled flow).
 - **HubNavigationService**: SharePointHubNavigationService is a stub (all 3 methods throw).
 - **Column Mappings**: `columnMappings.ts` has mappings for all lists. Permission Templates, Security Group Mappings, Project Team Assignments, Provisioning Log, Workflow Definitions (4 lists), Startup Checklist, Checklist Activity Log, Internal Matrix, Team Role Assignments, Owner Contract Matrix, Sub Contract Matrix, and Marketing Project Records now use column mappings in SharePointDataService.
 - **Offline Support**: `OfflineQueueService.ts` exists but feature flag `OfflineSupport` is disabled.
@@ -1545,9 +1581,9 @@ Steps 1-6 modify `packages/hbc-sp-services/` (the shared library). Steps 7-12 mo
 
 ### SharePointDataService Status
 
-- **Implemented (129 of 215)**: Leads CRUD, Go/No-Go CRUD (base 5), Estimating CRUD, Roles/Flags CRUD, Audit log/read, **Provisioning CRUD** (trigger/update/retry/read/list), Phase 6 workflow (team, deliverables, interview, contract, turnover items, closeout, loss autopsy — 17 methods), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read/write, **getCurrentUser** (Phase 31), **Permission Templates CRUD** (5), **Security Group Mappings CRUD** (3), **Project Team Assignments CRUD + soft delete** (7), **inviteToProjectSiteGroup** (fire-and-forget SP group add), **resolveUserPermissions** (full resolution chain), **getAccessibleProjects** (computed), **getEnvironmentConfig** (with fallback), **promoteTemplates** (batch update + config write), **BD Leads folder ops** (create/check/mkdir/rename via cross-site Web()), **syncDenormalizedFields** (5-list batch), **promoteToHub** (cross-site lessons + PMP close), **rekeyProjectCode** (6-list batch), **Workflow Definitions CRUD** (10 — definitions read/assembly, step/conditional mutations, override upsert, resolveWorkflowChain 4-tier resolution), **Startup Checklist CRUD** (4 — 2-list join for reads with activity log grouping), **Internal Matrix CRUD** (4), **Team Role Assignments** (2 — upsert by role), **Owner Contract Matrix CRUD** (4), **Sub-Contract Matrix CRUD** (4), **Marketing Project Records CRUD** (4 — 88-column mapping with JSON array parse/stringify)
+- **Implemented (129 of 217)**: Leads CRUD, Go/No-Go CRUD (base 5), Estimating CRUD, Roles/Flags CRUD, Audit log/read, **Provisioning CRUD** (trigger/update/retry/read/list), Phase 6 workflow (team, deliverables, interview, contract, turnover items, closeout, loss autopsy — 17 methods), Buyout/Commitment/Compliance, Active Projects Portfolio, AppContextConfig, hub site URL read/write, **getCurrentUser** (Phase 31), **Permission Templates CRUD** (5), **Security Group Mappings CRUD** (3), **Project Team Assignments CRUD + soft delete** (7), **inviteToProjectSiteGroup** (fire-and-forget SP group add), **resolveUserPermissions** (full resolution chain), **getAccessibleProjects** (computed), **getEnvironmentConfig** (with fallback), **promoteTemplates** (batch update + config write), **BD Leads folder ops** (create/check/mkdir/rename via cross-site Web()), **syncDenormalizedFields** (5-list batch), **promoteToHub** (cross-site lessons + PMP close), **rekeyProjectCode** (6-list batch), **Workflow Definitions CRUD** (10 — definitions read/assembly, step/conditional mutations, override upsert, resolveWorkflowChain 4-tier resolution), **Startup Checklist CRUD** (4 — 2-list join for reads with activity log grouping), **Internal Matrix CRUD** (4), **Team Role Assignments** (2 — upsert by role), **Owner Contract Matrix CRUD** (4), **Sub-Contract Matrix CRUD** (4), **Marketing Project Records CRUD** (4 — 88-column mapping with JSON array parse/stringify)
 - **Delegation stubs (6)**: getCalendarAvailability, createMeeting, getMeetings (→GraphService), sendNotification, getNotifications (→PowerAutomate), purgeOldAuditEntries (→Power Automate flow) — intentionally NOT SP list operations
-- **Stubbed (80)**: All risk/cost/quality/safety/schedule (10), all superintendent plan (3), all lessons learned (3), all PMP incl. signPMP/getDivisionApprovers/getPMPBoilerplate (7), all monthly review (4), all estimating kickoff incl. updateKickoffKeyPersonnel (8), all job number requests (4), all turnover agenda (16), sector definitions mutations (2), assignment mapping mutations (3), reference data (2), scorecard workflow (7 — submit/respond/enterCommittee/recordFinal/unlock/relock/getVersions), scorecard archive (2 — reject/archive), action inbox (1), getSectorDefinitions (1), getAssignmentMappings (1), performance monitoring (3 — logPerformanceEntry/getPerformanceLogs/getPerformanceSummary)
+- **Stubbed (86)**: All risk/cost/quality/safety/schedule (10), all superintendent plan (3), all lessons learned (3), all PMP incl. signPMP/getDivisionApprovers/getPMPBoilerplate (7), all monthly review (4), all estimating kickoff incl. updateKickoffKeyPersonnel (8), all job number requests (4), all turnover agenda (16), sector definitions mutations (2), assignment mapping mutations (3), reference data (2), scorecard workflow (7 — submit/respond/enterCommittee/recordFinal/unlock/relock/getVersions), scorecard archive (2 — reject/archive), action inbox (1), getSectorDefinitions (1), getAssignmentMappings (1), performance monitoring (3 — logPerformanceEntry/getPerformanceLogs/getPerformanceSummary), help guides (3 reads + 1 mutation — getHelpGuides/getHelpGuideById/getSupportConfig/updateHelpGuide), support (2 — sendSupportEmail/updateSupportConfig)
 
 ---
 
@@ -1713,6 +1749,20 @@ Steps 1-6 modify `packages/hbc-sp-services/` (the shared library). Steps 7-12 mo
 
 80. **`performanceService` is a singleton — do not instantiate per component** — `PerformanceService` is created once in `HbcProjectControlsWebPart.onInit()` (or `DevRoot` for dev server) and passed through context. Components call `performanceService.mark()` / `performanceService.endMark()` for timing. Creating multiple instances resets the marks array and produces incomplete telemetry. The singleton is wired into `AppProvider` props alongside `dataService`.
 
+81. **HelpContext requires HelpProvider inside AppProvider** — `useHelp()` calls `useAppContext()` internally to access `dataService` and `isFeatureEnabled`. The `HelpProvider` must be a child of `AppProvider` in the component tree. When `EnableHelpSystem` flag is disabled, the provider returns empty state (no guides loaded, panel/tour inactive). `useCurrentModule()` requires `react-router-dom` `useLocation()` so it must be used inside `HashRouter`.
+
+82. **HelpPanel filters guides client-side, not at the service level** — `loadGuides()` in HelpContext fetches ALL guides (`dataService.getHelpGuides()` with no moduleKey filter). HelpPanel filters in a `useMemo`: targeted mode filters by `g.moduleKey === currentModuleKey`, library mode filters by search query against title/content. This avoids re-fetching when the user switches pages or modes. If guide volume grows large (100+), consider adding server-side filtering back.
+
+83. **Fluent Accordion components first used in HelpPanel** — `Accordion`, `AccordionItem`, `AccordionHeader`, `AccordionPanel` are imported from `@fluentui/react-components` and first appear in `HelpPanel.tsx`. They require `value` prop on `AccordionItem` for controlled/uncontrolled behavior. Use `multiple collapsible` props on `Accordion` to allow multiple panels open simultaneously. These are NOT the same as `@fluentui/react` (v8) Accordion — they are Fluent UI v9 components.
+
+84. **Guided tour steps derived from IHelpGuide walkthrough records** — `GuidedTour.tsx` filters guides by `guideType === 'walkthrough'` AND non-null `targetSelector` AND matching `tourModuleKey`. If a guide's `targetSelector` points to a DOM element that doesn't exist on the page, react-joyride silently skips that step (built-in behavior, no error). To add tour steps to a page, add `data-help="some-key"` attributes to DOM elements and create corresponding IHelpGuide records with `targetSelector: "[data-help='some-key']"` and `guideType: 'walkthrough'`. Tour z-index is 1200 (above HelpPanel at 1101).
+
+85. **`Shift+?` keyboard shortcut starts guided tour** — Registered via `useKeyboardShortcut` in AppShell.tsx. Only fires when: (1) `EnableHelpSystem` feature flag is on, (2) `currentModuleKey` is set (page has a mapped module), (3) no tour is already active (`!isTourActive`). The shortcut is ignored when focus is in input/textarea/select fields (default `useKeyboardShortcut` behavior). If no walkthrough guides exist for the current module, the tour starts and immediately ends via the no-steps guard in `GuidedTour.tsx`.
+
+86. **html2canvas screenshot at scale 0.5 for email size** — `ContactSupportDialog.tsx` captures a screenshot using `html2canvas(document.body, { useCORS: true, scale: 0.5, logging: false })` and embeds it as an inline `<img src="data:image/png;base64,..." />` in the HTML email body. Scale 0.5 keeps the data URL under ~1MB (Graph API sendMail body limit is ~4MB). If screenshot capture fails (e.g., cross-origin canvas tainting), the email is sent without the screenshot — this is a graceful fallback, not an error.
+
+87. **`sendSupportEmail` delegates to GraphService.sendEmail() in SP mode** — In `MockDataService`, `sendSupportEmail()` logs to console. In `SharePointDataService`, it's currently a Pattern A stub (`[STUB]` console.warn). When implemented, it should delegate to `GraphService.sendEmail()` which uses the `Mail.Send` Graph API scope (already in package-solution.json). The `fromUserEmail` parameter identifies the sender for audit purposes but the actual email is sent via app-only permissions.
+
 ---
 
 ## Audit Log
@@ -1761,3 +1811,6 @@ Steps 1-6 modify `packages/hbc-sp-services/` (the shared library). Steps 7-12 mo
 | 2026-02-14 | §1, §16 | Pinned @fluentui/react-icons to exact 2.0.319 (was ^2.0.230). Added webpack alias in dev/webpack.config.js, npm override in root package.json, and workspace package peer/dev dep in packages/hbc-sp-services/package.json to prevent nested module resolution failures. |
 | 2026-02-14 | §1, §16 | Hardened monorepo dependency resolution. Replaced overrides block with comprehensive top-level react/react-dom/scheduler pins (prevents SPFx nesting). Added `postinstall` (auto build:lib) and `clean:dev` (nuclear reinstall) scripts. Added scheduler webpack alias. |
 | 2026-02-14 | §2, §6, §7, §8, §9, §11, §12, §13, §15, §16 | Phase Perf-2: Performance Monitoring. §2: +usePerformanceMetrics hook (39 total), +PerformanceDashboard.tsx in pages/hub, +PerformanceService.ts in services (15 files), service method counts 212→215, stubs 77→80. §6: +IPerformanceLog/IPerformanceMark/IPerformanceQueryOptions/IPerformanceSummary interfaces, +2 AuditAction (PerformanceLogRecorded, PerformanceAlertTriggered), +1 EntityType (Performance). §7: 215 methods total, +3 new (logPerformanceEntry, getPerformanceLogs, getPerformanceSummary). §8: +/admin/performance route. §9: Admin group gains Performance nav item. §11: +PerformanceMonitoring flag (id:24, false, Infrastructure). §12: featureFlags.json 23→24. §13: +PERFORMANCE_LOGS HUB_LIST, +ADMIN_PERFORMANCE route, +PERFORMANCE_THRESHOLDS constant. §15: +Perf-2 phase, stubs 83→86 of 215 (Pattern A 21→24). §16: +pitfall #80 (performanceService singleton). |
+| 2026-02-14 | §2, §3, §5, §15, §16 | Phase Help-2: Help Menu & How-To Guides Panel. §2: +components/help/ directory (HelpMenu.tsx, HelpPanel.tsx, index.ts). §3: App.tsx component tree updated (HelpProvider between AppProvider and ToastProvider). §5: +Help Components section (HelpMenu, HelpPanel). §15: +Help-2 phase entry. §16: +pitfalls #82 (client-side guide filtering), #83 (Fluent Accordion first use). Files created: HelpMenu.tsx, HelpPanel.tsx, help/index.ts. Files modified: HelpContext.tsx (+helpPanelMode, +openHelpPanel mode param, loadGuides fetches all), App.tsx (+HelpProvider), AppShell.tsx (+HelpMenu in header FeatureGated, +HelpPanel render, +useHelp/useCurrentModule/FeatureGate imports), contexts/index.ts (+HelpPanelMode export). |
+| 2026-02-15 | §1, §2, §5, §15, §16 | Phase Help-3: Guided Tours with React Joyride. §1: +react-joyride ^2.9.3 in Tech Stack. §2: +GuidedTour.tsx in components/help/. §5: +GuidedTour in Help Components table. §15: +Help-3 phase entry (GuidedTour, HelpContext tourModuleKey, Shift+? shortcut, 5 walkthrough guides). §16: +pitfalls #84 (tour steps from walkthrough guides with targetSelector), #85 (Shift+? keyboard shortcut). Files created: GuidedTour.tsx. Files modified: HelpContext.tsx (+tourModuleKey state, startTour optional moduleKey param), HelpMenu.tsx (startTour passes currentModuleKey, disabled when null), AppShell.tsx (+GuidedTour render FeatureGated, +useKeyboardShortcut Shift+?), help/index.ts (+GuidedTour export), helpGuides.json (5 guides→walkthrough with targetSelector). |
+| 2026-02-15 | §2, §3, §5, §6, §7, §8, §9, §13, §15, §16 | Phase Help-4: Smart Contact Support. §2: +ContactSupportDialog.tsx in help/, +useAppStateSummary.ts in hooks/ (41 total), +ApplicationSupportPage.tsx in pages/hub/, IDataService 219→221, MockDataService 219→221. §3: Route count 50→51. §5: +ContactSupportDialog in Help Components table. §6: +responseTimeHours on ISupportConfig, +2 AuditAction (SupportEmailSent, SupportConfigUpdated), +1 EntityType (SupportRequest). §7: +2 methods (221 total): sendSupportEmail, updateSupportConfig. §8: +/admin/application-support route. §9: +Application Support nav item under Admin. §13: +ADMIN_APPLICATION_SUPPORT route constant. §15: +Help-4 phase entry, stubs 90→92 of 221. §16: +pitfalls #86 (html2canvas scale 0.5), #87 (sendSupportEmail delegates to GraphService). Files created: ContactSupportDialog.tsx, useAppStateSummary.ts, ApplicationSupportPage.tsx. Files modified: IHelpGuide.ts, enums.ts, IDataService.ts, MockDataService.ts, SharePointDataService.ts, constants.ts, HelpContext.tsx, HelpMenu.tsx, help/index.ts, AppShell.tsx, App.tsx, NavigationSidebar.tsx, hooks/index.ts, pages/hub/index.ts, useCurrentModule.ts. |
