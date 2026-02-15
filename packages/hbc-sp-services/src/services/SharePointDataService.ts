@@ -1,6 +1,6 @@
 import { IDataService, IListQueryOptions, IPagedResult, IActiveProjectsQueryOptions, IActiveProjectsFilter } from './IDataService';
 import { ILead, ILeadFormData } from '../models/ILead';
-import { IGoNoGoScorecard, IScorecardVersion } from '../models/IGoNoGoScorecard';
+import { IGoNoGoScorecard, IScorecardApprovalCycle, IScorecardApprovalStep, IScorecardVersion } from '../models/IGoNoGoScorecard';
 import { IEstimatingTracker } from '../models/IEstimatingTracker';
 import { IRole, ICurrentUser } from '../models/IRole';
 import { IFeatureFlag } from '../models/IFeatureFlag';
@@ -18,7 +18,7 @@ import { IProjectScheduleCriticalPath, ICriticalPathItem } from '../models/IProj
 import { ISuperintendentPlan, ISuperintendentPlanSection } from '../models/ISuperintendentPlan';
 import { ILessonLearned } from '../models/ILessonsLearned';
 import { IProjectManagementPlan, IPMPSignature, IPMPApprovalCycle, IPMPApprovalStep, IDivisionApprover, IPMPBoilerplateSection } from '../models/IProjectManagementPlan';
-import { IMonthlyProjectReview } from '../models/IMonthlyProjectReview';
+import { IMonthlyProjectReview, IMonthlyChecklistItem, IMonthlyFollowUp } from '../models/IMonthlyProjectReview';
 import { IEstimatingKickoff, IEstimatingKickoffItem, IKeyPersonnelEntry } from '../models/IEstimatingKickoff';
 import { IJobNumberRequest, JobNumberRequestStatus } from '../models/IJobNumberRequest';
 import { IProjectType } from '../models/IProjectType';
@@ -28,7 +28,7 @@ import { ICommitmentApproval, CommitmentStatus, WaiverType, ApprovalStep } from 
 import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType, DEFAULT_ALERT_THRESHOLDS } from '../models/IActiveProject';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep, IPersonAssignment, IAssignmentCondition } from '../models/IWorkflowDefinition';
-import { ITurnoverAgenda, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
+import { ITurnoverAgenda, ITurnoverProjectHeader, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
 import { IActionInboxItem } from '../models/IActionInbox';
 import { ISectorDefinition } from '../models/ISectorDefinition';
 import { IAssignmentMapping } from '../models/IAssignmentMapping';
@@ -36,11 +36,13 @@ import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IRe
 import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfig';
 import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '../models/IPerformanceLog';
 import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
-import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField } from '../models/enums';
+import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField, TurnoverStatus, ScorecardStatus, WorkflowActionType, ActionPriority, AuditAction, EntityType } from '../models/enums';
 import { LIST_NAMES } from '../utils/constants';
 import { ROLE_PERMISSIONS } from '../utils/permissions';
 import { resolveToolPermissions, TOOL_DEFINITIONS } from '../utils/toolPermissionMap';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
+import { DEFAULT_PREREQUISITES, DEFAULT_DISCUSSION_ITEMS, DEFAULT_EXHIBITS, DEFAULT_SIGNATURES, TURNOVER_SIGNATURE_AFFIDAVIT } from '../utils/turnoverAgendaTemplate';
+import { calculateTotalScore, getRecommendedDecision } from '../utils/scoreCalculator';
 import {
   PERMISSION_TEMPLATES_COLUMNS,
   SECURITY_GROUP_MAPPINGS_COLUMNS,
@@ -79,6 +81,23 @@ import {
   PMP_APPROVAL_STEPS_COLUMNS,
   DIVISION_APPROVERS_COLUMNS,
   PMP_BOILERPLATE_COLUMNS,
+  MONTHLY_REVIEWS_COLUMNS,
+  MONTHLY_CHECKLIST_ITEMS_COLUMNS,
+  MONTHLY_FOLLOW_UPS_COLUMNS,
+  TURNOVER_AGENDAS_COLUMNS,
+  TURNOVER_PREREQUISITES_COLUMNS,
+  TURNOVER_DISCUSSION_ITEMS_COLUMNS,
+  TURNOVER_SUBCONTRACTORS_COLUMNS,
+  TURNOVER_EXHIBITS_COLUMNS,
+  TURNOVER_SIGNATURES_COLUMNS,
+  TURNOVER_ATTACHMENTS_COLUMNS,
+  TURNOVER_ESTIMATE_OVERVIEWS_COLUMNS,
+  GONOGO_SCORECARD_COLUMNS,
+  SCORECARD_APPROVAL_CYCLES_COLUMNS,
+  SCORECARD_APPROVAL_STEPS_COLUMNS,
+  SCORECARD_VERSIONS_COLUMNS,
+  PERFORMANCE_LOGS_COLUMNS,
+  HELP_GUIDES_COLUMNS,
 } from './columnMappings';
 import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
 
@@ -1652,10 +1671,215 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Monthly Review ---
-  async getMonthlyReviews(_projectCode: string): Promise<IMonthlyProjectReview[]> { console.warn('[STUB] getMonthlyReviews not implemented'); return []; }
-  async getMonthlyReview(_reviewId: number): Promise<IMonthlyProjectReview | null> { console.warn('[STUB] getMonthlyReview not implemented'); return null; }
-  async updateMonthlyReview(_reviewId: number, _data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> { throw new Error('SharePoint implementation pending: updateMonthlyReview'); }
-  async createMonthlyReview(_data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> { throw new Error('SharePoint implementation pending: createMonthlyReview'); }
+
+  async getMonthlyReviews(projectCode: string): Promise<IMonthlyProjectReview[]> {
+    const web = this._getProjectWeb();
+    const col = MONTHLY_REVIEWS_COLUMNS;
+    const ciCol = MONTHLY_CHECKLIST_ITEMS_COLUMNS;
+    const fuCol = MONTHLY_FOLLOW_UPS_COLUMNS;
+
+    // Read parent reviews for this project
+    const parents = await web.lists.getByTitle(LIST_NAMES.MONTHLY_REVIEWS).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .top(500)();
+    if (parents.length === 0) return [];
+
+    const reviews = parents.map((p: Record<string, unknown>) => this.mapToMonthlyReview(p));
+    const reviewIds = reviews.map((r: IMonthlyProjectReview) => r.id);
+
+    // Build OR filter for child lists
+    const orFilter = reviewIds.map((id: number) => `${ciCol.reviewId} eq ${id}`).join(' or ');
+
+    // Parallel-read both child lists
+    const [checklistItems, followUpItems] = await Promise.all([
+      web.lists.getByTitle(LIST_NAMES.MONTHLY_CHECKLIST_ITEMS).items
+        .filter(orFilter)
+        .top(5000)(),
+      web.lists.getByTitle(LIST_NAMES.MONTHLY_FOLLOW_UPS).items
+        .filter(reviewIds.map((id: number) => `${fuCol.reviewId} eq ${id}`).join(' or '))
+        .top(5000)(),
+    ]);
+
+    const mappedChecklist = checklistItems.map((i: Record<string, unknown>) => this.mapToMonthlyChecklistItem(i));
+    const mappedFollowUps = followUpItems.map((f: Record<string, unknown>) => this.mapToMonthlyFollowUp(f));
+
+    // Assemble each review with its children and sort desc by reviewMonth
+    return reviews
+      .map((r: IMonthlyProjectReview) => this.assembleMonthlyReview(r, mappedChecklist, mappedFollowUps))
+      .sort((a: IMonthlyProjectReview, b: IMonthlyProjectReview) => b.reviewMonth.localeCompare(a.reviewMonth));
+  }
+
+  async getMonthlyReview(reviewId: number): Promise<IMonthlyProjectReview | null> {
+    const web = this._getProjectWeb();
+    const ciCol = MONTHLY_CHECKLIST_ITEMS_COLUMNS;
+    const fuCol = MONTHLY_FOLLOW_UPS_COLUMNS;
+
+    let parentItem: Record<string, unknown>;
+    try {
+      parentItem = await web.lists.getByTitle(LIST_NAMES.MONTHLY_REVIEWS).items.getById(reviewId)();
+    } catch {
+      return null;
+    }
+
+    const review = this.mapToMonthlyReview(parentItem);
+
+    // Parallel-read children by reviewId
+    const [checklistItems, followUpItems] = await Promise.all([
+      web.lists.getByTitle(LIST_NAMES.MONTHLY_CHECKLIST_ITEMS).items
+        .filter(`${ciCol.reviewId} eq ${reviewId}`)
+        .top(5000)(),
+      web.lists.getByTitle(LIST_NAMES.MONTHLY_FOLLOW_UPS).items
+        .filter(`${fuCol.reviewId} eq ${reviewId}`)
+        .top(5000)(),
+    ]);
+
+    const mappedChecklist = checklistItems.map((i: Record<string, unknown>) => this.mapToMonthlyChecklistItem(i));
+    const mappedFollowUps = followUpItems.map((f: Record<string, unknown>) => this.mapToMonthlyFollowUp(f));
+
+    return this.assembleMonthlyReview(review, mappedChecklist, mappedFollowUps);
+  }
+
+  async updateMonthlyReview(reviewId: number, data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> {
+    const web = this._getProjectWeb();
+    const col = MONTHLY_REVIEWS_COLUMNS;
+    const ciCol = MONTHLY_CHECKLIST_ITEMS_COLUMNS;
+    const fuCol = MONTHLY_FOLLOW_UPS_COLUMNS;
+    const now = new Date().toISOString();
+
+    // Build conditional parent update
+    const updateData: Record<string, unknown> = { [col.lastUpdatedAt]: now };
+
+    if (data.status !== undefined) updateData[col.status] = data.status;
+    if (data.reviewMonth !== undefined) updateData[col.reviewMonth] = data.reviewMonth;
+    if (data.dueDate !== undefined) updateData[col.dueDate] = data.dueDate;
+    if (data.meetingDate !== undefined) updateData[col.meetingDate] = data.meetingDate;
+    if (data.pmSubmittedDate !== undefined) updateData[col.pmSubmittedDate] = data.pmSubmittedDate;
+    if (data.pxReviewDate !== undefined) updateData[col.pxReviewDate] = data.pxReviewDate;
+    if (data.pxValidationDate !== undefined) updateData[col.pxValidationDate] = data.pxValidationDate;
+    if (data.leadershipSubmitDate !== undefined) updateData[col.leadershipSubmitDate] = data.leadershipSubmitDate;
+    if (data.completedDate !== undefined) updateData[col.completedDate] = data.completedDate;
+    if (data.reportDocumentUrls !== undefined) updateData[col.reportDocumentUrls] = JSON.stringify(data.reportDocumentUrls);
+    if (data.lastUpdatedBy !== undefined) updateData[col.lastUpdatedBy] = data.lastUpdatedBy;
+
+    await web.lists.getByTitle(LIST_NAMES.MONTHLY_REVIEWS).items.getById(reviewId).update(updateData);
+
+    // If checklistItems provided: delete existing + re-add
+    if (data.checklistItems) {
+      const existingCI = await web.lists.getByTitle(LIST_NAMES.MONTHLY_CHECKLIST_ITEMS).items
+        .filter(`${ciCol.reviewId} eq ${reviewId}`)
+        .top(5000)();
+      for (const ci of existingCI) {
+        const ciId = (ci.ID as number) || (ci.Id as number);
+        await web.lists.getByTitle(LIST_NAMES.MONTHLY_CHECKLIST_ITEMS).items.getById(ciId).delete();
+      }
+      for (const item of data.checklistItems) {
+        await web.lists.getByTitle(LIST_NAMES.MONTHLY_CHECKLIST_ITEMS).items.add({
+          [ciCol.reviewId]: reviewId,
+          [ciCol.sectionKey]: item.sectionKey,
+          [ciCol.sectionTitle]: item.sectionTitle,
+          [ciCol.itemKey]: item.itemKey,
+          [ciCol.itemDescription]: item.itemDescription,
+          [ciCol.pmComment]: item.pmComment || '',
+          [ciCol.pxComment]: item.pxComment || '',
+          [ciCol.pxInitial]: item.pxInitial || '',
+        });
+      }
+    }
+
+    // If followUps provided: delete existing + re-add
+    if (data.followUps) {
+      const existingFU = await web.lists.getByTitle(LIST_NAMES.MONTHLY_FOLLOW_UPS).items
+        .filter(`${fuCol.reviewId} eq ${reviewId}`)
+        .top(5000)();
+      for (const fu of existingFU) {
+        const fuId = (fu.ID as number) || (fu.Id as number);
+        await web.lists.getByTitle(LIST_NAMES.MONTHLY_FOLLOW_UPS).items.getById(fuId).delete();
+      }
+      for (const fu of data.followUps) {
+        await web.lists.getByTitle(LIST_NAMES.MONTHLY_FOLLOW_UPS).items.add({
+          [fuCol.reviewId]: reviewId,
+          [fuCol.question]: fu.question || '',
+          [fuCol.requestedBy]: fu.requestedBy || '',
+          [fuCol.requestedDate]: fu.requestedDate || '',
+          [fuCol.pmResponse]: fu.pmResponse || '',
+          [fuCol.responseDate]: fu.responseDate || null,
+          [fuCol.pxForwardedDate]: fu.pxForwardedDate || null,
+          [fuCol.status]: fu.status || 'Open',
+        });
+      }
+    }
+
+    // Re-read assembled
+    const result = await this.getMonthlyReview(reviewId);
+    if (!result) throw new Error(`Monthly review ${reviewId} not found after update`);
+    return result;
+  }
+
+  async createMonthlyReview(data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> {
+    const web = this._getProjectWeb();
+    const col = MONTHLY_REVIEWS_COLUMNS;
+    const ciCol = MONTHLY_CHECKLIST_ITEMS_COLUMNS;
+    const fuCol = MONTHLY_FOLLOW_UPS_COLUMNS;
+    const now = new Date().toISOString();
+
+    // Create parent review
+    const addResult = await web.lists.getByTitle(LIST_NAMES.MONTHLY_REVIEWS).items.add({
+      [col.projectCode]: data.projectCode ?? '',
+      [col.reviewMonth]: data.reviewMonth ?? '',
+      [col.status]: data.status ?? 'NotStarted',
+      [col.dueDate]: data.dueDate ?? '',
+      [col.meetingDate]: data.meetingDate ?? null,
+      [col.pmSubmittedDate]: null,
+      [col.pxReviewDate]: null,
+      [col.pxValidationDate]: null,
+      [col.leadershipSubmitDate]: null,
+      [col.completedDate]: null,
+      [col.reportDocumentUrls]: JSON.stringify(data.reportDocumentUrls ?? []),
+      [col.createdBy]: data.createdBy ?? '',
+      [col.createdAt]: now,
+      [col.lastUpdatedBy]: data.lastUpdatedBy ?? data.createdBy ?? '',
+      [col.lastUpdatedAt]: now,
+    });
+
+    const newId = (addResult.data?.ID as number) || (addResult.data?.Id as number);
+
+    // Add checklist items with FK
+    if (data.checklistItems) {
+      for (const item of data.checklistItems) {
+        await web.lists.getByTitle(LIST_NAMES.MONTHLY_CHECKLIST_ITEMS).items.add({
+          [ciCol.reviewId]: newId,
+          [ciCol.sectionKey]: item.sectionKey,
+          [ciCol.sectionTitle]: item.sectionTitle,
+          [ciCol.itemKey]: item.itemKey,
+          [ciCol.itemDescription]: item.itemDescription,
+          [ciCol.pmComment]: item.pmComment || '',
+          [ciCol.pxComment]: item.pxComment || '',
+          [ciCol.pxInitial]: item.pxInitial || '',
+        });
+      }
+    }
+
+    // Add follow-ups with FK
+    if (data.followUps) {
+      for (const fu of data.followUps) {
+        await web.lists.getByTitle(LIST_NAMES.MONTHLY_FOLLOW_UPS).items.add({
+          [fuCol.reviewId]: newId,
+          [fuCol.question]: fu.question || '',
+          [fuCol.requestedBy]: fu.requestedBy || '',
+          [fuCol.requestedDate]: fu.requestedDate || '',
+          [fuCol.pmResponse]: fu.pmResponse || '',
+          [fuCol.responseDate]: fu.responseDate || null,
+          [fuCol.pxForwardedDate]: fu.pxForwardedDate || null,
+          [fuCol.status]: fu.status || 'Open',
+        });
+      }
+    }
+
+    // Re-read assembled
+    const result = await this.getMonthlyReview(newId);
+    if (!result) throw new Error(`Monthly review not found after create`);
+    return result;
+  }
 
   // --- Estimating Kick-Off ---
 
@@ -2547,7 +2771,7 @@ export class SharePointDataService implements IDataService {
   // --- Active Projects Portfolio ---
 
   async getActiveProjects(options?: IActiveProjectsQueryOptions): Promise<IActiveProject[]> {
-    let filterParts: string[] = [];
+    const filterParts: string[] = [];
 
     if (options?.status) {
       filterParts.push(`Status eq '${options.status}'`);
@@ -2975,14 +3199,528 @@ export class SharePointDataService implements IDataService {
     }
   }
 
-  // --- Scorecard Workflow (Phase 16) ---
-  async submitScorecard(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: submitScorecard'); }
-  async respondToScorecardSubmission(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: respondToScorecardSubmission'); }
-  async enterCommitteeScores(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: enterCommitteeScores'); }
-  async recordFinalDecision(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: recordFinalDecision'); }
-  async unlockScorecard(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: unlockScorecard'); }
-  async relockScorecard(): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: relockScorecard'); }
-  async getScorecardVersions(): Promise<IScorecardVersion[]> { throw new Error('SharePoint implementation pending: getScorecardVersions'); }
+  // --- Scorecard Workflow (Phase 16) — Private Helpers ---
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private mapToScorecardApprovalCycle(item: Record<string, any>): IScorecardApprovalCycle {
+    const col = SCORECARD_APPROVAL_CYCLES_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      scorecardId: item[col.scorecardId] as number,
+      cycleNumber: item[col.cycleNumber] as number,
+      version: item[col.version] as number || 1,
+      steps: [], // populated by assembleScorecard
+      startedDate: item[col.startedDate] as string || '',
+      completedDate: item[col.completedDate] as string || undefined,
+      status: item[col.status] as 'Active' | 'Completed' | 'Cancelled' || 'Active',
+    };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private mapToScorecardApprovalStep(item: Record<string, any>): IScorecardApprovalStep {
+    const col = SCORECARD_APPROVAL_STEPS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      cycleId: item[col.cycleId] as number,
+      stepOrder: item[col.stepOrder] as number,
+      name: item[col.name] as string || '',
+      assigneeEmail: item[col.assigneeEmail] as string || '',
+      assigneeName: item[col.assigneeName] as string || '',
+      assignmentSource: item[col.assignmentSource] as IScorecardApprovalStep['assignmentSource'] || 'Default',
+      status: item[col.status] as IScorecardApprovalStep['status'] || 'Pending',
+      actionDate: item[col.actionDate] as string || undefined,
+      comment: item[col.comment] as string || undefined,
+    };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private mapToScorecardVersion(item: Record<string, any>): IScorecardVersion {
+    const col = SCORECARD_VERSIONS_COLUMNS;
+    let originalScores: Record<string, number> = {};
+    let committeeScores: Record<string, number> = {};
+    try { originalScores = JSON.parse(item[col.originalScores] as string || '{}'); } catch { /* fallback */ }
+    try { committeeScores = JSON.parse(item[col.committeeScores] as string || '{}'); } catch { /* fallback */ }
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      scorecardId: item[col.scorecardId] as number,
+      versionNumber: item[col.versionNumber] as number,
+      createdDate: item[col.createdDate] as string || '',
+      createdBy: item[col.createdBy] as string || '',
+      reason: item[col.reason] as string || undefined,
+      originalScores,
+      committeeScores,
+      totalOriginal: item[col.totalOriginal] as number || undefined,
+      totalCommittee: item[col.totalCommittee] as number || undefined,
+      decision: item[col.decision] as GoNoGoDecision || undefined,
+      conditions: item[col.conditions] as string || undefined,
+    };
+  }
+
+  private async assembleScorecard(scorecardId: number): Promise<IGoNoGoScorecard> {
+    const col = GONOGO_SCORECARD_COLUMNS;
+
+    // Read parent
+    const raw = await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId)();
+
+    // Parse JSON fields
+    let scores: IGoNoGoScorecard['scores'] = {};
+    try { scores = JSON.parse(raw[col.scores] as string || '{}'); } catch { /* fallback */ }
+    let scoredByCmte: string[] = [];
+    try { scoredByCmte = JSON.parse(raw[col.ScoredBy_Cmte] as string || '[]'); } catch { /* fallback */ }
+
+    // Read child: approval cycles
+    const cycleItems = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_CYCLES).items
+      .filter(`${SCORECARD_APPROVAL_CYCLES_COLUMNS.scorecardId} eq ${scorecardId}`)
+      .orderBy(SCORECARD_APPROVAL_CYCLES_COLUMNS.cycleNumber, true)();
+    const cycles = (cycleItems as Record<string, unknown>[]).map(c => this.mapToScorecardApprovalCycle(c));
+
+    // Read child: all approval steps for this scorecard's cycles
+    if (cycles.length > 0) {
+      const cycleIds = cycles.map(c => c.id);
+      const stepItems = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_STEPS).items
+        .filter(cycleIds.map(cid => `${SCORECARD_APPROVAL_STEPS_COLUMNS.cycleId} eq ${cid}`).join(' or '))
+        .orderBy(SCORECARD_APPROVAL_STEPS_COLUMNS.stepOrder, true)();
+      const steps = (stepItems as Record<string, unknown>[]).map(s => this.mapToScorecardApprovalStep(s));
+      for (const cycle of cycles) {
+        cycle.steps = steps.filter(s => s.cycleId === cycle.id);
+      }
+    }
+
+    // Read child: versions
+    const versionItems = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_VERSIONS).items
+      .filter(`${SCORECARD_VERSIONS_COLUMNS.scorecardId} eq ${scorecardId}`)
+      .orderBy(SCORECARD_VERSIONS_COLUMNS.versionNumber, true)();
+    const versions = (versionItems as Record<string, unknown>[]).map(v => this.mapToScorecardVersion(v));
+
+    return {
+      id: (raw.ID as number) || (raw.Id as number),
+      LeadID: raw[col.LeadID] as number,
+      ProjectCode: raw[col.ProjectCode] as string || undefined,
+      scores,
+      TotalScore_Orig: raw[col.TotalScore_Orig] as number || undefined,
+      TotalScore_Cmte: raw[col.TotalScore_Cmte] as number || undefined,
+      OriginatorComments: raw[col.OriginatorComments] as string || undefined,
+      CommitteeComments: raw[col.CommitteeComments] as string || undefined,
+      ProposalMarketingComments: raw[col.ProposalMarketingComments] as string || undefined,
+      ProposalMarketingResources: raw[col.ProposalMarketingResources] as string || undefined,
+      ProposalMarketingHours: raw[col.ProposalMarketingHours] as number || undefined,
+      EstimatingComments: raw[col.EstimatingComments] as string || undefined,
+      EstimatingResources: raw[col.EstimatingResources] as string || undefined,
+      EstimatingHours: raw[col.EstimatingHours] as number || undefined,
+      DecisionMakingProcess: raw[col.DecisionMakingProcess] as string || undefined,
+      HBDifferentiators: raw[col.HBDifferentiators] as string || undefined,
+      WinStrategy: raw[col.WinStrategy] as string || undefined,
+      StrategicPursuit: raw[col.StrategicPursuit] as string || undefined,
+      DecisionMakerAdvocate: raw[col.DecisionMakerAdvocate] as string || undefined,
+      Decision: raw[col.Decision] as GoNoGoDecision || undefined,
+      DecisionDate: raw[col.DecisionDate] as string || undefined,
+      ScoredBy_Orig: raw[col.ScoredBy_Orig] as string || undefined,
+      ScoredBy_Cmte: scoredByCmte,
+      scorecardStatus: raw[col.scorecardStatus] as ScorecardStatus || ScorecardStatus.BDDraft,
+      currentApprovalStep: raw[col.currentApprovalStep] as number || undefined,
+      approvalCycles: cycles,
+      committeeScoresEnteredBy: raw[col.committeeScoresEnteredBy] as string || undefined,
+      committeeScoresEnteredDate: raw[col.committeeScoresEnteredDate] as string || undefined,
+      committeeMeetingDate: raw[col.committeeMeetingDate] as string || undefined,
+      recommendedDecision: raw[col.recommendedDecision] as GoNoGoDecision || undefined,
+      finalDecision: raw[col.finalDecision] as GoNoGoDecision || undefined,
+      finalDecisionBy: raw[col.finalDecisionBy] as string || undefined,
+      finalDecisionDate: raw[col.finalDecisionDate] as string || undefined,
+      conditionalGoConditions: raw[col.conditionalGoConditions] as string || undefined,
+      currentVersion: raw[col.currentVersion] as number || 1,
+      versions,
+      isLocked: !!(raw[col.isLocked]),
+      unlockedBy: raw[col.unlockedBy] as string || undefined,
+      unlockedDate: raw[col.unlockedDate] as string || undefined,
+      unlockReason: raw[col.unlockReason] as string || undefined,
+    };
+  }
+
+  private async createVersionSnapshot(scorecardId: number, reason: string, createdBy: string): Promise<IScorecardVersion> {
+    const col = GONOGO_SCORECARD_COLUMNS;
+    const vCol = SCORECARD_VERSIONS_COLUMNS;
+    const raw = await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId)();
+
+    let scores: IGoNoGoScorecard['scores'] = {};
+    try { scores = JSON.parse(raw[col.scores] as string || '{}'); } catch { /* fallback */ }
+
+    const origScores: Record<string, number> = {};
+    const cmteScores: Record<string, number> = {};
+    for (const key of Object.keys(scores)) {
+      if (scores[Number(key)]?.originator !== undefined) origScores[key] = scores[Number(key)].originator!;
+      if (scores[Number(key)]?.committee !== undefined) cmteScores[key] = scores[Number(key)].committee!;
+    }
+
+    const currentVersion = (raw[col.currentVersion] as number) || 1;
+    const now = new Date().toISOString();
+
+    const result = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_VERSIONS).items.add({
+      [vCol.scorecardId]: scorecardId,
+      [vCol.versionNumber]: currentVersion,
+      [vCol.createdDate]: now,
+      [vCol.createdBy]: createdBy,
+      [vCol.reason]: reason,
+      [vCol.originalScores]: JSON.stringify(origScores),
+      [vCol.committeeScores]: JSON.stringify(cmteScores),
+      [vCol.totalOriginal]: raw[col.TotalScore_Orig] as number || 0,
+      [vCol.totalCommittee]: raw[col.TotalScore_Cmte] as number || 0,
+      [vCol.decision]: raw[col.finalDecision] as string || raw[col.Decision] as string || '',
+      [vCol.conditions]: raw[col.conditionalGoConditions] as string || '',
+    });
+
+    this.logAudit({
+      Action: AuditAction.ScorecardVersionCreated,
+      EntityType: EntityType.Scorecard,
+      EntityId: String(scorecardId),
+      User: createdBy,
+      Details: `Version ${currentVersion} snapshot: ${reason}`,
+    }).catch(() => { /* fire-and-forget */ });
+
+    return this.mapToScorecardVersion(result);
+  }
+
+  // --- Scorecard Workflow (Phase 16) — Public Methods ---
+
+  async submitScorecard(scorecardId: number, submittedBy: string, _approverOverride?: IPersonAssignment): Promise<IGoNoGoScorecard> {
+    const col = GONOGO_SCORECARD_COLUMNS;
+    const cycCol = SCORECARD_APPROVAL_CYCLES_COLUMNS;
+    const stepCol = SCORECARD_APPROVAL_STEPS_COLUMNS;
+    const now = new Date().toISOString();
+
+    // Read current scorecard to determine cycle number
+    const raw = await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId)();
+    const existingCycles = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_CYCLES).items
+      .filter(`${cycCol.scorecardId} eq ${scorecardId}`)();
+    const newCycleNumber = existingCycles.length + 1;
+    const currentVersion = (raw[col.currentVersion] as number) || 1;
+
+    // Create version snapshot for first submission
+    if (newCycleNumber === 1) {
+      await this.createVersionSnapshot(scorecardId, 'Initial submission', submittedBy);
+    }
+
+    // Create approval cycle
+    const cycleResult = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_CYCLES).items.add({
+      [cycCol.scorecardId]: scorecardId,
+      [cycCol.cycleNumber]: newCycleNumber,
+      [cycCol.version]: currentVersion,
+      [cycCol.startedDate]: now,
+      [cycCol.status]: 'Active',
+    });
+    const newCycleId = (cycleResult.Id as number) || (cycleResult.data?.Id as number);
+
+    // Create step 1: BD Rep — auto-approved (submitter)
+    await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_STEPS).items.add({
+      [stepCol.cycleId]: newCycleId,
+      [stepCol.stepOrder]: 1,
+      [stepCol.name]: 'BD Representative',
+      [stepCol.assigneeEmail]: submittedBy,
+      [stepCol.assigneeName]: submittedBy,
+      [stepCol.assignmentSource]: 'Default',
+      [stepCol.status]: 'Approved',
+      [stepCol.actionDate]: now,
+      [stepCol.comment]: 'Submitted for review',
+    });
+
+    // Create step 2: Director — pending
+    await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_STEPS).items.add({
+      [stepCol.cycleId]: newCycleId,
+      [stepCol.stepOrder]: 2,
+      [stepCol.name]: 'Department Director',
+      [stepCol.assigneeEmail]: '',
+      [stepCol.assigneeName]: '',
+      [stepCol.assignmentSource]: 'Default',
+      [stepCol.status]: 'Pending',
+    });
+
+    // Update scorecard status
+    await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId).update({
+      [col.scorecardStatus]: ScorecardStatus.AwaitingDirectorReview,
+      [col.currentApprovalStep]: 2,
+    });
+
+    this.logAudit({
+      Action: AuditAction.ScorecardSubmitted,
+      EntityType: EntityType.Scorecard,
+      EntityId: String(scorecardId),
+      User: submittedBy,
+      Details: `Scorecard submitted for director review (cycle ${newCycleNumber})`,
+    }).catch(() => { /* fire-and-forget */ });
+
+    return this.assembleScorecard(scorecardId);
+  }
+
+  async respondToScorecardSubmission(scorecardId: number, approved: boolean, comment: string): Promise<IGoNoGoScorecard> {
+    const col = GONOGO_SCORECARD_COLUMNS;
+    const cycCol = SCORECARD_APPROVAL_CYCLES_COLUMNS;
+    const stepCol = SCORECARD_APPROVAL_STEPS_COLUMNS;
+    const now = new Date().toISOString();
+
+    // Find active cycle
+    const activeCycles = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_CYCLES).items
+      .filter(`${cycCol.scorecardId} eq ${scorecardId} and ${cycCol.status} eq 'Active'`)
+      .top(1)();
+    if (activeCycles.length === 0) throw new Error('No active approval cycle found');
+    const cycleId = (activeCycles[0].ID as number) || (activeCycles[0].Id as number);
+
+    // Find pending director step (stepOrder=2)
+    const pendingSteps = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_STEPS).items
+      .filter(`${stepCol.cycleId} eq ${cycleId} and ${stepCol.status} eq 'Pending'`)
+      .top(1)();
+    if (pendingSteps.length === 0) throw new Error('No pending approval step found');
+    const stepId = (pendingSteps[0].ID as number) || (pendingSteps[0].Id as number);
+
+    // Update step
+    await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_STEPS).items.getById(stepId).update({
+      [stepCol.status]: approved ? 'Approved' : 'Returned',
+      [stepCol.actionDate]: now,
+      [stepCol.comment]: comment,
+    });
+
+    // Update scorecard status
+    const newStatus = approved ? ScorecardStatus.AwaitingCommitteeScoring : ScorecardStatus.DirectorReturnedForRevision;
+    await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId).update({
+      [col.scorecardStatus]: newStatus,
+    });
+
+    // If approved, complete cycle steps; if rejected, complete cycle
+    if (!approved) {
+      await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_CYCLES).items.getById(cycleId).update({
+        [cycCol.completedDate]: now,
+        [cycCol.status]: 'Completed',
+      });
+    }
+
+    this.logAudit({
+      Action: approved ? AuditAction.ScorecardCommitteeScored : AuditAction.ScorecardReturned,
+      EntityType: EntityType.Scorecard,
+      EntityId: String(scorecardId),
+      User: 'Director',
+      Details: approved ? 'Director approved — advancing to committee scoring' : `Director returned for revision: ${comment}`,
+    }).catch(() => { /* fire-and-forget */ });
+
+    return this.assembleScorecard(scorecardId);
+  }
+
+  async enterCommitteeScores(scorecardId: number, scores: Record<string, number>, enteredBy: string): Promise<IGoNoGoScorecard> {
+    const col = GONOGO_SCORECARD_COLUMNS;
+    const now = new Date().toISOString();
+
+    // Read current scorecard to merge scores
+    const raw = await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId)();
+    let existingScores: IGoNoGoScorecard['scores'] = {};
+    try { existingScores = JSON.parse(raw[col.scores] as string || '{}'); } catch { /* fallback */ }
+
+    // Apply committee scores to each criterion
+    for (const [criterionId, value] of Object.entries(scores)) {
+      if (!existingScores[Number(criterionId)]) {
+        existingScores[Number(criterionId)] = {};
+      }
+      existingScores[Number(criterionId)].committee = value;
+    }
+
+    // Calculate totals and recommended decision
+    const totalCmte = calculateTotalScore(existingScores, 'committee');
+    const recommended = getRecommendedDecision(totalCmte);
+
+    // Update scorecard
+    await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId).update({
+      [col.scores]: JSON.stringify(existingScores),
+      [col.TotalScore_Cmte]: totalCmte,
+      [col.recommendedDecision]: recommended.decision,
+      [col.committeeScoresEnteredBy]: enteredBy,
+      [col.committeeScoresEnteredDate]: now,
+    });
+
+    this.logAudit({
+      Action: AuditAction.ScorecardCommitteeScored,
+      EntityType: EntityType.Scorecard,
+      EntityId: String(scorecardId),
+      User: enteredBy,
+      Details: `Committee scores entered. Total: ${totalCmte}. Recommended: ${recommended.decision}`,
+    }).catch(() => { /* fire-and-forget */ });
+
+    return this.assembleScorecard(scorecardId);
+  }
+
+  async recordFinalDecision(scorecardId: number, decision: GoNoGoDecision, conditions?: string, decidedBy?: string): Promise<IGoNoGoScorecard> {
+    const col = GONOGO_SCORECARD_COLUMNS;
+    const cycCol = SCORECARD_APPROVAL_CYCLES_COLUMNS;
+    const now = new Date().toISOString();
+
+    // Read current scorecard for Lead linkage
+    const raw = await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId)();
+    const leadId = raw[col.LeadID] as number;
+
+    // Determine status based on decision
+    let newStatus: ScorecardStatus;
+    if (decision === GoNoGoDecision.Go || decision === GoNoGoDecision.ConditionalGo) {
+      newStatus = ScorecardStatus.Go;
+    } else {
+      newStatus = ScorecardStatus.NoGo;
+    }
+
+    // Update scorecard
+    await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId).update({
+      [col.scorecardStatus]: newStatus,
+      [col.finalDecision]: decision,
+      [col.finalDecisionBy]: decidedBy || '',
+      [col.finalDecisionDate]: now,
+      [col.conditionalGoConditions]: conditions || '',
+      [col.isLocked]: true,
+    });
+
+    // Complete active approval cycle
+    const activeCycles = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_CYCLES).items
+      .filter(`${cycCol.scorecardId} eq ${scorecardId} and ${cycCol.status} eq 'Active'`)();
+    for (const cycle of activeCycles) {
+      const cId = (cycle.ID as number) || (cycle.Id as number);
+      await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_CYCLES).items.getById(cId).update({
+        [cycCol.completedDate]: now,
+        [cycCol.status]: 'Completed',
+      });
+    }
+
+    // Create version snapshot
+    await this.createVersionSnapshot(scorecardId, `Final decision: ${decision}`, decidedBy || 'Committee');
+
+    // Update linked Lead
+    if (leadId) {
+      const leadStage = (decision === GoNoGoDecision.Go || decision === GoNoGoDecision.ConditionalGo)
+        ? Stage.Opportunity
+        : Stage.ArchivedNoGo;
+      await this.updateLead(leadId, {
+        GoNoGoDecision: decision,
+        GoNoGoDecisionDate: now,
+        GoNoGoScore_Originator: raw[col.TotalScore_Orig] as number,
+        GoNoGoScore_Committee: raw[col.TotalScore_Cmte] as number,
+        Stage: leadStage,
+      } as Partial<ILead>);
+    }
+
+    this.logAudit({
+      Action: AuditAction.ScorecardDecisionMade,
+      EntityType: EntityType.Scorecard,
+      EntityId: String(scorecardId),
+      User: decidedBy || 'Committee',
+      Details: `Final decision: ${decision}${conditions ? '. Conditions: ' + conditions : ''}`,
+    }).catch(() => { /* fire-and-forget */ });
+
+    return this.assembleScorecard(scorecardId);
+  }
+
+  async unlockScorecard(scorecardId: number, reason: string): Promise<IGoNoGoScorecard> {
+    const col = GONOGO_SCORECARD_COLUMNS;
+    const now = new Date().toISOString();
+
+    // Read current to get version + validate lock
+    const raw = await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId)();
+    if (!raw[col.isLocked]) throw new Error('Scorecard is not currently locked');
+
+    const currentVersion = (raw[col.currentVersion] as number) || 1;
+
+    // Create version snapshot BEFORE unlock
+    await this.createVersionSnapshot(scorecardId, `Pre-unlock snapshot: ${reason}`, raw[col.unlockedBy] as string || 'System');
+
+    // Unlock
+    await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId).update({
+      [col.isLocked]: false,
+      [col.scorecardStatus]: ScorecardStatus.Unlocked,
+      [col.currentVersion]: currentVersion + 1,
+      [col.unlockedBy]: '',
+      [col.unlockedDate]: now,
+      [col.unlockReason]: reason,
+    });
+
+    this.logAudit({
+      Action: AuditAction.ScorecardUnlocked,
+      EntityType: EntityType.Scorecard,
+      EntityId: String(scorecardId),
+      User: 'Admin',
+      Details: `Scorecard unlocked. Reason: ${reason}. Version incremented to ${currentVersion + 1}`,
+    }).catch(() => { /* fire-and-forget */ });
+
+    return this.assembleScorecard(scorecardId);
+  }
+
+  async relockScorecard(scorecardId: number, startNewCycle: boolean): Promise<IGoNoGoScorecard> {
+    const col = GONOGO_SCORECARD_COLUMNS;
+    const cycCol = SCORECARD_APPROVAL_CYCLES_COLUMNS;
+    const stepCol = SCORECARD_APPROVAL_STEPS_COLUMNS;
+    const now = new Date().toISOString();
+
+    if (startNewCycle) {
+      // Start a new approval cycle
+      const existingCycles = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_CYCLES).items
+        .filter(`${cycCol.scorecardId} eq ${scorecardId}`)();
+      const newCycleNumber = existingCycles.length + 1;
+      const raw = await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId)();
+      const currentVersion = (raw[col.currentVersion] as number) || 1;
+
+      const cycleResult = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_CYCLES).items.add({
+        [cycCol.scorecardId]: scorecardId,
+        [cycCol.cycleNumber]: newCycleNumber,
+        [cycCol.version]: currentVersion,
+        [cycCol.startedDate]: now,
+        [cycCol.status]: 'Active',
+      });
+      const newCycleId = (cycleResult.Id as number) || (cycleResult.data?.Id as number);
+
+      // Step 1: BD Rep (auto-approved)
+      await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_STEPS).items.add({
+        [stepCol.cycleId]: newCycleId,
+        [stepCol.stepOrder]: 1,
+        [stepCol.name]: 'BD Representative',
+        [stepCol.assigneeEmail]: '',
+        [stepCol.assigneeName]: '',
+        [stepCol.assignmentSource]: 'Default',
+        [stepCol.status]: 'Approved',
+        [stepCol.actionDate]: now,
+      });
+
+      // Step 2: Director (pending)
+      await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_STEPS).items.add({
+        [stepCol.cycleId]: newCycleId,
+        [stepCol.stepOrder]: 2,
+        [stepCol.name]: 'Department Director',
+        [stepCol.assigneeEmail]: '',
+        [stepCol.assigneeName]: '',
+        [stepCol.assignmentSource]: 'Default',
+        [stepCol.status]: 'Pending',
+      });
+
+      await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId).update({
+        [col.isLocked]: false,
+        [col.scorecardStatus]: ScorecardStatus.AwaitingDirectorReview,
+        [col.currentApprovalStep]: 2,
+      });
+    } else {
+      // Simple relock without new cycle
+      await this.createVersionSnapshot(scorecardId, 'Relocked', 'Admin');
+      await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId).update({
+        [col.isLocked]: true,
+        [col.scorecardStatus]: ScorecardStatus.Locked,
+      });
+    }
+
+    this.logAudit({
+      Action: AuditAction.ScorecardRelocked,
+      EntityType: EntityType.Scorecard,
+      EntityId: String(scorecardId),
+      User: 'Admin',
+      Details: startNewCycle ? 'Relocked with new approval cycle' : 'Relocked without new cycle',
+    }).catch(() => { /* fire-and-forget */ });
+
+    return this.assembleScorecard(scorecardId);
+  }
+
+  async getScorecardVersions(scorecardId: number): Promise<IScorecardVersion[]> {
+    const col = SCORECARD_VERSIONS_COLUMNS;
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_VERSIONS).items
+      .filter(`${col.scorecardId} eq ${scorecardId}`)
+      .orderBy(col.versionNumber, true)();
+    return (items as Record<string, unknown>[]).map(i => this.mapToScorecardVersion(i));
+  }
 
   // --- Workflow Definitions ---
 
@@ -3460,22 +4198,472 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Turnover Agenda ---
-  async getTurnoverAgenda(_projectCode: string): Promise<ITurnoverAgenda | null> { console.warn('[STUB] getTurnoverAgenda not implemented'); return null; }
-  async createTurnoverAgenda(_projectCode: string, _leadId: number): Promise<ITurnoverAgenda> { throw new Error('SharePoint implementation pending: createTurnoverAgenda'); }
-  async updateTurnoverAgenda(_projectCode: string, _data: Partial<ITurnoverAgenda>): Promise<ITurnoverAgenda> { throw new Error('SharePoint implementation pending: updateTurnoverAgenda'); }
-  async updateTurnoverPrerequisite(_prerequisiteId: number, _data: Partial<ITurnoverPrerequisite>): Promise<ITurnoverPrerequisite> { throw new Error('SharePoint implementation pending: updateTurnoverPrerequisite'); }
-  async updateTurnoverDiscussionItem(_itemId: number, _data: Partial<ITurnoverDiscussionItem>): Promise<ITurnoverDiscussionItem> { throw new Error('SharePoint implementation pending: updateTurnoverDiscussionItem'); }
-  async addTurnoverDiscussionAttachment(_itemId: number, _file: File): Promise<ITurnoverAttachment> { throw new Error('SharePoint implementation pending: addTurnoverDiscussionAttachment'); }
-  async removeTurnoverDiscussionAttachment(_attachmentId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeTurnoverDiscussionAttachment'); }
-  async addTurnoverSubcontractor(_turnoverAgendaId: number, _data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor> { throw new Error('SharePoint implementation pending: addTurnoverSubcontractor'); }
-  async updateTurnoverSubcontractor(_subId: number, _data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor> { throw new Error('SharePoint implementation pending: updateTurnoverSubcontractor'); }
-  async removeTurnoverSubcontractor(_subId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeTurnoverSubcontractor'); }
-  async updateTurnoverExhibit(_exhibitId: number, _data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit> { throw new Error('SharePoint implementation pending: updateTurnoverExhibit'); }
-  async addTurnoverExhibit(_turnoverAgendaId: number, _data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit> { throw new Error('SharePoint implementation pending: addTurnoverExhibit'); }
-  async removeTurnoverExhibit(_exhibitId: number): Promise<void> { throw new Error('SharePoint implementation pending: removeTurnoverExhibit'); }
-  async uploadTurnoverExhibitFile(_exhibitId: number, _file: File): Promise<{ fileUrl: string; fileName: string }> { throw new Error('SharePoint implementation pending: uploadTurnoverExhibitFile'); }
-  async signTurnoverAgenda(_signatureId: number, _comment?: string): Promise<ITurnoverSignature> { throw new Error('SharePoint implementation pending: signTurnoverAgenda'); }
-  async updateTurnoverEstimateOverview(_projectCode: string, _data: Partial<ITurnoverEstimateOverview>): Promise<ITurnoverEstimateOverview> { throw new Error('SharePoint implementation pending: updateTurnoverEstimateOverview'); }
+
+  async getTurnoverAgenda(projectCode: string): Promise<ITurnoverAgenda | null> {
+    const web = this._getProjectWeb();
+    const col = TURNOVER_AGENDAS_COLUMNS;
+
+    // Read parent agenda
+    const parents = await web.lists.getByTitle(LIST_NAMES.TURNOVER_AGENDAS).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .top(1)();
+    if (parents.length === 0) return null;
+
+    const agenda = this.mapToTurnoverAgenda(parents[0]);
+
+    // Read all 7 child lists + estimate overview in parallel
+    const [prereqItems, discussionItemsRaw, attachmentItems, subItems, exhibitItems, sigItems, overviewItems] = await Promise.all([
+      web.lists.getByTitle(LIST_NAMES.TURNOVER_PREREQUISITES).items
+        .filter(`${TURNOVER_PREREQUISITES_COLUMNS.turnoverAgendaId} eq ${agenda.id}`)
+        .top(500)(),
+      web.lists.getByTitle(LIST_NAMES.TURNOVER_DISCUSSION_ITEMS).items
+        .filter(`${TURNOVER_DISCUSSION_ITEMS_COLUMNS.turnoverAgendaId} eq ${agenda.id}`)
+        .top(500)(),
+      web.lists.getByTitle(LIST_NAMES.TURNOVER_ATTACHMENTS).items
+        .top(5000)(),
+      web.lists.getByTitle(LIST_NAMES.TURNOVER_SUBCONTRACTORS).items
+        .filter(`${TURNOVER_SUBCONTRACTORS_COLUMNS.turnoverAgendaId} eq ${agenda.id}`)
+        .top(500)(),
+      web.lists.getByTitle(LIST_NAMES.TURNOVER_EXHIBITS).items
+        .filter(`${TURNOVER_EXHIBITS_COLUMNS.turnoverAgendaId} eq ${agenda.id}`)
+        .top(500)(),
+      web.lists.getByTitle(LIST_NAMES.TURNOVER_SIGNATURES).items
+        .filter(`${TURNOVER_SIGNATURES_COLUMNS.turnoverAgendaId} eq ${agenda.id}`)
+        .top(500)(),
+      web.lists.getByTitle(LIST_NAMES.TURNOVER_ESTIMATE_OVERVIEWS).items
+        .filter(`${TURNOVER_ESTIMATE_OVERVIEWS_COLUMNS.turnoverAgendaId} eq ${agenda.id}`)
+        .top(1)(),
+    ]);
+
+    // Get lead for header assembly
+    const lead = agenda.leadId ? await this.getLeadById(agenda.leadId) : null;
+
+    // Map all children
+    const prereqs = prereqItems.map((i: Record<string, unknown>) => this.mapToTurnoverPrerequisite(i));
+    const discussionItems = discussionItemsRaw.map((i: Record<string, unknown>) => this.mapToTurnoverDiscussionItem(i));
+    const attachments = attachmentItems.map((i: Record<string, unknown>) => this.mapToTurnoverAttachment(i));
+    const subs = subItems.map((i: Record<string, unknown>) => this.mapToTurnoverSubcontractor(i));
+    const exhibits = exhibitItems.map((i: Record<string, unknown>) => this.mapToTurnoverExhibit(i));
+    const sigs = sigItems.map((i: Record<string, unknown>) => this.mapToTurnoverSignature(i));
+    const estimateOverview = overviewItems.length > 0
+      ? this.mapToTurnoverEstimateOverview(overviewItems[0])
+      : null;
+
+    // Parse header overrides from agenda JSON column
+    let headerOverrides: Record<string, boolean> = {};
+    try {
+      const raw = parents[0][col.headerOverrides];
+      if (typeof raw === 'string' && raw) headerOverrides = JSON.parse(raw);
+      else if (typeof raw === 'object' && raw !== null) headerOverrides = raw as Record<string, boolean>;
+    } catch { /* safe fallback */ }
+
+    return this.assembleTurnoverAgenda(agenda, lead, headerOverrides, estimateOverview, prereqs, discussionItems, attachments, subs, exhibits, sigs);
+  }
+
+  async createTurnoverAgenda(projectCode: string, leadId: number): Promise<ITurnoverAgenda> {
+    const web = this._getProjectWeb();
+    const col = TURNOVER_AGENDAS_COLUMNS;
+    const now = new Date().toISOString();
+    const createdBy = this._pageContextUser?.displayName || 'System';
+
+    // Get lead for denormalized fields
+    const lead = await this.getLeadById(leadId);
+
+    // Create parent agenda
+    const agendaData: Record<string, unknown> = {
+      [col.projectCode]: projectCode,
+      [col.leadId]: leadId,
+      [col.status]: TurnoverStatus.Draft,
+      [col.projectName]: lead?.Title || '',
+      [col.createdBy]: createdBy,
+      [col.createdDate]: now,
+    };
+    const agendaResult = await web.lists.getByTitle(LIST_NAMES.TURNOVER_AGENDAS).items.add(agendaData);
+    const agendaId = (agendaResult as Record<string, unknown>).Id as number
+      || ((agendaResult as Record<string, unknown>).data as Record<string, unknown>)?.Id as number
+      || ((agendaResult as Record<string, unknown>).data as Record<string, unknown>)?.ID as number;
+
+    // Seed defaults in parallel: prerequisites, discussion items, exhibits, signatures, estimate overview
+    const prereqPromises = DEFAULT_PREREQUISITES.map(prereq =>
+      web.lists.getByTitle(LIST_NAMES.TURNOVER_PREREQUISITES).items.add({
+        [TURNOVER_PREREQUISITES_COLUMNS.turnoverAgendaId]: agendaId,
+        [TURNOVER_PREREQUISITES_COLUMNS.sortOrder]: prereq.sortOrder,
+        [TURNOVER_PREREQUISITES_COLUMNS.label]: prereq.label,
+        [TURNOVER_PREREQUISITES_COLUMNS.description]: prereq.description,
+        [TURNOVER_PREREQUISITES_COLUMNS.completed]: false,
+      })
+    );
+
+    const discussionPromises = DEFAULT_DISCUSSION_ITEMS.map(item =>
+      web.lists.getByTitle(LIST_NAMES.TURNOVER_DISCUSSION_ITEMS).items.add({
+        [TURNOVER_DISCUSSION_ITEMS_COLUMNS.turnoverAgendaId]: agendaId,
+        [TURNOVER_DISCUSSION_ITEMS_COLUMNS.sortOrder]: item.sortOrder,
+        [TURNOVER_DISCUSSION_ITEMS_COLUMNS.label]: item.label,
+        [TURNOVER_DISCUSSION_ITEMS_COLUMNS.description]: item.description,
+        [TURNOVER_DISCUSSION_ITEMS_COLUMNS.discussed]: false,
+        [TURNOVER_DISCUSSION_ITEMS_COLUMNS.notes]: '',
+      })
+    );
+
+    const exhibitPromises = DEFAULT_EXHIBITS.map(exhibit =>
+      web.lists.getByTitle(LIST_NAMES.TURNOVER_EXHIBITS).items.add({
+        [TURNOVER_EXHIBITS_COLUMNS.turnoverAgendaId]: agendaId,
+        [TURNOVER_EXHIBITS_COLUMNS.sortOrder]: exhibit.sortOrder,
+        [TURNOVER_EXHIBITS_COLUMNS.label]: exhibit.label,
+        [TURNOVER_EXHIBITS_COLUMNS.isDefault]: exhibit.isDefault,
+        [TURNOVER_EXHIBITS_COLUMNS.reviewed]: false,
+      })
+    );
+
+    const signaturePromises = DEFAULT_SIGNATURES.map(sig =>
+      web.lists.getByTitle(LIST_NAMES.TURNOVER_SIGNATURES).items.add({
+        [TURNOVER_SIGNATURES_COLUMNS.turnoverAgendaId]: agendaId,
+        [TURNOVER_SIGNATURES_COLUMNS.sortOrder]: sig.sortOrder,
+        [TURNOVER_SIGNATURES_COLUMNS.role]: sig.role,
+        [TURNOVER_SIGNATURES_COLUMNS.signerName]: '',
+        [TURNOVER_SIGNATURES_COLUMNS.signerEmail]: '',
+        [TURNOVER_SIGNATURES_COLUMNS.affidavitText]: TURNOVER_SIGNATURE_AFFIDAVIT,
+        [TURNOVER_SIGNATURES_COLUMNS.signed]: false,
+      })
+    );
+
+    // Create estimate overview from lead data
+    const projectValue = lead?.ProjectValue || 0;
+    const feePct = lead?.AnticipatedFeePct || 5;
+    const overviewPromise = web.lists.getByTitle(LIST_NAMES.TURNOVER_ESTIMATE_OVERVIEWS).items.add({
+      [TURNOVER_ESTIMATE_OVERVIEWS_COLUMNS.turnoverAgendaId]: agendaId,
+      [TURNOVER_ESTIMATE_OVERVIEWS_COLUMNS.contractAmount]: projectValue,
+      [TURNOVER_ESTIMATE_OVERVIEWS_COLUMNS.originalEstimate]: projectValue,
+      [TURNOVER_ESTIMATE_OVERVIEWS_COLUMNS.buyoutTarget]: Math.round(projectValue * 0.9),
+      [TURNOVER_ESTIMATE_OVERVIEWS_COLUMNS.estimatedFee]: Math.round(projectValue * (feePct / 100)),
+      [TURNOVER_ESTIMATE_OVERVIEWS_COLUMNS.estimatedGrossMargin]: lead?.AnticipatedGrossMargin || 0,
+      [TURNOVER_ESTIMATE_OVERVIEWS_COLUMNS.contingency]: Math.round(projectValue * 0.015),
+      [TURNOVER_ESTIMATE_OVERVIEWS_COLUMNS.notes]: '',
+      [TURNOVER_ESTIMATE_OVERVIEWS_COLUMNS.overrides]: JSON.stringify({}),
+    });
+
+    await Promise.all([
+      ...prereqPromises,
+      ...discussionPromises,
+      ...exhibitPromises,
+      ...signaturePromises,
+      overviewPromise,
+    ]);
+
+    // Re-read assembled
+    const result = await this.getTurnoverAgenda(projectCode);
+    if (!result) throw new Error(`Turnover agenda for ${projectCode} not found after creation`);
+    return result;
+  }
+
+  async updateTurnoverAgenda(projectCode: string, data: Partial<ITurnoverAgenda>): Promise<ITurnoverAgenda> {
+    const web = this._getProjectWeb();
+    const col = TURNOVER_AGENDAS_COLUMNS;
+
+    // Find agenda by projectCode
+    const parents = await web.lists.getByTitle(LIST_NAMES.TURNOVER_AGENDAS).items
+      .filter(`${col.projectCode} eq '${projectCode}'`)
+      .top(1)();
+    if (parents.length === 0) throw new Error(`Turnover agenda for ${projectCode} not found`);
+
+    const agendaId = (parents[0].ID as number) || (parents[0].Id as number);
+    const now = new Date().toISOString();
+    const updateData: Record<string, unknown> = {
+      [col.lastModifiedDate]: now,
+      [col.lastModifiedBy]: this._pageContextUser?.displayName || '',
+    };
+
+    // Conditional partial update
+    if (data.status !== undefined) updateData[col.status] = data.status;
+    if (data.meetingDate !== undefined) updateData[col.meetingDate] = data.meetingDate;
+    if (data.recordingUrl !== undefined) updateData[col.recordingUrl] = data.recordingUrl;
+    if (data.turnoverFolderUrl !== undefined) updateData[col.turnoverFolderUrl] = data.turnoverFolderUrl;
+    if (data.bcPublished !== undefined) updateData[col.bcPublished] = data.bcPublished;
+    if (data.pmName !== undefined) updateData[col.pmName] = data.pmName;
+    if (data.apmName !== undefined) updateData[col.apmName] = data.apmName;
+    if (data.projectName !== undefined) updateData[col.projectName] = data.projectName;
+
+    await web.lists.getByTitle(LIST_NAMES.TURNOVER_AGENDAS).items.getById(agendaId).update(updateData);
+
+    // Re-read assembled
+    const result = await this.getTurnoverAgenda(projectCode);
+    if (!result) throw new Error(`Turnover agenda for ${projectCode} not found after update`);
+    return result;
+  }
+  async updateTurnoverPrerequisite(prerequisiteId: number, data: Partial<ITurnoverPrerequisite>): Promise<ITurnoverPrerequisite> {
+    const web = this._getProjectWeb();
+    const col = TURNOVER_PREREQUISITES_COLUMNS;
+    const updateData: Record<string, unknown> = {};
+
+    if (data.completed !== undefined) updateData[col.completed] = data.completed;
+    if (data.completedBy !== undefined) updateData[col.completedBy] = data.completedBy;
+    if (data.completedDate !== undefined) updateData[col.completedDate] = data.completedDate;
+    if (data.label !== undefined) updateData[col.label] = data.label;
+    if (data.description !== undefined) updateData[col.description] = data.description;
+    if (data.sortOrder !== undefined) updateData[col.sortOrder] = data.sortOrder;
+
+    await web.lists.getByTitle(LIST_NAMES.TURNOVER_PREREQUISITES).items.getById(prerequisiteId).update(updateData);
+
+    const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_PREREQUISITES).items.getById(prerequisiteId)();
+    return this.mapToTurnoverPrerequisite(item);
+  }
+
+  async updateTurnoverDiscussionItem(itemId: number, data: Partial<ITurnoverDiscussionItem>): Promise<ITurnoverDiscussionItem> {
+    const web = this._getProjectWeb();
+    const col = TURNOVER_DISCUSSION_ITEMS_COLUMNS;
+    const updateData: Record<string, unknown> = {};
+
+    if (data.discussed !== undefined) updateData[col.discussed] = data.discussed;
+    if (data.notes !== undefined) updateData[col.notes] = data.notes;
+    if (data.label !== undefined) updateData[col.label] = data.label;
+    if (data.description !== undefined) updateData[col.description] = data.description;
+    if (data.sortOrder !== undefined) updateData[col.sortOrder] = data.sortOrder;
+
+    await web.lists.getByTitle(LIST_NAMES.TURNOVER_DISCUSSION_ITEMS).items.getById(itemId).update(updateData);
+
+    const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_DISCUSSION_ITEMS).items.getById(itemId)();
+    const mapped = this.mapToTurnoverDiscussionItem(item);
+
+    // Load attachments for this discussion item
+    const attachmentItems = await web.lists.getByTitle(LIST_NAMES.TURNOVER_ATTACHMENTS).items
+      .filter(`${TURNOVER_ATTACHMENTS_COLUMNS.discussionItemId} eq ${itemId}`)
+      .top(500)();
+    mapped.attachments = attachmentItems.map((a: Record<string, unknown>) => this.mapToTurnoverAttachment(a));
+
+    return mapped;
+  }
+
+  async addTurnoverDiscussionAttachment(itemId: number, file: File): Promise<ITurnoverAttachment> {
+    const web = this._getProjectWeb();
+    const col = TURNOVER_ATTACHMENTS_COLUMNS;
+    const folderPath = 'Shared Documents/Turnover';
+
+    // Ensure folder exists
+    try {
+      await web.getFolderByServerRelativePath(folderPath).select('Exists')();
+    } catch {
+      await web.folders.addUsingPath(folderPath);
+    }
+
+    // Upload file
+    const fileName = `${Date.now()}_${file.name}`;
+    const uploadResult = await web
+      .getFolderByServerRelativePath(folderPath)
+      .files.addUsingPath(fileName, file, { Overwrite: true });
+    const fileUrl = (uploadResult.data as Record<string, unknown>).ServerRelativeUrl as string || `${folderPath}/${fileName}`;
+
+    // Create attachment record
+    const now = new Date().toISOString();
+    const attachmentData: Record<string, unknown> = {
+      [col.discussionItemId]: itemId,
+      [col.fileName]: file.name,
+      [col.fileUrl]: fileUrl,
+      [col.uploadedBy]: this._pageContextUser?.displayName || '',
+      [col.uploadedDate]: now,
+    };
+    const result = await web.lists.getByTitle(LIST_NAMES.TURNOVER_ATTACHMENTS).items.add(attachmentData);
+    const newId = (result as Record<string, unknown>).Id as number
+      || ((result as Record<string, unknown>).data as Record<string, unknown>)?.Id as number
+      || ((result as Record<string, unknown>).data as Record<string, unknown>)?.ID as number;
+
+    const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_ATTACHMENTS).items.getById(newId)();
+    return this.mapToTurnoverAttachment(item);
+  }
+
+  async removeTurnoverDiscussionAttachment(attachmentId: number): Promise<void> {
+    const web = this._getProjectWeb();
+    await web.lists.getByTitle(LIST_NAMES.TURNOVER_ATTACHMENTS).items.getById(attachmentId).delete();
+  }
+
+  async addTurnoverSubcontractor(turnoverAgendaId: number, data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor> {
+    const web = this._getProjectWeb();
+    const col = TURNOVER_SUBCONTRACTORS_COLUMNS;
+
+    const addData: Record<string, unknown> = {
+      [col.turnoverAgendaId]: turnoverAgendaId,
+      [col.trade]: data.trade || '',
+      [col.subcontractorName]: data.subcontractorName || '',
+      [col.contactName]: data.contactName || '',
+      [col.contactPhone]: data.contactPhone || '',
+      [col.contactEmail]: data.contactEmail || '',
+      [col.qScore]: data.qScore ?? null,
+      [col.isPreferred]: data.isPreferred ?? false,
+      [col.isRequired]: data.isRequired ?? false,
+      [col.notes]: data.notes || '',
+    };
+
+    const result = await web.lists.getByTitle(LIST_NAMES.TURNOVER_SUBCONTRACTORS).items.add(addData);
+    const newId = (result as Record<string, unknown>).Id as number
+      || ((result as Record<string, unknown>).data as Record<string, unknown>)?.Id as number
+      || ((result as Record<string, unknown>).data as Record<string, unknown>)?.ID as number;
+
+    const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_SUBCONTRACTORS).items.getById(newId)();
+    return this.mapToTurnoverSubcontractor(item);
+  }
+
+  async updateTurnoverSubcontractor(subId: number, data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor> {
+    const web = this._getProjectWeb();
+    const col = TURNOVER_SUBCONTRACTORS_COLUMNS;
+    const updateData: Record<string, unknown> = {};
+
+    if (data.trade !== undefined) updateData[col.trade] = data.trade;
+    if (data.subcontractorName !== undefined) updateData[col.subcontractorName] = data.subcontractorName;
+    if (data.contactName !== undefined) updateData[col.contactName] = data.contactName;
+    if (data.contactPhone !== undefined) updateData[col.contactPhone] = data.contactPhone;
+    if (data.contactEmail !== undefined) updateData[col.contactEmail] = data.contactEmail;
+    if (data.qScore !== undefined) updateData[col.qScore] = data.qScore;
+    if (data.isPreferred !== undefined) updateData[col.isPreferred] = data.isPreferred;
+    if (data.isRequired !== undefined) updateData[col.isRequired] = data.isRequired;
+    if (data.notes !== undefined) updateData[col.notes] = data.notes;
+
+    await web.lists.getByTitle(LIST_NAMES.TURNOVER_SUBCONTRACTORS).items.getById(subId).update(updateData);
+
+    const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_SUBCONTRACTORS).items.getById(subId)();
+    return this.mapToTurnoverSubcontractor(item);
+  }
+
+  async removeTurnoverSubcontractor(subId: number): Promise<void> {
+    const web = this._getProjectWeb();
+    await web.lists.getByTitle(LIST_NAMES.TURNOVER_SUBCONTRACTORS).items.getById(subId).delete();
+  }
+
+  async updateTurnoverExhibit(exhibitId: number, data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit> {
+    const web = this._getProjectWeb();
+    const col = TURNOVER_EXHIBITS_COLUMNS;
+    const updateData: Record<string, unknown> = {};
+
+    if (data.label !== undefined) updateData[col.label] = data.label;
+    if (data.sortOrder !== undefined) updateData[col.sortOrder] = data.sortOrder;
+    if (data.reviewed !== undefined) updateData[col.reviewed] = data.reviewed;
+    if (data.reviewedBy !== undefined) updateData[col.reviewedBy] = data.reviewedBy;
+    if (data.reviewedDate !== undefined) updateData[col.reviewedDate] = data.reviewedDate;
+    if (data.linkedDocumentUrl !== undefined) updateData[col.linkedDocumentUrl] = data.linkedDocumentUrl;
+    if (data.uploadedFileName !== undefined) updateData[col.uploadedFileName] = data.uploadedFileName;
+    if (data.uploadedFileUrl !== undefined) updateData[col.uploadedFileUrl] = data.uploadedFileUrl;
+
+    await web.lists.getByTitle(LIST_NAMES.TURNOVER_EXHIBITS).items.getById(exhibitId).update(updateData);
+
+    const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_EXHIBITS).items.getById(exhibitId)();
+    return this.mapToTurnoverExhibit(item);
+  }
+
+  async addTurnoverExhibit(turnoverAgendaId: number, data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit> {
+    const web = this._getProjectWeb();
+    const col = TURNOVER_EXHIBITS_COLUMNS;
+
+    // Auto-calc sortOrder from existing exhibits
+    const existingItems = await web.lists.getByTitle(LIST_NAMES.TURNOVER_EXHIBITS).items
+      .filter(`${col.turnoverAgendaId} eq ${turnoverAgendaId}`)
+      .select(col.sortOrder)
+      .top(500)();
+    const maxOrder = existingItems.length > 0
+      ? Math.max(...existingItems.map((e: Record<string, unknown>) => (e[col.sortOrder] as number) || 0))
+      : 0;
+
+    const addData: Record<string, unknown> = {
+      [col.turnoverAgendaId]: turnoverAgendaId,
+      [col.sortOrder]: data.sortOrder || maxOrder + 1,
+      [col.label]: data.label || 'Custom Exhibit',
+      [col.isDefault]: false,
+      [col.reviewed]: false,
+    };
+
+    const result = await web.lists.getByTitle(LIST_NAMES.TURNOVER_EXHIBITS).items.add(addData);
+    const newId = (result as Record<string, unknown>).Id as number
+      || ((result as Record<string, unknown>).data as Record<string, unknown>)?.Id as number
+      || ((result as Record<string, unknown>).data as Record<string, unknown>)?.ID as number;
+
+    const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_EXHIBITS).items.getById(newId)();
+    return this.mapToTurnoverExhibit(item);
+  }
+
+  async removeTurnoverExhibit(exhibitId: number): Promise<void> {
+    const web = this._getProjectWeb();
+    await web.lists.getByTitle(LIST_NAMES.TURNOVER_EXHIBITS).items.getById(exhibitId).delete();
+  }
+
+  async uploadTurnoverExhibitFile(exhibitId: number, file: File): Promise<{ fileUrl: string; fileName: string }> {
+    const web = this._getProjectWeb();
+    const col = TURNOVER_EXHIBITS_COLUMNS;
+    const folderPath = 'Shared Documents/Turnover';
+
+    // Ensure folder exists
+    try {
+      await web.getFolderByServerRelativePath(folderPath).select('Exists')();
+    } catch {
+      await web.folders.addUsingPath(folderPath);
+    }
+
+    // Upload file
+    const fileName = `exhibit_${exhibitId}_${file.name}`;
+    const uploadResult = await web
+      .getFolderByServerRelativePath(folderPath)
+      .files.addUsingPath(fileName, file, { Overwrite: true });
+    const fileUrl = (uploadResult.data as Record<string, unknown>).ServerRelativeUrl as string || `${folderPath}/${fileName}`;
+
+    // Update exhibit with file reference
+    await web.lists.getByTitle(LIST_NAMES.TURNOVER_EXHIBITS).items.getById(exhibitId).update({
+      [col.uploadedFileName]: file.name,
+      [col.uploadedFileUrl]: fileUrl,
+    });
+
+    return { fileUrl, fileName: file.name };
+  }
+
+  async signTurnoverAgenda(signatureId: number, comment?: string): Promise<ITurnoverSignature> {
+    const web = this._getProjectWeb();
+    const col = TURNOVER_SIGNATURES_COLUMNS;
+    const now = new Date().toISOString();
+
+    const updateData: Record<string, unknown> = {
+      [col.signed]: true,
+      [col.signedDate]: now,
+      [col.signerName]: this._pageContextUser?.displayName || '',
+      [col.signerEmail]: this._pageContextUser?.email || '',
+    };
+    if (comment !== undefined) updateData[col.comment] = comment;
+
+    await web.lists.getByTitle(LIST_NAMES.TURNOVER_SIGNATURES).items.getById(signatureId).update(updateData);
+
+    const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_SIGNATURES).items.getById(signatureId)();
+    return this.mapToTurnoverSignature(item);
+  }
+
+  async updateTurnoverEstimateOverview(projectCode: string, data: Partial<ITurnoverEstimateOverview>): Promise<ITurnoverEstimateOverview> {
+    const web = this._getProjectWeb();
+    const agendaCol = TURNOVER_AGENDAS_COLUMNS;
+    const col = TURNOVER_ESTIMATE_OVERVIEWS_COLUMNS;
+
+    // Find agenda by projectCode
+    const agendas = await web.lists.getByTitle(LIST_NAMES.TURNOVER_AGENDAS).items
+      .filter(`${agendaCol.projectCode} eq '${projectCode}'`)
+      .select('ID', 'Id')
+      .top(1)();
+    if (agendas.length === 0) throw new Error(`Turnover agenda for ${projectCode} not found`);
+    const agendaId = (agendas[0].ID as number) || (agendas[0].Id as number);
+
+    // Find estimate overview for this agenda
+    const overviews = await web.lists.getByTitle(LIST_NAMES.TURNOVER_ESTIMATE_OVERVIEWS).items
+      .filter(`${col.turnoverAgendaId} eq ${agendaId}`)
+      .top(1)();
+    if (overviews.length === 0) throw new Error(`Estimate overview for agenda ${agendaId} not found`);
+    const overviewId = (overviews[0].ID as number) || (overviews[0].Id as number);
+
+    const updateData: Record<string, unknown> = {};
+    if (data.contractAmount !== undefined) updateData[col.contractAmount] = data.contractAmount;
+    if (data.originalEstimate !== undefined) updateData[col.originalEstimate] = data.originalEstimate;
+    if (data.buyoutTarget !== undefined) updateData[col.buyoutTarget] = data.buyoutTarget;
+    if (data.estimatedFee !== undefined) updateData[col.estimatedFee] = data.estimatedFee;
+    if (data.estimatedGrossMargin !== undefined) updateData[col.estimatedGrossMargin] = data.estimatedGrossMargin;
+    if (data.contingency !== undefined) updateData[col.contingency] = data.contingency;
+    if (data.notes !== undefined) updateData[col.notes] = data.notes;
+    if (data.overrides !== undefined) updateData[col.overrides] = JSON.stringify(data.overrides);
+
+    await web.lists.getByTitle(LIST_NAMES.TURNOVER_ESTIMATE_OVERVIEWS).items.getById(overviewId).update(updateData);
+
+    const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_ESTIMATE_OVERVIEWS).items.getById(overviewId)();
+    return this.mapToTurnoverEstimateOverview(item);
+  }
 
   // --- Hub Site URL Configuration ---
   async getHubSiteUrl(): Promise<string> {
@@ -3505,7 +4693,146 @@ export class SharePointDataService implements IDataService {
     }
   }
 
-  async getActionItems(_userEmail: string): Promise<IActionInboxItem[]> { console.warn('[STUB] getActionItems not implemented'); return []; }
+  async getActionItems(userEmail: string): Promise<IActionInboxItem[]> {
+    const items: IActionInboxItem[] = [];
+    const now = Date.now();
+    const calcWaitingDays = (dateStr: string): number => Math.floor((now - new Date(dateStr).getTime()) / 86400000);
+    const calcPriority = (days: number): ActionPriority => {
+      if (days > 7) return ActionPriority.Urgent;
+      if (days >= 1) return ActionPriority.Normal;
+      return ActionPriority.New;
+    };
+
+    try {
+      // 1. Scorecard approval steps — pending steps assigned to user
+      const scorecardSteps = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_STEPS).items
+        .filter(`${SCORECARD_APPROVAL_STEPS_COLUMNS.assigneeEmail} eq '${userEmail}' and ${SCORECARD_APPROVAL_STEPS_COLUMNS.status} eq 'Pending'`)
+        .top(50)();
+
+      for (const step of scorecardSteps) {
+        const cycleId = step[SCORECARD_APPROVAL_STEPS_COLUMNS.cycleId] as number;
+        // Look up cycle to get scorecardId
+        try {
+          const cycle = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_CYCLES).items.getById(cycleId)();
+          const scorecardId = cycle[SCORECARD_APPROVAL_CYCLES_COLUMNS.scorecardId] as number;
+          const startedDate = cycle[SCORECARD_APPROVAL_CYCLES_COLUMNS.startedDate] as string || new Date().toISOString();
+          // Look up scorecard to get LeadID
+          const scorecard = await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId)();
+          const leadId = scorecard[GONOGO_SCORECARD_COLUMNS.LeadID] as number;
+          const waitingDays = calcWaitingDays(startedDate);
+
+          items.push({
+            id: `scorecard-step-${step.Id || step.ID}`,
+            workflowType: WorkflowActionType.GoNoGoReview,
+            actionLabel: `Review Go/No-Go Scorecard`,
+            projectCode: scorecard[GONOGO_SCORECARD_COLUMNS.ProjectCode] as string || '',
+            projectName: '',
+            entityId: scorecardId,
+            requestedBy: '',
+            requestedByEmail: '',
+            requestedDate: startedDate,
+            waitingDays,
+            routePath: `/lead/${leadId}/gonogo`,
+            priority: calcPriority(waitingDays),
+          });
+        } catch { /* skip if cycle/scorecard not found */ }
+      }
+    } catch { /* scorecard query failed — continue */ }
+
+    try {
+      // 2. PMP approval steps — pending steps assigned to user
+      const pmpSteps = await this.sp.web.lists.getByTitle(LIST_NAMES.PMP_APPROVAL_STEPS).items
+        .filter(`${PMP_APPROVAL_STEPS_COLUMNS.approverEmail} eq '${userEmail}' and ${PMP_APPROVAL_STEPS_COLUMNS.status} eq 'Pending'`)
+        .top(50)();
+
+      for (const step of pmpSteps) {
+        const projectCode = step[PMP_APPROVAL_STEPS_COLUMNS.projectCode] as string || '';
+        const requestedDate = step[PMP_APPROVAL_STEPS_COLUMNS.actionDate] as string || new Date().toISOString();
+        const waitingDays = calcWaitingDays(requestedDate);
+
+        items.push({
+          id: `pmp-step-${step.Id || step.ID}`,
+          workflowType: WorkflowActionType.PMPApproval,
+          actionLabel: `Approve Project Management Plan`,
+          projectCode,
+          projectName: '',
+          entityId: step.Id || step.ID,
+          requestedBy: '',
+          requestedByEmail: '',
+          requestedDate,
+          waitingDays,
+          routePath: `/operations/management-plan`,
+          priority: calcPriority(waitingDays),
+        });
+      }
+    } catch { /* pmp query failed — continue */ }
+
+    try {
+      // 3. PMP signatures — pending signatures assigned to user
+      const pmpSigs = await this.sp.web.lists.getByTitle(LIST_NAMES.PMP_SIGNATURES).items
+        .filter(`${PMP_SIGNATURES_COLUMNS.personEmail} eq '${userEmail}' and ${PMP_SIGNATURES_COLUMNS.status} eq 'Pending'`)
+        .top(50)();
+
+      for (const sig of pmpSigs) {
+        const projectCode = sig[PMP_SIGNATURES_COLUMNS.projectCode] as string || '';
+        const requestedDate = new Date().toISOString();
+        const waitingDays = 0;
+
+        items.push({
+          id: `pmp-sig-${sig.Id || sig.ID}`,
+          workflowType: WorkflowActionType.PMPSignature,
+          actionLabel: `Sign Project Management Plan`,
+          projectCode,
+          projectName: '',
+          entityId: sig.Id || sig.ID,
+          requestedBy: '',
+          requestedByEmail: '',
+          requestedDate,
+          waitingDays,
+          routePath: `/operations/management-plan`,
+          priority: calcPriority(waitingDays),
+        });
+      }
+    } catch { /* pmp signature query failed — continue */ }
+
+    try {
+      // 4. Monthly reviews — reviews requiring PX action
+      const reviews = await this.sp.web.lists.getByTitle(LIST_NAMES.MONTHLY_REVIEWS).items
+        .filter(`${MONTHLY_REVIEWS_COLUMNS.status} eq 'PendingPXReview' or ${MONTHLY_REVIEWS_COLUMNS.status} eq 'PendingPXValidation'`)
+        .top(50)();
+
+      for (const review of reviews) {
+        const projectCode = review[MONTHLY_REVIEWS_COLUMNS.projectCode] as string || '';
+        const submittedDate = review[MONTHLY_REVIEWS_COLUMNS.pmSubmittedDate] as string || review[MONTHLY_REVIEWS_COLUMNS.lastUpdatedAt] as string || new Date().toISOString();
+        const waitingDays = calcWaitingDays(submittedDate);
+
+        items.push({
+          id: `review-${review.Id || review.ID}`,
+          workflowType: WorkflowActionType.MonthlyReviewValidation,
+          actionLabel: `Review Monthly Project Review`,
+          projectCode,
+          projectName: '',
+          entityId: review.Id || review.ID,
+          requestedBy: '',
+          requestedByEmail: '',
+          requestedDate: submittedDate,
+          waitingDays,
+          routePath: `/operations/monthly-review`,
+          priority: calcPriority(waitingDays),
+        });
+      }
+    } catch { /* monthly review query failed — continue */ }
+
+    // Sort by priority (Urgent first) then waiting days descending
+    const priorityOrder: Record<string, number> = { Urgent: 3, Normal: 2, New: 1 };
+    items.sort((a, b) => {
+      const pDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+      if (pDiff !== 0) return pDiff;
+      return b.waitingDays - a.waitingDays;
+    });
+
+    return items;
+  }
 
   // --- Permission Templates ---
   async getPermissionTemplates(): Promise<IPermissionTemplate[]> {
@@ -4099,8 +5426,76 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Scorecard Reject / Archive ---
-  async rejectScorecard(_scorecardId: number, _reason: string): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: rejectScorecard'); }
-  async archiveScorecard(_scorecardId: number, _archivedBy: string): Promise<IGoNoGoScorecard> { throw new Error('SharePoint implementation pending: archiveScorecard'); }
+
+  async rejectScorecard(scorecardId: number, reason: string): Promise<IGoNoGoScorecard> {
+    const col = GONOGO_SCORECARD_COLUMNS;
+    const cycCol = SCORECARD_APPROVAL_CYCLES_COLUMNS;
+    const stepCol = SCORECARD_APPROVAL_STEPS_COLUMNS;
+    const now = new Date().toISOString();
+
+    // Set status to Rejected, lock, set finalDecision=NoGo
+    await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId).update({
+      [col.scorecardStatus]: ScorecardStatus.Rejected,
+      [col.isLocked]: true,
+      [col.finalDecision]: GoNoGoDecision.NoGo,
+      [col.finalDecisionDate]: now,
+    });
+
+    // Complete active cycle and mark pending steps as Returned
+    const activeCycles = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_CYCLES).items
+      .filter(`${cycCol.scorecardId} eq ${scorecardId} and ${cycCol.status} eq 'Active'`)();
+    for (const cycle of activeCycles) {
+      const cId = (cycle.ID as number) || (cycle.Id as number);
+      // Mark pending steps as Returned
+      const pendingSteps = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_STEPS).items
+        .filter(`${stepCol.cycleId} eq ${cId} and ${stepCol.status} eq 'Pending'`)();
+      for (const step of pendingSteps) {
+        const sId = (step.ID as number) || (step.Id as number);
+        await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_STEPS).items.getById(sId).update({
+          [stepCol.status]: 'Returned',
+          [stepCol.actionDate]: now,
+          [stepCol.comment]: reason,
+        });
+      }
+      await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_APPROVAL_CYCLES).items.getById(cId).update({
+        [cycCol.completedDate]: now,
+        [cycCol.status]: 'Completed',
+      });
+    }
+
+    // Create version snapshot
+    await this.createVersionSnapshot(scorecardId, `Rejected: ${reason}`, 'Director');
+
+    this.logAudit({
+      Action: AuditAction.ScorecardReturned,
+      EntityType: EntityType.Scorecard,
+      EntityId: String(scorecardId),
+      User: 'Director',
+      Details: `Scorecard rejected. Reason: ${reason}`,
+    }).catch(() => { /* fire-and-forget */ });
+
+    return this.assembleScorecard(scorecardId);
+  }
+
+  async archiveScorecard(scorecardId: number, archivedBy: string): Promise<IGoNoGoScorecard> {
+    const now = new Date().toISOString();
+
+    await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId).update({
+      isArchived: true,
+      archivedDate: now,
+      archivedBy,
+    });
+
+    this.logAudit({
+      Action: AuditAction.ScorecardArchived,
+      EntityType: EntityType.Scorecard,
+      EntityId: String(scorecardId),
+      User: archivedBy,
+      Details: 'Scorecard archived',
+    }).catch(() => { /* fire-and-forget */ });
+
+    return this.assembleScorecard(scorecardId);
+  }
 
   // ═══════════════════════════════════════════════════════════════════
   // ──── Project Site URL Targeting & Web Factory ────
@@ -4858,50 +6253,491 @@ export class SharePointDataService implements IDataService {
     };
   }
 
-  // ── Performance Monitoring (Pattern A stubs) ──────────────────────────
+  // ── Monthly Review Mappers ──────────────────────────────────────────
+
+  private mapToMonthlyReview(item: Record<string, unknown>): IMonthlyProjectReview {
+    const col = MONTHLY_REVIEWS_COLUMNS;
+
+    // Safe JSON parse helper
+    const parseJson = (raw: unknown, fallback: unknown = null): unknown => {
+      try {
+        if (typeof raw === 'string' && raw) return JSON.parse(raw);
+        if (Array.isArray(raw) || (typeof raw === 'object' && raw !== null)) return raw;
+      } catch { /* safe fallback */ }
+      return fallback;
+    };
+
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      reviewMonth: (item[col.reviewMonth] as string) || '',
+      status: (item[col.status] as IMonthlyProjectReview['status']) || 'NotStarted',
+      dueDate: (item[col.dueDate] as string) || '',
+      meetingDate: (item[col.meetingDate] as string) || null,
+      pmSubmittedDate: (item[col.pmSubmittedDate] as string) || null,
+      pxReviewDate: (item[col.pxReviewDate] as string) || null,
+      pxValidationDate: (item[col.pxValidationDate] as string) || null,
+      leadershipSubmitDate: (item[col.leadershipSubmitDate] as string) || null,
+      completedDate: (item[col.completedDate] as string) || null,
+      // Child arrays populated by assembleMonthlyReview
+      checklistItems: [],
+      followUps: [],
+      reportDocumentUrls: parseJson(item[col.reportDocumentUrls], []) as string[],
+      createdBy: (item[col.createdBy] as string) || '',
+      createdAt: (item[col.createdAt] as string) || '',
+      lastUpdatedBy: (item[col.lastUpdatedBy] as string) || '',
+      lastUpdatedAt: (item[col.lastUpdatedAt] as string) || '',
+    };
+  }
+
+  private mapToMonthlyChecklistItem(item: Record<string, unknown>): IMonthlyChecklistItem {
+    const col = MONTHLY_CHECKLIST_ITEMS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      reviewId: (item[col.reviewId] as number) || undefined,
+      sectionKey: (item[col.sectionKey] as string) || '',
+      sectionTitle: (item[col.sectionTitle] as string) || '',
+      itemKey: (item[col.itemKey] as string) || '',
+      itemDescription: (item[col.itemDescription] as string) || '',
+      pmComment: (item[col.pmComment] as string) || '',
+      pxComment: (item[col.pxComment] as string) || '',
+      pxInitial: (item[col.pxInitial] as string) || '',
+    };
+  }
+
+  private mapToMonthlyFollowUp(item: Record<string, unknown>): IMonthlyFollowUp {
+    const col = MONTHLY_FOLLOW_UPS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      reviewId: (item[col.reviewId] as number) || undefined,
+      question: (item[col.question] as string) || '',
+      requestedBy: (item[col.requestedBy] as string) || '',
+      requestedDate: (item[col.requestedDate] as string) || '',
+      pmResponse: (item[col.pmResponse] as string) || '',
+      responseDate: (item[col.responseDate] as string) || null,
+      pxForwardedDate: (item[col.pxForwardedDate] as string) || null,
+      status: (item[col.status] as IMonthlyFollowUp['status']) || 'Open',
+    };
+  }
+
+  private assembleMonthlyReview(
+    review: IMonthlyProjectReview,
+    checklistItems: IMonthlyChecklistItem[],
+    followUps: IMonthlyFollowUp[]
+  ): IMonthlyProjectReview {
+    return {
+      ...review,
+      checklistItems: checklistItems.filter(i => i.reviewId === review.id),
+      followUps: followUps.filter(f => f.reviewId === review.id),
+    };
+  }
+
+  // ── Turnover Agenda Mappers ──────────────────────────────────────────
+
+  private mapToTurnoverAgenda(item: Record<string, unknown>): ITurnoverAgenda {
+    const col = TURNOVER_AGENDAS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      leadId: (item[col.leadId] as number) || 0,
+      status: (item[col.status] as TurnoverStatus) || TurnoverStatus.Draft,
+      projectName: (item[col.projectName] as string) || '',
+      header: {} as ITurnoverProjectHeader,
+      estimateOverview: {} as ITurnoverEstimateOverview,
+      prerequisites: [],
+      discussionItems: [],
+      subcontractors: [],
+      exhibits: [],
+      signatures: [],
+      meetingDate: (item[col.meetingDate] as string) || undefined,
+      recordingUrl: (item[col.recordingUrl] as string) || undefined,
+      turnoverFolderUrl: (item[col.turnoverFolderUrl] as string) || undefined,
+      bcPublished: !!(item[col.bcPublished]),
+      pmName: (item[col.pmName] as string) || undefined,
+      apmName: (item[col.apmName] as string) || undefined,
+      createdBy: (item[col.createdBy] as string) || '',
+      createdDate: (item[col.createdDate] as string) || '',
+      lastModifiedBy: (item[col.lastModifiedBy] as string) || undefined,
+      lastModifiedDate: (item[col.lastModifiedDate] as string) || undefined,
+    };
+  }
+
+  private mapToTurnoverPrerequisite(item: Record<string, unknown>): ITurnoverPrerequisite {
+    const col = TURNOVER_PREREQUISITES_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      turnoverAgendaId: (item[col.turnoverAgendaId] as number) || 0,
+      sortOrder: (item[col.sortOrder] as number) || 0,
+      label: (item[col.label] as string) || '',
+      description: (item[col.description] as string) || '',
+      completed: !!(item[col.completed]),
+      completedBy: (item[col.completedBy] as string) || undefined,
+      completedDate: (item[col.completedDate] as string) || undefined,
+    };
+  }
+
+  private mapToTurnoverDiscussionItem(item: Record<string, unknown>): ITurnoverDiscussionItem {
+    const col = TURNOVER_DISCUSSION_ITEMS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      turnoverAgendaId: (item[col.turnoverAgendaId] as number) || 0,
+      sortOrder: (item[col.sortOrder] as number) || 0,
+      label: (item[col.label] as string) || '',
+      description: (item[col.description] as string) || '',
+      discussed: !!(item[col.discussed]),
+      notes: (item[col.notes] as string) || '',
+      attachments: [],
+    };
+  }
+
+  private mapToTurnoverSubcontractor(item: Record<string, unknown>): ITurnoverSubcontractor {
+    const col = TURNOVER_SUBCONTRACTORS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      turnoverAgendaId: (item[col.turnoverAgendaId] as number) || 0,
+      trade: (item[col.trade] as string) || '',
+      subcontractorName: (item[col.subcontractorName] as string) || '',
+      contactName: (item[col.contactName] as string) || '',
+      contactPhone: (item[col.contactPhone] as string) || '',
+      contactEmail: (item[col.contactEmail] as string) || '',
+      qScore: (item[col.qScore] as number) ?? null,
+      isPreferred: !!(item[col.isPreferred]),
+      isRequired: !!(item[col.isRequired]),
+      notes: (item[col.notes] as string) || '',
+    };
+  }
+
+  private mapToTurnoverExhibit(item: Record<string, unknown>): ITurnoverExhibit {
+    const col = TURNOVER_EXHIBITS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      turnoverAgendaId: (item[col.turnoverAgendaId] as number) || 0,
+      sortOrder: (item[col.sortOrder] as number) || 0,
+      label: (item[col.label] as string) || '',
+      isDefault: !!(item[col.isDefault]),
+      reviewed: !!(item[col.reviewed]),
+      reviewedBy: (item[col.reviewedBy] as string) || undefined,
+      reviewedDate: (item[col.reviewedDate] as string) || undefined,
+      linkedDocumentUrl: (item[col.linkedDocumentUrl] as string) || undefined,
+      uploadedFileName: (item[col.uploadedFileName] as string) || undefined,
+      uploadedFileUrl: (item[col.uploadedFileUrl] as string) || undefined,
+    };
+  }
+
+  private mapToTurnoverSignature(item: Record<string, unknown>): ITurnoverSignature {
+    const col = TURNOVER_SIGNATURES_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      turnoverAgendaId: (item[col.turnoverAgendaId] as number) || 0,
+      sortOrder: (item[col.sortOrder] as number) || 0,
+      role: (item[col.role] as string) || '',
+      signerName: (item[col.signerName] as string) || '',
+      signerEmail: (item[col.signerEmail] as string) || '',
+      affidavitText: (item[col.affidavitText] as string) || '',
+      signed: !!(item[col.signed]),
+      signedDate: (item[col.signedDate] as string) || undefined,
+      comment: (item[col.comment] as string) || undefined,
+    };
+  }
+
+  private mapToTurnoverAttachment(item: Record<string, unknown>): ITurnoverAttachment {
+    const col = TURNOVER_ATTACHMENTS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      discussionItemId: (item[col.discussionItemId] as number) || 0,
+      fileName: (item[col.fileName] as string) || '',
+      fileUrl: (item[col.fileUrl] as string) || '',
+      uploadedBy: (item[col.uploadedBy] as string) || '',
+      uploadedDate: (item[col.uploadedDate] as string) || '',
+    };
+  }
+
+  private mapToTurnoverEstimateOverview(item: Record<string, unknown>): ITurnoverEstimateOverview {
+    const col = TURNOVER_ESTIMATE_OVERVIEWS_COLUMNS;
+    let overrides: Record<string, boolean> = {};
+    try {
+      const raw = item[col.overrides];
+      if (typeof raw === 'string' && raw) overrides = JSON.parse(raw);
+      else if (typeof raw === 'object' && raw !== null) overrides = raw as Record<string, boolean>;
+    } catch { /* safe fallback */ }
+
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      turnoverAgendaId: (item[col.turnoverAgendaId] as number) || 0,
+      contractAmount: (item[col.contractAmount] as number) || 0,
+      originalEstimate: (item[col.originalEstimate] as number) || 0,
+      buyoutTarget: (item[col.buyoutTarget] as number) || 0,
+      estimatedFee: (item[col.estimatedFee] as number) || 0,
+      estimatedGrossMargin: (item[col.estimatedGrossMargin] as number) || 0,
+      contingency: (item[col.contingency] as number) || 0,
+      notes: (item[col.notes] as string) || '',
+      overrides,
+    };
+  }
+
+  private assembleTurnoverAgenda(
+    agenda: ITurnoverAgenda,
+    lead: ILead | null,
+    headerOverrides: Record<string, boolean>,
+    estimateOverview: ITurnoverEstimateOverview | null,
+    prereqs: ITurnoverPrerequisite[],
+    discussionItems: ITurnoverDiscussionItem[],
+    attachments: ITurnoverAttachment[],
+    subs: ITurnoverSubcontractor[],
+    exhibits: ITurnoverExhibit[],
+    sigs: ITurnoverSignature[]
+  ): ITurnoverAgenda {
+    // Build header from lead + agenda fields + overrides
+    const header: ITurnoverProjectHeader = {
+      id: agenda.id,
+      turnoverAgendaId: agenda.id,
+      projectName: lead?.Title || agenda.projectName || '',
+      projectCode: agenda.projectCode,
+      clientName: lead?.ClientName || '',
+      projectValue: lead?.ProjectValue || 0,
+      deliveryMethod: lead?.DeliveryMethod || '',
+      projectExecutive: lead?.ProjectExecutive || '',
+      projectManager: lead?.ProjectManager || '',
+      leadEstimator: '',
+      overrides: headerOverrides,
+    };
+
+    // Nest attachments into discussion items by discussionItemId
+    const itemsWithAttachments = discussionItems.map(item => ({
+      ...item,
+      attachments: attachments.filter(a => a.discussionItemId === item.id),
+    }));
+
+    return {
+      ...agenda,
+      header,
+      estimateOverview: estimateOverview || {} as ITurnoverEstimateOverview,
+      prerequisites: prereqs.sort((a, b) => a.sortOrder - b.sortOrder),
+      discussionItems: itemsWithAttachments.sort((a, b) => a.sortOrder - b.sortOrder),
+      subcontractors: subs,
+      exhibits: exhibits.sort((a, b) => a.sortOrder - b.sortOrder),
+      signatures: sigs.sort((a, b) => a.sortOrder - b.sortOrder),
+    };
+  }
+
+  // ── Performance Monitoring ──────────────────────────────────────────
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private mapToPerformanceLog(item: Record<string, any>): IPerformanceLog {
+    const col = PERFORMANCE_LOGS_COLUMNS;
+    let marks: IPerformanceLog['Marks'] = [];
+    try { marks = JSON.parse(item[col.Marks] as string || '[]'); } catch { /* fallback */ }
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      SessionId: item[col.SessionId] as string || '',
+      Timestamp: item[col.Timestamp] as string || '',
+      UserEmail: item[col.UserEmail] as string || '',
+      SiteUrl: item[col.SiteUrl] as string || '',
+      ProjectCode: item[col.ProjectCode] as string || undefined,
+      IsProjectSite: !!(item[col.IsProjectSite]),
+      WebPartLoadMs: item[col.WebPartLoadMs] as number || 0,
+      AppInitMs: item[col.AppInitMs] as number || 0,
+      DataFetchMs: item[col.DataFetchMs] as number || undefined,
+      TotalLoadMs: item[col.TotalLoadMs] as number || 0,
+      Marks: marks,
+      UserAgent: item[col.UserAgent] as string || '',
+      SpfxVersion: item[col.SpfxVersion] as string || '',
+      Notes: item[col.Notes] as string || undefined,
+    };
+  }
 
   async logPerformanceEntry(entry: Partial<IPerformanceLog>): Promise<IPerformanceLog> {
-    console.warn('[STUB] logPerformanceEntry not implemented');
-    return { id: 0, ...entry } as IPerformanceLog;
+    const col = PERFORMANCE_LOGS_COLUMNS;
+    const addData: Record<string, unknown> = {
+      [col.SessionId]: entry.SessionId || '',
+      [col.Timestamp]: entry.Timestamp || new Date().toISOString(),
+      [col.UserEmail]: entry.UserEmail || '',
+      [col.SiteUrl]: entry.SiteUrl || '',
+      [col.ProjectCode]: entry.ProjectCode || '',
+      [col.IsProjectSite]: entry.IsProjectSite || false,
+      [col.WebPartLoadMs]: entry.WebPartLoadMs || 0,
+      [col.AppInitMs]: entry.AppInitMs || 0,
+      [col.DataFetchMs]: entry.DataFetchMs || 0,
+      [col.TotalLoadMs]: entry.TotalLoadMs || 0,
+      [col.Marks]: JSON.stringify(entry.Marks || []),
+      [col.UserAgent]: entry.UserAgent || '',
+      [col.SpfxVersion]: entry.SpfxVersion || '',
+      [col.Notes]: entry.Notes || '',
+    };
+
+    const result = await this.sp.web.lists.getByTitle(LIST_NAMES.PERFORMANCE_LOGS).items.add(addData);
+    const newId = (result.Id as number) || (result.data?.Id as number) || 0;
+    const reRead = await this.sp.web.lists.getByTitle(LIST_NAMES.PERFORMANCE_LOGS).items.getById(newId)();
+    return this.mapToPerformanceLog(reRead);
   }
 
-  async getPerformanceLogs(_options?: IPerformanceQueryOptions): Promise<IPerformanceLog[]> {
-    console.warn('[STUB] getPerformanceLogs not implemented');
-    return [];
+  async getPerformanceLogs(options?: IPerformanceQueryOptions): Promise<IPerformanceLog[]> {
+    const col = PERFORMANCE_LOGS_COLUMNS;
+    const filters: string[] = [];
+    if (options?.startDate) filters.push(`${col.Timestamp} ge datetime'${options.startDate}'`);
+    if (options?.endDate) filters.push(`${col.Timestamp} le datetime'${options.endDate}'`);
+    if (options?.siteUrl) filters.push(`${col.SiteUrl} eq '${options.siteUrl}'`);
+    if (options?.projectCode) filters.push(`${col.ProjectCode} eq '${options.projectCode}'`);
+
+    let query = this.sp.web.lists.getByTitle(LIST_NAMES.PERFORMANCE_LOGS).items;
+    if (filters.length > 0) query = query.filter(filters.join(' and '));
+    query = query.orderBy(col.Timestamp, false).top(options?.limit || 500);
+
+    const items = await query();
+    return (items as Record<string, unknown>[]).map(i => this.mapToPerformanceLog(i));
   }
 
-  async getPerformanceSummary(_options?: IPerformanceQueryOptions): Promise<IPerformanceSummary> {
-    console.warn('[STUB] getPerformanceSummary not implemented');
-    return { avgTotalLoadMs: 0, avgWebPartLoadMs: 0, avgAppInitMs: 0, p95TotalLoadMs: 0, totalSessions: 0, slowSessionCount: 0, byDay: [] };
+  async getPerformanceSummary(options?: IPerformanceQueryOptions): Promise<IPerformanceSummary> {
+    const logs = await this.getPerformanceLogs(options);
+
+    if (logs.length === 0) {
+      return { avgTotalLoadMs: 0, avgWebPartLoadMs: 0, avgAppInitMs: 0, p95TotalLoadMs: 0, totalSessions: 0, slowSessionCount: 0, byDay: [] };
+    }
+
+    const totalSessions = logs.length;
+    const sumTotal = logs.reduce((s, l) => s + l.TotalLoadMs, 0);
+    const sumWP = logs.reduce((s, l) => s + l.WebPartLoadMs, 0);
+    const sumInit = logs.reduce((s, l) => s + l.AppInitMs, 0);
+
+    // P95: sort ascending, pick index at 95th percentile
+    const sorted = [...logs].sort((a, b) => a.TotalLoadMs - b.TotalLoadMs);
+    const p95Index = Math.min(Math.floor(sorted.length * 0.95), sorted.length - 1);
+    const p95TotalLoadMs = sorted[p95Index].TotalLoadMs;
+
+    const slowSessionCount = logs.filter(l => l.TotalLoadMs > 5000).length;
+
+    // Group by day
+    const dayMap = new Map<string, { sum: number; count: number }>();
+    for (const log of logs) {
+      const day = log.Timestamp.substring(0, 10); // YYYY-MM-DD
+      const existing = dayMap.get(day) || { sum: 0, count: 0 };
+      existing.sum += log.TotalLoadMs;
+      existing.count += 1;
+      dayMap.set(day, existing);
+    }
+    const byDay = Array.from(dayMap.entries())
+      .map(([date, { sum, count }]) => ({ date, avgMs: Math.round(sum / count), count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      avgTotalLoadMs: Math.round(sumTotal / totalSessions),
+      avgWebPartLoadMs: Math.round(sumWP / totalSessions),
+      avgAppInitMs: Math.round(sumInit / totalSessions),
+      p95TotalLoadMs,
+      totalSessions,
+      slowSessionCount,
+      byDay,
+    };
   }
 
   // ── Help & Support ──────────────────────────────────────────────────────
 
-  async getHelpGuides(_moduleKey?: string): Promise<IHelpGuide[]> {
-    console.warn('[STUB] getHelpGuides not implemented');
-    return [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private mapToHelpGuide(item: Record<string, any>): IHelpGuide {
+    const col = HELP_GUIDES_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      moduleKey: item[col.moduleKey] as string || '',
+      title: item[col.title] as string || '',
+      content: item[col.content] as string || '',
+      guideType: item[col.guideType] as IHelpGuide['guideType'] || 'article',
+      sortOrder: item[col.sortOrder] as number || 0,
+      targetSelector: item[col.targetSelector] as string || undefined,
+      videoUrl: item[col.videoUrl] as string || undefined,
+      isActive: !!(item[col.isActive]),
+      lastModifiedBy: item[col.lastModifiedBy] as string || undefined,
+      lastModifiedDate: item[col.lastModifiedDate] as string || undefined,
+    };
   }
 
-  async getHelpGuideById(_id: number): Promise<IHelpGuide | null> {
-    console.warn('[STUB] getHelpGuideById not implemented');
-    return null;
+  async getHelpGuides(moduleKey?: string): Promise<IHelpGuide[]> {
+    const col = HELP_GUIDES_COLUMNS;
+    const filters: string[] = [`${col.isActive} eq 1`];
+    if (moduleKey) filters.push(`${col.moduleKey} eq '${moduleKey}'`);
+
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.HELP_GUIDES).items
+      .filter(filters.join(' and '))
+      .orderBy(col.sortOrder, true)();
+    return (items as Record<string, unknown>[]).map(i => this.mapToHelpGuide(i));
+  }
+
+  async getHelpGuideById(id: number): Promise<IHelpGuide | null> {
+    try {
+      const item = await this.sp.web.lists.getByTitle(LIST_NAMES.HELP_GUIDES).items.getById(id)();
+      return this.mapToHelpGuide(item);
+    } catch {
+      return null;
+    }
   }
 
   async getSupportConfig(): Promise<ISupportConfig> {
-    console.warn('[STUB] getSupportConfig not implemented');
-    return { supportEmail: 'support@hedrickbrothers.com' };
+    const defaultConfig: ISupportConfig = { supportEmail: 'support@hedrickbrothers.com' };
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG)
+        .items.filter("SiteURL eq 'SUPPORT_CONFIG'").top(1)();
+      if (items.length > 0 && items[0].AppTitle) {
+        const parsed = JSON.parse(items[0].AppTitle as string) as ISupportConfig;
+        return { ...defaultConfig, ...parsed };
+      }
+      return defaultConfig;
+    } catch {
+      return defaultConfig;
+    }
   }
 
-  async updateHelpGuide(_id: number, _data: Partial<IHelpGuide>): Promise<IHelpGuide> {
-    console.warn('[STUB] updateHelpGuide not implemented');
-    throw new Error('SharePoint implementation pending: updateHelpGuide');
+  async updateHelpGuide(id: number, data: Partial<IHelpGuide>): Promise<IHelpGuide> {
+    const col = HELP_GUIDES_COLUMNS;
+    const now = new Date().toISOString();
+    const updateData: Record<string, unknown> = {};
+
+    if (data.moduleKey !== undefined) updateData[col.moduleKey] = data.moduleKey;
+    if (data.title !== undefined) updateData[col.title] = data.title;
+    if (data.content !== undefined) updateData[col.content] = data.content;
+    if (data.guideType !== undefined) updateData[col.guideType] = data.guideType;
+    if (data.sortOrder !== undefined) updateData[col.sortOrder] = data.sortOrder;
+    if (data.targetSelector !== undefined) updateData[col.targetSelector] = data.targetSelector;
+    if (data.videoUrl !== undefined) updateData[col.videoUrl] = data.videoUrl;
+    if (data.isActive !== undefined) updateData[col.isActive] = data.isActive;
+    updateData[col.lastModifiedDate] = now;
+    if (data.lastModifiedBy) updateData[col.lastModifiedBy] = data.lastModifiedBy;
+
+    await this.sp.web.lists.getByTitle(LIST_NAMES.HELP_GUIDES).items.getById(id).update(updateData);
+    const reRead = await this.sp.web.lists.getByTitle(LIST_NAMES.HELP_GUIDES).items.getById(id)();
+    return this.mapToHelpGuide(reRead);
   }
 
   async sendSupportEmail(_to: string, _subject: string, _htmlBody: string, _fromUserEmail: string): Promise<void> {
-    console.warn('[STUB] sendSupportEmail not implemented — will delegate to GraphService.sendEmail()');
+    // Graph API delegation — cannot implement via SP REST alone.
+    // Will be fully implemented when GraphService is added.
+    console.warn('[SP] sendSupportEmail requires Microsoft Graph API — not available via SP REST. No-op.');
   }
 
-  async updateSupportConfig(_config: Partial<ISupportConfig>): Promise<ISupportConfig> {
-    throw new Error('SharePoint implementation pending: updateSupportConfig');
+  async updateSupportConfig(config: Partial<ISupportConfig>): Promise<ISupportConfig> {
+    // Read existing
+    const existing = await this.getSupportConfig();
+    const merged: ISupportConfig = { ...existing, ...config };
+    const jsonStr = JSON.stringify(merged);
+
+    // Upsert in App_Context_Config
+    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG)
+      .items.filter("SiteURL eq 'SUPPORT_CONFIG'").top(1)();
+
+    if (items.length > 0) {
+      await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG)
+        .items.getById(items[0].Id).update({ AppTitle: jsonStr });
+    } else {
+      await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG)
+        .items.add({ SiteURL: 'SUPPORT_CONFIG', AppTitle: jsonStr });
+    }
+
+    this.logAudit({
+      Action: AuditAction.SupportConfigUpdated,
+      EntityType: EntityType.SupportRequest,
+      EntityId: 'SUPPORT_CONFIG',
+      User: 'Admin',
+      Details: 'Support configuration updated',
+    }).catch(() => { /* fire-and-forget */ });
+
+    return merged;
   }
 }
