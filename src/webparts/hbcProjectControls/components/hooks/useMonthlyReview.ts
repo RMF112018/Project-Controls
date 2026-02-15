@@ -67,6 +67,8 @@ export function useMonthlyReview(): IUseMonthlyReviewResult {
     const updated = await dataService.updateMonthlyReview(reviewId, updateData);
     setReviews(prev => prev.map(r => r.id === reviewId ? updated : r));
     if (currentReview?.id === reviewId) setCurrentReview(updated);
+    // Fire-and-forget — sync Data Mart after monthly review status change
+    dataService.syncToDataMart(updated.projectCode).catch(() => { /* silent */ });
   }, [dataService, currentReview]);
 
   const addFollowUp = React.useCallback(async (reviewId: number, followUp: Partial<IMonthlyFollowUp>) => {

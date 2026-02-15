@@ -16,6 +16,8 @@ export function useCommitmentApproval() {
     setError(null);
     try {
       const result = await dataService.submitCommitmentForApproval(projectCode, entryId, submittedBy);
+      // Fire-and-forget — sync Data Mart after commitment submission
+      dataService.syncToDataMart(projectCode).catch(() => { /* silent */ });
       return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to submit commitment';
@@ -37,6 +39,8 @@ export function useCommitmentApproval() {
     setError(null);
     try {
       const result = await dataService.respondToCommitmentApproval(projectCode, entryId, approved, comment, escalate);
+      // Fire-and-forget — sync Data Mart after commitment approval response
+      dataService.syncToDataMart(projectCode).catch(() => { /* silent */ });
       return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to respond to approval';

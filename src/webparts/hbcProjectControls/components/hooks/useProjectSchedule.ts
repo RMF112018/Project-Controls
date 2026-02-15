@@ -34,12 +34,16 @@ export function useProjectSchedule(): IUseProjectScheduleResult {
   const updateSchedule = React.useCallback(async (projectCode: string, data: Partial<IProjectScheduleCriticalPath>) => {
     const updated = await dataService.updateProjectSchedule(projectCode, data);
     setSchedule(updated);
+    // Fire-and-forget — sync Data Mart after schedule update
+    dataService.syncToDataMart(projectCode).catch(() => { /* silent */ });
   }, [dataService]);
 
   const addCriticalPathItem = React.useCallback(async (projectCode: string, item: Partial<ICriticalPathItem>) => {
     const created = await dataService.addCriticalPathItem(projectCode, item);
     const refreshed = await dataService.getProjectSchedule(projectCode);
     setSchedule(refreshed);
+    // Fire-and-forget — sync Data Mart after critical path change
+    dataService.syncToDataMart(projectCode).catch(() => { /* silent */ });
     return created;
   }, [dataService]);
 

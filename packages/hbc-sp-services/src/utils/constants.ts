@@ -50,6 +50,7 @@ export const HUB_LISTS = {
   HELP_GUIDES: 'Help_Guides',
   DIVISION_APPROVERS: 'Division_Approvers',
   PMP_BOILERPLATE: 'PMP_Boilerplate',
+  PROJECT_DATA_MART: 'Project_Data_Mart',
 } as const;
 
 export const PROJECT_LISTS = {

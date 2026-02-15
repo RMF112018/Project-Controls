@@ -182,6 +182,8 @@ export function useTurnoverAgenda(): IUseTurnoverAgendaResult {
     if (agenda) {
       const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
       setAgenda(refreshed);
+      // Fire-and-forget — sync Data Mart after turnover signature
+      dataService.syncToDataMart(agenda.projectCode).catch(() => { /* silent */ });
     }
   }, [dataService, agenda]);
 
