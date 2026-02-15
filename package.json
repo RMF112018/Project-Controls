@@ -14,8 +14,10 @@
     "build:app": "gulp bundle --ship && gulp package-solution --ship",
     "build": "npm run build:lib && npm run build:app",
     "clean": "gulp clean",
-    "test": "jest --config jest.config.js",
-    "test:watch": "jest --watch",
+    "test": "npm run test --workspace=packages/hbc-sp-services",
+    "test:coverage": "npm run test:coverage --workspace=packages/hbc-sp-services",
+    "test:ci": "npm run test:ci --workspace=packages/hbc-sp-services",
+    "test:watch": "npm run test --workspace=packages/hbc-sp-services -- --watch",
     "serve": "gulp serve --nobrowser",
     "bundle": "gulp bundle",
     "bundle:ship": "gulp bundle --ship",
@@ -86,6 +88,9 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "scheduler": "^0.23.2",
-    "@fluentui/react-icons": "2.0.319"
+    "@fluentui/react-icons": "2.0.319",
+    "jest-cli": "^29.7.0",
+    "@jest/core": "^29.7.0",
+    "@jest/transform": "^29.7.0"
   }
 }
