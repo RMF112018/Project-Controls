@@ -1445,6 +1445,7 @@ export const TURNOVER_AGENDAS_COLUMNS = {
   createdDate: 'CreatedDate',                  // SP: DateTime
   lastModifiedBy: 'LastModifiedBy',            // SP: Single Line of Text
   lastModifiedDate: 'LastModifiedDate',        // SP: DateTime
+  headerOverrides: 'HeaderOverrides',          // SP: Multiple Lines of Text (JSON: Record<string, boolean>)
 } as const;
 
 /**
@@ -1540,6 +1541,23 @@ export const TURNOVER_ATTACHMENTS_COLUMNS = {
   fileUrl: 'FileUrl',                          // SP: Hyperlink
   uploadedBy: 'UploadedBy',                    // SP: Single Line of Text
   uploadedDate: 'UploadedDate',                // SP: DateTime
+} as const;
+
+/**
+ * List: Turnover_Estimate_Overviews
+ * Interface: ITurnoverEstimateOverview
+ */
+export const TURNOVER_ESTIMATE_OVERVIEWS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  turnoverAgendaId: 'TurnoverAgendaId',        // SP: Number (lookup ID)
+  contractAmount: 'ContractAmount',            // SP: Number
+  originalEstimate: 'OriginalEstimate',        // SP: Number
+  buyoutTarget: 'BuyoutTarget',               // SP: Number
+  estimatedFee: 'EstimatedFee',               // SP: Number
+  estimatedGrossMargin: 'EstimatedGrossMargin', // SP: Number
+  contingency: 'Contingency',                  // SP: Number
+  notes: 'Notes',                              // SP: Multiple Lines of Text
+  overrides: 'Overrides',                      // SP: Multiple Lines of Text (JSON: Record<string, boolean>)
 } as const;
 
 /**
