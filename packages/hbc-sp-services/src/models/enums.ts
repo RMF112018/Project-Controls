@@ -221,6 +221,7 @@ export enum EntityType {
   PermissionTemplate = 'PermissionTemplate',
   ProjectTeamAssignment = 'ProjectTeamAssignment',
   AssignmentMapping = 'AssignmentMapping',
+  Meeting = 'Meeting',
   GraphApi = 'GraphApi',
   Performance = 'Performance',
   SupportRequest = 'SupportRequest',

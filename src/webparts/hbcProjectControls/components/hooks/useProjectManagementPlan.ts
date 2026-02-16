@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IProjectManagementPlan, IDivisionApprover, IPMPBoilerplateSection } from '@hbc/sp-services';
+import { useSignalRContext } from '../contexts/SignalRContext';
+import { useSignalR } from './useSignalR';
+import { IProjectManagementPlan, IDivisionApprover, IPMPBoilerplateSection, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
 
 interface IUseProjectManagementPlanResult {
   pmp: IProjectManagementPlan | null;
@@ -17,17 +19,20 @@ interface IUseProjectManagementPlanResult {
 }
 
 export function useProjectManagementPlan(): IUseProjectManagementPlanResult {
-  const { dataService } = useAppContext();
+  const { dataService, currentUser } = useAppContext();
+  const { broadcastChange } = useSignalRContext();
   const [pmp, setPmp] = React.useState<IProjectManagementPlan | null>(null);
   const [boilerplate, setBoilerplate] = React.useState<IPMPBoilerplateSection[]>([]);
   const [divisionApprovers, setDivisionApprovers] = React.useState<IDivisionApprover[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const lastProjectCodeRef = React.useRef<string | null>(null);
 
   const fetchPlan = React.useCallback(async (projectCode: string) => {
     try {
       setIsLoading(true);
       setError(null);
+      lastProjectCodeRef.current = projectCode;
       const [planResult, boilerplateResult, approversResult] = await Promise.all([
         dataService.getProjectManagementPlan(projectCode),
         dataService.getPMPBoilerplate(),
@@ -43,25 +48,58 @@ export function useProjectManagementPlan(): IUseProjectManagementPlanResult {
     }
   }, [dataService]);
 
+  // SignalR: refresh on PMP entity changes from other users
+  useSignalR({
+    entityType: EntityType.PMP,
+    onEntityChanged: React.useCallback(() => {
+      if (lastProjectCodeRef.current) {
+        fetchPlan(lastProjectCodeRef.current);
+      }
+    }, [fetchPlan]),
+  });
+
+  // Helper to broadcast PMP changes
+  const broadcastPMPChange = React.useCallback((
+    entityId: number | string,
+    action: IEntityChangedMessage['action'],
+    summary?: string
+  ) => {
+    broadcastChange({
+      type: 'EntityChanged',
+      entityType: EntityType.PMP,
+      entityId: String(entityId),
+      action,
+      changedBy: currentUser?.email ?? 'unknown',
+      changedByName: currentUser?.displayName,
+      timestamp: new Date().toISOString(),
+      summary,
+      projectCode: lastProjectCodeRef.current || undefined,
+    });
+  }, [broadcastChange, currentUser]);
+
   const updatePlan = React.useCallback(async (projectCode: string, data: Partial<IProjectManagementPlan>) => {
     const updated = await dataService.updateProjectManagementPlan(projectCode, data);
     setPmp(updated);
-  }, [dataService]);
+    broadcastPMPChange(projectCode, 'updated', 'PMP updated');
+  }, [dataService, broadcastPMPChange]);
 
   const submitForApproval = React.useCallback(async (projectCode: string, submittedBy: string) => {
     const updated = await dataService.submitPMPForApproval(projectCode, submittedBy);
     setPmp(updated);
-  }, [dataService]);
+    broadcastPMPChange(projectCode, 'updated', 'PMP submitted for approval');
+  }, [dataService, broadcastPMPChange]);
 
   const respondToApproval = React.useCallback(async (projectCode: string, stepId: number, approved: boolean, comment: string) => {
     const updated = await dataService.respondToPMPApproval(projectCode, stepId, approved, comment);
     setPmp(updated);
-  }, [dataService]);
+    broadcastPMPChange(projectCode, 'updated', `PMP approval ${approved ? 'approved' : 'rejected'}`);
+  }, [dataService, broadcastPMPChange]);
 
   const signPlan = React.useCallback(async (projectCode: string, signatureId: number, comment: string) => {
     const updated = await dataService.signPMP(projectCode, signatureId, comment);
     setPmp(updated);
-  }, [dataService]);
+    broadcastPMPChange(projectCode, 'updated', 'PMP signed');
+  }, [dataService, broadcastPMPChange]);
 
   const canSubmit = React.useMemo(() => {
     if (!pmp) return false;

@@ -41,3 +41,5 @@ export { useCurrentModule } from './useCurrentModule';
 export { useAppStateSummary } from './useAppStateSummary';
 export { useSignalR } from './useSignalR';
 export type { IUseSignalROptions, IUseSignalRResult } from './useSignalR';
+export { usePresence } from './usePresence';
+export type { IPresenceUser } from './usePresence';

@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IMeeting, ICalendarAvailability } from '@hbc/sp-services';
+import { useSignalRContext } from '../contexts/SignalRContext';
+import { useSignalR } from './useSignalR';
+import { IMeeting, ICalendarAvailability, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
 
 interface IUseMeetingsResult {
   meetings: IMeeting[];
@@ -13,7 +15,8 @@ interface IUseMeetingsResult {
 }
 
 export function useMeetings(): IUseMeetingsResult {
-  const { dataService } = useAppContext();
+  const { dataService, currentUser } = useAppContext();
+  const { broadcastChange } = useSignalRContext();
   const [meetings, setMeetings] = React.useState<IMeeting[]>([]);
   const [availability, setAvailability] = React.useState<ICalendarAvailability[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -32,6 +35,29 @@ export function useMeetings(): IUseMeetingsResult {
     }
   }, [dataService]);
 
+  // SignalR: refresh on Meeting entity changes
+  useSignalR({
+    entityType: EntityType.Meeting,
+    onEntityChanged: React.useCallback(() => { fetchMeetings(); }, [fetchMeetings]),
+  });
+
+  const broadcastMeetingChange = React.useCallback((
+    meetingId: number | string,
+    action: IEntityChangedMessage['action'],
+    summary?: string
+  ) => {
+    broadcastChange({
+      type: 'EntityChanged',
+      entityType: EntityType.Meeting,
+      entityId: String(meetingId),
+      action,
+      changedBy: currentUser?.email ?? 'unknown',
+      changedByName: currentUser?.displayName,
+      timestamp: new Date().toISOString(),
+      summary,
+    });
+  }, [broadcastChange, currentUser]);
+
   const fetchAvailability = React.useCallback(async (emails: string[], startDate: string, endDate: string) => {
     try {
       setIsLoading(true);
@@ -48,8 +74,9 @@ export function useMeetings(): IUseMeetingsResult {
   const createMeeting = React.useCallback(async (meeting: Partial<IMeeting>): Promise<IMeeting> => {
     const created = await dataService.createMeeting(meeting);
     setMeetings(prev => [...prev, created]);
+    broadcastMeetingChange(created.id, 'created', 'Meeting scheduled');
     return created;
-  }, [dataService]);
+  }, [dataService, broadcastMeetingChange]);
 
   return { meetings, availability, isLoading, error, fetchMeetings, fetchAvailability, createMeeting };
 }
