@@ -3,7 +3,7 @@ import { Button } from '@fluentui/react-components';
 import { useWorkflowDefinitions } from '../hooks/useWorkflowDefinitions';
 import { useAppContext } from '../contexts/AppContext';
 import { useLeads } from '../hooks/useLeads';
-import { IResolvedWorkflowStep, WorkflowKey, Stage, isActiveStage } from '@hbc/sp-services';
+import { IResolvedWorkflowStep, WorkflowKey, isActiveStage } from '@hbc/sp-services';
 import { ISelectedProject } from '../contexts/AppContext';
 import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
 import { LoadingSpinner } from './LoadingSpinner';

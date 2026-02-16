@@ -1,10 +1,7 @@
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useMarketingRecord } from '../../hooks/useMarketingRecord';
-import { useAppContext } from '../../contexts/AppContext';
-import { useLeads } from '../../hooks/useLeads';
 import {
-  PERMISSIONS,
   buildBreadcrumbs,
   IMarketingProjectRecord,
   RoleName,

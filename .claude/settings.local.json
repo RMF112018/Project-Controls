@@ -68,7 +68,8 @@
       "Bash(node:*)",
       "Bash(NODE_DEBUG=module node:*)",
       "Bash(npm run test:ci:*)",
-      "WebFetch(domain:docs.react-joyride.com)"
+      "WebFetch(domain:docs.react-joyride.com)",
+      "Bash(git merge:*)"
     ]
   }
 }

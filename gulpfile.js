@@ -16,7 +16,7 @@ build.configureWebpack.mergeConfig({
     }
 
     generatedConfiguration.resolve.alias['@hbc/sp-services'] =
-      path.resolve(__dirname, 'packages/hbc-sp-services/src');
+      path.resolve(__dirname, 'packages/hbc-sp-services/lib');
 
     return generatedConfiguration;
   }

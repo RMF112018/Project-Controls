@@ -31,14 +31,6 @@ const STATUS_COLORS: Record<ChecklistStatus, string> = {
   NoResponse: HBC_COLORS.gray300,
 };
 
-const STATUS_LABELS: Record<ChecklistStatus, string> = {
-  Conforming: 'Conforming',
-  Deficient: 'Deficient',
-  NA: 'N/A',
-  Neutral: 'Neutral',
-  NoResponse: 'No Response',
-};
-
 /* ---------- Shared styles ---------- */
 const cardStyle: React.CSSProperties = {
   backgroundColor: HBC_COLORS.white,

@@ -6,7 +6,7 @@ import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
-import { PERMISSIONS, buildBreadcrumbs, AuditAction, EntityType, CriticalPathStatus } from '@hbc/sp-services';
+import { PERMISSIONS, buildBreadcrumbs, AuditAction, EntityType } from '@hbc/sp-services';
 
 const STATUS_COLORS: Record<string, string> = { Active: HBC_COLORS.error, Monitoring: '#3B82F6', Resolved: HBC_COLORS.success };
 const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 8, padding: 24, boxShadow: ELEVATION.level1, marginBottom: 16 };

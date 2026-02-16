@@ -146,7 +146,7 @@ export const WinLossRecorder: React.FC = () => {
     finally { setSubmitting(false); }
   };
 
-  const handleAutopsyScheduled = async (meetingId: string, start: string, end: string): Promise<void> => {
+  const handleAutopsyScheduled = async (meetingId: string, start: string, _end: string): Promise<void> => {
     // Update autopsy record with meeting details
     await dataService.saveLossAutopsy({
       leadId: autopsyLeadId,

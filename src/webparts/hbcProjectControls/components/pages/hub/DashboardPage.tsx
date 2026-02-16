@@ -124,8 +124,6 @@ export const DashboardPage: React.FC = () => {
   const kpis = React.useMemo(() => {
     const active = filteredLeads.filter(l => isActiveStage(l.Stage));
     const totalPipelineValue = active.reduce((sum, l) => sum + (l.ProjectValue || 0), 0);
-    const pendingGNG = filteredLeads.filter(l => l.Stage === Stage.GoNoGoPending);
-
     // Win rate from estimate log
     const awarded = records.filter(r =>
       r.AwardStatus === AwardStatus.AwardedWithPrecon || r.AwardStatus === AwardStatus.AwardedWithoutPrecon

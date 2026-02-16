@@ -3,8 +3,6 @@ import {
   FeatureFlagCategory,
   ProvisioningService,
   MockHubNavigationService,
-  HubNavLinkStatus,
-  IAssignmentMapping,
   AssignmentType,
   ISectorDefinition,
   formatDateTime,
@@ -176,11 +174,11 @@ export const AdminPanel: React.FC = () => {
   const [auditEndDate, setAuditEndDate] = React.useState(() => new Date().toISOString().split('T')[0]);
 
   // -- Sectors state --
-  const { sectors: sectorDefs, createSector: createSectorDef, updateSector: updateSectorDef, loading: sectorsLoading, refresh: refreshSectors } = useSectorDefinitions();
+  const { sectors: sectorDefs, createSector: createSectorDef, updateSector: updateSectorDef, loading: sectorsLoading } = useSectorDefinitions();
   const [newSectorLabel, setNewSectorLabel] = React.useState('');
 
   // -- Assignment Mappings state --
-  const { mappings: assignmentMappings, fetchMappings: fetchAssignmentMappings, createMapping, updateMapping, deleteMapping } = useAssignmentMappings();
+  const { mappings: assignmentMappings, fetchMappings: fetchAssignmentMappings, createMapping, deleteMapping } = useAssignmentMappings();
   const [newMappingRegion, setNewMappingRegion] = React.useState('');
   const [newMappingSector, setNewMappingSector] = React.useState('');
   const [newMappingType, setNewMappingType] = React.useState<AssignmentType>('Director');
@@ -915,7 +913,7 @@ export const AdminPanel: React.FC = () => {
                         <span>Type</span>
                         <span>Assignee</span>
                         <span>Email</span>
-                        <span></span>
+                        <span />
                       </div>
                       {assignmentMappings.length === 0 && (
                         <div style={{ padding: '24px', textAlign: 'center', color: HBC_COLORS.gray400, fontSize: '13px' }}>

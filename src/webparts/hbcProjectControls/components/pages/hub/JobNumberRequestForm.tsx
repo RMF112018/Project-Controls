@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { useAppContext } from '../../contexts/AppContext';
 import { useJobNumberRequest } from '../../hooks/useJobNumberRequest';
@@ -12,23 +12,18 @@ import {
   Region,
   NotificationService,
   ProvisioningService,
-  MockHubNavigationService,
-  buildBreadcrumbs
+  MockHubNavigationService
 } from '@hbc/sp-services';
-import { Breadcrumb } from '../../shared/Breadcrumb';
-
 const ESTIMATING_DEFAULT_CODES = ['01-01-413', '01-01-025', '01-01-311', '01-01-302'];
 
 export const JobNumberRequestForm: React.FC = () => {
   const { leadId: leadIdParam } = useParams<{ leadId: string }>();
   const leadId = leadIdParam ? Number(leadIdParam) : Number.NaN;
   const navigate = useNavigate();
-  const location = useLocation();
-  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { dataService, currentUser, isFeatureEnabled } = useAppContext();
   const { projectTypes, costCodes, fetchReferenceData, createRequest, fetchRequestByLeadId } = useJobNumberRequest();
   const { leads, fetchLeads, getLeadById } = useLeads();
-  const { validateForProvisioning, lastResult: provValidation } = useProvisioningValidation();
+  const { validateForProvisioning } = useProvisioningValidation();
 
   const [lead, setLead] = React.useState<{ Title: string; ClientName: string; ProjectCode?: string; Division: string; Region: string } | null>(null);
   const [existingRequest, setExistingRequest] = React.useState<boolean>(false);
@@ -305,7 +300,7 @@ export const JobNumberRequestForm: React.FC = () => {
             <span>Lead</span>
             <span>Client</span>
             <span>Stage</span>
-            <span></span>
+            <span />
           </div>
           {filteredLeads.map(l => (
             <div key={l.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 120px', padding: '12px 16px', alignItems: 'center', borderBottom: `1px solid ${HBC_COLORS.gray100}` }}>

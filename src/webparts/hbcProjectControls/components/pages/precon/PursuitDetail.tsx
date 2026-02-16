@@ -18,7 +18,6 @@ import {
   EntityType,
   RoleName,
   formatCurrency,
-  formatDate,
   getDaysUntil,
   getUrgencyColor,
   PERMISSIONS

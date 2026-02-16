@@ -88,7 +88,7 @@ export const WhatsNewModal: React.FC<IWhatsNewModalProps> = ({ isOpen, onClose }
           justifyContent: 'space-between',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>What's New</span>
+            <span style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>What&apos;s New</span>
             <span style={{
               padding: '2px 10px',
               borderRadius: '12px',

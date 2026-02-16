@@ -394,7 +394,7 @@ const ChecklistTable: React.FC<{
         <span>Assignees</span>
         <span>Deadline</span>
         <span>Notes</span>
-        <span></span>
+        <span />
       </div>
       {items.map(item => (
         <ChecklistRow
@@ -430,7 +430,7 @@ const ChecklistRow: React.FC<{
     }}>
       <div style={{ fontWeight: 600, color: HBC_COLORS.navy, fontSize: 13 }}>
         {item.task}
-        {item.tabRequired && <span style={{ marginLeft: 6, fontSize: 11, color: HBC_COLORS.gray500 }}>(Tab Req'd)</span>}
+        {item.tabRequired && <span style={{ marginLeft: 6, fontSize: 11, color: HBC_COLORS.gray500 }}>(Tab Req&apos;d)</span>}
       </div>
       <select
         value={item.status ?? ''}

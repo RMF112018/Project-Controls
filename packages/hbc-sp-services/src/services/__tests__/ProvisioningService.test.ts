@@ -1,7 +1,18 @@
 import { ProvisioningService, IProvisioningInput } from '../ProvisioningService';
 import { IDataService } from '../IDataService';
-import { ProvisioningStatus, AuditAction, EntityType } from '../../models/enums';
+import { ProvisioningStatus, AuditAction, EntityType, NotificationEvent } from '../../models/enums';
 import { PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS, IProvisioningLog } from '../../models/IProvisioningLog';
+import {
+  createTestInput as helperCreateTestInput,
+  createMockLog as helperCreateMockLog,
+  createFailedLog,
+  createCompletedLog,
+  createProvisioningMockDataService,
+  advanceAllSteps,
+  advanceProvisioningStep,
+  expectAuditLogged,
+  flushPromises,
+} from './provisioning-test-helpers';
 
 function createTestInput(overrides?: Partial<IProvisioningInput>): IProvisioningInput {
   return {
@@ -611,6 +622,516 @@ describe('ProvisioningService', () => {
       const input = createTestInput();
       await paService.provisionSiteWithFallback(input);
       expect(mockPA.triggerProvisioning).toHaveBeenCalled();
+    });
+  });
+
+  // ────────────────────────────────────────────────────────
+  // Phase 2A — Gap tests
+  // ────────────────────────────────────────────────────────
+
+  describe('notification after completion', () => {
+    it('sends SiteProvisioned notification on successful completion', async () => {
+      // Must have roles so NotificationService resolves recipients
+      mockDs.getRoles.mockResolvedValue([
+        { Title: 'BD Representative', UserOrGroup: ['bd@test.com'] },
+        { Title: 'Operations Team', UserOrGroup: ['ops@test.com'] },
+      ]);
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+      }));
+      const input = createTestInput();
+      await service.provisionSite(input);
+      await advanceAllSteps(TOTAL_PROVISIONING_STEPS);
+
+      expect(mockDs.sendNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subject: expect.stringContaining('Project Site Provisioned'),
+        })
+      );
+    });
+
+    it('notification failure does not throw or break provisioning', async () => {
+      mockDs.sendNotification.mockRejectedValue(new Error('Notification failed'));
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+      }));
+      const input = createTestInput();
+
+      // Should not throw even though notification fails
+      await service.provisionSite(input);
+      await advanceAllSteps(TOTAL_PROVISIONING_STEPS);
+
+      // Provisioning should still complete
+      expect(mockDs.updateProvisioningLog).toHaveBeenCalledWith(
+        input.projectCode,
+        expect.objectContaining({ status: ProvisioningStatus.Completed })
+      );
+    });
+
+    it('resolves recipients from roles for notification', async () => {
+      mockDs.getRoles.mockResolvedValue([
+        { Title: 'BD Representative', UserOrGroup: ['bd@test.com'] },
+        { Title: 'Operations Team', UserOrGroup: ['ops@test.com'] },
+        { Title: 'Executive Leadership', UserOrGroup: ['exec@test.com'] },
+      ]);
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+      }));
+      const input = createTestInput();
+      await service.provisionSite(input);
+      await advanceAllSteps(TOTAL_PROVISIONING_STEPS);
+
+      expect(mockDs.sendNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipients: expect.arrayContaining(['bd@test.com', 'ops@test.com', 'exec@test.com']),
+        })
+      );
+    });
+  });
+
+  describe('hub nav link lifecycle', () => {
+    it('addHubNavLink success updates log with success status', async () => {
+      const mockHubNav = {
+        addProjectNavigationLink: jest.fn().mockResolvedValue({
+          success: true,
+          action: 'created',
+          yearLabel: '2025',
+        }),
+      };
+      const navService = new ProvisioningService(
+        mockDs as unknown as IDataService,
+        mockHubNav as any
+      );
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+      }));
+
+      await navService.provisionSite(createTestInput());
+      await advanceAllSteps(TOTAL_PROVISIONING_STEPS);
+
+      expect(mockDs.updateProvisioningLog).toHaveBeenCalledWith(
+        '25-042-01',
+        expect.objectContaining({ hubNavLinkStatus: 'success' })
+      );
+    });
+
+    it('addHubNavLink failure sets hubNavLinkStatus to failed', async () => {
+      const mockHubNav = {
+        addProjectNavigationLink: jest.fn().mockRejectedValue(new Error('Nav API down')),
+      };
+      const navService = new ProvisioningService(
+        mockDs as unknown as IDataService,
+        mockHubNav as any
+      );
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+      }));
+
+      await navService.provisionSite(createTestInput());
+      await advanceAllSteps(TOTAL_PROVISIONING_STEPS);
+
+      expect(mockDs.updateProvisioningLog).toHaveBeenCalledWith(
+        '25-042-01',
+        expect.objectContaining({ hubNavLinkStatus: 'failed' })
+      );
+    });
+
+    it('retryHubNavLink success updates status', async () => {
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://test.sharepoint.com/sites/2504201',
+        hubNavLinkStatus: 'failed',
+      }));
+      const mockHubNav = {
+        addProjectNavigationLink: jest.fn().mockResolvedValue({
+          success: true,
+          action: 'created',
+          yearLabel: '2025',
+        }),
+      };
+      const navService = new ProvisioningService(
+        mockDs as unknown as IDataService,
+        mockHubNav as any
+      );
+
+      await navService.retryHubNavLink('25-042-01', 'admin@test.com');
+
+      expect(mockDs.updateProvisioningLog).toHaveBeenCalledWith('25-042-01', {
+        hubNavLinkStatus: 'success',
+      });
+    });
+
+    it('retryHubNavLink failure keeps status as failed', async () => {
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://test.sharepoint.com/sites/2504201',
+        hubNavLinkStatus: 'failed',
+      }));
+      const mockHubNav = {
+        addProjectNavigationLink: jest.fn().mockRejectedValue(new Error('Still down')),
+      };
+      const navService = new ProvisioningService(
+        mockDs as unknown as IDataService,
+        mockHubNav as any
+      );
+
+      await navService.retryHubNavLink('25-042-01', 'admin@test.com');
+
+      expect(mockDs.updateProvisioningLog).toHaveBeenCalledWith('25-042-01', {
+        hubNavLinkStatus: 'failed',
+      });
+    });
+  });
+
+  describe('step 7 post-loop', () => {
+    it('updates lead with siteUrl after all steps complete', async () => {
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+      }));
+      const input = createTestInput();
+      await service.provisionSite(input);
+      await advanceAllSteps(TOTAL_PROVISIONING_STEPS);
+
+      expect(mockDs.updateLead).toHaveBeenCalledWith(
+        input.leadId,
+        expect.objectContaining({ ProjectSiteURL: expect.any(String) })
+      );
+    });
+
+    it('logs audit with SiteProvisioningCompleted action', async () => {
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+      }));
+      const input = createTestInput();
+      await service.provisionSite(input);
+      await advanceAllSteps(TOTAL_PROVISIONING_STEPS);
+
+      expect(mockDs.logAudit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Action: AuditAction.SiteProvisioningCompleted,
+          EntityType: EntityType.Project,
+          ProjectCode: '25-042-01',
+        })
+      );
+    });
+
+    it('sets completedAt timestamp in log', async () => {
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+      }));
+      await service.provisionSite(createTestInput());
+      await advanceAllSteps(TOTAL_PROVISIONING_STEPS);
+
+      expect(mockDs.updateProvisioningLog).toHaveBeenCalledWith(
+        '25-042-01',
+        expect.objectContaining({
+          status: ProvisioningStatus.Completed,
+          completedAt: expect.any(String),
+        })
+      );
+    });
+  });
+
+  describe('siteNameOverride', () => {
+    it('uses siteNameOverride when provided for site creation', async () => {
+      const realService = new ProvisioningService(
+        mockDs as unknown as IDataService, undefined, undefined, undefined, false, true
+      );
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/MyCustomName',
+      }));
+      const input = createTestInput({ siteNameOverride: 'My-Custom-Name!' });
+      await realService.provisionSite(input);
+      await jest.advanceTimersByTimeAsync(5000);
+      await Promise.resolve();
+
+      expect(mockDs.createProjectSite).toHaveBeenCalledWith(
+        input.projectCode,
+        input.projectName,
+        'My-Custom-Name' // special chars stripped
+      );
+    });
+
+    it('falls back to projectCode (dashes removed) when no override', async () => {
+      const realService = new ProvisioningService(
+        mockDs as unknown as IDataService, undefined, undefined, undefined, false, true
+      );
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+      }));
+      const input = createTestInput();
+      await realService.provisionSite(input);
+      await jest.advanceTimersByTimeAsync(5000);
+      await Promise.resolve();
+
+      expect(mockDs.createProjectSite).toHaveBeenCalledWith(
+        '25-042-01',
+        'Test Project',
+        '2504201' // dashes removed from projectCode
+      );
+    });
+  });
+
+  describe('metadata preservation', () => {
+    it('passes division/region/clientName in metadata to triggerProvisioning', async () => {
+      const input = createTestInput({
+        division: 'Luxury Residential',
+        region: 'Palm Beach',
+        clientName: 'Premium Client',
+      });
+      await service.provisionSite(input);
+
+      expect(mockDs.triggerProvisioning).toHaveBeenCalledWith(
+        input.leadId,
+        input.projectCode,
+        input.projectName,
+        input.requestedBy,
+        { division: 'Luxury Residential', region: 'Palm Beach', clientName: 'Premium Client' }
+      );
+    });
+
+    it('carries division through to createProjectSecurityGroups in real ops', async () => {
+      const realService = new ProvisioningService(
+        mockDs as unknown as IDataService, undefined, undefined, undefined, false, true
+      );
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+      }));
+      const input = createTestInput({ division: 'Healthcare' });
+      await realService.provisionSite(input);
+      await jest.advanceTimersByTimeAsync(5000);
+      await Promise.resolve();
+
+      expect(mockDs.createProjectSecurityGroups).toHaveBeenCalledWith(
+        expect.any(String),
+        input.projectCode,
+        'Healthcare'
+      );
+    });
+
+    it('carries division through to copyTemplateFiles in real ops', async () => {
+      const realService = new ProvisioningService(
+        mockDs as unknown as IDataService, undefined, undefined, undefined, false, true
+      );
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+      }));
+      const input = createTestInput({ division: 'Healthcare' });
+      await realService.provisionSite(input);
+      await jest.advanceTimersByTimeAsync(5000);
+      await Promise.resolve();
+
+      expect(mockDs.copyTemplateFiles).toHaveBeenCalledWith(
+        expect.any(String),
+        input.projectCode,
+        'Healthcare'
+      );
+    });
+  });
+
+  describe('concurrent provisioning', () => {
+    it('two simultaneous provisions do not interfere', async () => {
+      const mockDs2 = createMockDataService();
+      const service2 = new ProvisioningService(mockDs2 as unknown as IDataService);
+
+      const input1 = createTestInput({ projectCode: '25-042-01' });
+      const input2 = createTestInput({ projectCode: '25-043-02', leadId: 2, projectName: 'Project B' });
+
+      const [log1, log2] = await Promise.all([
+        service.provisionSite(input1),
+        service2.provisionSite(input2),
+      ]);
+
+      expect(log1).toBeDefined();
+      expect(log2).toBeDefined();
+      expect(mockDs.triggerProvisioning).toHaveBeenCalledWith(
+        expect.anything(), '25-042-01', expect.anything(), expect.anything(), expect.anything()
+      );
+      expect(mockDs2.triggerProvisioning).toHaveBeenCalledWith(
+        expect.anything(), '25-043-02', expect.anything(), expect.anything(), expect.anything()
+      );
+    });
+
+    it('creates separate provisioning log entries', async () => {
+      const mockDs2 = createMockDataService();
+      mockDs2.triggerProvisioning.mockResolvedValue(createMockLog({ id: 2, projectCode: '25-043-02' }));
+      const service2 = new ProvisioningService(mockDs2 as unknown as IDataService);
+
+      const log1 = await service.provisionSite(createTestInput());
+      const log2 = await service2.provisionSite(createTestInput({ projectCode: '25-043-02', leadId: 2 }));
+
+      expect(log1.projectCode).toBe('25-042-01');
+      expect(log2.projectCode).toBe('25-043-02');
+    });
+  });
+
+  describe('edge cases', () => {
+    it('already-completed log still returns from provisionSite', async () => {
+      mockDs.triggerProvisioning.mockResolvedValue(createMockLog({
+        status: ProvisioningStatus.Completed,
+      }));
+      const result = await service.provisionSite(createTestInput());
+      expect(result.status).toBe(ProvisioningStatus.Completed);
+    });
+
+    it('getProvisioningStatus returns null for unknown project', async () => {
+      mockDs.getProvisioningStatus.mockResolvedValue(null);
+      const result = await service.getProvisioningStatus('nonexistent');
+      expect(result).toBeNull();
+    });
+
+    it('MAX_RETRIES (3) exceeded returns descriptive error', async () => {
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({ retryCount: 3 }));
+      await expect(service.retryFromStep('25-042-01', 3)).rejects.toThrow(
+        'Maximum retries (3) exceeded'
+      );
+      await expect(service.retryFromStep('25-042-01', 3)).rejects.toThrow(
+        'Manual intervention required'
+      );
+    });
+
+    it('retryFromStep with step 1 calls createProjectSite when useRealOps=true', async () => {
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        retryCount: 0,
+        siteUrl: '',
+        division: 'Commercial',
+        region: 'Miami',
+      }));
+      const realService = new ProvisioningService(
+        mockDs as unknown as IDataService, undefined, undefined, undefined, false, true
+      );
+      await realService.retryFromStep('25-042-01', 1);
+      await jest.advanceTimersByTimeAsync(5000);
+      await Promise.resolve();
+
+      expect(mockDs.createProjectSite).toHaveBeenCalled();
+    });
+  });
+
+  describe('partial failure recovery', () => {
+    it('resume from step 3 preserves siteUrl from log', async () => {
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+        retryCount: 0,
+        division: 'Commercial',
+        region: 'Miami',
+      }));
+      const realService = new ProvisioningService(
+        mockDs as unknown as IDataService, undefined, undefined, undefined, false, true
+      );
+      await realService.retryFromStep('25-042-01', 3);
+      await jest.advanceTimersByTimeAsync(5000);
+      await Promise.resolve();
+
+      // Steps 1-2 skipped
+      expect(mockDs.createProjectSite).not.toHaveBeenCalled();
+      expect(mockDs.provisionProjectLists).not.toHaveBeenCalled();
+      // Steps 3-6 called with preserved siteUrl
+      expect(mockDs.associateWithHubSite).toHaveBeenCalledWith(
+        'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+        expect.any(String)
+      );
+    });
+
+    it('resume from step 6 only calls step 6-7', async () => {
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+        retryCount: 0,
+        division: 'Commercial',
+        region: 'Miami',
+      }));
+      const realService = new ProvisioningService(
+        mockDs as unknown as IDataService, undefined, undefined, undefined, false, true
+      );
+      await realService.retryFromStep('25-042-01', 6);
+      await jest.advanceTimersByTimeAsync(5000);
+      await Promise.resolve();
+
+      expect(mockDs.createProjectSite).not.toHaveBeenCalled();
+      expect(mockDs.provisionProjectLists).not.toHaveBeenCalled();
+      expect(mockDs.associateWithHubSite).not.toHaveBeenCalled();
+      expect(mockDs.createProjectSecurityGroups).not.toHaveBeenCalled();
+      expect(mockDs.copyTemplateFiles).not.toHaveBeenCalled();
+      expect(mockDs.copyLeadDataToProjectSite).toHaveBeenCalled();
+    });
+
+    it('failed step is logged correctly in provisioning log', async () => {
+      mockDs.createProjectSite.mockRejectedValue(new Error('Site creation denied'));
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        retryCount: 0,
+        division: 'Commercial',
+      }));
+      const realService = new ProvisioningService(
+        mockDs as unknown as IDataService, undefined, undefined, undefined, false, true
+      );
+      await realService.retryFromStep('25-042-01', 1);
+      await jest.advanceTimersByTimeAsync(5000);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockDs.updateProvisioningLog).toHaveBeenCalledWith(
+        '25-042-01',
+        expect.objectContaining({
+          status: ProvisioningStatus.Failed,
+          failedStep: 1,
+          errorMessage: 'Site creation denied',
+        })
+      );
+    });
+
+    it('resume completes and marks log as Completed', async () => {
+      mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+        retryCount: 0,
+        division: 'Commercial',
+        region: 'Miami',
+      }));
+      const realService = new ProvisioningService(
+        mockDs as unknown as IDataService, undefined, undefined, undefined, false, true
+      );
+      await realService.retryFromStep('25-042-01', 5);
+      await jest.advanceTimersByTimeAsync(5000);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockDs.updateProvisioningLog).toHaveBeenCalledWith(
+        '25-042-01',
+        expect.objectContaining({
+          status: ProvisioningStatus.Completed,
+          completedAt: expect.any(String),
+        })
+      );
+    });
+  });
+
+  describe('step-by-step log progress', () => {
+    it('updates log with InProgress status at start of each step', async () => {
+      await service.provisionSite(createTestInput());
+      await advanceAllSteps(TOTAL_PROVISIONING_STEPS);
+
+      for (let step = 1; step <= TOTAL_PROVISIONING_STEPS; step++) {
+        expect(mockDs.updateProvisioningLog).toHaveBeenCalledWith(
+          '25-042-01',
+          expect.objectContaining({
+            status: ProvisioningStatus.InProgress,
+            currentStep: step,
+            completedSteps: step - 1,
+          })
+        );
+      }
+    });
+
+    it('updates log with completedSteps after each step succeeds', async () => {
+      await service.provisionSite(createTestInput());
+      await advanceAllSteps(TOTAL_PROVISIONING_STEPS);
+
+      for (let step = 1; step <= TOTAL_PROVISIONING_STEPS; step++) {
+        expect(mockDs.updateProvisioningLog).toHaveBeenCalledWith(
+          '25-042-01',
+          expect.objectContaining({
+            currentStep: step,
+            completedSteps: step,
+          })
+        );
+      }
     });
   });
 });

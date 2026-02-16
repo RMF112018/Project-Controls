@@ -42,7 +42,7 @@ export const EstimatingKickoffList: React.FC = () => {
             <span>Project</span>
             <span>Project Code</span>
             <span>Lead Estimator</span>
-            <span></span>
+            <span />
           </div>
           {records.map(record => (
             <div key={record.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 120px', padding: '12px 16px', alignItems: 'center', borderBottom: `1px solid ${HBC_COLORS.gray100}` }}>

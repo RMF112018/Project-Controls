@@ -135,7 +135,7 @@ export const ProjectAssignmentsPanel: React.FC = () => {
     }
   };
 
-  const handleBatchAdd = async (projectCode: string, projectName: string): Promise<void> => {
+  const handleBatchAdd = async (projectCode: string, _projectName: string): Promise<void> => {
     if (selectedUsers.length === 0 || !formRole.trim()) return;
     setAdding(prev => ({ ...prev, [projectCode]: true }));
     try {

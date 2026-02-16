@@ -246,7 +246,7 @@ export const ComplianceLog: React.FC = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ backgroundColor: HBC_COLORS.navy, color: '#fff' }}>
-              <th style={thStyle}></th>
+              <th style={thStyle} />
               <th style={thStyle}>Project / Division</th>
               <th style={thStyle}>Subcontractor</th>
               <th style={{ ...thStyle, textAlign: 'right' }}>Contract Value</th>
