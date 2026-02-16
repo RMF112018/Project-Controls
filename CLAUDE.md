@@ -100,7 +100,45 @@ All IDataService methods now have SharePoint REST implementations. 8 new provisi
 
 **Steps**: 1.CreateSite → 2.ProvisionLists(batch/5) → 3.HubAssociate → 4.SecurityGroups → 5.CopyTemplates → 6.CopyLeadData → 7.UpdateLead
 
-**Key files**: `ProvisioningService.ts` (orchestrator), `projectListSchemas.ts` (41 list schemas), `ProvisioningService.test.ts` (36 tests)
+**Key files**: `ProvisioningService.ts` (orchestrator), `projectListSchemas.ts` (41 list schemas), `ProvisioningService.test.ts` (62 tests), `ProvisioningService.integration.test.ts` (13 tests), `MockDataService.provisioning.test.ts` (8 tests), `projectListSchemas.test.ts` (8 tests)
+
+**Test coverage** (Feb 16): ProvisioningService.ts — 97.27% stmts, 80.76% branches, 94.73% functions, 98.44% lines. projectListSchemas.ts — 100% all metrics. Total: 92 provisioning-specific tests across 4 suites.
+
+## §15b Test Architecture — Provisioning
+
+**Coverage**: ProvisioningService.ts 97%+ stmts/98%+ lines, projectListSchemas.ts 100%, NotificationService.ts ~65% stmts
+
+**Test Suites** (113 provisioning-related tests):
+- Service (node): ProvisioningService.test.ts (62), integration (13), MockDataService.provisioning (8), schemas (8), NotificationService.provisioning (6)
+- Component (jsdom): ProvisioningStatus.test.tsx (8), AdminPanel.provisioning.test.tsx (8)
+
+**Jest config**: Root multi-project — `sp-services` (node) + `components` (jsdom)
+
+**Test utils**: `src/__tests__/test-utils.tsx` — `renderWithProviders` with FluentProvider + MemoryRouter + AppProvider
+
+**Run commands**:
+- `npx jest` — all 338 tests across both projects
+- `npx jest --selectProjects components` — UI tests only (16)
+- `npx jest --selectProjects sp-services` — service tests only (322)
+
+```mermaid
+graph TD
+  ROOT[jest.config.js — Multi-Project Root]
+  ROOT --> SP[sp-services — node env]
+  ROOT --> UI[components — jsdom env]
+
+  SP --> PS[ProvisioningService.test.ts — 62]
+  SP --> INT[integration.test.ts — 13]
+  SP --> MOCK[MockDataService.provisioning — 8]
+  SP --> SCH[projectListSchemas.test.ts — 8]
+  SP --> NS[NotificationService.provisioning — 6]
+
+  UI --> PSV[ProvisioningStatus.test.tsx — 8]
+  UI --> AP[AdminPanel.provisioning.test.tsx — 8]
+
+  UI -.-> UTILS[test-utils.tsx]
+  UTILS -.-> SETUP[setup.ts — jest-dom + matchMedia]
+```
 
 ---
 
