@@ -33,6 +33,7 @@ import { IStandardCostCode } from '../models/IStandardCostCode';
 import { IBuyoutEntry } from '../models/IBuyoutEntry';
 import { ICommitmentApproval } from '../models/ICommitmentApproval';
 import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType } from '../models/IActiveProject';
+import { IProjectDataMart, IDataMartSyncResult, IDataMartFilter } from '../models/IProjectDataMart';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
@@ -400,6 +401,12 @@ export interface IDataService {
   updateHelpGuide(id: number, data: Partial<IHelpGuide>): Promise<IHelpGuide>;
   sendSupportEmail(to: string, subject: string, htmlBody: string, fromUserEmail: string): Promise<void>;
   updateSupportConfig(config: Partial<ISupportConfig>): Promise<ISupportConfig>;
+
+  // Project Data Mart
+  syncToDataMart(projectCode: string): Promise<IDataMartSyncResult>;
+  getDataMartRecords(filters?: IDataMartFilter): Promise<IProjectDataMart[]>;
+  getDataMartRecord(projectCode: string): Promise<IProjectDataMart | null>;
+  triggerDataMartSync(): Promise<IDataMartSyncResult[]>;
 
   // Project site URL targeting (Phase 26)
   setProjectSiteUrl(siteUrl: string | null): void;

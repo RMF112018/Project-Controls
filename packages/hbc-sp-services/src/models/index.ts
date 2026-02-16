@@ -45,3 +45,4 @@ export * from './IAssignmentMapping';
 export * from './IPerformanceLog';
 export * from './IHelpGuide';
 export * from './ISignalRMessage';
+export * from './IProjectDataMart';

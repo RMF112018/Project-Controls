@@ -1700,3 +1700,67 @@ export const HELP_GUIDES_COLUMNS = {
   lastModifiedBy: 'LastModifiedBy',            // SP: Single Line of Text
   lastModifiedDate: 'LastModifiedDate',        // SP: DateTime
 } as const;
+
+// ════════════════════════════════════════════════════════════════════════════
+// ──── Project Data Mart ────
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * List: Project_Data_Mart (Hub Site)
+ * Interface: IProjectDataMart
+ * Denormalized aggregation of operational data from 8+ project-site lists
+ */
+export const PROJECT_DATA_MART_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  // ── Core Identity (6) ──
+  projectCode: 'ProjectCode',                  // SP: Single Line of Text (key)
+  jobNumber: 'JobNumber',                      // SP: Single Line of Text
+  projectName: 'Title',                        // SP: Single Line of Text (default)
+  status: 'Status',                            // SP: Choice (ProjectStatus)
+  sector: 'Sector',                            // SP: Choice (SectorType)
+  region: 'Region',                            // SP: Single Line of Text
+  // ── Team (6) ──
+  projectExecutive: 'ProjectExecutive',        // SP: Single Line of Text
+  projectExecutiveEmail: 'ProjectExecutiveEmail', // SP: Single Line of Text
+  leadPM: 'LeadPM',                            // SP: Single Line of Text
+  leadPMEmail: 'LeadPMEmail',                  // SP: Single Line of Text
+  leadSuperintendent: 'LeadSuperintendent',    // SP: Single Line of Text
+  leadSuperintendentEmail: 'LeadSuperintendentEmail', // SP: Single Line of Text
+  // ── Financials (10) ──
+  originalContract: 'OriginalContract',        // SP: Currency
+  changeOrders: 'ChangeOrders',                // SP: Currency
+  currentContractValue: 'CurrentContractValue', // SP: Currency
+  billingsToDate: 'BillingsToDate',            // SP: Currency
+  unbilledAmount: 'UnbilledAmount',            // SP: Currency
+  projectedFee: 'ProjectedFee',               // SP: Currency
+  projectedFeePct: 'ProjectedFeePct',          // SP: Number
+  buyoutCommittedTotal: 'BuyoutCommittedTotal', // SP: Currency
+  buyoutExecutedCount: 'BuyoutExecutedCount',  // SP: Number
+  buyoutOpenCount: 'BuyoutOpenCount',          // SP: Number
+  // ── Schedule (5) ──
+  startDate: 'StartDate',                      // SP: DateTime
+  substantialCompletionDate: 'SubstantialCompletionDate', // SP: DateTime
+  percentComplete: 'PercentComplete',          // SP: Number
+  criticalPathItemCount: 'CriticalPathItemCount', // SP: Number
+  scheduleDaysVariance: 'ScheduleDaysVariance', // SP: Number
+  // ── Risk & Quality (6) ──
+  openQualityConcerns: 'OpenQualityConcerns',  // SP: Number
+  openSafetyConcerns: 'OpenSafetyConcerns',    // SP: Number
+  averageQScore: 'AverageQScore',              // SP: Number
+  openWaiverCount: 'OpenWaiverCount',          // SP: Number
+  pendingCommitments: 'PendingCommitments',    // SP: Number
+  complianceStatus: 'ComplianceStatus',        // SP: Choice (Green/Yellow/Red)
+  // ── Health & Alerts (4) ──
+  overallHealth: 'OverallHealth',              // SP: Choice (Green/Yellow/Red)
+  hasUnbilledAlert: 'HasUnbilledAlert',        // SP: Yes/No
+  hasScheduleAlert: 'HasScheduleAlert',        // SP: Yes/No
+  hasFeeErosionAlert: 'HasFeeErosionAlert',    // SP: Yes/No
+  // ── Status Tracking (4) ──
+  monthlyReviewStatus: 'MonthlyReviewStatus',  // SP: Single Line of Text
+  lastMonthlyReviewDate: 'LastMonthlyReviewDate', // SP: DateTime
+  turnoverStatus: 'TurnoverStatus',            // SP: Single Line of Text
+  pmpStatus: 'PmpStatus',                      // SP: Single Line of Text
+  // ── Meta (2) ──
+  lastSyncDate: 'LastSyncDate',                // SP: DateTime
+  lastSyncBy: 'LastSyncBy',                    // SP: Single Line of Text
+} as const;

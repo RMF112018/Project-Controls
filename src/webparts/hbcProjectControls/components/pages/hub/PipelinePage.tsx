@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Button, Select } from '@fluentui/react-components';
 import { useLeads } from '../../hooks/useLeads';
 import { useGoNoGo } from '../../hooks/useGoNoGo';
+import { useDataMart } from '../../hooks/useDataMart';
 import { useAppContext } from '../../contexts/AppContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import { PageHeader } from '../../shared/PageHeader';
@@ -56,6 +57,7 @@ export const PipelinePage: React.FC = () => {
   const { hasPermission, isFeatureEnabled } = useAppContext();
   const { activeSectors } = useSectorDefinitions();
   const { leads, totalCount, isLoading, fetchLeads } = useLeads();
+  const { healthDistribution, fetchRecords: fetchDataMart } = useDataMart();
   const { isMobile } = useResponsive();
 
   // Pipeline tab state
@@ -80,7 +82,8 @@ export const PipelinePage: React.FC = () => {
   React.useEffect(() => {
     fetchLeads().catch(console.error);
     fetchScorecards().catch(console.error);
-  }, [fetchLeads, fetchScorecards]);
+    fetchDataMart().catch(console.error);
+  }, [fetchLeads, fetchScorecards, fetchDataMart]);
 
   const handleSort = (field: string): void => {
     if (sortField === field) {
@@ -450,6 +453,30 @@ export const PipelinePage: React.FC = () => {
               <KPICard title="Leads This Month" value={kpis.thisMonth} subtitle={new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} />
               <KPICard title="Win Rate" value={formatPercent(kpis.winRate)} subtitle="GO / (GO + Archived)" />
             </div>
+
+            {/* Portfolio Health Badge */}
+            {(healthDistribution.Green + healthDistribution.Yellow + healthDistribution.Red) > 0 && (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '12px',
+                padding: '8px 16px', marginBottom: '24px',
+                backgroundColor: '#fff', borderRadius: '8px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: `1px solid ${HBC_COLORS.gray200}`,
+              }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: HBC_COLORS.navy }}>Portfolio Health</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: HBC_COLORS.success, display: 'inline-block' }} />
+                  <span style={{ fontSize: '13px', fontWeight: 600 }}>{healthDistribution.Green}</span>
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: HBC_COLORS.warning, display: 'inline-block' }} />
+                  <span style={{ fontSize: '13px', fontWeight: 600 }}>{healthDistribution.Yellow}</span>
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: HBC_COLORS.error, display: 'inline-block' }} />
+                  <span style={{ fontSize: '13px', fontWeight: 600 }}>{healthDistribution.Red}</span>
+                </span>
+              </div>
+            )}
 
             {/* Pipeline Chart */}
             <div style={{ marginBottom: '24px' }}>

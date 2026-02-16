@@ -76,6 +76,8 @@ export function useRiskCostManagement(): IUseRiskCostManagementResult {
     const refreshed = await dataService.getRiskCostManagement(projectCode);
     setData(refreshed);
     broadcastRiskCostChange(created.id, 'created', 'Risk/cost item added');
+    // Fire-and-forget — sync Data Mart after risk/cost item added
+    dataService.syncToDataMart(projectCode).catch(() => { /* silent */ });
     return created;
   }, [dataService, broadcastRiskCostChange]);
 
@@ -84,6 +86,8 @@ export function useRiskCostManagement(): IUseRiskCostManagementResult {
     const refreshed = await dataService.getRiskCostManagement(projectCode);
     setData(refreshed);
     broadcastRiskCostChange(itemId, 'updated', 'Risk/cost item updated');
+    // Fire-and-forget — sync Data Mart after risk/cost item updated
+    dataService.syncToDataMart(projectCode).catch(() => { /* silent */ });
     return updated;
   }, [dataService, broadcastRiskCostChange]);
 
