@@ -21,7 +21,6 @@ import {
   getStageScreens,
   getStageLabel
 } from '@hbc/sp-services';
-import { PermissionGate } from '../../guards';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { ProjectTeamPanel } from './ProjectTeamPanel';
 import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';

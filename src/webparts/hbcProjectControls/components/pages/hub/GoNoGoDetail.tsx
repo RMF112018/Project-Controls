@@ -6,7 +6,6 @@ import {
   GoNoGoDecision,
   calculateTotalScore,
   getScoreTierColor,
-  getScoreTierLabel
 } from '@hbc/sp-services';
 import * as React from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';

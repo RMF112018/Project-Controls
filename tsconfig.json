@@ -14,7 +14,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "lib",
-    "rootDir": ".",
+    "rootDir": "src",
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -39,8 +39,6 @@
       "@hooks/*": ["src/webparts/hbcProjectControls/components/hooks/*"],
       "@contexts/*": ["src/webparts/hbcProjectControls/components/contexts/*"],
       "@theme/*": ["src/webparts/hbcProjectControls/theme/*"],
-      "@hbc/sp-services": ["packages/hbc-sp-services/src/index.ts"],
-      "@hbc/sp-services/*": ["packages/hbc-sp-services/src/*"]
     },
     "types": [
       "jest",

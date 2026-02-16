@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { IToolAccess, PermissionLevel, TOOL_DEFINITIONS, TOOL_GROUPS, getToolsByGroup } from '@hbc/sp-services';
+import { IToolAccess, PermissionLevel, TOOL_GROUPS, getToolsByGroup } from '@hbc/sp-services';
 import { GranularFlagEditor } from './GranularFlagEditor';
 import { HBC_COLORS } from '../../theme/tokens';
 

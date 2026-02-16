@@ -1,5 +1,6 @@
 import { NotificationService } from '../NotificationService';
 import { IDataService } from '../IDataService';
+import { IHubNavigationService } from '../HubNavigationService';
 import { NotificationEvent, RoleName } from '../../models/enums';
 
 /**
@@ -136,15 +137,13 @@ describe('NotificationService — Provisioning Events', () => {
     ]);
 
     const mockHubNav = { addNavigationLink: jest.fn().mockResolvedValue(undefined), removeNavigationLink: jest.fn().mockResolvedValue(undefined), getNavigationLinks: jest.fn().mockResolvedValue([]) };
-    const notificationService = new NotificationService(provDs as unknown as IDataService);
-
     const provService = new ProvisioningService(
       provDs as unknown as IDataService,
-      mockHubNav as unknown as Parameters<typeof ProvisioningService.prototype.provisionSite>[0] extends never ? never : never,
-      notificationService,
-      undefined,
-      false, // dryRun
-      false, // useRealOps (simulation)
+      mockHubNav as unknown as IHubNavigationService,
+      undefined,  // powerAutomateService
+      undefined,  // offlineQueueService
+      false,      // usePowerAutomate
+      false,      // useRealOps (simulation)
     );
 
     const input = createTestInput();

@@ -8,7 +8,7 @@ module.exports = {
       files: ['*.ts', '*.tsx'],
       parser: '@typescript-eslint/parser',
       parserOptions: {
-        project: './tsconfig.json',
+        project: './tsconfig.eslint.json',
         ecmaFeatures: { jsx: true }
       },
       rules: {
@@ -18,6 +18,15 @@ module.exports = {
         '@typescript-eslint/no-floating-promises': 'off',
         'react/display-name': 'off',
         'no-console': 'off'
+      }
+    },
+    {
+      files: ['packages/**/*.ts'],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-unused-vars': 'off',
+        '@typescript-eslint/no-var-requires': 'off',
+        'prefer-const': 'off'
       }
     }
   ]

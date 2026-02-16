@@ -8,7 +8,6 @@ import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { StatusBadge } from '../../shared/StatusBadge';
 import {
   IProjectTeamAssignment,
-  IPermissionTemplate,
   IPersonAssignment,
   AuditAction,
   EntityType
@@ -23,7 +22,6 @@ export const ProjectTeamPanel: React.FC<IProjectTeamPanelProps> = ({ projectCode
   const { dataService, currentUser, hasPermission } = useAppContext();
   const {
     templates,
-    loading,
     fetchTemplates,
     getProjectTeam,
     assignToProject,

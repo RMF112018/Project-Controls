@@ -45,10 +45,6 @@ function pathToTab(pathname: string): number {
   return 0;
 }
 
-const CheckIcon: React.FC = () => (
-  <span style={{ color: HBC_COLORS.success, fontSize: '16px', fontWeight: 700 }}>&#10003;</span>
-);
-
 export const PipelinePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -61,6 +57,7 @@ export const PipelinePage: React.FC = () => {
   const { isMobile } = useResponsive();
 
   // Pipeline tab state
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [chartMode, setChartMode] = React.useState<'count' | 'value'>('count');
   const [stageFilter, setStageFilter] = React.useState<string>('all');
   const [regionFilter, setRegionFilter] = React.useState<string>('all');

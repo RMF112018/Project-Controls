@@ -1,23 +1,18 @@
 import {
   buildBreadcrumbs,
   PERMISSIONS,
-  ExportService,
   IGoNoGoScorecard as IScorecardModel,
   SCORECARD_CRITERIA,
   IScorecardCriterion,
-  IScorecardVersion,
   IPersonAssignment,
   ILead,
   GoNoGoDecision,
   ScorecardStatus,
-  RoleName,
   Stage,
   NotificationEvent,
   AuditAction,
   EntityType,
   calculateTotalScore,
-  getScoreTier,
-  getScoreTierLabel,
   getScoreTierColor,
   isScorecardComplete,
   getCompletionPercentage
@@ -84,12 +79,12 @@ export const GoNoGoScorecard: React.FC = () => {
   const {
     getScorecardByLeadId, createScorecard, updateScorecard,
     submitScorecard, respondToSubmission,
-    enterCommitteeScores, recommendedDecision, computeRecommendation,
+    enterCommitteeScores, recommendedDecision,
     recordDecision,
     rejectScorecard, archiveScorecard,
     canUnlock, unlockScorecard, relockScorecard,
-    versions, currentVersion, loadVersions,
-    scorecardStatus, isLocked, canEdit, canSubmit, canReview, canReviewDirector, canReviewCommittee,
+    loadVersions,
+    scorecardStatus, canEdit, canSubmit, canReviewDirector, canReviewCommittee,
     canEnterCommitteeScores, canDecide, canArchive,
   } = useGoNoGo();
   const { getLeadById, updateLead } = useLeads();
@@ -113,7 +108,7 @@ export const GoNoGoScorecard: React.FC = () => {
   const [conditionalConditions, setConditionalConditions] = React.useState('');
   const [showUnlockDialog, setShowUnlockDialog] = React.useState(false);
   const [unlockReason, setUnlockReason] = React.useState('');
-  const [showRelockOptions, setShowRelockOptions] = React.useState(false);
+  const [, setShowRelockOptions] = React.useState(false);
   const [showVersionHistory, setShowVersionHistory] = React.useState(false);
   const [showNoGoConfirm, setShowNoGoConfirm] = React.useState(false);
   const [showGoConfirm, setShowGoConfirm] = React.useState(false);
@@ -191,7 +186,6 @@ export const GoNoGoScorecard: React.FC = () => {
 
   const origTotal = calculateTotalScore(scores, 'originator');
   const cmteTotal = calculateTotalScore(scores, 'committee');
-  const origComplete = isScorecardComplete(scores, 'originator');
   const cmteComplete = isScorecardComplete(scores, 'committee');
   const origPct = getCompletionPercentage(scores, 'originator');
   const cmtePct = getCompletionPercentage(scores, 'committee');
@@ -524,7 +518,7 @@ export const GoNoGoScorecard: React.FC = () => {
           </div>
           {returnedStep.comment && (
             <div style={{ marginTop: '8px', padding: '8px 12px', backgroundColor: '#fff', borderRadius: '4px', color: HBC_COLORS.gray700 }}>
-              "{returnedStep.comment}"
+              &quot;{returnedStep.comment}&quot;
             </div>
           )}
         </div>
@@ -1408,7 +1402,7 @@ export const GoNoGoScorecard: React.FC = () => {
               Reject Scorecard
             </h3>
             <p style={{ fontSize: '13px', color: HBC_COLORS.gray600, marginBottom: '16px' }}>
-              This will permanently reject "{lead.Title}". The BD Rep can choose to revise and resubmit or archive the scorecard.
+              This will permanently reject &quot;{lead.Title}&quot;. The BD Rep can choose to revise and resubmit or archive the scorecard.
             </p>
             <label style={labelStyle}>Reason for Rejection *</label>
             <Textarea

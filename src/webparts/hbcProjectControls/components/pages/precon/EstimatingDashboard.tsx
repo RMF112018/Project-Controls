@@ -12,7 +12,6 @@ import {
   exportService,
   formatCurrency,
   formatCurrencyCompact,
-  formatDate,
   formatPercent,
   getDaysUntil,
   getUrgencyColor
@@ -27,7 +26,6 @@ import { RoleGate } from '../../guards/RoleGate';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { KPICard } from '../../shared/KPICard';
-import { StatusBadge } from '../../shared/StatusBadge';
 import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { HBC_COLORS } from '../../../theme/tokens';

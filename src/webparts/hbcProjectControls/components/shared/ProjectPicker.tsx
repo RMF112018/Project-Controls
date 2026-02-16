@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useLeads } from '../hooks/useLeads';
 import { useAppContext, ISelectedProject } from '../contexts/AppContext';
-import { StatusBadge } from './StatusBadge';
 import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
 import { Stage, getStageLabel, isActiveStage } from '@hbc/sp-services';
 

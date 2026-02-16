@@ -81,10 +81,10 @@ const BREADCRUMB_ITEMS = [
 export const ApplicationSupportPage: React.FC = () => {
   const styles = useStyles();
   const { dataService, currentUser } = useAppContext();
-  const { guides, isLoading: guidesLoading, refreshGuides } = useHelp();
+  const { guides, isLoading: guidesLoading } = useHelp();
   const { addToast } = useToast();
 
-  const [config, setConfig] = React.useState<ISupportConfig | null>(null);
+  const [, setConfig] = React.useState<ISupportConfig | null>(null);
   const [isLoadingConfig, setIsLoadingConfig] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
 

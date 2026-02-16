@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { useAppContext } from '../../contexts/AppContext';
 import { useJobNumberRequest } from '../../hooks/useJobNumberRequest';
@@ -13,11 +12,8 @@ import {
   ILead,
   NotificationService,
   ProvisioningService,
-  MockHubNavigationService,
-  buildBreadcrumbs
+  MockHubNavigationService
 } from '@hbc/sp-services';
-import { Breadcrumb } from '../../shared/Breadcrumb';
-
 const PROJECT_CODE_REGEX = /^\d{2}-\d{3}-\d{2}$/;
 
 export const AccountingQueuePage: React.FC = () => {
@@ -32,11 +28,9 @@ export const AccountingQueuePage: React.FC = () => {
 };
 
 const AccountingQueueContent: React.FC = () => {
-  const location = useLocation();
-  const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { dataService, currentUser, isFeatureEnabled } = useAppContext();
   const { requests, fetchRequests, finalizeJobNumber } = useJobNumberRequest();
-  const { leads, fetchLeads, getLeadById } = useLeads();
+  const { leads, fetchLeads } = useLeads();
   const [leadsMap, setLeadsMap] = React.useState<Record<number, ILead>>({});
   const [expandedId, setExpandedId] = React.useState<number | null>(null);
   const [jobNumberInputs, setJobNumberInputs] = React.useState<Record<number, string>>({});
@@ -200,7 +194,7 @@ const AccountingQueueContent: React.FC = () => {
             <span>Required By</span>
             <span>Type</span>
             <span>Status</span>
-            <span></span>
+            <span />
           </div>
 
           {filteredRequests.map(req => {
