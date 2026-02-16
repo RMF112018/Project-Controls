@@ -33,7 +33,7 @@
     "@fluentui/react-components": "^9.46.0",
     "@fluentui/react-icons": "2.0.319",
     "@hbc/sp-services": "*",
-    "@microsoft/signalr": "^8.0.17",
+    "@microsoft/signalr": "^10.0.0",
     "@microsoft/sp-core-library": "1.21.1",
     "@microsoft/sp-lodash-subset": "1.21.1",
     "@microsoft/sp-office-ui-fabric-core": "1.21.1",
