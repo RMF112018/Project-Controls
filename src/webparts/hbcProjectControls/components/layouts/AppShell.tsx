@@ -13,7 +13,8 @@ import { useResponsive } from '../hooks/useResponsive';
 import { useCurrentModule } from '../hooks/useCurrentModule';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import { IEnvironmentConfig, APP_VERSION } from '@hbc/sp-services';
-import { HBC_COLORS, SPACING, ELEVATION } from '../../theme/tokens';
+import { ArrowMaximize24Regular, ArrowMinimize24Regular } from '@fluentui/react-icons';
+import { HBC_COLORS, SPACING, ELEVATION, TRANSITION } from '../../theme/tokens';
 
 const useStyles = makeStyles({
   root: {
@@ -147,6 +148,35 @@ const useStyles = makeStyles({
   mainMobile: {
     ...shorthands.padding(SPACING.md),
   },
+  // Full-screen mode
+  rootFullScreen: {
+    position: 'fixed',
+    top: '0',
+    left: '0',
+    right: '0',
+    bottom: '0',
+    zIndex: 10000,
+    backgroundColor: tokens.colorNeutralBackground2,
+    transitionProperty: 'all',
+    transitionDuration: TRANSITION.normal,
+  },
+  headerFullScreen: {
+    height: '40px',
+  },
+  fullScreenBtn: {
+    ...shorthands.border('0'),
+    backgroundColor: 'transparent',
+    color: '#fff',
+    cursor: 'pointer',
+    ...shorthands.padding('4px'),
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shorthands.borderRadius('4px'),
+    ':hover': {
+      backgroundColor: 'rgba(255,255,255,0.15)',
+    },
+  },
 });
 
 const ENV_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -167,12 +197,12 @@ interface IAppShellProps {
 
 export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
   const styles = useStyles();
-  const { isLoading, error, currentUser, dataService, isFeatureEnabled } = useAppContext();
+  const { isLoading, error, currentUser, dataService, isFeatureEnabled, isFullScreen, toggleFullScreen, exitFullScreen } = useAppContext();
   const { isMobile, isTablet } = useResponsive();
   const { setCurrentModuleKey, isHelpPanelOpen, helpPanelMode, startTour: startHelpTour, isTourActive } = useHelp();
   const currentModuleKey = useCurrentModule();
 
-  // Shift+? keyboard shortcut to start guided tour
+  // Keyboard shortcuts
   useKeyboardShortcut([
     {
       key: '?',
@@ -182,6 +212,18 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           startHelpTour(currentModuleKey);
         }
       },
+    },
+    {
+      key: 'f',
+      ctrlKey: true,
+      shiftKey: true,
+      handler: toggleFullScreen,
+      ignoreInputs: false,
+    },
+    {
+      key: 'Escape',
+      handler: () => { if (isFullScreen) exitFullScreen(); },
+      ignoreInputs: false,
     },
   ]);
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
@@ -231,14 +273,14 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
   const sidebarWidth = isMobile ? 0 : isTablet ? 48 : 220;
 
   return (
-    <div className={styles.root}>
+    <div className={mergeClasses(styles.root, isFullScreen && styles.rootFullScreen)}>
       {/* Skip to main content — accessibility */}
       <a href="#hbc-main-content" className={mergeClasses('hbc-skip-link', styles.skipLink)}>
         Skip to main content
       </a>
 
       {/* Header */}
-      <header data-print-hide role="banner" className={styles.header}>
+      <header data-print-hide role="banner" className={mergeClasses(styles.header, isFullScreen && styles.headerFullScreen)}>
         <div className={styles.headerLeft}>
           {isMobile && (
             <button onClick={() => setMobileNavOpen(!mobileNavOpen)} className={styles.hamburger}>
@@ -263,6 +305,14 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
         {!isMobile && <SearchBar />}
 
         <div className={styles.headerRight}>
+          <button
+            onClick={toggleFullScreen}
+            className={styles.fullScreenBtn}
+            aria-label={isFullScreen ? 'Exit full screen (Esc)' : 'Enter full screen (Ctrl+Shift+F)'}
+            title={isFullScreen ? 'Exit full screen (Esc)' : 'Enter full screen (Ctrl+Shift+F)'}
+          >
+            {isFullScreen ? <ArrowMinimize24Regular /> : <ArrowMaximize24Regular />}
+          </button>
           <FeatureGate featureName="EnableHelpSystem">
             <HelpMenu />
           </FeatureGate>
@@ -278,7 +328,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
 
       <div className={styles.body}>
         {/* Mobile nav overlay */}
-        {isMobile && mobileNavOpen && (
+        {!isFullScreen && isMobile && mobileNavOpen && (
           <>
             <div className={styles.mobileOverlay} onClick={() => setMobileNavOpen(false)} />
             <div className={styles.mobileNav}>
@@ -287,8 +337,8 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           </>
         )}
 
-        {/* Desktop/Tablet sidebar */}
-        {!isMobile && (
+        {/* Desktop/Tablet sidebar — hidden in full-screen */}
+        {!isFullScreen && !isMobile && (
           <nav
             data-print-hide
             aria-label="Main navigation"

@@ -9,6 +9,7 @@ import {
   DEFAULT_HUB_SITE_URL,
   performanceService,
 } from '@hbc/sp-services';
+import { useFullScreen } from '../hooks/useFullScreen';
 
 export interface ISelectedProject {
   projectCode: string;
@@ -32,6 +33,9 @@ export interface IAppContextValue {
   isFeatureEnabled: (featureName: string) => boolean;
   resolvedPermissions: IResolvedPermissions | null;
   isProjectSite: boolean;
+  isFullScreen: boolean;
+  toggleFullScreen: () => void;
+  exitFullScreen: () => void;
 }
 
 const AppContext = React.createContext<IAppContextValue | undefined>(undefined);
@@ -59,6 +63,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, siteUrl,
   }, [siteUrl]);
 
   const isProjectSite = !siteContext.isHubSite && !!siteContext.projectCode;
+  const { isFullScreen, toggleFullScreen, exitFullScreen } = useFullScreen();
 
   // Guard: cannot clear project on project-specific sites
   const handleSetSelectedProject = React.useCallback((project: ISelectedProject | null) => {
@@ -199,7 +204,10 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, siteUrl,
     isFeatureEnabled,
     resolvedPermissions,
     isProjectSite,
-  }), [dataService, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite]);
+    isFullScreen,
+    toggleFullScreen,
+    exitFullScreen,
+  }), [dataService, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isFullScreen, toggleFullScreen, exitFullScreen]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

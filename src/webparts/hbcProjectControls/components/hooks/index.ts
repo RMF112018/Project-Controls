@@ -41,3 +41,5 @@ export { useCurrentModule } from './useCurrentModule';
 export { useAppStateSummary } from './useAppStateSummary';
 export { useSignalR } from './useSignalR';
 export type { IUseSignalROptions, IUseSignalRResult } from './useSignalR';
+export { useFullScreen } from './useFullScreen';
+export type { IUseFullScreenResult } from './useFullScreen';
