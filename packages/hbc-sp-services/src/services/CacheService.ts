@@ -63,6 +63,26 @@ export class CacheService {
     }
   }
 
+  removeByPrefix(prefix: string): void {
+    for (const key of this.memoryCache.keys()) {
+      if (key.startsWith(prefix)) {
+        this.memoryCache.delete(key);
+      }
+    }
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && key.startsWith(prefix)) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => sessionStorage.removeItem(k));
+    } catch {
+      // Ignore
+    }
+  }
+
   clear(): void {
     this.memoryCache.clear();
     try {

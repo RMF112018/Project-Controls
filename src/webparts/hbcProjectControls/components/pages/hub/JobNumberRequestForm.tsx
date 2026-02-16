@@ -228,7 +228,7 @@ export const JobNumberRequestForm: React.FC = () => {
     fetchReferenceData().catch(console.error);
   };
 
-  if (isLeadSelection) {
+  if (isLeadSelection && !lead) {
     // No-lead manual entry mode
     if (noLeadMode) {
       return (

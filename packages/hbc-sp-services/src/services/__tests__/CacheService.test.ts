@@ -66,6 +66,44 @@ describe('CacheService', () => {
       expect(service.get('key1')).toBeNull();
     });
 
+    it('removeByPrefix removes matching keys and leaves non-matching intact', () => {
+      service.set('hbc_active_projects', 'a');
+      service.set('hbc_active_projects_status_Construction', 'b');
+      service.set('hbc_active_projects_id_42', 'c');
+      service.set('hbc_portfolio_summary', 'd');
+      service.set('hbc_data_mart', 'e');
+
+      service.removeByPrefix('hbc_active_projects');
+
+      expect(service.get('hbc_active_projects')).toBeNull();
+      expect(service.get('hbc_active_projects_status_Construction')).toBeNull();
+      expect(service.get('hbc_active_projects_id_42')).toBeNull();
+      // Non-matching keys should remain
+      expect(service.get('hbc_portfolio_summary')).toBe('d');
+      expect(service.get('hbc_data_mart')).toBe('e');
+    });
+
+    it('removeByPrefix also clears matching keys from sessionStorage', () => {
+      service.set('hbc_assignments_user_a@test.com', 'x');
+      service.set('hbc_assignments_user_b@test.com', 'y');
+      service.set('hbc_accessible_projects_a@test.com', 'z');
+
+      // Verify in sessionStorage
+      expect(mockStorage['hbc_assignments_user_a@test.com']).toBeDefined();
+      expect(mockStorage['hbc_assignments_user_b@test.com']).toBeDefined();
+
+      service.removeByPrefix('hbc_assignments');
+
+      // Memory cache cleared
+      expect(service.get('hbc_assignments_user_a@test.com')).toBeNull();
+      expect(service.get('hbc_assignments_user_b@test.com')).toBeNull();
+      // sessionStorage cleared
+      expect(mockStorage['hbc_assignments_user_a@test.com']).toBeUndefined();
+      expect(mockStorage['hbc_assignments_user_b@test.com']).toBeUndefined();
+      // Non-matching should remain
+      expect(service.get('hbc_accessible_projects_a@test.com')).toBe('z');
+    });
+
     it('clear removes all entries', () => {
       service.set('hbc_key1', 'a');
       service.set('hbc_key2', 'b');

@@ -2,6 +2,7 @@ export type { IDataService, IListQueryOptions, IPagedResult, IActiveProjectsQuer
 export { MockDataService } from './MockDataService';
 export { SharePointDataService } from './SharePointDataService';
 export { CacheService, cacheService } from './CacheService';
+export { DataServiceError } from './DataServiceError';
 export { AuditService } from './AuditService';
 export { ExportService, exportService } from './ExportService';
 export type { IExportOptions } from './ExportService';
