@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { HBC_COLORS, SPACING } from '../../theme/tokens';
-import { IProvisioningLog, ProvisioningStatus as ProvStatus, PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS } from '@hbc/sp-services';
+import { IProvisioningLog, ProvisioningStatus as ProvStatus, PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS, EntityType } from '@hbc/sp-services';
 import { useAppContext } from '../contexts/AppContext';
+import { useSignalR } from '../hooks/useSignalR';
 import { LoadingSpinner } from './LoadingSpinner';
 
 export interface IProvisioningStatusProps {
@@ -13,6 +14,8 @@ export interface IProvisioningStatusProps {
   /** Compact mode for inline display */
   compact?: boolean;
 }
+
+const POLL_INTERVAL_SIGNALR = 5000; // 5 seconds backup when SignalR connected
 
 function getStatusColor(status: ProvStatus): string {
   switch (status) {
@@ -54,6 +57,21 @@ export function ProvisioningStatusView({
   const [log, setLog] = React.useState<IProvisioningLog | null>(externalLog ?? null);
   const [loading, setLoading] = React.useState(!externalLog);
 
+  const fetchStatus = React.useCallback(async () => {
+    const result = await dataService.getProvisioningStatus(projectCode);
+    setLog(result);
+    setLoading(false);
+  }, [dataService, projectCode]);
+
+  // SignalR: refresh on Project entity changes — relax polling when connected
+  const { isEnabled: signalRConnected } = useSignalR({
+    entityType: EntityType.Project,
+    projectCode,
+    onEntityChanged: React.useCallback(() => { fetchStatus().catch(console.error); }, [fetchStatus]),
+  });
+
+  const effectivePollInterval = signalRConnected ? POLL_INTERVAL_SIGNALR : pollInterval;
+
   React.useEffect(() => {
     if (externalLog) {
       setLog(externalLog);
@@ -62,7 +80,7 @@ export function ProvisioningStatusView({
 
     let cancelled = false;
 
-    const fetchStatus = async (): Promise<void> => {
+    const doFetch = async (): Promise<void> => {
       const result = await dataService.getProvisioningStatus(projectCode);
       if (!cancelled) {
         setLog(result);
@@ -70,18 +88,18 @@ export function ProvisioningStatusView({
       }
     };
 
-    fetchStatus().catch(console.error);
+    doFetch().catch(console.error);
 
-    if (pollInterval > 0) {
+    if (effectivePollInterval > 0) {
       const interval = setInterval(() => {
-        fetchStatus().catch(console.error);
-      }, pollInterval);
+        doFetch().catch(console.error);
+      }, effectivePollInterval);
 
       return () => { cancelled = true; clearInterval(interval); };
     }
 
     return () => { cancelled = true; };
-  }, [projectCode, externalLog, pollInterval, dataService]);
+  }, [projectCode, externalLog, effectivePollInterval, dataService]);
 
   // Stop polling once completed or failed
   const isTerminal = log?.status === ProvStatus.Completed ||
@@ -89,17 +107,17 @@ export function ProvisioningStatusView({
     log?.status === ProvStatus.PartialFailure;
 
   React.useEffect(() => {
-    if (isTerminal || !log || externalLog || pollInterval <= 0) return;
+    if (isTerminal || !log || externalLog || effectivePollInterval <= 0) return;
 
     let cancelled = false;
     const interval = setInterval(async () => {
       if (cancelled) return;
       const result = await dataService.getProvisioningStatus(projectCode);
       if (!cancelled) setLog(result);
-    }, pollInterval);
+    }, effectivePollInterval);
 
     return () => { cancelled = true; clearInterval(interval); };
-  }, [isTerminal, log, externalLog, pollInterval, projectCode, dataService]);
+  }, [isTerminal, log, externalLog, effectivePollInterval, projectCode, dataService]);
 
   if (loading && !log) {
     return <LoadingSpinner label="Loading provisioning status..." />;

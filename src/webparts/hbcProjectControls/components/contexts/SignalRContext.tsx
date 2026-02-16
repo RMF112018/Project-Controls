@@ -2,11 +2,55 @@ import * as React from 'react';
 import { useAppContext } from './AppContext';
 import {
   signalRService,
+  cacheService,
   SignalRConnectionStatus,
   IEntityChangedMessage,
-  IWorkflowAdvancedMessage,
   SignalRMessage,
+  EntityType,
+  CACHE_KEYS,
 } from '@hbc/sp-services';
+
+/** Maps an EntityType to the cache key patterns that should be invalidated */
+function entityTypeToCacheKeys(entityType: EntityType, projectCode?: string): string[] {
+  const keys: string[] = [];
+
+  const map: Partial<Record<EntityType, string[]>> = {
+    [EntityType.Lead]: [CACHE_KEYS.LEADS],
+    [EntityType.Scorecard]: [CACHE_KEYS.SCORECARDS],
+    [EntityType.Estimate]: [CACHE_KEYS.ESTIMATES, CACHE_KEYS.KICKOFFS],
+    [EntityType.Project]: [CACHE_KEYS.PROJECTS, CACHE_KEYS.ACTIVE_PROJECTS],
+    [EntityType.Meeting]: [CACHE_KEYS.MEETINGS],
+    [EntityType.ProjectRecord]: [CACHE_KEYS.MARKETING_RECORDS],
+    [EntityType.Permission]: [CACHE_KEYS.PERMISSIONS],
+    [EntityType.PermissionTemplate]: [CACHE_KEYS.TEMPLATES],
+    [EntityType.ProjectTeamAssignment]: [CACHE_KEYS.PERMISSIONS],
+    [EntityType.Config]: [CACHE_KEYS.CONFIG, CACHE_KEYS.FEATURE_FLAGS, CACHE_KEYS.SECTORS],
+    [EntityType.WorkflowDefinition]: [CACHE_KEYS.WORKFLOWS],
+    [EntityType.AssignmentMapping]: [CACHE_KEYS.ASSIGNMENTS],
+    [EntityType.Quality]: [CACHE_KEYS.QUALITY],
+    [EntityType.Safety]: [CACHE_KEYS.SAFETY],
+    [EntityType.RiskCost]: [CACHE_KEYS.RISK_COST, CACHE_KEYS.BUYOUT],
+    [EntityType.Schedule]: [CACHE_KEYS.SCHEDULE],
+    [EntityType.SuperintendentPlan]: [CACHE_KEYS.SUPER_PLAN],
+    [EntityType.LessonLearned]: [CACHE_KEYS.LESSONS],
+    [EntityType.PMP]: [CACHE_KEYS.PMP],
+    [EntityType.MonthlyReview]: [CACHE_KEYS.MONTHLY_REVIEW],
+    [EntityType.Checklist]: [CACHE_KEYS.CHECKLIST],
+    [EntityType.Matrix]: [CACHE_KEYS.MATRIX],
+    [EntityType.TurnoverAgenda]: [CACHE_KEYS.TURNOVER],
+  };
+
+  const baseKeys = map[entityType];
+  if (baseKeys) {
+    keys.push(...baseKeys);
+    // Also invalidate project-scoped cache keys
+    if (projectCode) {
+      baseKeys.forEach(k => keys.push(`${k}_${projectCode}`));
+    }
+  }
+
+  return keys;
+}
 
 export interface ISignalRContextValue {
   connectionStatus: SignalRConnectionStatus;
@@ -71,6 +115,20 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
 
     prevProjectRef.current = newCode;
   }, [isEnabled, connectionStatus, selectedProject]);
+
+  // Cache invalidation: clear stale cache when entity changes arrive
+  React.useEffect(() => {
+    if (!isEnabled) return;
+
+    const unsubscribe = signalRService.subscribe('EntityChanged', (msg: SignalRMessage) => {
+      if (msg.type !== 'EntityChanged') return;
+      const entityMsg = msg as IEntityChangedMessage;
+      const keysToInvalidate = entityTypeToCacheKeys(entityMsg.entityType, entityMsg.projectCode);
+      keysToInvalidate.forEach(key => cacheService.remove(key));
+    });
+
+    return unsubscribe;
+  }, [isEnabled]);
 
   // Stable subscribe function
   const subscribe = React.useCallback(

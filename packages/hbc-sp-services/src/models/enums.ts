@@ -202,6 +202,8 @@ export enum AuditAction {
   PerformanceAlertTriggered = 'Performance.AlertTriggered',
   SupportEmailSent = 'Support.EmailSent',
   SupportConfigUpdated = 'Support.ConfigUpdated',
+  DataMartSynced = 'DataMart.Synced',
+  DataMartSyncFailed = 'DataMart.SyncFailed',
 }
 
 export enum EntityType {
@@ -227,9 +229,11 @@ export enum EntityType {
   PermissionTemplate = 'PermissionTemplate',
   ProjectTeamAssignment = 'ProjectTeamAssignment',
   AssignmentMapping = 'AssignmentMapping',
+  Meeting = 'Meeting',
   GraphApi = 'GraphApi',
   Performance = 'Performance',
   SupportRequest = 'SupportRequest',
+  DataMart = 'DataMart',
 }
 
 export enum DeliverableStatus {

@@ -49,6 +49,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 ## §4 Core Architecture Patterns (Active)
 
 - **Data Service**: `IDataService` (229 methods) → `MockDataService` (full) + `SharePointDataService` (229/229 — COMPLETE)
+- **Data Mart**: Denormalized 43-column hub list aggregating 8+ project-site lists; fire-and-forget sync from hooks; `useDataMart` hook with SignalR refresh
 - **Hooks**: Feature-specific hooks call `dataService` methods in `useCallback`
 - **RBAC**: `resolveUserPermissions` → `PermissionGate` / `RoleGate` / `FeatureGate`
 - **Styling**: `makeStyles` (structure) + minimal inline (dynamic) + Fluent tokens + `HBC_COLORS`
@@ -66,6 +67,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 **Last Completed**:
 - Provisioning Ops (Feb 16): 8 new methods → 229/229
+- Data Mart (Feb 15): 4 methods (`syncToDataMart`, `getDataMartRecords`, `getDataMartRecord`, `triggerDataMartSync`) → 225/225
 - SP-13 (Feb 15): Action Inbox — 1 method → 221/221
 - SP-12 (Feb 15): Help & Support — 6 methods → 220/221
 - SP-11 (Feb 15): Performance Monitoring — 3 methods → 214/221
@@ -79,9 +81,9 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 **Phase COMPLETE**: Provisioning Operations — 229/229 methods implemented.
 
-All IDataService methods now have SharePoint REST implementations. 8 new provisioning operation methods added with real PnP.js implementations gated behind `ProvisioningRealOps` feature flag.
+All IDataService methods now have SharePoint REST implementations. 8 new provisioning operation methods added with real PnP.js implementations gated behind `ProvisioningRealOps` feature flag. The Data Mart feature adds a 43-column denormalized hub list (`Project_Data_Mart`) that aggregates data from 8+ project-site lists with fire-and-forget sync from hooks.
 
-**Next Phase**: UI completion, integration testing, and deployment readiness.
+**Next Phase**: Integration testing and deployment readiness.
 
 ## §15a Provisioning Workflows
 
@@ -112,6 +114,8 @@ All IDataService methods now have SharePoint REST implementations. 8 new provisi
 - Hub-site reference data (e.g. Division_Approvers, PMP_Boilerplate) uses `this.sp.web`.
 - After mutations that affect assemblies, always re-read + re-assemble (e.g. PMP, Monthly Review, Turnover Agenda).
 - `Turnover_Estimate_Overviews` is a new SP list — must be provisioned before feature goes live.
+- `Project_Data_Mart` is a new hub-site SP list (43 columns) — must be provisioned before Data Mart feature goes live.
+- Data Mart sync is fire-and-forget — never await in hooks; use `.catch(() => { /* silent */ })`.
 - Keep `CLAUDE.md` lean — archive old content aggressively.
 
 ---

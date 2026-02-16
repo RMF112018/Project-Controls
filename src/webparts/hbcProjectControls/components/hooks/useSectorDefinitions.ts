@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { ISectorDefinition } from '@hbc/sp-services';
+import { ISectorDefinition, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
+import { useSignalRContext } from '../contexts/SignalRContext';
+import { useSignalR } from './useSignalR';
 
 export interface IUseSectorDefinitions {
   sectors: ISectorDefinition[];
@@ -13,7 +15,8 @@ export interface IUseSectorDefinitions {
 }
 
 export function useSectorDefinitions(): IUseSectorDefinitions {
-  const { dataService, isFeatureEnabled } = useAppContext();
+  const { dataService, isFeatureEnabled, currentUser } = useAppContext();
+  const { broadcastChange } = useSignalRContext();
   const [sectors, setSectors] = React.useState<ISectorDefinition[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -36,6 +39,30 @@ export function useSectorDefinitions(): IUseSectorDefinitions {
     fetchSectors();
   }, [fetchSectors]);
 
+  // SignalR: refresh on Config entity changes from other users
+  useSignalR({
+    entityType: EntityType.Config,
+    onEntityChanged: React.useCallback(() => { fetchSectors(); }, [fetchSectors]),
+  });
+
+  // Helper to broadcast sector/config changes
+  const broadcastConfigChange = React.useCallback((
+    entityId: number | string,
+    action: IEntityChangedMessage['action'],
+    summary?: string
+  ) => {
+    broadcastChange({
+      type: 'EntityChanged',
+      entityType: EntityType.Config,
+      entityId: String(entityId),
+      action,
+      changedBy: currentUser?.email ?? 'unknown',
+      changedByName: currentUser?.displayName,
+      timestamp: new Date().toISOString(),
+      summary,
+    });
+  }, [broadcastChange, currentUser]);
+
   const activeSectors = React.useMemo(
     () => sectors.filter(s => s.isActive),
     [sectors]
@@ -44,14 +71,16 @@ export function useSectorDefinitions(): IUseSectorDefinitions {
   const createSector = React.useCallback(async (data: Partial<ISectorDefinition>) => {
     const result = await dataService.createSectorDefinition(data);
     await fetchSectors();
+    broadcastConfigChange(result.id, 'created', 'Sector definition created');
     return result;
-  }, [dataService, fetchSectors]);
+  }, [dataService, fetchSectors, broadcastConfigChange]);
 
   const updateSector = React.useCallback(async (id: number, data: Partial<ISectorDefinition>) => {
     const result = await dataService.updateSectorDefinition(id, data);
     await fetchSectors();
+    broadcastConfigChange(id, 'updated', 'Sector definition updated');
     return result;
-  }, [dataService, fetchSectors]);
+  }, [dataService, fetchSectors, broadcastConfigChange]);
 
   return {
     sectors,

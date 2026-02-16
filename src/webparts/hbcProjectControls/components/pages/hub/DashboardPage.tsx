@@ -42,6 +42,7 @@ import { useLeads } from '../../hooks/useLeads';
 import { useEstimating } from '../../hooks/useEstimating';
 import { useActionInbox } from '../../hooks/useActionInbox';
 import { useProvisioningTracker } from '../../hooks/useProvisioningTracker';
+import { useDataMart } from '../../hooks/useDataMart';
 import { usePersistedState } from '../../hooks/usePersistedState';
 import { useResponsive } from '../../hooks/useResponsive';
 import { PageHeader } from '../../shared/PageHeader';
@@ -75,6 +76,7 @@ export const DashboardPage: React.FC = () => {
   const { records, isLoading: estLoading, fetchRecords } = useEstimating();
   const { items: actionItems, loading: actionLoading, totalCount: actionTotal, urgentCount, refresh: refreshActions } = useActionInbox();
   const { logs: provLogs, isLoading: provLoading, summary: provSummary, refresh: refreshProvisioning } = useProvisioningTracker();
+  const { records: dataMartRecords, healthDistribution, alertCount, fetchRecords: fetchDataMart } = useDataMart();
   const { isMobile, isTablet } = useResponsive();
   const [showAllActions, setShowAllActions] = React.useState(false);
   const [showAllProv, setShowAllProv] = React.useState(false);
@@ -94,7 +96,8 @@ export const DashboardPage: React.FC = () => {
   React.useEffect(() => {
     fetchLeads().catch(console.error);
     fetchRecords().catch(console.error);
-  }, [fetchLeads, fetchRecords]);
+    fetchDataMart().catch(console.error);
+  }, [fetchLeads, fetchRecords, fetchDataMart]);
 
   // Filter options
   const years = React.useMemo(() => {
@@ -694,6 +697,49 @@ export const DashboardPage: React.FC = () => {
                 View Active Projects
               </button>
             </div>
+
+            {/* Portfolio Health from Data Mart */}
+            {dataMartRecords.length > 0 && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+                gap: '12px',
+                marginTop: '16px',
+              }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '12px 16px', backgroundColor: '#fff', borderRadius: '8px',
+                  boxShadow: ELEVATION.level1, borderLeft: `4px solid ${HBC_COLORS.success}`,
+                }}>
+                  <span style={{ fontSize: '24px', fontWeight: 700, color: HBC_COLORS.success }}>{healthDistribution.Green}</span>
+                  <span style={{ fontSize: '13px', color: HBC_COLORS.gray600 }}>Healthy</span>
+                </div>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '12px 16px', backgroundColor: '#fff', borderRadius: '8px',
+                  boxShadow: ELEVATION.level1, borderLeft: `4px solid ${HBC_COLORS.warning}`,
+                }}>
+                  <span style={{ fontSize: '24px', fontWeight: 700, color: HBC_COLORS.warning }}>{healthDistribution.Yellow}</span>
+                  <span style={{ fontSize: '13px', color: HBC_COLORS.gray600 }}>Caution</span>
+                </div>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '12px 16px', backgroundColor: '#fff', borderRadius: '8px',
+                  boxShadow: ELEVATION.level1, borderLeft: `4px solid ${HBC_COLORS.error}`,
+                }}>
+                  <span style={{ fontSize: '24px', fontWeight: 700, color: HBC_COLORS.error }}>{healthDistribution.Red}</span>
+                  <span style={{ fontSize: '13px', color: HBC_COLORS.gray600 }}>At Risk</span>
+                </div>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '12px 16px', backgroundColor: '#fff', borderRadius: '8px',
+                  boxShadow: ELEVATION.level1, borderLeft: `4px solid ${alertCount > 0 ? HBC_COLORS.orange : HBC_COLORS.gray300}`,
+                }}>
+                  <span style={{ fontSize: '24px', fontWeight: 700, color: alertCount > 0 ? HBC_COLORS.orange : HBC_COLORS.gray500 }}>{alertCount}</span>
+                  <span style={{ fontSize: '13px', color: HBC_COLORS.gray600 }}>Alerts</span>
+                </div>
+              </div>
+            )}
           </div>
         </RoleGate>
       </div>

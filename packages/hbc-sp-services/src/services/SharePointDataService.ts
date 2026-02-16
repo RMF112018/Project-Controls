@@ -26,6 +26,7 @@ import { IStandardCostCode } from '../models/IStandardCostCode';
 import { IBuyoutEntry, BuyoutStatus, EVerifyStatus } from '../models/IBuyoutEntry';
 import { ICommitmentApproval, CommitmentStatus, WaiverType, ApprovalStep } from '../models/ICommitmentApproval';
 import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType, DEFAULT_ALERT_THRESHOLDS } from '../models/IActiveProject';
+import { IProjectDataMart, IDataMartSyncResult, IDataMartFilter, DataMartHealthStatus } from '../models/IProjectDataMart';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep, IPersonAssignment, IAssignmentCondition } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverProjectHeader, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
@@ -99,6 +100,7 @@ import {
   PERFORMANCE_LOGS_COLUMNS,
   HELP_GUIDES_COLUMNS,
   TEMPLATE_REGISTRY_COLUMNS,
+  PROJECT_DATA_MART_COLUMNS,
 } from './columnMappings';
 import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
 import { getProjectListSchemas } from '../utils/projectListSchemas';
@@ -6868,6 +6870,309 @@ export class SharePointDataService implements IDataService {
     await this.sp.web.lists.getByTitle(LIST_NAMES.HELP_GUIDES).items.getById(id).update(updateData);
     const reRead = await this.sp.web.lists.getByTitle(LIST_NAMES.HELP_GUIDES).items.getById(id)();
     return this.mapToHelpGuide(reRead);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ──── Project Data Mart ────
+  // ═══════════════════════════════════════════════════════════════════
+
+  async syncToDataMart(projectCode: string): Promise<IDataMartSyncResult> {
+    const now = new Date().toISOString();
+    try {
+      // 1. Get project site URL from Active_Projects_Portfolio
+      const portfolioItems = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+        .items.filter(`ProjectCode eq '${projectCode}'`).top(1)();
+      if (portfolioItems.length === 0) {
+        return { projectCode, success: false, syncedAt: now, error: `Project ${projectCode} not found in portfolio` };
+      }
+      const portfolio = portfolioItems[0];
+
+      // 2. Read from project-site lists via _getProjectWeb()
+      const web = this._getProjectWeb();
+
+      const [
+        buyoutItems,
+        qualityItems,
+        safetyItems,
+        scheduleItems,
+        criticalPathItems,
+        reviewItems,
+        turnoverItems,
+        pmpItems,
+        teamRoles,
+      ] = await Promise.all([
+        web.lists.getByTitle(LIST_NAMES.BUYOUT_LOG).items.top(5000)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.QUALITY_CONCERNS).items.top(5000)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.SAFETY_CONCERNS).items.top(5000)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.PROJECT_SCHEDULE).items.top(1)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.CRITICAL_PATH_ITEMS).items.filter("Status eq 'Active'").top(5000)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.MONTHLY_REVIEWS).items.orderBy('MeetingDate', false).top(1)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.TURNOVER_AGENDAS).items.top(1)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.PMP).items.top(1)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.TEAM_ROLE_ASSIGNMENTS).items.top(5000)().catch(() => []),
+      ]);
+
+      // 3. Aggregate buyout data
+      const executedBuyouts = buyoutItems.filter((b: Record<string, unknown>) => b.Status === 'Executed');
+      const buyoutCommittedTotal = executedBuyouts.reduce((sum: number, b: Record<string, unknown>) => sum + ((b.ContractValue as number) || 0), 0);
+      const buyoutExecutedCount = executedBuyouts.length;
+      const buyoutOpenCount = buyoutItems.length - executedBuyouts.length;
+      const qScores = buyoutItems.filter((b: Record<string, unknown>) => b.QScore != null).map((b: Record<string, unknown>) => b.QScore as number);
+      const averageQScore = qScores.length > 0 ? qScores.reduce((s: number, v: number) => s + v, 0) / qScores.length : 0;
+      const openWaiverCount = buyoutItems.filter((b: Record<string, unknown>) => b.WaiverRequired && b.CommitmentStatus !== 'Committed').length;
+      const pendingCommitments = buyoutItems.filter((b: Record<string, unknown>) => b.CommitmentStatus !== 'Committed').length;
+
+      // 4. Quality/Safety counts
+      const openQualityConcerns = qualityItems.filter((c: Record<string, unknown>) => c.Status === 'Open' || c.Status === 'Monitoring').length;
+      const openSafetyConcerns = safetyItems.filter((c: Record<string, unknown>) => c.Status === 'Open' || c.Status === 'Monitoring').length;
+
+      // 5. Schedule data
+      const schedule = scheduleItems[0] as Record<string, unknown> | undefined;
+      const startDate = (schedule?.StartDate as string) || (portfolio.StartDate as string) || null;
+      const substantialCompletionDate = (schedule?.SubstantialCompletionDate as string) || (portfolio.SubstantialCompletionDate as string) || null;
+      const percentComplete = (schedule?.PercentComplete as number) || (portfolio.PercentComplete as number) || 0;
+      const criticalPathItemCount = criticalPathItems.length;
+      const scheduleDaysVariance = substantialCompletionDate
+        ? Math.round((new Date(substantialCompletionDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        : 0;
+
+      // 6. Latest monthly review
+      const latestReview = reviewItems[0] as Record<string, unknown> | undefined;
+      const monthlyReviewStatus = (latestReview?.Status as string) || '';
+      const lastMonthlyReviewDate = (latestReview?.MeetingDate as string) || null;
+
+      // 7. Turnover & PMP status
+      const turnover = turnoverItems[0] as Record<string, unknown> | undefined;
+      const turnoverStatus = (turnover?.Status as string) || '';
+      const pmp = pmpItems[0] as Record<string, unknown> | undefined;
+      const pmpStatus = (pmp?.Status as string) || '';
+
+      // 8. Team data
+      const findTeamMember = (role: string): { name: string; email: string } => {
+        const member = teamRoles.find((t: Record<string, unknown>) => t.Role === role);
+        return {
+          name: (member?.PersonName as string) || (portfolio[`Personnel${role}`] as string) || '',
+          email: (member?.PersonEmail as string) || (portfolio[`Personnel${role}Email`] as string) || '',
+        };
+      };
+      const px = findTeamMember('PX');
+      const pm = findTeamMember('PM');
+      const superRole = findTeamMember('Super');
+
+      // 9. Compute financials
+      const originalContract = (portfolio.OriginalContract as number) || 0;
+      const changeOrders = (portfolio.ChangeOrders as number) || 0;
+      const currentContractValue = (portfolio.CurrentContractValue as number) || (originalContract + changeOrders);
+      const billingsToDate = (portfolio.BillingsToDate as number) || 0;
+      const unbilledAmount = currentContractValue - billingsToDate;
+      const projectedFee = (portfolio.ProjectedFee as number) || 0;
+      const projectedFeePct = (portfolio.ProjectedFeePct as number) || 0;
+
+      // 10. Compute alerts
+      const unbilledPct = currentContractValue > 0 ? (unbilledAmount / currentContractValue) * 100 : 0;
+      const hasUnbilledAlert = unbilledPct >= DEFAULT_ALERT_THRESHOLDS.unbilledWarningPct;
+      const hasScheduleAlert = scheduleDaysVariance < -DEFAULT_ALERT_THRESHOLDS.scheduleDelayDays;
+      const hasFeeErosionAlert = projectedFeePct < DEFAULT_ALERT_THRESHOLDS.feeErosionPct;
+
+      // 11. Compute compliance status
+      const complianceStatus: DataMartHealthStatus =
+        openWaiverCount > 3 || averageQScore < 60 ? 'Red' :
+        openWaiverCount > 1 || averageQScore < 75 ? 'Yellow' : 'Green';
+
+      // 12. Compute overall health (worst-of-dimensions)
+      const dimensions: DataMartHealthStatus[] = [complianceStatus];
+      if (hasUnbilledAlert) dimensions.push('Red');
+      if (hasScheduleAlert) dimensions.push('Red');
+      if (hasFeeErosionAlert) dimensions.push('Yellow');
+      if (openQualityConcerns > 5 || openSafetyConcerns > 3) dimensions.push('Red');
+      else if (openQualityConcerns > 2 || openSafetyConcerns > 1) dimensions.push('Yellow');
+
+      const overallHealth: DataMartHealthStatus =
+        dimensions.includes('Red') ? 'Red' :
+        dimensions.includes('Yellow') ? 'Yellow' : 'Green';
+
+      // 13. Build SP item data
+      const col = PROJECT_DATA_MART_COLUMNS;
+      const spData: Record<string, unknown> = {
+        [col.projectCode]: projectCode,
+        [col.jobNumber]: (portfolio.JobNumber as string) || '',
+        [col.projectName]: (portfolio.Title as string) || '',
+        [col.status]: (portfolio.Status as string) || '',
+        [col.sector]: (portfolio.Sector as string) || '',
+        [col.region]: (portfolio.Region as string) || '',
+        [col.projectExecutive]: px.name,
+        [col.projectExecutiveEmail]: px.email,
+        [col.leadPM]: pm.name,
+        [col.leadPMEmail]: pm.email,
+        [col.leadSuperintendent]: superRole.name,
+        [col.leadSuperintendentEmail]: superRole.email,
+        [col.originalContract]: originalContract,
+        [col.changeOrders]: changeOrders,
+        [col.currentContractValue]: currentContractValue,
+        [col.billingsToDate]: billingsToDate,
+        [col.unbilledAmount]: unbilledAmount,
+        [col.projectedFee]: projectedFee,
+        [col.projectedFeePct]: projectedFeePct,
+        [col.buyoutCommittedTotal]: buyoutCommittedTotal,
+        [col.buyoutExecutedCount]: buyoutExecutedCount,
+        [col.buyoutOpenCount]: buyoutOpenCount,
+        [col.startDate]: startDate,
+        [col.substantialCompletionDate]: substantialCompletionDate,
+        [col.percentComplete]: percentComplete,
+        [col.criticalPathItemCount]: criticalPathItemCount,
+        [col.scheduleDaysVariance]: scheduleDaysVariance,
+        [col.openQualityConcerns]: openQualityConcerns,
+        [col.openSafetyConcerns]: openSafetyConcerns,
+        [col.averageQScore]: Math.round(averageQScore * 10) / 10,
+        [col.openWaiverCount]: openWaiverCount,
+        [col.pendingCommitments]: pendingCommitments,
+        [col.complianceStatus]: complianceStatus,
+        [col.overallHealth]: overallHealth,
+        [col.hasUnbilledAlert]: hasUnbilledAlert,
+        [col.hasScheduleAlert]: hasScheduleAlert,
+        [col.hasFeeErosionAlert]: hasFeeErosionAlert,
+        [col.monthlyReviewStatus]: monthlyReviewStatus,
+        [col.lastMonthlyReviewDate]: lastMonthlyReviewDate,
+        [col.turnoverStatus]: turnoverStatus,
+        [col.pmpStatus]: pmpStatus,
+        [col.lastSyncDate]: now,
+        [col.lastSyncBy]: this._pageContextUser?.displayName || 'System',
+      };
+
+      // 14. Upsert — filter by projectCode, update or add
+      const existing = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.PROJECT_DATA_MART)
+        .items.filter(`ProjectCode eq '${projectCode}'`).top(1)();
+
+      if (existing.length > 0) {
+        await this.sp.web.lists
+          .getByTitle(LIST_NAMES.PROJECT_DATA_MART)
+          .items.getById(existing[0].Id).update(spData);
+      } else {
+        await this.sp.web.lists
+          .getByTitle(LIST_NAMES.PROJECT_DATA_MART)
+          .items.add(spData);
+      }
+
+      // 15. Audit
+      this.logAudit({
+        Action: AuditAction.DataMartSynced,
+        EntityType: EntityType.DataMart,
+        EntityId: projectCode,
+        User: this._pageContextUser?.displayName || 'System',
+        Details: `Data Mart synced for ${projectCode}`,
+      }).catch(() => { /* fire-and-forget */ });
+
+      return { projectCode, success: true, syncedAt: now };
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      this.logAudit({
+        Action: AuditAction.DataMartSyncFailed,
+        EntityType: EntityType.DataMart,
+        EntityId: projectCode,
+        User: this._pageContextUser?.displayName || 'System',
+        Details: `Data Mart sync failed: ${errorMsg}`,
+      }).catch(() => { /* fire-and-forget */ });
+      return { projectCode, success: false, syncedAt: now, error: errorMsg };
+    }
+  }
+
+  async getDataMartRecords(filters?: IDataMartFilter): Promise<IProjectDataMart[]> {
+    const filterParts: string[] = [];
+
+    if (filters?.status) filterParts.push(`Status eq '${filters.status}'`);
+    if (filters?.sector) filterParts.push(`Sector eq '${filters.sector}'`);
+    if (filters?.region) filterParts.push(`Region eq '${filters.region}'`);
+    if (filters?.projectExecutive) filterParts.push(`ProjectExecutive eq '${filters.projectExecutive}'`);
+    if (filters?.overallHealth) filterParts.push(`OverallHealth eq '${filters.overallHealth}'`);
+    if (filters?.hasAlerts) {
+      filterParts.push('(HasUnbilledAlert eq true or HasScheduleAlert eq true or HasFeeErosionAlert eq true)');
+    }
+
+    let query = this.sp.web.lists
+      .getByTitle(LIST_NAMES.PROJECT_DATA_MART)
+      .items.top(5000);
+
+    if (filterParts.length > 0) {
+      query = query.filter(filterParts.join(' and '));
+    }
+
+    const items = await query();
+    return items.map((item: Record<string, unknown>) => this.mapToDataMartRecord(item));
+  }
+
+  async getDataMartRecord(projectCode: string): Promise<IProjectDataMart | null> {
+    const items = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.PROJECT_DATA_MART)
+      .items.filter(`ProjectCode eq '${projectCode}'`).top(1)();
+
+    if (items.length === 0) return null;
+    return this.mapToDataMartRecord(items[0] as Record<string, unknown>);
+  }
+
+  async triggerDataMartSync(): Promise<IDataMartSyncResult[]> {
+    // Get all active project codes from portfolio
+    const portfolioItems = await this.sp.web.lists
+      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+      .items.select('ProjectCode').top(5000)();
+
+    const results: IDataMartSyncResult[] = [];
+    for (const item of portfolioItems) {
+      const result = await this.syncToDataMart(item.ProjectCode as string);
+      results.push(result);
+    }
+    return results;
+  }
+
+  private mapToDataMartRecord(item: Record<string, unknown>): IProjectDataMart {
+    const col = PROJECT_DATA_MART_COLUMNS;
+    return {
+      id: (item.Id as number) || (item[col.id] as number) || 0,
+      projectCode: (item[col.projectCode] as string) || '',
+      jobNumber: (item[col.jobNumber] as string) || '',
+      projectName: (item[col.projectName] as string) || '',
+      status: (item[col.status] as ProjectStatus) || 'Construction',
+      sector: (item[col.sector] as SectorType) || 'Commercial',
+      region: (item[col.region] as string) || '',
+      projectExecutive: (item[col.projectExecutive] as string) || '',
+      projectExecutiveEmail: (item[col.projectExecutiveEmail] as string) || '',
+      leadPM: (item[col.leadPM] as string) || '',
+      leadPMEmail: (item[col.leadPMEmail] as string) || '',
+      leadSuperintendent: (item[col.leadSuperintendent] as string) || '',
+      leadSuperintendentEmail: (item[col.leadSuperintendentEmail] as string) || '',
+      originalContract: (item[col.originalContract] as number) || 0,
+      changeOrders: (item[col.changeOrders] as number) || 0,
+      currentContractValue: (item[col.currentContractValue] as number) || 0,
+      billingsToDate: (item[col.billingsToDate] as number) || 0,
+      unbilledAmount: (item[col.unbilledAmount] as number) || 0,
+      projectedFee: (item[col.projectedFee] as number) || 0,
+      projectedFeePct: (item[col.projectedFeePct] as number) || 0,
+      buyoutCommittedTotal: (item[col.buyoutCommittedTotal] as number) || 0,
+      buyoutExecutedCount: (item[col.buyoutExecutedCount] as number) || 0,
+      buyoutOpenCount: (item[col.buyoutOpenCount] as number) || 0,
+      startDate: (item[col.startDate] as string) || null,
+      substantialCompletionDate: (item[col.substantialCompletionDate] as string) || null,
+      percentComplete: (item[col.percentComplete] as number) || 0,
+      criticalPathItemCount: (item[col.criticalPathItemCount] as number) || 0,
+      scheduleDaysVariance: (item[col.scheduleDaysVariance] as number) || 0,
+      openQualityConcerns: (item[col.openQualityConcerns] as number) || 0,
+      openSafetyConcerns: (item[col.openSafetyConcerns] as number) || 0,
+      averageQScore: (item[col.averageQScore] as number) || 0,
+      openWaiverCount: (item[col.openWaiverCount] as number) || 0,
+      pendingCommitments: (item[col.pendingCommitments] as number) || 0,
+      complianceStatus: (item[col.complianceStatus] as DataMartHealthStatus) || 'Green',
+      overallHealth: (item[col.overallHealth] as DataMartHealthStatus) || 'Green',
+      hasUnbilledAlert: !!(item[col.hasUnbilledAlert]),
+      hasScheduleAlert: !!(item[col.hasScheduleAlert]),
+      hasFeeErosionAlert: !!(item[col.hasFeeErosionAlert]),
+      monthlyReviewStatus: (item[col.monthlyReviewStatus] as string) || '',
+      lastMonthlyReviewDate: (item[col.lastMonthlyReviewDate] as string) || null,
+      turnoverStatus: (item[col.turnoverStatus] as string) || '',
+      pmpStatus: (item[col.pmpStatus] as string) || '',
+      lastSyncDate: (item[col.lastSyncDate] as string) || '',
+      lastSyncBy: (item[col.lastSyncBy] as string) || '',
+    };
   }
 
   async sendSupportEmail(_to: string, _subject: string, _htmlBody: string, _fromUserEmail: string): Promise<void> {

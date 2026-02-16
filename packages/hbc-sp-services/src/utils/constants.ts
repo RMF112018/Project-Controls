@@ -8,6 +8,33 @@ export const CACHE_KEYS = {
   CONFIG: 'hbc_config',
   CURRENT_USER: 'hbc_current_user',
   LEADS: 'hbc_leads',
+  SCORECARDS: 'hbc_scorecards',
+  ESTIMATES: 'hbc_estimates',
+  MEETINGS: 'hbc_meetings',
+  PROJECTS: 'hbc_projects',
+  ACTIVE_PROJECTS: 'hbc_active_projects',
+  MARKETING_RECORDS: 'hbc_marketing_records',
+  JOB_REQUESTS: 'hbc_job_requests',
+  AUTOPSIES: 'hbc_autopsies',
+  COMPLIANCE: 'hbc_compliance',
+  WORKFLOWS: 'hbc_workflows',
+  PERMISSIONS: 'hbc_permissions',
+  TEMPLATES: 'hbc_templates',
+  SECTORS: 'hbc_sectors',
+  ASSIGNMENTS: 'hbc_assignments',
+  KICKOFFS: 'hbc_kickoffs',
+  QUALITY: 'hbc_quality',
+  SAFETY: 'hbc_safety',
+  RISK_COST: 'hbc_risk_cost',
+  SCHEDULE: 'hbc_schedule',
+  SUPER_PLAN: 'hbc_super_plan',
+  LESSONS: 'hbc_lessons',
+  PMP: 'hbc_pmp',
+  MONTHLY_REVIEW: 'hbc_monthly_review',
+  BUYOUT: 'hbc_buyout',
+  CHECKLIST: 'hbc_checklist',
+  MATRIX: 'hbc_matrix',
+  TURNOVER: 'hbc_turnover',
 } as const;
 
 export const HUB_LISTS = {
@@ -50,6 +77,7 @@ export const HUB_LISTS = {
   HELP_GUIDES: 'Help_Guides',
   DIVISION_APPROVERS: 'Division_Approvers',
   PMP_BOILERPLATE: 'PMP_Boilerplate',
+  PROJECT_DATA_MART: 'Project_Data_Mart',
 } as const;
 
 export const PROJECT_LISTS = {

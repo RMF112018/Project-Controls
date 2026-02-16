@@ -14,12 +14,15 @@ import {
   Legend,
 } from 'recharts';
 import { useActiveProjects } from '../../hooks/useActiveProjects';
+import { useDataMart } from '../../hooks/useDataMart';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useAppContext } from '../../contexts/AppContext';
 import {
   Stage,
   buildBreadcrumbs,
   IActiveProject,
+  IProjectDataMart,
+  DataMartHealthStatus,
   ProjectStatus,
   SectorType,
   RoleName,
@@ -56,6 +59,13 @@ const ALERT_COLORS = {
   critical: { color: '#991B1B', bg: '#FEE2E2' },
 };
 
+// Health status colors
+const HEALTH_COLORS: Record<DataMartHealthStatus, { color: string; bg: string }> = {
+  Green: { color: '#065F46', bg: '#D1FAE5' },
+  Yellow: { color: '#92400E', bg: '#FEF3C7' },
+  Red: { color: '#991B1B', bg: '#FEE2E2' },
+};
+
 export const ActiveProjectsDashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -81,6 +91,8 @@ export const ActiveProjectsDashboard: React.FC = () => {
     personnelWorkload,
   } = useActiveProjects();
 
+  const { records: dataMartRecords, fetchRecords: fetchDataMart } = useDataMart();
+  const [viewMode, setViewMode] = React.useState<'standard' | 'datamart'>('standard');
   const [selectedPersonnel, setSelectedPersonnel] = React.useState<string | null>(null);
   const [showPersonnelPanel, setShowPersonnelPanel] = React.useState(false);
 
@@ -89,7 +101,8 @@ export const ActiveProjectsDashboard: React.FC = () => {
     fetchProjects().catch(console.error);
     fetchSummary().catch(console.error);
     fetchPersonnelWorkload().catch(console.error);
-  }, [fetchProjects, fetchSummary, fetchPersonnelWorkload]);
+    fetchDataMart().catch(console.error);
+  }, [fetchProjects, fetchSummary, fetchPersonnelWorkload, fetchDataMart]);
 
   // Re-fetch when filters change
   React.useEffect(() => {
@@ -287,6 +300,30 @@ export const ActiveProjectsDashboard: React.FC = () => {
     },
   ], [handlePersonnelClick]);
 
+  // Data Mart enriched columns
+  const dataMartColumns: IDataTableColumn<IProjectDataMart>[] = React.useMemo(() => [
+    { key: 'jobNumber', header: 'Job #', width: '90px', render: (r) => <span style={{ fontWeight: 600, color: HBC_COLORS.navy }}>{r.jobNumber}</span> },
+    { key: 'projectName', header: 'Project', render: (r) => r.projectName },
+    { key: 'overallHealth', header: 'Health', width: '80px', render: (r) => {
+      const c = HEALTH_COLORS[r.overallHealth];
+      return <StatusBadge label={r.overallHealth} color={c.color} backgroundColor={c.bg} />;
+    }},
+    { key: 'currentContractValue', header: 'Contract', width: '110px', render: (r) => formatCurrencyCompact(r.currentContractValue) },
+    { key: 'percentComplete', header: '% Complete', width: '100px', render: (r) => formatPercent(r.percentComplete) },
+    { key: 'openQualityConcerns', header: 'Quality', width: '70px', render: (r) => <span style={{ color: r.openQualityConcerns > 0 ? HBC_COLORS.warning : HBC_COLORS.gray500 }}>{r.openQualityConcerns}</span> },
+    { key: 'openSafetyConcerns', header: 'Safety', width: '70px', render: (r) => <span style={{ color: r.openSafetyConcerns > 0 ? HBC_COLORS.error : HBC_COLORS.gray500 }}>{r.openSafetyConcerns}</span> },
+    { key: 'buyoutExecutedCount', header: 'Buyout', width: '70px', render: (r) => `${r.buyoutExecutedCount}/${r.buyoutExecutedCount + r.buyoutOpenCount}` },
+    { key: 'alerts', header: 'Alerts', width: '80px', render: (r) => {
+      const alerts: string[] = [];
+      if (r.hasUnbilledAlert) alerts.push('Unbilled');
+      if (r.hasScheduleAlert) alerts.push('Schedule');
+      if (r.hasFeeErosionAlert) alerts.push('Fee');
+      return alerts.length > 0
+        ? <span style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{alerts.length}</span>
+        : <span style={{ color: HBC_COLORS.success }}>&#10003;</span>;
+    }},
+  ], []);
+
   // Export data
   const exportData = React.useMemo(() =>
     filteredProjects.map(p => ({
@@ -346,6 +383,24 @@ export const ActiveProjectsDashboard: React.FC = () => {
             breadcrumb={<Breadcrumb items={breadcrumbs} />}
             actions={
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '0' }}>
+                  {(['standard', 'datamart'] as const).map(mode => (
+                    <button
+                      key={mode}
+                      onClick={() => setViewMode(mode)}
+                      style={{
+                        padding: '6px 14px', fontSize: '12px', fontWeight: viewMode === mode ? 600 : 400,
+                        color: viewMode === mode ? '#fff' : HBC_COLORS.gray600,
+                        backgroundColor: viewMode === mode ? HBC_COLORS.navy : '#fff',
+                        border: `1px solid ${viewMode === mode ? HBC_COLORS.navy : HBC_COLORS.gray300}`,
+                        borderRadius: mode === 'standard' ? '4px 0 0 4px' : '0 4px 4px 0',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {mode === 'standard' ? 'Standard' : 'Data Mart'}
+                    </button>
+                  ))}
+                </div>
                 <Button
                   appearance="outline"
                   onClick={() => triggerFullSync()}
@@ -619,24 +674,48 @@ export const ActiveProjectsDashboard: React.FC = () => {
 
           {/* Project Grid */}
           <div>
-            {sectionTitle(`All Projects (${filteredProjects.length})`)}
-            <DataTable<IActiveProject>
-              columns={columns}
-              items={filteredProjects}
-              keyExtractor={(p) => p.id}
-              onRowClick={(p) => {
-                setSelectedProject({
-                  projectCode: p.projectCode,
-                  projectName: p.projectName,
-                  stage: Stage.ActiveConstruction,
-                  region: p.region,
-                });
-                navigate('/operations/project');
-              }}
-              emptyTitle="No projects found"
-              emptyDescription="Try adjusting your filters"
-              pageSize={20}
-            />
+            {viewMode === 'standard' ? (
+              <>
+                {sectionTitle(`All Projects (${filteredProjects.length})`)}
+                <DataTable<IActiveProject>
+                  columns={columns}
+                  items={filteredProjects}
+                  keyExtractor={(p) => p.id}
+                  onRowClick={(p) => {
+                    setSelectedProject({
+                      projectCode: p.projectCode,
+                      projectName: p.projectName,
+                      stage: Stage.ActiveConstruction,
+                      region: p.region,
+                    });
+                    navigate('/operations/project');
+                  }}
+                  emptyTitle="No projects found"
+                  emptyDescription="Try adjusting your filters"
+                  pageSize={20}
+                />
+              </>
+            ) : (
+              <>
+                {sectionTitle(`Data Mart View (${dataMartRecords.length})`)}
+                <DataTable<IProjectDataMart>
+                  columns={dataMartColumns}
+                  items={dataMartRecords}
+                  keyExtractor={(r) => r.id}
+                  onRowClick={(r) => {
+                    setSelectedProject({
+                      projectCode: r.projectCode,
+                      projectName: r.projectName,
+                      stage: Stage.ActiveConstruction,
+                    });
+                    navigate('/operations/project');
+                  }}
+                  emptyTitle="No Data Mart records"
+                  emptyDescription="Run a sync to populate Data Mart"
+                  pageSize={20}
+                />
+              </>
+            )}
           </div>
 
           {/* Personnel Workload Panel */}
