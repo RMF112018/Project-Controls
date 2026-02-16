@@ -4,10 +4,15 @@ import {
   IPersonnelWorkload,
   ProjectStatus,
   SectorType,
-  IActiveProjectsFilter
+  IActiveProjectsFilter,
+  EntityType,
+  IEntityChangedMessage,
 } from '@hbc/sp-services';
 import { useState, useCallback, useMemo } from 'react';
 import { useAppContext } from '../contexts/AppContext';
+import { useSignalRContext } from '../contexts/SignalRContext';
+import { useSignalR } from './useSignalR';
+
 export interface IActiveProjectsFilters {
   status?: ProjectStatus;
   sector?: SectorType;
@@ -23,12 +28,12 @@ export interface UseActiveProjectsReturn {
   filteredProjects: IActiveProject[];
   summary: IPortfolioSummary | null;
   personnelWorkload: IPersonnelWorkload[];
-  
+
   // State
   isLoading: boolean;
   error: string | null;
   filters: IActiveProjectsFilters;
-  
+
   // Actions
   fetchProjects: () => Promise<void>;
   fetchSummary: (filters?: IActiveProjectsFilter) => Promise<void>;
@@ -37,7 +42,7 @@ export interface UseActiveProjectsReturn {
   clearFilters: () => void;
   syncProject: (projectCode: string) => Promise<void>;
   triggerFullSync: () => Promise<void>;
-  
+
   // Computed values
   uniqueProjectExecutives: string[];
   uniqueProjectManagers: string[];
@@ -46,8 +51,9 @@ export interface UseActiveProjectsReturn {
 }
 
 export function useActiveProjects(): UseActiveProjectsReturn {
-  const { dataService } = useAppContext();
-  
+  const { dataService, currentUser } = useAppContext();
+  const { broadcastChange } = useSignalRContext();
+
   const [projects, setProjects] = useState<IActiveProject[]>([]);
   const [summary, setSummary] = useState<IPortfolioSummary | null>(null);
   const [personnelWorkload, setPersonnelWorkload] = useState<IPersonnelWorkload[]>([]);
@@ -73,6 +79,29 @@ export function useActiveProjects(): UseActiveProjectsReturn {
       setIsLoading(false);
     }
   }, [dataService, filters.status, filters.sector, filters.projectExecutive, filters.projectManager, filters.region]);
+
+  // SignalR: refresh on Project entity changes
+  useSignalR({
+    entityType: EntityType.Project,
+    onEntityChanged: useCallback(() => { fetchProjects(); }, [fetchProjects]),
+  });
+
+  const broadcastProjectChange = useCallback((
+    projectCode: string,
+    action: IEntityChangedMessage['action'],
+    summaryText?: string
+  ) => {
+    broadcastChange({
+      type: 'EntityChanged',
+      entityType: EntityType.Project,
+      entityId: projectCode,
+      action,
+      changedBy: currentUser?.email ?? 'unknown',
+      changedByName: currentUser?.displayName,
+      timestamp: new Date().toISOString(),
+      summary: summaryText,
+    });
+  }, [broadcastChange, currentUser]);
 
   const fetchSummary = useCallback(async (summaryFilters?: IActiveProjectsFilter) => {
     setIsLoading(true);
@@ -114,12 +143,13 @@ export function useActiveProjects(): UseActiveProjectsReturn {
     try {
       await dataService.syncActiveProject(projectCode);
       await fetchProjects();
+      broadcastProjectChange(projectCode, 'updated', 'Project synced');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sync project');
     } finally {
       setIsLoading(false);
     }
-  }, [dataService, fetchProjects]);
+  }, [dataService, fetchProjects, broadcastProjectChange]);
 
   const triggerFullSync = useCallback(async () => {
     setIsLoading(true);
@@ -128,19 +158,20 @@ export function useActiveProjects(): UseActiveProjectsReturn {
       await dataService.triggerPortfolioSync();
       await fetchProjects();
       await fetchSummary();
+      broadcastProjectChange('portfolio', 'updated', 'Full portfolio sync');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to trigger portfolio sync');
     } finally {
       setIsLoading(false);
     }
-  }, [dataService, fetchProjects, fetchSummary]);
+  }, [dataService, fetchProjects, fetchSummary, broadcastProjectChange]);
 
   // Apply search filter locally
   const filteredProjects = useMemo(() => {
     if (!filters.searchQuery) return projects;
-    
+
     const query = filters.searchQuery.toLowerCase();
-    return projects.filter(p => 
+    return projects.filter(p =>
       p.projectName.toLowerCase().includes(query) ||
       p.jobNumber.toLowerCase().includes(query) ||
       p.projectCode.toLowerCase().includes(query) ||
@@ -181,7 +212,7 @@ export function useActiveProjects(): UseActiveProjectsReturn {
   }, [projects]);
 
   const projectsWithAlerts = useMemo(() => {
-    return projects.filter(p => 
+    return projects.filter(p =>
       p.hasUnbilledAlert || p.hasScheduleAlert || p.hasFeeErosionAlert
     );
   }, [projects]);

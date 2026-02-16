@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { ILessonLearned } from '@hbc/sp-services';
+import { useSignalRContext } from '../contexts/SignalRContext';
+import { useSignalR } from './useSignalR';
+import { ILessonLearned, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
 
 interface IUseLessonsLearnedResult {
   lessons: ILessonLearned[];
@@ -14,15 +16,18 @@ interface IUseLessonsLearnedResult {
 }
 
 export function useLessonsLearned(): IUseLessonsLearnedResult {
-  const { dataService } = useAppContext();
+  const { dataService, currentUser } = useAppContext();
+  const { broadcastChange } = useSignalRContext();
   const [lessons, setLessons] = React.useState<ILessonLearned[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const lastProjectCodeRef = React.useRef<string | null>(null);
 
   const fetchLessons = React.useCallback(async (projectCode: string) => {
     try {
       setIsLoading(true);
       setError(null);
+      lastProjectCodeRef.current = projectCode;
       const result = await dataService.getLessonsLearned(projectCode);
       setLessons(result);
     } catch (err) {
@@ -32,17 +37,48 @@ export function useLessonsLearned(): IUseLessonsLearnedResult {
     }
   }, [dataService]);
 
+  // SignalR: refresh on LessonLearned entity changes from other users
+  useSignalR({
+    entityType: EntityType.LessonLearned,
+    onEntityChanged: React.useCallback(() => {
+      if (lastProjectCodeRef.current) {
+        fetchLessons(lastProjectCodeRef.current);
+      }
+    }, [fetchLessons]),
+  });
+
+  // Helper to broadcast lesson learned changes
+  const broadcastLessonChange = React.useCallback((
+    entityId: number | string,
+    action: IEntityChangedMessage['action'],
+    summary?: string
+  ) => {
+    broadcastChange({
+      type: 'EntityChanged',
+      entityType: EntityType.LessonLearned,
+      entityId: String(entityId),
+      action,
+      changedBy: currentUser?.email ?? 'unknown',
+      changedByName: currentUser?.displayName,
+      timestamp: new Date().toISOString(),
+      summary,
+      projectCode: lastProjectCodeRef.current || undefined,
+    });
+  }, [broadcastChange, currentUser]);
+
   const addLesson = React.useCallback(async (projectCode: string, lesson: Partial<ILessonLearned>) => {
     const created = await dataService.addLessonLearned(projectCode, lesson);
     setLessons(prev => [...prev, created]);
+    broadcastLessonChange(created.id, 'created', 'Lesson learned added');
     return created;
-  }, [dataService]);
+  }, [dataService, broadcastLessonChange]);
 
   const updateLesson = React.useCallback(async (projectCode: string, lessonId: number, data: Partial<ILessonLearned>) => {
     const updated = await dataService.updateLessonLearned(projectCode, lessonId, data);
     setLessons(prev => prev.map(l => l.id === lessonId ? updated : l));
+    broadcastLessonChange(lessonId, 'updated', 'Lesson learned updated');
     return updated;
-  }, [dataService]);
+  }, [dataService, broadcastLessonChange]);
 
   const byCategory = React.useMemo(() => {
     const grouped: Record<string, ILessonLearned[]> = {};

@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IMonthlyProjectReview, MonthlyReviewStatus, IMonthlyFollowUp } from '@hbc/sp-services';
+import { useSignalRContext } from '../contexts/SignalRContext';
+import { useSignalR } from './useSignalR';
+import { IMonthlyProjectReview, MonthlyReviewStatus, IMonthlyFollowUp, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
 
 interface IUseMonthlyReviewResult {
   reviews: IMonthlyProjectReview[];
@@ -16,16 +18,19 @@ interface IUseMonthlyReviewResult {
 }
 
 export function useMonthlyReview(): IUseMonthlyReviewResult {
-  const { dataService } = useAppContext();
+  const { dataService, currentUser } = useAppContext();
+  const { broadcastChange } = useSignalRContext();
   const [reviews, setReviews] = React.useState<IMonthlyProjectReview[]>([]);
   const [currentReview, setCurrentReview] = React.useState<IMonthlyProjectReview | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const lastProjectCodeRef = React.useRef<string | null>(null);
 
   const fetchReviews = React.useCallback(async (projectCode: string) => {
     try {
       setIsLoading(true);
       setError(null);
+      lastProjectCodeRef.current = projectCode;
       const result = await dataService.getMonthlyReviews(projectCode);
       setReviews(result);
       if (result.length > 0 && !currentReview) {
@@ -38,18 +43,49 @@ export function useMonthlyReview(): IUseMonthlyReviewResult {
     }
   }, [dataService, currentReview]);
 
+  // SignalR: refresh on MonthlyReview entity changes from other users
+  useSignalR({
+    entityType: EntityType.MonthlyReview,
+    onEntityChanged: React.useCallback(() => {
+      if (lastProjectCodeRef.current) {
+        fetchReviews(lastProjectCodeRef.current);
+      }
+    }, [fetchReviews]),
+  });
+
+  // Helper to broadcast monthly review changes
+  const broadcastMonthlyReviewChange = React.useCallback((
+    entityId: number | string,
+    action: IEntityChangedMessage['action'],
+    summary?: string
+  ) => {
+    broadcastChange({
+      type: 'EntityChanged',
+      entityType: EntityType.MonthlyReview,
+      entityId: String(entityId),
+      action,
+      changedBy: currentUser?.email ?? 'unknown',
+      changedByName: currentUser?.displayName,
+      timestamp: new Date().toISOString(),
+      summary,
+      projectCode: lastProjectCodeRef.current || undefined,
+    });
+  }, [broadcastChange, currentUser]);
+
   const createReview = React.useCallback(async (data: Partial<IMonthlyProjectReview>) => {
     const created = await dataService.createMonthlyReview(data);
     setReviews(prev => [created, ...prev]);
     setCurrentReview(created);
+    broadcastMonthlyReviewChange(created.id, 'created', 'Monthly review created');
     return created;
-  }, [dataService]);
+  }, [dataService, broadcastMonthlyReviewChange]);
 
   const updateReview = React.useCallback(async (reviewId: number, data: Partial<IMonthlyProjectReview>) => {
     const updated = await dataService.updateMonthlyReview(reviewId, data);
     setReviews(prev => prev.map(r => r.id === reviewId ? updated : r));
     if (currentReview?.id === reviewId) setCurrentReview(updated);
-  }, [dataService, currentReview]);
+    broadcastMonthlyReviewChange(reviewId, 'updated', 'Monthly review updated');
+  }, [dataService, currentReview, broadcastMonthlyReviewChange]);
 
   const advanceStatus = React.useCallback(async (reviewId: number, newStatus: MonthlyReviewStatus) => {
     const statusDateMap: Partial<Record<MonthlyReviewStatus, string>> = {
@@ -67,9 +103,10 @@ export function useMonthlyReview(): IUseMonthlyReviewResult {
     const updated = await dataService.updateMonthlyReview(reviewId, updateData);
     setReviews(prev => prev.map(r => r.id === reviewId ? updated : r));
     if (currentReview?.id === reviewId) setCurrentReview(updated);
+    broadcastMonthlyReviewChange(reviewId, 'updated', `Monthly review status advanced to ${newStatus}`);
     // Fire-and-forget — sync Data Mart after monthly review status change
     dataService.syncToDataMart(updated.projectCode).catch(() => { /* silent */ });
-  }, [dataService, currentReview]);
+  }, [dataService, currentReview, broadcastMonthlyReviewChange]);
 
   const addFollowUp = React.useCallback(async (reviewId: number, followUp: Partial<IMonthlyFollowUp>) => {
     const review = reviews.find(r => r.id === reviewId);
@@ -86,7 +123,8 @@ export function useMonthlyReview(): IUseMonthlyReviewResult {
     };
     const updatedFollowUps = [...review.followUps, newFollowUp];
     await updateReview(reviewId, { followUps: updatedFollowUps });
-  }, [reviews, updateReview]);
+    broadcastMonthlyReviewChange(reviewId, 'updated', 'Follow-up added to monthly review');
+  }, [reviews, updateReview, broadcastMonthlyReviewChange]);
 
   const selectReview = React.useCallback((reviewId: number) => {
     const review = reviews.find(r => r.id === reviewId);

@@ -4,15 +4,18 @@ import {
   ITurnoverDiscussionItem,
   ITurnoverSubcontractor,
   ITurnoverExhibit,
-  ITurnoverSignature,
   ITurnoverEstimateOverview,
   ITurnoverAttachment,
   IResolvedWorkflowStep,
   WorkflowKey,
-  TurnoverStatus
+  EntityType,
+  IEntityChangedMessage,
 } from '@hbc/sp-services';
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
+import { useSignalRContext } from '../contexts/SignalRContext';
+import { useSignalR } from './useSignalR';
+
 interface IUseTurnoverAgendaResult {
   agenda: ITurnoverAgenda | null;
   resolvedChain: IResolvedWorkflowStep[];
@@ -44,16 +47,19 @@ interface IUseTurnoverAgendaResult {
 }
 
 export function useTurnoverAgenda(): IUseTurnoverAgendaResult {
-  const { dataService } = useAppContext();
+  const { dataService, currentUser } = useAppContext();
+  const { broadcastChange } = useSignalRContext();
   const [agenda, setAgenda] = React.useState<ITurnoverAgenda | null>(null);
   const [resolvedChain, setResolvedChain] = React.useState<IResolvedWorkflowStep[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const lastProjectCodeRef = React.useRef<string | null>(null);
 
   const fetchAgenda = React.useCallback(async (projectCode: string) => {
     try {
       setLoading(true);
       setError(null);
+      lastProjectCodeRef.current = projectCode;
       const [agendaResult, chainResult] = await Promise.all([
         dataService.getTurnoverAgenda(projectCode),
         dataService.resolveWorkflowChain(WorkflowKey.TURNOVER_APPROVAL, projectCode),
@@ -67,21 +73,53 @@ export function useTurnoverAgenda(): IUseTurnoverAgendaResult {
     }
   }, [dataService]);
 
+  // SignalR: refresh on TurnoverAgenda entity changes from other users
+  useSignalR({
+    entityType: EntityType.TurnoverAgenda,
+    onEntityChanged: React.useCallback(() => {
+      if (lastProjectCodeRef.current) {
+        fetchAgenda(lastProjectCodeRef.current);
+      }
+    }, [fetchAgenda]),
+  });
+
+  // Helper to broadcast turnover agenda changes
+  const broadcastTurnoverChange = React.useCallback((
+    entityId: number | string,
+    action: IEntityChangedMessage['action'],
+    summary?: string
+  ) => {
+    broadcastChange({
+      type: 'EntityChanged',
+      entityType: EntityType.TurnoverAgenda,
+      entityId: String(entityId),
+      action,
+      changedBy: currentUser?.email ?? 'unknown',
+      changedByName: currentUser?.displayName,
+      timestamp: new Date().toISOString(),
+      summary,
+      projectCode: lastProjectCodeRef.current || undefined,
+    });
+  }, [broadcastChange, currentUser]);
+
   const createAgenda = React.useCallback(async (projectCode: string, leadId: number) => {
     const result = await dataService.createTurnoverAgenda(projectCode, leadId);
     setAgenda(result);
-  }, [dataService]);
+    broadcastTurnoverChange(projectCode, 'created', 'Turnover agenda created');
+  }, [dataService, broadcastTurnoverChange]);
 
   const updateAgenda = React.useCallback(async (projectCode: string, data: Partial<ITurnoverAgenda>) => {
     const result = await dataService.updateTurnoverAgenda(projectCode, data);
     setAgenda(result);
-  }, [dataService]);
+    broadcastTurnoverChange(projectCode, 'updated', 'Turnover agenda updated');
+  }, [dataService, broadcastTurnoverChange]);
 
   const updateEstimateOverview = React.useCallback(async (projectCode: string, data: Partial<ITurnoverEstimateOverview>) => {
     await dataService.updateTurnoverEstimateOverview(projectCode, data);
     const refreshed = await dataService.getTurnoverAgenda(projectCode);
     setAgenda(refreshed);
-  }, [dataService]);
+    broadcastTurnoverChange(projectCode, 'updated', 'Estimate overview updated');
+  }, [dataService, broadcastTurnoverChange]);
 
   const togglePrerequisite = React.useCallback(async (prerequisiteId: number, completed: boolean) => {
     const updates: Partial<ITurnoverPrerequisite> = {
@@ -93,81 +131,91 @@ export function useTurnoverAgenda(): IUseTurnoverAgendaResult {
     if (agenda) {
       const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
       setAgenda(refreshed);
+      broadcastTurnoverChange(prerequisiteId, 'updated', `Prerequisite ${completed ? 'completed' : 'uncompleted'}`);
     }
-  }, [dataService, agenda]);
+  }, [dataService, agenda, broadcastTurnoverChange]);
 
   const updateDiscussionItem = React.useCallback(async (itemId: number, data: Partial<ITurnoverDiscussionItem>) => {
     await dataService.updateTurnoverDiscussionItem(itemId, data);
     if (agenda) {
       const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
       setAgenda(refreshed);
+      broadcastTurnoverChange(itemId, 'updated', 'Discussion item updated');
     }
-  }, [dataService, agenda]);
+  }, [dataService, agenda, broadcastTurnoverChange]);
 
   const addDiscussionAttachment = React.useCallback(async (itemId: number, file: File): Promise<ITurnoverAttachment> => {
     const result = await dataService.addTurnoverDiscussionAttachment(itemId, file);
     if (agenda) {
       const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
       setAgenda(refreshed);
+      broadcastTurnoverChange(itemId, 'updated', 'Discussion attachment added');
     }
     return result;
-  }, [dataService, agenda]);
+  }, [dataService, agenda, broadcastTurnoverChange]);
 
   const removeDiscussionAttachment = React.useCallback(async (attachmentId: number) => {
     await dataService.removeTurnoverDiscussionAttachment(attachmentId);
     if (agenda) {
       const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
       setAgenda(refreshed);
+      broadcastTurnoverChange(attachmentId, 'deleted', 'Discussion attachment removed');
     }
-  }, [dataService, agenda]);
+  }, [dataService, agenda, broadcastTurnoverChange]);
 
   const addSubcontractor = React.useCallback(async (turnoverAgendaId: number, data: Partial<ITurnoverSubcontractor>) => {
     await dataService.addTurnoverSubcontractor(turnoverAgendaId, data);
     if (agenda) {
       const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
       setAgenda(refreshed);
+      broadcastTurnoverChange(turnoverAgendaId, 'created', 'Subcontractor added');
     }
-  }, [dataService, agenda]);
+  }, [dataService, agenda, broadcastTurnoverChange]);
 
   const updateSubcontractor = React.useCallback(async (subId: number, data: Partial<ITurnoverSubcontractor>) => {
     await dataService.updateTurnoverSubcontractor(subId, data);
     if (agenda) {
       const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
       setAgenda(refreshed);
+      broadcastTurnoverChange(subId, 'updated', 'Subcontractor updated');
     }
-  }, [dataService, agenda]);
+  }, [dataService, agenda, broadcastTurnoverChange]);
 
   const removeSubcontractor = React.useCallback(async (subId: number) => {
     await dataService.removeTurnoverSubcontractor(subId);
     if (agenda) {
       const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
       setAgenda(refreshed);
+      broadcastTurnoverChange(subId, 'deleted', 'Subcontractor removed');
     }
-  }, [dataService, agenda]);
+  }, [dataService, agenda, broadcastTurnoverChange]);
 
   const updateExhibit = React.useCallback(async (exhibitId: number, data: Partial<ITurnoverExhibit>) => {
     await dataService.updateTurnoverExhibit(exhibitId, data);
     if (agenda) {
       const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
       setAgenda(refreshed);
+      broadcastTurnoverChange(exhibitId, 'updated', 'Exhibit updated');
     }
-  }, [dataService, agenda]);
+  }, [dataService, agenda, broadcastTurnoverChange]);
 
   const addExhibit = React.useCallback(async (turnoverAgendaId: number, data: Partial<ITurnoverExhibit>) => {
     await dataService.addTurnoverExhibit(turnoverAgendaId, data);
     if (agenda) {
       const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
       setAgenda(refreshed);
+      broadcastTurnoverChange(turnoverAgendaId, 'created', 'Exhibit added');
     }
-  }, [dataService, agenda]);
+  }, [dataService, agenda, broadcastTurnoverChange]);
 
   const removeExhibit = React.useCallback(async (exhibitId: number) => {
     await dataService.removeTurnoverExhibit(exhibitId);
     if (agenda) {
       const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
       setAgenda(refreshed);
+      broadcastTurnoverChange(exhibitId, 'deleted', 'Exhibit removed');
     }
-  }, [dataService, agenda]);
+  }, [dataService, agenda, broadcastTurnoverChange]);
 
   const uploadExhibitFile = React.useCallback(async (exhibitId: number, file: File) => {
     await dataService.uploadTurnoverExhibitFile(exhibitId, file);
@@ -182,10 +230,11 @@ export function useTurnoverAgenda(): IUseTurnoverAgendaResult {
     if (agenda) {
       const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
       setAgenda(refreshed);
+      broadcastTurnoverChange(signatureId, 'updated', 'Turnover agenda signed');
       // Fire-and-forget — sync Data Mart after turnover signature
       dataService.syncToDataMart(agenda.projectCode).catch(() => { /* silent */ });
     }
-  }, [dataService, agenda]);
+  }, [dataService, agenda, broadcastTurnoverChange]);
 
   // Computed values
   const prerequisitesComplete = React.useMemo(() => {

@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IBuyoutEntry } from '@hbc/sp-services';
+import { useSignalRContext } from '../contexts/SignalRContext';
+import { useSignalR } from './useSignalR';
+import { IBuyoutEntry, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
 
 export interface IBuyoutMetrics {
   totalOriginalBudget: number;
@@ -12,14 +14,17 @@ export interface IBuyoutMetrics {
 }
 
 export function useBuyoutLog() {
-  const { dataService } = useAppContext();
+  const { dataService, currentUser } = useAppContext();
+  const { broadcastChange } = useSignalRContext();
   const [entries, setEntries] = React.useState<IBuyoutEntry[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const lastProjectCodeRef = React.useRef<string | null>(null);
 
   const fetchEntries = React.useCallback(async (projectCode: string) => {
     setLoading(true);
     setError(null);
+    lastProjectCodeRef.current = projectCode;
     try {
       const data = await dataService.getBuyoutEntries(projectCode);
       setEntries(data);
@@ -30,53 +35,86 @@ export function useBuyoutLog() {
     }
   }, [dataService]);
 
+  // SignalR: refresh on RiskCost entity changes from other users
+  useSignalR({
+    entityType: EntityType.RiskCost,
+    onEntityChanged: React.useCallback(() => {
+      if (lastProjectCodeRef.current) {
+        fetchEntries(lastProjectCodeRef.current);
+      }
+    }, [fetchEntries]),
+  });
+
+  // Helper to broadcast buyout log changes
+  const broadcastBuyoutChange = React.useCallback((
+    entityId: number | string,
+    action: IEntityChangedMessage['action'],
+    summary?: string
+  ) => {
+    broadcastChange({
+      type: 'EntityChanged',
+      entityType: EntityType.RiskCost,
+      entityId: String(entityId),
+      action,
+      changedBy: currentUser?.email ?? 'unknown',
+      changedByName: currentUser?.displayName,
+      timestamp: new Date().toISOString(),
+      summary,
+      projectCode: lastProjectCodeRef.current || undefined,
+    });
+  }, [broadcastChange, currentUser]);
+
   const initializeLog = React.useCallback(async (projectCode: string) => {
     setLoading(true);
     setError(null);
     try {
       const data = await dataService.initializeBuyoutLog(projectCode);
       setEntries(data);
+      broadcastBuyoutChange(projectCode, 'created', 'Buyout log initialized');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to initialize buyout log');
     } finally {
       setLoading(false);
     }
-  }, [dataService]);
+  }, [dataService, broadcastBuyoutChange]);
 
   const addEntry = React.useCallback(async (projectCode: string, entry: Partial<IBuyoutEntry>) => {
     setError(null);
     try {
       const created = await dataService.addBuyoutEntry(projectCode, entry);
       setEntries(prev => [...prev, created].sort((a, b) => a.divisionCode.localeCompare(b.divisionCode)));
+      broadcastBuyoutChange(created.id, 'created', 'Buyout entry added');
       return created;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add entry');
       throw err;
     }
-  }, [dataService]);
+  }, [dataService, broadcastBuyoutChange]);
 
   const updateEntry = React.useCallback(async (projectCode: string, entryId: number, data: Partial<IBuyoutEntry>) => {
     setError(null);
     try {
       const updated = await dataService.updateBuyoutEntry(projectCode, entryId, data);
       setEntries(prev => prev.map(e => e.id === entryId ? updated : e));
+      broadcastBuyoutChange(entryId, 'updated', 'Buyout entry updated');
       return updated;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update entry');
       throw err;
     }
-  }, [dataService]);
+  }, [dataService, broadcastBuyoutChange]);
 
   const removeEntry = React.useCallback(async (projectCode: string, entryId: number) => {
     setError(null);
     try {
       await dataService.removeBuyoutEntry(projectCode, entryId);
       setEntries(prev => prev.filter(e => e.id !== entryId));
+      broadcastBuyoutChange(entryId, 'deleted', 'Buyout entry removed');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove entry');
       throw err;
     }
-  }, [dataService]);
+  }, [dataService, broadcastBuyoutChange]);
 
   const metrics: IBuyoutMetrics = React.useMemo(() => {
     const totalOriginalBudget = entries.reduce((sum, e) => sum + e.originalBudget, 0);
