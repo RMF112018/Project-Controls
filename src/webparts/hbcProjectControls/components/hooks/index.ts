@@ -45,3 +45,5 @@ export { useDataMart } from './useDataMart';
 export type { IUseDataMartResult } from './useDataMart';
 export { usePresence } from './usePresence';
 export type { IPresenceUser } from './usePresence';
+export { useFullScreen } from './useFullScreen';
+export type { IUseFullScreenResult } from './useFullScreen';
