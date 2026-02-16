@@ -599,8 +599,8 @@ export class SharePointDataService implements IDataService {
   // --- Provisioning ---
   // LOAD-TEST: 2 SP calls: add + re-read. Fast.
   async triggerProvisioning(leadId: number, projectCode: string, projectName: string, requestedBy: string, metadata?: {
-    performanceService.endMark('sp:triggerProvisioning');
-    performanceService.startMark('sp:triggerProvisioning'); division?: string; region?: string; clientName?: string }): Promise<IProvisioningLog> {
+    division?: string; region?: string; clientName?: string }): Promise<IProvisioningLog> {
+    performanceService.startMark('sp:triggerProvisioning');
     const col = PROVISIONING_LOG_COLUMNS;
     const addData: Record<string, unknown> = {
       [col.projectCode]: projectCode,
@@ -619,6 +619,7 @@ export class SharePointDataService implements IDataService {
     const result = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items.add(addData);
     const newId = (result.data as Record<string, unknown>).Id as number;
     const item = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items.getById(newId)();
+    performanceService.endMark('sp:triggerProvisioning');
     return item as IProvisioningLog;
   }
 
@@ -698,8 +699,8 @@ export class SharePointDataService implements IDataService {
 
   // LOAD-TEST: External REST call to SP Site Manager API. Slow (5-30s). One-time per project.
   async createProjectSite(projectCode: string, projectName: string, siteAlias: string): Promise<{
-    performanceService.endMark('sp:createProjectSite');
-    performanceService.startMark('sp:createProjectSite'); siteUrl: string }> {
+    siteUrl: string }> {
+    performanceService.startMark('sp:createProjectSite');
     const siteUrl = `https://hedrickbrotherscom.sharepoint.com/sites/${siteAlias}`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const response = await (this.sp.web as any).fetchRaw(
@@ -722,6 +723,7 @@ export class SharePointDataService implements IDataService {
     );
     if (!response.ok) throw new Error(`Site creation failed (${response.status}): ${response.statusText}`);
     this.logAudit({ Action: AuditAction.SiteCreated, EntityType: EntityType.Project, EntityId: projectCode, ProjectCode: projectCode, Details: `Project site created: ${siteUrl}`, User: 'system' }).catch(console.error);
+    performanceService.endMark('sp:createProjectSite');
     return { siteUrl };
   }
 
@@ -1011,10 +1013,11 @@ export class SharePointDataService implements IDataService {
   // --- App Context ---
   // SP-INDEX-REQUIRED: App_Context_Config → SiteURL
   async getAppContextConfig(siteUrl: string): Promise<{
-    performanceService.endMark('sp:getAppContextConfig');
-    performanceService.startMark('sp:getAppContextConfig'); RenderMode: string; AppTitle: string; VisibleModules: string[] } | null> {
+    RenderMode: string; AppTitle: string; VisibleModules: string[] } | null> {
+    performanceService.startMark('sp:getAppContextConfig');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG).items
       .filter(`SiteURL eq '${siteUrl}'`)();
+    performanceService.endMark('sp:getAppContextConfig');
     if (items.length === 0) return null;
     return {
       RenderMode: items[0].RenderMode,
@@ -1025,9 +1028,10 @@ export class SharePointDataService implements IDataService {
 
   // LOAD-TEST: Hub-site reference list. Expected <50 templates. Unbounded.
   async getTemplates(): Promise<Array<{
-    performanceService.endMark('sp:getTemplates');
-    performanceService.startMark('sp:getTemplates'); TemplateName: string; SourceURL: string; TargetFolder: string; Division: string; Active: boolean }>> {
+    TemplateName: string; SourceURL: string; TargetFolder: string; Division: string; Active: boolean }>> {
+    performanceService.startMark('sp:getTemplates');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.TEMPLATE_REGISTRY).items();
+    performanceService.endMark('sp:getTemplates');
     return items.map((i: Record<string, unknown>) => ({
       TemplateName: String(i.TemplateName || ''),
       SourceURL: String(i.SourceURL || ''),
@@ -5534,7 +5538,6 @@ export class SharePointDataService implements IDataService {
     performanceService.endMark('sp:removeTurnoverExhibit');
   }
 
-    performanceService.endMark('sp:uploadTurnoverExhibitFile');
   async uploadTurnoverExhibitFile(exhibitId: number, file: File): Promise<{ fileUrl: string; fileName: string }> {
     performanceService.startMark('sp:uploadTurnoverExhibitFile');
     const web = this._getProjectWeb();
@@ -5561,6 +5564,7 @@ export class SharePointDataService implements IDataService {
       [col.uploadedFileUrl]: fileUrl,
     });
 
+    performanceService.endMark('sp:uploadTurnoverExhibitFile');
     return { fileUrl, fileName: file.name };
   }
 
@@ -8121,7 +8125,7 @@ export class SharePointDataService implements IDataService {
       for (let i = 0; i < projectCodes.length; i += DATA_MART_SYNC_BATCH_SIZE) {
         const batch = projectCodes.slice(i, i + DATA_MART_SYNC_BATCH_SIZE);
         const batchResults = await Promise.all(
-          batch.map(code => this.syncToDataMart(code))
+          batch.map((code: string) => this.syncToDataMart(code))
         );
         results.push(...batchResults);
       }
