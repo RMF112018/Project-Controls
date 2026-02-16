@@ -35,6 +35,10 @@ export const CACHE_KEYS = {
   CHECKLIST: 'hbc_checklist',
   MATRIX: 'hbc_matrix',
   TURNOVER: 'hbc_turnover',
+  DATA_MART: 'hbc_data_mart',
+  PORTFOLIO_SUMMARY: 'hbc_portfolio_summary',
+  PERSONNEL_WORKLOAD: 'hbc_personnel_workload',
+  ACCESSIBLE_PROJECTS: 'hbc_accessible_projects',
 } as const;
 
 export const HUB_LISTS = {

@@ -38,7 +38,9 @@ import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfi
 import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '../models/IPerformanceLog';
 import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
 import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField, TurnoverStatus, ScorecardStatus, WorkflowActionType, ActionPriority, AuditAction, EntityType } from '../models/enums';
-import { LIST_NAMES } from '../utils/constants';
+import { DataServiceError } from './DataServiceError';
+import { performanceService } from './PerformanceService';
+import { LIST_NAMES, CACHE_KEYS, CACHE_TTL_MS } from '../utils/constants';
 import { ROLE_PERMISSIONS } from '../utils/permissions';
 import { resolveToolPermissions, TOOL_DEFINITIONS } from '../utils/toolPermissionMap';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
@@ -103,7 +105,25 @@ import {
   PROJECT_DATA_MART_COLUMNS,
 } from './columnMappings';
 import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
+import { cacheService } from './CacheService';
 import { getProjectListSchemas } from '../utils/projectListSchemas';
+
+/** Build a deterministic cache key suffix from query parameters. */
+function buildCacheKeySuffix(params: Record<string, unknown> | undefined): string {
+  if (!params) return '';
+  const filtered = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== null)
+    .sort(([a], [b]) => a.localeCompare(b));
+  if (filtered.length === 0) return '';
+  const obj: Record<string, unknown> = {};
+  for (const [k, v] of filtered) {
+    obj[k] = v;
+  }
+  return '_' + JSON.stringify(obj);
+}
+
+const USER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes for user-scoped data
+const DATA_MART_SYNC_BATCH_SIZE = 5; // Concurrent syncToDataMart calls in triggerDataMartSync
 
 /**
  * SharePoint Data Service — Live implementation using PnP JS.
@@ -143,128 +163,281 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Leads ---
+  // LOAD-TEST: Expected 100-500 leads over time. Default top(100). At 500+ items, consider server-side paging.
   async getLeads(_options?: IListQueryOptions): Promise<IPagedResult<ILead>> {
-    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items
-      .top(_options?.top || 100)();
-    return { items: items as ILead[], totalCount: items.length, hasMore: false };
+    performanceService.startMark('sp:getLeads');
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items
+        .top(_options?.top || 100)();
+      performanceService.endMark('sp:getLeads');
+      return { items: items as ILead[], totalCount: items.length, hasMore: false };
+    } catch (err) {
+      performanceService.endMark('sp:getLeads');
+      throw this.handleError('getLeads', err, { entityType: 'Lead' });
+    }
   }
 
   async getLeadById(id: number): Promise<ILead | null> {
+    performanceService.startMark('sp:getLeadById');
     try {
       const item = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items.getById(id)();
+      performanceService.endMark('sp:getLeadById');
       return item as ILead;
     } catch {
+      performanceService.endMark('sp:getLeadById');
       return null;
     }
   }
 
+  // SP-INDEX-REQUIRED: Leads_Master → Stage
   async getLeadsByStage(stage: Stage): Promise<ILead[]> {
-    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items
-      .filter(`Stage eq '${stage}'`)();
-    return items as ILead[];
+    performanceService.startMark('sp:getLeadsByStage');
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items
+        .filter(`Stage eq '${stage}'`)
+        .top(5000)();
+      performanceService.endMark('sp:getLeadsByStage');
+      return items as ILead[];
+    } catch (err) {
+      performanceService.endMark('sp:getLeadsByStage');
+      throw this.handleError('getLeadsByStage', err, { entityType: 'Lead' });
+    }
   }
 
   async createLead(data: ILeadFormData): Promise<ILead> {
-    const result = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items.add(data);
-    return result as ILead;
+    performanceService.startMark('sp:createLead');
+    try {
+      const result = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items.add(data);
+      performanceService.endMark('sp:createLead');
+      return result as ILead;
+    } catch (err) {
+      performanceService.endMark('sp:createLead');
+      throw this.handleError('createLead', err, { entityType: 'Lead' });
+    }
   }
 
   async updateLead(id: number, data: Partial<ILead>): Promise<ILead> {
-    await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items.getById(id).update(data);
-    return this.getLeadById(id) as Promise<ILead>;
+    performanceService.startMark('sp:updateLead');
+    try {
+      await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items.getById(id).update(data);
+      performanceService.endMark('sp:updateLead');
+      return this.getLeadById(id) as Promise<ILead>;
+    } catch (err) {
+      performanceService.endMark('sp:updateLead');
+      throw this.handleError('updateLead', err, { entityType: 'Lead', entityId: String(id) });
+    }
   }
 
   async deleteLead(id: number): Promise<void> {
-    await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items.getById(id).delete();
+    performanceService.startMark('sp:deleteLead');
+    try {
+      await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items.getById(id).delete();
+      performanceService.endMark('sp:deleteLead');
+    } catch (err) {
+      performanceService.endMark('sp:deleteLead');
+      throw this.handleError('deleteLead', err, { entityType: 'Lead', entityId: String(id) });
+    }
   }
 
+  // LOAD-TEST: substringof() prevents SP index usage — full table scan. Consider SP Search API at >1000 leads.
   async searchLeads(query: string): Promise<ILead[]> {
-    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items
-      .filter(`substringof('${query}', Title) or substringof('${query}', ClientName) or substringof('${query}', ProjectCode)`)();
-    return items as ILead[];
+    performanceService.startMark('sp:searchLeads');
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items
+        .filter(`substringof('${query}', Title) or substringof('${query}', ClientName) or substringof('${query}', ProjectCode)`)
+        .top(5000)();
+      performanceService.endMark('sp:searchLeads');
+      return items as ILead[];
+    } catch (err) {
+      performanceService.endMark('sp:searchLeads');
+      throw this.handleError('searchLeads', err, { entityType: 'Lead' });
+    }
   }
 
   // --- Scorecards ---
+  // SP-INDEX-REQUIRED: GoNoGo_Scorecard → LeadID
   async getScorecardByLeadId(leadId: number): Promise<IGoNoGoScorecard | null> {
-    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items
-      .filter(`LeadID eq ${leadId}`)();
-    return items.length > 0 ? items[0] as IGoNoGoScorecard : null;
+    performanceService.startMark('sp:getScorecardByLeadId');
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items
+        .filter(`LeadID eq ${leadId}`)
+        .top(1)();
+      performanceService.endMark('sp:getScorecardByLeadId');
+      return items.length > 0 ? items[0] as IGoNoGoScorecard : null;
+    } catch (err) {
+      performanceService.endMark('sp:getScorecardByLeadId');
+      throw this.handleError('getScorecardByLeadId', err, { entityType: 'Scorecard' });
+    }
   }
 
+  // LOAD-TEST: Returns all scorecards. Expected <500. Added top(5000) safety.
   async getScorecards(): Promise<IGoNoGoScorecard[]> {
-    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items();
-    return items as IGoNoGoScorecard[];
+    performanceService.startMark('sp:getScorecards');
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items
+        .top(5000)();
+      performanceService.endMark('sp:getScorecards');
+      return items as IGoNoGoScorecard[];
+    } catch (err) {
+      performanceService.endMark('sp:getScorecards');
+      throw this.handleError('getScorecards', err, { entityType: 'Scorecard' });
+    }
   }
 
   async createScorecard(data: Partial<IGoNoGoScorecard>): Promise<IGoNoGoScorecard> {
-    const result = await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.add(data);
-    return result as IGoNoGoScorecard;
+    performanceService.startMark('sp:createScorecard');
+    try {
+      const result = await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.add(data);
+      performanceService.endMark('sp:createScorecard');
+      return result as IGoNoGoScorecard;
+    } catch (err) {
+      performanceService.endMark('sp:createScorecard');
+      throw this.handleError('createScorecard', err, { entityType: 'Scorecard' });
+    }
   }
 
   async updateScorecard(id: number, data: Partial<IGoNoGoScorecard>): Promise<IGoNoGoScorecard> {
-    await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(id).update(data);
-    return { id, ...data } as IGoNoGoScorecard;
+    performanceService.startMark('sp:updateScorecard');
+    try {
+      await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(id).update(data);
+      performanceService.endMark('sp:updateScorecard');
+      return { id, ...data } as IGoNoGoScorecard;
+    } catch (err) {
+      performanceService.endMark('sp:updateScorecard');
+      throw this.handleError('updateScorecard', err, { entityType: 'Scorecard', entityId: String(id) });
+    }
   }
 
   async submitGoNoGoDecision(scorecardId: number, decision: GoNoGoDecision, projectCode?: string): Promise<void> {
-    await this.updateScorecard(scorecardId, {
-      Decision: decision,
-      DecisionDate: new Date().toISOString(),
-      ProjectCode: projectCode,
-    });
+    performanceService.startMark('sp:submitGoNoGoDecision');
+    try {
+      await this.updateScorecard(scorecardId, {
+        Decision: decision,
+        DecisionDate: new Date().toISOString(),
+        ProjectCode: projectCode,
+      });
+      performanceService.endMark('sp:submitGoNoGoDecision');
+    } catch (err) {
+      performanceService.endMark('sp:submitGoNoGoDecision');
+      throw this.handleError('submitGoNoGoDecision', err, { entityType: 'Scorecard', entityId: String(scorecardId) });
+    }
   }
 
   // --- Estimating ---
+  // LOAD-TEST: Returns all estimating records. Expected <500. Added top(5000) safety.
   async getEstimatingRecords(_options?: IListQueryOptions): Promise<IPagedResult<IEstimatingTracker>> {
-    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items();
-    return { items: items as IEstimatingTracker[], totalCount: items.length, hasMore: false };
+    performanceService.startMark('sp:getEstimatingRecords');
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items
+        .top(5000)();
+      performanceService.endMark('sp:getEstimatingRecords');
+      return { items: items as IEstimatingTracker[], totalCount: items.length, hasMore: false };
+    } catch (err) {
+      performanceService.endMark('sp:getEstimatingRecords');
+      throw this.handleError('getEstimatingRecords', err, { entityType: 'EstimatingTracker' });
+    }
   }
 
   async getEstimatingRecordById(id: number): Promise<IEstimatingTracker | null> {
+    performanceService.startMark('sp:getEstimatingRecordById');
     try {
       const item = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items.getById(id)();
+      performanceService.endMark('sp:getEstimatingRecordById');
       return item as IEstimatingTracker;
     } catch {
+      performanceService.endMark('sp:getEstimatingRecordById');
       return null;
     }
   }
 
+  // SP-INDEX-REQUIRED: Estimating_Tracker → LeadID
   async getEstimatingByLeadId(leadId: number): Promise<IEstimatingTracker | null> {
-    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items
-      .filter(`LeadID eq ${leadId}`)();
-    return items.length > 0 ? items[0] as IEstimatingTracker : null;
+    performanceService.startMark('sp:getEstimatingByLeadId');
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items
+        .filter(`LeadID eq ${leadId}`)
+        .top(1)();
+      performanceService.endMark('sp:getEstimatingByLeadId');
+      return items.length > 0 ? items[0] as IEstimatingTracker : null;
+    } catch (err) {
+      performanceService.endMark('sp:getEstimatingByLeadId');
+      throw this.handleError('getEstimatingByLeadId', err, { entityType: 'EstimatingTracker' });
+    }
   }
 
   async createEstimatingRecord(data: Partial<IEstimatingTracker>): Promise<IEstimatingTracker> {
-    const result = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items.add(data);
-    return result as IEstimatingTracker;
+    performanceService.startMark('sp:createEstimatingRecord');
+    try {
+      const result = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items.add(data);
+      performanceService.endMark('sp:createEstimatingRecord');
+      return result as IEstimatingTracker;
+    } catch (err) {
+      performanceService.endMark('sp:createEstimatingRecord');
+      throw this.handleError('createEstimatingRecord', err, { entityType: 'EstimatingTracker' });
+    }
   }
 
   async updateEstimatingRecord(id: number, data: Partial<IEstimatingTracker>): Promise<IEstimatingTracker> {
-    await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items.getById(id).update(data);
-    return { id, ...data } as IEstimatingTracker;
+    performanceService.startMark('sp:updateEstimatingRecord');
+    try {
+      await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items.getById(id).update(data);
+      performanceService.endMark('sp:updateEstimatingRecord');
+      return { id, ...data } as IEstimatingTracker;
+    } catch (err) {
+      performanceService.endMark('sp:updateEstimatingRecord');
+      throw this.handleError('updateEstimatingRecord', err, { entityType: 'EstimatingTracker', entityId: String(id) });
+    }
   }
 
+  // SP-INDEX-REQUIRED: Estimating_Tracker → AwardStatus
   async getCurrentPursuits(): Promise<IEstimatingTracker[]> {
-    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items
-      .filter(`AwardStatus eq 'Pending'`)();
-    return items as IEstimatingTracker[];
+    performanceService.startMark('sp:getCurrentPursuits');
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items
+        .filter(`AwardStatus eq 'Pending'`)
+        .top(5000)();
+      performanceService.endMark('sp:getCurrentPursuits');
+      return items as IEstimatingTracker[];
+    } catch (err) {
+      performanceService.endMark('sp:getCurrentPursuits');
+      throw this.handleError('getCurrentPursuits', err, { entityType: 'EstimatingTracker' });
+    }
   }
 
+  // SP-INDEX-REQUIRED: Estimating_Tracker → AwardStatus
   async getPreconEngagements(): Promise<IEstimatingTracker[]> {
-    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items
-      .filter(`AwardStatus eq 'Awarded w/ Precon'`)();
-    return items as IEstimatingTracker[];
+    performanceService.startMark('sp:getPreconEngagements');
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items
+        .filter(`AwardStatus eq 'Awarded w/ Precon'`)
+        .top(5000)();
+      performanceService.endMark('sp:getPreconEngagements');
+      return items as IEstimatingTracker[];
+    } catch (err) {
+      performanceService.endMark('sp:getPreconEngagements');
+      throw this.handleError('getPreconEngagements', err, { entityType: 'EstimatingTracker' });
+    }
   }
 
+  // SP-INDEX-REQUIRED: Estimating_Tracker → SubmittedDate
   async getEstimateLog(): Promise<IEstimatingTracker[]> {
-    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items
-      .filter(`SubmittedDate ne null`)();
-    return items as IEstimatingTracker[];
+    performanceService.startMark('sp:getEstimateLog');
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items
+        .filter(`SubmittedDate ne null`)
+        .top(5000)();
+      performanceService.endMark('sp:getEstimateLog');
+      return items as IEstimatingTracker[];
+    } catch (err) {
+      performanceService.endMark('sp:getEstimateLog');
+      throw this.handleError('getEstimateLog', err, { entityType: 'EstimatingTracker' });
+    }
   }
 
   // --- RBAC ---
+  // LOAD-TEST: Reads App_Roles list (expected <20 roles). Called once on app init. Fast.
   async getCurrentUser(): Promise<ICurrentUser> {
+    performanceService.startMark('sp:getCurrentUser');
     if (!this._pageContextUser) {
       throw new Error('SharePointDataService.initializeContext() must be called before getCurrentUser()');
     }
@@ -301,58 +474,110 @@ export class SharePointDataService implements IDataService {
       roles,
       permissions: new Set(allPermissions),
     };
+    performanceService.endMark('sp:getCurrentUser');
   }
 
+  // LOAD-TEST: Hub-site reference list. Expected <20 roles. Unbounded but small.
   async getRoles(): Promise<IRole[]> {
+    performanceService.startMark('sp:getRoles');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.APP_ROLES).items();
+    performanceService.endMark('sp:getRoles');
     return items as IRole[];
   }
 
   async updateRole(id: number, data: Partial<IRole>): Promise<IRole> {
+    performanceService.startMark('sp:updateRole');
     await this.sp.web.lists.getByTitle(LIST_NAMES.APP_ROLES).items.getById(id).update(data);
+    performanceService.endMark('sp:updateRole');
     return { id, ...data } as IRole;
   }
 
   // --- Feature Flags ---
   async getFeatureFlags(): Promise<IFeatureFlag[]> {
+    performanceService.startMark('sp:getFeatureFlags');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.FEATURE_FLAGS).items();
+    performanceService.endMark('sp:getFeatureFlags');
     return items as IFeatureFlag[];
   }
 
   async updateFeatureFlag(id: number, data: Partial<IFeatureFlag>): Promise<IFeatureFlag> {
+    performanceService.startMark('sp:updateFeatureFlag');
     await this.sp.web.lists.getByTitle(LIST_NAMES.FEATURE_FLAGS).items.getById(id).update(data);
+    performanceService.endMark('sp:updateFeatureFlag');
     return { id, ...data } as IFeatureFlag;
   }
 
   // --- Meetings ---
   async getCalendarAvailability(_emails: string[], _startDate: string, _endDate: string): Promise<ICalendarAvailability[]> {
+    performanceService.startMark('sp:getCalendarAvailability');
     // Delegated to GraphService
     throw new Error('Use GraphService directly');
+    performanceService.endMark('sp:getCalendarAvailability');
   }
 
   async createMeeting(_meeting: Partial<IMeeting>): Promise<IMeeting> {
+    performanceService.startMark('sp:createMeeting');
     throw new Error('Use GraphService directly');
+    performanceService.endMark('sp:createMeeting');
   }
 
   async getMeetings(_projectCode?: string): Promise<IMeeting[]> {
+    performanceService.startMark('sp:getMeetings');
+    performanceService.endMark('sp:getMeetings');
     return [];
   }
 
   // --- Notifications ---
   async sendNotification(_notification: Partial<INotification>): Promise<INotification> {
+    performanceService.startMark('sp:sendNotification');
     throw new Error('Use PowerAutomateService directly');
+    performanceService.endMark('sp:sendNotification');
   }
 
   async getNotifications(_projectCode?: string): Promise<INotification[]> {
+    performanceService.startMark('sp:getNotifications');
+    performanceService.endMark('sp:getNotifications');
     return [];
   }
 
   // --- Audit ---
   async logAudit(entry: Partial<IAuditEntry>): Promise<void> {
+    performanceService.startMark('sp:logAudit');
     await this.sp.web.lists.getByTitle(LIST_NAMES.AUDIT_LOG).items.add(entry);
+    performanceService.endMark('sp:logAudit');
   }
 
+  private handleError(
+    method: string,
+    err: unknown,
+    options?: { entityType?: string; entityId?: string; rethrow?: boolean }
+  ): DataServiceError {
+    const dsError = err instanceof DataServiceError
+      ? err
+      : new DataServiceError(method, 'Operation failed', {
+          entityType: options?.entityType,
+          entityId: options?.entityId,
+          innerError: err,
+        });
+
+    this.logAudit({
+      Action: AuditAction.ServiceError,
+      EntityType: (dsError.entityType as EntityType) || EntityType.Project,
+      EntityId: dsError.entityId || '',
+      User: this._pageContextUser?.displayName || 'System',
+      Details: dsError.message,
+    }).catch(() => { /* fire-and-forget */ });
+
+    if (options?.rethrow !== false) {
+      throw dsError;
+    }
+    return dsError;
+  }
+
+  // SP-INDEX-REQUIRED: Audit_Log → EntityType, EntityId, Timestamp
+  // LOAD-TEST: Dynamic multi-column filter. Bounded at top(100). Timestamp index critical for date range queries.
   async getAuditLog(entityType?: string, entityId?: string, startDate?: string, endDate?: string): Promise<IAuditEntry[]> {
+    performanceService.startMark('sp:getAuditLog');
     let query = this.sp.web.lists.getByTitle(LIST_NAMES.AUDIT_LOG).items;
     const filters: string[] = [];
     if (entityType) filters.push(`EntityType eq '${entityType}'`);
@@ -361,15 +586,21 @@ export class SharePointDataService implements IDataService {
     if (endDate) filters.push(`Timestamp le datetime'${endDate}'`);
     if (filters.length > 0) query = query.filter(filters.join(' and '));
     const items = await query.orderBy('Timestamp', false).top(100)();
+    performanceService.endMark('sp:getAuditLog');
     return items as IAuditEntry[];
   }
 
   async purgeOldAuditEntries(_olderThanDays: number): Promise<number> {
+    performanceService.startMark('sp:purgeOldAuditEntries');
     throw new Error('Not implemented — use Power Automate scheduled flow for production archive');
+    performanceService.endMark('sp:purgeOldAuditEntries');
   }
 
   // --- Provisioning ---
-  async triggerProvisioning(leadId: number, projectCode: string, projectName: string, requestedBy: string, metadata?: { division?: string; region?: string; clientName?: string }): Promise<IProvisioningLog> {
+  // LOAD-TEST: 2 SP calls: add + re-read. Fast.
+  async triggerProvisioning(leadId: number, projectCode: string, projectName: string, requestedBy: string, metadata?: {
+    performanceService.endMark('sp:triggerProvisioning');
+    performanceService.startMark('sp:triggerProvisioning'); division?: string; region?: string; clientName?: string }): Promise<IProvisioningLog> {
     const col = PROVISIONING_LOG_COLUMNS;
     const addData: Record<string, unknown> = {
       [col.projectCode]: projectCode,
@@ -391,16 +622,21 @@ export class SharePointDataService implements IDataService {
     return item as IProvisioningLog;
   }
 
+  // SP-INDEX-REQUIRED: Provisioning_Log → ProjectCode
   async getProvisioningStatus(projectCode: string): Promise<IProvisioningLog | null> {
+    performanceService.startMark('sp:getProvisioningStatus');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items
       .filter(`ProjectCode eq '${projectCode}'`)
       .orderBy('RequestedAt', false)
       .top(1)();
     if (items.length === 0) return null;
+    performanceService.endMark('sp:getProvisioningStatus');
     return items[0] as IProvisioningLog;
   }
 
+  // SP-INDEX-REQUIRED: Provisioning_Log → ProjectCode
   async updateProvisioningLog(projectCode: string, data: Partial<IProvisioningLog>): Promise<IProvisioningLog> {
+    performanceService.startMark('sp:updateProvisioningLog');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items
       .filter(`ProjectCode eq '${projectCode}'`).orderBy('RequestedAt', false).top(1)();
     if (items.length === 0) throw new Error(`Provisioning log for ${projectCode} not found`);
@@ -420,17 +656,23 @@ export class SharePointDataService implements IDataService {
 
     await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items.getById(itemId).update(updateData);
     const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items.getById(itemId)();
+    performanceService.endMark('sp:updateProvisioningLog');
     return updated as IProvisioningLog;
   }
 
+  // LOAD-TEST: Hub-wide query. Expected <200 provisioning records. Bounded at top(100).
   async getProvisioningLogs(): Promise<IProvisioningLog[]> {
+    performanceService.startMark('sp:getProvisioningLogs');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items
       .orderBy('RequestedAt', false)
       .top(100)();
+    performanceService.endMark('sp:getProvisioningLogs');
     return items as IProvisioningLog[];
   }
 
+  // SP-INDEX-REQUIRED: Provisioning_Log → ProjectCode
   async retryProvisioning(projectCode: string, fromStep: number): Promise<IProvisioningLog> {
+    performanceService.startMark('sp:retryProvisioning');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items
       .filter(`ProjectCode eq '${projectCode}'`).orderBy('RequestedAt', false).top(1)();
     if (items.length === 0) throw new Error(`Provisioning log for ${projectCode} not found`);
@@ -448,12 +690,16 @@ export class SharePointDataService implements IDataService {
     });
 
     const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items.getById(itemId)();
+    performanceService.endMark('sp:retryProvisioning');
     return updated as IProvisioningLog;
   }
 
   // --- Provisioning Operations ---
 
-  async createProjectSite(projectCode: string, projectName: string, siteAlias: string): Promise<{ siteUrl: string }> {
+  // LOAD-TEST: External REST call to SP Site Manager API. Slow (5-30s). One-time per project.
+  async createProjectSite(projectCode: string, projectName: string, siteAlias: string): Promise<{
+    performanceService.endMark('sp:createProjectSite');
+    performanceService.startMark('sp:createProjectSite'); siteUrl: string }> {
     const siteUrl = `https://hedrickbrotherscom.sharepoint.com/sites/${siteAlias}`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const response = await (this.sp.web as any).fetchRaw(
@@ -479,7 +725,9 @@ export class SharePointDataService implements IDataService {
     return { siteUrl };
   }
 
+  // LOAD-TEST: CRITICAL: Creates 41 lists with fields. Batched by 5. Expected 30-60s per project. One-time.
   async provisionProjectLists(siteUrl: string, projectCode: string): Promise<void> {
+    performanceService.startMark('sp:provisionProjectLists');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Web } = require('@pnp/sp/webs');
     const web = Web([this.sp.web, siteUrl]);
@@ -507,9 +755,11 @@ export class SharePointDataService implements IDataService {
       }
     }
     this.logAudit({ Action: AuditAction.SiteListsProvisioned, EntityType: EntityType.Project, EntityId: projectCode, ProjectCode: projectCode, Details: `Provisioned ${schemas.length} lists on ${siteUrl}`, User: 'system' }).catch(console.error);
+    performanceService.endMark('sp:provisionProjectLists');
   }
 
   async associateWithHubSite(siteUrl: string, hubSiteUrl: string): Promise<void> {
+    performanceService.startMark('sp:associateWithHubSite');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Web } = require('@pnp/sp/webs');
     const hubWeb = Web([this.sp.web, hubSiteUrl]);
@@ -519,9 +769,11 @@ export class SharePointDataService implements IDataService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (projectWeb.site as any).joinHubSite(hubSiteId);
     this.logAudit({ Action: AuditAction.SiteHubAssociated, EntityType: EntityType.Project, EntityId: siteUrl, Details: `Associated ${siteUrl} with hub ${hubSiteUrl}`, User: 'system' }).catch(console.error);
+    performanceService.endMark('sp:associateWithHubSite');
   }
 
   async createProjectSecurityGroups(siteUrl: string, projectCode: string, _division: string): Promise<void> {
+    performanceService.startMark('sp:createProjectSecurityGroups');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Web } = require('@pnp/sp/webs');
     const web = Web([this.sp.web, siteUrl]);
@@ -546,9 +798,13 @@ export class SharePointDataService implements IDataService {
       } catch { /* non-blocking */ }
     }
     this.logAudit({ Action: AuditAction.SiteSecurityGroupsCreated, EntityType: EntityType.Project, EntityId: projectCode, ProjectCode: projectCode, Details: `Security groups created for ${projectCode} on ${siteUrl}`, User: 'system' }).catch(console.error);
+    performanceService.endMark('sp:createProjectSecurityGroups');
   }
 
+  // SP-INDEX-REQUIRED: Template_Registry → Active+Division
+  // LOAD-TEST: N file copy operations. Expected <20 templates per division. Serial file copies can be slow.
   async copyTemplateFiles(siteUrl: string, projectCode: string, division: string): Promise<void> {
+    performanceService.startMark('sp:copyTemplateFiles');
     const col = TEMPLATE_REGISTRY_COLUMNS;
     const templates = await this.sp.web.lists.getByTitle(LIST_NAMES.TEMPLATE_REGISTRY).items
       .filter(`${col.Active} eq 1 and (${col.Division} eq '${division}' or ${col.Division} eq 'All')`)();
@@ -566,9 +822,11 @@ export class SharePointDataService implements IDataService {
       } catch (err) { console.warn(`[SP] Template copy failed ${sourceUrl}:`, err); }
     }
     this.logAudit({ Action: AuditAction.SiteTemplatesCopied, EntityType: EntityType.Project, EntityId: projectCode, ProjectCode: projectCode, Details: `Copied ${templates.length} templates to ${siteUrl}`, User: 'system' }).catch(console.error);
+    performanceService.endMark('sp:copyTemplateFiles');
   }
 
   async copyLeadDataToProjectSite(siteUrl: string, leadId: number, projectCode: string): Promise<void> {
+    performanceService.startMark('sp:copyLeadDataToProjectSite');
     const lead = await this.getLeadById(leadId);
     if (!lead) throw new Error(`Lead ${leadId} not found`);
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -583,16 +841,20 @@ export class SharePointDataService implements IDataService {
       projectCode, leadId,
     });
     this.logAudit({ Action: AuditAction.SiteLeadDataCopied, EntityType: EntityType.Project, EntityId: projectCode, ProjectCode: projectCode, Details: `Lead data (ID: ${leadId}) copied to ${siteUrl}`, User: 'system' }).catch(console.error);
+    performanceService.endMark('sp:copyLeadDataToProjectSite');
   }
 
   async updateSiteProperties(siteUrl: string, properties: Record<string, string>): Promise<void> {
+    performanceService.startMark('sp:updateSiteProperties');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Web } = require('@pnp/sp/webs');
     const web = Web([this.sp.web, siteUrl]);
     await web.update(properties);
+    performanceService.endMark('sp:updateSiteProperties');
   }
 
   async createList(siteUrl: string, listName: string, templateType: number, fields: IFieldDefinition[]): Promise<void> {
+    performanceService.startMark('sp:createList');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Web } = require('@pnp/sp/webs');
     const web = Web([this.sp.web, siteUrl]);
@@ -601,6 +863,7 @@ export class SharePointDataService implements IDataService {
     for (const field of fields) {
       const xml = this._buildFieldXml(field);
       await list.fields.createFieldAsXml(xml);
+    performanceService.endMark('sp:createList');
     }
   }
 
@@ -611,77 +874,114 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Phase 6: Workflow ---
+  // SP-INDEX-REQUIRED: Team_Members → ProjectCode
   async getTeamMembers(_projectCode: string): Promise<import('../models').ITeamMember[]> {
+    performanceService.startMark('sp:getTeamMembers');
     const items = await this.sp.web.lists.getByTitle('Team_Members').items.filter(`ProjectCode eq '${_projectCode}'`)();
+    performanceService.endMark('sp:getTeamMembers');
     return items;
   }
 
+  // SP-INDEX-REQUIRED: Deliverables → ProjectCode
   async getDeliverables(_projectCode: string): Promise<import('../models').IDeliverable[]> {
+    performanceService.startMark('sp:getDeliverables');
     const items = await this.sp.web.lists.getByTitle('Deliverables').items.filter(`ProjectCode eq '${_projectCode}'`)();
+    performanceService.endMark('sp:getDeliverables');
     return items;
   }
 
   async createDeliverable(data: Partial<import('../models').IDeliverable>): Promise<import('../models').IDeliverable> {
+    performanceService.startMark('sp:createDeliverable');
     const result = await this.sp.web.lists.getByTitle('Deliverables').items.add(data);
+    performanceService.endMark('sp:createDeliverable');
     return result as import('../models').IDeliverable;
   }
 
   async updateDeliverable(id: number, data: Partial<import('../models').IDeliverable>): Promise<import('../models').IDeliverable> {
+    performanceService.startMark('sp:updateDeliverable');
     await this.sp.web.lists.getByTitle('Deliverables').items.getById(id).update(data);
+    performanceService.endMark('sp:updateDeliverable');
     return { id, ...data } as import('../models').IDeliverable;
   }
 
+  // SP-INDEX-REQUIRED: Interview_Prep → LeadID
   async getInterviewPrep(_leadId: number): Promise<import('../models').IInterviewPrep | null> {
+    performanceService.startMark('sp:getInterviewPrep');
     const items = await this.sp.web.lists.getByTitle('Interview_Prep').items.filter(`LeadID eq ${_leadId}`)();
+    performanceService.endMark('sp:getInterviewPrep');
     return items.length > 0 ? items[0] : null;
   }
 
   async saveInterviewPrep(data: Partial<import('../models').IInterviewPrep>): Promise<import('../models').IInterviewPrep> {
+    performanceService.startMark('sp:saveInterviewPrep');
     const result = await this.sp.web.lists.getByTitle('Interview_Prep').items.add(data);
+    performanceService.endMark('sp:saveInterviewPrep');
     return result as import('../models').IInterviewPrep;
   }
 
+  // SP-INDEX-REQUIRED: Contract_Info → ProjectCode
   async getContractInfo(_projectCode: string): Promise<import('../models').IContractInfo | null> {
+    performanceService.startMark('sp:getContractInfo');
     const items = await this.sp.web.lists.getByTitle('Contract_Info').items.filter(`ProjectCode eq '${_projectCode}'`)();
+    performanceService.endMark('sp:getContractInfo');
     return items.length > 0 ? items[0] : null;
   }
 
   async saveContractInfo(data: Partial<import('../models').IContractInfo>): Promise<import('../models').IContractInfo> {
+    performanceService.startMark('sp:saveContractInfo');
     const result = await this.sp.web.lists.getByTitle('Contract_Info').items.add(data);
+    performanceService.endMark('sp:saveContractInfo');
     return result as import('../models').IContractInfo;
   }
 
+  // SP-INDEX-REQUIRED: Turnover_Items → ProjectCode
   async getTurnoverItems(_projectCode: string): Promise<import('../models').ITurnoverItem[]> {
+    performanceService.startMark('sp:getTurnoverItems');
     const items = await this.sp.web.lists.getByTitle('Turnover_Items').items.filter(`ProjectCode eq '${_projectCode}'`)();
+    performanceService.endMark('sp:getTurnoverItems');
     return items;
   }
 
   async updateTurnoverItem(id: number, data: Partial<import('../models').ITurnoverItem>): Promise<import('../models').ITurnoverItem> {
+    performanceService.startMark('sp:updateTurnoverItem');
     await this.sp.web.lists.getByTitle('Turnover_Items').items.getById(id).update(data);
+    performanceService.endMark('sp:updateTurnoverItem');
     return { id, ...data } as import('../models').ITurnoverItem;
   }
 
+  // SP-INDEX-REQUIRED: Closeout_Items → ProjectCode
   async getCloseoutItems(_projectCode: string): Promise<import('../models').ICloseoutItem[]> {
+    performanceService.startMark('sp:getCloseoutItems');
     const items = await this.sp.web.lists.getByTitle('Closeout_Items').items.filter(`ProjectCode eq '${_projectCode}'`)();
+    performanceService.endMark('sp:getCloseoutItems');
     return items;
   }
 
   async updateCloseoutItem(id: number, data: Partial<import('../models').ICloseoutItem>): Promise<import('../models').ICloseoutItem> {
+    performanceService.startMark('sp:updateCloseoutItem');
     await this.sp.web.lists.getByTitle('Closeout_Items').items.getById(id).update(data);
+    performanceService.endMark('sp:updateCloseoutItem');
     return { id, ...data } as import('../models').ICloseoutItem;
   }
 
+  // SP-INDEX-REQUIRED: Loss_Autopsy → LeadID
   async getLossAutopsy(_leadId: number): Promise<import('../models').ILossAutopsy | null> {
+    performanceService.startMark('sp:getLossAutopsy');
     const items = await this.sp.web.lists.getByTitle('Loss_Autopsy').items.filter(`LeadID eq ${_leadId}`)();
+    performanceService.endMark('sp:getLossAutopsy');
     return items.length > 0 ? items[0] : null;
   }
 
   async saveLossAutopsy(data: Partial<import('../models').ILossAutopsy>): Promise<import('../models').ILossAutopsy> {
+    performanceService.startMark('sp:saveLossAutopsy');
     const result = await this.sp.web.lists.getByTitle('Loss_Autopsy').items.add(data);
+    performanceService.endMark('sp:saveLossAutopsy');
     return result as import('../models').ILossAutopsy;
   }
 
+  // SP-INDEX-REQUIRED: Loss_Autopsy → LeadID
   async finalizeLossAutopsy(leadId: number, data: Partial<import('../models').ILossAutopsy>): Promise<import('../models').ILossAutopsy> {
+    performanceService.startMark('sp:finalizeLossAutopsy');
     const items = await this.sp.web.lists.getByTitle('Loss_Autopsy').items.filter(`LeadID eq ${leadId}`)();
     if (items.length === 0) throw new Error(`No autopsy found for lead ${leadId}`);
     await this.sp.web.lists.getByTitle('Loss_Autopsy').items.getById(items[0].Id).update({
@@ -689,20 +989,30 @@ export class SharePointDataService implements IDataService {
       isFinalized: true,
       finalizedDate: new Date().toISOString(),
     });
+    performanceService.endMark('sp:finalizeLossAutopsy');
     return { ...items[0], ...data, isFinalized: true } as import('../models').ILossAutopsy;
   }
 
+  // SP-INDEX-REQUIRED: Loss_Autopsy → LeadID+isFinalized (compound filter)
   async isAutopsyFinalized(leadId: number): Promise<boolean> {
+    performanceService.startMark('sp:isAutopsyFinalized');
     const items = await this.sp.web.lists.getByTitle('Loss_Autopsy').items.filter(`LeadID eq ${leadId} and isFinalized eq 1`)();
+    performanceService.endMark('sp:isAutopsyFinalized');
     return items.length > 0;
   }
 
+  // LOAD-TEST: Hub-wide unfiltered query. Expected <200 autopsies. UNBOUNDED — add top(5000) safety.
   async getAllLossAutopsies(): Promise<import('../models').ILossAutopsy[]> {
+    performanceService.startMark('sp:getAllLossAutopsies');
+    performanceService.endMark('sp:getAllLossAutopsies');
     return await this.sp.web.lists.getByTitle('Loss_Autopsy').items() as import('../models').ILossAutopsy[];
   }
 
   // --- App Context ---
-  async getAppContextConfig(siteUrl: string): Promise<{ RenderMode: string; AppTitle: string; VisibleModules: string[] } | null> {
+  // SP-INDEX-REQUIRED: App_Context_Config → SiteURL
+  async getAppContextConfig(siteUrl: string): Promise<{
+    performanceService.endMark('sp:getAppContextConfig');
+    performanceService.startMark('sp:getAppContextConfig'); RenderMode: string; AppTitle: string; VisibleModules: string[] } | null> {
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG).items
       .filter(`SiteURL eq '${siteUrl}'`)();
     if (items.length === 0) return null;
@@ -713,7 +1023,10 @@ export class SharePointDataService implements IDataService {
     };
   }
 
-  async getTemplates(): Promise<Array<{ TemplateName: string; SourceURL: string; TargetFolder: string; Division: string; Active: boolean }>> {
+  // LOAD-TEST: Hub-site reference list. Expected <50 templates. Unbounded.
+  async getTemplates(): Promise<Array<{
+    performanceService.endMark('sp:getTemplates');
+    performanceService.startMark('sp:getTemplates'); TemplateName: string; SourceURL: string; TargetFolder: string; Division: string; Active: boolean }>> {
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.TEMPLATE_REGISTRY).items();
     return items.map((i: Record<string, unknown>) => ({
       TemplateName: String(i.TemplateName || ''),
@@ -725,12 +1038,16 @@ export class SharePointDataService implements IDataService {
   }
 
   async getRegions(): Promise<string[]> {
+    performanceService.startMark('sp:getRegions');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.REGIONS).items.select('Title')();
+    performanceService.endMark('sp:getRegions');
     return items.map((i: Record<string, unknown>) => String(i.Title || ''));
   }
 
   async getSectors(): Promise<string[]> {
+    performanceService.startMark('sp:getSectors');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.SECTORS).items.select('Title')();
+    performanceService.endMark('sp:getSectors');
     return items.map((i: Record<string, unknown>) => String(i.Title || ''));
   }
 
@@ -738,7 +1055,10 @@ export class SharePointDataService implements IDataService {
   // ──── Startup Checklist (Project Site) ────
   // ═══════════════════════════════════════════════════════════════════
 
+  // SP-INDEX-REQUIRED: Startup_Checklist → ProjectCode, Checklist_Activity_Log → ProjectCode
+  // LOAD-TEST: 2 parallel SP calls. Expected <100 checklist items + <500 activity entries per project.
   async getStartupChecklist(projectCode: string): Promise<IStartupChecklistItem[]> {
+    performanceService.startMark('sp:getStartupChecklist');
     const web = this._getProjectWeb();
     const col = STARTUP_CHECKLIST_COLUMNS;
     const actCol = CHECKLIST_ACTIVITY_LOG_COLUMNS;
@@ -763,10 +1083,13 @@ export class SharePointDataService implements IDataService {
       activityMap.get(key)!.push(entry);
     }
 
-    return items.map((item: Record<string, unknown>) => this.mapToStartupChecklistItem(item, activityMap.get(item.Id as number)));
+    const result = items.map((item: Record<string, unknown>) => this.mapToStartupChecklistItem(item, activityMap.get(item.Id as number)));
+    performanceService.endMark('sp:getStartupChecklist');
+    return result;
   }
 
   async updateChecklistItem(projectCode: string, itemId: number, data: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> {
+    performanceService.startMark('sp:updateChecklistItem');
     const web = this._getProjectWeb();
     const col = STARTUP_CHECKLIST_COLUMNS;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -803,10 +1126,13 @@ export class SharePointDataService implements IDataService {
     const updated = await web.lists.getByTitle(LIST_NAMES.STARTUP_CHECKLIST).items.getById(itemId)();
     const actItems = await web.lists.getByTitle(LIST_NAMES.CHECKLIST_ACTIVITY_LOG).items
       .filter(`${CHECKLIST_ACTIVITY_LOG_COLUMNS.checklistItemId} eq ${itemId}`)();
-    return this.mapToStartupChecklistItem(updated, actItems.map((a: Record<string, unknown>) => this.mapToChecklistActivityEntry(a)));
+    const mapped = this.mapToStartupChecklistItem(updated, actItems.map((a: Record<string, unknown>) => this.mapToChecklistActivityEntry(a)));
+    performanceService.endMark('sp:updateChecklistItem');
+    return mapped;
   }
 
   async addChecklistItem(projectCode: string, item: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> {
+    performanceService.startMark('sp:addChecklistItem');
     const web = this._getProjectWeb();
     const col = STARTUP_CHECKLIST_COLUMNS;
     const addData = {
@@ -827,30 +1153,38 @@ export class SharePointDataService implements IDataService {
       [col.isCustom]: item.isCustom ?? true,
       [col.sortOrder]: item.sortOrder || 0,
     };
-    const result = await web.lists.getByTitle(LIST_NAMES.STARTUP_CHECKLIST).items.add(addData);
-    return this.mapToStartupChecklistItem(result, []);
+    const spResult = await web.lists.getByTitle(LIST_NAMES.STARTUP_CHECKLIST).items.add(addData);
+    performanceService.endMark('sp:addChecklistItem');
+    return this.mapToStartupChecklistItem(spResult, []);
   }
 
   async removeChecklistItem(_projectCode: string, itemId: number): Promise<void> {
+    performanceService.startMark('sp:removeChecklistItem');
     const web = this._getProjectWeb();
     await web.lists.getByTitle(LIST_NAMES.STARTUP_CHECKLIST).items.getById(itemId).recycle();
+    performanceService.endMark('sp:removeChecklistItem');
   }
 
   // ═══════════════════════════════════════════════════════════════════
   // ──── Internal Matrix (Project Site) ────
   // ═══════════════════════════════════════════════════════════════════
 
+  // SP-INDEX-REQUIRED: Internal_Matrix → ProjectCode
+  // LOAD-TEST: Expected <200 tasks per project. Bounded at top(500).
   async getInternalMatrix(projectCode: string): Promise<IInternalMatrixTask[]> {
+    performanceService.startMark('sp:getInternalMatrix');
     const web = this._getProjectWeb();
     const col = INTERNAL_MATRIX_COLUMNS;
     const items = await web.lists.getByTitle(LIST_NAMES.INTERNAL_MATRIX).items
       .filter(`${col.projectCode} eq '${projectCode}'`)
       .orderBy(col.sortOrder, true)
       .top(500)();
+    performanceService.endMark('sp:getInternalMatrix');
     return items.map((item: Record<string, unknown>) => this.mapToInternalMatrixTask(item));
   }
 
   async updateInternalMatrixTask(projectCode: string, taskId: number, data: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask> {
+    performanceService.startMark('sp:updateInternalMatrixTask');
     const web = this._getProjectWeb();
     const col = INTERNAL_MATRIX_COLUMNS;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -870,10 +1204,12 @@ export class SharePointDataService implements IDataService {
 
     await web.lists.getByTitle(LIST_NAMES.INTERNAL_MATRIX).items.getById(taskId).update(updateData);
     const updated = await web.lists.getByTitle(LIST_NAMES.INTERNAL_MATRIX).items.getById(taskId)();
+    performanceService.endMark('sp:updateInternalMatrixTask');
     return this.mapToInternalMatrixTask(updated);
   }
 
   async addInternalMatrixTask(projectCode: string, task: Partial<IInternalMatrixTask>): Promise<IInternalMatrixTask> {
+    performanceService.startMark('sp:addInternalMatrixTask');
     const web = this._getProjectWeb();
     const col = INTERNAL_MATRIX_COLUMNS;
     const addData = {
@@ -892,24 +1228,31 @@ export class SharePointDataService implements IDataService {
       [col.isCustom]: task.isCustom ?? true,
     };
     const result = await web.lists.getByTitle(LIST_NAMES.INTERNAL_MATRIX).items.add(addData);
+    performanceService.endMark('sp:addInternalMatrixTask');
     return this.mapToInternalMatrixTask(result);
   }
 
   async removeInternalMatrixTask(_projectCode: string, taskId: number): Promise<void> {
+    performanceService.startMark('sp:removeInternalMatrixTask');
     const web = this._getProjectWeb();
     await web.lists.getByTitle(LIST_NAMES.INTERNAL_MATRIX).items.getById(taskId).recycle();
+    performanceService.endMark('sp:removeInternalMatrixTask');
   }
 
   // ═══════════════════════════════════════════════════════════════════
   // ──── Team Role Assignments (Project Site) ────
   // ═══════════════════════════════════════════════════════════════════
 
+  // SP-INDEX-REQUIRED: Team_Role_Assignments → ProjectCode, RoleAbbreviation (composite for upsert)
+  // LOAD-TEST: Expected <30 roles per project. Bounded at top(100).
   async getTeamRoleAssignments(projectCode: string): Promise<ITeamRoleAssignment[]> {
+    performanceService.startMark('sp:getTeamRoleAssignments');
     const web = this._getProjectWeb();
     const col = TEAM_ROLE_ASSIGNMENTS_COLUMNS;
     const items = await web.lists.getByTitle(LIST_NAMES.TEAM_ROLE_ASSIGNMENTS).items
       .filter(`${col.projectCode} eq '${projectCode}'`)
       .top(100)();
+    performanceService.endMark('sp:getTeamRoleAssignments');
     return items.map((item: Record<string, unknown>) => ({
       projectCode: (item[col.projectCode] as string) || '',
       roleAbbreviation: (item[col.roleAbbreviation] as string) || '',
@@ -918,7 +1261,9 @@ export class SharePointDataService implements IDataService {
     }));
   }
 
+  // SP-INDEX-REQUIRED: Team_Role_Assignments → ProjectCode+RoleAbbreviation (compound filter for upsert)
   async updateTeamRoleAssignment(projectCode: string, role: string, person: string, email?: string): Promise<ITeamRoleAssignment> {
+    performanceService.startMark('sp:updateTeamRoleAssignment');
     const web = this._getProjectWeb();
     const col = TEAM_ROLE_ASSIGNMENTS_COLUMNS;
     const listTitle = LIST_NAMES.TEAM_ROLE_ASSIGNMENTS;
@@ -945,6 +1290,7 @@ export class SharePointDataService implements IDataService {
       });
     }
 
+    performanceService.endMark('sp:updateTeamRoleAssignment');
     return { projectCode, roleAbbreviation: role, assignedPerson: person, assignedPersonEmail: email || '' };
   }
 
@@ -952,17 +1298,22 @@ export class SharePointDataService implements IDataService {
   // ──── Owner Contract Matrix (Project Site) ────
   // ═══════════════════════════════════════════════════════════════════
 
+  // SP-INDEX-REQUIRED: Owner_Contract_Matrix → ProjectCode
+  // LOAD-TEST: Expected <100 articles per project. Bounded at top(500).
   async getOwnerContractMatrix(projectCode: string): Promise<IOwnerContractArticle[]> {
+    performanceService.startMark('sp:getOwnerContractMatrix');
     const web = this._getProjectWeb();
     const col = OWNER_CONTRACT_MATRIX_COLUMNS;
     const items = await web.lists.getByTitle(LIST_NAMES.OWNER_CONTRACT_MATRIX).items
       .filter(`${col.projectCode} eq '${projectCode}'`)
       .orderBy(col.sortOrder, true)
       .top(500)();
+    performanceService.endMark('sp:getOwnerContractMatrix');
     return items.map((item: Record<string, unknown>) => this.mapToOwnerContractArticle(item));
   }
 
   async updateOwnerContractArticle(projectCode: string, itemId: number, data: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle> {
+    performanceService.startMark('sp:updateOwnerContractArticle');
     const web = this._getProjectWeb();
     const col = OWNER_CONTRACT_MATRIX_COLUMNS;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -977,10 +1328,12 @@ export class SharePointDataService implements IDataService {
 
     await web.lists.getByTitle(LIST_NAMES.OWNER_CONTRACT_MATRIX).items.getById(itemId).update(updateData);
     const updated = await web.lists.getByTitle(LIST_NAMES.OWNER_CONTRACT_MATRIX).items.getById(itemId)();
+    performanceService.endMark('sp:updateOwnerContractArticle');
     return this.mapToOwnerContractArticle(updated);
   }
 
   async addOwnerContractArticle(projectCode: string, item: Partial<IOwnerContractArticle>): Promise<IOwnerContractArticle> {
+    performanceService.startMark('sp:addOwnerContractArticle');
     const web = this._getProjectWeb();
     const col = OWNER_CONTRACT_MATRIX_COLUMNS;
     const addData = {
@@ -994,29 +1347,37 @@ export class SharePointDataService implements IDataService {
       [col.isCustom]: item.isCustom ?? true,
     };
     const result = await web.lists.getByTitle(LIST_NAMES.OWNER_CONTRACT_MATRIX).items.add(addData);
+    performanceService.endMark('sp:addOwnerContractArticle');
     return this.mapToOwnerContractArticle(result);
   }
 
   async removeOwnerContractArticle(_projectCode: string, itemId: number): Promise<void> {
+    performanceService.startMark('sp:removeOwnerContractArticle');
     const web = this._getProjectWeb();
     await web.lists.getByTitle(LIST_NAMES.OWNER_CONTRACT_MATRIX).items.getById(itemId).recycle();
+    performanceService.endMark('sp:removeOwnerContractArticle');
   }
 
   // ═══════════════════════════════════════════════════════════════════
   // ──── Sub-Contract Matrix (Project Site) ────
   // ═══════════════════════════════════════════════════════════════════
 
+  // SP-INDEX-REQUIRED: Sub_Contract_Matrix → ProjectCode
+  // LOAD-TEST: Expected 30-150 clauses per project. Bounded at top(500).
   async getSubContractMatrix(projectCode: string): Promise<ISubContractClause[]> {
+    performanceService.startMark('sp:getSubContractMatrix');
     const web = this._getProjectWeb();
     const col = SUB_CONTRACT_MATRIX_COLUMNS;
     const items = await web.lists.getByTitle(LIST_NAMES.SUB_CONTRACT_MATRIX).items
       .filter(`${col.projectCode} eq '${projectCode}'`)
       .orderBy(col.sortOrder, true)
       .top(500)();
+    performanceService.endMark('sp:getSubContractMatrix');
     return items.map((item: Record<string, unknown>) => this.mapToSubContractClause(item));
   }
 
   async updateSubContractClause(projectCode: string, itemId: number, data: Partial<ISubContractClause>): Promise<ISubContractClause> {
+    performanceService.startMark('sp:updateSubContractClause');
     const web = this._getProjectWeb();
     const col = SUB_CONTRACT_MATRIX_COLUMNS;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1035,10 +1396,12 @@ export class SharePointDataService implements IDataService {
 
     await web.lists.getByTitle(LIST_NAMES.SUB_CONTRACT_MATRIX).items.getById(itemId).update(updateData);
     const updated = await web.lists.getByTitle(LIST_NAMES.SUB_CONTRACT_MATRIX).items.getById(itemId)();
+    performanceService.endMark('sp:updateSubContractClause');
     return this.mapToSubContractClause(updated);
   }
 
   async addSubContractClause(projectCode: string, item: Partial<ISubContractClause>): Promise<ISubContractClause> {
+    performanceService.startMark('sp:addSubContractClause');
     const web = this._getProjectWeb();
     const col = SUB_CONTRACT_MATRIX_COLUMNS;
     const addData = {
@@ -1056,19 +1419,25 @@ export class SharePointDataService implements IDataService {
       [col.isCustom]: item.isCustom ?? true,
     };
     const result = await web.lists.getByTitle(LIST_NAMES.SUB_CONTRACT_MATRIX).items.add(addData);
+    performanceService.endMark('sp:addSubContractClause');
     return this.mapToSubContractClause(result);
   }
 
   async removeSubContractClause(_projectCode: string, itemId: number): Promise<void> {
+    performanceService.startMark('sp:removeSubContractClause');
     const web = this._getProjectWeb();
     await web.lists.getByTitle(LIST_NAMES.SUB_CONTRACT_MATRIX).items.getById(itemId).recycle();
+    performanceService.endMark('sp:removeSubContractClause');
   }
 
   // ═══════════════════════════════════════════════════════════════════
   // ──── Marketing Project Records (Hub Site) ────
   // ═══════════════════════════════════════════════════════════════════
 
+  // SP-INDEX-REQUIRED: Marketing_Project_Records → ProjectCode
+  // LOAD-TEST: Single-item lookup via filter+top(1). Fast if indexed.
   async getMarketingProjectRecord(projectCode: string): Promise<IMarketingProjectRecord | null> {
+    performanceService.startMark('sp:getMarketingProjectRecord');
     const col = MARKETING_PROJECT_RECORDS_COLUMNS;
     try {
       const items = await this.sp.web.lists.getByTitle(LIST_NAMES.MARKETING_PROJECT_RECORDS).items
@@ -1077,17 +1446,22 @@ export class SharePointDataService implements IDataService {
       if (items.length === 0) return null;
       return this.mapToMarketingProjectRecord(items[0]);
     } catch {
+    performanceService.endMark('sp:getMarketingProjectRecord');
       return null;
     }
   }
 
   async createMarketingProjectRecord(data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> {
+    performanceService.startMark('sp:createMarketingProjectRecord');
     const addData = this.buildMarketingUpdateData(data);
     const result = await this.sp.web.lists.getByTitle(LIST_NAMES.MARKETING_PROJECT_RECORDS).items.add(addData);
+    performanceService.endMark('sp:createMarketingProjectRecord');
     return this.mapToMarketingProjectRecord(result);
   }
 
+  // SP-INDEX-REQUIRED: Marketing_Project_Records → ProjectCode
   async updateMarketingProjectRecord(projectCode: string, data: Partial<IMarketingProjectRecord>): Promise<IMarketingProjectRecord> {
+    performanceService.startMark('sp:updateMarketingProjectRecord');
     const col = MARKETING_PROJECT_RECORDS_COLUMNS;
     // Find existing item by projectCode
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.MARKETING_PROJECT_RECORDS).items
@@ -1099,18 +1473,25 @@ export class SharePointDataService implements IDataService {
     const updateData = this.buildMarketingUpdateData(data);
     await this.sp.web.lists.getByTitle(LIST_NAMES.MARKETING_PROJECT_RECORDS).items.getById(itemId).update(updateData);
     const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.MARKETING_PROJECT_RECORDS).items.getById(itemId)();
+    performanceService.endMark('sp:updateMarketingProjectRecord');
     return this.mapToMarketingProjectRecord(updated);
   }
 
+  // LOAD-TEST: Hub-wide unfiltered query. Expected 500+ records over time. Bounded at top(500). Consider paging at scale.
   async getAllMarketingProjectRecords(): Promise<IMarketingProjectRecord[]> {
+    performanceService.startMark('sp:getAllMarketingProjectRecords');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.MARKETING_PROJECT_RECORDS).items
       .top(500)();
+    performanceService.endMark('sp:getAllMarketingProjectRecords');
     return items.map((item: Record<string, unknown>) => this.mapToMarketingProjectRecord(item));
   }
 
   // --- Risk & Cost ---
 
+  // SP-INDEX-REQUIRED: Risk_Cost_Management → ProjectCode, Risk_Cost_Items → ProjectCode
+  // LOAD-TEST: 2 parallel SP calls. Expected <50 risk items per project.
   async getRiskCostManagement(projectCode: string): Promise<IRiskCostManagement | null> {
+    performanceService.startMark('sp:getRiskCostManagement');
     const web = this._getProjectWeb();
     const col = RISK_COST_MANAGEMENT_COLUMNS;
     const itemCol = RISK_COST_ITEMS_COLUMNS;
@@ -1129,6 +1510,7 @@ export class SharePointDataService implements IDataService {
     const parent = this.mapToRiskCostManagement(parents[0]);
     const mappedItems = items.map((i: Record<string, unknown>) => this.mapToRiskCostItem(i));
 
+    performanceService.endMark('sp:getRiskCostManagement');
     return {
       ...parent,
       buyoutOpportunities: mappedItems.filter((i: IRiskCostItem) => i.category === 'Buyout'),
@@ -1137,7 +1519,9 @@ export class SharePointDataService implements IDataService {
     };
   }
 
+  // SP-INDEX-REQUIRED: Risk_Cost_Management → ProjectCode
   async updateRiskCostManagement(projectCode: string, data: Partial<IRiskCostManagement>): Promise<IRiskCostManagement> {
+    performanceService.startMark('sp:updateRiskCostManagement');
     const web = this._getProjectWeb();
     const col = RISK_COST_MANAGEMENT_COLUMNS;
 
@@ -1157,10 +1541,13 @@ export class SharePointDataService implements IDataService {
     await web.lists.getByTitle(LIST_NAMES.RISK_COST_MANAGEMENT).items.getById(itemId).update(updateData);
 
     // Re-read and assemble
+    performanceService.endMark('sp:updateRiskCostManagement');
     return (await this.getRiskCostManagement(projectCode))!;
   }
 
+  // SP-INDEX-REQUIRED: Risk_Cost_Management → ProjectCode (parent lookup)
   async addRiskCostItem(projectCode: string, item: Partial<IRiskCostItem>): Promise<IRiskCostItem> {
+    performanceService.startMark('sp:addRiskCostItem');
     const web = this._getProjectWeb();
     const col = RISK_COST_ITEMS_COLUMNS;
     const parentCol = RISK_COST_MANAGEMENT_COLUMNS;
@@ -1187,10 +1574,12 @@ export class SharePointDataService implements IDataService {
     };
 
     const result = await web.lists.getByTitle(LIST_NAMES.RISK_COST_ITEMS).items.add(addData);
+    performanceService.endMark('sp:addRiskCostItem');
     return this.mapToRiskCostItem(result.data);
   }
 
   async updateRiskCostItem(projectCode: string, itemId: number, data: Partial<IRiskCostItem>): Promise<IRiskCostItem> {
+    performanceService.startMark('sp:updateRiskCostItem');
     const web = this._getProjectWeb();
     const col = RISK_COST_ITEMS_COLUMNS;
 
@@ -1206,12 +1595,16 @@ export class SharePointDataService implements IDataService {
     await web.lists.getByTitle(LIST_NAMES.RISK_COST_ITEMS).items.getById(itemId).update(updateData);
 
     const updated = await web.lists.getByTitle(LIST_NAMES.RISK_COST_ITEMS).items.getById(itemId)();
+    performanceService.endMark('sp:updateRiskCostItem');
     return this.mapToRiskCostItem(updated);
   }
 
   // --- Quality Concerns ---
 
+  // SP-INDEX-REQUIRED: Quality_Concerns → ProjectCode
+  // LOAD-TEST: Expected <30 concerns per project. Bounded at top(500).
   async getQualityConcerns(projectCode: string): Promise<IQualityConcern[]> {
+    performanceService.startMark('sp:getQualityConcerns');
     const web = this._getProjectWeb();
     const col = QUALITY_CONCERNS_COLUMNS;
 
@@ -1220,10 +1613,12 @@ export class SharePointDataService implements IDataService {
       .orderBy(col.letter, true)
       .top(500)();
 
+    performanceService.endMark('sp:getQualityConcerns');
     return items.map((item: Record<string, unknown>) => this.mapToQualityConcern(item));
   }
 
   async addQualityConcern(projectCode: string, concern: Partial<IQualityConcern>): Promise<IQualityConcern> {
+    performanceService.startMark('sp:addQualityConcern');
     const web = this._getProjectWeb();
     const col = QUALITY_CONCERNS_COLUMNS;
 
@@ -1240,10 +1635,12 @@ export class SharePointDataService implements IDataService {
     };
 
     const result = await web.lists.getByTitle(LIST_NAMES.QUALITY_CONCERNS).items.add(addData);
+    performanceService.endMark('sp:addQualityConcern');
     return this.mapToQualityConcern(result.data);
   }
 
   async updateQualityConcern(projectCode: string, concernId: number, data: Partial<IQualityConcern>): Promise<IQualityConcern> {
+    performanceService.startMark('sp:updateQualityConcern');
     const web = this._getProjectWeb();
     const col = QUALITY_CONCERNS_COLUMNS;
 
@@ -1260,12 +1657,16 @@ export class SharePointDataService implements IDataService {
     await web.lists.getByTitle(LIST_NAMES.QUALITY_CONCERNS).items.getById(concernId).update(updateData);
 
     const updated = await web.lists.getByTitle(LIST_NAMES.QUALITY_CONCERNS).items.getById(concernId)();
+    performanceService.endMark('sp:updateQualityConcern');
     return this.mapToQualityConcern(updated);
   }
 
   // --- Safety Concerns ---
 
+  // SP-INDEX-REQUIRED: Safety_Concerns → ProjectCode
+  // LOAD-TEST: Expected <30 concerns per project. Bounded at top(500).
   async getSafetyConcerns(projectCode: string): Promise<ISafetyConcern[]> {
+    performanceService.startMark('sp:getSafetyConcerns');
     const web = this._getProjectWeb();
     const col = SAFETY_CONCERNS_COLUMNS;
 
@@ -1274,10 +1675,12 @@ export class SharePointDataService implements IDataService {
       .orderBy(col.letter, true)
       .top(500)();
 
+    performanceService.endMark('sp:getSafetyConcerns');
     return items.map((item: Record<string, unknown>) => this.mapToSafetyConcern(item));
   }
 
   async addSafetyConcern(projectCode: string, concern: Partial<ISafetyConcern>): Promise<ISafetyConcern> {
+    performanceService.startMark('sp:addSafetyConcern');
     const web = this._getProjectWeb();
     const col = SAFETY_CONCERNS_COLUMNS;
 
@@ -1297,10 +1700,12 @@ export class SharePointDataService implements IDataService {
     };
 
     const result = await web.lists.getByTitle(LIST_NAMES.SAFETY_CONCERNS).items.add(addData);
+    performanceService.endMark('sp:addSafetyConcern');
     return this.mapToSafetyConcern(result.data);
   }
 
   async updateSafetyConcern(projectCode: string, concernId: number, data: Partial<ISafetyConcern>): Promise<ISafetyConcern> {
+    performanceService.startMark('sp:updateSafetyConcern');
     const web = this._getProjectWeb();
     const col = SAFETY_CONCERNS_COLUMNS;
 
@@ -1320,12 +1725,16 @@ export class SharePointDataService implements IDataService {
     await web.lists.getByTitle(LIST_NAMES.SAFETY_CONCERNS).items.getById(concernId).update(updateData);
 
     const updated = await web.lists.getByTitle(LIST_NAMES.SAFETY_CONCERNS).items.getById(concernId)();
+    performanceService.endMark('sp:updateSafetyConcern');
     return this.mapToSafetyConcern(updated);
   }
 
   // --- Schedule & Critical Path ---
 
+  // SP-INDEX-REQUIRED: Project_Schedule → ProjectCode, Critical_Path_Items → ProjectCode
+  // LOAD-TEST: 2 parallel SP calls. Expected 5-20 critical path items per project.
   async getProjectSchedule(projectCode: string): Promise<IProjectScheduleCriticalPath | null> {
+    performanceService.startMark('sp:getProjectSchedule');
     const web = this._getProjectWeb();
     const col = PROJECT_SCHEDULE_COLUMNS;
     const itemCol = CRITICAL_PATH_ITEMS_COLUMNS;
@@ -1343,13 +1752,16 @@ export class SharePointDataService implements IDataService {
     if (parents.length === 0) return null;
 
     const schedule = this.mapToProjectSchedule(parents[0]);
+    performanceService.endMark('sp:getProjectSchedule');
     return {
       ...schedule,
       criticalPathConcerns: items.map((i: Record<string, unknown>) => this.mapToCriticalPathItem(i)),
     };
   }
 
+  // SP-INDEX-REQUIRED: Project_Schedule → ProjectCode
   async updateProjectSchedule(projectCode: string, data: Partial<IProjectScheduleCriticalPath>): Promise<IProjectScheduleCriticalPath> {
+    performanceService.startMark('sp:updateProjectSchedule');
     const web = this._getProjectWeb();
     const col = PROJECT_SCHEDULE_COLUMNS;
 
@@ -1377,10 +1789,13 @@ export class SharePointDataService implements IDataService {
     const itemId = (parents[0] as Record<string, unknown>).Id as number;
     await web.lists.getByTitle(LIST_NAMES.PROJECT_SCHEDULE).items.getById(itemId).update(updateData);
 
+    performanceService.endMark('sp:updateProjectSchedule');
     return (await this.getProjectSchedule(projectCode))!;
   }
 
+  // SP-INDEX-REQUIRED: Project_Schedule → ProjectCode (parent lookup)
   async addCriticalPathItem(projectCode: string, item: Partial<ICriticalPathItem>): Promise<ICriticalPathItem> {
+    performanceService.startMark('sp:addCriticalPathItem');
     const web = this._getProjectWeb();
     const col = CRITICAL_PATH_ITEMS_COLUMNS;
     const parentCol = PROJECT_SCHEDULE_COLUMNS;
@@ -1406,12 +1821,16 @@ export class SharePointDataService implements IDataService {
     };
 
     const result = await web.lists.getByTitle(LIST_NAMES.CRITICAL_PATH_ITEMS).items.add(addData);
+    performanceService.endMark('sp:addCriticalPathItem');
     return this.mapToCriticalPathItem(result.data);
   }
 
   // --- Superintendent Plan ---
 
+  // SP-INDEX-REQUIRED: Superintendent_Plan → ProjectCode, Superintendent_Plan_Sections → SuperintendentPlanId
+  // LOAD-TEST: 2 sequential SP calls. Expected 8-15 sections per plan.
   async getSuperintendentPlan(projectCode: string): Promise<ISuperintendentPlan | null> {
+    performanceService.startMark('sp:getSuperintendentPlan');
     const web = this._getProjectWeb();
     const col = SUPERINTENDENT_PLAN_COLUMNS;
     const secCol = SUPERINTENDENT_PLAN_SECTIONS_COLUMNS;
@@ -1428,13 +1847,16 @@ export class SharePointDataService implements IDataService {
       .filter(`${secCol.superintendentPlanId} eq ${plan.id}`)
       .top(500)();
 
+    performanceService.endMark('sp:getSuperintendentPlan');
     return {
       ...plan,
       sections: sections.map((s: Record<string, unknown>) => this.mapToSuperintendentPlanSection(s)),
     };
   }
 
+  // SP-INDEX-REQUIRED: Superintendent_Plan → ProjectCode (parent status update)
   async updateSuperintendentPlanSection(projectCode: string, sectionId: number, data: Partial<ISuperintendentPlanSection>): Promise<ISuperintendentPlanSection> {
+    performanceService.startMark('sp:updateSuperintendentPlanSection');
     const web = this._getProjectWeb();
     const secCol = SUPERINTENDENT_PLAN_SECTIONS_COLUMNS;
     const col = SUPERINTENDENT_PLAN_COLUMNS;
@@ -1459,10 +1881,12 @@ export class SharePointDataService implements IDataService {
     }
 
     const updated = await web.lists.getByTitle(LIST_NAMES.SUPERINTENDENT_PLAN_SECTIONS).items.getById(sectionId)();
+    performanceService.endMark('sp:updateSuperintendentPlanSection');
     return this.mapToSuperintendentPlanSection(updated);
   }
 
   async createSuperintendentPlan(projectCode: string, data: Partial<ISuperintendentPlan>): Promise<ISuperintendentPlan> {
+    performanceService.startMark('sp:createSuperintendentPlan');
     const web = this._getProjectWeb();
     const col = SUPERINTENDENT_PLAN_COLUMNS;
     const secCol = SUPERINTENDENT_PLAN_SECTIONS_COLUMNS;
@@ -1497,12 +1921,16 @@ export class SharePointDataService implements IDataService {
     }
 
     // Re-read and assemble
+    performanceService.endMark('sp:createSuperintendentPlan');
     return (await this.getSuperintendentPlan(projectCode))!;
   }
 
   // --- Lessons Learned ---
 
+  // SP-INDEX-REQUIRED: Lessons_Learned → ProjectCode
+  // LOAD-TEST: Expected 10-50 lessons per project. Bounded at top(500).
   async getLessonsLearned(projectCode: string): Promise<ILessonLearned[]> {
+    performanceService.startMark('sp:getLessonsLearned');
     const web = this._getProjectWeb();
     const col = LESSONS_LEARNED_COLUMNS;
 
@@ -1510,10 +1938,12 @@ export class SharePointDataService implements IDataService {
       .filter(`${col.projectCode} eq '${projectCode}'`)
       .top(500)();
 
+    performanceService.endMark('sp:getLessonsLearned');
     return items.map((item: Record<string, unknown>) => this.mapToLessonLearned(item));
   }
 
   async addLessonLearned(projectCode: string, lesson: Partial<ILessonLearned>): Promise<ILessonLearned> {
+    performanceService.startMark('sp:addLessonLearned');
     const web = this._getProjectWeb();
     const col = LESSONS_LEARNED_COLUMNS;
 
@@ -1532,10 +1962,12 @@ export class SharePointDataService implements IDataService {
     };
 
     const result = await web.lists.getByTitle(LIST_NAMES.LESSONS_LEARNED).items.add(addData);
+    performanceService.endMark('sp:addLessonLearned');
     return this.mapToLessonLearned(result.data);
   }
 
   async updateLessonLearned(projectCode: string, lessonId: number, data: Partial<ILessonLearned>): Promise<ILessonLearned> {
+    performanceService.startMark('sp:updateLessonLearned');
     const web = this._getProjectWeb();
     const col = LESSONS_LEARNED_COLUMNS;
 
@@ -1554,12 +1986,16 @@ export class SharePointDataService implements IDataService {
     await web.lists.getByTitle(LIST_NAMES.LESSONS_LEARNED).items.getById(lessonId).update(updateData);
 
     const updated = await web.lists.getByTitle(LIST_NAMES.LESSONS_LEARNED).items.getById(lessonId)();
+    performanceService.endMark('sp:updateLessonLearned');
     return this.mapToLessonLearned(updated);
   }
 
   // --- Project Management Plan ---
 
+  // SP-INDEX-REQUIRED: PMP → ProjectCode, PMP_Signatures → PmpId, PMP_Approval_Cycles → PmpId, PMP_Approval_Steps → ProjectCode
+  // LOAD-TEST: 4 parallel SP calls (parent + 3 child lists). Expected <10 cycles, <20 steps, <10 signatures per PMP.
   async getProjectManagementPlan(projectCode: string): Promise<IProjectManagementPlan | null> {
+    performanceService.startMark('sp:getProjectManagementPlan');
     const web = this._getProjectWeb();
     const col = PMP_COLUMNS;
 
@@ -1588,10 +2024,13 @@ export class SharePointDataService implements IDataService {
     const cycles = cycleItems.map((c: Record<string, unknown>) => this.mapToPMPApprovalCycle(c));
     const steps = stepItems.map((s: Record<string, unknown>) => this.mapToPMPApprovalStep(s));
 
+    performanceService.endMark('sp:getProjectManagementPlan');
     return this.assemblePMPFromParts(pmp, signatures, cycles, steps);
   }
 
+  // SP-INDEX-REQUIRED: PMP → ProjectCode
   async updateProjectManagementPlan(projectCode: string, data: Partial<IProjectManagementPlan>): Promise<IProjectManagementPlan> {
+    performanceService.startMark('sp:updateProjectManagementPlan');
     const web = this._getProjectWeb();
     const col = PMP_COLUMNS;
 
@@ -1633,10 +2072,14 @@ export class SharePointDataService implements IDataService {
     // Re-read assembled
     const result = await this.getProjectManagementPlan(projectCode);
     if (!result) throw new Error(`PMP for ${projectCode} not found after update`);
+    performanceService.endMark('sp:updateProjectManagementPlan');
     return result;
   }
 
+  // SP-INDEX-REQUIRED: PMP → ProjectCode
+  // LOAD-TEST: 5-6 SP calls: read PMP, read approvers, create cycle, create 1-2 steps, update PMP.
   async submitPMPForApproval(projectCode: string, submittedBy: string): Promise<IProjectManagementPlan> {
+    performanceService.startMark('sp:submitPMPForApproval');
     const web = this._getProjectWeb();
     const col = PMP_COLUMNS;
     const cycCol = PMP_APPROVAL_CYCLES_COLUMNS;
@@ -1710,10 +2153,14 @@ export class SharePointDataService implements IDataService {
     // Re-read assembled
     const result = await this.getProjectManagementPlan(projectCode);
     if (!result) throw new Error(`PMP for ${projectCode} not found after submission`);
+    performanceService.endMark('sp:submitPMPForApproval');
     return result;
   }
 
+  // SP-INDEX-REQUIRED: PMP → ProjectCode, PMP_Approval_Steps → ApprovalCycleId
+  // LOAD-TEST: 5-7 SP calls: read PMP, read step, update step, read cycle steps, update cycle, update PMP, re-read.
   async respondToPMPApproval(projectCode: string, stepId: number, approved: boolean, comment: string): Promise<IProjectManagementPlan> {
+    performanceService.startMark('sp:respondToPMPApproval');
     const web = this._getProjectWeb();
     const col = PMP_COLUMNS;
     const stepCol = PMP_APPROVAL_STEPS_COLUMNS;
@@ -1780,10 +2227,13 @@ export class SharePointDataService implements IDataService {
     // Re-read assembled
     const result = await this.getProjectManagementPlan(projectCode);
     if (!result) throw new Error(`PMP for ${projectCode} not found after approval response`);
+    performanceService.endMark('sp:respondToPMPApproval');
     return result;
   }
 
+  // SP-INDEX-REQUIRED: PMP → ProjectCode, PMP_Signatures → PmpId
   async signPMP(projectCode: string, signatureId: number, comment: string): Promise<IProjectManagementPlan> {
+    performanceService.startMark('sp:signPMP');
     const web = this._getProjectWeb();
     const col = PMP_COLUMNS;
     const sigCol = PMP_SIGNATURES_COLUMNS;
@@ -1817,28 +2267,38 @@ export class SharePointDataService implements IDataService {
     // Re-read assembled
     const result = await this.getProjectManagementPlan(projectCode);
     if (!result) throw new Error(`PMP for ${projectCode} not found after signing`);
+    performanceService.endMark('sp:signPMP');
     return result;
   }
 
+  // LOAD-TEST: Hub-site reference list. Expected <20 division approvers. Bounded at top(100).
   async getDivisionApprovers(): Promise<IDivisionApprover[]> {
+    performanceService.startMark('sp:getDivisionApprovers');
     // Hub-site list — use this.sp.web, NOT _getProjectWeb()
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.DIVISION_APPROVERS).items
       .top(100)();
+    performanceService.endMark('sp:getDivisionApprovers');
     return items.map((item: Record<string, unknown>) => this.mapToDivisionApprover(item));
   }
 
+  // LOAD-TEST: Hub-site reference list. Expected <50 boilerplate sections. Bounded at top(100).
   async getPMPBoilerplate(): Promise<IPMPBoilerplateSection[]> {
+    performanceService.startMark('sp:getPMPBoilerplate');
     // Hub-site list — use this.sp.web, NOT _getProjectWeb()
     const col = PMP_BOILERPLATE_COLUMNS;
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.PMP_BOILERPLATE).items
       .orderBy(col.sectionNumber, true)
       .top(100)();
+    performanceService.endMark('sp:getPMPBoilerplate');
     return items.map((item: Record<string, unknown>) => this.mapToPMPBoilerplateSection(item));
   }
 
   // --- Monthly Review ---
 
+  // SP-INDEX-REQUIRED: Monthly_Reviews → ProjectCode, Monthly_Checklist_Items → ReviewId, Monthly_Follow_Ups → ReviewId
+  // LOAD-TEST: 3 SP calls (parent + 2 child OR-filters). Expected <12 reviews per project per year. Child items can grow large.
   async getMonthlyReviews(projectCode: string): Promise<IMonthlyProjectReview[]> {
+    performanceService.startMark('sp:getMonthlyReviews');
     const web = this._getProjectWeb();
     const col = MONTHLY_REVIEWS_COLUMNS;
     const ciCol = MONTHLY_CHECKLIST_ITEMS_COLUMNS;
@@ -1873,9 +2333,13 @@ export class SharePointDataService implements IDataService {
     return reviews
       .map((r: IMonthlyProjectReview) => this.assembleMonthlyReview(r, mappedChecklist, mappedFollowUps))
       .sort((a: IMonthlyProjectReview, b: IMonthlyProjectReview) => b.reviewMonth.localeCompare(a.reviewMonth));
+    performanceService.endMark('sp:getMonthlyReviews');
   }
 
+  // SP-INDEX-REQUIRED: Monthly_Checklist_Items → ReviewId, Monthly_Follow_Ups → ReviewId
+  // LOAD-TEST: 3 SP calls (parent by ID + 2 child filters). Expected <100 checklist items + <20 follow-ups per review.
   async getMonthlyReview(reviewId: number): Promise<IMonthlyProjectReview | null> {
+    performanceService.startMark('sp:getMonthlyReview');
     const web = this._getProjectWeb();
     const ciCol = MONTHLY_CHECKLIST_ITEMS_COLUMNS;
     const fuCol = MONTHLY_FOLLOW_UPS_COLUMNS;
@@ -1902,10 +2366,14 @@ export class SharePointDataService implements IDataService {
     const mappedChecklist = checklistItems.map((i: Record<string, unknown>) => this.mapToMonthlyChecklistItem(i));
     const mappedFollowUps = followUpItems.map((f: Record<string, unknown>) => this.mapToMonthlyFollowUp(f));
 
+    performanceService.endMark('sp:getMonthlyReview');
     return this.assembleMonthlyReview(review, mappedChecklist, mappedFollowUps);
   }
 
+  // SP-INDEX-REQUIRED: Monthly_Checklist_Items → ReviewId, Monthly_Follow_Ups → ReviewId
+  // LOAD-TEST: N+1 for child re-creation: delete-all + serial add. At 100 checklist items, this is 200+ SP calls. Consider batching.
   async updateMonthlyReview(reviewId: number, data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> {
+    performanceService.startMark('sp:updateMonthlyReview');
     const web = this._getProjectWeb();
     const col = MONTHLY_REVIEWS_COLUMNS;
     const ciCol = MONTHLY_CHECKLIST_ITEMS_COLUMNS;
@@ -1978,10 +2446,13 @@ export class SharePointDataService implements IDataService {
     // Re-read assembled
     const result = await this.getMonthlyReview(reviewId);
     if (!result) throw new Error(`Monthly review ${reviewId} not found after update`);
+    performanceService.endMark('sp:updateMonthlyReview');
     return result;
   }
 
+  // LOAD-TEST: N+1 for child creation: serial add for checklist items + follow-ups. Consider batching at scale.
   async createMonthlyReview(data: Partial<IMonthlyProjectReview>): Promise<IMonthlyProjectReview> {
+    performanceService.startMark('sp:createMonthlyReview');
     const web = this._getProjectWeb();
     const col = MONTHLY_REVIEWS_COLUMNS;
     const ciCol = MONTHLY_CHECKLIST_ITEMS_COLUMNS;
@@ -2044,52 +2515,78 @@ export class SharePointDataService implements IDataService {
     // Re-read assembled
     const result = await this.getMonthlyReview(newId);
     if (!result) throw new Error(`Monthly review not found after create`);
+    performanceService.endMark('sp:createMonthlyReview');
     return result;
   }
 
   // --- Estimating Kick-Off ---
 
+  // SP-INDEX-REQUIRED: Estimating_Kickoffs → ProjectCode, Estimating_Kickoff_Items → KickoffId
+  // LOAD-TEST: 2 SP calls per kickoff (parent + items). Items expected <50 per kickoff.
   async getEstimatingKickoff(projectCode: string): Promise<IEstimatingKickoff | null> {
+    performanceService.startMark('sp:getEstimatingKickoff');
     const col = ESTIMATING_KICKOFFS_COLUMNS;
     const itemCol = ESTIMATING_KICKOFF_ITEMS_COLUMNS;
 
-    const parents = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items
-      .filter(`${col.ProjectCode} eq '${projectCode}'`)
-      .top(1)();
-    if (!parents || parents.length === 0) return null;
+    try {
+      const parents = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items
+        .filter(`${col.ProjectCode} eq '${projectCode}'`)
+        .top(1)();
+      if (!parents || parents.length === 0) {
+        performanceService.endMark('sp:getEstimatingKickoff');
+        return null;
+      }
 
-    const parent = this.mapToEstimatingKickoff(parents[0]);
+      const parent = this.mapToEstimatingKickoff(parents[0]);
 
-    const childItems = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items
-      .filter(`${itemCol.kickoffId} eq ${parent.id}`)
-      .orderBy(itemCol.sortOrder, true)
-      .top(500)();
+      const childItems = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items
+        .filter(`${itemCol.kickoffId} eq ${parent.id}`)
+        .orderBy(itemCol.sortOrder, true)
+        .top(500)();
 
-    parent.items = childItems.map((i: Record<string, unknown>) => this.mapToEstimatingKickoffItem(i));
-    return parent;
+      parent.items = childItems.map((i: Record<string, unknown>) => this.mapToEstimatingKickoffItem(i));
+      performanceService.endMark('sp:getEstimatingKickoff');
+      return parent;
+    } catch (err) {
+      performanceService.endMark('sp:getEstimatingKickoff');
+      throw this.handleError('getEstimatingKickoff', err, { entityType: 'EstimatingKickoff', entityId: projectCode });
+    }
   }
 
+  // SP-INDEX-REQUIRED: Estimating_Kickoffs → LeadID
   async getEstimatingKickoffByLeadId(leadId: number): Promise<IEstimatingKickoff | null> {
+    performanceService.startMark('sp:getEstimatingKickoffByLeadId');
     const col = ESTIMATING_KICKOFFS_COLUMNS;
     const itemCol = ESTIMATING_KICKOFF_ITEMS_COLUMNS;
 
-    const parents = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items
-      .filter(`${col.LeadID} eq ${leadId}`)
-      .top(1)();
-    if (!parents || parents.length === 0) return null;
+    try {
+      const parents = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items
+        .filter(`${col.LeadID} eq ${leadId}`)
+        .top(1)();
+      if (!parents || parents.length === 0) {
+        performanceService.endMark('sp:getEstimatingKickoffByLeadId');
+        return null;
+      }
 
-    const parent = this.mapToEstimatingKickoff(parents[0]);
+      const parent = this.mapToEstimatingKickoff(parents[0]);
 
-    const childItems = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items
-      .filter(`${itemCol.kickoffId} eq ${parent.id}`)
-      .orderBy(itemCol.sortOrder, true)
-      .top(500)();
+      const childItems = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items
+        .filter(`${itemCol.kickoffId} eq ${parent.id}`)
+        .orderBy(itemCol.sortOrder, true)
+        .top(500)();
 
-    parent.items = childItems.map((i: Record<string, unknown>) => this.mapToEstimatingKickoffItem(i));
-    return parent;
+      parent.items = childItems.map((i: Record<string, unknown>) => this.mapToEstimatingKickoffItem(i));
+      performanceService.endMark('sp:getEstimatingKickoffByLeadId');
+      return parent;
+    } catch (err) {
+      performanceService.endMark('sp:getEstimatingKickoffByLeadId');
+      throw this.handleError('getEstimatingKickoffByLeadId', err, { entityType: 'EstimatingKickoff' });
+    }
   }
 
+  // LOAD-TEST: N+1 for child items — serial add. Expected <50 items per kickoff, acceptable.
   async createEstimatingKickoff(data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> {
+    performanceService.startMark('sp:createEstimatingKickoff');
     const col = ESTIMATING_KICKOFFS_COLUMNS;
     const itemCol = ESTIMATING_KICKOFF_ITEMS_COLUMNS;
     const now = new Date().toISOString();
@@ -2145,10 +2642,13 @@ export class SharePointDataService implements IDataService {
     }
 
     // Re-read and assemble
-    return (await this.getEstimatingKickoff(data.ProjectCode ?? ''))!;
+    const assembled = (await this.getEstimatingKickoff(data.ProjectCode ?? ''))!;
+    performanceService.endMark('sp:createEstimatingKickoff');
+    return assembled;
   }
 
   async updateEstimatingKickoff(id: number, data: Partial<IEstimatingKickoff>): Promise<IEstimatingKickoff> {
+    performanceService.startMark('sp:updateEstimatingKickoff');
     const col = ESTIMATING_KICKOFFS_COLUMNS;
     const itemCol = ESTIMATING_KICKOFF_ITEMS_COLUMNS;
     const now = new Date().toISOString();
@@ -2214,10 +2714,13 @@ export class SharePointDataService implements IDataService {
     // Re-read the parent to get ProjectCode for re-assembly
     const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items.getById(id)();
     const projectCode = (updated as Record<string, unknown>)[col.ProjectCode] as string || '';
-    return (await this.getEstimatingKickoff(projectCode))!;
+    const result = (await this.getEstimatingKickoff(projectCode))!;
+    performanceService.endMark('sp:updateEstimatingKickoff');
+    return result;
   }
 
   async updateKickoffItem(kickoffId: number, itemId: number, data: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> {
+    performanceService.startMark('sp:updateKickoffItem');
     const col = ESTIMATING_KICKOFF_ITEMS_COLUMNS;
     const parentCol = ESTIMATING_KICKOFFS_COLUMNS;
 
@@ -2244,10 +2747,12 @@ export class SharePointDataService implements IDataService {
 
     // Re-read the item
     const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items.getById(itemId)();
+    performanceService.endMark('sp:updateKickoffItem');
     return this.mapToEstimatingKickoffItem(updated);
   }
 
   async addKickoffItem(kickoffId: number, item: Partial<IEstimatingKickoffItem>): Promise<IEstimatingKickoffItem> {
+    performanceService.startMark('sp:addKickoffItem');
     const col = ESTIMATING_KICKOFF_ITEMS_COLUMNS;
     const parentCol = ESTIMATING_KICKOFFS_COLUMNS;
 
@@ -2282,10 +2787,12 @@ export class SharePointDataService implements IDataService {
 
     // Re-read the new item
     const created = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items.getById(newId)();
+    performanceService.endMark('sp:addKickoffItem');
     return this.mapToEstimatingKickoffItem(created);
   }
 
   async removeKickoffItem(kickoffId: number, itemId: number): Promise<void> {
+    performanceService.startMark('sp:removeKickoffItem');
     const parentCol = ESTIMATING_KICKOFFS_COLUMNS;
 
     await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFF_ITEMS).items.getById(itemId).recycle();
@@ -2294,9 +2801,11 @@ export class SharePointDataService implements IDataService {
     await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items.getById(kickoffId).update({
       [parentCol.ModifiedDate]: new Date().toISOString(),
     });
+    performanceService.endMark('sp:removeKickoffItem');
   }
 
   async updateKickoffKeyPersonnel(kickoffId: number, personnel: IKeyPersonnelEntry[]): Promise<IEstimatingKickoff> {
+    performanceService.startMark('sp:updateKickoffKeyPersonnel');
     const col = ESTIMATING_KICKOFFS_COLUMNS;
     const now = new Date().toISOString();
 
@@ -2308,32 +2817,51 @@ export class SharePointDataService implements IDataService {
     // Re-read and assemble
     const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_KICKOFFS).items.getById(kickoffId)();
     const projectCode = (updated as Record<string, unknown>)[col.ProjectCode] as string || '';
-    return (await this.getEstimatingKickoff(projectCode))!;
+    const result = (await this.getEstimatingKickoff(projectCode))!;
+    performanceService.endMark('sp:updateKickoffKeyPersonnel');
+    return result;
   }
 
   // --- Job Number Requests ---
 
+  // SP-INDEX-REQUIRED: Job_Number_Requests → RequestStatus
   async getJobNumberRequests(status?: JobNumberRequestStatus): Promise<IJobNumberRequest[]> {
-    const col = JOB_NUMBER_REQUESTS_COLUMNS;
-    let query = this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items;
-    if (status) {
-      query = query.filter(`${col.RequestStatus} eq '${status}'`);
+    performanceService.startMark('sp:getJobNumberRequests');
+    try {
+      const col = JOB_NUMBER_REQUESTS_COLUMNS;
+      let query = this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items;
+      if (status) {
+        query = query.filter(`${col.RequestStatus} eq '${status}'`);
+      }
+      const items = await query.orderBy(col.RequestDate, false).top(500)();
+      performanceService.endMark('sp:getJobNumberRequests');
+      return items.map((item: Record<string, unknown>) => this.mapToJobNumberRequest(item));
+    } catch (err) {
+      performanceService.endMark('sp:getJobNumberRequests');
+      throw this.handleError('getJobNumberRequests', err, { entityType: 'JobNumberRequest' });
     }
-    const items = await query.orderBy(col.RequestDate, false).top(500)();
-    return items.map((item: Record<string, unknown>) => this.mapToJobNumberRequest(item));
   }
 
+  // SP-INDEX-REQUIRED: Job_Number_Requests → LeadID
   async getJobNumberRequestByLeadId(leadId: number): Promise<IJobNumberRequest | null> {
-    const col = JOB_NUMBER_REQUESTS_COLUMNS;
-    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items
-      .filter(`${col.LeadID} eq ${leadId}`)
-      .orderBy(col.RequestDate, false)
-      .top(1)();
-    if (!items || items.length === 0) return null;
-    return this.mapToJobNumberRequest(items[0]);
+    performanceService.startMark('sp:getJobNumberRequestByLeadId');
+    try {
+      const col = JOB_NUMBER_REQUESTS_COLUMNS;
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items
+        .filter(`${col.LeadID} eq ${leadId}`)
+        .orderBy(col.RequestDate, false)
+        .top(1)();
+      performanceService.endMark('sp:getJobNumberRequestByLeadId');
+      if (!items || items.length === 0) return null;
+      return this.mapToJobNumberRequest(items[0]);
+    } catch (err) {
+      performanceService.endMark('sp:getJobNumberRequestByLeadId');
+      throw this.handleError('getJobNumberRequestByLeadId', err, { entityType: 'JobNumberRequest' });
+    }
   }
 
   async createJobNumberRequest(data: Partial<IJobNumberRequest>): Promise<IJobNumberRequest> {
+    performanceService.startMark('sp:createJobNumberRequest');
     const col = JOB_NUMBER_REQUESTS_COLUMNS;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -2368,10 +2896,12 @@ export class SharePointDataService implements IDataService {
     }
 
     const created = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(newId)();
+    performanceService.endMark('sp:createJobNumberRequest');
     return this.mapToJobNumberRequest(created);
   }
 
   async finalizeJobNumber(requestId: number, jobNumber: string, assignedBy: string): Promise<IJobNumberRequest> {
+    performanceService.startMark('sp:finalizeJobNumber');
     const col = JOB_NUMBER_REQUESTS_COLUMNS;
     const now = new Date().toISOString().split('T')[0];
 
@@ -2399,33 +2929,44 @@ export class SharePointDataService implements IDataService {
 
     // Re-read the request
     const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(requestId)();
+    performanceService.endMark('sp:finalizeJobNumber');
     return this.mapToJobNumberRequest(updated);
   }
 
   // --- Reference Data ---
 
   async getProjectTypes(): Promise<IProjectType[]> {
+    performanceService.startMark('sp:getProjectTypes');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.PROJECT_TYPES).items.top(500)();
+    performanceService.endMark('sp:getProjectTypes');
     return items.map((item: Record<string, unknown>) => this.mapToProjectType(item));
   }
 
   async getStandardCostCodes(): Promise<IStandardCostCode[]> {
+    performanceService.startMark('sp:getStandardCostCodes');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.STANDARD_COST_CODES).items.top(500)();
+    performanceService.endMark('sp:getStandardCostCodes');
     return items.map((item: Record<string, unknown>) => this.mapToStandardCostCode(item));
   }
 
   // --- Buyout Log ---
 
+  // SP-INDEX-REQUIRED: Buyout_Log → ProjectCode (CRITICAL — unbounded query, add top(5000) safety)
+  // LOAD-TEST: Expected 30-50 divisions per project. Currently UNBOUNDED — add top(5000).
   async getBuyoutEntries(projectCode: string): Promise<IBuyoutEntry[]> {
+    performanceService.startMark('sp:getBuyoutEntries');
     const items = await this.sp.web.lists
       .getByTitle(LIST_NAMES.BUYOUT_LOG)
       .items
       .filter(`ProjectCode eq '${projectCode}'`)
       .orderBy('Title', true)();
+    performanceService.endMark('sp:getBuyoutEntries');
     return items.map((item: Record<string, unknown>) => this.mapToBuyoutEntry(item));
   }
 
+  // LOAD-TEST: Batch-adds standard CSI divisions. Calls getBuyoutEntries first to check existing.
   async initializeBuyoutLog(projectCode: string): Promise<IBuyoutEntry[]> {
+    performanceService.startMark('sp:initializeBuyoutLog');
     const existing = await this.getBuyoutEntries(projectCode);
     if (existing.length > 0) return existing;
 
@@ -2448,10 +2989,12 @@ export class SharePointDataService implements IDataService {
     }
 
     await batch.execute();
+    performanceService.endMark('sp:initializeBuyoutLog');
     return this.getBuyoutEntries(projectCode);
   }
 
   async addBuyoutEntry(projectCode: string, entry: Partial<IBuyoutEntry>): Promise<IBuyoutEntry> {
+    performanceService.startMark('sp:addBuyoutEntry');
     const totalBudget = (entry.originalBudget || 0) + (entry.estimatedTax || 0);
     const overUnder = entry.contractValue != null ? totalBudget - entry.contractValue : undefined;
 
@@ -2480,10 +3023,12 @@ export class SharePointDataService implements IDataService {
         Notes: entry.notes,
       });
 
+    performanceService.endMark('sp:addBuyoutEntry');
     return this.mapToBuyoutEntry(result.data);
   }
 
   async updateBuyoutEntry(projectCode: string, entryId: number, data: Partial<IBuyoutEntry>): Promise<IBuyoutEntry> {
+    performanceService.startMark('sp:updateBuyoutEntry');
     const current = await this.sp.web.lists
       .getByTitle(LIST_NAMES.BUYOUT_LOG)
       .items
@@ -2535,15 +3080,18 @@ export class SharePointDataService implements IDataService {
       .items
       .getById(entryId)();
 
+    performanceService.endMark('sp:updateBuyoutEntry');
     return this.mapToBuyoutEntry(updated);
   }
 
   async removeBuyoutEntry(_projectCode: string, entryId: number): Promise<void> {
+    performanceService.startMark('sp:removeBuyoutEntry');
     await this.sp.web.lists
       .getByTitle(LIST_NAMES.BUYOUT_LOG)
       .items
       .getById(entryId)
       .delete();
+    performanceService.endMark('sp:removeBuyoutEntry');
   }
 
   private mapToBuyoutEntry(item: Record<string, unknown>): IBuyoutEntry {
@@ -2657,7 +3205,9 @@ export class SharePointDataService implements IDataService {
 
   // --- Commitment Approval ---
 
+  // LOAD-TEST: Multi-step workflow: getBuyoutEntries + create approval + update entry. 3-4 SP calls.
   async submitCommitmentForApproval(projectCode: string, entryId: number, _submittedBy: string): Promise<IBuyoutEntry> {
+    performanceService.startMark('sp:submitCommitmentForApproval');
     const entry = (await this.getBuyoutEntries(projectCode)).find(e => e.id === entryId);
     if (!entry) throw new Error(`Buyout entry ${entryId} not found`);
 
@@ -2690,10 +3240,13 @@ export class SharePointDataService implements IDataService {
         WaiverType: waiverType,
       });
 
+    performanceService.endMark('sp:submitCommitmentForApproval');
     return (await this.getBuyoutEntries(projectCode)).find(e => e.id === entryId) as IBuyoutEntry;
   }
 
+  // LOAD-TEST: Multi-step: getHistory + update approval + update entry. 3-4 SP calls.
   async respondToCommitmentApproval(projectCode: string, entryId: number, approved: boolean, comment: string, escalate?: boolean): Promise<IBuyoutEntry> {
+    performanceService.startMark('sp:respondToCommitmentApproval');
     const approvals = await this.getCommitmentApprovalHistory(projectCode, entryId);
     const pending = approvals.find(a => a.status === 'Pending');
     if (!pending) throw new Error('No pending approval step found');
@@ -2744,16 +3297,21 @@ export class SharePointDataService implements IDataService {
     if (newStatus === 'Committed') updateData.Status = 'Executed';
 
     await this.sp.web.lists.getByTitle(LIST_NAMES.BUYOUT_LOG).items.getById(entryId).update(updateData);
+    performanceService.endMark('sp:respondToCommitmentApproval');
     return (await this.getBuyoutEntries(projectCode)).find(e => e.id === entryId) as IBuyoutEntry;
   }
 
+  // SP-INDEX-REQUIRED: Commitment_Approvals → ProjectCode+BuyoutEntryId (compound filter, UNBOUNDED)
+  // LOAD-TEST: Expected 3-10 approval steps per entry. Currently UNBOUNDED — add top(500).
   async getCommitmentApprovalHistory(projectCode: string, entryId: number): Promise<ICommitmentApproval[]> {
+    performanceService.startMark('sp:getCommitmentApprovalHistory');
     const items = await this.sp.web.lists
       .getByTitle(LIST_NAMES.COMMITMENT_APPROVALS)
       .items
       .filter(`ProjectCode eq '${projectCode}' and BuyoutEntryId eq ${entryId}`)
       .orderBy('Id', true)();
 
+    performanceService.endMark('sp:getCommitmentApprovalHistory');
     return items.map((item: Record<string, unknown>) => ({
       id: item.Id as number,
       buyoutEntryId: item.BuyoutEntryId as number,
@@ -2770,6 +3328,7 @@ export class SharePointDataService implements IDataService {
 
   // --- File Upload ---
   async uploadCommitmentDocument(projectCode: string, entryId: number, file: File): Promise<{ fileId: string; fileName: string; fileUrl: string }> {
+    performanceService.startMark('sp:uploadCommitmentDocument');
     const folderPath = `Shared Documents/Commitments`;
 
     // Ensure folder exists
@@ -2798,11 +3357,15 @@ export class SharePointDataService implements IDataService {
         CompiledCommitmentFileName: fileName,
       });
 
+    performanceService.endMark('sp:uploadCommitmentDocument');
     return { fileId, fileName, fileUrl };
   }
 
   // --- Compliance Log ---
+  // SP-INDEX-REQUIRED: Buyout_Log → ProjectCode, CommitmentStatus, EVerifyStatus, SubcontractorName
+  // LOAD-TEST: Dynamic multi-column filter. Expected 500+ active commitments hub-wide. Bounded at top(500).
   async getComplianceLog(filters?: IComplianceLogFilter): Promise<IComplianceEntry[]> {
+    performanceService.startMark('sp:getComplianceLog');
     // Fetch all buyout entries that have a subcontractor assigned (active commitments)
     let filterStr = `SubcontractorName ne null`;
     if (filters?.projectCode) {
@@ -2837,12 +3400,16 @@ export class SharePointDataService implements IDataService {
       );
     }
 
+    performanceService.endMark('sp:getComplianceLog');
     return entries;
   }
 
+  // LOAD-TEST: Delegates to getComplianceLog. Client-side aggregation.
   async getComplianceSummary(): Promise<IComplianceSummary> {
+    performanceService.startMark('sp:getComplianceSummary');
     const entries = await this.getComplianceLog();
 
+    performanceService.endMark('sp:getComplianceSummary');
     return {
       totalCommitments: entries.length,
       fullyCompliant: entries.filter(e => e.overallCompliant).length,
@@ -2904,7 +3471,10 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Re-Key ---
+  // SP-INDEX-REQUIRED: Estimating_Tracker/Marketing_Project_Records/Provisioning_Log/Buyout_Log/Project_Team_Assignments → ProjectCode
+  // LOAD-TEST: CRITICAL batch operation: 1 lead update + 5 list batch-rekeys. Each batch reads + updates all matching items. Use sparingly.
   async rekeyProjectCode(oldCode: string, newCode: string, leadId: number): Promise<void> {
+    performanceService.startMark('sp:rekeyProjectCode');
     // 1. Update Leads_Master
     await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER)
       .items.getById(leadId).update({ ProjectCode: newCode, OfficialJobNumber: newCode });
@@ -2932,11 +3502,19 @@ export class SharePointDataService implements IDataService {
     // Note: Project-site lists (17 lists) require manual admin re-key since
     // the site URL contains the project code. Use Web([sp.web, newSiteUrl])
     // to batch-update each project-level list when supported.
+    performanceService.endMark('sp:rekeyProjectCode');
   }
 
   // --- Active Projects Portfolio ---
 
+  // SP-INDEX-REQUIRED: Active_Projects_Portfolio → Status, Sector, ProjectExecutive, LeadPM, Region
+  // LOAD-TEST: Expected 50-200 projects. Default top(500). At 200+ items, consider server-side paging.
   async getActiveProjects(options?: IActiveProjectsQueryOptions): Promise<IActiveProject[]> {
+    const cacheKey = CACHE_KEYS.ACTIVE_PROJECTS + buildCacheKeySuffix(options as unknown as Record<string, unknown>);
+    const cached = cacheService.get<IActiveProject[]>(cacheKey);
+    if (cached) return cached;
+
+    performanceService.startMark('sp:getActiveProjects');
     const filterParts: string[] = [];
 
     if (options?.status) {
@@ -2955,237 +3533,333 @@ export class SharePointDataService implements IDataService {
       filterParts.push(`Region eq '${options.region}'`);
     }
 
-    let query = this.sp.web.lists
-      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
-      .items
-      .top(options?.top || 500);
+    try {
+      let query = this.sp.web.lists
+        .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+        .items
+        .top(options?.top || 500);
 
-    if (filterParts.length > 0) {
-      query = query.filter(filterParts.join(' and '));
+      if (filterParts.length > 0) {
+        query = query.filter(filterParts.join(' and '));
+      }
+
+      if (options?.orderBy) {
+        query = query.orderBy(options.orderBy, options.orderAscending !== false);
+      }
+
+      const items = await query();
+      const result = items.map((item: Record<string, unknown>) => this.mapToActiveProject(item));
+      cacheService.set(cacheKey, result, CACHE_TTL_MS);
+      performanceService.endMark('sp:getActiveProjects');
+      return result;
+    } catch (err) {
+      performanceService.endMark('sp:getActiveProjects');
+      throw this.handleError('getActiveProjects', err, { entityType: 'Project' });
     }
-
-    if (options?.orderBy) {
-      query = query.orderBy(options.orderBy, options.orderAscending !== false);
-    }
-
-    const items = await query();
-    return items.map((item: Record<string, unknown>) => this.mapToActiveProject(item));
   }
 
   async getActiveProjectById(id: number): Promise<IActiveProject | null> {
+    const cacheKey = CACHE_KEYS.ACTIVE_PROJECTS + '_id_' + id;
+    const cached = cacheService.get<IActiveProject>(cacheKey);
+    if (cached) return cached;
+
+    performanceService.startMark('sp:getActiveProjectById');
     try {
       const item = await this.sp.web.lists
         .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
         .items
         .getById(id)();
-      return this.mapToActiveProject(item);
-    } catch {
+      const result = this.mapToActiveProject(item);
+      cacheService.set(cacheKey, result, CACHE_TTL_MS);
+      performanceService.endMark('sp:getActiveProjectById');
+      return result;
+    } catch (err) {
+      performanceService.endMark('sp:getActiveProjectById');
+      this.handleError('getActiveProjectById', err, {
+        entityType: 'Project',
+        entityId: String(id),
+        rethrow: false,
+      });
       return null;
     }
   }
 
+  // SP-INDEX-REQUIRED: Active_Projects_Portfolio → ProjectCode
   async syncActiveProject(projectCode: string): Promise<IActiveProject> {
-    // Find the project in the portfolio list
-    const items = await this.sp.web.lists
-      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
-      .items
-      .filter(`ProjectCode eq '${projectCode}'`)();
+    performanceService.startMark('sp:syncActiveProject');
+    try {
+      // Find the project in the portfolio list
+      const items = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+        .items
+        .filter(`ProjectCode eq '${projectCode}'`)();
 
-    if (items.length === 0) {
-      throw new Error(`Project ${projectCode} not found in portfolio`);
+      if (items.length === 0) {
+        performanceService.endMark('sp:syncActiveProject');
+        throw new DataServiceError('syncActiveProject', `Project ${projectCode} not found in portfolio`, {
+          entityType: 'Project',
+          entityId: projectCode,
+        });
+      }
+
+      const projectId = items[0].Id;
+
+      // Update last sync date
+      await this.sp.web.lists
+        .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+        .items
+        .getById(projectId)
+        .update({ LastSyncDate: new Date().toISOString() });
+
+      const updated = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+        .items
+        .getById(projectId)();
+
+      cacheService.removeByPrefix(CACHE_KEYS.ACTIVE_PROJECTS);
+      cacheService.removeByPrefix(CACHE_KEYS.PORTFOLIO_SUMMARY);
+      cacheService.removeByPrefix(CACHE_KEYS.PERSONNEL_WORKLOAD);
+
+      performanceService.endMark('sp:syncActiveProject');
+      return this.mapToActiveProject(updated);
+    } catch (err) {
+      performanceService.endMark('sp:syncActiveProject');
+      throw this.handleError('syncActiveProject', err, {
+        entityType: 'Project',
+        entityId: projectCode,
+      });
     }
-
-    const projectId = items[0].Id;
-
-    // Update last sync date
-    await this.sp.web.lists
-      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
-      .items
-      .getById(projectId)
-      .update({ LastSyncDate: new Date().toISOString() });
-
-    const updated = await this.sp.web.lists
-      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
-      .items
-      .getById(projectId)();
-
-    return this.mapToActiveProject(updated);
   }
 
   async updateActiveProject(id: number, data: Partial<IActiveProject>): Promise<IActiveProject> {
-    const updateData: Record<string, unknown> = {};
+    performanceService.startMark('sp:updateActiveProject');
+    try {
+      const updateData: Record<string, unknown> = {};
 
-    if (data.projectName !== undefined) updateData.Title = data.projectName;
-    if (data.status !== undefined) updateData.Status = data.status;
-    if (data.sector !== undefined) updateData.Sector = data.sector;
-    if (data.region !== undefined) updateData.Region = data.region;
-    if (data.statusComments !== undefined) updateData.StatusComments = data.statusComments;
+      if (data.projectName !== undefined) updateData.Title = data.projectName;
+      if (data.status !== undefined) updateData.Status = data.status;
+      if (data.sector !== undefined) updateData.Sector = data.sector;
+      if (data.region !== undefined) updateData.Region = data.region;
+      if (data.statusComments !== undefined) updateData.StatusComments = data.statusComments;
 
-    // Personnel
-    if (data.personnel) {
-      if (data.personnel.projectExecutive !== undefined) updateData.ProjectExecutive = data.personnel.projectExecutive;
-      if (data.personnel.leadPM !== undefined) updateData.LeadPM = data.personnel.leadPM;
-      if (data.personnel.additionalPM !== undefined) updateData.AdditionalPM = data.personnel.additionalPM;
-      if (data.personnel.assistantPM !== undefined) updateData.AssistantPM = data.personnel.assistantPM;
-      if (data.personnel.projectAccountant !== undefined) updateData.ProjectAccountant = data.personnel.projectAccountant;
-      if (data.personnel.leadSuper !== undefined) updateData.LeadSuper = data.personnel.leadSuper;
-    }
-
-    // Financials
-    if (data.financials) {
-      if (data.financials.originalContract !== undefined) updateData.OriginalContract = data.financials.originalContract;
-      if (data.financials.changeOrders !== undefined) updateData.ChangeOrders = data.financials.changeOrders;
-      if (data.financials.currentContractValue !== undefined) updateData.CurrentContractValue = data.financials.currentContractValue;
-      if (data.financials.billingsToDate !== undefined) updateData.BillingsToDate = data.financials.billingsToDate;
-      if (data.financials.unbilled !== undefined) updateData.Unbilled = data.financials.unbilled;
-      if (data.financials.projectedFee !== undefined) updateData.ProjectedFee = data.financials.projectedFee;
-      if (data.financials.projectedFeePct !== undefined) updateData.ProjectedFeePct = data.financials.projectedFeePct;
-    }
-
-    // Schedule
-    if (data.schedule) {
-      if (data.schedule.startDate !== undefined) updateData.StartDate = data.schedule.startDate;
-      if (data.schedule.substantialCompletionDate !== undefined) updateData.SubstantialCompletionDate = data.schedule.substantialCompletionDate;
-      if (data.schedule.currentPhase !== undefined) updateData.CurrentPhase = data.schedule.currentPhase;
-      if (data.schedule.percentComplete !== undefined) updateData.PercentComplete = data.schedule.percentComplete;
-    }
-
-    updateData.LastModified = new Date().toISOString();
-
-    await this.sp.web.lists
-      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
-      .items
-      .getById(id)
-      .update(updateData);
-
-    const updated = await this.sp.web.lists
-      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
-      .items
-      .getById(id)();
-
-    return this.mapToActiveProject(updated);
-  }
-
-  async getPortfolioSummary(filters?: IActiveProjectsFilter): Promise<IPortfolioSummary> {
-    const projects = await this.getActiveProjects(filters as IActiveProjectsQueryOptions);
-
-    const totalBacklog = projects.reduce((sum, p) => sum + (p.financials.remainingValue || 0), 0);
-    const totalOriginalContract = projects.reduce((sum, p) => sum + (p.financials.originalContract || 0), 0);
-    const totalBillingsToDate = projects.reduce((sum, p) => sum + (p.financials.billingsToDate || 0), 0);
-    const totalUnbilled = projects.reduce((sum, p) => sum + (p.financials.unbilled || 0), 0);
-
-    const projectsWithFee = projects.filter(p => p.financials.projectedFeePct != null);
-    const averageFeePct = projectsWithFee.length > 0
-      ? projectsWithFee.reduce((sum, p) => sum + (p.financials.projectedFeePct || 0), 0) / projectsWithFee.length
-      : 0;
-
-    const monthlyBurnRate = totalBillingsToDate / 12;
-
-    const projectsByStatus: Record<ProjectStatus, number> = {
-      'Precon': projects.filter(p => p.status === 'Precon').length,
-      'Construction': projects.filter(p => p.status === 'Construction').length,
-      'Final Payment': projects.filter(p => p.status === 'Final Payment').length,
-    };
-
-    const projectsBySector: Record<SectorType, number> = {
-      'Commercial': projects.filter(p => p.sector === 'Commercial').length,
-      'Residential': projects.filter(p => p.sector === 'Residential').length,
-    };
-
-    const projectsWithAlerts = projects.filter(
-      p => p.hasUnbilledAlert || p.hasScheduleAlert || p.hasFeeErosionAlert
-    ).length;
-
-    return {
-      totalBacklog,
-      totalOriginalContract,
-      totalBillingsToDate,
-      totalUnbilled,
-      averageFeePct,
-      monthlyBurnRate,
-      projectCount: projects.length,
-      projectsByStatus,
-      projectsBySector,
-      projectsWithAlerts,
-    };
-  }
-
-  async getPersonnelWorkload(role?: 'PX' | 'PM' | 'Super'): Promise<IPersonnelWorkload[]> {
-    const projects = await this.getActiveProjects();
-    const workloadMap = new Map<string, IPersonnelWorkload>();
-
-    for (const project of projects) {
-      if ((!role || role === 'PX') && project.personnel.projectExecutive) {
-        const name = project.personnel.projectExecutive;
-        const existing = workloadMap.get(`PX-${name}`) || {
-          name,
-          email: project.personnel.projectExecutiveEmail,
-          role: 'PX' as const,
-          projectCount: 0,
-          totalContractValue: 0,
-          projects: [],
-        };
-        existing.projectCount++;
-        existing.totalContractValue += project.financials.currentContractValue || project.financials.originalContract || 0;
-        existing.projects.push(project);
-        workloadMap.set(`PX-${name}`, existing);
+      // Personnel
+      if (data.personnel) {
+        if (data.personnel.projectExecutive !== undefined) updateData.ProjectExecutive = data.personnel.projectExecutive;
+        if (data.personnel.leadPM !== undefined) updateData.LeadPM = data.personnel.leadPM;
+        if (data.personnel.additionalPM !== undefined) updateData.AdditionalPM = data.personnel.additionalPM;
+        if (data.personnel.assistantPM !== undefined) updateData.AssistantPM = data.personnel.assistantPM;
+        if (data.personnel.projectAccountant !== undefined) updateData.ProjectAccountant = data.personnel.projectAccountant;
+        if (data.personnel.leadSuper !== undefined) updateData.LeadSuper = data.personnel.leadSuper;
       }
 
-      if ((!role || role === 'PM') && project.personnel.leadPM) {
-        const name = project.personnel.leadPM;
-        const existing = workloadMap.get(`PM-${name}`) || {
-          name,
-          email: project.personnel.leadPMEmail,
-          role: 'PM' as const,
-          projectCount: 0,
-          totalContractValue: 0,
-          projects: [],
-        };
-        existing.projectCount++;
-        existing.totalContractValue += project.financials.currentContractValue || project.financials.originalContract || 0;
-        existing.projects.push(project);
-        workloadMap.set(`PM-${name}`, existing);
+      // Financials
+      if (data.financials) {
+        if (data.financials.originalContract !== undefined) updateData.OriginalContract = data.financials.originalContract;
+        if (data.financials.changeOrders !== undefined) updateData.ChangeOrders = data.financials.changeOrders;
+        if (data.financials.currentContractValue !== undefined) updateData.CurrentContractValue = data.financials.currentContractValue;
+        if (data.financials.billingsToDate !== undefined) updateData.BillingsToDate = data.financials.billingsToDate;
+        if (data.financials.unbilled !== undefined) updateData.Unbilled = data.financials.unbilled;
+        if (data.financials.projectedFee !== undefined) updateData.ProjectedFee = data.financials.projectedFee;
+        if (data.financials.projectedFeePct !== undefined) updateData.ProjectedFeePct = data.financials.projectedFeePct;
       }
 
-      if ((!role || role === 'Super') && project.personnel.leadSuper) {
-        const name = project.personnel.leadSuper;
-        const existing = workloadMap.get(`Super-${name}`) || {
-          name,
-          role: 'Super' as const,
-          projectCount: 0,
-          totalContractValue: 0,
-          projects: [],
-        };
-        existing.projectCount++;
-        existing.totalContractValue += project.financials.currentContractValue || project.financials.originalContract || 0;
-        existing.projects.push(project);
-        workloadMap.set(`Super-${name}`, existing);
+      // Schedule
+      if (data.schedule) {
+        if (data.schedule.startDate !== undefined) updateData.StartDate = data.schedule.startDate;
+        if (data.schedule.substantialCompletionDate !== undefined) updateData.SubstantialCompletionDate = data.schedule.substantialCompletionDate;
+        if (data.schedule.currentPhase !== undefined) updateData.CurrentPhase = data.schedule.currentPhase;
+        if (data.schedule.percentComplete !== undefined) updateData.PercentComplete = data.schedule.percentComplete;
       }
-    }
 
-    return Array.from(workloadMap.values()).sort((a, b) => b.projectCount - a.projectCount);
-  }
+      updateData.LastModified = new Date().toISOString();
 
-  async triggerPortfolioSync(): Promise<void> {
-    // In a real implementation, this would trigger a Power Automate flow
-    // or Azure Function to aggregate data from all project sites
-    const now = new Date().toISOString();
-    const items = await this.sp.web.lists
-      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
-      .items
-      .select('Id')();
-
-    // Batch update all projects' LastSyncDate
-    const batch = this.sp.web.createBatch();
-    for (const item of items) {
-      this.sp.web.lists
+      await this.sp.web.lists
         .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
         .items
-        .getById(item.Id)
-        .inBatch(batch)
-        .update({ LastSyncDate: now });
+        .getById(id)
+        .update(updateData);
+
+      const updated = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+        .items
+        .getById(id)();
+
+      cacheService.removeByPrefix(CACHE_KEYS.ACTIVE_PROJECTS);
+      cacheService.removeByPrefix(CACHE_KEYS.PORTFOLIO_SUMMARY);
+      cacheService.removeByPrefix(CACHE_KEYS.PERSONNEL_WORKLOAD);
+
+      performanceService.endMark('sp:updateActiveProject');
+      return this.mapToActiveProject(updated);
+    } catch (err) {
+      performanceService.endMark('sp:updateActiveProject');
+      throw this.handleError('updateActiveProject', err, {
+        entityType: 'Project',
+        entityId: String(id),
+      });
     }
-    await batch.execute();
+  }
+
+  // LOAD-TEST: Delegates to getActiveProjects. Client-side aggregation over 200 items is <10ms.
+  async getPortfolioSummary(filters?: IActiveProjectsFilter): Promise<IPortfolioSummary> {
+    const cacheKey = CACHE_KEYS.PORTFOLIO_SUMMARY + buildCacheKeySuffix(filters as unknown as Record<string, unknown>);
+    const cached = cacheService.get<IPortfolioSummary>(cacheKey);
+    if (cached) return cached;
+
+    performanceService.startMark('sp:getPortfolioSummary');
+    try {
+      const projects = await this.getActiveProjects(filters as IActiveProjectsQueryOptions);
+
+      const totalBacklog = projects.reduce((sum, p) => sum + (p.financials.remainingValue || 0), 0);
+      const totalOriginalContract = projects.reduce((sum, p) => sum + (p.financials.originalContract || 0), 0);
+      const totalBillingsToDate = projects.reduce((sum, p) => sum + (p.financials.billingsToDate || 0), 0);
+      const totalUnbilled = projects.reduce((sum, p) => sum + (p.financials.unbilled || 0), 0);
+
+      const projectsWithFee = projects.filter(p => p.financials.projectedFeePct != null);
+      const averageFeePct = projectsWithFee.length > 0
+        ? projectsWithFee.reduce((sum, p) => sum + (p.financials.projectedFeePct || 0), 0) / projectsWithFee.length
+        : 0;
+
+      const monthlyBurnRate = totalBillingsToDate / 12;
+
+      const projectsByStatus: Record<ProjectStatus, number> = {
+        'Precon': projects.filter(p => p.status === 'Precon').length,
+        'Construction': projects.filter(p => p.status === 'Construction').length,
+        'Final Payment': projects.filter(p => p.status === 'Final Payment').length,
+      };
+
+      const projectsBySector: Record<SectorType, number> = {
+        'Commercial': projects.filter(p => p.sector === 'Commercial').length,
+        'Residential': projects.filter(p => p.sector === 'Residential').length,
+      };
+
+      const projectsWithAlerts = projects.filter(
+        p => p.hasUnbilledAlert || p.hasScheduleAlert || p.hasFeeErosionAlert
+      ).length;
+
+      const result: IPortfolioSummary = {
+        totalBacklog,
+        totalOriginalContract,
+        totalBillingsToDate,
+        totalUnbilled,
+        averageFeePct,
+        monthlyBurnRate,
+        projectCount: projects.length,
+        projectsByStatus,
+        projectsBySector,
+        projectsWithAlerts,
+      };
+      cacheService.set(cacheKey, result, CACHE_TTL_MS);
+      performanceService.endMark('sp:getPortfolioSummary');
+      return result;
+    } catch (err) {
+      performanceService.endMark('sp:getPortfolioSummary');
+      throw this.handleError('getPortfolioSummary', err, { entityType: 'Project' });
+    }
+  }
+
+  // LOAD-TEST: Delegates to getActiveProjects. In-memory Map over 200 items is <5ms.
+  async getPersonnelWorkload(role?: 'PX' | 'PM' | 'Super'): Promise<IPersonnelWorkload[]> {
+    const cacheKey = CACHE_KEYS.PERSONNEL_WORKLOAD + (role ? '_' + role : '');
+    const cached = cacheService.get<IPersonnelWorkload[]>(cacheKey);
+    if (cached) return cached;
+
+    performanceService.startMark('sp:getPersonnelWorkload');
+    try {
+      const projects = await this.getActiveProjects();
+      const workloadMap = new Map<string, IPersonnelWorkload>();
+
+      for (const project of projects) {
+        if ((!role || role === 'PX') && project.personnel.projectExecutive) {
+          const name = project.personnel.projectExecutive;
+          const existing = workloadMap.get(`PX-${name}`) || {
+            name,
+            email: project.personnel.projectExecutiveEmail,
+            role: 'PX' as const,
+            projectCount: 0,
+            totalContractValue: 0,
+            projects: [],
+          };
+          existing.projectCount++;
+          existing.totalContractValue += project.financials.currentContractValue || project.financials.originalContract || 0;
+          existing.projects.push(project);
+          workloadMap.set(`PX-${name}`, existing);
+        }
+
+        if ((!role || role === 'PM') && project.personnel.leadPM) {
+          const name = project.personnel.leadPM;
+          const existing = workloadMap.get(`PM-${name}`) || {
+            name,
+            email: project.personnel.leadPMEmail,
+            role: 'PM' as const,
+            projectCount: 0,
+            totalContractValue: 0,
+            projects: [],
+          };
+          existing.projectCount++;
+          existing.totalContractValue += project.financials.currentContractValue || project.financials.originalContract || 0;
+          existing.projects.push(project);
+          workloadMap.set(`PM-${name}`, existing);
+        }
+
+        if ((!role || role === 'Super') && project.personnel.leadSuper) {
+          const name = project.personnel.leadSuper;
+          const existing = workloadMap.get(`Super-${name}`) || {
+            name,
+            role: 'Super' as const,
+            projectCount: 0,
+            totalContractValue: 0,
+            projects: [],
+          };
+          existing.projectCount++;
+          existing.totalContractValue += project.financials.currentContractValue || project.financials.originalContract || 0;
+          existing.projects.push(project);
+          workloadMap.set(`Super-${name}`, existing);
+        }
+      }
+
+      const result = Array.from(workloadMap.values()).sort((a, b) => b.projectCount - a.projectCount);
+      cacheService.set(cacheKey, result, CACHE_TTL_MS);
+      performanceService.endMark('sp:getPersonnelWorkload');
+      return result;
+    } catch (err) {
+      performanceService.endMark('sp:getPersonnelWorkload');
+      throw this.handleError('getPersonnelWorkload', err, { entityType: 'Project' });
+    }
+  }
+
+  // LOAD-TEST: Batch-updates all items. SP batch limit ~100 ops; chunk if >100.
+  async triggerPortfolioSync(): Promise<void> {
+    performanceService.startMark('sp:triggerPortfolioSync');
+    try {
+      // In a real implementation, this would trigger a Power Automate flow
+      // or Azure Function to aggregate data from all project sites
+      const now = new Date().toISOString();
+      const items = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+        .items
+        .select('Id')
+        .top(5000)();
+
+      // Batch update all projects' LastSyncDate
+      const batch = this.sp.web.createBatch();
+      for (const item of items) {
+        this.sp.web.lists
+          .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+          .items
+          .getById(item.Id)
+          .inBatch(batch)
+          .update({ LastSyncDate: now });
+      }
+      await batch.execute();
+
+      cacheService.removeByPrefix(CACHE_KEYS.ACTIVE_PROJECTS);
+      cacheService.removeByPrefix(CACHE_KEYS.PORTFOLIO_SUMMARY);
+      cacheService.removeByPrefix(CACHE_KEYS.PERSONNEL_WORKLOAD);
+      performanceService.endMark('sp:triggerPortfolioSync');
+    } catch (err) {
+      performanceService.endMark('sp:triggerPortfolioSync');
+      throw this.handleError('triggerPortfolioSync', err, { entityType: 'Project' });
+    }
   }
 
   private mapToActiveProject(item: Record<string, unknown>): IActiveProject {
@@ -3249,7 +3923,10 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Data Integrity ---
+  // SP-INDEX-REQUIRED: Estimating_Tracker → LeadID, PMP/Marketing_Project_Records/Provisioning_Log → ProjectCode, Job_Number_Requests → LeadID
+  // LOAD-TEST: 5 sequential batch updates across hub lists. Each reads + batch-updates matching items. Expect <10 items per list per lead.
   async syncDenormalizedFields(leadId: number): Promise<void> {
+    performanceService.startMark('sp:syncDenormalizedFields');
     const lead = await this.getLeadById(leadId);
     if (!lead) return;
 
@@ -3317,12 +3994,16 @@ export class SharePointDataService implements IDataService {
             .items.getById(i.Id).inBatch(b5).update(upd);
         }
         await b5.execute();
+    performanceService.endMark('sp:syncDenormalizedFields');
       }
     }
   }
 
   // --- Closeout Promotion ---
+  // SP-INDEX-REQUIRED: Lessons_Learned (project) → ProjectCode+isIncludedInFinalRecord, Lessons_Learned_Hub → ProjectCode+title, PMP → ProjectCode
+  // LOAD-TEST: N+1 for lesson copy (serial duplicate check + add). Expected <50 lessons per project. PMP batch close is fast.
   async promoteToHub(projectCode: string): Promise<void> {
+    performanceService.startMark('sp:promoteToHub');
     // 1. Read lessons from project site (requires _projectSiteUrl)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let projectLessons: Record<string, any>[] = [];
@@ -3361,6 +4042,7 @@ export class SharePointDataService implements IDataService {
       if (pmp.status !== 'Closed') {
         await this.sp.web.lists.getByTitle(LIST_NAMES.PMP)
           .items.getById(pmp.Id).update({ status: 'Closed', lastUpdatedAt: new Date().toISOString() });
+    performanceService.endMark('sp:promoteToHub');
       }
     }
   }
@@ -3422,7 +4104,10 @@ export class SharePointDataService implements IDataService {
     };
   }
 
+  // SP-INDEX-REQUIRED: Scorecard_Approval_Cycles → ScorecardId, Scorecard_Approval_Steps → CycleId, Scorecard_Versions → ScorecardId
+  // LOAD-TEST: 4 SP calls (parent by ID + 3 child filters). Expected <5 cycles, <10 steps, <5 versions per scorecard.
   private async assembleScorecard(scorecardId: number): Promise<IGoNoGoScorecard> {
+    performanceService.startMark('sp:assembleScorecard');
     const col = GONOGO_SCORECARD_COLUMNS;
 
     // Read parent
@@ -3500,9 +4185,12 @@ export class SharePointDataService implements IDataService {
       unlockedDate: raw[col.unlockedDate] as string || undefined,
       unlockReason: raw[col.unlockReason] as string || undefined,
     };
+    performanceService.endMark('sp:assembleScorecard');
   }
 
+  // LOAD-TEST: 2 SP calls: read scorecard + add version. Fast.
   private async createVersionSnapshot(scorecardId: number, reason: string, createdBy: string): Promise<IScorecardVersion> {
+    performanceService.startMark('sp:createVersionSnapshot');
     const col = GONOGO_SCORECARD_COLUMNS;
     const vCol = SCORECARD_VERSIONS_COLUMNS;
     const raw = await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId)();
@@ -3542,12 +4230,16 @@ export class SharePointDataService implements IDataService {
       Details: `Version ${currentVersion} snapshot: ${reason}`,
     }).catch(() => { /* fire-and-forget */ });
 
+    performanceService.endMark('sp:createVersionSnapshot');
     return this.mapToScorecardVersion(result);
   }
 
   // --- Scorecard Workflow (Phase 16) — Public Methods ---
 
+  // SP-INDEX-REQUIRED: Scorecard_Approval_Cycles → ScorecardId
+  // LOAD-TEST: 4-5 SP calls per submission (read scorecard, read cycles, create cycle, create 2 steps, update scorecard).
   async submitScorecard(scorecardId: number, submittedBy: string, _approverOverride?: IPersonAssignment): Promise<IGoNoGoScorecard> {
+    performanceService.startMark('sp:submitScorecard');
     const col = GONOGO_SCORECARD_COLUMNS;
     const cycCol = SCORECARD_APPROVAL_CYCLES_COLUMNS;
     const stepCol = SCORECARD_APPROVAL_STEPS_COLUMNS;
@@ -3613,10 +4305,14 @@ export class SharePointDataService implements IDataService {
       Details: `Scorecard submitted for director review (cycle ${newCycleNumber})`,
     }).catch(() => { /* fire-and-forget */ });
 
-    return this.assembleScorecard(scorecardId);
+    const result = await this.assembleScorecard(scorecardId);
+    performanceService.endMark('sp:submitScorecard');
+    return result;
   }
 
+  // SP-INDEX-REQUIRED: Scorecard_Approval_Cycles → ScorecardId+Status, Scorecard_Approval_Steps → CycleId+Status
   async respondToScorecardSubmission(scorecardId: number, approved: boolean, comment: string): Promise<IGoNoGoScorecard> {
+    performanceService.startMark('sp:respondToScorecardSubmission');
     const col = GONOGO_SCORECARD_COLUMNS;
     const cycCol = SCORECARD_APPROVAL_CYCLES_COLUMNS;
     const stepCol = SCORECARD_APPROVAL_STEPS_COLUMNS;
@@ -3665,10 +4361,13 @@ export class SharePointDataService implements IDataService {
       Details: approved ? 'Director approved — advancing to committee scoring' : `Director returned for revision: ${comment}`,
     }).catch(() => { /* fire-and-forget */ });
 
-    return this.assembleScorecard(scorecardId);
+    const result = await this.assembleScorecard(scorecardId);
+    performanceService.endMark('sp:respondToScorecardSubmission');
+    return result;
   }
 
   async enterCommitteeScores(scorecardId: number, scores: Record<string, number>, enteredBy: string): Promise<IGoNoGoScorecard> {
+    performanceService.startMark('sp:enterCommitteeScores');
     const col = GONOGO_SCORECARD_COLUMNS;
     const now = new Date().toISOString();
 
@@ -3706,10 +4405,14 @@ export class SharePointDataService implements IDataService {
       Details: `Committee scores entered. Total: ${totalCmte}. Recommended: ${recommended.decision}`,
     }).catch(() => { /* fire-and-forget */ });
 
-    return this.assembleScorecard(scorecardId);
+    const result = await this.assembleScorecard(scorecardId);
+    performanceService.endMark('sp:enterCommitteeScores');
+    return result;
   }
 
+  // SP-INDEX-REQUIRED: Scorecard_Approval_Cycles → ScorecardId+Status
   async recordFinalDecision(scorecardId: number, decision: GoNoGoDecision, conditions?: string, decidedBy?: string): Promise<IGoNoGoScorecard> {
+    performanceService.startMark('sp:recordFinalDecision');
     const col = GONOGO_SCORECARD_COLUMNS;
     const cycCol = SCORECARD_APPROVAL_CYCLES_COLUMNS;
     const now = new Date().toISOString();
@@ -3772,10 +4475,13 @@ export class SharePointDataService implements IDataService {
       Details: `Final decision: ${decision}${conditions ? '. Conditions: ' + conditions : ''}`,
     }).catch(() => { /* fire-and-forget */ });
 
-    return this.assembleScorecard(scorecardId);
+    const result = await this.assembleScorecard(scorecardId);
+    performanceService.endMark('sp:recordFinalDecision');
+    return result;
   }
 
   async unlockScorecard(scorecardId: number, reason: string): Promise<IGoNoGoScorecard> {
+    performanceService.startMark('sp:unlockScorecard');
     const col = GONOGO_SCORECARD_COLUMNS;
     const now = new Date().toISOString();
 
@@ -3806,10 +4512,14 @@ export class SharePointDataService implements IDataService {
       Details: `Scorecard unlocked. Reason: ${reason}. Version incremented to ${currentVersion + 1}`,
     }).catch(() => { /* fire-and-forget */ });
 
-    return this.assembleScorecard(scorecardId);
+    const result = await this.assembleScorecard(scorecardId);
+    performanceService.endMark('sp:unlockScorecard');
+    return result;
   }
 
+  // SP-INDEX-REQUIRED: Scorecard_Approval_Cycles → ScorecardId
   async relockScorecard(scorecardId: number, startNewCycle: boolean): Promise<IGoNoGoScorecard> {
+    performanceService.startMark('sp:relockScorecard');
     const col = GONOGO_SCORECARD_COLUMNS;
     const cycCol = SCORECARD_APPROVAL_CYCLES_COLUMNS;
     const stepCol = SCORECARD_APPROVAL_STEPS_COLUMNS;
@@ -3877,15 +4587,26 @@ export class SharePointDataService implements IDataService {
       Details: startNewCycle ? 'Relocked with new approval cycle' : 'Relocked without new cycle',
     }).catch(() => { /* fire-and-forget */ });
 
-    return this.assembleScorecard(scorecardId);
+    const result = await this.assembleScorecard(scorecardId);
+    performanceService.endMark('sp:relockScorecard');
+    return result;
   }
 
+  // SP-INDEX-REQUIRED: Scorecard_Versions → ScorecardId
   async getScorecardVersions(scorecardId: number): Promise<IScorecardVersion[]> {
-    const col = SCORECARD_VERSIONS_COLUMNS;
-    const items = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_VERSIONS).items
-      .filter(`${col.scorecardId} eq ${scorecardId}`)
-      .orderBy(col.versionNumber, true)();
-    return (items as Record<string, unknown>[]).map(i => this.mapToScorecardVersion(i));
+    performanceService.startMark('sp:getScorecardVersions');
+    try {
+      const col = SCORECARD_VERSIONS_COLUMNS;
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.SCORECARD_VERSIONS).items
+        .filter(`${col.scorecardId} eq ${scorecardId}`)
+        .orderBy(col.versionNumber, true)
+        .top(500)();
+      performanceService.endMark('sp:getScorecardVersions');
+      return (items as Record<string, unknown>[]).map(i => this.mapToScorecardVersion(i));
+    } catch (err) {
+      performanceService.endMark('sp:getScorecardVersions');
+      throw this.handleError('getScorecardVersions', err, { entityType: 'ScorecardVersion' });
+    }
   }
 
   // --- Workflow Definitions ---
@@ -3995,7 +4716,9 @@ export class SharePointDataService implements IDataService {
    * Reads all 3 workflow lists and assembles full hierarchy.
    * Used internally by getWorkflowDefinitions() and getWorkflowDefinition().
    */
+  // LOAD-TEST: 3 parallel SP calls (all definitions + all steps + all conditionals). Expected <10 workflows, <100 total steps. Unbounded queries.
   private async assembleAllWorkflowDefinitions(): Promise<IWorkflowDefinition[]> {
+    performanceService.startMark('sp:assembleAllWorkflowDefinitions');
     // Read all 3 lists in parallel
     const [defItems, stepItems, caItems] = await Promise.all([
       this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_DEFINITIONS).items(),
@@ -4033,13 +4756,19 @@ export class SharePointDataService implements IDataService {
       const defId = defItem[WORKFLOW_DEFINITIONS_COLUMNS.id] as number || defItem.Id as number;
       return this.mapToWorkflowDefinition(defItem, stepsByWorkflowId.get(defId) || []);
     });
+    performanceService.endMark('sp:assembleAllWorkflowDefinitions');
   }
 
   async getWorkflowDefinitions(): Promise<IWorkflowDefinition[]> {
+    performanceService.startMark('sp:getWorkflowDefinitions');
+    performanceService.endMark('sp:getWorkflowDefinitions');
     return this.assembleAllWorkflowDefinitions();
   }
 
+  // SP-INDEX-REQUIRED: Workflow_Definitions → WorkflowKey, Workflow_Steps → WorkflowId, Workflow_Conditional_Assignments → StepId
+  // LOAD-TEST: 3 sequential SP calls (def + steps + conditionals OR-filter). Expected <15 steps per workflow.
   async getWorkflowDefinition(workflowKey: WorkflowKey): Promise<IWorkflowDefinition | null> {
+    performanceService.startMark('sp:getWorkflowDefinition');
     // Filter definition by WorkflowKey, then read steps + conditionals for that definition
     const defItems = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_DEFINITIONS).items
       .filter(`${WORKFLOW_DEFINITIONS_COLUMNS.workflowKey} eq '${workflowKey}'`)();
@@ -4081,10 +4810,13 @@ export class SharePointDataService implements IDataService {
       return this.mapToWorkflowStep(stepItem, caByStepId.get(stepId) || []);
     }).sort((a: IWorkflowStep, b: IWorkflowStep) => a.stepOrder - b.stepOrder);
 
+    performanceService.endMark('sp:getWorkflowDefinition');
     return this.mapToWorkflowDefinition(defItem, steps);
   }
 
+  // SP-INDEX-REQUIRED: Workflow_Conditional_Assignments → StepId (for re-read after update)
   async updateWorkflowStep(workflowId: number, stepId: number, data: Partial<IWorkflowStep>): Promise<IWorkflowStep> {
+    performanceService.startMark('sp:updateWorkflowStep');
     // Build SP update payload with column mappings
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: Record<string, any> = {};
@@ -4113,10 +4845,13 @@ export class SharePointDataService implements IDataService {
     const caItems = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_CONDITIONAL_ASSIGNMENTS).items
       .filter(`${WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.stepId} eq ${stepId}`)();
     const cas = caItems.map((ca: Record<string, unknown>) => this.mapToConditionalAssignment(ca));
+    performanceService.endMark('sp:updateWorkflowStep');
     return this.mapToWorkflowStep(updatedItem, cas);
   }
 
+  // LOAD-TEST: 4 SP calls: add assignment, read step (for workflowId), update definition timestamp, re-read.
   async addConditionalAssignment(stepId: number, assignment: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> {
+    performanceService.startMark('sp:addConditionalAssignment');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const addData: Record<string, any> = {
       [WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.stepId]: stepId,
@@ -4140,10 +4875,13 @@ export class SharePointDataService implements IDataService {
 
     // Re-read the created item
     const createdItem = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_CONDITIONAL_ASSIGNMENTS).items.getById(newId)();
+    performanceService.endMark('sp:addConditionalAssignment');
     return this.mapToConditionalAssignment(createdItem);
   }
 
+  // LOAD-TEST: 4-5 SP calls: update, re-read, find step, find workflow, update timestamp.
   async updateConditionalAssignment(assignmentId: number, data: Partial<IConditionalAssignment>): Promise<IConditionalAssignment> {
+    performanceService.startMark('sp:updateConditionalAssignment');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: Record<string, any> = {};
     if (data.conditions !== undefined) updateData[WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.conditions] = JSON.stringify(data.conditions);
@@ -4167,10 +4905,13 @@ export class SharePointDataService implements IDataService {
       }
     }
 
+    performanceService.endMark('sp:updateConditionalAssignment');
     return this.mapToConditionalAssignment(updatedItem);
   }
 
+  // LOAD-TEST: 3-4 SP calls: read item (for stepId), recycle, find workflow, update timestamp.
   async removeConditionalAssignment(assignmentId: number): Promise<void> {
+    performanceService.startMark('sp:removeConditionalAssignment');
     // Read item first to find parent workflow for lastModifiedDate update
     const item = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_CONDITIONAL_ASSIGNMENTS).items.getById(assignmentId)();
     const stepId = item[WORKFLOW_CONDITIONAL_ASSIGNMENTS_COLUMNS.stepId] as number;
@@ -4186,17 +4927,23 @@ export class SharePointDataService implements IDataService {
         await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_DEFINITIONS).items.getById(workflowId).update({
           [WORKFLOW_DEFINITIONS_COLUMNS.lastModifiedDate]: new Date().toISOString(),
         });
+    performanceService.endMark('sp:removeConditionalAssignment');
       }
     }
   }
 
+  // SP-INDEX-REQUIRED: Workflow_Step_Overrides → ProjectCode
   async getWorkflowOverrides(projectCode: string): Promise<IWorkflowStepOverride[]> {
+    performanceService.startMark('sp:getWorkflowOverrides');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEP_OVERRIDES).items
       .filter(`${WORKFLOW_STEP_OVERRIDES_COLUMNS.projectCode} eq '${projectCode}'`)();
+    performanceService.endMark('sp:getWorkflowOverrides');
     return items.map((item: Record<string, unknown>) => this.mapToWorkflowStepOverride(item));
   }
 
+  // SP-INDEX-REQUIRED: Workflow_Step_Overrides → ProjectCode+StepId (compound filter for upsert)
   async setWorkflowStepOverride(override: Partial<IWorkflowStepOverride>): Promise<IWorkflowStepOverride> {
+    performanceService.startMark('sp:setWorkflowStepOverride');
     // Upsert: delete existing override for same projectCode+stepId, then add new
     if (override.projectCode && override.stepId) {
       const existing = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEP_OVERRIDES).items
@@ -4221,14 +4968,20 @@ export class SharePointDataService implements IDataService {
     const result = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEP_OVERRIDES).items.add(addData);
     const newId = result.Id || result.data?.Id;
     const createdItem = await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEP_OVERRIDES).items.getById(newId)();
+    performanceService.endMark('sp:setWorkflowStepOverride');
     return this.mapToWorkflowStepOverride(createdItem);
   }
 
   async removeWorkflowStepOverride(overrideId: number): Promise<void> {
+    performanceService.startMark('sp:removeWorkflowStepOverride');
     await this.sp.web.lists.getByTitle(LIST_NAMES.WORKFLOW_STEP_OVERRIDES).items.getById(overrideId).recycle();
+    performanceService.endMark('sp:removeWorkflowStepOverride');
   }
 
+  // SP-INDEX-REQUIRED: Leads_Master → ProjectCode (for lead condition eval)
+  // LOAD-TEST: 5+ SP calls: getWorkflowDefinition + getWorkflowOverrides + getTeamMembers + lead lookup + getFeatureFlags. Heavy read-only method.
   async resolveWorkflowChain(workflowKey: WorkflowKey, projectCode: string): Promise<IResolvedWorkflowStep[]> {
+    performanceService.startMark('sp:resolveWorkflowChain');
     // 1. Get the workflow definition (reuses getWorkflowDefinition)
     const workflow = await this.getWorkflowDefinition(workflowKey);
     if (!workflow) return [];
@@ -4360,12 +5113,16 @@ export class SharePointDataService implements IDataService {
       }
     }
 
+    performanceService.endMark('sp:resolveWorkflowChain');
     return resolved;
   }
 
   // --- Turnover Agenda ---
 
+  // SP-INDEX-REQUIRED: Turnover_Agendas → ProjectCode, Turnover_Prerequisites/Discussion_Items/Subcontractors/Exhibits/Signatures → TurnoverAgendaId, Turnover_Estimate_Overviews → TurnoverAgendaId
+  // LOAD-TEST: 8 parallel SP calls (parent + 7 child lists). CRITICAL: Turnover_Attachments has no agendaId filter — full table scan.
   async getTurnoverAgenda(projectCode: string): Promise<ITurnoverAgenda | null> {
+    performanceService.startMark('sp:getTurnoverAgenda');
     const web = this._getProjectWeb();
     const col = TURNOVER_AGENDAS_COLUMNS;
 
@@ -4423,10 +5180,13 @@ export class SharePointDataService implements IDataService {
       else if (typeof raw === 'object' && raw !== null) headerOverrides = raw as Record<string, boolean>;
     } catch { /* safe fallback */ }
 
+    performanceService.endMark('sp:getTurnoverAgenda');
     return this.assembleTurnoverAgenda(agenda, lead, headerOverrides, estimateOverview, prereqs, discussionItems, attachments, subs, exhibits, sigs);
   }
 
+  // LOAD-TEST: ~30+ SP calls: 1 lead read + 1 parent add + ~25 child seeds (prereqs + discussion + exhibits + sigs + overview) in parallel.
   async createTurnoverAgenda(projectCode: string, leadId: number): Promise<ITurnoverAgenda> {
+    performanceService.startMark('sp:createTurnoverAgenda');
     const web = this._getProjectWeb();
     const col = TURNOVER_AGENDAS_COLUMNS;
     const now = new Date().toISOString();
@@ -4519,10 +5279,13 @@ export class SharePointDataService implements IDataService {
     // Re-read assembled
     const result = await this.getTurnoverAgenda(projectCode);
     if (!result) throw new Error(`Turnover agenda for ${projectCode} not found after creation`);
+    performanceService.endMark('sp:createTurnoverAgenda');
     return result;
   }
 
+  // SP-INDEX-REQUIRED: Turnover_Agendas → ProjectCode
   async updateTurnoverAgenda(projectCode: string, data: Partial<ITurnoverAgenda>): Promise<ITurnoverAgenda> {
+    performanceService.startMark('sp:updateTurnoverAgenda');
     const web = this._getProjectWeb();
     const col = TURNOVER_AGENDAS_COLUMNS;
 
@@ -4554,9 +5317,11 @@ export class SharePointDataService implements IDataService {
     // Re-read assembled
     const result = await this.getTurnoverAgenda(projectCode);
     if (!result) throw new Error(`Turnover agenda for ${projectCode} not found after update`);
+    performanceService.endMark('sp:updateTurnoverAgenda');
     return result;
   }
   async updateTurnoverPrerequisite(prerequisiteId: number, data: Partial<ITurnoverPrerequisite>): Promise<ITurnoverPrerequisite> {
+    performanceService.startMark('sp:updateTurnoverPrerequisite');
     const web = this._getProjectWeb();
     const col = TURNOVER_PREREQUISITES_COLUMNS;
     const updateData: Record<string, unknown> = {};
@@ -4571,10 +5336,13 @@ export class SharePointDataService implements IDataService {
     await web.lists.getByTitle(LIST_NAMES.TURNOVER_PREREQUISITES).items.getById(prerequisiteId).update(updateData);
 
     const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_PREREQUISITES).items.getById(prerequisiteId)();
+    performanceService.endMark('sp:updateTurnoverPrerequisite');
     return this.mapToTurnoverPrerequisite(item);
   }
 
+  // SP-INDEX-REQUIRED: Turnover_Attachments → DiscussionItemId
   async updateTurnoverDiscussionItem(itemId: number, data: Partial<ITurnoverDiscussionItem>): Promise<ITurnoverDiscussionItem> {
+    performanceService.startMark('sp:updateTurnoverDiscussionItem');
     const web = this._getProjectWeb();
     const col = TURNOVER_DISCUSSION_ITEMS_COLUMNS;
     const updateData: Record<string, unknown> = {};
@@ -4596,10 +5364,12 @@ export class SharePointDataService implements IDataService {
       .top(500)();
     mapped.attachments = attachmentItems.map((a: Record<string, unknown>) => this.mapToTurnoverAttachment(a));
 
+    performanceService.endMark('sp:updateTurnoverDiscussionItem');
     return mapped;
   }
 
   async addTurnoverDiscussionAttachment(itemId: number, file: File): Promise<ITurnoverAttachment> {
+    performanceService.startMark('sp:addTurnoverDiscussionAttachment');
     const web = this._getProjectWeb();
     const col = TURNOVER_ATTACHMENTS_COLUMNS;
     const folderPath = 'Shared Documents/Turnover';
@@ -4633,15 +5403,19 @@ export class SharePointDataService implements IDataService {
       || ((result as Record<string, unknown>).data as Record<string, unknown>)?.ID as number;
 
     const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_ATTACHMENTS).items.getById(newId)();
+    performanceService.endMark('sp:addTurnoverDiscussionAttachment');
     return this.mapToTurnoverAttachment(item);
   }
 
   async removeTurnoverDiscussionAttachment(attachmentId: number): Promise<void> {
+    performanceService.startMark('sp:removeTurnoverDiscussionAttachment');
     const web = this._getProjectWeb();
     await web.lists.getByTitle(LIST_NAMES.TURNOVER_ATTACHMENTS).items.getById(attachmentId).delete();
+    performanceService.endMark('sp:removeTurnoverDiscussionAttachment');
   }
 
   async addTurnoverSubcontractor(turnoverAgendaId: number, data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor> {
+    performanceService.startMark('sp:addTurnoverSubcontractor');
     const web = this._getProjectWeb();
     const col = TURNOVER_SUBCONTRACTORS_COLUMNS;
 
@@ -4664,10 +5438,12 @@ export class SharePointDataService implements IDataService {
       || ((result as Record<string, unknown>).data as Record<string, unknown>)?.ID as number;
 
     const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_SUBCONTRACTORS).items.getById(newId)();
+    performanceService.endMark('sp:addTurnoverSubcontractor');
     return this.mapToTurnoverSubcontractor(item);
   }
 
   async updateTurnoverSubcontractor(subId: number, data: Partial<ITurnoverSubcontractor>): Promise<ITurnoverSubcontractor> {
+    performanceService.startMark('sp:updateTurnoverSubcontractor');
     const web = this._getProjectWeb();
     const col = TURNOVER_SUBCONTRACTORS_COLUMNS;
     const updateData: Record<string, unknown> = {};
@@ -4685,15 +5461,19 @@ export class SharePointDataService implements IDataService {
     await web.lists.getByTitle(LIST_NAMES.TURNOVER_SUBCONTRACTORS).items.getById(subId).update(updateData);
 
     const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_SUBCONTRACTORS).items.getById(subId)();
+    performanceService.endMark('sp:updateTurnoverSubcontractor');
     return this.mapToTurnoverSubcontractor(item);
   }
 
   async removeTurnoverSubcontractor(subId: number): Promise<void> {
+    performanceService.startMark('sp:removeTurnoverSubcontractor');
     const web = this._getProjectWeb();
     await web.lists.getByTitle(LIST_NAMES.TURNOVER_SUBCONTRACTORS).items.getById(subId).delete();
+    performanceService.endMark('sp:removeTurnoverSubcontractor');
   }
 
   async updateTurnoverExhibit(exhibitId: number, data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit> {
+    performanceService.startMark('sp:updateTurnoverExhibit');
     const web = this._getProjectWeb();
     const col = TURNOVER_EXHIBITS_COLUMNS;
     const updateData: Record<string, unknown> = {};
@@ -4710,10 +5490,13 @@ export class SharePointDataService implements IDataService {
     await web.lists.getByTitle(LIST_NAMES.TURNOVER_EXHIBITS).items.getById(exhibitId).update(updateData);
 
     const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_EXHIBITS).items.getById(exhibitId)();
+    performanceService.endMark('sp:updateTurnoverExhibit');
     return this.mapToTurnoverExhibit(item);
   }
 
+  // SP-INDEX-REQUIRED: Turnover_Exhibits → TurnoverAgendaId (for sortOrder calc)
   async addTurnoverExhibit(turnoverAgendaId: number, data: Partial<ITurnoverExhibit>): Promise<ITurnoverExhibit> {
+    performanceService.startMark('sp:addTurnoverExhibit');
     const web = this._getProjectWeb();
     const col = TURNOVER_EXHIBITS_COLUMNS;
 
@@ -4740,15 +5523,20 @@ export class SharePointDataService implements IDataService {
       || ((result as Record<string, unknown>).data as Record<string, unknown>)?.ID as number;
 
     const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_EXHIBITS).items.getById(newId)();
+    performanceService.endMark('sp:addTurnoverExhibit');
     return this.mapToTurnoverExhibit(item);
   }
 
   async removeTurnoverExhibit(exhibitId: number): Promise<void> {
+    performanceService.startMark('sp:removeTurnoverExhibit');
     const web = this._getProjectWeb();
     await web.lists.getByTitle(LIST_NAMES.TURNOVER_EXHIBITS).items.getById(exhibitId).delete();
+    performanceService.endMark('sp:removeTurnoverExhibit');
   }
 
+    performanceService.endMark('sp:uploadTurnoverExhibitFile');
   async uploadTurnoverExhibitFile(exhibitId: number, file: File): Promise<{ fileUrl: string; fileName: string }> {
+    performanceService.startMark('sp:uploadTurnoverExhibitFile');
     const web = this._getProjectWeb();
     const col = TURNOVER_EXHIBITS_COLUMNS;
     const folderPath = 'Shared Documents/Turnover';
@@ -4777,6 +5565,7 @@ export class SharePointDataService implements IDataService {
   }
 
   async signTurnoverAgenda(signatureId: number, comment?: string): Promise<ITurnoverSignature> {
+    performanceService.startMark('sp:signTurnoverAgenda');
     const web = this._getProjectWeb();
     const col = TURNOVER_SIGNATURES_COLUMNS;
     const now = new Date().toISOString();
@@ -4792,10 +5581,13 @@ export class SharePointDataService implements IDataService {
     await web.lists.getByTitle(LIST_NAMES.TURNOVER_SIGNATURES).items.getById(signatureId).update(updateData);
 
     const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_SIGNATURES).items.getById(signatureId)();
+    performanceService.endMark('sp:signTurnoverAgenda');
     return this.mapToTurnoverSignature(item);
   }
 
+  // SP-INDEX-REQUIRED: Turnover_Agendas → ProjectCode, Turnover_Estimate_Overviews → TurnoverAgendaId
   async updateTurnoverEstimateOverview(projectCode: string, data: Partial<ITurnoverEstimateOverview>): Promise<ITurnoverEstimateOverview> {
+    performanceService.startMark('sp:updateTurnoverEstimateOverview');
     const web = this._getProjectWeb();
     const agendaCol = TURNOVER_AGENDAS_COLUMNS;
     const col = TURNOVER_ESTIMATE_OVERVIEWS_COLUMNS;
@@ -4828,21 +5620,27 @@ export class SharePointDataService implements IDataService {
     await web.lists.getByTitle(LIST_NAMES.TURNOVER_ESTIMATE_OVERVIEWS).items.getById(overviewId).update(updateData);
 
     const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_ESTIMATE_OVERVIEWS).items.getById(overviewId)();
+    performanceService.endMark('sp:updateTurnoverEstimateOverview');
     return this.mapToTurnoverEstimateOverview(item);
   }
 
   // --- Hub Site URL Configuration ---
+  // SP-INDEX-REQUIRED: App_Context_Config → SiteURL
   async getHubSiteUrl(): Promise<string> {
+    performanceService.startMark('sp:getHubSiteUrl');
     if (!this.sp) return 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral';
     try {
       const items = await this.sp.web.lists.getByTitle('App_Context_Config')
         .items.filter("SiteURL eq 'HUB_SITE_URL'").select('AppTitle').top(1)();
       return items.length > 0 ? items[0].AppTitle : 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral';
     } catch {
+    performanceService.endMark('sp:getHubSiteUrl');
       return 'https://hedrickbrotherscom.sharepoint.com/sites/HBCentral';
     }
   }
+  // SP-INDEX-REQUIRED: App_Context_Config → SiteURL
   async setHubSiteUrl(url: string): Promise<void> {
+    performanceService.startMark('sp:setHubSiteUrl');
     try {
       const items = await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG)
         .items.filter("SiteURL eq 'HUB_SITE_URL'").top(1)();
@@ -4856,10 +5654,14 @@ export class SharePointDataService implements IDataService {
     } catch (err) {
       console.error('[SP] setHubSiteUrl failed:', err);
       throw err;
+    performanceService.endMark('sp:setHubSiteUrl');
     }
   }
 
+  // SP-INDEX-REQUIRED: Scorecard_Approval_Steps → AssigneeEmail+Status, PMP_Approval_Steps → ApproverEmail+Status, PMP_Signatures → PersonEmail+Status, Monthly_Reviews → Status
+  // LOAD-TEST: 4+ parallel SP calls across different lists. Each bounded at top(50). Heavy read-only aggregation.
   async getActionItems(userEmail: string): Promise<IActionInboxItem[]> {
+    performanceService.startMark('sp:getActionItems');
     const items: IActionInboxItem[] = [];
     const now = Date.now();
     const calcWaitingDays = (dateStr: string): number => Math.floor((now - new Date(dateStr).getTime()) / 86400000);
@@ -4997,27 +5799,33 @@ export class SharePointDataService implements IDataService {
       return b.waitingDays - a.waitingDays;
     });
 
+    performanceService.endMark('sp:getActionItems');
     return items;
   }
 
   // --- Permission Templates ---
   async getPermissionTemplates(): Promise<IPermissionTemplate[]> {
+    performanceService.startMark('sp:getPermissionTemplates');
     const items = await this.sp.web.lists
       .getByTitle(LIST_NAMES.PERMISSION_TEMPLATES).items();
+    performanceService.endMark('sp:getPermissionTemplates');
     return (items as Record<string, unknown>[]).map(i => this.mapToPermissionTemplate(i));
   }
 
   async getPermissionTemplate(id: number): Promise<IPermissionTemplate | null> {
+    performanceService.startMark('sp:getPermissionTemplate');
     try {
       const item = await this.sp.web.lists
         .getByTitle(LIST_NAMES.PERMISSION_TEMPLATES).items.getById(id)();
       return this.mapToPermissionTemplate(item as Record<string, unknown>);
     } catch {
+    performanceService.endMark('sp:getPermissionTemplate');
       return null;
     }
   }
 
   async createPermissionTemplate(data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> {
+    performanceService.startMark('sp:createPermissionTemplate');
     const now = new Date().toISOString();
     const spItem: Record<string, unknown> = {
       [PERMISSION_TEMPLATES_COLUMNS.name]: data.name || '',
@@ -5035,10 +5843,12 @@ export class SharePointDataService implements IDataService {
     };
     const result = await this.sp.web.lists
       .getByTitle(LIST_NAMES.PERMISSION_TEMPLATES).items.add(spItem);
+    performanceService.endMark('sp:createPermissionTemplate');
     return this.mapToPermissionTemplate(result as Record<string, unknown>);
   }
 
   async updatePermissionTemplate(id: number, data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> {
+    performanceService.startMark('sp:updatePermissionTemplate');
     const updateData: Record<string, unknown> = {};
     if (data.name !== undefined) updateData[PERMISSION_TEMPLATES_COLUMNS.name] = data.name;
     if (data.description !== undefined) updateData[PERMISSION_TEMPLATES_COLUMNS.description] = data.description;
@@ -5055,22 +5865,28 @@ export class SharePointDataService implements IDataService {
       .getByTitle(LIST_NAMES.PERMISSION_TEMPLATES).items.getById(id).update(updateData);
     const updated = await this.sp.web.lists
       .getByTitle(LIST_NAMES.PERMISSION_TEMPLATES).items.getById(id)();
+    performanceService.endMark('sp:updatePermissionTemplate');
     return this.mapToPermissionTemplate(updated as Record<string, unknown>);
   }
 
   async deletePermissionTemplate(id: number): Promise<void> {
+    performanceService.startMark('sp:deletePermissionTemplate');
     await this.sp.web.lists
       .getByTitle(LIST_NAMES.PERMISSION_TEMPLATES).items.getById(id).delete();
+    performanceService.endMark('sp:deletePermissionTemplate');
   }
 
   // --- Security Group Mappings ---
   async getSecurityGroupMappings(): Promise<ISecurityGroupMapping[]> {
+    performanceService.startMark('sp:getSecurityGroupMappings');
     const items = await this.sp.web.lists
       .getByTitle(LIST_NAMES.SECURITY_GROUP_MAPPINGS).items();
+    performanceService.endMark('sp:getSecurityGroupMappings');
     return (items as Record<string, unknown>[]).map(i => this.mapToSecurityGroupMapping(i));
   }
 
   async createSecurityGroupMapping(data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> {
+    performanceService.startMark('sp:createSecurityGroupMapping');
     const spItem: Record<string, unknown> = {
       [SECURITY_GROUP_MAPPINGS_COLUMNS.securityGroupId]: data.securityGroupId || '',
       [SECURITY_GROUP_MAPPINGS_COLUMNS.securityGroupName]: data.securityGroupName || '',
@@ -5079,10 +5895,12 @@ export class SharePointDataService implements IDataService {
     };
     const result = await this.sp.web.lists
       .getByTitle(LIST_NAMES.SECURITY_GROUP_MAPPINGS).items.add(spItem);
+    performanceService.endMark('sp:createSecurityGroupMapping');
     return this.mapToSecurityGroupMapping(result as Record<string, unknown>);
   }
 
   async updateSecurityGroupMapping(id: number, data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> {
+    performanceService.startMark('sp:updateSecurityGroupMapping');
     const updateData: Record<string, unknown> = {};
     if (data.securityGroupId !== undefined) updateData[SECURITY_GROUP_MAPPINGS_COLUMNS.securityGroupId] = data.securityGroupId;
     if (data.securityGroupName !== undefined) updateData[SECURITY_GROUP_MAPPINGS_COLUMNS.securityGroupName] = data.securityGroupName;
@@ -5093,29 +5911,53 @@ export class SharePointDataService implements IDataService {
       .getByTitle(LIST_NAMES.SECURITY_GROUP_MAPPINGS).items.getById(id).update(updateData);
     const updated = await this.sp.web.lists
       .getByTitle(LIST_NAMES.SECURITY_GROUP_MAPPINGS).items.getById(id)();
+    performanceService.endMark('sp:updateSecurityGroupMapping');
     return this.mapToSecurityGroupMapping(updated as Record<string, unknown>);
   }
 
   // --- Project Team Assignments ---
+  // SP-INDEX-REQUIRED: Project_Team_Assignments → ProjectCode+IsActive (compound filter)
   async getProjectTeamAssignments(projectCode: string): Promise<IProjectTeamAssignment[]> {
+    performanceService.startMark('sp:getProjectTeamAssignments');
     const col = PROJECT_TEAM_ASSIGNMENTS_COLUMNS;
     const items = await this.sp.web.lists
       .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS)
       .items.filter(`${col.projectCode} eq '${projectCode}' and ${col.isActive} eq 1`)();
+    performanceService.endMark('sp:getProjectTeamAssignments');
     return (items as Record<string, unknown>[]).map(i => this.mapToProjectTeamAssignment(i));
   }
 
+  // SP-INDEX-REQUIRED: Project_Team_Assignments → UserEmail, IsActive
+  // Note: tolower() in OData filter prevents SP index usage. Consider pre-lowered column for >5000 items.
+  // LOAD-TEST: Expected <50 per user. tolower() prevents SP index — consider pre-lowered column at scale.
   async getMyProjectAssignments(userEmail: string): Promise<IProjectTeamAssignment[]> {
-    const col = PROJECT_TEAM_ASSIGNMENTS_COLUMNS;
     const emailLower = userEmail.toLowerCase();
-    // OData tolower for case-insensitive email matching
-    const items = await this.sp.web.lists
-      .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS)
-      .items.filter(`tolower(${col.userEmail}) eq '${emailLower}' and ${col.isActive} eq 1`)();
-    return (items as Record<string, unknown>[]).map(i => this.mapToProjectTeamAssignment(i));
+    const cacheKey = CACHE_KEYS.ASSIGNMENTS + '_user_' + emailLower;
+    const cached = cacheService.get<IProjectTeamAssignment[]>(cacheKey);
+    if (cached) return cached;
+
+    performanceService.startMark('sp:getMyProjectAssignments');
+    try {
+      const col = PROJECT_TEAM_ASSIGNMENTS_COLUMNS;
+      // OData tolower for case-insensitive email matching
+      const items = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS)
+        .items.filter(`tolower(${col.userEmail}) eq '${emailLower}' and ${col.isActive} eq 1`)();
+      const result = (items as Record<string, unknown>[]).map(i => this.mapToProjectTeamAssignment(i));
+      cacheService.set(cacheKey, result, USER_CACHE_TTL_MS);
+      performanceService.endMark('sp:getMyProjectAssignments');
+      return result;
+    } catch (err) {
+      performanceService.endMark('sp:getMyProjectAssignments');
+      throw this.handleError('getMyProjectAssignments', err, {
+        entityType: 'ProjectTeamAssignment',
+        entityId: emailLower,
+      });
+    }
   }
 
   async createProjectTeamAssignment(data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> {
+    performanceService.startMark('sp:createProjectTeamAssignment');
     const col = PROJECT_TEAM_ASSIGNMENTS_COLUMNS;
     const now = new Date().toISOString();
     const spItem: Record<string, unknown> = {
@@ -5132,10 +5974,16 @@ export class SharePointDataService implements IDataService {
     };
     const result = await this.sp.web.lists
       .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS).items.add(spItem);
+
+    cacheService.removeByPrefix(CACHE_KEYS.ASSIGNMENTS);
+    cacheService.removeByPrefix(CACHE_KEYS.ACCESSIBLE_PROJECTS);
+
+    performanceService.endMark('sp:createProjectTeamAssignment');
     return this.mapToProjectTeamAssignment(result as Record<string, unknown>);
   }
 
   async updateProjectTeamAssignment(id: number, data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> {
+    performanceService.startMark('sp:updateProjectTeamAssignment');
     const col = PROJECT_TEAM_ASSIGNMENTS_COLUMNS;
     const updateData: Record<string, unknown> = {};
     if (data.projectCode !== undefined) updateData[col.projectCode] = data.projectCode;
@@ -5151,24 +5999,37 @@ export class SharePointDataService implements IDataService {
       .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS).items.getById(id).update(updateData);
     const updated = await this.sp.web.lists
       .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS).items.getById(id)();
+
+    cacheService.removeByPrefix(CACHE_KEYS.ASSIGNMENTS);
+    cacheService.removeByPrefix(CACHE_KEYS.ACCESSIBLE_PROJECTS);
+
+    performanceService.endMark('sp:updateProjectTeamAssignment');
     return this.mapToProjectTeamAssignment(updated as Record<string, unknown>);
   }
 
   async removeProjectTeamAssignment(id: number): Promise<void> {
+    performanceService.startMark('sp:removeProjectTeamAssignment');
     // Soft delete: set isActive to false
     await this.sp.web.lists
       .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS)
       .items.getById(id).update({ [PROJECT_TEAM_ASSIGNMENTS_COLUMNS.isActive]: false });
+
+    cacheService.removeByPrefix(CACHE_KEYS.ASSIGNMENTS);
+    cacheService.removeByPrefix(CACHE_KEYS.ACCESSIBLE_PROJECTS);
+    performanceService.endMark('sp:removeProjectTeamAssignment');
   }
 
   async getAllProjectTeamAssignments(): Promise<IProjectTeamAssignment[]> {
+    performanceService.startMark('sp:getAllProjectTeamAssignments');
     const items = await this.sp.web.lists
       .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS)
       .items.filter(`${PROJECT_TEAM_ASSIGNMENTS_COLUMNS.isActive} eq 1`)();
+    performanceService.endMark('sp:getAllProjectTeamAssignments');
     return (items as Record<string, unknown>[]).map(i => this.mapToProjectTeamAssignment(i));
   }
 
   async inviteToProjectSiteGroup(projectCode: string, userEmail: string, role: string): Promise<void> {
+    performanceService.startMark('sp:inviteToProjectSiteGroup');
     // Fire-and-forget: add user to the project site's SP group by convention
     try {
       // Derive SP group name from role: Owners for PX/Exec, Members for most, Visitors for read-only
@@ -5184,11 +6045,14 @@ export class SharePointDataService implements IDataService {
     } catch (err) {
       // Non-blocking — log but do not throw
       console.warn(`[SP] inviteToProjectSiteGroup failed for ${userEmail} on ${projectCode}:`, err);
+    performanceService.endMark('sp:inviteToProjectSiteGroup');
     }
   }
 
   // --- Permission Resolution ---
+  // LOAD-TEST: 3-5 SP calls: getSecurityGroupMappings + getPermissionTemplates + getProjectTeamAssignments. Critical auth path — cached upstream.
   async resolveUserPermissions(userEmail: string, projectCode: string | null): Promise<IResolvedPermissions> {
+    performanceService.startMark('sp:resolveUserPermissions');
     const email = userEmail.toLowerCase();
 
     // Step 1: Determine the user's security group → default template
@@ -5313,38 +6177,61 @@ export class SharePointDataService implements IDataService {
       permissions,
       globalAccess: template.globalAccess,
     };
+    performanceService.endMark('sp:resolveUserPermissions');
   }
 
+  // SP-INDEX-REQUIRED: Leads_Master → ProjectCode, Project_Team_Assignments → UserEmail, IsActive
+  // LOAD-TEST: GlobalAccess: top(5000) from Leads_Master. Per-user: same tolower() concern as getMyProjectAssignments.
   async getAccessibleProjects(userEmail: string): Promise<string[]> {
     const email = userEmail.toLowerCase();
+    const cacheKey = CACHE_KEYS.ACCESSIBLE_PROJECTS + '_' + email;
+    const cached = cacheService.get<string[]>(cacheKey);
+    if (cached) return cached;
 
-    // Check if user has globalAccess via their template
-    const resolved = await this.resolveUserPermissions(email, null);
-    if (resolved.globalAccess) {
-      // Return all project codes from Leads_Master that have project codes
-      const items = await this.sp.web.lists
-        .getByTitle(LIST_NAMES.LEADS_MASTER)
-        .items.filter("ProjectCode ne null").select('ProjectCode').top(5000)();
-      const codes = (items as Record<string, unknown>[])
-        .map(i => i.ProjectCode as string)
+    performanceService.startMark('sp:getAccessibleProjects');
+    try {
+      // Check if user has globalAccess via their template
+      const resolved = await this.resolveUserPermissions(email, null);
+      if (resolved.globalAccess) {
+        // Return all project codes from Leads_Master that have project codes
+        const items = await this.sp.web.lists
+          .getByTitle(LIST_NAMES.LEADS_MASTER)
+          .items.filter("ProjectCode ne null").select('ProjectCode').top(5000)();
+        const codes = (items as Record<string, unknown>[])
+          .map(i => i.ProjectCode as string)
+          .filter(Boolean);
+        const result = [...new Set(codes)];
+        cacheService.set(cacheKey, result, USER_CACHE_TTL_MS);
+        performanceService.endMark('sp:getAccessibleProjects');
+        return result;
+      }
+
+      // Otherwise return only assigned project codes
+      const col = PROJECT_TEAM_ASSIGNMENTS_COLUMNS;
+      const assignments = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS)
+        .items.filter(`tolower(${col.userEmail}) eq '${email}' and ${col.isActive} eq 1`)
+        .select(col.projectCode)();
+      const codes = (assignments as Record<string, unknown>[])
+        .map(i => i[col.projectCode] as string)
         .filter(Boolean);
-      return [...new Set(codes)];
+      const result = [...new Set(codes)];
+      cacheService.set(cacheKey, result, USER_CACHE_TTL_MS);
+      performanceService.endMark('sp:getAccessibleProjects');
+      return result;
+    } catch (err) {
+      performanceService.endMark('sp:getAccessibleProjects');
+      throw this.handleError('getAccessibleProjects', err, {
+        entityType: 'ProjectTeamAssignment',
+        entityId: email,
+      });
     }
-
-    // Otherwise return only assigned project codes
-    const col = PROJECT_TEAM_ASSIGNMENTS_COLUMNS;
-    const assignments = await this.sp.web.lists
-      .getByTitle(LIST_NAMES.PROJECT_TEAM_ASSIGNMENTS)
-      .items.filter(`tolower(${col.userEmail}) eq '${email}' and ${col.isActive} eq 1`)
-      .select(col.projectCode)();
-    const codes = (assignments as Record<string, unknown>[])
-      .map(i => i[col.projectCode] as string)
-      .filter(Boolean);
-    return [...new Set(codes)];
   }
 
   // --- Environment Configuration ---
+  // SP-INDEX-REQUIRED: App_Context_Config → SiteURL (hardcoded ENVIRONMENT_CONFIG filter)
   async getEnvironmentConfig(): Promise<IEnvironmentConfig> {
+    performanceService.startMark('sp:getEnvironmentConfig');
     try {
       const items = await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG)
         .items.filter("SiteURL eq 'ENVIRONMENT_CONFIG'").select('AppTitle').top(1)();
@@ -5361,9 +6248,12 @@ export class SharePointDataService implements IDataService {
       isReadOnly: false,
       promotionHistory: [],
     };
+    performanceService.endMark('sp:getEnvironmentConfig');
   }
 
+  // LOAD-TEST: N+1: serial update of all active templates + config write. Expected <20 templates.
   async promoteTemplates(fromTier: EnvironmentTier, toTier: EnvironmentTier, promotedBy: string): Promise<void> {
+    performanceService.startMark('sp:promoteTemplates');
     // Fetch all active templates
     const templates = await this.getPermissionTemplates();
     const activeTemplates = templates.filter(t => t.isActive);
@@ -5407,20 +6297,25 @@ export class SharePointDataService implements IDataService {
       }
     } catch (err) {
       console.error('[SP] Failed to update environment config after promotion:', err);
+    performanceService.endMark('sp:promoteTemplates');
     }
   }
 
   // --- Sector Definitions ---
 
+  // LOAD-TEST: Hub-site reference list. Expected <30 sectors. Bounded at top(500).
   async getSectorDefinitions(): Promise<ISectorDefinition[]> {
+    performanceService.startMark('sp:getSectorDefinitions');
     const col = SECTOR_DEFINITIONS_COLUMNS;
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.SECTOR_DEFINITIONS).items
       .orderBy(col.sortOrder, true)
       .top(500)();
+    performanceService.endMark('sp:getSectorDefinitions');
     return items.map((item: Record<string, unknown>) => this.mapToSectorDefinition(item));
   }
 
   async createSectorDefinition(data: Partial<ISectorDefinition>): Promise<ISectorDefinition> {
+    performanceService.startMark('sp:createSectorDefinition');
     const col = SECTOR_DEFINITIONS_COLUMNS;
 
     // Auto-generate code from label if not provided
@@ -5445,10 +6340,12 @@ export class SharePointDataService implements IDataService {
     const newId = (result as Record<string, unknown>).Id as number || (result as Record<string, unknown>).id as number;
 
     const created = await this.sp.web.lists.getByTitle(LIST_NAMES.SECTOR_DEFINITIONS).items.getById(newId)();
+    performanceService.endMark('sp:createSectorDefinition');
     return this.mapToSectorDefinition(created);
   }
 
   async updateSectorDefinition(id: number, data: Partial<ISectorDefinition>): Promise<ISectorDefinition> {
+    performanceService.startMark('sp:updateSectorDefinition');
     const col = SECTOR_DEFINITIONS_COLUMNS;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -5462,6 +6359,7 @@ export class SharePointDataService implements IDataService {
     await this.sp.web.lists.getByTitle(LIST_NAMES.SECTOR_DEFINITIONS).items.getById(id).update(updateData);
 
     const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.SECTOR_DEFINITIONS).items.getById(id)();
+    performanceService.endMark('sp:updateSectorDefinition');
     return this.mapToSectorDefinition(updated);
   }
 
@@ -5473,6 +6371,7 @@ export class SharePointDataService implements IDataService {
    * Uses Web() factory for cross-site access (SPFx tokens are tenant-scoped).
    */
   async createBdLeadFolder(leadTitle: string, originatorName: string): Promise<void> {
+    performanceService.startMark('sp:createBdLeadFolder');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Web } = require('@pnp/sp/webs');
     const bdWeb = Web([this.sp.web, BD_LEADS_SITE_URL]);
@@ -5491,11 +6390,13 @@ export class SharePointDataService implements IDataService {
     for (const sub of BD_LEADS_SUBFOLDERS) {
       try { await leadFolder.folders.addUsingPath(sub); } catch (err) {
         console.warn(`[SP] Failed to create subfolder "${sub}":`, err);
+    performanceService.endMark('sp:createBdLeadFolder');
       }
     }
   }
 
   async checkFolderExists(path: string): Promise<boolean> {
+    performanceService.startMark('sp:checkFolderExists');
     try {
       if (path.startsWith(BD_LEADS_LIBRARY)) {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -5509,9 +6410,11 @@ export class SharePointDataService implements IDataService {
       await this.sp.web.getFolderByServerRelativePath(path).select('Exists')();
       return true;
     } catch { return false; }
+    performanceService.endMark('sp:checkFolderExists');
   }
 
   async createFolder(path: string): Promise<void> {
+    performanceService.startMark('sp:createFolder');
     if (path.startsWith(BD_LEADS_LIBRARY)) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { Web } = require('@pnp/sp/webs');
@@ -5526,10 +6429,12 @@ export class SharePointDataService implements IDataService {
       }
     } else {
       await this.sp.web.folders.addUsingPath(path);
+    performanceService.endMark('sp:createFolder');
     }
   }
 
   async renameFolder(oldPath: string, newPath: string): Promise<void> {
+    performanceService.startMark('sp:renameFolder');
     if (oldPath.startsWith(BD_LEADS_LIBRARY)) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { Web } = require('@pnp/sp/webs');
@@ -5540,17 +6445,22 @@ export class SharePointDataService implements IDataService {
       await bdWeb.getFolderByServerRelativePath(oldServerPath).moveByPath(newServerPath, false);
     } else {
       await this.sp.web.getFolderByServerRelativePath(oldPath).moveByPath(newPath, false);
+    performanceService.endMark('sp:renameFolder');
     }
   }
 
   // --- Assignment Mappings ---
 
+  // LOAD-TEST: Hub-site reference list. Expected <50 mappings. Unbounded.
   async getAssignmentMappings(): Promise<IAssignmentMapping[]> {
+    performanceService.startMark('sp:getAssignmentMappings');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.ASSIGNMENT_MAPPINGS).items.top(500)();
+    performanceService.endMark('sp:getAssignmentMappings');
     return items.map((item: Record<string, unknown>) => this.mapToAssignmentMapping(item));
   }
 
   async createAssignmentMapping(data: Partial<IAssignmentMapping>): Promise<IAssignmentMapping> {
+    performanceService.startMark('sp:createAssignmentMapping');
     const col = ASSIGNMENT_MAPPINGS_COLUMNS;
 
     const result = await this.sp.web.lists.getByTitle(LIST_NAMES.ASSIGNMENT_MAPPINGS).items.add({
@@ -5564,10 +6474,12 @@ export class SharePointDataService implements IDataService {
     const newId = (result as Record<string, unknown>).Id as number || (result as Record<string, unknown>).id as number;
 
     const created = await this.sp.web.lists.getByTitle(LIST_NAMES.ASSIGNMENT_MAPPINGS).items.getById(newId)();
+    performanceService.endMark('sp:createAssignmentMapping');
     return this.mapToAssignmentMapping(created);
   }
 
   async updateAssignmentMapping(id: number, data: Partial<IAssignmentMapping>): Promise<IAssignmentMapping> {
+    performanceService.startMark('sp:updateAssignmentMapping');
     const col = ASSIGNMENT_MAPPINGS_COLUMNS;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -5584,16 +6496,22 @@ export class SharePointDataService implements IDataService {
     await this.sp.web.lists.getByTitle(LIST_NAMES.ASSIGNMENT_MAPPINGS).items.getById(id).update(updateData);
 
     const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.ASSIGNMENT_MAPPINGS).items.getById(id)();
+    performanceService.endMark('sp:updateAssignmentMapping');
     return this.mapToAssignmentMapping(updated);
   }
 
+  // SP-INDEX-REQUIRED: Assignment_Mappings → WorkflowKey+StepId (compound filter for delete lookup)
   async deleteAssignmentMapping(id: number): Promise<void> {
+    performanceService.startMark('sp:deleteAssignmentMapping');
     await this.sp.web.lists.getByTitle(LIST_NAMES.ASSIGNMENT_MAPPINGS).items.getById(id).recycle();
+    performanceService.endMark('sp:deleteAssignmentMapping');
   }
 
   // --- Scorecard Reject / Archive ---
 
+  // SP-INDEX-REQUIRED: Scorecard_Approval_Cycles → ScorecardId+Status, Scorecard_Approval_Steps → CycleId+Status
   async rejectScorecard(scorecardId: number, reason: string): Promise<IGoNoGoScorecard> {
+    performanceService.startMark('sp:rejectScorecard');
     const col = GONOGO_SCORECARD_COLUMNS;
     const cycCol = SCORECARD_APPROVAL_CYCLES_COLUMNS;
     const stepCol = SCORECARD_APPROVAL_STEPS_COLUMNS;
@@ -5640,10 +6558,13 @@ export class SharePointDataService implements IDataService {
       Details: `Scorecard rejected. Reason: ${reason}`,
     }).catch(() => { /* fire-and-forget */ });
 
-    return this.assembleScorecard(scorecardId);
+    const result = await this.assembleScorecard(scorecardId);
+    performanceService.endMark('sp:rejectScorecard');
+    return result;
   }
 
   async archiveScorecard(scorecardId: number, archivedBy: string): Promise<IGoNoGoScorecard> {
+    performanceService.startMark('sp:archiveScorecard');
     const now = new Date().toISOString();
 
     await this.sp.web.lists.getByTitle(LIST_NAMES.GONOGO_SCORECARD).items.getById(scorecardId).update({
@@ -5660,7 +6581,9 @@ export class SharePointDataService implements IDataService {
       Details: 'Scorecard archived',
     }).catch(() => { /* fire-and-forget */ });
 
-    return this.assembleScorecard(scorecardId);
+    const result = await this.assembleScorecard(scorecardId);
+    performanceService.endMark('sp:archiveScorecard');
+    return result;
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -6712,7 +7635,9 @@ export class SharePointDataService implements IDataService {
     };
   }
 
+  // LOAD-TEST: 2 SP calls: add + re-read. Fast. Called once per page load.
   async logPerformanceEntry(entry: Partial<IPerformanceLog>): Promise<IPerformanceLog> {
+    performanceService.startMark('sp:logPerformanceEntry');
     const col = PERFORMANCE_LOGS_COLUMNS;
     const addData: Record<string, unknown> = {
       [col.SessionId]: entry.SessionId || '',
@@ -6734,10 +7659,14 @@ export class SharePointDataService implements IDataService {
     const result = await this.sp.web.lists.getByTitle(LIST_NAMES.PERFORMANCE_LOGS).items.add(addData);
     const newId = (result.Id as number) || (result.data?.Id as number) || 0;
     const reRead = await this.sp.web.lists.getByTitle(LIST_NAMES.PERFORMANCE_LOGS).items.getById(newId)();
+    performanceService.endMark('sp:logPerformanceEntry');
     return this.mapToPerformanceLog(reRead);
   }
 
+  // SP-INDEX-REQUIRED: Performance_Logs → Timestamp, SiteUrl, ProjectCode
+  // LOAD-TEST: Dynamic multi-column filter. Bounded at top(500). Timestamp index critical.
   async getPerformanceLogs(options?: IPerformanceQueryOptions): Promise<IPerformanceLog[]> {
+    performanceService.startMark('sp:getPerformanceLogs');
     const col = PERFORMANCE_LOGS_COLUMNS;
     const filters: string[] = [];
     if (options?.startDate) filters.push(`${col.Timestamp} ge datetime'${options.startDate}'`);
@@ -6750,10 +7679,13 @@ export class SharePointDataService implements IDataService {
     query = query.orderBy(col.Timestamp, false).top(options?.limit || 500);
 
     const items = await query();
+    performanceService.endMark('sp:getPerformanceLogs');
     return (items as Record<string, unknown>[]).map(i => this.mapToPerformanceLog(i));
   }
 
+  // LOAD-TEST: Delegates to getPerformanceLogs. Client-side P95 + aggregation.
   async getPerformanceSummary(options?: IPerformanceQueryOptions): Promise<IPerformanceSummary> {
+    performanceService.startMark('sp:getPerformanceSummary');
     const logs = await this.getPerformanceLogs(options);
 
     if (logs.length === 0) {
@@ -6794,6 +7726,7 @@ export class SharePointDataService implements IDataService {
       slowSessionCount,
       byDay,
     };
+    performanceService.endMark('sp:getPerformanceSummary');
   }
 
   // ── Help & Support ──────────────────────────────────────────────────────
@@ -6816,7 +7749,9 @@ export class SharePointDataService implements IDataService {
     };
   }
 
+  // SP-INDEX-REQUIRED: Help_Guides → IsActive, ModuleKey
   async getHelpGuides(moduleKey?: string): Promise<IHelpGuide[]> {
+    performanceService.startMark('sp:getHelpGuides');
     const col = HELP_GUIDES_COLUMNS;
     const filters: string[] = [`${col.isActive} eq 1`];
     if (moduleKey) filters.push(`${col.moduleKey} eq '${moduleKey}'`);
@@ -6824,19 +7759,24 @@ export class SharePointDataService implements IDataService {
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.HELP_GUIDES).items
       .filter(filters.join(' and '))
       .orderBy(col.sortOrder, true)();
+    performanceService.endMark('sp:getHelpGuides');
     return (items as Record<string, unknown>[]).map(i => this.mapToHelpGuide(i));
   }
 
   async getHelpGuideById(id: number): Promise<IHelpGuide | null> {
+    performanceService.startMark('sp:getHelpGuideById');
     try {
       const item = await this.sp.web.lists.getByTitle(LIST_NAMES.HELP_GUIDES).items.getById(id)();
       return this.mapToHelpGuide(item);
     } catch {
+    performanceService.endMark('sp:getHelpGuideById');
       return null;
     }
   }
 
+  // SP-INDEX-REQUIRED: App_Context_Config → SiteURL
   async getSupportConfig(): Promise<ISupportConfig> {
+    performanceService.startMark('sp:getSupportConfig');
     const defaultConfig: ISupportConfig = { supportEmail: 'support@hedrickbrothers.com' };
     try {
       const items = await this.sp.web.lists.getByTitle(LIST_NAMES.APP_CONTEXT_CONFIG)
@@ -6847,11 +7787,13 @@ export class SharePointDataService implements IDataService {
       }
       return defaultConfig;
     } catch {
+    performanceService.endMark('sp:getSupportConfig');
       return defaultConfig;
     }
   }
 
   async updateHelpGuide(id: number, data: Partial<IHelpGuide>): Promise<IHelpGuide> {
+    performanceService.startMark('sp:updateHelpGuide');
     const col = HELP_GUIDES_COLUMNS;
     const now = new Date().toISOString();
     const updateData: Record<string, unknown> = {};
@@ -6869,6 +7811,7 @@ export class SharePointDataService implements IDataService {
 
     await this.sp.web.lists.getByTitle(LIST_NAMES.HELP_GUIDES).items.getById(id).update(updateData);
     const reRead = await this.sp.web.lists.getByTitle(LIST_NAMES.HELP_GUIDES).items.getById(id)();
+    performanceService.endMark('sp:updateHelpGuide');
     return this.mapToHelpGuide(reRead);
   }
 
@@ -6876,14 +7819,18 @@ export class SharePointDataService implements IDataService {
   // ──── Project Data Mart ────
   // ═══════════════════════════════════════════════════════════════════
 
+  // SP-INDEX-REQUIRED: Active_Projects_Portfolio → ProjectCode, Project_Data_Mart → ProjectCode, Critical_Path_Items → Status
+  // LOAD-TEST: 11 SP REST calls per project sync. ~2-4s per project. .select() cuts payload ~90%.
   async syncToDataMart(projectCode: string): Promise<IDataMartSyncResult> {
     const now = new Date().toISOString();
+    performanceService.startMark('sp:syncToDataMart');
     try {
       // 1. Get project site URL from Active_Projects_Portfolio
       const portfolioItems = await this.sp.web.lists
         .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
         .items.filter(`ProjectCode eq '${projectCode}'`).top(1)();
       if (portfolioItems.length === 0) {
+        performanceService.endMark('sp:syncToDataMart');
         return { projectCode, success: false, syncedAt: now, error: `Project ${projectCode} not found in portfolio` };
       }
       const portfolio = portfolioItems[0];
@@ -6902,15 +7849,15 @@ export class SharePointDataService implements IDataService {
         pmpItems,
         teamRoles,
       ] = await Promise.all([
-        web.lists.getByTitle(LIST_NAMES.BUYOUT_LOG).items.top(5000)().catch(() => []),
-        web.lists.getByTitle(LIST_NAMES.QUALITY_CONCERNS).items.top(5000)().catch(() => []),
-        web.lists.getByTitle(LIST_NAMES.SAFETY_CONCERNS).items.top(5000)().catch(() => []),
-        web.lists.getByTitle(LIST_NAMES.PROJECT_SCHEDULE).items.top(1)().catch(() => []),
-        web.lists.getByTitle(LIST_NAMES.CRITICAL_PATH_ITEMS).items.filter("Status eq 'Active'").top(5000)().catch(() => []),
-        web.lists.getByTitle(LIST_NAMES.MONTHLY_REVIEWS).items.orderBy('MeetingDate', false).top(1)().catch(() => []),
-        web.lists.getByTitle(LIST_NAMES.TURNOVER_AGENDAS).items.top(1)().catch(() => []),
-        web.lists.getByTitle(LIST_NAMES.PMP).items.top(1)().catch(() => []),
-        web.lists.getByTitle(LIST_NAMES.TEAM_ROLE_ASSIGNMENTS).items.top(5000)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.BUYOUT_LOG).items.select('Id', 'Status', 'ContractValue', 'QScore', 'WaiverRequired', 'CommitmentStatus').top(5000)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.QUALITY_CONCERNS).items.select('Id', 'Status').top(5000)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.SAFETY_CONCERNS).items.select('Id', 'Status').top(5000)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.PROJECT_SCHEDULE).items.select('Id', 'StartDate', 'SubstantialCompletionDate', 'PercentComplete').top(1)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.CRITICAL_PATH_ITEMS).items.select('Id').filter("Status eq 'Active'").top(5000)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.MONTHLY_REVIEWS).items.select('Id', 'Status', 'MeetingDate').orderBy('MeetingDate', false).top(1)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.TURNOVER_AGENDAS).items.select('Id', 'Status').top(1)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.PMP).items.select('Id', 'Status').top(1)().catch(() => []),
+        web.lists.getByTitle(LIST_NAMES.TEAM_ROLE_ASSIGNMENTS).items.select('Id', 'Role', 'PersonName', 'PersonEmail').top(5000)().catch(() => []),
       ]);
 
       // 3. Aggregate buyout data
@@ -7064,65 +8011,129 @@ export class SharePointDataService implements IDataService {
         Details: `Data Mart synced for ${projectCode}`,
       }).catch(() => { /* fire-and-forget */ });
 
+      cacheService.removeByPrefix(CACHE_KEYS.DATA_MART);
+
+      performanceService.endMark('sp:syncToDataMart');
       return { projectCode, success: true, syncedAt: now };
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
+      performanceService.endMark('sp:syncToDataMart');
+      const dsError = new DataServiceError('syncToDataMart', 'Sync failed', {
+        entityType: 'DataMart',
+        entityId: projectCode,
+        innerError: err,
+      });
       this.logAudit({
         Action: AuditAction.DataMartSyncFailed,
         EntityType: EntityType.DataMart,
         EntityId: projectCode,
         User: this._pageContextUser?.displayName || 'System',
-        Details: `Data Mart sync failed: ${errorMsg}`,
+        Details: dsError.message,
       }).catch(() => { /* fire-and-forget */ });
-      return { projectCode, success: false, syncedAt: now, error: errorMsg };
+      return { projectCode, success: false, syncedAt: now, error: dsError.message };
     }
   }
 
+  // SP-INDEX-REQUIRED: Project_Data_Mart → Status, Sector, Region, ProjectExecutive, OverallHealth
   async getDataMartRecords(filters?: IDataMartFilter): Promise<IProjectDataMart[]> {
-    const filterParts: string[] = [];
+    const cacheKey = CACHE_KEYS.DATA_MART + buildCacheKeySuffix(filters as unknown as Record<string, unknown>);
+    const cached = cacheService.get<IProjectDataMart[]>(cacheKey);
+    if (cached) return cached;
 
-    if (filters?.status) filterParts.push(`Status eq '${filters.status}'`);
-    if (filters?.sector) filterParts.push(`Sector eq '${filters.sector}'`);
-    if (filters?.region) filterParts.push(`Region eq '${filters.region}'`);
-    if (filters?.projectExecutive) filterParts.push(`ProjectExecutive eq '${filters.projectExecutive}'`);
-    if (filters?.overallHealth) filterParts.push(`OverallHealth eq '${filters.overallHealth}'`);
-    if (filters?.hasAlerts) {
-      filterParts.push('(HasUnbilledAlert eq true or HasScheduleAlert eq true or HasFeeErosionAlert eq true)');
+    performanceService.startMark('sp:getDataMartRecords');
+    try {
+      const filterParts: string[] = [];
+
+      if (filters?.status) filterParts.push(`Status eq '${filters.status}'`);
+      if (filters?.sector) filterParts.push(`Sector eq '${filters.sector}'`);
+      if (filters?.region) filterParts.push(`Region eq '${filters.region}'`);
+      if (filters?.projectExecutive) filterParts.push(`ProjectExecutive eq '${filters.projectExecutive}'`);
+      if (filters?.overallHealth) filterParts.push(`OverallHealth eq '${filters.overallHealth}'`);
+      if (filters?.hasAlerts) {
+        filterParts.push('(HasUnbilledAlert eq true or HasScheduleAlert eq true or HasFeeErosionAlert eq true)');
+      }
+
+      let query = this.sp.web.lists
+        .getByTitle(LIST_NAMES.PROJECT_DATA_MART)
+        .items.top(5000);
+
+      if (filterParts.length > 0) {
+        query = query.filter(filterParts.join(' and '));
+      }
+
+      const items = await query();
+      const result = items.map((item: Record<string, unknown>) => this.mapToDataMartRecord(item));
+      cacheService.set(cacheKey, result, CACHE_TTL_MS);
+      performanceService.endMark('sp:getDataMartRecords');
+      return result;
+    } catch (err) {
+      performanceService.endMark('sp:getDataMartRecords');
+      throw this.handleError('getDataMartRecords', err, { entityType: 'DataMart' });
     }
-
-    let query = this.sp.web.lists
-      .getByTitle(LIST_NAMES.PROJECT_DATA_MART)
-      .items.top(5000);
-
-    if (filterParts.length > 0) {
-      query = query.filter(filterParts.join(' and '));
-    }
-
-    const items = await query();
-    return items.map((item: Record<string, unknown>) => this.mapToDataMartRecord(item));
   }
 
+  // SP-INDEX-REQUIRED: Project_Data_Mart → ProjectCode
   async getDataMartRecord(projectCode: string): Promise<IProjectDataMart | null> {
-    const items = await this.sp.web.lists
-      .getByTitle(LIST_NAMES.PROJECT_DATA_MART)
-      .items.filter(`ProjectCode eq '${projectCode}'`).top(1)();
+    const cacheKey = CACHE_KEYS.DATA_MART + '_' + projectCode;
+    const cached = cacheService.get<IProjectDataMart>(cacheKey);
+    if (cached) return cached;
 
-    if (items.length === 0) return null;
-    return this.mapToDataMartRecord(items[0] as Record<string, unknown>);
+    performanceService.startMark('sp:getDataMartRecord');
+    try {
+      const items = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.PROJECT_DATA_MART)
+        .items.filter(`ProjectCode eq '${projectCode}'`).top(1)();
+
+      if (items.length === 0) {
+        performanceService.endMark('sp:getDataMartRecord');
+        return null;
+      }
+      const result = this.mapToDataMartRecord(items[0] as Record<string, unknown>);
+      cacheService.set(cacheKey, result, CACHE_TTL_MS);
+      performanceService.endMark('sp:getDataMartRecord');
+      return result;
+    } catch (err) {
+      performanceService.endMark('sp:getDataMartRecord');
+      this.handleError('getDataMartRecord', err, {
+        entityType: 'DataMart',
+        entityId: projectCode,
+        rethrow: false,
+      });
+      return null;
+    }
   }
 
+  // SP-INDEX-REQUIRED: Active_Projects_Portfolio → ProjectCode (inherited from syncToDataMart)
+  // LOAD-TEST: CRITICAL N+1 resolved — was serial loop. At 200 projects × ~3s = ~10min.
+  //   Batched to DATA_MART_SYNC_BATCH_SIZE-concurrent → ~2min at 200 projects.
   async triggerDataMartSync(): Promise<IDataMartSyncResult[]> {
-    // Get all active project codes from portfolio
-    const portfolioItems = await this.sp.web.lists
-      .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
-      .items.select('ProjectCode').top(5000)();
+    performanceService.startMark('sp:triggerDataMartSync');
+    try {
+      // Get all active project codes from portfolio
+      const portfolioItems = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+        .items.select('ProjectCode').top(5000)();
 
-    const results: IDataMartSyncResult[] = [];
-    for (const item of portfolioItems) {
-      const result = await this.syncToDataMart(item.ProjectCode as string);
-      results.push(result);
+      const projectCodes = portfolioItems
+        .map((item: Record<string, unknown>) => item.ProjectCode as string)
+        .filter(Boolean);
+
+      const results: IDataMartSyncResult[] = [];
+      for (let i = 0; i < projectCodes.length; i += DATA_MART_SYNC_BATCH_SIZE) {
+        const batch = projectCodes.slice(i, i + DATA_MART_SYNC_BATCH_SIZE);
+        const batchResults = await Promise.all(
+          batch.map(code => this.syncToDataMart(code))
+        );
+        results.push(...batchResults);
+      }
+
+      cacheService.removeByPrefix(CACHE_KEYS.DATA_MART);
+
+      performanceService.endMark('sp:triggerDataMartSync');
+      return results;
+    } catch (err) {
+      performanceService.endMark('sp:triggerDataMartSync');
+      throw this.handleError('triggerDataMartSync', err, { entityType: 'DataMart' });
     }
-    return results;
   }
 
   private mapToDataMartRecord(item: Record<string, unknown>): IProjectDataMart {
@@ -7176,12 +8187,16 @@ export class SharePointDataService implements IDataService {
   }
 
   async sendSupportEmail(_to: string, _subject: string, _htmlBody: string, _fromUserEmail: string): Promise<void> {
+    performanceService.startMark('sp:sendSupportEmail');
     // Graph API delegation — cannot implement via SP REST alone.
     // Will be fully implemented when GraphService is added.
     console.warn('[SP] sendSupportEmail requires Microsoft Graph API — not available via SP REST. No-op.');
+    performanceService.endMark('sp:sendSupportEmail');
   }
 
+  // SP-INDEX-REQUIRED: App_Context_Config → SiteURL
   async updateSupportConfig(config: Partial<ISupportConfig>): Promise<ISupportConfig> {
+    performanceService.startMark('sp:updateSupportConfig');
     // Read existing
     const existing = await this.getSupportConfig();
     const merged: ISupportConfig = { ...existing, ...config };
@@ -7207,6 +8222,7 @@ export class SharePointDataService implements IDataService {
       Details: 'Support configuration updated',
     }).catch(() => { /* fire-and-forget */ });
 
+    performanceService.endMark('sp:updateSupportConfig');
     return merged;
   }
 }

@@ -204,6 +204,7 @@ export enum AuditAction {
   SupportConfigUpdated = 'Support.ConfigUpdated',
   DataMartSynced = 'DataMart.Synced',
   DataMartSyncFailed = 'DataMart.SyncFailed',
+  ServiceError = 'Service.Error',
 }
 
 export enum EntityType {

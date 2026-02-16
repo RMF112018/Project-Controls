@@ -18,12 +18,22 @@ function entityTypeToCacheKeys(entityType: EntityType, projectCode?: string): st
     [EntityType.Lead]: [CACHE_KEYS.LEADS],
     [EntityType.Scorecard]: [CACHE_KEYS.SCORECARDS],
     [EntityType.Estimate]: [CACHE_KEYS.ESTIMATES, CACHE_KEYS.KICKOFFS],
-    [EntityType.Project]: [CACHE_KEYS.PROJECTS, CACHE_KEYS.ACTIVE_PROJECTS],
+    [EntityType.Project]: [
+      CACHE_KEYS.PROJECTS,
+      CACHE_KEYS.ACTIVE_PROJECTS,
+      CACHE_KEYS.PORTFOLIO_SUMMARY,
+      CACHE_KEYS.PERSONNEL_WORKLOAD,
+      CACHE_KEYS.DATA_MART,
+    ],
     [EntityType.Meeting]: [CACHE_KEYS.MEETINGS],
     [EntityType.ProjectRecord]: [CACHE_KEYS.MARKETING_RECORDS],
     [EntityType.Permission]: [CACHE_KEYS.PERMISSIONS],
     [EntityType.PermissionTemplate]: [CACHE_KEYS.TEMPLATES],
-    [EntityType.ProjectTeamAssignment]: [CACHE_KEYS.PERMISSIONS],
+    [EntityType.ProjectTeamAssignment]: [
+      CACHE_KEYS.PERMISSIONS,
+      CACHE_KEYS.ASSIGNMENTS,
+      CACHE_KEYS.ACCESSIBLE_PROJECTS,
+    ],
     [EntityType.Config]: [CACHE_KEYS.CONFIG, CACHE_KEYS.FEATURE_FLAGS, CACHE_KEYS.SECTORS],
     [EntityType.WorkflowDefinition]: [CACHE_KEYS.WORKFLOWS],
     [EntityType.AssignmentMapping]: [CACHE_KEYS.ASSIGNMENTS],
@@ -124,7 +134,7 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
       if (msg.type !== 'EntityChanged') return;
       const entityMsg = msg as IEntityChangedMessage;
       const keysToInvalidate = entityTypeToCacheKeys(entityMsg.entityType, entityMsg.projectCode);
-      keysToInvalidate.forEach(key => cacheService.remove(key));
+      keysToInvalidate.forEach(key => cacheService.removeByPrefix(key));
     });
 
     return unsubscribe;
