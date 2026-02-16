@@ -23,6 +23,7 @@ import {
   INotification,
   IAuditEntry,
   IProvisioningLog,
+  IFieldDefinition,
   IDeliverable,
   ITeamMember,
   IInterviewPrep,
@@ -1987,7 +1988,8 @@ export class MockDataService implements IDataService {
     leadId: number,
     projectCode: string,
     projectName: string,
-    requestedBy: string
+    requestedBy: string,
+    metadata?: { division?: string; region?: string; clientName?: string }
   ): Promise<IProvisioningLog> {
     await delay();
 
@@ -2002,6 +2004,9 @@ export class MockDataService implements IDataService {
       retryCount: 0,
       requestedBy,
       requestedAt: new Date().toISOString(),
+      division: metadata?.division,
+      region: metadata?.region,
+      clientName: metadata?.clientName,
     };
 
     this.provisioningLogs.push(log);
@@ -2052,6 +2057,52 @@ export class MockDataService implements IDataService {
     log.retryCount += 1;
 
     return { ...log };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Provisioning Operations
+  // ---------------------------------------------------------------------------
+
+  public async createProjectSite(projectCode: string, _projectName: string, siteAlias: string): Promise<{ siteUrl: string }> {
+    await delay();
+    const siteUrl = `https://hedrickbrotherscom.sharepoint.com/sites/${siteAlias}`;
+    console.log(`[Mock] Created project site: ${siteUrl} for ${projectCode}`);
+    return { siteUrl };
+  }
+
+  public async provisionProjectLists(siteUrl: string, projectCode: string): Promise<void> {
+    await delay();
+    console.log(`[Mock] Provisioned 42 lists on ${siteUrl} for ${projectCode}`);
+  }
+
+  public async associateWithHubSite(siteUrl: string, hubSiteUrl: string): Promise<void> {
+    await delay();
+    console.log(`[Mock] Associated ${siteUrl} with hub ${hubSiteUrl}`);
+  }
+
+  public async createProjectSecurityGroups(siteUrl: string, projectCode: string, division: string): Promise<void> {
+    await delay();
+    console.log(`[Mock] Created security groups for ${projectCode} (${division}) on ${siteUrl}`);
+  }
+
+  public async copyTemplateFiles(siteUrl: string, projectCode: string, division: string): Promise<void> {
+    await delay();
+    console.log(`[Mock] Copied template files (${division}) to ${siteUrl} for ${projectCode}`);
+  }
+
+  public async copyLeadDataToProjectSite(siteUrl: string, leadId: number, projectCode: string): Promise<void> {
+    await delay();
+    console.log(`[Mock] Copied lead data (ID: ${leadId}) to ${siteUrl} for ${projectCode}`);
+  }
+
+  public async updateSiteProperties(siteUrl: string, properties: Record<string, string>): Promise<void> {
+    await delay();
+    console.log(`[Mock] Updated site properties on ${siteUrl}:`, Object.keys(properties));
+  }
+
+  public async createList(siteUrl: string, listName: string, _templateType: number, fields: IFieldDefinition[]): Promise<void> {
+    await delay();
+    console.log(`[Mock] Created list "${listName}" with ${fields.length} fields on ${siteUrl}`);
   }
 
   // ---------------------------------------------------------------------------

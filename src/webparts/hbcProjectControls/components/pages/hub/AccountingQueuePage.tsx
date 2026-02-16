@@ -34,7 +34,7 @@ export const AccountingQueuePage: React.FC = () => {
 const AccountingQueueContent: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { dataService, currentUser } = useAppContext();
+  const { dataService, currentUser, isFeatureEnabled } = useAppContext();
   const { requests, fetchRequests, finalizeJobNumber } = useJobNumberRequest();
   const { leads, fetchLeads, getLeadById } = useLeads();
   const [leadsMap, setLeadsMap] = React.useState<Record<number, ILead>>({});
@@ -100,7 +100,7 @@ const AccountingQueueContent: React.FC = () => {
       const lead = leadsMap[request.LeadID];
       if (lead?.ProjectSiteURL) {
         const hubNavSvc = new MockHubNavigationService();
-        const provisioningService = new ProvisioningService(dataService, hubNavSvc);
+        const provisioningService = new ProvisioningService(dataService, hubNavSvc, undefined, undefined, false, isFeatureEnabled('ProvisioningRealOps'));
         await provisioningService.updateSiteTitle(
           lead.ProjectSiteURL,
           `${jobNumber} — ${lead.Title}`
@@ -110,7 +110,7 @@ const AccountingQueueContent: React.FC = () => {
       // 4. If provisioning was held, trigger it now
       if (request.SiteProvisioningHeld && lead) {
         const hubNavSvc = new MockHubNavigationService();
-        const provisioningService = new ProvisioningService(dataService, hubNavSvc);
+        const provisioningService = new ProvisioningService(dataService, hubNavSvc, undefined, undefined, false, isFeatureEnabled('ProvisioningRealOps'));
         provisioningService.provisionSite({
           leadId: request.LeadID,
           projectCode: jobNumber,

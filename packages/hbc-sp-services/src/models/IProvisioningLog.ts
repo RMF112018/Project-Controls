@@ -31,4 +31,25 @@ export interface IProvisioningLog {
   requestedAt: string;
   completedAt?: string;
   hubNavLinkStatus?: HubNavLinkStatus;
+  division?: string;
+  region?: string;
+  clientName?: string;
+}
+
+// --- Provisioning schema types ---
+
+export interface IProjectListSchema {
+  listName: string;
+  description: string;
+  templateType: number; // 100=GenericList, 101=DocumentLibrary
+  fields: IFieldDefinition[];
+}
+
+export interface IFieldDefinition {
+  internalName: string;
+  displayName: string;
+  fieldType: 'Text' | 'Note' | 'Number' | 'Currency' | 'DateTime' | 'Boolean' | 'Choice' | 'URL' | 'User';
+  required?: boolean;
+  choices?: string[];
+  indexed?: boolean;
 }

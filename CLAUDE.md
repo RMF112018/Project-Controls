@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-15 — SP-13: Action Inbox — Data layer COMPLETE (221 of 221 total)
+**Last Updated:** 2026-02-16 — Provisioning Operations: 8 new IDataService methods (229 total), real PnP.js implementations gated behind ProvisioningRealOps flag
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -48,7 +48,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §4 Core Architecture Patterns (Active)
 
-- **Data Service**: `IDataService` (221 methods) → `MockDataService` (full) + `SharePointDataService` (221/221 — COMPLETE)
+- **Data Service**: `IDataService` (229 methods) → `MockDataService` (full) + `SharePointDataService` (229/229 — COMPLETE)
 - **Hooks**: Feature-specific hooks call `dataService` methods in `useCallback`
 - **RBAC**: `resolveUserPermissions` → `PermissionGate` / `RoleGate` / `FeatureGate`
 - **Styling**: `makeStyles` (structure) + minimal inline (dynamic) + Fluent tokens + `HBC_COLORS`
@@ -60,16 +60,16 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §7 Service Methods Status (Live)
 
-**Total methods**: 221
-**Implemented**: 221
+**Total methods**: 229
+**Implemented**: 229
 **Remaining stubs**: 0 — DATA LAYER COMPLETE
 
 **Last Completed**:
+- Provisioning Ops (Feb 16): 8 new methods → 229/229
 - SP-13 (Feb 15): Action Inbox — 1 method → 221/221
 - SP-12 (Feb 15): Help & Support — 6 methods → 220/221
 - SP-11 (Feb 15): Performance Monitoring — 3 methods → 214/221
 - SP-10 (Feb 15): Scorecard Workflow — 9 methods → 211/221
-- SP-9 (Feb 15): Turnover Agenda — 16 methods → 202/221
 
 **Note**: `sendSupportEmail` is a deliberate no-op (requires Graph API not yet available).
 
@@ -77,11 +77,28 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §15 Current Phase Status
 
-**Phase COMPLETE**: Data Layer Completion (SharePointDataService) — 221/221 methods implemented.
+**Phase COMPLETE**: Provisioning Operations — 229/229 methods implemented.
 
-All IDataService methods now have SharePoint REST implementations. The data layer is production-ready (pending `sendSupportEmail` which requires Graph API).
+All IDataService methods now have SharePoint REST implementations. 8 new provisioning operation methods added with real PnP.js implementations gated behind `ProvisioningRealOps` feature flag.
 
 **Next Phase**: UI completion, integration testing, and deployment readiness.
+
+## §15a Provisioning Workflows
+
+**Feature flags**: `AutoSiteProvisioning` (UI gating), `ProvisioningRealOps` (operation dispatch)
+
+**8 IDataService provisioning operation methods** (229 total):
+`createProjectSite`, `provisionProjectLists`, `associateWithHubSite`,
+`createProjectSecurityGroups`, `copyTemplateFiles`, `copyLeadDataToProjectSite`,
+`updateSiteProperties`, `createList`
+
+**Flow**: Lead GO decision → Job# Request → provisionSite() → executeStep() dispatcher
+- `useRealOps=true`: Real PnP.js operations (7-step pipeline)
+- `useRealOps=false`: simulateStep() 500ms delay (default)
+
+**Steps**: 1.CreateSite → 2.ProvisionLists(batch/5) → 3.HubAssociate → 4.SecurityGroups → 5.CopyTemplates → 6.CopyLeadData → 7.UpdateLead
+
+**Key files**: `ProvisioningService.ts` (orchestrator), `projectListSchemas.ts` (41 list schemas), `ProvisioningService.test.ts` (36 tests)
 
 ---
 

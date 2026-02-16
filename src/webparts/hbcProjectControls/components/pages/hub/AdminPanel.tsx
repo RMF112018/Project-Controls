@@ -132,7 +132,7 @@ function getStatusBadgeColor(status: ProvisioningStatus): string {
 export const AdminPanel: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { dataService, currentUser, hasPermission } = useAppContext();
+  const { dataService, currentUser, hasPermission, isFeatureEnabled } = useAppContext();
   const [activeTab, setActiveTab] = useTabFromUrl<AdminTab>('connections', TAB_KEYS);
 
   // -- Connection Testing state --
@@ -190,8 +190,8 @@ export const AdminPanel: React.FC = () => {
 
   const hubNavService = React.useMemo(() => new MockHubNavigationService(), []);
   const provisioningService = React.useMemo(
-    () => new ProvisioningService(dataService, hubNavService),
-    [dataService, hubNavService]
+    () => new ProvisioningService(dataService, hubNavService, undefined, undefined, false, isFeatureEnabled('ProvisioningRealOps')),
+    [dataService, hubNavService, isFeatureEnabled]
   );
 
   // Load hub site URL on mount
@@ -411,9 +411,17 @@ export const AdminPanel: React.FC = () => {
     )},
     { key: 'progress', header: 'Progress', width: '100px', render: (item) => `${item.completedSteps}/7 steps` },
     { key: 'error', header: 'Error', width: '200px', render: (item) => (
-      <span style={{ fontSize: '12px', color: item.errorMessage ? HBC_COLORS.error : HBC_COLORS.gray400 }}>
-        {item.errorMessage || '-'}
-      </span>
+      item.errorMessage ? (
+        <span
+          title={item.errorMessage}
+          style={{ fontSize: '12px', color: HBC_COLORS.error, cursor: 'pointer', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '190px' }}
+          onClick={(e) => { e.stopPropagation(); void navigator.clipboard.writeText(item.errorMessage || ''); }}
+        >
+          {item.failedStep ? `Step ${item.failedStep}: ` : ''}{item.errorMessage}
+        </span>
+      ) : (
+        <span style={{ fontSize: '12px', color: HBC_COLORS.gray400 }}>-</span>
+      )
     )},
     { key: 'requestedAt', header: 'Requested', width: '160px', render: (item) => formatDateTime(item.requestedAt) },
     { key: 'navLink', header: 'Nav Link', width: '100px', render: (item) => {
@@ -733,6 +741,16 @@ export const AdminPanel: React.FC = () => {
         hasPermission(PERMISSIONS.ADMIN_PROVISIONING) ? (
           provLoading && logs.length === 0 ? <SkeletonLoader variant="table" rows={5} columns={5} /> : (
             <>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: SPACING.sm }}>
+                <span style={{
+                  display: 'inline-block', padding: '3px 10px', borderRadius: '10px',
+                  fontSize: '11px', fontWeight: 600,
+                  background: isFeatureEnabled('ProvisioningRealOps') ? HBC_COLORS.success : HBC_COLORS.info,
+                  color: HBC_COLORS.white,
+                }}>
+                  {isFeatureEnabled('ProvisioningRealOps') ? 'Live' : 'Simulation'}
+                </span>
+              </div>
               <DataTable<IProvisioningLog>
                 columns={provColumns}
                 items={logs}

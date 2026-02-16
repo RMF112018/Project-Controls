@@ -7,7 +7,7 @@ import { IFeatureFlag } from '../models/IFeatureFlag';
 import { IMeeting, ICalendarAvailability } from '../models/IMeeting';
 import { INotification } from '../models/INotification';
 import { IAuditEntry } from '../models/IAuditEntry';
-import { IProvisioningLog } from '../models/IProvisioningLog';
+import { IProvisioningLog, IFieldDefinition } from '../models/IProvisioningLog';
 import { IStartupChecklistItem, IChecklistActivityEntry } from '../models/IStartupChecklist';
 import { IInternalMatrixTask, ITeamRoleAssignment, IOwnerContractArticle, ISubContractClause } from '../models/IResponsibilityMatrix';
 import { IMarketingProjectRecord } from '../models/IMarketingProjectRecord';
@@ -98,8 +98,10 @@ import {
   SCORECARD_VERSIONS_COLUMNS,
   PERFORMANCE_LOGS_COLUMNS,
   HELP_GUIDES_COLUMNS,
+  TEMPLATE_REGISTRY_COLUMNS,
 } from './columnMappings';
 import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
+import { getProjectListSchemas } from '../utils/projectListSchemas';
 
 /**
  * SharePoint Data Service — Live implementation using PnP JS.
@@ -365,7 +367,7 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Provisioning ---
-  async triggerProvisioning(leadId: number, projectCode: string, projectName: string, requestedBy: string): Promise<IProvisioningLog> {
+  async triggerProvisioning(leadId: number, projectCode: string, projectName: string, requestedBy: string, metadata?: { division?: string; region?: string; clientName?: string }): Promise<IProvisioningLog> {
     const col = PROVISIONING_LOG_COLUMNS;
     const addData: Record<string, unknown> = {
       [col.projectCode]: projectCode,
@@ -378,6 +380,9 @@ export class SharePointDataService implements IDataService {
       [col.requestedBy]: requestedBy,
       [col.requestedAt]: new Date().toISOString(),
     };
+    if (metadata?.division) addData[col.division] = metadata.division;
+    if (metadata?.region) addData[col.region] = metadata.region;
+    if (metadata?.clientName) addData[col.clientName] = metadata.clientName;
     const result = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items.add(addData);
     const newId = (result.data as Record<string, unknown>).Id as number;
     const item = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items.getById(newId)();
@@ -442,6 +447,165 @@ export class SharePointDataService implements IDataService {
 
     const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items.getById(itemId)();
     return updated as IProvisioningLog;
+  }
+
+  // --- Provisioning Operations ---
+
+  async createProjectSite(projectCode: string, projectName: string, siteAlias: string): Promise<{ siteUrl: string }> {
+    const siteUrl = `https://hedrickbrotherscom.sharepoint.com/sites/${siteAlias}`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await (this.sp.web as any).fetchRaw(
+      'https://hedrickbrotherscom.sharepoint.com/_api/SPSiteManager/create',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json;odata=verbose', 'Accept': 'application/json;odata=verbose' },
+        body: JSON.stringify({
+          request: {
+            Title: `${projectCode} — ${projectName}`,
+            Url: siteUrl,
+            Lcid: 1033,
+            ShareByEmailEnabled: false,
+            Description: `HBC Project Site: ${projectCode}`,
+            WebTemplate: 'STS#3',
+            Owner: '',
+          },
+        }),
+      }
+    );
+    if (!response.ok) throw new Error(`Site creation failed (${response.status}): ${response.statusText}`);
+    this.logAudit({ Action: AuditAction.SiteCreated, EntityType: EntityType.Project, EntityId: projectCode, ProjectCode: projectCode, Details: `Project site created: ${siteUrl}`, User: 'system' }).catch(console.error);
+    return { siteUrl };
+  }
+
+  async provisionProjectLists(siteUrl: string, projectCode: string): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Web } = require('@pnp/sp/webs');
+    const web = Web([this.sp.web, siteUrl]);
+    const schemas = getProjectListSchemas();
+
+    // Create lists in batches of 5 to avoid throttling
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < schemas.length; i += BATCH_SIZE) {
+      const batch = schemas.slice(i, i + BATCH_SIZE);
+      const [batchedWeb, execute] = web.batched();
+      for (const schema of batch) {
+        batchedWeb.lists.add(schema.listName, schema.description, schema.templateType);
+      }
+      await execute();
+
+      // Add fields sequentially per list (field XML cannot be batched reliably)
+      for (const schema of batch) {
+        const list = web.lists.getByTitle(schema.listName);
+        for (const field of schema.fields) {
+          try {
+            const xml = this._buildFieldXml(field);
+            await list.fields.createFieldAsXml(xml);
+          } catch { /* field may already exist */ }
+        }
+      }
+    }
+    this.logAudit({ Action: AuditAction.SiteListsProvisioned, EntityType: EntityType.Project, EntityId: projectCode, ProjectCode: projectCode, Details: `Provisioned ${schemas.length} lists on ${siteUrl}`, User: 'system' }).catch(console.error);
+  }
+
+  async associateWithHubSite(siteUrl: string, hubSiteUrl: string): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Web } = require('@pnp/sp/webs');
+    const hubWeb = Web([this.sp.web, hubSiteUrl]);
+    const hubSiteInfo = await hubWeb.site();
+    const hubSiteId = hubSiteInfo.Id;
+    const projectWeb = Web([this.sp.web, siteUrl]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (projectWeb.site as any).joinHubSite(hubSiteId);
+    this.logAudit({ Action: AuditAction.SiteHubAssociated, EntityType: EntityType.Project, EntityId: siteUrl, Details: `Associated ${siteUrl} with hub ${hubSiteUrl}`, User: 'system' }).catch(console.error);
+  }
+
+  async createProjectSecurityGroups(siteUrl: string, projectCode: string, _division: string): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Web } = require('@pnp/sp/webs');
+    const web = Web([this.sp.web, siteUrl]);
+    const suffixes = ['Owners', 'Members', 'Visitors'];
+    for (const suffix of suffixes) {
+      try {
+        const groups = await web.siteGroups();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const group = (groups as any[]).find((g: any) => g.Title?.endsWith(suffix));
+        if (group) {
+          await web.siteGroups.getById(group.Id).update({ Title: `${projectCode} ${suffix}` });
+        }
+      } catch { /* group rename non-blocking */ }
+    }
+    // Read active security group mappings and invite to default template roles
+    const mappings = await this.getSecurityGroupMappings();
+    const activeGroups = mappings.filter(m => m.isActive);
+    for (const sg of activeGroups) {
+      try {
+        // Invite security group to project site as Members by default
+        await this.inviteToProjectSiteGroup(projectCode, sg.securityGroupName, 'Members');
+      } catch { /* non-blocking */ }
+    }
+    this.logAudit({ Action: AuditAction.SiteSecurityGroupsCreated, EntityType: EntityType.Project, EntityId: projectCode, ProjectCode: projectCode, Details: `Security groups created for ${projectCode} on ${siteUrl}`, User: 'system' }).catch(console.error);
+  }
+
+  async copyTemplateFiles(siteUrl: string, projectCode: string, division: string): Promise<void> {
+    const col = TEMPLATE_REGISTRY_COLUMNS;
+    const templates = await this.sp.web.lists.getByTitle(LIST_NAMES.TEMPLATE_REGISTRY).items
+      .filter(`${col.Active} eq 1 and (${col.Division} eq '${division}' or ${col.Division} eq 'All')`)();
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Web } = require('@pnp/sp/webs');
+    const projectWeb = Web([this.sp.web, siteUrl]);
+    for (const tmpl of templates) {
+      const sourceUrl = String(tmpl[col.SourceURL] || '');
+      const targetFolder = String(tmpl[col.TargetFolder] || 'Shared Documents');
+      if (!sourceUrl) continue;
+      try {
+        const fileName = sourceUrl.split('/').pop() || '';
+        const fileBuffer = await this.sp.web.getFileByServerRelativePath(sourceUrl).getBuffer();
+        await projectWeb.getFolderByServerRelativePath(targetFolder).files.addUsingPath(fileName, fileBuffer, { Overwrite: true });
+      } catch (err) { console.warn(`[SP] Template copy failed ${sourceUrl}:`, err); }
+    }
+    this.logAudit({ Action: AuditAction.SiteTemplatesCopied, EntityType: EntityType.Project, EntityId: projectCode, ProjectCode: projectCode, Details: `Copied ${templates.length} templates to ${siteUrl}`, User: 'system' }).catch(console.error);
+  }
+
+  async copyLeadDataToProjectSite(siteUrl: string, leadId: number, projectCode: string): Promise<void> {
+    const lead = await this.getLeadById(leadId);
+    if (!lead) throw new Error(`Lead ${leadId} not found`);
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Web } = require('@pnp/sp/webs');
+    const projectWeb = Web([this.sp.web, siteUrl]);
+    // Seed Project_Info
+    await projectWeb.lists.getByTitle('Project_Info').items.add({
+      Title: lead.Title, ProjectCode: projectCode, LeadID: leadId, ProjectSiteURL: siteUrl,
+    });
+    // Seed Contract_Info
+    await projectWeb.lists.getByTitle('Contract_Info').items.add({
+      projectCode, leadId,
+    });
+    this.logAudit({ Action: AuditAction.SiteLeadDataCopied, EntityType: EntityType.Project, EntityId: projectCode, ProjectCode: projectCode, Details: `Lead data (ID: ${leadId}) copied to ${siteUrl}`, User: 'system' }).catch(console.error);
+  }
+
+  async updateSiteProperties(siteUrl: string, properties: Record<string, string>): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Web } = require('@pnp/sp/webs');
+    const web = Web([this.sp.web, siteUrl]);
+    await web.update(properties);
+  }
+
+  async createList(siteUrl: string, listName: string, templateType: number, fields: IFieldDefinition[]): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Web } = require('@pnp/sp/webs');
+    const web = Web([this.sp.web, siteUrl]);
+    await web.lists.add(listName, '', templateType);
+    const list = web.lists.getByTitle(listName);
+    for (const field of fields) {
+      const xml = this._buildFieldXml(field);
+      await list.fields.createFieldAsXml(xml);
+    }
+  }
+
+  private _buildFieldXml(field: IFieldDefinition): string {
+    const req = field.required ? ' Required="TRUE"' : '';
+    const idx = field.indexed ? ' Indexed="TRUE"' : '';
+    return `<Field Type="${field.fieldType}" DisplayName="${field.displayName}" Name="${field.internalName}"${req}${idx}/>`;
   }
 
   // --- Phase 6: Workflow ---

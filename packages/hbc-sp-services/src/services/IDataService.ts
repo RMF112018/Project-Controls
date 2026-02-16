@@ -7,7 +7,7 @@ import { IFeatureFlag } from '../models/IFeatureFlag';
 import { IMeeting, ICalendarAvailability } from '../models/IMeeting';
 import { INotification } from '../models/INotification';
 import { IAuditEntry } from '../models/IAuditEntry';
-import { IProvisioningLog } from '../models/IProvisioningLog';
+import { IProvisioningLog, IFieldDefinition } from '../models/IProvisioningLog';
 import { IDeliverable } from '../models/IDeliverable';
 import { ITeamMember } from '../models/ITeamMember';
 import { IInterviewPrep } from '../models/IInterviewPrep';
@@ -120,11 +120,21 @@ export interface IDataService {
   purgeOldAuditEntries(olderThanDays: number): Promise<number>;
 
   // Provisioning
-  triggerProvisioning(leadId: number, projectCode: string, projectName: string, requestedBy: string): Promise<IProvisioningLog>;
+  triggerProvisioning(leadId: number, projectCode: string, projectName: string, requestedBy: string, metadata?: { division?: string; region?: string; clientName?: string }): Promise<IProvisioningLog>;
   getProvisioningStatus(projectCode: string): Promise<IProvisioningLog | null>;
   updateProvisioningLog(projectCode: string, data: Partial<IProvisioningLog>): Promise<IProvisioningLog>;
   getProvisioningLogs(): Promise<IProvisioningLog[]>;
   retryProvisioning(projectCode: string, fromStep: number): Promise<IProvisioningLog>;
+
+  // Provisioning Operations (Step Implementations)
+  createProjectSite(projectCode: string, projectName: string, siteAlias: string): Promise<{ siteUrl: string }>;
+  provisionProjectLists(siteUrl: string, projectCode: string): Promise<void>;
+  associateWithHubSite(siteUrl: string, hubSiteUrl: string): Promise<void>;
+  createProjectSecurityGroups(siteUrl: string, projectCode: string, division: string): Promise<void>;
+  copyTemplateFiles(siteUrl: string, projectCode: string, division: string): Promise<void>;
+  copyLeadDataToProjectSite(siteUrl: string, leadId: number, projectCode: string): Promise<void>;
+  updateSiteProperties(siteUrl: string, properties: Record<string, string>): Promise<void>;
+  createList(siteUrl: string, listName: string, templateType: number, fields: IFieldDefinition[]): Promise<void>;
 
   // Phase 6 — Workflow
   getTeamMembers(projectCode: string): Promise<ITeamMember[]>;

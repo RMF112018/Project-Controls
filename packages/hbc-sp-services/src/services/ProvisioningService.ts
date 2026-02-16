@@ -5,6 +5,7 @@ import { OfflineQueueService } from './OfflineQueueService';
 import { IHubNavigationService } from './HubNavigationService';
 import { IProvisioningLog, ProvisioningStatus, PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS, NotificationEvent, AuditAction, EntityType } from '../models';
 import { HubNavLinkStatus } from '../models/IProvisioningLog';
+import { getBuyoutLogSchema, getActiveProjectsPortfolioSchema } from '../utils/projectListSchemas';
 
 export interface IProvisioningInput {
   leadId: number;
@@ -19,6 +20,9 @@ export interface IProvisioningInput {
 
 const STEP_DELAY_MS = 500;
 const MAX_RETRIES = 3;
+const PROVISIONING_CONSTANTS = {
+  DEFAULT_SITE_BASE: 'https://hedrickbrotherscom.sharepoint.com/sites/',
+};
 
 export class ProvisioningService {
   private dataService: IDataService;
@@ -27,13 +31,15 @@ export class ProvisioningService {
   private powerAutomateService?: PowerAutomateService;
   private offlineQueueService?: OfflineQueueService;
   private usePowerAutomate: boolean;
+  private useRealOps: boolean;
 
   constructor(
     dataService: IDataService,
     hubNavService?: IHubNavigationService,
     powerAutomateService?: PowerAutomateService,
     offlineQueueService?: OfflineQueueService,
-    usePowerAutomate?: boolean
+    usePowerAutomate?: boolean,
+    useRealOps?: boolean
   ) {
     this.dataService = dataService;
     this.notificationService = new NotificationService(dataService);
@@ -41,6 +47,7 @@ export class ProvisioningService {
     this.powerAutomateService = powerAutomateService;
     this.offlineQueueService = offlineQueueService;
     this.usePowerAutomate = usePowerAutomate ?? false;
+    this.useRealOps = useRealOps ?? false;
   }
 
   /**
@@ -55,7 +62,8 @@ export class ProvisioningService {
       input.leadId,
       input.projectCode,
       input.projectName,
-      input.requestedBy
+      input.requestedBy,
+      { division: input.division, region: input.region, clientName: input.clientName }
     );
 
     // Fire-and-forget audit log for provisioning trigger
@@ -151,24 +159,31 @@ export class ProvisioningService {
    */
   private async runSteps(input: IProvisioningInput): Promise<void> {
     const { projectCode } = input;
-    // Use siteNameOverride when provided (e.g., project name without code prefix)
     const siteSuffix = input.siteNameOverride
       ? input.siteNameOverride.replace(/[^a-zA-Z0-9-]/g, '')
       : projectCode.replace(/-/g, '');
-    const siteUrl = `https://hedrickbrotherscom.sharepoint.com/sites/${siteSuffix}`;
+    let siteUrl = '';
+    const hubSiteUrl = await this.dataService.getHubSiteUrl();
 
     for (let step = 1; step <= TOTAL_PROVISIONING_STEPS; step++) {
-      // Mark step as in-progress
       await this.dataService.updateProvisioningLog(projectCode, {
         status: ProvisioningStatus.InProgress,
         currentStep: step,
         completedSteps: step - 1,
       });
 
-      // Simulate step work
-      await this.simulateStep(step);
+      try {
+        const result = await this.executeStep(step, input, siteUrl, siteSuffix, hubSiteUrl);
+        if (step === 1 && typeof result === 'string') siteUrl = result;
+      } catch (err) {
+        await this.dataService.updateProvisioningLog(projectCode, {
+          status: ProvisioningStatus.Failed,
+          failedStep: step,
+          errorMessage: err instanceof Error ? err.message : String(err),
+        });
+        throw err;
+      }
 
-      // Mark step completed
       await this.dataService.updateProvisioningLog(projectCode, {
         currentStep: step,
         completedSteps: step,
@@ -184,17 +199,14 @@ export class ProvisioningService {
       completedAt: new Date().toISOString(),
     });
 
-    // Update the lead with the site URL
     const log = await this.dataService.getProvisioningStatus(projectCode);
     if (log) {
       await this.dataService.updateLead(log.leadId, { ProjectSiteURL: siteUrl });
-      // Fire SiteProvisioned notification
       this.notificationService.notify(
         NotificationEvent.SiteProvisioned,
         { projectCode, siteUrl, leadTitle: input.projectName },
         input.requestedBy
       ).catch(console.error);
-      // Fire-and-forget audit log for provisioning completion
       this.dataService.logAudit({
         Action: AuditAction.SiteProvisioningCompleted,
         EntityType: EntityType.Project,
@@ -203,10 +215,36 @@ export class ProvisioningService {
         User: input.requestedBy,
         Details: `Site provisioning completed for "${input.projectName}" (${projectCode}). Site URL: ${siteUrl}`,
       }).catch(console.error);
-
-      // Hub Navigation Link (independent, non-blocking)
       this.addHubNavLink(projectCode, input.projectName, siteUrl, input.requestedBy)
         .catch(console.error);
+    }
+  }
+
+  /**
+   * Execute a single provisioning step.
+   * When useRealOps is false, delegates to simulateStep().
+   * When true, dispatches to real IDataService methods.
+   */
+  private async executeStep(
+    step: number, input: IProvisioningInput,
+    siteUrl: string, siteAlias: string, hubSiteUrl: string
+  ): Promise<string | void> {
+    if (!this.useRealOps) {
+      await this.simulateStep(step);
+      return step === 1 ? `${PROVISIONING_CONSTANTS.DEFAULT_SITE_BASE}${siteAlias}` : undefined;
+    }
+    switch (step) {
+      case 1: {
+        const result = await this.dataService.createProjectSite(input.projectCode, input.projectName, siteAlias);
+        return result.siteUrl;
+      }
+      case 2: await this.dataService.provisionProjectLists(siteUrl, input.projectCode); break;
+      case 3: await this.dataService.associateWithHubSite(siteUrl, hubSiteUrl); break;
+      case 4: await this.dataService.createProjectSecurityGroups(siteUrl, input.projectCode, input.division); break;
+      case 5: await this.dataService.copyTemplateFiles(siteUrl, input.projectCode, input.division); break;
+      case 6: await this.dataService.copyLeadDataToProjectSite(siteUrl, input.leadId, input.projectCode); break;
+      case 7: break; // Handled post-loop via updateLead()
+      default: throw new Error(`Unknown provisioning step: ${step}`);
     }
   }
 
@@ -241,6 +279,11 @@ export class ProvisioningService {
    * Resume step execution from a given step number.
    */
   private async resumeSteps(projectCode: string, fromStep: number): Promise<void> {
+    const log = await this.dataService.getProvisioningStatus(projectCode);
+    let siteUrl = log?.siteUrl || '';
+    const hubSiteUrl = await this.dataService.getHubSiteUrl();
+    const siteSuffix = projectCode.replace(/-/g, '');
+
     for (let step = fromStep; step <= TOTAL_PROVISIONING_STEPS; step++) {
       await this.dataService.updateProvisioningLog(projectCode, {
         status: ProvisioningStatus.InProgress,
@@ -248,7 +291,25 @@ export class ProvisioningService {
         completedSteps: step - 1,
       });
 
-      await this.simulateStep(step);
+      try {
+        const result = await this.executeStep(step, {
+          leadId: log?.leadId || 0,
+          projectCode,
+          projectName: log?.projectName || '',
+          clientName: log?.clientName || '',
+          division: log?.division || '',
+          region: log?.region || '',
+          requestedBy: log?.requestedBy || '',
+        }, siteUrl, siteSuffix, hubSiteUrl);
+        if (step === 1 && typeof result === 'string') siteUrl = result;
+      } catch (err) {
+        await this.dataService.updateProvisioningLog(projectCode, {
+          status: ProvisioningStatus.Failed,
+          failedStep: step,
+          errorMessage: err instanceof Error ? err.message : String(err),
+        });
+        throw err;
+      }
 
       await this.dataService.updateProvisioningLog(projectCode, {
         currentStep: step,
@@ -256,7 +317,7 @@ export class ProvisioningService {
       });
     }
 
-    const siteUrl = `https://hedrickbrotherscom.sharepoint.com/sites/${projectCode.replace(/-/g, '')}`;
+    if (!siteUrl) siteUrl = `${PROVISIONING_CONSTANTS.DEFAULT_SITE_BASE}${siteSuffix}`;
     await this.dataService.updateProvisioningLog(projectCode, {
       status: ProvisioningStatus.Completed,
       currentStep: TOTAL_PROVISIONING_STEPS,
@@ -265,12 +326,10 @@ export class ProvisioningService {
       completedAt: new Date().toISOString(),
     });
 
-    const log = await this.dataService.getProvisioningStatus(projectCode);
-    if (log) {
-      await this.dataService.updateLead(log.leadId, { ProjectSiteURL: siteUrl });
-
-      // Hub Navigation Link (independent, non-blocking)
-      this.addHubNavLink(projectCode, log.projectName, siteUrl, log.requestedBy)
+    const finalLog = await this.dataService.getProvisioningStatus(projectCode);
+    if (finalLog) {
+      await this.dataService.updateLead(finalLog.leadId, { ProjectSiteURL: siteUrl });
+      this.addHubNavLink(projectCode, finalLog.projectName, siteUrl, finalLog.requestedBy)
         .catch(console.error);
     }
   }
@@ -371,14 +430,17 @@ export class ProvisioningService {
   /**
    * Create the Buyout_Log list on a project site.
    * Called during site provisioning or on-demand initialization.
-   * In production, this uses PnP JS to create the list schema with all required columns.
+   * When useRealOps is true, uses PnP JS to create the list schema.
    */
   public async createBuyoutLogList(siteUrl: string): Promise<void> {
-    // In mock mode, simulate the delay
-    await new Promise(resolve => setTimeout(resolve, STEP_DELAY_MS));
-
+    if (this.useRealOps) {
+      const schema = getBuyoutLogSchema();
+      await this.dataService.createList(siteUrl, schema.listName, schema.templateType, schema.fields);
+    } else {
+      await new Promise(resolve => setTimeout(resolve, STEP_DELAY_MS));
+    }
     this.dataService.logAudit({
-      Action: AuditAction.SiteProvisioningCompleted,
+      Action: AuditAction.SiteListsProvisioned,
       EntityType: EntityType.Project,
       EntityId: siteUrl,
       Details: `Buyout_Log list created for ${siteUrl}`,
@@ -389,12 +451,14 @@ export class ProvisioningService {
   /**
    * Update the title of an existing project site.
    * Used during the re-key operation to reflect the official job number.
-   * In mock mode this is a no-op; in production it would call SP REST API.
+   * When useRealOps is true, calls real SP REST API.
    */
   public async updateSiteTitle(siteUrl: string, newTitle: string): Promise<void> {
-    // In mock mode, just simulate the delay
-    await new Promise(resolve => setTimeout(resolve, STEP_DELAY_MS));
-    // Log for auditing purposes
+    if (this.useRealOps) {
+      await this.dataService.updateSiteProperties(siteUrl, { Title: newTitle });
+    } else {
+      await new Promise(resolve => setTimeout(resolve, STEP_DELAY_MS));
+    }
     this.dataService.logAudit({
       Action: AuditAction.SiteProvisioningCompleted,
       EntityType: EntityType.Project,
@@ -406,34 +470,15 @@ export class ProvisioningService {
 
   /**
    * Create the Active_Projects_Portfolio list on the Hub site.
-   * This list aggregates data from all project sites for executive dashboard.
-   * In production, this uses PnP JS to create the list schema with all required columns.
+   * When useRealOps is true, uses PnP JS to create the list schema.
    */
   public async createActiveProjectsPortfolioList(hubSiteUrl: string): Promise<void> {
-    // In mock mode, simulate the delay
-    await new Promise(resolve => setTimeout(resolve, STEP_DELAY_MS));
-
-    // In production, this would create the list with the following schema:
-    // - Title (ProjectName)
-    // - JobNumber (Text)
-    // - ProjectCode (Text, Indexed)
-    // - Status (Choice: Precon, Construction, Final Payment)
-    // - Sector (Choice: Commercial, Residential)
-    // - Region (Text)
-    // - ProjectExecutive, LeadPM, AdditionalPM, AssistantPM (Text)
-    // - ProjectAccountant, ProjectAssistant, LeadSuper, Superintendent, AssistantSuper (Text)
-    // - OriginalContract, ChangeOrders, CurrentContractValue, BillingsToDate, Unbilled (Currency)
-    // - ProjectedFee, ProjectedFeePct, ProjectedCost, RemainingValue (Number)
-    // - StartDate, SubstantialCompletionDate, NOCExpiration (DateTime)
-    // - CurrentPhase (Text)
-    // - PercentComplete (Number)
-    // - AverageQScore, OpenWaiverCount, PendingCommitments (Number)
-    // - ComplianceStatus (Choice: Green, Yellow, Red)
-    // - StatusComments (Note)
-    // - ProjectSiteUrl (Hyperlink)
-    // - LastSyncDate, LastModified (DateTime)
-    // - HasUnbilledAlert, HasScheduleAlert, HasFeeErosionAlert (Yes/No)
-
+    if (this.useRealOps) {
+      const schema = getActiveProjectsPortfolioSchema();
+      await this.dataService.createList(hubSiteUrl, schema.listName, schema.templateType, schema.fields);
+    } else {
+      await new Promise(resolve => setTimeout(resolve, STEP_DELAY_MS));
+    }
     this.dataService.logAudit({
       Action: AuditAction.SiteProvisioningCompleted,
       EntityType: EntityType.Config,

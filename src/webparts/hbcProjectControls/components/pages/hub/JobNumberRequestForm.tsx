@@ -25,7 +25,7 @@ export const JobNumberRequestForm: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { dataService, currentUser } = useAppContext();
+  const { dataService, currentUser, isFeatureEnabled } = useAppContext();
   const { projectTypes, costCodes, fetchReferenceData, createRequest, fetchRequestByLeadId } = useJobNumberRequest();
   const { leads, fetchLeads, getLeadById } = useLeads();
   const { validateForProvisioning, lastResult: provValidation } = useProvisioningValidation();
@@ -158,7 +158,7 @@ export const JobNumberRequestForm: React.FC = () => {
         }
 
         const hubNavSvc = new MockHubNavigationService();
-        const provisioningService = new ProvisioningService(dataService, hubNavSvc);
+        const provisioningService = new ProvisioningService(dataService, hubNavSvc, undefined, undefined, false, isFeatureEnabled('ProvisioningRealOps'));
         provisioningService.provisionSiteWithFallback({
           leadId,
           projectCode: lead.ProjectCode,

@@ -36,6 +36,14 @@ function getStatusLabel(status: ProvStatus): string {
   }
 }
 
+function formatElapsed(startIso: string): string {
+  const ms = Date.now() - new Date(startIso).getTime();
+  const totalSeconds = Math.floor(ms / 1000);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
 export function ProvisioningStatusView({
   projectCode,
   log: externalLog,
@@ -131,7 +139,20 @@ export function ProvisioningStatusView({
         </div>
       )}
 
-      <div style={badgeStyle}>{getStatusLabel(log.status)}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: SPACING.sm, flexWrap: 'wrap' }}>
+        <div style={badgeStyle}>{getStatusLabel(log.status)}</div>
+        {log.status === ProvStatus.InProgress && log.requestedAt && (
+          <ElapsedTimer startIso={log.requestedAt} />
+        )}
+      </div>
+
+      {!compact && (log.division || log.region || log.clientName) && (
+        <div style={{ display: 'flex', gap: SPACING.md, fontSize: '12px', color: HBC_COLORS.gray500, marginBottom: SPACING.sm }}>
+          {log.division && <span>Division: <strong>{log.division}</strong></span>}
+          {log.region && <span>Region: <strong>{log.region}</strong></span>}
+          {log.clientName && <span>Client: <strong>{log.clientName}</strong></span>}
+        </div>
+      )}
 
       {/* Vertical stepper */}
       <div style={{ marginTop: SPACING.sm }}>
@@ -241,5 +262,21 @@ export function ProvisioningStatusView({
         </div>
       )}
     </div>
+  );
+}
+
+/** Live-updating elapsed timer for in-progress provisioning */
+function ElapsedTimer({ startIso }: { startIso: string }): React.ReactElement {
+  const [elapsed, setElapsed] = React.useState(formatElapsed(startIso));
+
+  React.useEffect(() => {
+    const interval = setInterval(() => setElapsed(formatElapsed(startIso)), 1000);
+    return () => clearInterval(interval);
+  }, [startIso]);
+
+  return (
+    <span style={{ fontSize: '12px', color: HBC_COLORS.gray500, fontWeight: 400 }}>
+      Running for {elapsed}
+    </span>
   );
 }

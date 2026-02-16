@@ -23,5 +23,6 @@
   { "id": 22, "FeatureName": "WorkflowDefinitions", "DisplayName": "Workflow Definitions", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 13 workflow definition configuration", "Category": "Preconstruction" },
   { "id": 23, "FeatureName": "PermissionEngine", "DisplayName": "Permission Engine", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Phase 19 Procore-modeled permission engine with templates and project scoping", "Category": "Infrastructure" },
   { "id": 24, "FeatureName": "PerformanceMonitoring", "DisplayName": "Performance Monitoring", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Web part performance monitoring with dashboard", "Category": "Infrastructure" },
-  { "id": 25, "FeatureName": "EnableHelpSystem", "DisplayName": "Help & Support System", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Contextual help panels, guided tours, and support config", "Category": "Infrastructure" }
+  { "id": 25, "FeatureName": "EnableHelpSystem", "DisplayName": "Help & Support System", "Enabled": true, "EnabledForRoles": null, "TargetDate": null, "Notes": "Contextual help panels, guided tours, and support config", "Category": "Infrastructure" },
+  { "id": 26, "FeatureName": "ProvisioningRealOps", "DisplayName": "Real Site Provisioning Operations", "Enabled": false, "EnabledForRoles": null, "TargetDate": null, "Notes": "When ON, provisioning uses real PnP.js SP operations instead of simulation", "Category": "Infrastructure" }
 ]
