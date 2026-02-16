@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { IProvisioningLog, ProvisioningStatus } from '@hbc/sp-services';
+import { useSignalR } from './useSignalR';
+import { IProvisioningLog, ProvisioningStatus, EntityType } from '@hbc/sp-services';
 
 export interface IProvisioningTrackerSummary {
   inProgress: number;
@@ -17,7 +18,8 @@ export interface IProvisioningTrackerData {
   refresh: () => Promise<void>;
 }
 
-const AUTO_REFRESH_MS = 10000;
+const POLL_INTERVAL_DEFAULT = 10000;  // 10 seconds
+const POLL_INTERVAL_SIGNALR = 30000;  // 30 seconds backup when SignalR connected
 
 export function useProvisioningTracker(): IProvisioningTrackerData {
   const { dataService } = useAppContext();
@@ -36,6 +38,12 @@ export function useProvisioningTracker(): IProvisioningTrackerData {
     }
   }, [dataService]);
 
+  // SignalR: refresh on Project entity changes
+  const { isEnabled: signalRConnected } = useSignalR({
+    entityType: EntityType.Project,
+    onEntityChanged: useCallback(() => { refresh(); }, [refresh]),
+  });
+
   const summary: IProvisioningTrackerSummary = {
     inProgress: logs.filter(l => l.status === ProvisioningStatus.InProgress).length,
     completed: logs.filter(l => l.status === ProvisioningStatus.Completed).length,
@@ -51,12 +59,13 @@ export function useProvisioningTracker(): IProvisioningTrackerData {
     refresh().catch(console.error);
   }, [refresh]);
 
-  // Auto-refresh when active logs exist
+  // Auto-refresh when active logs exist — relax interval when SignalR connected
   useEffect(() => {
     if (hasActive) {
+      const interval = signalRConnected ? POLL_INTERVAL_SIGNALR : POLL_INTERVAL_DEFAULT;
       timerRef.current = setInterval(() => {
         refresh().catch(console.error);
-      }, AUTO_REFRESH_MS);
+      }, interval);
     }
     return () => {
       if (timerRef.current) {
@@ -64,7 +73,7 @@ export function useProvisioningTracker(): IProvisioningTrackerData {
         timerRef.current = null;
       }
     };
-  }, [hasActive, refresh]);
+  }, [hasActive, refresh, signalRConnected]);
 
   return { logs, isLoading, summary, refresh };
 }

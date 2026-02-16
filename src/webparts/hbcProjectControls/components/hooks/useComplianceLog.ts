@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
+import { useSignalR } from './useSignalR';
 import {
   IComplianceEntry,
   IComplianceSummary,
   IComplianceLogFilter,
   EVerifyStatus,
-  CommitmentStatus
+  CommitmentStatus,
+  EntityType,
 } from '@hbc/sp-services';
 
 export function useComplianceLog() {
@@ -38,6 +40,15 @@ export function useComplianceLog() {
       console.error('Failed to load compliance summary:', err);
     }
   }, [dataService]);
+
+  // SignalR: refresh on Quality entity changes (read-only subscription)
+  useSignalR({
+    entityType: EntityType.Quality,
+    onEntityChanged: React.useCallback(() => {
+      fetchEntries().catch(console.error);
+      fetchSummary().catch(console.error);
+    }, [fetchEntries, fetchSummary]),
+  });
 
   // Initial fetch
   React.useEffect(() => {

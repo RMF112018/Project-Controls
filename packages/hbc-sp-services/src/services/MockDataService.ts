@@ -71,7 +71,11 @@ import {
   IPersonnelWorkload,
   ProjectStatus,
   SectorType,
-  DEFAULT_ALERT_THRESHOLDS
+  DEFAULT_ALERT_THRESHOLDS,
+  IProjectDataMart,
+  IDataMartSyncResult,
+  IDataMartFilter,
+  DataMartHealthStatus
 } from '../models';
 
 import { IJobNumberRequest } from '../models/IJobNumberRequest';
@@ -212,6 +216,7 @@ export class MockDataService implements IDataService {
   private projectTeamAssignments: IProjectTeamAssignment[];
   private performanceLogs: IPerformanceLog[];
   private helpGuides: IHelpGuide[];
+  private dataMartRecords: IProjectDataMart[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -381,6 +386,7 @@ export class MockDataService implements IDataService {
     this.projectTeamAssignments = JSON.parse(JSON.stringify(mockProjectTeamAssignments)) as IProjectTeamAssignment[];
     this.performanceLogs = [];
     this.helpGuides = JSON.parse(JSON.stringify(mockHelpGuides)) as IHelpGuide[];
+    this.dataMartRecords = [];
 
     this.nextId = 1000;
   }
@@ -5591,5 +5597,176 @@ export class MockDataService implements IDataService {
     await delay();
     this._supportConfig = { ...this._supportConfig, ...config };
     return { ...this._supportConfig };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Project Data Mart
+  // ---------------------------------------------------------------------------
+
+  async syncToDataMart(projectCode: string): Promise<IDataMartSyncResult> {
+    await delay();
+    const now = new Date().toISOString();
+
+    // Find the active project (source of financial data)
+    const activeProject = this.activeProjects.find(p => p.projectCode === projectCode);
+    if (!activeProject) {
+      return { projectCode, success: false, syncedAt: now, error: `Project ${projectCode} not found in portfolio` };
+    }
+
+    // Aggregate buyout data
+    const buyouts = this.buyoutEntries.filter(b => b.projectCode === projectCode);
+    const executedBuyouts = buyouts.filter(b => b.status === 'Executed');
+    const buyoutCommittedTotal = executedBuyouts.reduce((sum, b) => sum + (b.contractValue || 0), 0);
+    const qScores = buyouts.filter(b => b.qScore != null).map(b => b.qScore!);
+    const averageQScore = qScores.length > 0 ? qScores.reduce((s, v) => s + v, 0) / qScores.length : 0;
+    const openWaiverCount = buyouts.filter(b => b.waiverRequired && b.commitmentStatus !== 'Committed').length;
+    const pendingCommitments = buyouts.filter(b => b.commitmentStatus !== 'Committed').length;
+
+    // Aggregate quality/safety concerns
+    const qualityConcerns = this.qualityConcerns.filter(c => c.projectCode === projectCode);
+    const openQuality = qualityConcerns.filter(c => c.status === 'Open' || c.status === 'Monitoring').length;
+    const safetyConcerns = this.safetyConcerns.filter(c => c.projectCode === projectCode);
+    const openSafety = safetyConcerns.filter(c => c.status === 'Open' || c.status === 'Monitoring').length;
+
+    // Schedule data
+    const schedule = this.scheduleRecords.find(s => s.projectCode === projectCode);
+    const activeCriticalPaths = this.criticalPathItems.filter(
+      c => c.projectCode === projectCode && c.status === 'Active'
+    ).length;
+    const completionDate = schedule?.substantialCompletionDate || activeProject.schedule.substantialCompletionDate;
+    const daysVariance = completionDate
+      ? Math.round((new Date(completionDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      : 0;
+
+    // Monthly review status
+    const reviews = this.monthlyReviews.filter(r => r.projectCode === projectCode);
+    const latestReview = reviews.sort((a, b) => (b.meetingDate || '').localeCompare(a.meetingDate || ''))[0];
+
+    // Turnover status
+    const turnover = this.turnoverAgendas.find(t => t.projectCode === projectCode);
+
+    // PMP status
+    const pmp = this.pmps.find(p => p.projectCode === projectCode);
+
+    // Compute financials
+    const originalContract = activeProject.financials.originalContract || 0;
+    const changeOrders = activeProject.financials.changeOrders || 0;
+    const currentContractValue = originalContract + changeOrders;
+    const billingsToDate = activeProject.financials.billingsToDate || 0;
+    const unbilledAmount = currentContractValue - billingsToDate;
+    const projectedFee = activeProject.financials.projectedFee || 0;
+    const projectedFeePct = activeProject.financials.projectedFeePct || 0;
+
+    // Compute alerts
+    const unbilledPct = currentContractValue > 0 ? (unbilledAmount / currentContractValue) * 100 : 0;
+    const hasUnbilledAlert = unbilledPct >= DEFAULT_ALERT_THRESHOLDS.unbilledWarningPct;
+    const hasScheduleAlert = daysVariance < -DEFAULT_ALERT_THRESHOLDS.scheduleDelayDays;
+    const hasFeeErosionAlert = projectedFeePct < DEFAULT_ALERT_THRESHOLDS.feeErosionPct;
+
+    // Compute compliance status
+    const complianceStatus: DataMartHealthStatus =
+      openWaiverCount > 3 || averageQScore < 60 ? 'Red' :
+      openWaiverCount > 1 || averageQScore < 75 ? 'Yellow' : 'Green';
+
+    // Compute overall health (worst-of-dimensions)
+    const dimensions: DataMartHealthStatus[] = [complianceStatus];
+    if (hasUnbilledAlert) dimensions.push('Red');
+    if (hasScheduleAlert) dimensions.push('Red');
+    if (hasFeeErosionAlert) dimensions.push('Yellow');
+    if (openQuality > 5 || openSafety > 3) dimensions.push('Red');
+    else if (openQuality > 2 || openSafety > 1) dimensions.push('Yellow');
+
+    const overallHealth: DataMartHealthStatus =
+      dimensions.includes('Red') ? 'Red' :
+      dimensions.includes('Yellow') ? 'Yellow' : 'Green';
+
+    const record: IProjectDataMart = {
+      id: this.nextId++,
+      projectCode,
+      jobNumber: activeProject.jobNumber,
+      projectName: activeProject.projectName,
+      status: activeProject.status,
+      sector: activeProject.sector,
+      region: activeProject.region || '',
+      projectExecutive: activeProject.personnel.projectExecutive || '',
+      projectExecutiveEmail: activeProject.personnel.projectExecutiveEmail || '',
+      leadPM: activeProject.personnel.leadPM || '',
+      leadPMEmail: activeProject.personnel.leadPMEmail || '',
+      leadSuperintendent: activeProject.personnel.leadSuper || '',
+      leadSuperintendentEmail: '',
+      originalContract,
+      changeOrders,
+      currentContractValue,
+      billingsToDate,
+      unbilledAmount,
+      projectedFee,
+      projectedFeePct,
+      buyoutCommittedTotal,
+      buyoutExecutedCount: executedBuyouts.length,
+      buyoutOpenCount: buyouts.length - executedBuyouts.length,
+      startDate: schedule?.startDate || activeProject.schedule.startDate || null,
+      substantialCompletionDate: completionDate || null,
+      percentComplete: activeProject.schedule.percentComplete || 0,
+      criticalPathItemCount: activeCriticalPaths,
+      scheduleDaysVariance: daysVariance,
+      openQualityConcerns: openQuality,
+      openSafetyConcerns: openSafety,
+      averageQScore: Math.round(averageQScore * 10) / 10,
+      openWaiverCount,
+      pendingCommitments,
+      complianceStatus,
+      overallHealth,
+      hasUnbilledAlert,
+      hasScheduleAlert,
+      hasFeeErosionAlert,
+      monthlyReviewStatus: latestReview?.status || '',
+      lastMonthlyReviewDate: latestReview?.meetingDate || null,
+      turnoverStatus: turnover?.status || '',
+      pmpStatus: pmp?.status || '',
+      lastSyncDate: now,
+      lastSyncBy: 'MockDataService',
+    };
+
+    // Upsert
+    const existingIdx = this.dataMartRecords.findIndex(r => r.projectCode === projectCode);
+    if (existingIdx >= 0) {
+      record.id = this.dataMartRecords[existingIdx].id;
+      this.dataMartRecords[existingIdx] = record;
+    } else {
+      this.dataMartRecords.push(record);
+    }
+
+    return { projectCode, success: true, syncedAt: now };
+  }
+
+  async getDataMartRecords(filters?: IDataMartFilter): Promise<IProjectDataMart[]> {
+    await delay();
+    let results = [...this.dataMartRecords];
+
+    if (filters?.status) results = results.filter(r => r.status === filters.status);
+    if (filters?.sector) results = results.filter(r => r.sector === filters.sector);
+    if (filters?.region) results = results.filter(r => r.region === filters.region);
+    if (filters?.projectExecutive) results = results.filter(r => r.projectExecutive === filters.projectExecutive);
+    if (filters?.overallHealth) results = results.filter(r => r.overallHealth === filters.overallHealth);
+    if (filters?.hasAlerts) {
+      results = results.filter(r => r.hasUnbilledAlert || r.hasScheduleAlert || r.hasFeeErosionAlert);
+    }
+
+    return results;
+  }
+
+  async getDataMartRecord(projectCode: string): Promise<IProjectDataMart | null> {
+    await delay();
+    return this.dataMartRecords.find(r => r.projectCode === projectCode) ?? null;
+  }
+
+  async triggerDataMartSync(): Promise<IDataMartSyncResult[]> {
+    await delay();
+    const results: IDataMartSyncResult[] = [];
+    for (const project of this.activeProjects) {
+      const result = await this.syncToDataMart(project.projectCode);
+      results.push(result);
+    }
+    return results;
   }
 }

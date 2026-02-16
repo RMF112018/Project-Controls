@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
+import { useSignalR } from './useSignalR';
 import { IActionInboxItem, ActionPriority } from '@hbc/sp-services';
 
-const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const POLL_INTERVAL_DEFAULT = 5 * 60 * 1000; // 5 minutes
+const POLL_INTERVAL_SIGNALR = 60 * 1000;     // 60 seconds backup when SignalR connected
 
 interface IUseActionInboxResult {
   items: IActionInboxItem[];
@@ -33,12 +35,18 @@ export function useActionInbox(): IUseActionInboxResult {
     }
   }, [dataService, currentUser?.email]);
 
+  // SignalR: refresh on any workflow entity change (read-only hook)
+  const { isEnabled: signalRConnected } = useSignalR({
+    onEntityChanged: React.useCallback(() => { refresh(); }, [refresh]),
+  });
+
   React.useEffect(() => { refresh(); }, [refresh]);
 
+  // Polling: relax interval when SignalR is connected
   React.useEffect(() => {
-    const interval = setInterval(refresh, REFRESH_INTERVAL);
+    const interval = setInterval(refresh, signalRConnected ? POLL_INTERVAL_SIGNALR : POLL_INTERVAL_DEFAULT);
     return () => clearInterval(interval);
-  }, [refresh]);
+  }, [refresh, signalRConnected]);
 
   return {
     items,
