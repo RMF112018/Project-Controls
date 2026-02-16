@@ -44,7 +44,7 @@
     "@pnp/queryable": "^4.4.1",
     "@pnp/sp": "^4.4.1",
     "html2canvas": "^1.4.1",
-    "jspdf": "^2.5.2",
+    "jspdf": "^4.1.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-joyride": "^2.9.3",
