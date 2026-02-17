@@ -127,12 +127,14 @@ import mockBuyoutEntries from '../mock/buyoutEntries.json';
 import mockScheduleActivities from '../mock/scheduleActivities.json';
 import mockScheduleImports from '../mock/scheduleImports.json';
 import mockConstraintLogs from '../mock/constraintLogs.json';
+import mockPermits from '../mock/permits.json';
 import { createEstimatingKickoffTemplate } from '../utils/estimatingKickoffTemplate';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 import { DEFAULT_HUB_SITE_URL } from '../utils/constants';
 import { IEstimatingKickoff, IEstimatingKickoffItem, IKeyPersonnelEntry } from '../models/IEstimatingKickoff';
 import { IBuyoutEntry, EVerifyStatus } from '../models/IBuyoutEntry';
 import { IConstraintLog } from '../models/IConstraintLog';
+import { IPermit } from '../models/IPermit';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverProjectHeader, ITurnoverPrerequisite, ITurnoverEstimateOverview, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverAttachment } from '../models/ITurnoverAgenda';
@@ -232,6 +234,7 @@ export class MockDataService implements IDataService {
   private helpGuides: IHelpGuide[];
   private dataMartRecords: IProjectDataMart[];
   private constraintLogs: IConstraintLog[];
+  private permits: IPermit[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -394,6 +397,7 @@ export class MockDataService implements IDataService {
     this.scheduleActivities = JSON.parse(JSON.stringify(mockScheduleActivities)) as IScheduleActivity[];
     this.scheduleImports = JSON.parse(JSON.stringify(mockScheduleImports)) as IScheduleImport[];
     this.constraintLogs = JSON.parse(JSON.stringify(mockConstraintLogs)) as IConstraintLog[];
+    this.permits = JSON.parse(JSON.stringify(mockPermits)) as IPermit[];
     this.activeProjects = this.generateMockActiveProjects();
     this.workflowDefinitions = JSON.parse(JSON.stringify(mockWorkflowDefinitions)) as IWorkflowDefinition[];
     this.workflowStepOverrides = JSON.parse(JSON.stringify(mockWorkflowStepOverrides)) as IWorkflowStepOverride[];
@@ -6239,6 +6243,85 @@ export class MockDataService implements IDataService {
       EntityType: EntityType.Constraint,
       EntityId: String(constraintId),
       Details: `Removed constraint #${removed.constraintNumber}`,
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Permits Log
+  // ---------------------------------------------------------------------------
+
+  public async getPermits(projectCode: string): Promise<IPermit[]> {
+    await delay();
+    return this.permits
+      .filter(p => p.projectCode === projectCode)
+      .map(p => ({ ...p }));
+  }
+
+  public async addPermit(projectCode: string, permit: Partial<IPermit>): Promise<IPermit> {
+    await delay();
+    const id = Math.max(0, ...this.permits.map(p => p.id)) + 1;
+    const created: IPermit = {
+      id,
+      projectCode,
+      refNumber: permit.refNumber || String(id),
+      parentRefNumber: permit.parentRefNumber,
+      location: permit.location || '',
+      type: permit.type || 'PRIMARY',
+      permitNumber: permit.permitNumber || 'Not Issued',
+      description: permit.description || '',
+      responsibleContractor: permit.responsibleContractor || '',
+      address: permit.address || '',
+      dateRequired: permit.dateRequired,
+      dateSubmitted: permit.dateSubmitted,
+      dateReceived: permit.dateReceived,
+      dateExpires: permit.dateExpires,
+      status: permit.status || 'Pending Application',
+      ahj: permit.ahj || '',
+      comments: permit.comments,
+    };
+    this.permits.push(created);
+
+    this.logAudit({
+      Action: AuditAction.PermitUpdated,
+      EntityType: EntityType.Permit,
+      EntityId: String(id),
+      Details: `Added permit ${created.refNumber} for ${projectCode}`,
+    });
+
+    return { ...created };
+  }
+
+  public async updatePermit(projectCode: string, permitId: number, data: Partial<IPermit>): Promise<IPermit> {
+    await delay();
+    const idx = this.permits.findIndex(p => p.id === permitId && p.projectCode === projectCode);
+    if (idx === -1) throw new Error(`Permit ${permitId} not found`);
+
+    const updated = { ...this.permits[idx], ...data };
+    this.permits[idx] = updated;
+
+    this.logAudit({
+      Action: AuditAction.PermitUpdated,
+      EntityType: EntityType.Permit,
+      EntityId: String(permitId),
+      Details: `Updated permit ${updated.refNumber}`,
+    });
+
+    return { ...updated };
+  }
+
+  public async removePermit(projectCode: string, permitId: number): Promise<void> {
+    await delay();
+    const idx = this.permits.findIndex(p => p.id === permitId && p.projectCode === projectCode);
+    if (idx === -1) throw new Error(`Permit ${permitId} not found`);
+
+    const removed = this.permits[idx];
+    this.permits.splice(idx, 1);
+
+    this.logAudit({
+      Action: AuditAction.PermitUpdated,
+      EntityType: EntityType.Permit,
+      EntityId: String(permitId),
+      Details: `Removed permit ${removed.refNumber}`,
     });
   }
 }

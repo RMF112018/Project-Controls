@@ -213,6 +213,7 @@ export enum AuditAction {
   ScheduleActivityUpdated = 'Schedule.ActivityUpdated',
   ScheduleActivityDeleted = 'Schedule.ActivityDeleted',
   ConstraintUpdated = 'Constraint.Updated',
+  PermitUpdated = 'Permit.Updated',
 }
 
 export enum EntityType {
@@ -247,6 +248,7 @@ export enum EntityType {
   ContractTracking = 'ContractTracking',
   ScheduleActivity = 'ScheduleActivity',
   Constraint = 'Constraint',
+  Permit = 'Permit',
 }
 
 export enum DeliverableStatus {

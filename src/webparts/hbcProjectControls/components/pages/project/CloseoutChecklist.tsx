@@ -17,7 +17,7 @@ import { HBC_COLORS } from '../../../theme/tokens';
 export const CloseoutChecklist: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject, hasPermission, currentUser, dataService } = useAppContext();
+  const { selectedProject, currentUser, dataService } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
   const { transitionStage } = useWorkflow();
   const {

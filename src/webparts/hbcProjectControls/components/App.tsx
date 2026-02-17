@@ -83,6 +83,7 @@ const ProjectManagementPlan = lazyNamed(() => import('./pages/project/pmp/Projec
 const MonthlyProjectReview = lazyNamed(() => import('./pages/project/MonthlyProjectReview'));
 const BuyoutLogPage = lazyNamed(() => import('./pages/project/BuyoutLogPage'));
 const ConstraintsLogPage = lazyNamed(() => import('./pages/project/ConstraintsLogPage'));
+const PermitsLogPage = lazyNamed(() => import('./pages/project/PermitsLogPage'));
 const ProjectSettingsPage = lazyNamed(() => import('./pages/project/ProjectSettingsPage'));
 
 // ---------------------------------------------------------------------------
@@ -316,7 +317,11 @@ const AppRoutes: React.FC = () => (
         </ProjectRequiredRoute>
       } />
       <Route path="/operations/permits" element={
-        <ProjectRequiredRoute><ComingSoonPage title="Permits" /></ProjectRequiredRoute>
+        <ProjectRequiredRoute>
+          <ProtectedRoute permission={PERMISSIONS.PERMITS_VIEW}>
+            <PermitsLogPage />
+          </ProtectedRoute>
+        </ProjectRequiredRoute>
       } />
       <Route path="/operations/sub-scorecard" element={
         <ProjectRequiredRoute><ComingSoonPage title="Sub Scorecard" /></ProjectRequiredRoute>

@@ -15,14 +15,15 @@ import { parseScheduleCSV, parseScheduleXER, parseScheduleXML, parseScheduleFile
 
 const PROJECT_CODE = 'TWNU07';
 
-// Load real CSV fixture
+// Load real CSV fixture — file is gitignored so may not exist in CI
 const csvPath = path.resolve(__dirname, '../../../../../reference/TWNU07.csv');
-const csvText = fs.readFileSync(csvPath, 'utf-8');
+const csvExists = fs.existsSync(csvPath);
+const csvText = csvExists ? fs.readFileSync(csvPath, 'utf-8') : '';
 
 // ---------------------------------------------------------------------------
-// parseScheduleCSV — real TWNU07 data
+// parseScheduleCSV — real TWNU07 data (skipped in CI when file is absent)
 // ---------------------------------------------------------------------------
-describe('parseScheduleCSV', () => {
+(csvExists ? describe : describe.skip)('parseScheduleCSV — real TWNU07 data', () => {
   const activities = parseScheduleCSV(csvText, PROJECT_CODE);
 
   it('parses the expected number of activities (1174 data rows)', () => {
@@ -111,7 +112,12 @@ describe('parseScheduleCSV', () => {
     expect(activities[1].id).toBe(2);
     expect(activities[activities.length - 1].id).toBe(activities.length);
   });
+});
 
+// ---------------------------------------------------------------------------
+// parseScheduleCSV — synthetic tests (always run)
+// ---------------------------------------------------------------------------
+describe('parseScheduleCSV — synthetic', () => {
   it('returns empty array for empty input', () => {
     expect(parseScheduleCSV('', PROJECT_CODE)).toEqual([]);
   });
