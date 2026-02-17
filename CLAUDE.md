@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-17 — Schedule Module: 6 new IDataService methods (235 total), full P6-style schedule management with 5-tab SchedulePage
+**Last Updated:** 2026-02-17 — Schedule Module Enhanced: XER/XML parsing, 6-tab SchedulePage (+ Analysis), 8 Recharts charts, earned value metrics, advanced filters, ExportButtons, sessionStorage caching
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -80,9 +80,16 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §15 Current Phase Status
 
-**Phase COMPLETE**: Schedule Module — 235/235 methods implemented.
+**Phase COMPLETE**: Schedule Module (Enhanced) — 235/235 methods implemented.
 
-Full P6-style schedule management module added: `IScheduleActivity` model (35+ fields), CSV parser (`parseScheduleCSV`), `useScheduleActivities` hook with SignalR, 5-tab `SchedulePage` (Overview KPIs, Activities table with sort/filter, Gantt timeline, Critical Path, Import with history). 6 new IDataService methods: `getScheduleActivities`, `importScheduleActivities`, `updateScheduleActivity`, `deleteScheduleActivity`, `getScheduleImports`, `getScheduleMetrics`. Feature-gated behind `ScheduleModule` flag. 2 new SP list schemas (Schedule_Activities, Schedule_Imports) → 44 total project-site schemas.
+Full P6-style schedule management with multi-format support:
+- **Parsing**: CSV, XER (Primavera P6), XML (MSProject + P6 PMXML) via `parseScheduleFile` dispatcher
+- **6 tabs**: Overview (9 KPI cards + EV summary), Activities (advanced filters + ExportButtons), Gantt, Critical Path, **Analysis** (8 Recharts chart sections), Import (format dropdown with auto-detect)
+- **Enhanced metrics**: `IScheduleMetrics` extended with `negativeFloatPercent`, `cpiApproximation`, `constraintAnalysis`, `earnedValueMetrics` (BAC/EV/PV/SV/SPI/CPI), `logicMetrics` (relationship types, open ends)
+- **Shared computation**: `computeScheduleMetrics()` utility used by hook, MockDataService, and SharePointDataService
+- **Caching**: sessionStorage with 5-min TTL, SignalR bypass
+- **Charts**: Variance scatter, Float distribution bar, Near-critical horizontal bar, Schedule health radar, Logic metrics pie, Constraint analysis bar, Status donut, Earned value combo
+- 6 IDataService methods, feature-gated behind `ScheduleModule` flag, 44 project-site schemas
 
 **Next Phase**: Integration testing and deployment readiness.
 
@@ -118,9 +125,9 @@ Full P6-style schedule management module added: `IScheduleActivity` model (35+ f
 **Test utils**: `src/__tests__/test-utils.tsx` — `renderWithProviders` with FluentProvider + MemoryRouter + AppProvider
 
 **Run commands**:
-- `npx jest` — all 338 tests across both projects
+- `npx jest` — all 488 tests across both projects
 - `npx jest --selectProjects components` — UI tests only (16)
-- `npx jest --selectProjects sp-services` — service tests only (322)
+- `npx jest --selectProjects sp-services` — service tests only (472)
 
 ```mermaid
 graph TD

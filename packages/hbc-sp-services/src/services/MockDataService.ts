@@ -91,6 +91,7 @@ import { IStandardCostCode } from '../models/IStandardCostCode';
 
 import { ROLE_PERMISSIONS } from '../utils/permissions';
 import { getRecommendedDecision, calculateTotalScore } from '../utils/scoreCalculator';
+import { computeScheduleMetrics } from '../utils/scheduleMetrics';
 
 import mockLeads from '../mock/leads.json';
 import mockScorecards from '../mock/scorecards.json';
@@ -6154,46 +6155,6 @@ export class MockDataService implements IDataService {
   public async getScheduleMetrics(projectCode: string): Promise<IScheduleMetrics> {
     await delay();
     const activities = this.scheduleActivities.filter(a => a.projectCode === projectCode);
-
-    const completedCount = activities.filter(a => a.status === 'Completed').length;
-    const inProgressCount = activities.filter(a => a.status === 'In Progress').length;
-    const notStartedCount = activities.filter(a => a.status === 'Not Started').length;
-    const criticalActivityCount = activities.filter(a => a.isCritical).length;
-    const negativeFloatCount = activities.filter(a => a.remainingFloat !== null && a.remainingFloat < 0).length;
-
-    const floatsWithValues = activities.filter(a => a.remainingFloat !== null).map(a => a.remainingFloat!);
-    const averageFloat = floatsWithValues.length > 0
-      ? floatsWithValues.reduce((s, f) => s + f, 0) / floatsWithValues.length
-      : 0;
-
-    const percentComplete = activities.length > 0
-      ? Math.round((completedCount / activities.length) * 100)
-      : 0;
-
-    // SPI approximation: actual progress vs planned progress
-    const totalDuration = activities.reduce((s, a) => s + a.originalDuration, 0);
-    const earnedDuration = activities.reduce((s, a) => s + a.actualDuration, 0);
-    const spiApproximation = totalDuration > 0 ? Math.round((earnedDuration / totalDuration) * 100) / 100 : null;
-
-    const floatDistribution = {
-      negative: activities.filter(a => a.remainingFloat !== null && a.remainingFloat < 0).length,
-      zero: activities.filter(a => a.remainingFloat === 0).length,
-      low: activities.filter(a => a.remainingFloat !== null && a.remainingFloat > 0 && a.remainingFloat <= 10).length,
-      medium: activities.filter(a => a.remainingFloat !== null && a.remainingFloat > 10 && a.remainingFloat <= 30).length,
-      high: activities.filter(a => a.remainingFloat !== null && a.remainingFloat > 30).length,
-    };
-
-    return {
-      totalActivities: activities.length,
-      completedCount,
-      inProgressCount,
-      notStartedCount,
-      percentComplete,
-      criticalActivityCount,
-      negativeFloatCount,
-      averageFloat: Math.round(averageFloat * 10) / 10,
-      spiApproximation,
-      floatDistribution,
-    };
+    return computeScheduleMetrics(activities);
   }
 }

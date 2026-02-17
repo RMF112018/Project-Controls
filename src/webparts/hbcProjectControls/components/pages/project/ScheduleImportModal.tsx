@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { HBC_COLORS } from '../../../theme/tokens';
-import { IScheduleActivity, IScheduleImport, parseScheduleCSV } from '@hbc/sp-services';
+import { IScheduleActivity, IScheduleImport, ScheduleImportFormat, parseScheduleFile } from '@hbc/sp-services';
 
 interface ScheduleImportModalProps {
   isOpen: boolean;
@@ -16,6 +16,7 @@ export const ScheduleImportModal: React.FC<ScheduleImportModalProps> = ({
   projectCode,
 }) => {
   const [file, setFile] = React.useState<File | null>(null);
+  const [format, setFormat] = React.useState<ScheduleImportFormat>('P6-CSV');
   const [parsed, setParsed] = React.useState<IScheduleActivity[]>([]);
   const [importing, setImporting] = React.useState(false);
   const [parseError, setParseError] = React.useState<string | null>(null);
@@ -24,31 +25,52 @@ export const ScheduleImportModal: React.FC<ScheduleImportModalProps> = ({
   React.useEffect(() => {
     if (!isOpen) {
       setFile(null);
+      setFormat('P6-CSV');
       setParsed([]);
       setParseError(null);
       setNotes('');
     }
   }, [isOpen]);
 
-  const handleFileSelect = React.useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setFile(f);
+  const detectFormat = React.useCallback((fileName: string): ScheduleImportFormat => {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    if (ext === 'xer') return 'P6-XER';
+    if (ext === 'xml') return 'MSProject-XML';
+    return 'P6-CSV';
+  }, []);
+
+  const parseFile = React.useCallback(async (f: File, fmt: ScheduleImportFormat) => {
     setParseError(null);
     try {
       const text = await f.text();
-      const activities = parseScheduleCSV(text, projectCode);
+      const activities = parseScheduleFile(text, fmt, projectCode);
       if (activities.length === 0) {
-        setParseError('No activities found in file. Ensure it has the expected P6 CSV format with dual header rows.');
+        setParseError(`No activities found. Check the file format matches "${fmt}".`);
         setParsed([]);
       } else {
         setParsed(activities);
       }
     } catch (err) {
-      setParseError(err instanceof Error ? err.message : 'Failed to parse CSV file');
+      setParseError(err instanceof Error ? err.message : 'Failed to parse file');
       setParsed([]);
     }
   }, [projectCode]);
+
+  const handleFileSelect = React.useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setFile(f);
+    const detected = detectFormat(f.name);
+    setFormat(detected);
+    await parseFile(f, detected);
+  }, [detectFormat, parseFile]);
+
+  const handleFormatChange = React.useCallback(async (newFormat: ScheduleImportFormat) => {
+    setFormat(newFormat);
+    if (file) {
+      await parseFile(file, newFormat);
+    }
+  }, [file, parseFile]);
 
   const handleImport = React.useCallback(async () => {
     if (parsed.length === 0 || !file) return;
@@ -56,7 +78,7 @@ export const ScheduleImportModal: React.FC<ScheduleImportModalProps> = ({
     try {
       await onImport(parsed, {
         fileName: file.name,
-        format: 'P6-CSV',
+        format,
         notes,
       });
       onClose();
@@ -65,7 +87,7 @@ export const ScheduleImportModal: React.FC<ScheduleImportModalProps> = ({
     } finally {
       setImporting(false);
     }
-  }, [parsed, file, notes, onImport, onClose]);
+  }, [parsed, file, format, notes, onImport, onClose]);
 
   // Summary stats from parsed data
   const summary = React.useMemo(() => {
@@ -99,13 +121,28 @@ export const ScheduleImportModal: React.FC<ScheduleImportModalProps> = ({
     <div style={overlay}>
       <div style={modal}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: HBC_COLORS.navy }}>Import Schedule (P6 CSV)</h3>
+          <h3 style={{ margin: 0, fontSize: 18, color: HBC_COLORS.navy }}>Import Schedule</h3>
           <button onClick={onClose} style={closeBtn}>&times;</button>
         </div>
 
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Select CSV File</label>
-          <input type="file" accept=".csv" onChange={handleFileSelect} style={{ fontSize: 13 }} />
+        <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Select File</label>
+            <input type="file" accept=".csv,.xer,.xml" onChange={handleFileSelect} style={{ fontSize: 13 }} />
+          </div>
+          <div style={{ width: 180 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Format</label>
+            <select
+              value={format}
+              onChange={e => handleFormatChange(e.target.value as ScheduleImportFormat)}
+              style={{ width: '100%', padding: '6px 8px', fontSize: 13, borderRadius: 6, border: '1px solid #D1D5DB' }}
+            >
+              <option value="P6-CSV">P6 CSV</option>
+              <option value="P6-XER">P6 XER</option>
+              <option value="MSProject-XML">MSProject XML</option>
+              <option value="MSProject-CSV">MSProject CSV</option>
+            </select>
+          </div>
         </div>
 
         {parseError && (

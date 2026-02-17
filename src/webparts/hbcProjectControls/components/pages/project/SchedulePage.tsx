@@ -7,13 +7,16 @@ import { usePersistedState } from '../../hooks/usePersistedState';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
+import { ExportButtons } from '../../shared/ExportButtons';
 import { useToast } from '../../shared/ToastContainer';
 import { ScheduleImportModal } from './ScheduleImportModal';
+import { ScheduleAnalysisTab } from './ScheduleAnalysisTab';
 import { ProjectScheduleCriticalPath } from './ProjectScheduleCriticalPath';
 import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 import {
   IScheduleActivity,
   IScheduleImport,
+  IScheduleMetrics,
   PERMISSIONS,
   buildBreadcrumbs,
   ActivityStatus,
@@ -23,13 +26,14 @@ import {
 // Constants
 // ---------------------------------------------------------------------------
 
-const TABS = ['overview', 'activities', 'gantt', 'critical-path', 'import'] as const;
+const TABS = ['overview', 'activities', 'gantt', 'critical-path', 'analysis', 'import'] as const;
 type ScheduleTab = (typeof TABS)[number];
 const TAB_LABELS: Record<ScheduleTab, string> = {
   overview: 'Overview',
   activities: 'Activities',
   gantt: 'Gantt',
   'critical-path': 'Critical Path',
+  analysis: 'Analysis',
   import: 'Import',
 };
 
@@ -67,6 +71,12 @@ export const SchedulePage: React.FC = () => {
   const [search, setSearch] = usePersistedState('schedule-search', '');
   const [statusFilter, setStatusFilter] = usePersistedState<string>('schedule-status', 'all');
   const [criticalOnly, setCriticalOnly] = usePersistedState<boolean>('schedule-critical', false);
+  const [wbsFilter, setWbsFilter] = usePersistedState<string>('schedule-wbs', 'all');
+  const [dateStart, setDateStart] = usePersistedState<string>('schedule-date-start', '');
+  const [dateEnd, setDateEnd] = usePersistedState<string>('schedule-date-end', '');
+  const [floatMin, setFloatMin] = usePersistedState<string>('schedule-float-min', '');
+  const [floatMax, setFloatMax] = usePersistedState<string>('schedule-float-max', '');
+  const [actTypeFilter, setActTypeFilter] = usePersistedState<string>('schedule-acttype', 'all');
 
   // Sort
   const [sortField, setSortField] = React.useState<SortField>('taskCode');
@@ -83,6 +93,24 @@ export const SchedulePage: React.FC = () => {
     }
   }, [projectCode, fetchActivities, fetchImports]);
 
+  // Distinct values for dropdown filters
+  const wbsPrefixes = React.useMemo(() => {
+    const set = new Set<string>();
+    activities.forEach(a => {
+      if (a.wbsCode) {
+        const parts = a.wbsCode.split('.');
+        set.add(parts.slice(0, 2).join('.'));
+      }
+    });
+    return Array.from(set).sort();
+  }, [activities]);
+
+  const activityTypes = React.useMemo(() => {
+    const set = new Set<string>();
+    activities.forEach(a => { if (a.activityType) set.add(a.activityType); });
+    return Array.from(set).sort();
+  }, [activities]);
+
   // Filtered + sorted activities
   const filtered = React.useMemo(() => {
     let list = activities;
@@ -96,6 +124,30 @@ export const SchedulePage: React.FC = () => {
     }
     if (statusFilter !== 'all') list = list.filter(a => a.status === statusFilter);
     if (criticalOnly) list = list.filter(a => a.isCritical);
+    if (wbsFilter !== 'all') list = list.filter(a => a.wbsCode.startsWith(wbsFilter));
+    if (actTypeFilter !== 'all') list = list.filter(a => a.activityType === actTypeFilter);
+    if (dateStart) {
+      const ds = new Date(dateStart).getTime();
+      list = list.filter(a => {
+        const d = a.plannedStartDate ? new Date(a.plannedStartDate).getTime() : null;
+        return d !== null && d >= ds;
+      });
+    }
+    if (dateEnd) {
+      const de = new Date(dateEnd).getTime();
+      list = list.filter(a => {
+        const d = a.plannedStartDate ? new Date(a.plannedStartDate).getTime() : null;
+        return d !== null && d <= de;
+      });
+    }
+    if (floatMin !== '') {
+      const fMin = parseFloat(floatMin);
+      if (!isNaN(fMin)) list = list.filter(a => a.remainingFloat !== null && a.remainingFloat >= fMin);
+    }
+    if (floatMax !== '') {
+      const fMax = parseFloat(floatMax);
+      if (!isNaN(fMax)) list = list.filter(a => a.remainingFloat !== null && a.remainingFloat <= fMax);
+    }
 
     list = [...list].sort((a, b) => {
       const aVal = a[sortField];
@@ -109,7 +161,7 @@ export const SchedulePage: React.FC = () => {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return list;
-  }, [activities, search, statusFilter, criticalOnly, sortField, sortDir]);
+  }, [activities, search, statusFilter, criticalOnly, wbsFilter, actTypeFilter, dateStart, dateEnd, floatMin, floatMax, sortField, sortDir]);
 
   const handleSort = (field: SortField): void => {
     if (sortField === field) {
@@ -157,7 +209,7 @@ export const SchedulePage: React.FC = () => {
         subtitle={projectCode}
         breadcrumb={<Breadcrumb items={breadcrumbs} />}
         actions={canImport ? (
-          <button onClick={() => setShowImport(true)} style={btnPrimary}>Import P6 CSV</button>
+          <button onClick={() => setShowImport(true)} style={btnPrimary}>Import Schedule</button>
         ) : undefined}
       />
 
@@ -201,10 +253,25 @@ export const SchedulePage: React.FC = () => {
           onStatusFilterChange={setStatusFilter}
           criticalOnly={criticalOnly}
           onCriticalOnlyChange={setCriticalOnly}
+          wbsFilter={wbsFilter}
+          onWbsFilterChange={setWbsFilter}
+          wbsPrefixes={wbsPrefixes}
+          actTypeFilter={actTypeFilter}
+          onActTypeFilterChange={setActTypeFilter}
+          activityTypes={activityTypes}
+          dateStart={dateStart}
+          onDateStartChange={setDateStart}
+          dateEnd={dateEnd}
+          onDateEndChange={setDateEnd}
+          floatMin={floatMin}
+          onFloatMinChange={setFloatMin}
+          floatMax={floatMax}
+          onFloatMaxChange={setFloatMax}
           sortField={sortField}
           sortDir={sortDir}
           onSort={handleSort}
           canView={canView}
+          projectCode={projectCode}
         />
       )}
 
@@ -217,6 +284,10 @@ export const SchedulePage: React.FC = () => {
 
       {activeTab === 'critical-path' && (
         <CriticalPathTab criticalActivities={criticalActivities} />
+      )}
+
+      {activeTab === 'analysis' && (
+        <ScheduleAnalysisTab activities={activities} metrics={metrics} />
       )}
 
       {activeTab === 'import' && canImport && (
@@ -242,17 +313,7 @@ export const SchedulePage: React.FC = () => {
 // ---------------------------------------------------------------------------
 
 interface IOverviewTabProps {
-  metrics: {
-    totalActivities: number;
-    percentComplete: number;
-    criticalActivityCount: number;
-    averageFloat: number;
-    spiApproximation: number | null;
-    completedCount: number;
-    inProgressCount: number;
-    notStartedCount: number;
-    negativeFloatCount: number;
-  };
+  metrics: IScheduleMetrics;
   activities: IScheduleActivity[];
 }
 
@@ -260,20 +321,30 @@ const OverviewTab: React.FC<IOverviewTabProps> = ({ metrics, activities }) => {
   if (activities.length === 0) {
     return (
       <div style={{ padding: 48, textAlign: 'center', color: HBC_COLORS.gray400 }}>
-        No schedule data. Import a P6 CSV to get started.
+        No schedule data. Import a schedule file to get started.
       </div>
     );
   }
 
+  const { earnedValueMetrics: ev } = metrics;
+
   return (
     <>
-      {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
+      {/* KPI Cards — Row 1 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 16 }}>
         <MetricCard label="Total Activities" value={String(metrics.totalActivities)} color={HBC_COLORS.navy} />
         <MetricCard label="% Complete" value={`${metrics.percentComplete}%`} color="#3B82F6" />
         <MetricCard label="Critical Activities" value={String(metrics.criticalActivityCount)} color={HBC_COLORS.error} subtitle={`${metrics.negativeFloatCount} negative float`} />
         <MetricCard label="Avg Float" value={`${metrics.averageFloat}d`} color={metrics.averageFloat < 5 ? HBC_COLORS.error : metrics.averageFloat < 15 ? HBC_COLORS.warning : HBC_COLORS.success} />
         <MetricCard label="SPI (approx)" value={metrics.spiApproximation !== null ? String(metrics.spiApproximation) : 'N/A'} color={metrics.spiApproximation !== null && metrics.spiApproximation >= 1.0 ? HBC_COLORS.success : HBC_COLORS.warning} />
+      </div>
+
+      {/* KPI Cards — Row 2 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+        <MetricCard label="CPI" value={ev.cpi !== null ? String(ev.cpi) : 'N/A'} color={ev.cpi !== null && ev.cpi >= 1.0 ? HBC_COLORS.success : HBC_COLORS.warning} subtitle="Cost Performance Index" />
+        <MetricCard label="Neg Float %" value={`${metrics.negativeFloatPercent}%`} color={metrics.negativeFloatPercent > 10 ? HBC_COLORS.error : metrics.negativeFloatPercent > 5 ? HBC_COLORS.warning : HBC_COLORS.success} />
+        <MetricCard label="Schedule Var" value={`${ev.sv >= 0 ? '+' : ''}${ev.sv}d`} color={ev.sv >= 0 ? HBC_COLORS.success : HBC_COLORS.error} subtitle={`EV: ${ev.ev}d / PV: ${ev.pv}d`} />
+        <MetricCard label="Open Ends" value={String(metrics.logicMetrics.openEnds.noPredecessor + metrics.logicMetrics.openEnds.noSuccessor)} color={HBC_COLORS.info} subtitle={`${metrics.logicMetrics.openEnds.noPredecessor} no pred, ${metrics.logicMetrics.openEnds.noSuccessor} no succ`} />
       </div>
 
       {/* Status Distribution Bar */}
@@ -318,19 +389,56 @@ interface IActivitiesTabProps {
   onStatusFilterChange: (v: string) => void;
   criticalOnly: boolean;
   onCriticalOnlyChange: (v: boolean) => void;
+  wbsFilter: string;
+  onWbsFilterChange: (v: string) => void;
+  wbsPrefixes: string[];
+  actTypeFilter: string;
+  onActTypeFilterChange: (v: string) => void;
+  activityTypes: string[];
+  dateStart: string;
+  onDateStartChange: (v: string) => void;
+  dateEnd: string;
+  onDateEndChange: (v: string) => void;
+  floatMin: string;
+  onFloatMinChange: (v: string) => void;
+  floatMax: string;
+  onFloatMaxChange: (v: string) => void;
   sortField: SortField;
   sortDir: SortDir;
   onSort: (field: SortField) => void;
   canView: boolean;
+  projectCode: string;
 }
 
 const ActivitiesTab: React.FC<IActivitiesTabProps> = ({
   filtered, search, onSearchChange, statusFilter, onStatusFilterChange,
-  criticalOnly, onCriticalOnlyChange, sortField, sortDir, onSort,
-}) => (
+  criticalOnly, onCriticalOnlyChange,
+  wbsFilter, onWbsFilterChange, wbsPrefixes,
+  actTypeFilter, onActTypeFilterChange, activityTypes,
+  dateStart, onDateStartChange, dateEnd, onDateEndChange,
+  floatMin, onFloatMinChange, floatMax, onFloatMaxChange,
+  sortField, sortDir, onSort, projectCode,
+}) => {
+  const exportData = React.useMemo(() =>
+    filtered.map(a => ({
+      'Activity ID': a.taskCode,
+      'WBS': a.wbsCode,
+      'Name': a.activityName,
+      'Status': a.status,
+      'Orig Duration': a.originalDuration,
+      'Remaining': a.remainingDuration,
+      'Start': a.plannedStartDate || a.actualStartDate || '',
+      'Finish': a.plannedFinishDate || a.actualFinishDate || '',
+      'Float': a.remainingFloat,
+      '% Complete': a.percentComplete,
+      'Critical': a.isCritical ? 'Yes' : 'No',
+    } as Record<string, unknown>)),
+  [filtered]);
+
+  return (
   <>
-    {/* Filters */}
-    <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
+    {/* Filters — Row 1 */}
+    <div style={{ display: 'flex', gap: 12, marginBottom: 8, alignItems: 'center' }}>
       <input
         type="text"
         placeholder="Search activities..."
@@ -338,14 +446,46 @@ const ActivitiesTab: React.FC<IActivitiesTabProps> = ({
         onChange={e => onSearchChange(e.target.value)}
         style={{ ...inputStyle, flex: 1 }}
       />
-      <select value={statusFilter} onChange={e => onStatusFilterChange(e.target.value)} style={{ ...inputStyle, width: 180 }}>
+      <select value={statusFilter} onChange={e => onStatusFilterChange(e.target.value)} style={{ ...inputStyle, width: 150 }}>
         <option value="all">All Statuses</option>
         {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
       </select>
+      {wbsPrefixes.length > 0 && (
+        <select value={wbsFilter} onChange={e => onWbsFilterChange(e.target.value)} style={{ ...inputStyle, width: 150 }}>
+          <option value="all">All WBS</option>
+          {wbsPrefixes.map(w => <option key={w} value={w}>{w}</option>)}
+        </select>
+      )}
+      {activityTypes.length > 1 && (
+        <select value={actTypeFilter} onChange={e => onActTypeFilterChange(e.target.value)} style={{ ...inputStyle, width: 160 }}>
+          <option value="all">All Types</option>
+          {activityTypes.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+      )}
       <label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
         <input type="checkbox" checked={criticalOnly} onChange={e => onCriticalOnlyChange(e.target.checked)} />
         Critical Only
       </label>
+    </div>
+
+    {/* Filters — Row 2: Date range + Float range */}
+    <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
+      <label style={{ fontSize: 12, color: HBC_COLORS.gray500, whiteSpace: 'nowrap' }}>Start from:</label>
+      <input type="date" value={dateStart} onChange={e => onDateStartChange(e.target.value)} style={{ ...inputStyle, width: 140 }} />
+      <label style={{ fontSize: 12, color: HBC_COLORS.gray500, whiteSpace: 'nowrap' }}>to:</label>
+      <input type="date" value={dateEnd} onChange={e => onDateEndChange(e.target.value)} style={{ ...inputStyle, width: 140 }} />
+      <div style={{ width: 1, height: 20, backgroundColor: HBC_COLORS.gray200 }} />
+      <label style={{ fontSize: 12, color: HBC_COLORS.gray500, whiteSpace: 'nowrap' }}>Float:</label>
+      <input type="number" placeholder="Min" value={floatMin} onChange={e => onFloatMinChange(e.target.value)} style={{ ...inputStyle, width: 70 }} />
+      <span style={{ fontSize: 12, color: HBC_COLORS.gray500 }}>-</span>
+      <input type="number" placeholder="Max" value={floatMax} onChange={e => onFloatMaxChange(e.target.value)} style={{ ...inputStyle, width: 70 }} />
+      <div style={{ flex: 1 }} />
+      <ExportButtons
+        pdfElementId="schedule-activities-table"
+        data={exportData}
+        filename={`schedule-activities-${projectCode}`}
+        title="Schedule Activities"
+      />
     </div>
 
     <div style={{ fontSize: 12, color: HBC_COLORS.gray500, marginBottom: 8 }}>
@@ -353,7 +493,7 @@ const ActivitiesTab: React.FC<IActivitiesTabProps> = ({
     </div>
 
     {/* Table */}
-    <div style={{ overflowX: 'auto' }}>
+    <div id="schedule-activities-table" style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
         <thead>
           <tr style={{ borderBottom: `2px solid ${HBC_COLORS.gray200}` }}>
@@ -397,7 +537,8 @@ const ActivitiesTab: React.FC<IActivitiesTabProps> = ({
       </table>
     </div>
   </>
-);
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Gantt Tab
@@ -605,7 +746,7 @@ interface IImportTabProps {
 const ImportTab: React.FC<IImportTabProps> = ({ imports, onOpenImport }) => (
   <>
     <div style={{ marginBottom: 24 }}>
-      <button onClick={onOpenImport} style={btnPrimary}>Upload P6 CSV</button>
+      <button onClick={onOpenImport} style={btnPrimary}>Upload Schedule File</button>
     </div>
 
     {imports.length > 0 && (
@@ -640,7 +781,7 @@ const ImportTab: React.FC<IImportTabProps> = ({ imports, onOpenImport }) => (
 
     {imports.length === 0 && (
       <div style={{ padding: 32, textAlign: 'center', color: HBC_COLORS.gray400, fontSize: 13 }}>
-        No imports yet. Upload a P6 CSV file to get started.
+        No imports yet. Upload a schedule file (CSV, XER, or XML) to get started.
       </div>
     )}
   </>
