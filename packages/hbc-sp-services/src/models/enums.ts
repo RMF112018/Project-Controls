@@ -235,6 +235,7 @@ export enum EntityType {
   Performance = 'Performance',
   SupportRequest = 'SupportRequest',
   DataMart = 'DataMart',
+  Closeout = 'Closeout',
 }
 
 export enum DeliverableStatus {

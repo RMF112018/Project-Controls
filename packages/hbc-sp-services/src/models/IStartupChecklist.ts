@@ -1,4 +1,13 @@
-export type ChecklistResponseType = 'yesNoNA' | 'yesNoWithComment' | 'textInput' | 'numeric';
+export type ChecklistResponseType =
+  | 'yesNoNA'
+  | 'yesNoWithComment'
+  | 'textInput'
+  | 'numeric'
+  | 'percent'
+  | 'currency'
+  | 'currencyWithPeriod'
+  | 'date'
+  | 'calculatedDate';
 
 export type ChecklistStatus = 'Conforming' | 'Deficient' | 'NA' | 'Neutral' | 'NoResponse';
 
@@ -35,6 +44,13 @@ export interface IStartupChecklistItem {
   isCustom: boolean;
   sortOrder: number;
   activityLog: IChecklistActivityEntry[];
+  hbShare?: number;
+  amount?: number;
+  period?: string;
+  dateValue?: string;
+  calculatedFrom?: string;
+  placeholder?: string;
+  details?: string;
 }
 
 export interface IStartupChecklistSummary {
@@ -64,12 +80,13 @@ export const DEFAULT_CHECKLIST_ITEMS: Array<{
   itemNumber: string;
   label: string;
   responseType: ChecklistResponseType;
+  placeholder?: string;
 }> = [
   // Section 1: Review Owner's Contract
-  { sectionNumber: 1, itemNumber: '1.1', label: 'Review owner\'s contract', responseType: 'yesNoNA' },
-  { sectionNumber: 1, itemNumber: '1.2', label: 'Contract type', responseType: 'textInput' },
-  { sectionNumber: 1, itemNumber: '1.3', label: 'Owner-furnished items identified and documented', responseType: 'yesNoWithComment' },
-  { sectionNumber: 1, itemNumber: '1.4', label: 'Liquidated damages clause reviewed', responseType: 'yesNoNA' },
+  { sectionNumber: 1, itemNumber: '1.1', label: 'Split savings clause if any & Contingency usage parameters', responseType: 'percent', placeholder: 'Contingency Use Contract Article' },
+  { sectionNumber: 1, itemNumber: '1.2', label: 'Liquidated damages are?', responseType: 'currencyWithPeriod' },
+  { sectionNumber: 1, itemNumber: '1.3', label: 'Any other special terms to be aware of?', responseType: 'yesNoNA' },
+  { sectionNumber: 1, itemNumber: '1.4', label: 'Allowances to track- Set up change event to track', responseType: 'yesNoNA' },
 
   // Section 2: Job Start-up
   { sectionNumber: 2, itemNumber: '2.1', label: 'Project Executive assigned', responseType: 'yesNoNA' },

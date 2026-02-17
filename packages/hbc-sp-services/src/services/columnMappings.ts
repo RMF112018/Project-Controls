@@ -879,6 +879,13 @@ export const STARTUP_CHECKLIST_COLUMNS = {
   isHidden: 'isHidden',                        // SP: Yes/No
   isCustom: 'isCustom',                        // SP: Yes/No
   sortOrder: 'sortOrder',                      // SP: Number
+  hbShare: 'hbShare',                          // SP: Number (0-100)
+  amount: 'amount',                            // SP: Number (currency)
+  period: 'period',                            // SP: Choice (Day, Week, Month, Quarter, Year)
+  dateValue: 'dateValue',                      // SP: DateTime
+  calculatedFrom: 'calculatedFrom',            // SP: Single Line of Text
+  placeholder: 'placeholder',                  // SP: Single Line of Text
+  details: 'details',                          // SP: Multiple Lines of Text
   // activityLog: stored in child list → Checklist_Activity_Log
 } as const;
 
@@ -1309,6 +1316,22 @@ export const CLOSEOUT_ITEMS_COLUMNS = {
   assignedToId: 'assignedToId',                // SP: Number (Person lookup ID)
   completedDate: 'completedDate',              // SP: DateTime
   notes: 'notes',                              // SP: Multiple Lines of Text
+  sectionNumber: 'sectionNumber',              // SP: Number
+  sectionName: 'sectionName',                  // SP: Single Line of Text
+  itemNumber: 'itemNumber',                    // SP: Single Line of Text
+  label: 'label',                              // SP: Single Line of Text
+  responseType: 'responseType',                // SP: Choice
+  response: 'response',                        // SP: Single Line of Text
+  respondedBy: 'respondedBy',                  // SP: Single Line of Text
+  respondedDate: 'respondedDate',              // SP: DateTime
+  comment: 'comment',                          // SP: Multiple Lines of Text
+  isHidden: 'isHidden',                        // SP: Yes/No
+  isCustom: 'isCustom',                        // SP: Yes/No
+  sortOrder: 'sortOrder',                      // SP: Number
+  dateValue: 'dateValue',                      // SP: DateTime
+  calculatedFrom: 'calculatedFrom',            // SP: Single Line of Text
+  placeholder: 'placeholder',                  // SP: Single Line of Text
+  details: 'details',                          // SP: Multiple Lines of Text
 } as const;
 
 /**
