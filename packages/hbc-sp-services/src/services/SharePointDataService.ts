@@ -39,6 +39,7 @@ import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfi
 import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '../models/IPerformanceLog';
 import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
 import { IScheduleActivity, IScheduleImport, IScheduleMetrics, IScheduleRelationship, ActivityStatus, RelationshipType } from '../models/IScheduleActivity';
+import { IConstraintLog } from '../models/IConstraintLog';
 import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField, TurnoverStatus, ScorecardStatus, WorkflowActionType, ActionPriority, AuditAction, EntityType } from '../models/enums';
 import { DataServiceError } from './DataServiceError';
 import { performanceService } from './PerformanceService';
@@ -109,6 +110,7 @@ import {
   CLOSEOUT_ITEMS_COLUMNS,
   SCHEDULE_ACTIVITIES_COLUMNS,
   SCHEDULE_IMPORTS_COLUMNS,
+  CONSTRAINTS_LOG_COLUMNS,
 } from './columnMappings';
 import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
 import { cacheService } from './CacheService';
@@ -8773,6 +8775,162 @@ export class SharePointDataService implements IDataService {
       importedBy: item[col.importedBy] as string || '',
       activityCount: (item[col.activityCount] as number) || 0,
       notes: item[col.notes] as string || '',
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ──── Constraints Log ────
+  // ═══════════════════════════════════════════════════════════════════
+
+  async getConstraints(projectCode: string): Promise<IConstraintLog[]> {
+    performanceService.startMark('sp:getConstraints');
+    try {
+      const web = this._getProjectWeb();
+      const items = await web.lists
+        .getByTitle(LIST_NAMES.CONSTRAINTS_LOG)
+        .items
+        .filter(`ProjectCode eq '${projectCode}'`)
+        .top(5000)();
+      performanceService.endMark('sp:getConstraints');
+      return items.map((item: Record<string, unknown>) => this.mapToConstraintLog(item));
+    } catch (err) {
+      performanceService.endMark('sp:getConstraints');
+      throw this.handleError('getConstraints', err, { entityType: 'Constraint' });
+    }
+  }
+
+  async addConstraint(projectCode: string, constraint: Partial<IConstraintLog>): Promise<IConstraintLog> {
+    performanceService.startMark('sp:addConstraint');
+    try {
+      const web = this._getProjectWeb();
+      const col = CONSTRAINTS_LOG_COLUMNS;
+
+      // Get next constraint number
+      const existing = await web.lists
+        .getByTitle(LIST_NAMES.CONSTRAINTS_LOG)
+        .items
+        .filter(`ProjectCode eq '${projectCode}'`)
+        .orderBy('ConstraintNumber', false)
+        .top(1)();
+      const nextNumber = existing.length > 0 ? ((existing[0] as Record<string, unknown>).ConstraintNumber as number || 0) + 1 : 1;
+
+      const result = await web.lists
+        .getByTitle(LIST_NAMES.CONSTRAINTS_LOG)
+        .items.add({
+          [col.projectCode]: projectCode,
+          [col.constraintNumber]: nextNumber,
+          [col.category]: constraint.category || 'Other',
+          [col.description]: constraint.description || '',
+          [col.status]: constraint.status || 'Open',
+          [col.assignedTo]: constraint.assignedTo || '',
+          [col.dateIdentified]: constraint.dateIdentified || new Date().toISOString(),
+          [col.dueDate]: constraint.dueDate || null,
+          [col.dateClosed]: constraint.dateClosed || null,
+          [col.reference]: constraint.reference || '',
+          [col.closureDocument]: constraint.closureDocument || '',
+          [col.budgetImpactCost]: constraint.budgetImpactCost || 0,
+          [col.comments]: constraint.comments || '',
+        });
+
+      this.logAudit({
+        Action: AuditAction.ConstraintUpdated,
+        EntityType: EntityType.Constraint,
+        EntityId: String((result as Record<string, unknown>).Id || (result as Record<string, unknown>).id || 0),
+        Details: `Added constraint #${nextNumber} for ${projectCode}`,
+      });
+
+      performanceService.endMark('sp:addConstraint');
+      return this.mapToConstraintLog(result as Record<string, unknown>);
+    } catch (err) {
+      performanceService.endMark('sp:addConstraint');
+      throw this.handleError('addConstraint', err, { entityType: 'Constraint' });
+    }
+  }
+
+  async updateConstraint(projectCode: string, constraintId: number, data: Partial<IConstraintLog>): Promise<IConstraintLog> {
+    performanceService.startMark('sp:updateConstraint');
+    try {
+      const web = this._getProjectWeb();
+      const col = CONSTRAINTS_LOG_COLUMNS;
+      const updates: Record<string, unknown> = {};
+
+      if (data.category !== undefined) updates[col.category] = data.category;
+      if (data.description !== undefined) updates[col.description] = data.description;
+      if (data.status !== undefined) updates[col.status] = data.status;
+      if (data.assignedTo !== undefined) updates[col.assignedTo] = data.assignedTo;
+      if (data.dateIdentified !== undefined) updates[col.dateIdentified] = data.dateIdentified;
+      if (data.dueDate !== undefined) updates[col.dueDate] = data.dueDate;
+      if (data.dateClosed !== undefined) updates[col.dateClosed] = data.dateClosed;
+      if (data.reference !== undefined) updates[col.reference] = data.reference;
+      if (data.closureDocument !== undefined) updates[col.closureDocument] = data.closureDocument;
+      if (data.budgetImpactCost !== undefined) updates[col.budgetImpactCost] = data.budgetImpactCost;
+      if (data.comments !== undefined) updates[col.comments] = data.comments;
+
+      await web.lists
+        .getByTitle(LIST_NAMES.CONSTRAINTS_LOG)
+        .items.getById(constraintId)
+        .update(updates);
+
+      this.logAudit({
+        Action: AuditAction.ConstraintUpdated,
+        EntityType: EntityType.Constraint,
+        EntityId: String(constraintId),
+        Details: `Updated constraint ${constraintId} for ${projectCode}`,
+      });
+
+      // Re-read the updated item
+      const item = await web.lists
+        .getByTitle(LIST_NAMES.CONSTRAINTS_LOG)
+        .items.getById(constraintId)();
+
+      performanceService.endMark('sp:updateConstraint');
+      return this.mapToConstraintLog(item as unknown as Record<string, unknown>);
+    } catch (err) {
+      performanceService.endMark('sp:updateConstraint');
+      throw this.handleError('updateConstraint', err, { entityType: 'Constraint' });
+    }
+  }
+
+  async removeConstraint(projectCode: string, constraintId: number): Promise<void> {
+    performanceService.startMark('sp:removeConstraint');
+    try {
+      const web = this._getProjectWeb();
+      await web.lists
+        .getByTitle(LIST_NAMES.CONSTRAINTS_LOG)
+        .items.getById(constraintId)
+        .delete();
+
+      this.logAudit({
+        Action: AuditAction.ConstraintUpdated,
+        EntityType: EntityType.Constraint,
+        EntityId: String(constraintId),
+        Details: `Removed constraint ${constraintId} from ${projectCode}`,
+      });
+
+      performanceService.endMark('sp:removeConstraint');
+    } catch (err) {
+      performanceService.endMark('sp:removeConstraint');
+      throw this.handleError('removeConstraint', err, { entityType: 'Constraint' });
+    }
+  }
+
+  private mapToConstraintLog(item: Record<string, unknown>): IConstraintLog {
+    const col = CONSTRAINTS_LOG_COLUMNS;
+    return {
+      id: (item.Id as number) || (item.id as number) || 0,
+      projectCode: item[col.projectCode] as string || '',
+      constraintNumber: (item[col.constraintNumber] as number) || 0,
+      category: (item[col.category] as IConstraintLog['category']) || 'Other',
+      description: item[col.description] as string || '',
+      status: (item[col.status] as IConstraintLog['status']) || 'Open',
+      assignedTo: item[col.assignedTo] as string || '',
+      dateIdentified: item[col.dateIdentified] as string || '',
+      dueDate: item[col.dueDate] as string || '',
+      dateClosed: item[col.dateClosed] as string || undefined,
+      reference: item[col.reference] as string || undefined,
+      closureDocument: item[col.closureDocument] as string || undefined,
+      budgetImpactCost: item[col.budgetImpactCost] as number || undefined,
+      comments: item[col.comments] as string || undefined,
     };
   }
 }

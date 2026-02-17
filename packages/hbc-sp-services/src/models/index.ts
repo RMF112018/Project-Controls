@@ -48,3 +48,4 @@ export * from './IHelpGuide';
 export * from './ISignalRMessage';
 export * from './IProjectDataMart';
 export * from './IScheduleActivity';
+export * from './IConstraintLog';

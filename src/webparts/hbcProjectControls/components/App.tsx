@@ -82,6 +82,7 @@ const LessonsLearnedPage = lazyNamed(() => import('./pages/project/LessonsLearne
 const ProjectManagementPlan = lazyNamed(() => import('./pages/project/pmp/ProjectManagementPlan'));
 const MonthlyProjectReview = lazyNamed(() => import('./pages/project/MonthlyProjectReview'));
 const BuyoutLogPage = lazyNamed(() => import('./pages/project/BuyoutLogPage'));
+const ConstraintsLogPage = lazyNamed(() => import('./pages/project/ConstraintsLogPage'));
 const ProjectSettingsPage = lazyNamed(() => import('./pages/project/ProjectSettingsPage'));
 
 // ---------------------------------------------------------------------------
@@ -308,7 +309,11 @@ const AppRoutes: React.FC = () => (
         <ProjectRequiredRoute><ComingSoonPage title="Best Practices" /></ProjectRequiredRoute>
       } />
       <Route path="/operations/constraints" element={
-        <ProjectRequiredRoute><ComingSoonPage title="Constraints" /></ProjectRequiredRoute>
+        <ProjectRequiredRoute>
+          <ProtectedRoute permission={PERMISSIONS.CONSTRAINTS_VIEW}>
+            <ConstraintsLogPage />
+          </ProtectedRoute>
+        </ProjectRequiredRoute>
       } />
       <Route path="/operations/permits" element={
         <ProjectRequiredRoute><ComingSoonPage title="Permits" /></ProjectRequiredRoute>

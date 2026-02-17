@@ -40,6 +40,7 @@ export const CACHE_KEYS = {
   PORTFOLIO_SUMMARY: 'hbc_portfolio_summary',
   PERSONNEL_WORKLOAD: 'hbc_personnel_workload',
   ACCESSIBLE_PROJECTS: 'hbc_accessible_projects',
+  CONSTRAINTS: 'hbc_constraints',
 } as const;
 
 export const HUB_LISTS = {
@@ -130,6 +131,7 @@ export const PROJECT_LISTS = {
   TURNOVER_ESTIMATE_OVERVIEWS: 'Turnover_Estimate_Overviews',
   SCHEDULE_ACTIVITIES: 'Schedule_Activities',
   SCHEDULE_IMPORTS: 'Schedule_Imports',
+  CONSTRAINTS_LOG: 'Constraints_Log',
 } as const;
 
 export const LIST_NAMES = { ...HUB_LISTS, ...PROJECT_LISTS } as const;

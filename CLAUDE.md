@@ -48,7 +48,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §4 Core Architecture Patterns (Active)
 
-- **Data Service**: `IDataService` (235 methods) → `MockDataService` (full) + `SharePointDataService` (235/235 — COMPLETE)
+- **Data Service**: `IDataService` (239 methods) → `MockDataService` (full) + `SharePointDataService` (239/239 — COMPLETE)
 - **Data Mart**: Denormalized 43-column hub list aggregating 8+ project-site lists; fire-and-forget sync from hooks; `useDataMart` hook with SignalR refresh
 - **Hooks**: Feature-specific hooks call `dataService` methods in `useCallback`
 - **RBAC**: `resolveUserPermissions` → `PermissionGate` / `RoleGate` / `FeatureGate`
@@ -61,11 +61,12 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §7 Service Methods Status (Live)
 
-**Total methods**: 235
-**Implemented**: 235
+**Total methods**: 239
+**Implemented**: 239
 **Remaining stubs**: 0 — DATA LAYER COMPLETE
 
 **Last Completed**:
+- Constraints Log (Feb 17): 4 new methods → 239/239
 - Schedule Module (Feb 17): 6 new methods → 235/235
 - Provisioning Ops (Feb 16): 8 new methods → 229/229
 - Data Mart (Feb 15): 4 methods (`syncToDataMart`, `getDataMartRecords`, `getDataMartRecord`, `triggerDataMartSync`) → 225/225
@@ -80,7 +81,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §15 Current Phase Status
 
-**Phase COMPLETE**: Schedule Module (Validated) — 235/235 methods implemented, 61 schedule-specific tests.
+**Phase COMPLETE**: Constraints Log Module — 239/239 methods implemented, 550 total tests.
 
 Full P6-style schedule management with multi-format support:
 - **Parsing**: CSV, XER (Primavera P6), XML (MSProject + P6 PMXML) via `parseScheduleFile` dispatcher
@@ -89,7 +90,16 @@ Full P6-style schedule management with multi-format support:
 - **Shared computation**: `computeScheduleMetrics()` utility used by hook, MockDataService, and SharePointDataService
 - **Caching**: sessionStorage with 5-min TTL, SignalR bypass
 - **Charts**: Variance scatter, Float distribution bar, Near-critical horizontal bar, Schedule health radar, Logic metrics pie, Constraint analysis bar, Status donut, Earned value combo
-- 6 IDataService methods, feature-gated behind `ScheduleModule` flag, 44 project-site schemas
+- 6 IDataService methods, feature-gated behind `ScheduleModule` flag
+
+**Constraints Log Module** (Feb 17):
+- Full CRUD: `getConstraints`, `addConstraint`, `updateConstraint`, `removeConstraint` (4 methods)
+- Model: `IConstraintLog` with 10 categories, Open/Closed status, auto-increment constraintNumber
+- UI: ConstraintsLogPage with 4 MetricCards, search/status/category filters, ExportButtons, inline editing
+- `daysElapsed` calculated at render time (not stored), overdue detection for open + past-due items
+- Hook: `useConstraintLog` with SignalR subscription (`EntityType.Constraint`), computed metrics
+- Permissions: `CONSTRAINTS_VIEW`, `CONSTRAINTS_EDIT`, `CONSTRAINTS_MANAGE` (Ops=all 3, Exec/Director=VIEW+EDIT)
+- 45 project-site schemas, 12 mock entries across 2 project codes
 
 **Next Phase**: Integration testing and deployment readiness.
 

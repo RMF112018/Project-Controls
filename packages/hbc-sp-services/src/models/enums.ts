@@ -212,6 +212,7 @@ export enum AuditAction {
   ScheduleActivitiesImported = 'Schedule.ActivitiesImported',
   ScheduleActivityUpdated = 'Schedule.ActivityUpdated',
   ScheduleActivityDeleted = 'Schedule.ActivityDeleted',
+  ConstraintUpdated = 'Constraint.Updated',
 }
 
 export enum EntityType {
@@ -245,6 +246,7 @@ export enum EntityType {
   Closeout = 'Closeout',
   ContractTracking = 'ContractTracking',
   ScheduleActivity = 'ScheduleActivity',
+  Constraint = 'Constraint',
 }
 
 export enum DeliverableStatus {
