@@ -8,7 +8,35 @@ import {
   IScheduleMetrics,
   EntityType,
   IEntityChangedMessage,
+  computeScheduleMetrics,
 } from '@hbc/sp-services';
+
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_PREFIX = 'hbc-schedule-cache-';
+
+function readActivityCache(projectCode: string): IScheduleActivity[] | null {
+  try {
+    const raw = sessionStorage.getItem(`${CACHE_PREFIX}${projectCode}`);
+    if (!raw) return null;
+    const cached = JSON.parse(raw) as { data: IScheduleActivity[]; timestamp: number };
+    if (Date.now() - cached.timestamp > CACHE_TTL_MS) {
+      sessionStorage.removeItem(`${CACHE_PREFIX}${projectCode}`);
+      return null;
+    }
+    return cached.data;
+  } catch {
+    return null;
+  }
+}
+
+function writeActivityCache(projectCode: string, data: IScheduleActivity[]): void {
+  try {
+    sessionStorage.setItem(
+      `${CACHE_PREFIX}${projectCode}`,
+      JSON.stringify({ data, timestamp: Date.now() }),
+    );
+  } catch { /* quota exceeded — ignore */ }
+}
 
 export function useScheduleActivities() {
   const { dataService, currentUser } = useAppContext();
@@ -19,13 +47,24 @@ export function useScheduleActivities() {
   const [error, setError] = React.useState<string | null>(null);
   const lastProjectCodeRef = React.useRef<string | null>(null);
 
-  const fetchActivities = React.useCallback(async (projectCode: string) => {
+  const fetchActivities = React.useCallback(async (projectCode: string, bypassCache = false) => {
+    lastProjectCodeRef.current = projectCode;
+
+    // Try cache first (unless bypassed by SignalR)
+    if (!bypassCache) {
+      const cached = readActivityCache(projectCode);
+      if (cached) {
+        setActivities(cached);
+        return;
+      }
+    }
+
     setIsLoading(true);
     setError(null);
-    lastProjectCodeRef.current = projectCode;
     try {
       const data = await dataService.getScheduleActivities(projectCode);
       setActivities(data);
+      writeActivityCache(projectCode, data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load schedule activities');
     } finally {
@@ -47,7 +86,7 @@ export function useScheduleActivities() {
     entityType: EntityType.ScheduleActivity,
     onEntityChanged: React.useCallback(() => {
       if (lastProjectCodeRef.current) {
-        fetchActivities(lastProjectCodeRef.current);
+        fetchActivities(lastProjectCodeRef.current, true);
       }
     }, [fetchActivities]),
   });
@@ -80,6 +119,7 @@ export function useScheduleActivities() {
     try {
       const imported = await dataService.importScheduleActivities(projectCode, parsedActivities, importMeta);
       setActivities(imported);
+      writeActivityCache(projectCode, imported);
       broadcastScheduleChange(projectCode, 'created', `Imported ${parsedActivities.length} activities`);
       // Refresh import history
       fetchImports(projectCode);
@@ -128,45 +168,10 @@ export function useScheduleActivities() {
     }
   }, [dataService, broadcastScheduleChange]);
 
-  const metrics: IScheduleMetrics = React.useMemo(() => {
-    const completedCount = activities.filter(a => a.status === 'Completed').length;
-    const inProgressCount = activities.filter(a => a.status === 'In Progress').length;
-    const notStartedCount = activities.filter(a => a.status === 'Not Started').length;
-    const criticalActivityCount = activities.filter(a => a.isCritical).length;
-    const negativeFloatCount = activities.filter(a => a.remainingFloat !== null && a.remainingFloat < 0).length;
-
-    const floatsWithValues = activities.filter(a => a.remainingFloat !== null).map(a => a.remainingFloat!);
-    const averageFloat = floatsWithValues.length > 0
-      ? floatsWithValues.reduce((s, f) => s + f, 0) / floatsWithValues.length
-      : 0;
-
-    const percentComplete = activities.length > 0
-      ? Math.round((completedCount / activities.length) * 100)
-      : 0;
-
-    const totalDuration = activities.reduce((s, a) => s + a.originalDuration, 0);
-    const earnedDuration = activities.reduce((s, a) => s + a.actualDuration, 0);
-    const spiApproximation = totalDuration > 0 ? Math.round((earnedDuration / totalDuration) * 100) / 100 : null;
-
-    return {
-      totalActivities: activities.length,
-      completedCount,
-      inProgressCount,
-      notStartedCount,
-      percentComplete,
-      criticalActivityCount,
-      negativeFloatCount,
-      averageFloat: Math.round(averageFloat * 10) / 10,
-      spiApproximation,
-      floatDistribution: {
-        negative: negativeFloatCount,
-        zero: activities.filter(a => a.remainingFloat === 0).length,
-        low: activities.filter(a => a.remainingFloat !== null && a.remainingFloat > 0 && a.remainingFloat <= 10).length,
-        medium: activities.filter(a => a.remainingFloat !== null && a.remainingFloat > 10 && a.remainingFloat <= 30).length,
-        high: activities.filter(a => a.remainingFloat !== null && a.remainingFloat > 30).length,
-      },
-    };
-  }, [activities]);
+  const metrics: IScheduleMetrics = React.useMemo(
+    () => computeScheduleMetrics(activities),
+    [activities],
+  );
 
   return {
     activities,

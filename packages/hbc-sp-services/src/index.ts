@@ -19,6 +19,7 @@ export * from './utils/estimatingKickoffTemplate';
 export * from './utils/turnoverAgendaTemplate';
 export * from './utils/siteDetector';
 export * from './utils/scheduleParser';
+export * from './utils/scheduleMetrics';
 
 // Mock data — for dev/test use
 export { default as MOCK_USERS } from './mock/users.json';

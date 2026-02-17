@@ -1,5 +1,5 @@
 export type ActivityStatus = 'Completed' | 'In Progress' | 'Not Started';
-export type ScheduleImportFormat = 'P6-CSV' | 'MSProject-CSV';
+export type ScheduleImportFormat = 'P6-CSV' | 'P6-XER' | 'MSProject-XML' | 'MSProject-CSV';
 export type RelationshipType = 'FS' | 'FF' | 'SS' | 'SF';
 
 export interface IScheduleRelationship {
@@ -81,5 +81,29 @@ export interface IScheduleMetrics {
     low: number;
     medium: number;
     high: number;
+  };
+  negativeFloatPercent: number;
+  cpiApproximation: number | null;
+  constraintAnalysis: {
+    totalConstrained: number;
+    byType: Record<string, number>;
+  };
+  earnedValueMetrics: {
+    plannedDuration: number;
+    earnedDuration: number;
+    actualDuration: number;
+    bac: number;
+    ev: number;
+    pv: number;
+    sv: number;
+    spi: number | null;
+    cpi: number | null;
+  };
+  logicMetrics: {
+    totalRelationships: number;
+    avgPredecessors: number;
+    avgSuccessors: number;
+    openEnds: { noSuccessor: number; noPredecessor: number };
+    relationshipTypes: Record<string, number>;
   };
 }

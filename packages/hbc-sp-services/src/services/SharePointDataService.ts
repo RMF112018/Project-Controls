@@ -48,6 +48,7 @@ import { resolveToolPermissions, TOOL_DEFINITIONS } from '../utils/toolPermissio
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 import { DEFAULT_PREREQUISITES, DEFAULT_DISCUSSION_ITEMS, DEFAULT_EXHIBITS, DEFAULT_SIGNATURES, TURNOVER_SIGNATURE_AFFIDAVIT } from '../utils/turnoverAgendaTemplate';
 import { calculateTotalScore, getRecommendedDecision } from '../utils/scoreCalculator';
+import { computeScheduleMetrics } from '../utils/scheduleMetrics';
 import {
   PERMISSION_TEMPLATES_COLUMNS,
   SECURITY_GROUP_MAPPINGS_COLUMNS,
@@ -8696,47 +8697,9 @@ export class SharePointDataService implements IDataService {
     performanceService.startMark('sp:getScheduleMetrics');
     try {
       const activities = await this.getScheduleActivities(projectCode);
-
-      const completedCount = activities.filter(a => a.status === 'Completed').length;
-      const inProgressCount = activities.filter(a => a.status === 'In Progress').length;
-      const notStartedCount = activities.filter(a => a.status === 'Not Started').length;
-      const criticalActivityCount = activities.filter(a => a.isCritical).length;
-      const negativeFloatCount = activities.filter(a => a.remainingFloat !== null && a.remainingFloat < 0).length;
-
-      const floatsWithValues = activities.filter(a => a.remainingFloat !== null).map(a => a.remainingFloat!);
-      const averageFloat = floatsWithValues.length > 0
-        ? floatsWithValues.reduce((s, f) => s + f, 0) / floatsWithValues.length
-        : 0;
-
-      const percentComplete = activities.length > 0
-        ? Math.round((completedCount / activities.length) * 100)
-        : 0;
-
-      const totalDuration = activities.reduce((s, a) => s + a.originalDuration, 0);
-      const earnedDuration = activities.reduce((s, a) => s + a.actualDuration, 0);
-      const spiApproximation = totalDuration > 0 ? Math.round((earnedDuration / totalDuration) * 100) / 100 : null;
-
-      const floatDistribution = {
-        negative: negativeFloatCount,
-        zero: activities.filter(a => a.remainingFloat === 0).length,
-        low: activities.filter(a => a.remainingFloat !== null && a.remainingFloat > 0 && a.remainingFloat <= 10).length,
-        medium: activities.filter(a => a.remainingFloat !== null && a.remainingFloat > 10 && a.remainingFloat <= 30).length,
-        high: activities.filter(a => a.remainingFloat !== null && a.remainingFloat > 30).length,
-      };
-
+      const metrics = computeScheduleMetrics(activities);
       performanceService.endMark('sp:getScheduleMetrics');
-      return {
-        totalActivities: activities.length,
-        completedCount,
-        inProgressCount,
-        notStartedCount,
-        percentComplete,
-        criticalActivityCount,
-        negativeFloatCount,
-        averageFloat: Math.round(averageFloat * 10) / 10,
-        spiApproximation,
-        floatDistribution,
-      };
+      return metrics;
     } catch (err) {
       performanceService.endMark('sp:getScheduleMetrics');
       throw this.handleError('getScheduleMetrics', err, { entityType: 'ScheduleActivity' });
