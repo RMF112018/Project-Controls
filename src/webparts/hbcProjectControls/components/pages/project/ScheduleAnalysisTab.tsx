@@ -8,10 +8,12 @@ import {
 } from 'recharts';
 import { IScheduleActivity, IScheduleMetrics } from '@hbc/sp-services';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
+import { ExportButtons } from '../../shared/ExportButtons';
 
 interface IScheduleAnalysisTabProps {
   activities: IScheduleActivity[];
   metrics: IScheduleMetrics;
+  projectCode: string;
 }
 
 const CHART_COLORS = [HBC_COLORS.navy, HBC_COLORS.orange, HBC_COLORS.info, HBC_COLORS.success, HBC_COLORS.warning, HBC_COLORS.error];
@@ -23,7 +25,7 @@ const FLOAT_COLORS: Record<string, string> = {
   high: HBC_COLORS.success,
 };
 
-export const ScheduleAnalysisTab: React.FC<IScheduleAnalysisTabProps> = ({ activities, metrics }) => {
+export const ScheduleAnalysisTab: React.FC<IScheduleAnalysisTabProps> = ({ activities, metrics, projectCode }) => {
   if (activities.length === 0) {
     return (
       <div style={{ padding: 48, textAlign: 'center', color: HBC_COLORS.gray400 }}>
@@ -33,7 +35,15 @@ export const ScheduleAnalysisTab: React.FC<IScheduleAnalysisTabProps> = ({ activ
   }
 
   return (
-    <div id="schedule-analysis-charts" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+    <>
+    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+      <ExportButtons
+        pdfElementId="schedule-analysis-charts"
+        filename={`schedule-analysis-${projectCode}`}
+        title="Schedule Analysis"
+      />
+    </div>
+    <div id="schedule-analysis-charts" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))', gap: 16 }}>
       <VarianceChart activities={activities} />
       <FloatDistributionChart metrics={metrics} />
       <SensitivityChart activities={activities} />
@@ -43,6 +53,7 @@ export const ScheduleAnalysisTab: React.FC<IScheduleAnalysisTabProps> = ({ activ
       <StatusBreakdownChart metrics={metrics} />
       <EarnedValueChart metrics={metrics} />
     </div>
+    </>
   );
 };
 
@@ -346,7 +357,7 @@ const EarnedValueChart: React.FC<{ metrics: IScheduleMetrics }> = ({ metrics }) 
 // ---------------------------------------------------------------------------
 
 const ChartCard: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
-  <div style={cardStyle}>
+  <div style={cardStyle} role="img" aria-label={`${title}${subtitle ? `: ${subtitle}` : ''}`}>
     <div style={{ fontSize: 14, fontWeight: 600, color: HBC_COLORS.navy, marginBottom: 2 }}>{title}</div>
     {subtitle && <div style={{ fontSize: 11, color: HBC_COLORS.gray400, marginBottom: 12 }}>{subtitle}</div>}
     {children}

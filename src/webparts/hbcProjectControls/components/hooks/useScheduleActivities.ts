@@ -142,7 +142,11 @@ export function useScheduleActivities() {
     setError(null);
     try {
       const updated = await dataService.updateScheduleActivity(projectCode, activityId, data);
-      setActivities(prev => prev.map(a => a.id === activityId ? updated : a));
+      setActivities(prev => {
+        const newList = prev.map(a => a.id === activityId ? updated : a);
+        writeActivityCache(projectCode, newList);
+        return newList;
+      });
       broadcastScheduleChange(activityId, 'updated', 'Activity updated');
       dataService.syncToDataMart(projectCode).catch(() => { /* silent */ });
       return updated;
@@ -159,7 +163,11 @@ export function useScheduleActivities() {
     setError(null);
     try {
       await dataService.deleteScheduleActivity(projectCode, activityId);
-      setActivities(prev => prev.filter(a => a.id !== activityId));
+      setActivities(prev => {
+        const newList = prev.filter(a => a.id !== activityId);
+        writeActivityCache(projectCode, newList);
+        return newList;
+      });
       broadcastScheduleChange(activityId, 'deleted', 'Activity deleted');
       dataService.syncToDataMart(projectCode).catch(() => { /* silent */ });
     } catch (err) {
