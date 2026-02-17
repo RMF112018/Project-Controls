@@ -67,6 +67,9 @@ import {
   ProvisioningStatus,
   JobNumberRequestStatus,
   ICommitmentApproval,
+  IContractTrackingApproval,
+  ContractTrackingStep,
+  ContractTrackingStatus,
   IActiveProject,
   IPortfolioSummary,
   IPersonnelWorkload,
@@ -232,6 +235,17 @@ export class MockDataService implements IDataService {
   /** Enable/disable dev super-admin mode (union of ALL role permissions). */
   public setDevSuperAdminMode(enabled: boolean): void {
     this._isDevSuperAdmin = enabled;
+  }
+
+  /** Get all mock users (dev-only). */
+  public getMockUsers(): Array<{ id: number; displayName: string; email: string; roles: string[]; region: string; department: string }> {
+    return this.users;
+  }
+
+  /** Update a mock user's roles (dev-only). */
+  public updateMockUserRoles(userId: number, roles: string[]): void {
+    const user = this.users.find(u => u.id === userId);
+    if (user) user.roles = roles;
   }
 
   constructor() {
@@ -3613,6 +3627,174 @@ export class MockDataService implements IDataService {
     const entry = this.buyoutEntries.find(e => e.id === entryId && e.projectCode === projectCode);
     if (!entry) throw new Error(`Buyout entry ${entryId} not found`);
     return [...(entry.approvalHistory || [])];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Contract Tracking Workflow (Mock)
+  // ---------------------------------------------------------------------------
+
+  private static readonly TRACKING_STEP_ORDER: ContractTrackingStep[] = ['APM_PA', 'ProjectManager', 'RiskManager', 'ProjectExecutive'];
+
+  private static readonly TRACKING_STEP_STATUS: Record<ContractTrackingStep, ContractTrackingStatus> = {
+    APM_PA: 'PendingAPM',
+    ProjectManager: 'PendingPM',
+    RiskManager: 'PendingRiskMgr',
+    ProjectExecutive: 'PendingPX',
+  };
+
+  private static readonly TRACKING_STEP_APPROVERS: Record<ContractTrackingStep, { name: string; email: string }> = {
+    APM_PA: { name: 'Sarah Johnson', email: 'sjohnson@hedrickbrothers.com' },
+    ProjectManager: { name: 'Robert Davis', email: 'rdavis@hedrickbrothers.com' },
+    RiskManager: { name: 'Jennifer Adams', email: 'jadams@hedrickbrothers.com' },
+    ProjectExecutive: { name: 'Kim Foster', email: 'kfoster@hedrickbrothers.com' },
+  };
+
+  private static readonly TRACKING_STEP_TO_ORDER: Record<ContractTrackingStep, number> = {
+    APM_PA: 1, ProjectManager: 2, RiskManager: 3, ProjectExecutive: 4,
+  };
+
+  private getNextTrackingStep(current: ContractTrackingStep): ContractTrackingStep | null {
+    const steps = MockDataService.TRACKING_STEP_ORDER;
+    const idx = steps.indexOf(current);
+    return idx < steps.length - 1 ? steps[idx + 1] : null;
+  }
+
+  private resolveTrackingStepApprover(
+    chain: IResolvedWorkflowStep[],
+    step: ContractTrackingStep
+  ): { name: string; email: string } {
+    const stepOrder = MockDataService.TRACKING_STEP_TO_ORDER[step];
+    const resolved = chain.find(s => s.stepOrder === stepOrder);
+    if (resolved?.assignee?.email) {
+      return { name: resolved.assignee.displayName, email: resolved.assignee.email };
+    }
+    return MockDataService.TRACKING_STEP_APPROVERS[step]; // fallback
+  }
+
+  public async submitContractTracking(projectCode: string, entryId: number, _submittedBy: string): Promise<IBuyoutEntry> {
+    await delay();
+    const idx = this.buyoutEntries.findIndex(e => e.id === entryId && e.projectCode === projectCode);
+    if (idx === -1) throw new Error(`Buyout entry ${entryId} not found`);
+
+    const entry = this.buyoutEntries[idx];
+
+    // Resolve workflow chain to check if APM_PA step is skippable and get assignees
+    let firstStep: ContractTrackingStep = 'APM_PA';
+    let chain: IResolvedWorkflowStep[] | null = null;
+    try {
+      chain = await this.resolveWorkflowChain(WorkflowKey.CONTRACT_TRACKING, projectCode);
+      const apmStep = chain.find(s => s.stepOrder === 1);
+      if (apmStep?.skipped) {
+        firstStep = 'ProjectManager';
+        // Create a Skipped record for APM_PA
+        const skippedApprover = this.resolveTrackingStepApprover(chain, 'APM_PA');
+        const skippedRecord: IContractTrackingApproval = {
+          id: this.getNextId(),
+          buyoutEntryId: entryId,
+          projectCode,
+          step: 'APM_PA',
+          approverName: skippedApprover.name,
+          approverEmail: skippedApprover.email,
+          status: 'Skipped',
+          actionDate: new Date().toISOString(),
+          skippedReason: 'No APM/PA assigned for this project',
+        };
+        entry.contractTrackingHistory = [...(entry.contractTrackingHistory || []), skippedRecord];
+      }
+    } catch { /* default to APM_PA */ }
+
+    const approver = chain
+      ? this.resolveTrackingStepApprover(chain, firstStep)
+      : MockDataService.TRACKING_STEP_APPROVERS[firstStep];
+    const approvalRecord: IContractTrackingApproval = {
+      id: this.getNextId(),
+      buyoutEntryId: entryId,
+      projectCode,
+      step: firstStep,
+      approverName: approver.name,
+      approverEmail: approver.email,
+      status: 'Pending',
+    };
+
+    entry.contractTrackingStatus = MockDataService.TRACKING_STEP_STATUS[firstStep];
+    entry.currentContractTrackingStep = firstStep;
+    entry.contractTrackingHistory = [...(entry.contractTrackingHistory || []), approvalRecord];
+    entry.modifiedDate = new Date().toISOString();
+
+    this.buyoutEntries[idx] = entry;
+    this.logAudit({ Action: AuditAction.ContractTrackingSubmitted, EntityType: EntityType.ContractTracking, EntityId: String(entryId), Details: `Contract tracking submitted for ${entry.divisionDescription}` });
+    return { ...entry };
+  }
+
+  public async respondToContractTracking(
+    projectCode: string,
+    entryId: number,
+    approved: boolean,
+    comment: string
+  ): Promise<IBuyoutEntry> {
+    await delay();
+    const idx = this.buyoutEntries.findIndex(e => e.id === entryId && e.projectCode === projectCode);
+    if (idx === -1) throw new Error(`Buyout entry ${entryId} not found`);
+
+    const entry = this.buyoutEntries[idx];
+    const now = new Date().toISOString();
+    const history = entry.contractTrackingHistory || [];
+
+    const pendingIdx = history.findIndex(a => a.status === 'Pending');
+    if (pendingIdx === -1) throw new Error('No pending contract tracking step found');
+
+    const pendingStep = { ...history[pendingIdx] };
+    pendingStep.actionDate = now;
+    pendingStep.comment = comment;
+
+    if (!approved) {
+      pendingStep.status = 'Rejected';
+      entry.contractTrackingStatus = 'Rejected';
+      entry.currentContractTrackingStep = undefined;
+      this.logAudit({ Action: AuditAction.ContractTrackingRejected, EntityType: EntityType.ContractTracking, EntityId: String(entryId), Details: `Contract tracking rejected at ${pendingStep.step}` });
+    } else {
+      pendingStep.status = 'Approved';
+      const nextStep = this.getNextTrackingStep(pendingStep.step);
+
+      if (nextStep) {
+        let approver = MockDataService.TRACKING_STEP_APPROVERS[nextStep];
+        try {
+          const chain = await this.resolveWorkflowChain(WorkflowKey.CONTRACT_TRACKING, projectCode);
+          approver = this.resolveTrackingStepApprover(chain, nextStep);
+        } catch { /* fallback to hardcoded */ }
+        const nextRecord: IContractTrackingApproval = {
+          id: this.getNextId(),
+          buyoutEntryId: entryId,
+          projectCode,
+          step: nextStep,
+          approverName: approver.name,
+          approverEmail: approver.email,
+          status: 'Pending',
+        };
+        history.push(nextRecord);
+        entry.contractTrackingStatus = MockDataService.TRACKING_STEP_STATUS[nextStep];
+        entry.currentContractTrackingStep = nextStep;
+        this.logAudit({ Action: AuditAction.ContractTrackingApproved, EntityType: EntityType.ContractTracking, EntityId: String(entryId), Details: `Contract tracking approved at ${pendingStep.step}, advancing to ${nextStep}` });
+      } else {
+        // Final approval — fully tracked
+        entry.contractTrackingStatus = 'Tracked';
+        entry.currentContractTrackingStep = undefined;
+        this.logAudit({ Action: AuditAction.ContractTrackingApproved, EntityType: EntityType.ContractTracking, EntityId: String(entryId), Details: `Contract tracking fully approved — status: Tracked` });
+      }
+    }
+
+    history[pendingIdx] = pendingStep;
+    entry.contractTrackingHistory = history;
+    entry.modifiedDate = now;
+    this.buyoutEntries[idx] = entry;
+    return { ...entry };
+  }
+
+  public async getContractTrackingHistory(projectCode: string, entryId: number): Promise<IContractTrackingApproval[]> {
+    await delay();
+    const entry = this.buyoutEntries.find(e => e.id === entryId && e.projectCode === projectCode);
+    if (!entry) throw new Error(`Buyout entry ${entryId} not found`);
+    return [...(entry.contractTrackingHistory || [])];
   }
 
   // ---------------------------------------------------------------------------

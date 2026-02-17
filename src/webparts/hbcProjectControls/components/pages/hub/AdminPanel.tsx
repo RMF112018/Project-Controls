@@ -3,6 +3,7 @@ import {
   FeatureFlagCategory,
   ProvisioningService,
   MockHubNavigationService,
+  MockDataService,
   AssignmentType,
   ISectorDefinition,
   formatDateTime,
@@ -39,7 +40,7 @@ import { useSectorDefinitions } from '../../hooks/useSectorDefinitions';
 import { useAssignmentMappings } from '../../hooks/useAssignmentMappings';
 import { HBC_COLORS, SPACING } from '../../../theme/tokens';
 
-const TAB_KEYS = ['connections', 'roles', 'flags', 'provisioning', 'workflows', 'permissions', 'sectors', 'assignments', 'audit'] as const;
+const TAB_KEYS = ['connections', 'roles', 'flags', 'provisioning', 'workflows', 'permissions', 'sectors', 'assignments', 'devUsers', 'audit'] as const;
 type AdminTab = typeof TAB_KEYS[number];
 const TAB_LABELS: Record<AdminTab, string> = {
   connections: 'Connections',
@@ -50,6 +51,7 @@ const TAB_LABELS: Record<AdminTab, string> = {
   permissions: 'Permissions',
   sectors: 'Sectors',
   assignments: 'Assignments',
+  devUsers: 'Dev Users',
   audit: 'Audit Log',
 };
 
@@ -185,6 +187,11 @@ export const AdminPanel: React.FC = () => {
   const [newMappingName, setNewMappingName] = React.useState('');
   const [newMappingEmail, setNewMappingEmail] = React.useState('');
   const [assignmentMappingsLoaded, setAssignmentMappingsLoaded] = React.useState(false);
+
+  // -- Dev Users state --
+  const [devUsers, setDevUsers] = React.useState<Array<{ id: number; displayName: string; email: string; roles: string[]; region: string; department: string }>>([]);
+  const [editingUserId, setEditingUserId] = React.useState<number | null>(null);
+  const [editingRoles, setEditingRoles] = React.useState<string[]>([]);
 
   const hubNavService = React.useMemo(() => new MockHubNavigationService(), []);
   const provisioningService = React.useMemo(
@@ -467,6 +474,7 @@ export const AdminPanel: React.FC = () => {
     'Project Execution',
     'Infrastructure',
     'Integrations',
+    'Debug',
   ];
 
   const groupedFlags = React.useMemo(() => {
@@ -558,11 +566,14 @@ export const AdminPanel: React.FC = () => {
 
       {/* Tab Bar */}
       <div style={{ display: 'flex', borderBottom: `1px solid ${HBC_COLORS.gray200}`, marginBottom: '20px' }}>
-        {TAB_KEYS.map((key) => (
-          <div key={key} style={tabStyle(key)} onClick={() => setActiveTab(key)}>
-            {TAB_LABELS[key]}
-          </div>
-        ))}
+        {TAB_KEYS.map((key) => {
+          if (key === 'devUsers' && !isFeatureEnabled('DevUserManagement')) return null;
+          return (
+            <div key={key} style={tabStyle(key)} onClick={() => setActiveTab(key)}>
+              {TAB_LABELS[key]}
+            </div>
+          );
+        })}
       </div>
 
       {/* Tab 1: Connection Testing */}
@@ -1085,7 +1096,158 @@ export const AdminPanel: React.FC = () => {
         )
       )}
 
-      {/* Tab 9: Audit Log */}
+      {/* Tab 9: Dev Users */}
+      {activeTab === 'devUsers' && isFeatureEnabled('DevUserManagement') && (
+        (() => {
+          const isMock = dataService instanceof MockDataService;
+          if (!isMock) {
+            return (
+              <div style={{ padding: '48px', textAlign: 'center', color: HBC_COLORS.gray500 }}>
+                <h3 style={{ color: HBC_COLORS.navy }}>Dev Mode Only</h3>
+                <p>Dev Users management is only available in dev mode with MockDataService.</p>
+              </div>
+            );
+          }
+          const mockDs = dataService as MockDataService;
+          const loadUsers = (): void => {
+            setDevUsers([...mockDs.getMockUsers()]);
+          };
+          if (devUsers.length === 0) loadUsers();
+          const allRoleValues = Object.values(RoleName);
+
+          return (
+            <div>
+              {/* Info banner */}
+              <div style={{
+                padding: '10px 16px', marginBottom: '16px', borderRadius: '6px',
+                backgroundColor: '#FEF3C7', border: '1px solid #F59E0B',
+                fontSize: '13px', color: '#92400E',
+              }}>
+                Changes persist for this dev session only. Restart resets to defaults.
+              </div>
+
+              {/* Users table */}
+              <div style={{ border: `1px solid ${HBC_COLORS.gray200}`, borderRadius: '8px', overflow: 'hidden' }}>
+                {/* Header */}
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1.5fr 2fr 2.5fr 1fr 1fr 100px',
+                  padding: '8px 12px', background: HBC_COLORS.gray50,
+                  borderBottom: `1px solid ${HBC_COLORS.gray200}`,
+                  fontSize: '11px', fontWeight: 700, color: HBC_COLORS.gray500, textTransform: 'uppercase',
+                }}>
+                  <span>Name</span>
+                  <span>Email</span>
+                  <span>Roles</span>
+                  <span>Region</span>
+                  <span>Department</span>
+                  <span />
+                </div>
+
+                {/* Rows */}
+                {devUsers.map(user => {
+                  const isEditing = editingUserId === user.id;
+                  return (
+                    <div key={user.id} style={{
+                      display: 'grid', gridTemplateColumns: '1.5fr 2fr 2.5fr 1fr 1fr 100px',
+                      padding: '8px 12px', alignItems: 'center',
+                      borderBottom: `1px solid ${HBC_COLORS.gray100}`, fontSize: '13px',
+                    }}>
+                      <span style={{ color: HBC_COLORS.navy, fontWeight: 500 }}>{user.displayName}</span>
+                      <span style={{ color: HBC_COLORS.gray500, fontSize: '12px' }}>{user.email}</span>
+                      <span>
+                        {isEditing ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                              {editingRoles.map(role => (
+                                <span key={role} style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                  padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 600,
+                                  backgroundColor: '#DBEAFE', color: '#1E40AF',
+                                }}>
+                                  {role}
+                                  <button
+                                    onClick={() => setEditingRoles(prev => prev.filter(r => r !== role))}
+                                    style={{
+                                      border: 'none', background: 'none', cursor: 'pointer',
+                                      color: '#1E40AF', fontSize: '13px', fontWeight: 700, padding: 0, lineHeight: 1,
+                                    }}
+                                  >
+                                    x
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                            <select
+                              value=""
+                              onChange={(e) => {
+                                if (e.target.value && !editingRoles.includes(e.target.value)) {
+                                  setEditingRoles(prev => [...prev, e.target.value]);
+                                }
+                              }}
+                              style={{
+                                padding: '4px 8px', borderRadius: '4px',
+                                border: `1px solid ${HBC_COLORS.gray300}`, fontSize: '12px', width: '180px',
+                              }}
+                            >
+                              <option value="">Add role...</option>
+                              {allRoleValues.filter(r => !editingRoles.includes(r)).map(r => (
+                                <option key={r} value={r}>{r}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                            {user.roles.map(role => (
+                              <StatusBadge
+                                key={role}
+                                label={role}
+                                color="#1E40AF"
+                                backgroundColor="#DBEAFE"
+                                size="small"
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </span>
+                      <span style={{ fontSize: '12px', color: HBC_COLORS.gray500 }}>{user.region}</span>
+                      <span style={{ fontSize: '12px', color: HBC_COLORS.gray500 }}>{user.department}</span>
+                      <span style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                        {isEditing ? (
+                          <>
+                            <Button size="small" appearance="primary" style={{ fontSize: '11px' }}
+                              disabled={editingRoles.length === 0}
+                              onClick={() => {
+                                mockDs.updateMockUserRoles(user.id, editingRoles);
+                                setEditingUserId(null);
+                                loadUsers();
+                              }}
+                            >
+                              Save
+                            </Button>
+                            <Button size="small" appearance="subtle" style={{ fontSize: '11px' }}
+                              onClick={() => setEditingUserId(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </>
+                        ) : (
+                          <Button size="small" appearance="subtle" style={{ fontSize: '11px' }}
+                            onClick={() => { setEditingUserId(user.id); setEditingRoles([...user.roles]); }}
+                          >
+                            Edit
+                          </Button>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()
+      )}
+
+      {/* Tab 10: Audit Log */}
       {activeTab === 'audit' && (
         <div>
           {auditEntries.length > 5000 && (

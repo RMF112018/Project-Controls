@@ -6,9 +6,12 @@ import { useLeads } from '../../hooks/useLeads';
 import { useBuyoutLog } from '../../hooks/useBuyoutLog';
 import { usePersistedState } from '../../hooks/usePersistedState';
 import { useCommitmentApproval } from '../../hooks/useCommitmentApproval';
-import { IBuyoutEntry, BuyoutStatus, CommitmentStatus, PERMISSIONS } from '@hbc/sp-services';
+import { useContractTracking } from '../../hooks/useContractTracking';
+import { IBuyoutEntry, BuyoutStatus, CommitmentStatus, ContractTrackingStatus, IResolvedWorkflowStep, PERMISSIONS } from '@hbc/sp-services';
 import { CommitmentForm } from './CommitmentForm';
 import { CommitmentApprovalPanel } from './CommitmentApprovalPanel';
+import { ContractTrackingPanel } from './ContractTrackingPanel';
+import { ContractTrackingSubmitModal } from './ContractTrackingSubmitModal';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { useToast } from '../../shared/ToastContainer';
 
@@ -41,19 +44,30 @@ const COMMITMENT_STATUS_CONFIG: Record<CommitmentStatus, { label: string; bg: st
   Rejected: { label: 'Rejected', bg: HBC_COLORS.errorLight, color: '#991B1B' },
 };
 
+const TRACKING_STATUS_CONFIG: Record<ContractTrackingStatus, { label: string; bg: string; color: string }> = {
+  NotStarted:    { label: 'Not Started',   bg: HBC_COLORS.gray200,      color: HBC_COLORS.gray700 },
+  PendingAPM:    { label: 'APM/PA',        bg: HBC_COLORS.warningLight, color: '#92400E' },
+  PendingPM:     { label: 'PM Review',     bg: '#DBEAFE',               color: '#1E40AF' },
+  PendingRiskMgr:{ label: 'Risk Review',   bg: '#F3E8FF',               color: '#6B21A8' },
+  PendingPX:     { label: 'PX Review',     bg: '#FEF3C7',               color: '#92400E' },
+  Tracked:       { label: 'Tracked',       bg: HBC_COLORS.successLight, color: '#065F46' },
+  Rejected:      { label: 'Rejected',      bg: HBC_COLORS.errorLight,   color: '#991B1B' },
+};
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export const BuyoutLogPage: React.FC = () => {
   const navigate = useNavigate();
-  const { selectedProject, hasPermission, currentUser, dataService } = useAppContext();
+  const { selectedProject, hasPermission, currentUser, dataService, isFeatureEnabled } = useAppContext();
   const { leads, fetchLeads } = useLeads();
   const {
     entries, loading, error, metrics,
     fetchEntries, initializeLog, addEntry, updateEntry, removeEntry,
   } = useBuyoutLog();
   const { submitForApproval, respondToApproval } = useCommitmentApproval();
+  const { submitForTracking, respondToTracking, resolveTrackingChain, loading: trackingLoading } = useContractTracking();
 
   const projectCode = selectedProject?.projectCode ?? '';
   const [search, setSearch] = usePersistedState('buyout-search', '');
@@ -68,6 +82,13 @@ export const BuyoutLogPage: React.FC = () => {
   const [commitmentFormEntry, setCommitmentFormEntry] = React.useState<IBuyoutEntry | null>(null);
   const [approvalDetailEntry, setApprovalDetailEntry] = React.useState<IBuyoutEntry | null>(null);
 
+  // Contract tracking modal state
+  const [trackingSubmitEntry, setTrackingSubmitEntry] = React.useState<IBuyoutEntry | null>(null);
+  const [trackingDetailEntry, setTrackingDetailEntry] = React.useState<IBuyoutEntry | null>(null);
+  const [trackingChain, setTrackingChain] = React.useState<IResolvedWorkflowStep[]>([]);
+
+  const contractTrackingEnabled = isFeatureEnabled('ContractTracking');
+
   const canEdit = hasPermission(PERMISSIONS.BUYOUT_EDIT);
   const canManage = hasPermission(PERMISSIONS.BUYOUT_MANAGE);
   const canSubmitCommitment = hasPermission(PERMISSIONS.COMMITMENT_SUBMIT);
@@ -75,6 +96,11 @@ export const BuyoutLogPage: React.FC = () => {
   const canApproveCompliance = hasPermission(PERMISSIONS.COMMITMENT_APPROVE_COMPLIANCE);
   const canApproveCFO = hasPermission(PERMISSIONS.COMMITMENT_APPROVE_CFO);
   const canEscalate = hasPermission(PERMISSIONS.COMMITMENT_ESCALATE);
+  const canSubmitTracking = hasPermission(PERMISSIONS.CONTRACT_TRACKING_SUBMIT);
+  const canApproveTrackingAPM = hasPermission(PERMISSIONS.CONTRACT_TRACKING_APPROVE_APM);
+  const canApproveTrackingPM = hasPermission(PERMISSIONS.CONTRACT_TRACKING_APPROVE_PM);
+  const canApproveTrackingRisk = hasPermission(PERMISSIONS.CONTRACT_TRACKING_APPROVE_RISK);
+  const canApproveTrackingPX = hasPermission(PERMISSIONS.CONTRACT_TRACKING_APPROVE_PX);
 
   React.useEffect(() => { fetchLeads().catch(console.error); }, [fetchLeads]);
 
@@ -180,6 +206,43 @@ export const BuyoutLogPage: React.FC = () => {
     const toastType = action === 'reject' ? 'warning' : 'success';
     const msg = action === 'approve' ? 'Commitment approved' : action === 'reject' ? 'Commitment rejected' : 'Escalated to CFO';
     addToast(msg, toastType);
+  };
+
+  // ---- contract tracking ----
+  const handleOpenTrackingSubmit = async (entry: IBuyoutEntry): Promise<void> => {
+    setTrackingSubmitEntry(entry);
+    try {
+      const chain = await resolveTrackingChain(projectCode);
+      setTrackingChain(chain);
+    } catch {
+      setTrackingChain([]);
+    }
+  };
+
+  const handleTrackingSubmit = async (): Promise<void> => {
+    if (!trackingSubmitEntry) return;
+    await submitForTracking(projectCode, trackingSubmitEntry.id, currentUser?.displayName ?? 'Unknown');
+    await fetchEntries(projectCode);
+    if (!isFeatureEnabled('ContractTrackingDevPreview')) {
+      setTrackingSubmitEntry(null);
+    }
+    addToast('Submitted for contract tracking', 'success');
+  };
+
+  const handleTrackingApprove = async (comment: string): Promise<void> => {
+    if (!trackingDetailEntry) return;
+    await respondToTracking(projectCode, trackingDetailEntry.id, true, comment);
+    await fetchEntries(projectCode);
+    setTrackingDetailEntry(null);
+    addToast('Contract tracking step approved', 'success');
+  };
+
+  const handleTrackingReject = async (comment: string): Promise<void> => {
+    if (!trackingDetailEntry) return;
+    await respondToTracking(projectCode, trackingDetailEntry.id, false, comment);
+    await fetchEntries(projectCode);
+    setTrackingDetailEntry(null);
+    addToast('Contract tracking rejected', 'warning');
   };
 
   // ---- loading / empty ----
@@ -304,6 +367,7 @@ export const BuyoutLogPage: React.FC = () => {
               <Th>COI Received</Th>
               <Th>Status</Th>
               <Th>Commitment</Th>
+              {contractTrackingEnabled && <Th>Tracking</Th>}
               {canEdit && <Th align="center">Actions</Th>}
             </tr>
           </thead>
@@ -469,6 +533,35 @@ export const BuyoutLogPage: React.FC = () => {
                     })()}
                   </Td>
 
+                  {/* Contract Tracking Status */}
+                  {contractTrackingEnabled && (
+                    <Td>
+                      {(() => {
+                        const ts = entry.contractTrackingStatus || 'NotStarted';
+                        const tcfg = TRACKING_STATUS_CONFIG[ts] || TRACKING_STATUS_CONFIG.NotStarted;
+                        const isClickable = ts !== 'NotStarted';
+                        return (
+                          <span
+                            onClick={() => isClickable ? setTrackingDetailEntry(entry) : undefined}
+                            style={{
+                              display: 'inline-block',
+                              padding: '2px 8px',
+                              borderRadius: 12,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              backgroundColor: tcfg.bg,
+                              color: tcfg.color,
+                              cursor: isClickable ? 'pointer' : 'default',
+                              textDecoration: ts === 'Rejected' ? 'line-through' : 'none',
+                            }}
+                          >
+                            {tcfg.label}
+                          </span>
+                        );
+                      })()}
+                    </Td>
+                  )}
+
                   {/* Actions */}
                   {canEdit && (
                     <Td align="center">
@@ -482,6 +575,9 @@ export const BuyoutLogPage: React.FC = () => {
                           <button onClick={() => startEdit(entry)} style={btnSmallOutline}>Edit</button>
                           {canSubmitCommitment && (entry.commitmentStatus === 'Budgeted' || entry.commitmentStatus === undefined) && entry.contractValue != null && entry.contractValue > 0 && (
                             <button onClick={() => setCommitmentFormEntry(entry)} style={btnSmallCommit}>Submit</button>
+                          )}
+                          {contractTrackingEnabled && canSubmitTracking && entry.commitmentStatus === 'Committed' && (!entry.contractTrackingStatus || entry.contractTrackingStatus === 'NotStarted') && (
+                            <button onClick={() => handleOpenTrackingSubmit(entry)} style={btnSmallTrack}>Track</button>
                           )}
                           {canManage && !entry.isStandard && (
                             <button onClick={() => handleRemove(entry)} style={btnSmallDanger}>Del</button>
@@ -534,6 +630,44 @@ export const BuyoutLogPage: React.FC = () => {
             />
             <div style={{ marginTop: 16, textAlign: 'right' }}>
               <button onClick={() => setApprovalDetailEntry(null)} style={btnOutline}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contract Tracking Submit Modal */}
+      {trackingSubmitEntry && (
+        <div style={modalOverlay} onClick={() => setTrackingSubmitEntry(null)}>
+          <div style={modalContent} onClick={e => e.stopPropagation()}>
+            <ContractTrackingSubmitModal
+              entry={trackingSubmitEntry}
+              resolvedChain={trackingChain}
+              loading={trackingLoading}
+              onSubmit={handleTrackingSubmit}
+              onClose={() => setTrackingSubmitEntry(null)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Contract Tracking Detail Modal */}
+      {trackingDetailEntry && (
+        <div style={modalOverlay} onClick={() => setTrackingDetailEntry(null)}>
+          <div style={modalContent} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: HBC_COLORS.navy }}>
+              Contract Tracking: {trackingDetailEntry.divisionDescription}
+            </h3>
+            <ContractTrackingPanel
+              entry={trackingDetailEntry}
+              canApproveAPM={canApproveTrackingAPM}
+              canApprovePM={canApproveTrackingPM}
+              canApproveRisk={canApproveTrackingRisk}
+              canApprovePX={canApproveTrackingPX}
+              onApprove={handleTrackingApprove}
+              onReject={handleTrackingReject}
+            />
+            <div style={{ marginTop: 16, textAlign: 'right' }}>
+              <button onClick={() => setTrackingDetailEntry(null)} style={btnOutline}>Close</button>
             </div>
           </div>
         </div>
@@ -632,6 +766,11 @@ const btnSmallDanger: React.CSSProperties = {
 
 const btnSmallCommit: React.CSSProperties = {
   padding: '3px 10px', backgroundColor: HBC_COLORS.navy, color: '#fff',
+  border: 'none', borderRadius: 4, fontWeight: 600, fontSize: 11, cursor: 'pointer',
+};
+
+const btnSmallTrack: React.CSSProperties = {
+  padding: '3px 10px', backgroundColor: '#6B21A8', color: '#fff',
   border: 'none', borderRadius: 4, fontWeight: 600, fontSize: 11, cursor: 'pointer',
 };
 

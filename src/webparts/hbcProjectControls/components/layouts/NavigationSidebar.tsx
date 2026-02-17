@@ -142,6 +142,7 @@ const NAV_STRUCTURE: INavGroupDef[] = [
     groupKey: 'Operations',
     items: [
       { label: 'Project Dashboard', path: '/operations/project', requiresProject: true },
+      { label: 'Project Settings', path: '/operations/project-settings', requiresProject: true, featureFlag: 'ContractTracking' },
     ],
     subGroups: [
       {

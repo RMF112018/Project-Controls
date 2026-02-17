@@ -1,4 +1,5 @@
 import { CommitmentStatus, WaiverType, ApprovalStep, ICommitmentApproval } from './ICommitmentApproval';
+import { ContractTrackingStatus, ContractTrackingStep, IContractTrackingApproval } from './IContractTrackingApproval';
 
 export type BuyoutStatus = 'Not Started' | 'In Progress' | 'Awarded' | 'Executed';
 
@@ -58,6 +59,11 @@ export interface IBuyoutEntry {
   // Approval Tracking
   currentApprovalStep?: ApprovalStep;
   approvalHistory: ICommitmentApproval[];
+
+  // Contract Tracking Workflow
+  contractTrackingStatus?: ContractTrackingStatus;
+  currentContractTrackingStep?: ContractTrackingStep;
+  contractTrackingHistory?: IContractTrackingApproval[];
 
   // Milestone Dates
   loiSentDate?: string;

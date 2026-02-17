@@ -24,7 +24,9 @@
     "modifiedDate": "2025-06-22T00:00:00.000Z",
     "commitmentStatus": "Committed",
     "waiverRequired": false,
-    "approvalHistory": []
+    "approvalHistory": [],
+    "contractTrackingStatus": "NotStarted",
+    "contractTrackingHistory": []
   },
   {
     "id": 502,
@@ -51,7 +53,9 @@
     "modifiedDate": "2025-07-01T00:00:00.000Z",
     "commitmentStatus": "Committed",
     "waiverRequired": false,
-    "approvalHistory": []
+    "approvalHistory": [],
+    "contractTrackingStatus": "NotStarted",
+    "contractTrackingHistory": []
   },
   {
     "id": 503,
@@ -186,7 +190,9 @@
     "modifiedDate": "2025-06-18T00:00:00.000Z",
     "commitmentStatus": "Committed",
     "waiverRequired": false,
-    "approvalHistory": []
+    "approvalHistory": [],
+    "contractTrackingStatus": "NotStarted",
+    "contractTrackingHistory": []
   },
   {
     "id": 508,

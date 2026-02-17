@@ -307,5 +307,69 @@
         "canChairMeeting": false
       }
     ]
+  },
+  {
+    "id": 6,
+    "workflowKey": "CONTRACT_TRACKING",
+    "name": "Contract Tracking",
+    "description": "4-step subcontract approval workflow for tracking committed buyout entries through APM/PA, PM, Risk Manager, and Project Executive review.",
+    "isActive": true,
+    "lastModifiedBy": "Mike Hedrick",
+    "lastModifiedDate": "2026-02-17T10:00:00.000Z",
+    "steps": [
+      {
+        "id": 19,
+        "workflowId": 6,
+        "stepOrder": 1,
+        "name": "APM/PA Review",
+        "description": "Assistant Project Manager or Project Administrator reviews the subcontract package.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Operations Team",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Review & Approve",
+        "canChairMeeting": false,
+        "isSkippable": true
+      },
+      {
+        "id": 20,
+        "workflowId": 6,
+        "stepOrder": 2,
+        "name": "Project Manager Approval",
+        "description": "Project Manager reviews and approves the subcontract.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Operations Team",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Approve or Reject",
+        "canChairMeeting": false
+      },
+      {
+        "id": 21,
+        "workflowId": 6,
+        "stepOrder": 3,
+        "name": "Risk Manager Review",
+        "description": "Risk Manager reviews subcontract for compliance and risk exposure.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Risk Management",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Review & Approve",
+        "canChairMeeting": false
+      },
+      {
+        "id": 22,
+        "workflowId": 6,
+        "stepOrder": 4,
+        "name": "Project Executive Approval",
+        "description": "Project Executive provides final approval for the subcontract.",
+        "assignmentType": "ProjectRole",
+        "projectRole": "Executive Leadership",
+        "conditionalAssignees": [],
+        "isConditional": false,
+        "actionLabel": "Final Approve",
+        "canChairMeeting": false
+      }
+    ]
   }
 ]
