@@ -293,6 +293,38 @@ function buildTemplate(
         recipientRoles: ['Estimating Coordinator'],
       };
 
+    case NotificationEvent.ContractTrackingSubmitted:
+      return {
+        subject: `Contract Tracking Review Required: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
+        body: `A subcontract for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has been submitted for tracking review.${ctx.contractValue !== undefined ? ` Contract value: $${ctx.contractValue.toLocaleString()}.` : ''}`,
+        type: NotificationType.Both,
+        recipientRoles: ['Operations Team'],
+      };
+
+    case NotificationEvent.ContractTrackingStepAdvanced:
+      return {
+        subject: `Contract Tracking Advanced: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
+        body: `The contract tracking for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has been approved and advanced to the next step.${ctx.approverName ? ` Approved by: ${ctx.approverName}.` : ''}`,
+        type: NotificationType.Both,
+        recipientRoles: ['Operations Team', 'Risk Management', 'Executive Leadership'],
+      };
+
+    case NotificationEvent.ContractTrackingCompleted:
+      return {
+        subject: `Contract Tracked: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
+        body: `The subcontract for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has completed all approval steps and is now fully tracked.`,
+        type: NotificationType.Both,
+        recipientRoles: ['Operations Team'],
+      };
+
+    case NotificationEvent.ContractTrackingRejected:
+      return {
+        subject: `Contract Tracking Rejected: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
+        body: `The contract tracking for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has been rejected.${ctx.approverName ? ` Rejected by: ${ctx.approverName}.` : ''} Please review and resubmit if applicable.`,
+        type: NotificationType.Both,
+        recipientRoles: ['Operations Team'],
+      };
+
     default:
       return {
         subject: `Notification: ${event}`,

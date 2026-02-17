@@ -82,6 +82,7 @@ const LessonsLearnedPage = lazyNamed(() => import('./pages/project/LessonsLearne
 const ProjectManagementPlan = lazyNamed(() => import('./pages/project/pmp/ProjectManagementPlan'));
 const MonthlyProjectReview = lazyNamed(() => import('./pages/project/MonthlyProjectReview'));
 const BuyoutLogPage = lazyNamed(() => import('./pages/project/BuyoutLogPage'));
+const ProjectSettingsPage = lazyNamed(() => import('./pages/project/ProjectSettingsPage'));
 
 // ---------------------------------------------------------------------------
 // Inline tiny pages — kept in main bundle (no benefit from splitting)
@@ -215,6 +216,11 @@ const AppRoutes: React.FC = () => (
       } />
       <Route path="/operations/project" element={
         <ProjectRequiredRoute><ProjectDashboard /></ProjectRequiredRoute>
+      } />
+      <Route path="/operations/project-settings" element={
+        <FeatureGate featureName="ContractTracking" fallback={<NotFoundPage />}>
+          <ProjectRequiredRoute><ProjectSettingsPage /></ProjectRequiredRoute>
+        </FeatureGate>
       } />
       <Route path="/operations/startup-checklist" element={
         <FeatureGate featureName="ProjectStartup" fallback={<NotFoundPage />}>

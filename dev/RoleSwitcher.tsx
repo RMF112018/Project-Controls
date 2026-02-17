@@ -11,7 +11,7 @@ const ROLE_OPTIONS: { label: string; value: RoleValue }[] = [
   { label: 'Department Director', value: RoleName.DepartmentDirector },
   { label: 'SharePoint Admin', value: RoleName.SharePointAdmin },
   { label: 'Project Executive', value: RoleName.OperationsTeam },
-  { label: 'Project Manager', value: RoleName.PreconstructionTeam },
+  { label: 'Project Manager', value: RoleName.OperationsTeam },
   { label: 'Estimating Coordinator', value: RoleName.EstimatingCoordinator },
   { label: 'BD Representative', value: RoleName.BDRepresentative },
   { label: 'Accounting Controller', value: RoleName.AccountingManager },

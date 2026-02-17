@@ -5,7 +5,8 @@ export type FeatureFlagCategory =
   | 'Preconstruction'
   | 'Project Execution'
   | 'Infrastructure'
-  | 'Integrations';
+  | 'Integrations'
+  | 'Debug';
 
 export interface IFeatureFlag {
   id: number;

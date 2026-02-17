@@ -205,6 +205,10 @@ export enum AuditAction {
   DataMartSynced = 'DataMart.Synced',
   DataMartSyncFailed = 'DataMart.SyncFailed',
   ServiceError = 'Service.Error',
+  ContractTrackingSubmitted = 'ContractTracking.Submitted',
+  ContractTrackingApproved = 'ContractTracking.Approved',
+  ContractTrackingRejected = 'ContractTracking.Rejected',
+  ContractTrackingSkipped = 'ContractTracking.Skipped',
 }
 
 export enum EntityType {
@@ -236,6 +240,7 @@ export enum EntityType {
   SupportRequest = 'SupportRequest',
   DataMart = 'DataMart',
   Closeout = 'Closeout',
+  ContractTracking = 'ContractTracking',
 }
 
 export enum DeliverableStatus {
@@ -359,6 +364,10 @@ export enum NotificationEvent {
   ScorecardApprovedGo = 'ScorecardApprovedGo',
   ScorecardDecidedNoGo = 'ScorecardDecidedNoGo',
   EstimatingCoordinatorNotifiedGo = 'EstimatingCoordinatorNotifiedGo',
+  ContractTrackingSubmitted = 'ContractTrackingSubmitted',
+  ContractTrackingStepAdvanced = 'ContractTrackingStepAdvanced',
+  ContractTrackingCompleted = 'ContractTrackingCompleted',
+  ContractTrackingRejected = 'ContractTrackingRejected',
 }
 
 export enum TurnoverStatus {
@@ -376,7 +385,8 @@ export enum WorkflowKey {
   PMP_APPROVAL = 'PMP_APPROVAL',
   MONTHLY_REVIEW = 'MONTHLY_REVIEW',
   COMMITMENT_APPROVAL = 'COMMITMENT_APPROVAL',
-  TURNOVER_APPROVAL = 'TURNOVER_APPROVAL'
+  TURNOVER_APPROVAL = 'TURNOVER_APPROVAL',
+  CONTRACT_TRACKING = 'CONTRACT_TRACKING'
 }
 
 export enum StepAssignmentType {
@@ -398,7 +408,8 @@ export enum WorkflowActionType {
   MonthlyReviewInput = 'MonthlyReviewInput',
   MonthlyReviewValidation = 'MonthlyReviewValidation',
   CommitmentApproval = 'CommitmentApproval',
-  TurnoverSignature = 'TurnoverSignature'
+  TurnoverSignature = 'TurnoverSignature',
+  ContractTrackingApproval = 'ContractTrackingApproval'
 }
 
 export enum ActionPriority {

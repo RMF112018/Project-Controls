@@ -824,6 +824,11 @@ export const BUYOUT_LOG_COLUMNS = {
   currentApprovalStep: 'currentApprovalStep',  // SP: Choice (ApprovalStep)
   // approvalHistory: stored in child list → Commitment_Approvals
 
+  // Contract Tracking Workflow
+  contractTrackingStatus: 'contractTrackingStatus',              // SP: Choice (ContractTrackingStatus)
+  currentContractTrackingStep: 'currentContractTrackingStep',    // SP: Choice (ContractTrackingStep)
+  // contractTrackingHistory: stored in child list → Contract_Tracking_Approvals
+
   // Milestone Dates
   loiSentDate: 'loiSentDate',                  // SP: DateTime
   loiReturnedDate: 'loiReturnedDate',          // SP: DateTime
@@ -854,6 +859,24 @@ export const COMMITMENT_APPROVALS_COLUMNS = {
   comment: 'comment',                          // SP: Multiple Lines of Text
   actionDate: 'actionDate',                    // SP: DateTime
   waiverType: 'waiverType',                    // SP: Choice (WaiverType)
+} as const;
+
+/**
+ * List: Contract_Tracking_Approvals
+ * Interface: IContractTrackingApproval
+ * Child list of Buyout_Log
+ */
+export const CONTRACT_TRACKING_APPROVALS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  buyoutEntryId: 'buyoutEntryId',              // SP: Number (FK to Buyout_Log.ID)
+  projectCode: 'projectCode',                  // SP: Single Line of Text
+  step: 'step',                                // SP: Choice (ContractTrackingStep)
+  approverName: 'approverName',                // SP: Single Line of Text
+  approverEmail: 'approverEmail',              // SP: Single Line of Text
+  status: 'status',                            // SP: Choice
+  comment: 'comment',                          // SP: Multiple Lines of Text
+  actionDate: 'actionDate',                    // SP: DateTime
+  skippedReason: 'skippedReason',              // SP: Multiple Lines of Text
 } as const;
 
 /**

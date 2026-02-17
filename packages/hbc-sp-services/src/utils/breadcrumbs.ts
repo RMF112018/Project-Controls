@@ -27,6 +27,7 @@ const ROUTE_LABELS: Record<string, string> = {
   'detail': 'Scorecard Detail',
   'operations': 'Active Projects',
   'project': 'Project Dashboard',
+  'project-settings': 'Project Settings',
   'startup-checklist': 'Startup Checklist',
   'management-plan': 'Management Plan',
   'superintendent-plan': "Super's Plan",

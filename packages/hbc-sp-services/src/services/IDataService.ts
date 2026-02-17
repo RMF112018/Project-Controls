@@ -32,6 +32,7 @@ import { IProjectType } from '../models/IProjectType';
 import { IStandardCostCode } from '../models/IStandardCostCode';
 import { IBuyoutEntry } from '../models/IBuyoutEntry';
 import { ICommitmentApproval } from '../models/ICommitmentApproval';
+import { IContractTrackingApproval } from '../models/IContractTrackingApproval';
 import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType } from '../models/IActiveProject';
 import { IProjectDataMart, IDataMartSyncResult, IDataMartFilter } from '../models/IProjectDataMart';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
@@ -274,6 +275,11 @@ export interface IDataService {
   submitCommitmentForApproval(projectCode: string, entryId: number, submittedBy: string): Promise<IBuyoutEntry>;
   respondToCommitmentApproval(projectCode: string, entryId: number, approved: boolean, comment: string, escalate?: boolean): Promise<IBuyoutEntry>;
   getCommitmentApprovalHistory(projectCode: string, entryId: number): Promise<ICommitmentApproval[]>;
+
+  // Contract Tracking Workflow
+  submitContractTracking(projectCode: string, entryId: number, submittedBy: string): Promise<IBuyoutEntry>;
+  respondToContractTracking(projectCode: string, entryId: number, approved: boolean, comment: string): Promise<IBuyoutEntry>;
+  getContractTrackingHistory(projectCode: string, entryId: number): Promise<IContractTrackingApproval[]>;
 
   // File Upload
   uploadCommitmentDocument(projectCode: string, entryId: number, file: File): Promise<{ fileId: string; fileName: string; fileUrl: string }>;

@@ -33,6 +33,7 @@ export * from './IStandardCostCode';
 export * from './IEstimatingKickoff';
 export * from './IBuyoutEntry';
 export * from './ICommitmentApproval';
+export * from './IContractTrackingApproval';
 export * from './IActiveProject';
 export * from './IComplianceSummary';
 export * from './IWorkflowDefinition';

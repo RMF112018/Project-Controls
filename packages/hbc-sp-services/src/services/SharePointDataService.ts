@@ -25,6 +25,7 @@ import { IProjectType } from '../models/IProjectType';
 import { IStandardCostCode } from '../models/IStandardCostCode';
 import { IBuyoutEntry, BuyoutStatus, EVerifyStatus } from '../models/IBuyoutEntry';
 import { ICommitmentApproval, CommitmentStatus, WaiverType, ApprovalStep } from '../models/ICommitmentApproval';
+import { IContractTrackingApproval, ContractTrackingStep, ContractTrackingStatus } from '../models/IContractTrackingApproval';
 import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType, DEFAULT_ALERT_THRESHOLDS } from '../models/IActiveProject';
 import { IProjectDataMart, IDataMartSyncResult, IDataMartFilter, DataMartHealthStatus } from '../models/IProjectDataMart';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
@@ -3207,6 +3208,9 @@ export class SharePointDataService implements IDataService {
       eVerifyStatus: (item.EVerifyStatus as EVerifyStatus) || undefined,
       currentApprovalStep: item.CurrentApprovalStep as ApprovalStep | undefined,
       approvalHistory: [],
+      contractTrackingStatus: (item.ContractTrackingStatus as ContractTrackingStatus) || undefined,
+      currentContractTrackingStep: item.CurrentContractTrackingStep as ContractTrackingStep | undefined,
+      contractTrackingHistory: [],
       loiSentDate: item.LOISentDate as string | undefined,
       loiReturnedDate: item.LOIReturnedDate as string | undefined,
       contractSentDate: item.ContractSentDate as string | undefined,
@@ -3401,6 +3405,154 @@ export class SharePointDataService implements IDataService {
       comment: item.Comment as string | undefined,
       actionDate: item.ActionDate as string | undefined,
       waiverType: item.WaiverType as WaiverType | undefined,
+    }));
+  }
+
+  // --- Contract Tracking Workflow ---
+
+  private static readonly TRACKING_STEP_ORDER: ContractTrackingStep[] = ['APM_PA', 'ProjectManager', 'RiskManager', 'ProjectExecutive'];
+  private static readonly TRACKING_STEP_STATUS: Record<ContractTrackingStep, ContractTrackingStatus> = {
+    APM_PA: 'PendingAPM', ProjectManager: 'PendingPM', RiskManager: 'PendingRiskMgr', ProjectExecutive: 'PendingPX',
+  };
+
+  private static readonly TRACKING_STEP_TO_ORDER: Record<ContractTrackingStep, number> = {
+    APM_PA: 1, ProjectManager: 2, RiskManager: 3, ProjectExecutive: 4,
+  };
+
+  private getNextTrackingStep(current: ContractTrackingStep): ContractTrackingStep | null {
+    const steps = SharePointDataService.TRACKING_STEP_ORDER;
+    const idx = steps.indexOf(current);
+    return idx < steps.length - 1 ? steps[idx + 1] : null;
+  }
+
+  private resolveTrackingStepApprover(
+    chain: IResolvedWorkflowStep[],
+    step: ContractTrackingStep
+  ): { name: string; email: string } {
+    const stepOrder = SharePointDataService.TRACKING_STEP_TO_ORDER[step];
+    const resolved = chain.find(s => s.stepOrder === stepOrder);
+    if (resolved?.assignee?.email) {
+      return { name: resolved.assignee.displayName, email: resolved.assignee.email };
+    }
+    return { name: 'Approver', email: '' }; // fallback
+  }
+
+  // LOAD-TEST: Multi-step workflow: getBuyoutEntries + resolve chain + create approval + update entry. 3-5 SP calls.
+  async submitContractTracking(projectCode: string, entryId: number, _submittedBy: string): Promise<IBuyoutEntry> {
+    performanceService.startMark('sp:submitContractTracking');
+    const entry = (await this.getBuyoutEntries(projectCode)).find(e => e.id === entryId);
+    if (!entry) throw new Error(`Buyout entry ${entryId} not found`);
+
+    let firstStep: ContractTrackingStep = 'APM_PA';
+    let chain: IResolvedWorkflowStep[] | null = null;
+    try {
+      chain = await this.resolveWorkflowChain(WorkflowKey.CONTRACT_TRACKING, projectCode);
+      const apmStep = chain.find(s => s.stepOrder === 1);
+      if (apmStep?.skipped) {
+        firstStep = 'ProjectManager';
+        // Create Skipped record for APM_PA
+        await this._getProjectWeb().lists.getByTitle(LIST_NAMES.CONTRACT_TRACKING_APPROVALS).items.add({
+          BuyoutEntryId: entryId, ProjectCode: projectCode, Step: 'APM_PA',
+          ApproverName: apmStep.assignee?.displayName ?? 'APM/PA', ApproverEmail: apmStep.assignee?.email ?? '',
+          Status: 'Skipped', ActionDate: new Date().toISOString(), SkippedReason: 'No APM/PA assigned for this project',
+        });
+      }
+    } catch { /* default to APM_PA */ }
+
+    // Create the first Pending record with resolved assignee
+    const approver = chain
+      ? this.resolveTrackingStepApprover(chain, firstStep)
+      : { name: 'Approver', email: '' };
+    await this._getProjectWeb().lists.getByTitle(LIST_NAMES.CONTRACT_TRACKING_APPROVALS).items.add({
+      BuyoutEntryId: entryId, ProjectCode: projectCode, Step: firstStep,
+      ApproverName: approver.name, ApproverEmail: approver.email, Status: 'Pending',
+    });
+
+    // Update buyout entry
+    await this._getProjectWeb().lists.getByTitle(LIST_NAMES.BUYOUT_LOG).items.getById(entryId).update({
+      ContractTrackingStatus: SharePointDataService.TRACKING_STEP_STATUS[firstStep],
+      CurrentContractTrackingStep: firstStep,
+    });
+
+    this.logAudit({ Action: AuditAction.ContractTrackingSubmitted, EntityType: EntityType.ContractTracking, EntityId: String(entryId), Details: `Contract tracking submitted for ${entry.divisionDescription}` });
+    performanceService.endMark('sp:submitContractTracking');
+    return (await this.getBuyoutEntries(projectCode)).find(e => e.id === entryId) as IBuyoutEntry;
+  }
+
+  // LOAD-TEST: Multi-step: getHistory + update approval + update entry. 3-4 SP calls.
+  async respondToContractTracking(projectCode: string, entryId: number, approved: boolean, comment: string): Promise<IBuyoutEntry> {
+    performanceService.startMark('sp:respondToContractTracking');
+    const approvals = await this.getContractTrackingHistory(projectCode, entryId);
+    const pending = approvals.find(a => a.status === 'Pending');
+    if (!pending) throw new Error('No pending contract tracking step found');
+
+    await this._getProjectWeb().lists.getByTitle(LIST_NAMES.CONTRACT_TRACKING_APPROVALS)
+      .items.getById(pending.id).update({
+        Status: approved ? 'Approved' : 'Rejected',
+        Comment: comment,
+        ActionDate: new Date().toISOString(),
+      });
+
+    let newStatus: ContractTrackingStatus;
+    let nextStep: ContractTrackingStep | undefined;
+
+    if (!approved) {
+      newStatus = 'Rejected';
+      nextStep = undefined;
+      this.logAudit({ Action: AuditAction.ContractTrackingRejected, EntityType: EntityType.ContractTracking, EntityId: String(entryId), Details: `Contract tracking rejected at ${pending.step}` });
+    } else {
+      const next = this.getNextTrackingStep(pending.step);
+      if (next) {
+        newStatus = SharePointDataService.TRACKING_STEP_STATUS[next];
+        nextStep = next;
+        // Resolve chain to get the correct assignee for the next step
+        let approver = { name: 'Approver', email: '' };
+        try {
+          const chain = await this.resolveWorkflowChain(WorkflowKey.CONTRACT_TRACKING, projectCode);
+          approver = this.resolveTrackingStepApprover(chain, next);
+        } catch { /* fallback */ }
+        await this._getProjectWeb().lists.getByTitle(LIST_NAMES.CONTRACT_TRACKING_APPROVALS).items.add({
+          BuyoutEntryId: entryId, ProjectCode: projectCode, Step: next,
+          ApproverName: approver.name, ApproverEmail: approver.email, Status: 'Pending',
+        });
+        this.logAudit({ Action: AuditAction.ContractTrackingApproved, EntityType: EntityType.ContractTracking, EntityId: String(entryId), Details: `Contract tracking approved at ${pending.step}, advancing to ${next}` });
+      } else {
+        newStatus = 'Tracked';
+        nextStep = undefined;
+        this.logAudit({ Action: AuditAction.ContractTrackingApproved, EntityType: EntityType.ContractTracking, EntityId: String(entryId), Details: `Contract tracking fully approved — status: Tracked` });
+      }
+    }
+
+    await this._getProjectWeb().lists.getByTitle(LIST_NAMES.BUYOUT_LOG).items.getById(entryId).update({
+      ContractTrackingStatus: newStatus,
+      CurrentContractTrackingStep: nextStep ?? null,
+    });
+
+    performanceService.endMark('sp:respondToContractTracking');
+    return (await this.getBuyoutEntries(projectCode)).find(e => e.id === entryId) as IBuyoutEntry;
+  }
+
+  // SP-INDEX-REQUIRED: Contract_Tracking_Approvals → ProjectCode+BuyoutEntryId (compound filter)
+  async getContractTrackingHistory(projectCode: string, entryId: number): Promise<IContractTrackingApproval[]> {
+    performanceService.startMark('sp:getContractTrackingHistory');
+    const items = await this._getProjectWeb().lists
+      .getByTitle(LIST_NAMES.CONTRACT_TRACKING_APPROVALS)
+      .items
+      .filter(`ProjectCode eq '${projectCode}' and BuyoutEntryId eq ${entryId}`)
+      .orderBy('Id', true)();
+
+    performanceService.endMark('sp:getContractTrackingHistory');
+    return items.map((item: Record<string, unknown>) => ({
+      id: item.Id as number,
+      buyoutEntryId: item.BuyoutEntryId as number,
+      projectCode: item.ProjectCode as string,
+      step: item.Step as ContractTrackingStep,
+      approverName: item.ApproverName as string,
+      approverEmail: item.ApproverEmail as string,
+      status: item.Status as IContractTrackingApproval['status'],
+      comment: item.Comment as string | undefined,
+      actionDate: item.ActionDate as string | undefined,
+      skippedReason: item.SkippedReason as string | undefined,
     }));
   }
 
