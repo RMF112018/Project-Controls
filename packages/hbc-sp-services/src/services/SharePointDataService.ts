@@ -103,6 +103,7 @@ import {
   HELP_GUIDES_COLUMNS,
   TEMPLATE_REGISTRY_COLUMNS,
   PROJECT_DATA_MART_COLUMNS,
+  CLOSEOUT_ITEMS_COLUMNS,
 } from './columnMappings';
 import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
 import { cacheService } from './CacheService';
@@ -954,16 +955,76 @@ export class SharePointDataService implements IDataService {
   // SP-INDEX-REQUIRED: Closeout_Items → ProjectCode
   async getCloseoutItems(_projectCode: string): Promise<import('../models').ICloseoutItem[]> {
     performanceService.startMark('sp:getCloseoutItems');
-    const items = await this.sp.web.lists.getByTitle('Closeout_Items').items.filter(`ProjectCode eq '${_projectCode}'`)();
+    const web = this._getProjectWeb();
+    const col = CLOSEOUT_ITEMS_COLUMNS;
+    const items = await web.lists.getByTitle('Closeout_Items').items
+      .filter(`${col.projectCode} eq '${_projectCode}' and ${col.isHidden} ne 1`)
+      .orderBy(col.sortOrder, true)
+      .top(500)();
+    const result = items.map((item: Record<string, unknown>) => this.mapToCloseoutItem(item));
     performanceService.endMark('sp:getCloseoutItems');
-    return items;
+    return result;
   }
 
   async updateCloseoutItem(id: number, data: Partial<import('../models').ICloseoutItem>): Promise<import('../models').ICloseoutItem> {
     performanceService.startMark('sp:updateCloseoutItem');
-    await this.sp.web.lists.getByTitle('Closeout_Items').items.getById(id).update(data);
+    const web = this._getProjectWeb();
+    const col = CLOSEOUT_ITEMS_COLUMNS;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {};
+    if (data.response !== undefined) updateData[col.response] = data.response;
+    if (data.status !== undefined) updateData[col.status] = data.status;
+    if (data.respondedBy !== undefined) updateData[col.respondedBy] = data.respondedBy;
+    if (data.respondedDate !== undefined) updateData[col.respondedDate] = data.respondedDate;
+    if (data.comment !== undefined) updateData[col.comment] = data.comment;
+    if (data.isHidden !== undefined) updateData[col.isHidden] = data.isHidden;
+    if (data.label !== undefined) updateData[col.label] = data.label;
+    if (data.sortOrder !== undefined) updateData[col.sortOrder] = data.sortOrder;
+    if (data.dateValue !== undefined) updateData[col.dateValue] = data.dateValue;
+    if (data.details !== undefined) updateData[col.details] = data.details;
+    if (data.assignedTo !== undefined) updateData[col.assignedTo] = data.assignedTo;
+    if (data.notes !== undefined) updateData[col.notes] = data.notes;
+    await web.lists.getByTitle('Closeout_Items').items.getById(id).update(updateData);
+    const updated = await web.lists.getByTitle('Closeout_Items').items.getById(id)();
     performanceService.endMark('sp:updateCloseoutItem');
-    return { id, ...data } as import('../models').ICloseoutItem;
+    return this.mapToCloseoutItem(updated);
+  }
+
+  async addCloseoutItem(projectCode: string, item: Partial<import('../models').ICloseoutItem>): Promise<import('../models').ICloseoutItem> {
+    performanceService.startMark('sp:addCloseoutItem');
+    const web = this._getProjectWeb();
+    const col = CLOSEOUT_ITEMS_COLUMNS;
+    const addData = {
+      [col.projectCode]: projectCode,
+      [col.sectionNumber]: item.sectionNumber || 0,
+      [col.sectionName]: item.sectionName || '',
+      [col.itemNumber]: item.itemNumber || '',
+      [col.label]: item.label || '',
+      [col.category]: item.sectionName || item.category || '',
+      [col.description]: item.label || item.description || '',
+      [col.responseType]: item.responseType || 'yesNoNA',
+      [col.response]: item.response ?? null,
+      [col.status]: item.status || 'NoResponse',
+      [col.assignedTo]: item.assignedTo || '',
+      [col.comment]: item.comment || null,
+      [col.isHidden]: item.isHidden || false,
+      [col.isCustom]: true,
+      [col.sortOrder]: item.sortOrder || 0,
+      [col.dateValue]: item.dateValue ?? null,
+      [col.calculatedFrom]: item.calculatedFrom ?? null,
+      [col.placeholder]: item.placeholder ?? null,
+      [col.details]: item.details ?? null,
+    };
+    const spResult = await web.lists.getByTitle('Closeout_Items').items.add(addData);
+    performanceService.endMark('sp:addCloseoutItem');
+    return this.mapToCloseoutItem(spResult);
+  }
+
+  async removeCloseoutItem(_projectCode: string, itemId: number): Promise<void> {
+    performanceService.startMark('sp:removeCloseoutItem');
+    const web = this._getProjectWeb();
+    await web.lists.getByTitle('Closeout_Items').items.getById(itemId).recycle();
+    performanceService.endMark('sp:removeCloseoutItem');
   }
 
   // SP-INDEX-REQUIRED: Loss_Autopsy → LeadID
@@ -1108,6 +1169,12 @@ export class SharePointDataService implements IDataService {
     if (data.isHidden !== undefined) updateData[col.isHidden] = data.isHidden;
     if (data.label !== undefined) updateData[col.label] = data.label;
     if (data.sortOrder !== undefined) updateData[col.sortOrder] = data.sortOrder;
+    if (data.hbShare !== undefined) updateData[col.hbShare] = data.hbShare;
+    if (data.amount !== undefined) updateData[col.amount] = data.amount;
+    if (data.period !== undefined) updateData[col.period] = data.period;
+    if (data.dateValue !== undefined) updateData[col.dateValue] = data.dateValue;
+    if (data.details !== undefined) updateData[col.details] = data.details;
+    if (data.placeholder !== undefined) updateData[col.placeholder] = data.placeholder;
 
     await web.lists.getByTitle(LIST_NAMES.STARTUP_CHECKLIST).items.getById(itemId).update(updateData);
 
@@ -1156,6 +1223,13 @@ export class SharePointDataService implements IDataService {
       [col.isHidden]: item.isHidden || false,
       [col.isCustom]: item.isCustom ?? true,
       [col.sortOrder]: item.sortOrder || 0,
+      [col.hbShare]: item.hbShare ?? null,
+      [col.amount]: item.amount ?? null,
+      [col.period]: item.period ?? null,
+      [col.dateValue]: item.dateValue ?? null,
+      [col.calculatedFrom]: item.calculatedFrom ?? null,
+      [col.placeholder]: item.placeholder ?? null,
+      [col.details]: item.details ?? null,
     };
     const spResult = await web.lists.getByTitle(LIST_NAMES.STARTUP_CHECKLIST).items.add(addData);
     performanceService.endMark('sp:addChecklistItem');
@@ -6643,6 +6717,44 @@ export class SharePointDataService implements IDataService {
       isCustom: !!(item[col.isCustom]),
       sortOrder: (item[col.sortOrder] as number) || 0,
       activityLog: activityLog || [],
+      hbShare: item[col.hbShare] as number | undefined,
+      amount: item[col.amount] as number | undefined,
+      period: item[col.period] as string | undefined,
+      dateValue: item[col.dateValue] as string | undefined,
+      calculatedFrom: item[col.calculatedFrom] as string | undefined,
+      placeholder: item[col.placeholder] as string | undefined,
+      details: item[col.details] as string | undefined,
+    };
+  }
+
+  private mapToCloseoutItem(item: Record<string, unknown>): import('../models').ICloseoutItem {
+    const col = CLOSEOUT_ITEMS_COLUMNS;
+    return {
+      id: (item[col.id] as number) || (item.Id as number),
+      projectCode: (item[col.projectCode] as string) || '',
+      category: (item[col.category] as string) || '',
+      description: (item[col.description] as string) || '',
+      status: (item[col.status] as import('../models').ICloseoutItem['status']) || 'NoResponse',
+      assignedTo: (item[col.assignedTo] as string) || '',
+      assignedToId: item[col.assignedToId] as number | undefined,
+      completedDate: item[col.completedDate] as string | undefined,
+      notes: item[col.notes] as string | undefined,
+      sectionNumber: (item[col.sectionNumber] as number) || 0,
+      sectionName: (item[col.sectionName] as string) || '',
+      itemNumber: (item[col.itemNumber] as string) || '',
+      label: (item[col.label] as string) || '',
+      responseType: (item[col.responseType] as import('../models').ICloseoutItem['responseType']) || 'yesNoNA',
+      response: item[col.response] as string | number | null ?? null,
+      respondedBy: item[col.respondedBy] as string | undefined,
+      respondedDate: item[col.respondedDate] as string | undefined,
+      comment: item[col.comment] as string | undefined,
+      isHidden: !!(item[col.isHidden]),
+      isCustom: !!(item[col.isCustom]),
+      sortOrder: (item[col.sortOrder] as number) || 0,
+      dateValue: item[col.dateValue] as string | undefined,
+      calculatedFrom: item[col.calculatedFrom] as string | undefined,
+      placeholder: item[col.placeholder] as string | undefined,
+      details: item[col.details] as string | undefined,
     };
   }
 

@@ -37,3 +37,5 @@ export { GranularFlagEditor } from './GranularFlagEditor';
 export { PageLoader } from './PageLoader';
 export { PresenceIndicator } from './PresenceIndicator';
 export { ComingSoonPage } from './ComingSoonPage';
+export { ChecklistTable } from './ChecklistTable';
+export type { IChecklistTableProps, IChecklistTableItem } from './ChecklistTable';

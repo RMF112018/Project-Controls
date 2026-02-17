@@ -3,65 +3,113 @@ import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLeads } from '../../hooks/useLeads';
 import { useWorkflow } from '../../hooks/useWorkflow';
-import { PageHeader } from '../../shared/PageHeader';
-import { Breadcrumb } from '../../shared/Breadcrumb';
-import { KPICard } from '../../shared/KPICard';
+import { useCloseoutChecklist } from '../../hooks/useCloseoutChecklist';
+import { useToast } from '../../shared/ToastContainer';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
-import { ILead, ICloseoutItem, RoleName, Stage, AuditAction, EntityType, buildBreadcrumbs } from '@hbc/sp-services';
-import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
-
-const cardStyle: React.CSSProperties = {
-  backgroundColor: '#fff', borderRadius: 8, padding: 24,
-  boxShadow: ELEVATION.level1, marginBottom: 24,
-};
-
-function formatCategory(cat: string): string {
-  return cat.replace(/^\d+_/, '').replace(/_/g, ' ');
-}
+import { ChecklistTable, IChecklistTableItem } from '../../shared/ChecklistTable';
+import {
+  ILead, ICloseoutItem, RoleName, Stage, AuditAction, EntityType,
+  CLOSEOUT_SECTIONS, buildBreadcrumbs, ChecklistStatus,
+} from '@hbc/sp-services';
+import { HBC_COLORS } from '../../../theme/tokens';
 
 export const CloseoutChecklist: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject, dataService } = useAppContext();
+  const { selectedProject, hasPermission, currentUser, dataService } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
-  const { closeoutItems, fetchCloseoutItems, updateCloseoutItem, transitionStage } = useWorkflow();
+  const { transitionStage } = useWorkflow();
+  const {
+    items, isLoading, fetchChecklist, updateItem, addItem, removeItem,
+  } = useCloseoutChecklist();
+  const { addToast } = useToast();
+
   const [project, setProject] = React.useState<ILead | null>(null);
-  const [toast, setToast] = React.useState<string | null>(null);
   const [completing, setCompleting] = React.useState(false);
 
   const projectCode = selectedProject?.projectCode ?? '';
+  const canEdit = true; // Operations team can edit via RoleGate on Complete button
 
   React.useEffect(() => { fetchLeads().catch(console.error); }, [fetchLeads]);
   React.useEffect(() => {
     if (leads.length > 0 && projectCode) setProject(leads.find(l => l.ProjectCode === projectCode) ?? null);
   }, [leads, projectCode]);
   React.useEffect(() => {
-    if (projectCode) fetchCloseoutItems(projectCode).catch(console.error);
-  }, [projectCode, fetchCloseoutItems]);
-  React.useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 4000); return () => clearTimeout(t); } return undefined; }, [toast]);
+    if (projectCode) fetchChecklist(projectCode).catch(console.error);
+  }, [projectCode, fetchChecklist]);
 
-  const total = closeoutItems.length;
-  const complete = closeoutItems.filter(c => c.status === 'Complete').length;
-  const inProgress = closeoutItems.filter(c => c.status === 'In Progress').length;
-  const notStarted = closeoutItems.filter(c => c.status === 'Not Started').length;
-  const progressPct = total > 0 ? Math.round((complete / total) * 100) : 0;
-  const allDone = total > 0 && complete === total;
+  const handleResponseChange = React.useCallback((itemId: number, data: Partial<IChecklistTableItem>) => {
+    if (!projectCode || !currentUser) return;
 
-  const categories = React.useMemo(() => {
-    const cats: string[] = [];
-    closeoutItems.forEach(item => { if (!cats.includes(item.category)) cats.push(item.category); });
-    return cats.sort();
-  }, [closeoutItems]);
+    const changedItem = items.find(i => i.id === itemId);
 
-  const handleStatusChange = async (item: ICloseoutItem, newStatus: string): Promise<void> => {
-    const updates: Partial<ICloseoutItem> = { status: newStatus as ICloseoutItem['status'] };
-    if (newStatus === 'Complete') updates.completedDate = new Date().toISOString().split('T')[0];
-    await updateCloseoutItem(item.id, updates);
-  };
+    // Cast data to Partial<ICloseoutItem> for service call
+    const updateData: Partial<ICloseoutItem> = {
+      ...data as unknown as Partial<ICloseoutItem>,
+      respondedBy: currentUser.email,
+      respondedDate: new Date().toISOString(),
+    };
+
+    updateItem(projectCode, itemId, updateData).catch(console.error);
+
+    // If item 4.13 changed, auto-compute 4.14 = 4.13 + 80 days
+    if (changedItem?.itemNumber === '4.13' && data.dateValue) {
+      const d = new Date(data.dateValue);
+      d.setDate(d.getDate() + 80);
+      const item414 = items.find(i => i.itemNumber === '4.14');
+      if (item414) {
+        updateItem(projectCode, item414.id, {
+          dateValue: d.toISOString(),
+          status: 'Conforming' as ChecklistStatus,
+          response: 'Conforming',
+        }).catch(console.error);
+      }
+    }
+
+    dataService.logAudit({
+      Action: AuditAction.LeadEdited,
+      EntityType: EntityType.Closeout,
+      EntityId: String(itemId),
+      ProjectCode: projectCode,
+      User: currentUser.email,
+      Details: `Closeout item ${changedItem?.itemNumber || itemId} updated`,
+    }).catch(console.error);
+  }, [projectCode, currentUser, items, updateItem, dataService]);
+
+  const handleCommentChange = React.useCallback((itemId: number, comment: string) => {
+    if (!projectCode) return;
+    updateItem(projectCode, itemId, { comment } as Partial<ICloseoutItem>).catch(console.error);
+  }, [projectCode, updateItem]);
+
+  const handleAddItem = React.useCallback((sectionNumber: number, partial: Partial<IChecklistTableItem>) => {
+    if (!projectCode) return;
+    const sectionItems = items.filter(i => i.sectionNumber === sectionNumber);
+    const maxSort = sectionItems.length > 0 ? Math.max(...sectionItems.map(i => i.sortOrder)) : 0;
+    const section = CLOSEOUT_SECTIONS.find((s: { number: number; name: string }) => s.number === sectionNumber);
+
+    const newItem: Partial<ICloseoutItem> = {
+      sectionNumber,
+      sectionName: section?.name || partial.sectionName || `Section ${sectionNumber}`,
+      itemNumber: `${sectionNumber}.${sectionItems.length + 1}`,
+      label: 'Custom item',
+      responseType: 'yesNoNA',
+      sortOrder: maxSort + 1,
+      isCustom: true,
+    };
+
+    addItem(projectCode, newItem).then(() => {
+      addToast('Custom item added', 'success');
+    }).catch(console.error);
+  }, [projectCode, items, addItem, addToast]);
+
+  const handleRemoveItem = React.useCallback((itemId: number) => {
+    if (!projectCode) return;
+    removeItem(projectCode, itemId).catch(console.error);
+  }, [projectCode, removeItem]);
 
   const handleCompleteCloseout = async (): Promise<void> => {
-    if (!project || !allDone) return;
+    if (!project || !projectCode) return;
     setCompleting(true);
     try {
       if (project.Stage !== Stage.Closeout) {
@@ -72,82 +120,54 @@ export const CloseoutChecklist: React.FC = () => {
         EntityId: projectCode, ProjectCode: projectCode,
         Details: 'Project closeout completed. Archive countdown: 365 days.',
       });
-      setToast('Project closeout completed. Auto-archive countdown: 365 days of inactivity before archive.');
-    } catch (err) { setToast(err instanceof Error ? err.message : 'Failed to complete closeout.'); }
-    finally { setCompleting(false); }
+      addToast('Project closeout completed. Auto-archive countdown: 365 days of inactivity before archive.', 'success');
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : 'Failed to complete closeout.', 'error');
+    } finally {
+      setCompleting(false);
+    }
   };
 
-  if (leadsLoading) return <SkeletonLoader variant="table" rows={8} columns={4} />;
+  if (leadsLoading || isLoading) return <SkeletonLoader variant="table" rows={8} columns={4} />;
   if (!project) return <div style={{ padding: 48, textAlign: 'center', color: HBC_COLORS.gray500 }}><h2>Project not found</h2></div>;
 
-  const statusSelect = (item: ICloseoutItem): React.ReactNode => (
-    <RoleGate allowedRoles={[RoleName.OperationsTeam]} fallback={
-      <span style={{ fontSize: 13, color: HBC_COLORS.gray600 }}>{item.status}</span>
-    }>
-      <select
-        value={item.status}
-        onChange={e => handleStatusChange(item, e.target.value).catch(console.error)}
-        style={{ padding: '4px 8px', fontSize: 13, borderRadius: 4, border: `1px solid ${HBC_COLORS.gray300}`, cursor: 'pointer' }}
-      >
-        <option value="Not Started">Not Started</option>
-        <option value="In Progress">In Progress</option>
-        <option value="Complete">Complete</option>
-      </select>
-    </RoleGate>
-  );
+  const tableItems: IChecklistTableItem[] = items as unknown as IChecklistTableItem[];
+  const allResponded = items.length > 0 && items.every(i => (i.status as string) !== 'NoResponse');
 
   return (
     <div>
-      <PageHeader title="Project Closeout" subtitle={`${project.Title} — ${project.ClientName}`} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
-      {toast && <div style={{ padding: '12px 16px', backgroundColor: '#D1FAE5', color: '#065F46', borderRadius: 6, marginBottom: 16, fontSize: 14 }}>{toast}</div>}
-
-      {/* Progress bar */}
-      <div style={cardStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: HBC_COLORS.navy }}>Overall Progress</span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: HBC_COLORS.success }}>{progressPct}%</span>
-        </div>
-        <div style={{ width: '100%', height: 10, backgroundColor: HBC_COLORS.gray200, borderRadius: 5, overflow: 'hidden' }}>
-          <div style={{ width: `${progressPct}%`, height: '100%', backgroundColor: HBC_COLORS.success, borderRadius: 5, transition: 'width 0.4s' }} />
-        </div>
-        <div style={{ fontSize: 12, color: HBC_COLORS.gray500, marginTop: 6 }}>{complete} of {total} items complete</div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
-        <KPICard title="Total" value={total} />
-        <KPICard title="Complete" value={complete} />
-        <KPICard title="In Progress" value={inProgress} />
-        <KPICard title="Not Started" value={notStarted} />
-      </div>
-
-      {/* Items grouped by category */}
-      {categories.map(cat => {
-        const catItems = closeoutItems.filter(c => c.category === cat);
-        return (
-          <div key={cat} style={cardStyle}>
-            <h3 style={{ margin: '0 0 16px', color: HBC_COLORS.navy, display: 'flex', alignItems: 'center', gap: 8 }}>
-              {formatCategory(cat)}
-              <span style={{ fontSize: 12, color: HBC_COLORS.gray500, fontWeight: 400 }}>
-                ({catItems.filter(i => i.status === 'Complete').length}/{catItems.length})
-              </span>
-            </h3>
-            {catItems.map(item => (
-              <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: `1px solid ${HBC_COLORS.gray100}` }}>
-                <div style={{ flex: 1, fontSize: 14, color: HBC_COLORS.gray800 }}>{item.description}</div>
-                <div style={{ width: 120, fontSize: 13, color: HBC_COLORS.gray600 }}>{item.assignedTo}</div>
-                <div style={{ width: 140 }}>{statusSelect(item)}</div>
-                {item.completedDate && <span style={{ fontSize: 11, color: HBC_COLORS.gray500 }}>{item.completedDate}</span>}
-              </div>
-            ))}
-          </div>
-        );
-      })}
+      <ChecklistTable
+        title="Project Closeout Checklist"
+        subtitle={`${project.Title} — ${project.ClientName}`}
+        breadcrumb={breadcrumbs}
+        sections={CLOSEOUT_SECTIONS}
+        items={tableItems}
+        isLoading={false}
+        canEdit={canEdit}
+        onResponseChange={handleResponseChange}
+        onCommentChange={handleCommentChange}
+        onAddItem={handleAddItem}
+        onRemoveItem={handleRemoveItem}
+        exportFilename="Project-Closeout-Checklist"
+        allItems={tableItems}
+      />
 
       <RoleGate allowedRoles={[RoleName.OperationsTeam]}>
-        <button onClick={handleCompleteCloseout} disabled={!allDone || completing}
-          style={{ padding: '10px 24px', backgroundColor: allDone ? HBC_COLORS.success : HBC_COLORS.gray300, color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, cursor: allDone && !completing ? 'pointer' : 'not-allowed', fontSize: 14 }}>
-          {completing ? 'Completing...' : 'Complete Closeout'}
-        </button>
+        <div style={{ marginTop: '16px' }}>
+          <button
+            type="button"
+            onClick={handleCompleteCloseout}
+            disabled={!allResponded || completing}
+            style={{
+              padding: '10px 24px',
+              backgroundColor: allResponded ? HBC_COLORS.success : HBC_COLORS.gray300,
+              color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600,
+              cursor: allResponded && !completing ? 'pointer' : 'not-allowed', fontSize: 14,
+            }}
+          >
+            {completing ? 'Completing...' : 'Complete Closeout'}
+          </button>
+        </div>
       </RoleGate>
     </div>
   );

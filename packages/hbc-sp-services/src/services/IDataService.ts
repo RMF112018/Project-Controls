@@ -150,6 +150,8 @@ export interface IDataService {
   updateTurnoverItem(id: number, data: Partial<ITurnoverItem>): Promise<ITurnoverItem>;
   getCloseoutItems(projectCode: string): Promise<ICloseoutItem[]>;
   updateCloseoutItem(id: number, data: Partial<ICloseoutItem>): Promise<ICloseoutItem>;
+  addCloseoutItem(projectCode: string, item: Partial<ICloseoutItem>): Promise<ICloseoutItem>;
+  removeCloseoutItem(projectCode: string, itemId: number): Promise<void>;
   getLossAutopsy(leadId: number): Promise<ILossAutopsy | null>;
   saveLossAutopsy(data: Partial<ILossAutopsy>): Promise<ILossAutopsy>;
   finalizeLossAutopsy(leadId: number, data: Partial<ILossAutopsy>): Promise<ILossAutopsy>;

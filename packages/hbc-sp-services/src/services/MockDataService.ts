@@ -2226,7 +2226,7 @@ export class MockDataService implements IDataService {
 
   public async getCloseoutItems(projectCode: string): Promise<ICloseoutItem[]> {
     await delay();
-    return this.closeoutItems.filter(c => c.projectCode === projectCode);
+    return this.closeoutItems.filter(c => c.projectCode === projectCode && !c.isHidden);
   }
 
   public async updateCloseoutItem(id: number, data: Partial<ICloseoutItem>): Promise<ICloseoutItem> {
@@ -2235,6 +2235,42 @@ export class MockDataService implements IDataService {
     if (index === -1) throw new Error(`Closeout item with id ${id} not found`);
     this.closeoutItems[index] = { ...this.closeoutItems[index], ...data };
     return { ...this.closeoutItems[index] };
+  }
+
+  public async addCloseoutItem(projectCode: string, item: Partial<ICloseoutItem>): Promise<ICloseoutItem> {
+    await delay();
+    const newItem: ICloseoutItem = {
+      id: this.getNextId(),
+      projectCode,
+      category: item.sectionName ?? item.category ?? '',
+      description: item.label ?? item.description ?? 'Custom item',
+      status: 'NoResponse',
+      assignedTo: item.assignedTo ?? '',
+      assignedToId: item.assignedToId,
+      completedDate: undefined,
+      notes: undefined,
+      sectionNumber: item.sectionNumber ?? 1,
+      sectionName: item.sectionName ?? 'Tasks',
+      itemNumber: item.itemNumber ?? 'C.1',
+      label: item.label ?? 'Custom item',
+      responseType: item.responseType ?? 'yesNoNA',
+      response: null,
+      respondedBy: undefined,
+      respondedDate: undefined,
+      comment: undefined,
+      isHidden: false,
+      isCustom: true,
+      sortOrder: item.sortOrder ?? 100,
+    };
+    this.closeoutItems.push(newItem);
+    return { ...newItem };
+  }
+
+  public async removeCloseoutItem(projectCode: string, itemId: number): Promise<void> {
+    await delay();
+    const index = this.closeoutItems.findIndex(c => c.id === itemId && c.projectCode === projectCode);
+    if (index === -1) throw new Error(`Closeout item with id ${itemId} not found`);
+    this.closeoutItems[index].isHidden = true;
   }
 
   public async getLossAutopsy(leadId: number): Promise<ILossAutopsy | null> {
