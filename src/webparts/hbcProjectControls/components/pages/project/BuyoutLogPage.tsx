@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLeads } from '../../hooks/useLeads';
@@ -45,6 +46,7 @@ const COMMITMENT_STATUS_CONFIG: Record<CommitmentStatus, { label: string; bg: st
 // ---------------------------------------------------------------------------
 
 export const BuyoutLogPage: React.FC = () => {
+  const navigate = useNavigate();
   const { selectedProject, hasPermission, currentUser, dataService } = useAppContext();
   const { leads, fetchLeads } = useLeads();
   const {
@@ -285,6 +287,7 @@ export const BuyoutLogPage: React.FC = () => {
           <thead>
             <tr style={{ backgroundColor: HBC_COLORS.gray50, borderBottom: `2px solid ${HBC_COLORS.gray200}` }}>
               <Th>Division</Th>
+              <Th>Commitment #</Th>
               <Th>Description</Th>
               <Th align="right">Original Budget</Th>
               <Th align="right">Est. Tax</Th>
@@ -318,6 +321,16 @@ export const BuyoutLogPage: React.FC = () => {
                   onDoubleClick={() => canEdit && !isEditing && startEdit(entry)}
                 >
                   <Td>{entry.divisionCode}</Td>
+                  <Td>
+                    <span
+                      onClick={() => navigate('/operations/contract-tracking')}
+                      style={{ color: HBC_COLORS.navy, cursor: 'pointer', textDecoration: 'none', fontWeight: 500 }}
+                      onMouseEnter={e => { (e.target as HTMLElement).style.textDecoration = 'underline'; }}
+                      onMouseLeave={e => { (e.target as HTMLElement).style.textDecoration = 'none'; }}
+                    >
+                      {`CMT-${entry.divisionCode}`}
+                    </span>
+                  </Td>
                   <Td>{entry.divisionDescription}</Td>
 
                   {/* Original Budget */}

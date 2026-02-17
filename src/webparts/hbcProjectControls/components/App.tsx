@@ -87,6 +87,7 @@ const BuyoutLogPage = lazyNamed(() => import('./pages/project/BuyoutLogPage'));
 // Inline tiny pages — kept in main bundle (no benefit from splitting)
 // ---------------------------------------------------------------------------
 import { AccessDeniedPage } from './pages/shared/AccessDeniedPage';
+import { ComingSoonPage } from './shared/ComingSoonPage';
 
 export interface IAppProps {
   dataService: IDataService;
@@ -291,6 +292,21 @@ const AppRoutes: React.FC = () => (
       } />
       <Route path="/operations/lessons-learned" element={
         <ProjectRequiredRoute><LessonsLearnedPage /></ProjectRequiredRoute>
+      } />
+      <Route path="/operations/readicheck" element={
+        <ProjectRequiredRoute><ComingSoonPage title="ReadiCheck" /></ProjectRequiredRoute>
+      } />
+      <Route path="/operations/best-practices" element={
+        <ProjectRequiredRoute><ComingSoonPage title="Best Practices" /></ProjectRequiredRoute>
+      } />
+      <Route path="/operations/constraints" element={
+        <ProjectRequiredRoute><ComingSoonPage title="Constraints" /></ProjectRequiredRoute>
+      } />
+      <Route path="/operations/permits" element={
+        <ProjectRequiredRoute><ComingSoonPage title="Permits" /></ProjectRequiredRoute>
+      } />
+      <Route path="/operations/sub-scorecard" element={
+        <ProjectRequiredRoute><ComingSoonPage title="Sub Scorecard" /></ProjectRequiredRoute>
       } />
       <Route path="/operations/gonogo" element={
         <ProjectRequiredRoute><GoNoGoScorecard /></ProjectRequiredRoute>
