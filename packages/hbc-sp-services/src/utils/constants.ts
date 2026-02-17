@@ -41,6 +41,7 @@ export const CACHE_KEYS = {
   PERSONNEL_WORKLOAD: 'hbc_personnel_workload',
   ACCESSIBLE_PROJECTS: 'hbc_accessible_projects',
   CONSTRAINTS: 'hbc_constraints',
+  PERMITS: 'hbc_permits',
 } as const;
 
 export const HUB_LISTS = {
@@ -132,6 +133,7 @@ export const PROJECT_LISTS = {
   SCHEDULE_ACTIVITIES: 'Schedule_Activities',
   SCHEDULE_IMPORTS: 'Schedule_Imports',
   CONSTRAINTS_LOG: 'Constraints_Log',
+  PERMITS_LOG: 'Permits_Log',
 } as const;
 
 export const LIST_NAMES = { ...HUB_LISTS, ...PROJECT_LISTS } as const;
@@ -187,6 +189,7 @@ export const ROUTES = {
   OPS_PROJECT_RECORD: '/operations/project-record',
   OPS_LESSONS: '/operations/lessons-learned',
   OPS_GONOGO: '/operations/gonogo',
+  OPS_PERMITS: '/operations/permits',
 
   // Job Request
   JOB_REQUEST: '/job-request',

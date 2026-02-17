@@ -866,6 +866,30 @@ const CONSTRAINTS_LOG: IProjectListSchema = {
   ],
 };
 
+const PERMITS_LOG: IProjectListSchema = {
+  listName: 'Permits_Log',
+  description: 'Construction permits tracking (primary, sub, temp permits with AHJ)',
+  templateType: 100,
+  fields: [
+    text('ProjectCode', 'Project Code', { indexed: true }),
+    text('RefNumber', 'Ref Number'),
+    text('ParentRefNumber', 'Parent Ref Number'),
+    choice('Location', 'Location', ['Site', 'Building', 'Pool', 'Parking', 'Utility', 'Other']),
+    choice('PermitType', 'Permit Type', ['PRIMARY', 'SUB', 'TEMP']),
+    text('PermitNumber', 'Permit Number'),
+    note('Description', 'Description'),
+    text('ResponsibleContractor', 'Responsible Contractor'),
+    text('Address', 'Address'),
+    dateTime('DateRequired', 'Date Required'),
+    dateTime('DateSubmitted', 'Date Submitted'),
+    dateTime('DateReceived', 'Date Received'),
+    dateTime('DateExpires', 'Date Expires'),
+    choice('Status', 'Status', ['Active', 'Pending Application', 'Pending Revision', 'Inactive', 'VOID', 'Expired', 'Closed']),
+    text('AHJ', 'AHJ'),
+    note('Comments', 'Comments'),
+  ],
+};
+
 // --- All 45 project-site list schemas ---
 
 const ALL_PROJECT_SCHEMAS: IProjectListSchema[] = [
@@ -913,6 +937,7 @@ const ALL_PROJECT_SCHEMAS: IProjectListSchema[] = [
   TURNOVER_ATTACHMENTS,
   TURNOVER_ESTIMATE_OVERVIEWS,
   CONSTRAINTS_LOG,
+  PERMITS_LOG,
 ];
 
 /**

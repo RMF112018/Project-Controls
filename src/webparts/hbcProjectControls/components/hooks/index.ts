@@ -49,3 +49,4 @@ export { useFullScreen } from './useFullScreen';
 export type { IUseFullScreenResult } from './useFullScreen';
 export { useScheduleActivities } from './useScheduleActivities';
 export { useConstraintLog } from './useConstraintLog';
+export { usePermitsLog } from './usePermitsLog';

@@ -1893,3 +1893,27 @@ export const SCHEDULE_IMPORTS_COLUMNS = {
   activityCount: 'ActivityCount',              // SP: Number
   notes: 'Notes',                              // SP: Note
 } as const;
+
+/**
+ * List: Permits_Log (Project Site)
+ * Interface: IPermit
+ */
+export const PERMITS_LOG_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  projectCode: 'ProjectCode',                  // SP: Single Line of Text (indexed)
+  refNumber: 'RefNumber',                      // SP: Single Line of Text
+  parentRefNumber: 'ParentRefNumber',          // SP: Single Line of Text
+  location: 'Location',                        // SP: Choice
+  type: 'PermitType',                          // SP: Choice
+  permitNumber: 'PermitNumber',                // SP: Single Line of Text
+  description: 'Description',                  // SP: Note
+  responsibleContractor: 'ResponsibleContractor', // SP: Single Line of Text
+  address: 'Address',                          // SP: Single Line of Text
+  dateRequired: 'DateRequired',                // SP: DateTime
+  dateSubmitted: 'DateSubmitted',              // SP: DateTime
+  dateReceived: 'DateReceived',                // SP: DateTime
+  dateExpires: 'DateExpires',                  // SP: DateTime
+  status: 'Status',                            // SP: Choice
+  ahj: 'AHJ',                                 // SP: Single Line of Text
+  comments: 'Comments',                        // SP: Note
+} as const;

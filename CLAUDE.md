@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-17 — Schedule Module Validation: 3 new test suites (61 tests → 550 total), parser hardening (per-row try/catch), accessibility attrs, responsive charts, ExportButtons on Analysis, loading spinner, cache invalidation
+**Last Updated:** 2026-02-17 — Permits Log Module: IPermit model, 4 new IDataService methods (243 total), MockDataService + SharePointDataService, usePermitsLog hook, PermitsLogPage with grouped table, route + navigation wiring, 20 mock entries
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -48,7 +48,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §4 Core Architecture Patterns (Active)
 
-- **Data Service**: `IDataService` (239 methods) → `MockDataService` (full) + `SharePointDataService` (239/239 — COMPLETE)
+- **Data Service**: `IDataService` (243 methods) → `MockDataService` (full) + `SharePointDataService` (243/243 — COMPLETE)
 - **Data Mart**: Denormalized 43-column hub list aggregating 8+ project-site lists; fire-and-forget sync from hooks; `useDataMart` hook with SignalR refresh
 - **Hooks**: Feature-specific hooks call `dataService` methods in `useCallback`
 - **RBAC**: `resolveUserPermissions` → `PermissionGate` / `RoleGate` / `FeatureGate`
@@ -61,11 +61,12 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §7 Service Methods Status (Live)
 
-**Total methods**: 239
-**Implemented**: 239
+**Total methods**: 243
+**Implemented**: 243
 **Remaining stubs**: 0 — DATA LAYER COMPLETE
 
 **Last Completed**:
+- Permits Log (Feb 17): 4 new methods → 243/243
 - Constraints Log (Feb 17): 4 new methods → 239/239
 - Schedule Module (Feb 17): 6 new methods → 235/235
 - Provisioning Ops (Feb 16): 8 new methods → 229/229
@@ -81,7 +82,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §15 Current Phase Status
 
-**Phase COMPLETE**: Constraints Log Module — 239/239 methods implemented, 550 total tests.
+**Phase COMPLETE**: Permits Log Module — 243/243 methods implemented, 550 total tests.
 
 Full P6-style schedule management with multi-format support:
 - **Parsing**: CSV, XER (Primavera P6), XML (MSProject + P6 PMXML) via `parseScheduleFile` dispatcher
@@ -100,6 +101,16 @@ Full P6-style schedule management with multi-format support:
 - Hook: `useConstraintLog` with SignalR subscription (`EntityType.Constraint`), computed metrics
 - Permissions: `CONSTRAINTS_VIEW`, `CONSTRAINTS_EDIT`, `CONSTRAINTS_MANAGE` (Ops=all 3, Exec/Director=VIEW+EDIT)
 - 45 project-site schemas, 12 mock entries across 2 project codes
+
+**Permits Log Module** (Feb 17):
+- Full CRUD: `getPermits`, `addPermit`, `updatePermit`, `removePermit` (4 methods)
+- Model: `IPermit` with 3 types (PRIMARY/SUB/TEMP), 7 statuses, parent-child relationships via `parentRefNumber`
+- UI: PermitsLogPage with 5 MetricCards, search/status/type/location filters, ExportButtons, inline editing
+- Grouped by Location (Site/Building/Pool), SUB rows indented, Type badges with color coding
+- `daysToExpiry` and `expiringSoon` (30-day window) calculated at render time
+- Hook: `usePermitsLog` with SignalR subscription (`EntityType.Permit`), computed metrics (total/active/pending/expired/void/expiringSoon/byType/byLocation)
+- Permissions: `PERMITS_VIEW`, `PERMITS_EDIT`, `PERMITS_MANAGE` (Ops=all 3, Exec/Director=VIEW+EDIT)
+- 45 project-site schemas, 20 mock entries across 2 project codes
 
 **Next Phase**: Integration testing and deployment readiness.
 

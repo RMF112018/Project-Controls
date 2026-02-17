@@ -47,6 +47,7 @@ import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '
 import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
 import { IScheduleActivity, IScheduleImport, IScheduleMetrics } from '../models/IScheduleActivity';
 import { IConstraintLog } from '../models/IConstraintLog';
+import { IPermit } from '../models/IPermit';
 import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -441,6 +442,12 @@ export interface IDataService {
   addConstraint(projectCode: string, constraint: Partial<IConstraintLog>): Promise<IConstraintLog>;
   updateConstraint(projectCode: string, constraintId: number, data: Partial<IConstraintLog>): Promise<IConstraintLog>;
   removeConstraint(projectCode: string, constraintId: number): Promise<void>;
+
+  // Permits Log
+  getPermits(projectCode: string): Promise<IPermit[]>;
+  addPermit(projectCode: string, permit: Partial<IPermit>): Promise<IPermit>;
+  updatePermit(projectCode: string, permitId: number, data: Partial<IPermit>): Promise<IPermit>;
+  removePermit(projectCode: string, permitId: number): Promise<void>;
 
   // Project site URL targeting (Phase 26)
   setProjectSiteUrl(siteUrl: string | null): void;

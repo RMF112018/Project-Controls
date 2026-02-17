@@ -40,6 +40,7 @@ import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '
 import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
 import { IScheduleActivity, IScheduleImport, IScheduleMetrics, IScheduleRelationship, ActivityStatus, RelationshipType } from '../models/IScheduleActivity';
 import { IConstraintLog } from '../models/IConstraintLog';
+import { IPermit } from '../models/IPermit';
 import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField, TurnoverStatus, ScorecardStatus, WorkflowActionType, ActionPriority, AuditAction, EntityType } from '../models/enums';
 import { DataServiceError } from './DataServiceError';
 import { performanceService } from './PerformanceService';
@@ -111,6 +112,7 @@ import {
   SCHEDULE_ACTIVITIES_COLUMNS,
   SCHEDULE_IMPORTS_COLUMNS,
   CONSTRAINTS_LOG_COLUMNS,
+  PERMITS_LOG_COLUMNS,
 } from './columnMappings';
 import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
 import { cacheService } from './CacheService';
@@ -8930,6 +8932,163 @@ export class SharePointDataService implements IDataService {
       reference: item[col.reference] as string || undefined,
       closureDocument: item[col.closureDocument] as string || undefined,
       budgetImpactCost: item[col.budgetImpactCost] as number || undefined,
+      comments: item[col.comments] as string || undefined,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ──── Permits Log ────
+  // ═══════════════════════════════════════════════════════════════════
+
+  async getPermits(projectCode: string): Promise<IPermit[]> {
+    performanceService.startMark('sp:getPermits');
+    try {
+      const web = this._getProjectWeb();
+      const items = await web.lists
+        .getByTitle(LIST_NAMES.PERMITS_LOG)
+        .items
+        .filter(`ProjectCode eq '${projectCode}'`)
+        .top(5000)();
+      performanceService.endMark('sp:getPermits');
+      return items.map((item: Record<string, unknown>) => this.mapToPermit(item));
+    } catch (err) {
+      performanceService.endMark('sp:getPermits');
+      throw this.handleError('getPermits', err, { entityType: 'Permit' });
+    }
+  }
+
+  async addPermit(projectCode: string, permit: Partial<IPermit>): Promise<IPermit> {
+    performanceService.startMark('sp:addPermit');
+    try {
+      const web = this._getProjectWeb();
+      const col = PERMITS_LOG_COLUMNS;
+
+      const result = await web.lists
+        .getByTitle(LIST_NAMES.PERMITS_LOG)
+        .items.add({
+          [col.projectCode]: projectCode,
+          [col.refNumber]: permit.refNumber || '',
+          [col.parentRefNumber]: permit.parentRefNumber || '',
+          [col.location]: permit.location || '',
+          [col.type]: permit.type || 'PRIMARY',
+          [col.permitNumber]: permit.permitNumber || 'Not Issued',
+          [col.description]: permit.description || '',
+          [col.responsibleContractor]: permit.responsibleContractor || '',
+          [col.address]: permit.address || '',
+          [col.dateRequired]: permit.dateRequired || null,
+          [col.dateSubmitted]: permit.dateSubmitted || null,
+          [col.dateReceived]: permit.dateReceived || null,
+          [col.dateExpires]: permit.dateExpires || null,
+          [col.status]: permit.status || 'Pending Application',
+          [col.ahj]: permit.ahj || '',
+          [col.comments]: permit.comments || '',
+        });
+
+      this.logAudit({
+        Action: AuditAction.PermitUpdated,
+        EntityType: EntityType.Permit,
+        EntityId: String((result as Record<string, unknown>).Id || (result as Record<string, unknown>).id || 0),
+        Details: `Added permit ${permit.refNumber || 'new'} for ${projectCode}`,
+      });
+
+      performanceService.endMark('sp:addPermit');
+      return this.mapToPermit(result as Record<string, unknown>);
+    } catch (err) {
+      performanceService.endMark('sp:addPermit');
+      throw this.handleError('addPermit', err, { entityType: 'Permit' });
+    }
+  }
+
+  async updatePermit(projectCode: string, permitId: number, data: Partial<IPermit>): Promise<IPermit> {
+    performanceService.startMark('sp:updatePermit');
+    try {
+      const web = this._getProjectWeb();
+      const col = PERMITS_LOG_COLUMNS;
+      const updates: Record<string, unknown> = {};
+
+      if (data.refNumber !== undefined) updates[col.refNumber] = data.refNumber;
+      if (data.parentRefNumber !== undefined) updates[col.parentRefNumber] = data.parentRefNumber;
+      if (data.location !== undefined) updates[col.location] = data.location;
+      if (data.type !== undefined) updates[col.type] = data.type;
+      if (data.permitNumber !== undefined) updates[col.permitNumber] = data.permitNumber;
+      if (data.description !== undefined) updates[col.description] = data.description;
+      if (data.responsibleContractor !== undefined) updates[col.responsibleContractor] = data.responsibleContractor;
+      if (data.address !== undefined) updates[col.address] = data.address;
+      if (data.dateRequired !== undefined) updates[col.dateRequired] = data.dateRequired;
+      if (data.dateSubmitted !== undefined) updates[col.dateSubmitted] = data.dateSubmitted;
+      if (data.dateReceived !== undefined) updates[col.dateReceived] = data.dateReceived;
+      if (data.dateExpires !== undefined) updates[col.dateExpires] = data.dateExpires;
+      if (data.status !== undefined) updates[col.status] = data.status;
+      if (data.ahj !== undefined) updates[col.ahj] = data.ahj;
+      if (data.comments !== undefined) updates[col.comments] = data.comments;
+
+      await web.lists
+        .getByTitle(LIST_NAMES.PERMITS_LOG)
+        .items.getById(permitId)
+        .update(updates);
+
+      this.logAudit({
+        Action: AuditAction.PermitUpdated,
+        EntityType: EntityType.Permit,
+        EntityId: String(permitId),
+        Details: `Updated permit ${permitId} for ${projectCode}`,
+      });
+
+      // Re-read the updated item
+      const item = await web.lists
+        .getByTitle(LIST_NAMES.PERMITS_LOG)
+        .items.getById(permitId)();
+
+      performanceService.endMark('sp:updatePermit');
+      return this.mapToPermit(item as unknown as Record<string, unknown>);
+    } catch (err) {
+      performanceService.endMark('sp:updatePermit');
+      throw this.handleError('updatePermit', err, { entityType: 'Permit' });
+    }
+  }
+
+  async removePermit(projectCode: string, permitId: number): Promise<void> {
+    performanceService.startMark('sp:removePermit');
+    try {
+      const web = this._getProjectWeb();
+      await web.lists
+        .getByTitle(LIST_NAMES.PERMITS_LOG)
+        .items.getById(permitId)
+        .delete();
+
+      this.logAudit({
+        Action: AuditAction.PermitUpdated,
+        EntityType: EntityType.Permit,
+        EntityId: String(permitId),
+        Details: `Removed permit ${permitId} from ${projectCode}`,
+      });
+
+      performanceService.endMark('sp:removePermit');
+    } catch (err) {
+      performanceService.endMark('sp:removePermit');
+      throw this.handleError('removePermit', err, { entityType: 'Permit' });
+    }
+  }
+
+  private mapToPermit(item: Record<string, unknown>): IPermit {
+    const col = PERMITS_LOG_COLUMNS;
+    return {
+      id: (item.Id as number) || (item.id as number) || 0,
+      projectCode: item[col.projectCode] as string || '',
+      refNumber: item[col.refNumber] as string || '',
+      parentRefNumber: item[col.parentRefNumber] as string || undefined,
+      location: item[col.location] as string || '',
+      type: (item[col.type] as IPermit['type']) || 'PRIMARY',
+      permitNumber: item[col.permitNumber] as string || '',
+      description: item[col.description] as string || '',
+      responsibleContractor: item[col.responsibleContractor] as string || '',
+      address: item[col.address] as string || '',
+      dateRequired: item[col.dateRequired] as string || undefined,
+      dateSubmitted: item[col.dateSubmitted] as string || undefined,
+      dateReceived: item[col.dateReceived] as string || undefined,
+      dateExpires: item[col.dateExpires] as string || undefined,
+      status: (item[col.status] as IPermit['status']) || 'Pending Application',
+      ahj: item[col.ahj] as string || '',
       comments: item[col.comments] as string || undefined,
     };
   }
