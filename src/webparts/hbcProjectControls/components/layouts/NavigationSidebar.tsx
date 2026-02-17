@@ -141,37 +141,40 @@ const NAV_STRUCTURE: INavGroupDef[] = [
     label: 'Operations',
     groupKey: 'Operations',
     items: [
-      { label: 'Active Projects', path: '/operations', permission: PERMISSIONS.ACTIVE_PROJECTS_VIEW, hubOnly: true, featureFlag: 'ExecutiveDashboard' },
-      { label: 'Compliance Log', path: '/operations/compliance-log', permission: PERMISSIONS.COMPLIANCE_LOG_VIEW, hubOnly: true },
+      { label: 'Project Dashboard', path: '/operations/project', requiresProject: true },
     ],
     subGroups: [
       {
         label: 'Project Manual',
         items: [
-          { label: 'Project Dashboard', path: '/operations/project', requiresProject: true },
-          { label: 'Startup Checklist', path: '/operations/startup-checklist', requiresProject: true, featureFlag: 'ProjectStartup' },
           { label: 'Management Plan', path: '/operations/management-plan', requiresProject: true, featureFlag: 'ProjectManagementPlan' },
           { label: "Super's Plan", path: '/operations/superintendent-plan', requiresProject: true },
+          { label: 'Startup Checklist', path: '/operations/startup-checklist', requiresProject: true, featureFlag: 'ProjectStartup' },
+          { label: 'ReadiCheck', path: '/operations/readicheck', requiresProject: true },
+          { label: 'Best Practices', path: '/operations/best-practices', requiresProject: true },
           { label: 'Responsibility', path: '/operations/responsibility', requiresProject: true, featureFlag: 'ProjectStartup' },
-        ],
-      },
-      {
-        label: 'Commitments',
-        items: [
-          { label: 'Buyout Log', path: '/operations/buyout-log', requiresProject: true, permission: PERMISSIONS.BUYOUT_VIEW },
-          { label: 'Contract Tracking', path: '/operations/contract-tracking', requiresProject: true },
+          { label: 'Schedule', path: '/operations/schedule', requiresProject: true },
+          { label: 'Safety Concerns', path: '/operations/safety-concerns', requiresProject: true },
+          { label: 'Quality Concerns', path: '/operations/quality-concerns', requiresProject: true },
           { label: 'Closeout Checklist', path: '/operations/closeout-checklist', requiresProject: true },
         ],
       },
       {
-        label: 'Project Controls',
+        label: 'Logs & Reports',
         items: [
-          { label: 'Risk & Cost', path: '/operations/risk-cost', requiresProject: true },
-          { label: 'Schedule', path: '/operations/schedule', requiresProject: true },
-          { label: 'Quality Concerns', path: '/operations/quality-concerns', requiresProject: true },
-          { label: 'Safety Concerns', path: '/operations/safety-concerns', requiresProject: true },
+          { label: 'Buyout', path: '/operations/buyout-log', requiresProject: true, permission: PERMISSIONS.BUYOUT_VIEW },
           { label: 'Monthly Review', path: '/operations/monthly-review', requiresProject: true, featureFlag: 'MonthlyProjectReview' },
+          { label: 'Constraints', path: '/operations/constraints', requiresProject: true },
+          { label: 'Permits', path: '/operations/permits', requiresProject: true },
+          { label: 'Compliance Log', path: '/operations/compliance-log', permission: PERMISSIONS.COMPLIANCE_LOG_VIEW },
+        ],
+      },
+      {
+        label: 'Project Record',
+        items: [
           { label: 'Lessons Learned', path: '/operations/lessons-learned', requiresProject: true },
+          { label: 'Sub Scorecard', path: '/operations/sub-scorecard', requiresProject: true },
+          { label: 'Project Summary', path: '/operations/project-record', requiresProject: true },
         ],
       },
     ],
