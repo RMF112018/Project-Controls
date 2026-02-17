@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "projectCode": "TWNU07",
+    "fileName": "TWNU07_Schedule_2025-01-15.csv",
+    "format": "P6-CSV",
+    "importDate": "2025-01-15T10:00:00.000Z",
+    "importedBy": "John Smith",
+    "activityCount": 50,
+    "notes": "Initial P6 schedule import"
+  }
+]

@@ -38,6 +38,7 @@ import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IRe
 import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfig';
 import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '../models/IPerformanceLog';
 import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
+import { IScheduleActivity, IScheduleImport, IScheduleMetrics, IScheduleRelationship, ActivityStatus, RelationshipType } from '../models/IScheduleActivity';
 import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField, TurnoverStatus, ScorecardStatus, WorkflowActionType, ActionPriority, AuditAction, EntityType } from '../models/enums';
 import { DataServiceError } from './DataServiceError';
 import { performanceService } from './PerformanceService';
@@ -105,6 +106,8 @@ import {
   TEMPLATE_REGISTRY_COLUMNS,
   PROJECT_DATA_MART_COLUMNS,
   CLOSEOUT_ITEMS_COLUMNS,
+  SCHEDULE_ACTIVITIES_COLUMNS,
+  SCHEDULE_IMPORTS_COLUMNS,
 } from './columnMappings';
 import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
 import { cacheService } from './CacheService';
@@ -8492,5 +8495,321 @@ export class SharePointDataService implements IDataService {
 
     performanceService.endMark('sp:updateSupportConfig');
     return merged;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ──── Schedule Module ────
+  // ═══════════════════════════════════════════════════════════════════
+
+  async getScheduleActivities(projectCode: string): Promise<IScheduleActivity[]> {
+    performanceService.startMark('sp:getScheduleActivities');
+    try {
+      const web = this._getProjectWeb();
+      const items = await web.lists
+        .getByTitle(LIST_NAMES.SCHEDULE_ACTIVITIES)
+        .items
+        .filter(`ProjectCode eq '${projectCode}'`)
+        .top(5000)();
+      performanceService.endMark('sp:getScheduleActivities');
+      return items.map((item: Record<string, unknown>) => this.mapToScheduleActivity(item));
+    } catch (err) {
+      performanceService.endMark('sp:getScheduleActivities');
+      throw this.handleError('getScheduleActivities', err, { entityType: 'ScheduleActivity' });
+    }
+  }
+
+  async importScheduleActivities(
+    projectCode: string,
+    activities: IScheduleActivity[],
+    importMeta: Partial<IScheduleImport>
+  ): Promise<IScheduleActivity[]> {
+    performanceService.startMark('sp:importScheduleActivities');
+    try {
+      const web = this._getProjectWeb();
+      const now = new Date().toISOString();
+      const col = SCHEDULE_ACTIVITIES_COLUMNS;
+      const icol = SCHEDULE_IMPORTS_COLUMNS;
+
+      // Create import record
+      const importResult = await web.lists
+        .getByTitle(LIST_NAMES.SCHEDULE_IMPORTS)
+        .items.add({
+          [icol.projectCode]: projectCode,
+          Title: importMeta.fileName || 'import.csv',
+          [icol.format]: importMeta.format || 'P6-CSV',
+          [icol.importDate]: now,
+          [icol.importedBy]: importMeta.importedBy || 'Unknown',
+          [icol.activityCount]: activities.length,
+          [icol.notes]: importMeta.notes || '',
+        });
+      const importId = (importResult as Record<string, unknown>).Id as number ||
+        (importResult as Record<string, unknown>).id as number ||
+        ((importResult as { data?: Record<string, unknown> }).data?.Id as number) || 0;
+
+      // Batch-add activities in groups of 100
+      const batchSize = 100;
+      for (let i = 0; i < activities.length; i += batchSize) {
+        const batch = web.createBatch();
+        const list = web.lists.getByTitle(LIST_NAMES.SCHEDULE_ACTIVITIES);
+        const chunk = activities.slice(i, i + batchSize);
+
+        for (const a of chunk) {
+          list.items.inBatch(batch).add({
+            Title: a.taskCode,
+            [col.projectCode]: projectCode,
+            [col.importId]: importId,
+            [col.wbsCode]: a.wbsCode,
+            [col.activityName]: a.activityName,
+            [col.activityType]: a.activityType,
+            [col.status]: a.status,
+            [col.originalDuration]: a.originalDuration,
+            [col.remainingDuration]: a.remainingDuration,
+            [col.actualDuration]: a.actualDuration,
+            [col.baselineStartDate]: a.baselineStartDate,
+            [col.baselineFinishDate]: a.baselineFinishDate,
+            [col.plannedStartDate]: a.plannedStartDate,
+            [col.plannedFinishDate]: a.plannedFinishDate,
+            [col.actualStartDate]: a.actualStartDate,
+            [col.actualFinishDate]: a.actualFinishDate,
+            [col.remainingFloat]: a.remainingFloat,
+            [col.freeFloat]: a.freeFloat,
+            [col.predecessors]: JSON.stringify(a.predecessors),
+            [col.successors]: JSON.stringify(a.successors),
+            [col.successorDetails]: JSON.stringify(a.successorDetails),
+            [col.resources]: a.resources,
+            [col.calendarName]: a.calendarName,
+            [col.primaryConstraint]: a.primaryConstraint,
+            [col.secondaryConstraint]: a.secondaryConstraint,
+            [col.isCritical]: a.isCritical,
+            [col.percentComplete]: a.percentComplete,
+            [col.startVarianceDays]: a.startVarianceDays,
+            [col.finishVarianceDays]: a.finishVarianceDays,
+            [col.deleteFlag]: a.deleteFlag,
+          });
+        }
+
+        await batch.execute();
+      }
+
+      this.logAudit({
+        Action: AuditAction.ScheduleActivitiesImported,
+        EntityType: EntityType.ScheduleActivity,
+        EntityId: String(importId),
+        Details: `Imported ${activities.length} activities for ${projectCode}`,
+      }).catch(() => { /* fire-and-forget */ });
+
+      performanceService.endMark('sp:importScheduleActivities');
+      return this.getScheduleActivities(projectCode);
+    } catch (err) {
+      performanceService.endMark('sp:importScheduleActivities');
+      throw this.handleError('importScheduleActivities', err, { entityType: 'ScheduleActivity' });
+    }
+  }
+
+  async updateScheduleActivity(
+    projectCode: string,
+    activityId: number,
+    data: Partial<IScheduleActivity>
+  ): Promise<IScheduleActivity> {
+    performanceService.startMark('sp:updateScheduleActivity');
+    try {
+      const web = this._getProjectWeb();
+      const col = SCHEDULE_ACTIVITIES_COLUMNS;
+      const updateData: Record<string, unknown> = {};
+
+      if (data.activityName !== undefined) updateData[col.activityName] = data.activityName;
+      if (data.status !== undefined) updateData[col.status] = data.status;
+      if (data.remainingDuration !== undefined) updateData[col.remainingDuration] = data.remainingDuration;
+      if (data.actualDuration !== undefined) updateData[col.actualDuration] = data.actualDuration;
+      if (data.actualStartDate !== undefined) updateData[col.actualStartDate] = data.actualStartDate;
+      if (data.actualFinishDate !== undefined) updateData[col.actualFinishDate] = data.actualFinishDate;
+      if (data.remainingFloat !== undefined) updateData[col.remainingFloat] = data.remainingFloat;
+      if (data.freeFloat !== undefined) updateData[col.freeFloat] = data.freeFloat;
+      if (data.isCritical !== undefined) updateData[col.isCritical] = data.isCritical;
+      if (data.percentComplete !== undefined) updateData[col.percentComplete] = data.percentComplete;
+
+      await web.lists
+        .getByTitle(LIST_NAMES.SCHEDULE_ACTIVITIES)
+        .items.getById(activityId)
+        .update(updateData);
+
+      const updated = await web.lists
+        .getByTitle(LIST_NAMES.SCHEDULE_ACTIVITIES)
+        .items.getById(activityId)();
+
+      this.logAudit({
+        Action: AuditAction.ScheduleActivityUpdated,
+        EntityType: EntityType.ScheduleActivity,
+        EntityId: String(activityId),
+        Details: `Updated schedule activity ${data.activityName || activityId}`,
+      }).catch(() => { /* fire-and-forget */ });
+
+      performanceService.endMark('sp:updateScheduleActivity');
+      return this.mapToScheduleActivity(updated);
+    } catch (err) {
+      performanceService.endMark('sp:updateScheduleActivity');
+      throw this.handleError('updateScheduleActivity', err, { entityType: 'ScheduleActivity' });
+    }
+  }
+
+  async deleteScheduleActivity(_projectCode: string, activityId: number): Promise<void> {
+    performanceService.startMark('sp:deleteScheduleActivity');
+    try {
+      const web = this._getProjectWeb();
+      await web.lists
+        .getByTitle(LIST_NAMES.SCHEDULE_ACTIVITIES)
+        .items.getById(activityId)
+        .delete();
+
+      this.logAudit({
+        Action: AuditAction.ScheduleActivityDeleted,
+        EntityType: EntityType.ScheduleActivity,
+        EntityId: String(activityId),
+        Details: `Deleted schedule activity ${activityId}`,
+      }).catch(() => { /* fire-and-forget */ });
+
+      performanceService.endMark('sp:deleteScheduleActivity');
+    } catch (err) {
+      performanceService.endMark('sp:deleteScheduleActivity');
+      throw this.handleError('deleteScheduleActivity', err, { entityType: 'ScheduleActivity' });
+    }
+  }
+
+  async getScheduleImports(projectCode: string): Promise<IScheduleImport[]> {
+    performanceService.startMark('sp:getScheduleImports');
+    try {
+      const web = this._getProjectWeb();
+      const items = await web.lists
+        .getByTitle(LIST_NAMES.SCHEDULE_IMPORTS)
+        .items
+        .filter(`ProjectCode eq '${projectCode}'`)
+        .orderBy('ImportDate', false)();
+      performanceService.endMark('sp:getScheduleImports');
+      return items.map((item: Record<string, unknown>) => this.mapToScheduleImport(item));
+    } catch (err) {
+      performanceService.endMark('sp:getScheduleImports');
+      throw this.handleError('getScheduleImports', err, { entityType: 'ScheduleActivity' });
+    }
+  }
+
+  async getScheduleMetrics(projectCode: string): Promise<IScheduleMetrics> {
+    performanceService.startMark('sp:getScheduleMetrics');
+    try {
+      const activities = await this.getScheduleActivities(projectCode);
+
+      const completedCount = activities.filter(a => a.status === 'Completed').length;
+      const inProgressCount = activities.filter(a => a.status === 'In Progress').length;
+      const notStartedCount = activities.filter(a => a.status === 'Not Started').length;
+      const criticalActivityCount = activities.filter(a => a.isCritical).length;
+      const negativeFloatCount = activities.filter(a => a.remainingFloat !== null && a.remainingFloat < 0).length;
+
+      const floatsWithValues = activities.filter(a => a.remainingFloat !== null).map(a => a.remainingFloat!);
+      const averageFloat = floatsWithValues.length > 0
+        ? floatsWithValues.reduce((s, f) => s + f, 0) / floatsWithValues.length
+        : 0;
+
+      const percentComplete = activities.length > 0
+        ? Math.round((completedCount / activities.length) * 100)
+        : 0;
+
+      const totalDuration = activities.reduce((s, a) => s + a.originalDuration, 0);
+      const earnedDuration = activities.reduce((s, a) => s + a.actualDuration, 0);
+      const spiApproximation = totalDuration > 0 ? Math.round((earnedDuration / totalDuration) * 100) / 100 : null;
+
+      const floatDistribution = {
+        negative: negativeFloatCount,
+        zero: activities.filter(a => a.remainingFloat === 0).length,
+        low: activities.filter(a => a.remainingFloat !== null && a.remainingFloat > 0 && a.remainingFloat <= 10).length,
+        medium: activities.filter(a => a.remainingFloat !== null && a.remainingFloat > 10 && a.remainingFloat <= 30).length,
+        high: activities.filter(a => a.remainingFloat !== null && a.remainingFloat > 30).length,
+      };
+
+      performanceService.endMark('sp:getScheduleMetrics');
+      return {
+        totalActivities: activities.length,
+        completedCount,
+        inProgressCount,
+        notStartedCount,
+        percentComplete,
+        criticalActivityCount,
+        negativeFloatCount,
+        averageFloat: Math.round(averageFloat * 10) / 10,
+        spiApproximation,
+        floatDistribution,
+      };
+    } catch (err) {
+      performanceService.endMark('sp:getScheduleMetrics');
+      throw this.handleError('getScheduleMetrics', err, { entityType: 'ScheduleActivity' });
+    }
+  }
+
+  private mapToScheduleActivity(item: Record<string, unknown>): IScheduleActivity {
+    const col = SCHEDULE_ACTIVITIES_COLUMNS;
+
+    let predecessors: string[] = [];
+    let successors: string[] = [];
+    let successorDetails: IScheduleRelationship[] = [];
+    try {
+      const predRaw = item[col.predecessors];
+      if (typeof predRaw === 'string' && predRaw) predecessors = JSON.parse(predRaw);
+    } catch { /* default empty */ }
+    try {
+      const succRaw = item[col.successors];
+      if (typeof succRaw === 'string' && succRaw) successors = JSON.parse(succRaw);
+    } catch { /* default empty */ }
+    try {
+      const detailsRaw = item[col.successorDetails];
+      if (typeof detailsRaw === 'string' && detailsRaw) successorDetails = JSON.parse(detailsRaw);
+    } catch { /* default empty */ }
+
+    return {
+      id: item.Id as number,
+      projectCode: item[col.projectCode] as string || '',
+      importId: item[col.importId] as number | undefined,
+      taskCode: item[col.taskCode] as string || '',
+      wbsCode: item[col.wbsCode] as string || '',
+      activityName: item[col.activityName] as string || '',
+      activityType: item[col.activityType] as string || 'Task Dependent',
+      status: (item[col.status] as ActivityStatus) || 'Not Started',
+      originalDuration: (item[col.originalDuration] as number) || 0,
+      remainingDuration: (item[col.remainingDuration] as number) || 0,
+      actualDuration: (item[col.actualDuration] as number) || 0,
+      baselineStartDate: item[col.baselineStartDate] as string | null,
+      baselineFinishDate: item[col.baselineFinishDate] as string | null,
+      plannedStartDate: item[col.plannedStartDate] as string | null,
+      plannedFinishDate: item[col.plannedFinishDate] as string | null,
+      actualStartDate: item[col.actualStartDate] as string | null,
+      actualFinishDate: item[col.actualFinishDate] as string | null,
+      remainingFloat: item[col.remainingFloat] as number | null,
+      freeFloat: item[col.freeFloat] as number | null,
+      predecessors,
+      successors,
+      successorDetails,
+      resources: item[col.resources] as string || '',
+      calendarName: item[col.calendarName] as string || '',
+      primaryConstraint: item[col.primaryConstraint] as string || '',
+      secondaryConstraint: item[col.secondaryConstraint] as string || '',
+      isCritical: !!(item[col.isCritical]),
+      percentComplete: (item[col.percentComplete] as number) || 0,
+      startVarianceDays: item[col.startVarianceDays] as number | null,
+      finishVarianceDays: item[col.finishVarianceDays] as number | null,
+      deleteFlag: !!(item[col.deleteFlag]),
+      createdDate: item.Created as string || '',
+      modifiedDate: item.Modified as string || '',
+    };
+  }
+
+  private mapToScheduleImport(item: Record<string, unknown>): IScheduleImport {
+    const col = SCHEDULE_IMPORTS_COLUMNS;
+    return {
+      id: item.Id as number,
+      projectCode: item[col.projectCode] as string || '',
+      fileName: item[col.fileName] as string || '',
+      format: (item[col.format] as IScheduleImport['format']) || 'P6-CSV',
+      importDate: item[col.importDate] as string || '',
+      importedBy: item[col.importedBy] as string || '',
+      activityCount: (item[col.activityCount] as number) || 0,
+      notes: item[col.notes] as string || '',
+    };
   }
 }

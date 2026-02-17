@@ -45,6 +45,7 @@ import { ISectorDefinition } from '../models/ISectorDefinition';
 import { IAssignmentMapping } from '../models/IAssignmentMapping';
 import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '../models/IPerformanceLog';
 import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
+import { IScheduleActivity, IScheduleImport, IScheduleMetrics } from '../models/IScheduleActivity';
 import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -425,6 +426,14 @@ export interface IDataService {
   getDataMartRecords(filters?: IDataMartFilter): Promise<IProjectDataMart[]>;
   getDataMartRecord(projectCode: string): Promise<IProjectDataMart | null>;
   triggerDataMartSync(): Promise<IDataMartSyncResult[]>;
+
+  // Schedule Module
+  getScheduleActivities(projectCode: string): Promise<IScheduleActivity[]>;
+  importScheduleActivities(projectCode: string, activities: IScheduleActivity[], importMeta: Partial<IScheduleImport>): Promise<IScheduleActivity[]>;
+  updateScheduleActivity(projectCode: string, activityId: number, data: Partial<IScheduleActivity>): Promise<IScheduleActivity>;
+  deleteScheduleActivity(projectCode: string, activityId: number): Promise<void>;
+  getScheduleImports(projectCode: string): Promise<IScheduleImport[]>;
+  getScheduleMetrics(projectCode: string): Promise<IScheduleMetrics>;
 
   // Project site URL targeting (Phase 26)
   setProjectSiteUrl(siteUrl: string | null): void;

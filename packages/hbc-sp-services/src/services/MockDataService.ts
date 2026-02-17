@@ -79,7 +79,10 @@ import {
   IProjectDataMart,
   IDataMartSyncResult,
   IDataMartFilter,
-  DataMartHealthStatus
+  DataMartHealthStatus,
+  IScheduleActivity,
+  IScheduleImport,
+  IScheduleMetrics,
 } from '../models';
 
 import { IJobNumberRequest } from '../models/IJobNumberRequest';
@@ -120,6 +123,8 @@ import mockStandardCostCodes from '../mock/standardCostCodes.json';
 import mockEstimatingKickoffs from '../mock/estimatingKickoffs.json';
 import mockLossAutopsies from '../mock/lossAutopsies.json';
 import mockBuyoutEntries from '../mock/buyoutEntries.json';
+import mockScheduleActivities from '../mock/scheduleActivities.json';
+import mockScheduleImports from '../mock/scheduleImports.json';
 import { createEstimatingKickoffTemplate } from '../utils/estimatingKickoffTemplate';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 import { DEFAULT_HUB_SITE_URL } from '../utils/constants';
@@ -199,6 +204,8 @@ export class MockDataService implements IDataService {
   private estimatingKickoffItems: IEstimatingKickoffItem[];
   private checklistActivityLog: IChecklistActivityEntry[];
   private buyoutEntries: IBuyoutEntry[];
+  private scheduleActivities: IScheduleActivity[];
+  private scheduleImports: IScheduleImport[];
   private activeProjects: IActiveProject[];
   private scorecardApprovalCycles: IScorecardApprovalCycle[];
   private scorecardApprovalSteps: IScorecardApprovalStep[];
@@ -380,6 +387,8 @@ export class MockDataService implements IDataService {
     this.buyoutEntries = this.enrichBuyoutEntriesWithEVerify(
       JSON.parse(JSON.stringify(mockBuyoutEntries)) as IBuyoutEntry[]
     );
+    this.scheduleActivities = JSON.parse(JSON.stringify(mockScheduleActivities)) as IScheduleActivity[];
+    this.scheduleImports = JSON.parse(JSON.stringify(mockScheduleImports)) as IScheduleImport[];
     this.activeProjects = this.generateMockActiveProjects();
     this.workflowDefinitions = JSON.parse(JSON.stringify(mockWorkflowDefinitions)) as IWorkflowDefinition[];
     this.workflowStepOverrides = JSON.parse(JSON.stringify(mockWorkflowStepOverrides)) as IWorkflowStepOverride[];
@@ -6037,5 +6046,154 @@ export class MockDataService implements IDataService {
       results.push(result);
     }
     return results;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Schedule Module
+  // ---------------------------------------------------------------------------
+
+  public async getScheduleActivities(projectCode: string): Promise<IScheduleActivity[]> {
+    await delay();
+    return this.scheduleActivities
+      .filter(a => a.projectCode === projectCode)
+      .map(a => ({ ...a }));
+  }
+
+  public async importScheduleActivities(
+    projectCode: string,
+    activities: IScheduleActivity[],
+    importMeta: Partial<IScheduleImport>
+  ): Promise<IScheduleActivity[]> {
+    await delay();
+    const now = new Date().toISOString();
+
+    // Create import record
+    const importId = Math.max(0, ...this.scheduleImports.map(i => i.id)) + 1;
+    const importRecord: IScheduleImport = {
+      id: importId,
+      projectCode,
+      fileName: importMeta.fileName || 'import.csv',
+      format: importMeta.format || 'P6-CSV',
+      importDate: now,
+      importedBy: importMeta.importedBy || 'Unknown',
+      activityCount: activities.length,
+      notes: importMeta.notes || '',
+    };
+    this.scheduleImports.push(importRecord);
+
+    // Remove existing activities for this project (replace strategy)
+    this.scheduleActivities = this.scheduleActivities.filter(a => a.projectCode !== projectCode);
+
+    // Add new activities with proper IDs
+    let nextId = Math.max(0, ...this.scheduleActivities.map(a => a.id)) + 1;
+    const imported: IScheduleActivity[] = activities.map(a => ({
+      ...a,
+      id: nextId++,
+      projectCode,
+      importId,
+      createdDate: now,
+      modifiedDate: now,
+    }));
+    this.scheduleActivities.push(...imported);
+
+    this.logAudit({
+      Action: AuditAction.ScheduleActivitiesImported,
+      EntityType: EntityType.ScheduleActivity,
+      EntityId: String(importId),
+      Details: `Imported ${activities.length} activities for ${projectCode}`,
+    });
+
+    return imported;
+  }
+
+  public async updateScheduleActivity(
+    projectCode: string,
+    activityId: number,
+    data: Partial<IScheduleActivity>
+  ): Promise<IScheduleActivity> {
+    await delay();
+    const idx = this.scheduleActivities.findIndex(a => a.id === activityId && a.projectCode === projectCode);
+    if (idx === -1) throw new Error(`Schedule activity ${activityId} not found`);
+
+    const updated = { ...this.scheduleActivities[idx], ...data, modifiedDate: new Date().toISOString() };
+    this.scheduleActivities[idx] = updated;
+
+    this.logAudit({
+      Action: AuditAction.ScheduleActivityUpdated,
+      EntityType: EntityType.ScheduleActivity,
+      EntityId: String(activityId),
+      Details: `Updated activity ${updated.taskCode}`,
+    });
+
+    return { ...updated };
+  }
+
+  public async deleteScheduleActivity(projectCode: string, activityId: number): Promise<void> {
+    await delay();
+    const idx = this.scheduleActivities.findIndex(a => a.id === activityId && a.projectCode === projectCode);
+    if (idx === -1) throw new Error(`Schedule activity ${activityId} not found`);
+
+    const activity = this.scheduleActivities[idx];
+    this.scheduleActivities.splice(idx, 1);
+
+    this.logAudit({
+      Action: AuditAction.ScheduleActivityDeleted,
+      EntityType: EntityType.ScheduleActivity,
+      EntityId: String(activityId),
+      Details: `Deleted activity ${activity.taskCode}`,
+    });
+  }
+
+  public async getScheduleImports(projectCode: string): Promise<IScheduleImport[]> {
+    await delay();
+    return this.scheduleImports
+      .filter(i => i.projectCode === projectCode)
+      .map(i => ({ ...i }));
+  }
+
+  public async getScheduleMetrics(projectCode: string): Promise<IScheduleMetrics> {
+    await delay();
+    const activities = this.scheduleActivities.filter(a => a.projectCode === projectCode);
+
+    const completedCount = activities.filter(a => a.status === 'Completed').length;
+    const inProgressCount = activities.filter(a => a.status === 'In Progress').length;
+    const notStartedCount = activities.filter(a => a.status === 'Not Started').length;
+    const criticalActivityCount = activities.filter(a => a.isCritical).length;
+    const negativeFloatCount = activities.filter(a => a.remainingFloat !== null && a.remainingFloat < 0).length;
+
+    const floatsWithValues = activities.filter(a => a.remainingFloat !== null).map(a => a.remainingFloat!);
+    const averageFloat = floatsWithValues.length > 0
+      ? floatsWithValues.reduce((s, f) => s + f, 0) / floatsWithValues.length
+      : 0;
+
+    const percentComplete = activities.length > 0
+      ? Math.round((completedCount / activities.length) * 100)
+      : 0;
+
+    // SPI approximation: actual progress vs planned progress
+    const totalDuration = activities.reduce((s, a) => s + a.originalDuration, 0);
+    const earnedDuration = activities.reduce((s, a) => s + a.actualDuration, 0);
+    const spiApproximation = totalDuration > 0 ? Math.round((earnedDuration / totalDuration) * 100) / 100 : null;
+
+    const floatDistribution = {
+      negative: activities.filter(a => a.remainingFloat !== null && a.remainingFloat < 0).length,
+      zero: activities.filter(a => a.remainingFloat === 0).length,
+      low: activities.filter(a => a.remainingFloat !== null && a.remainingFloat > 0 && a.remainingFloat <= 10).length,
+      medium: activities.filter(a => a.remainingFloat !== null && a.remainingFloat > 10 && a.remainingFloat <= 30).length,
+      high: activities.filter(a => a.remainingFloat !== null && a.remainingFloat > 30).length,
+    };
+
+    return {
+      totalActivities: activities.length,
+      completedCount,
+      inProgressCount,
+      notStartedCount,
+      percentComplete,
+      criticalActivityCount,
+      negativeFloatCount,
+      averageFloat: Math.round(averageFloat * 10) / 10,
+      spiApproximation,
+      floatDistribution,
+    };
   }
 }

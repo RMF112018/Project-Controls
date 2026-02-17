@@ -76,7 +76,7 @@ const ProjectRecord = lazyNamed(() => import('./pages/project/ProjectRecord'));
 const RiskCostManagement = lazyNamed(() => import('./pages/project/RiskCostManagement'));
 const QualityConcernsTracker = lazyNamed(() => import('./pages/project/QualityConcernsTracker'));
 const SafetyConcernsTracker = lazyNamed(() => import('./pages/project/SafetyConcernsTracker'));
-const ProjectScheduleCriticalPath = lazyNamed(() => import('./pages/project/ProjectScheduleCriticalPath'));
+const SchedulePage = lazyNamed(() => import('./pages/project/SchedulePage'));
 const SuperintendentPlanPage = lazyNamed(() => import('./pages/project/SuperintendentPlanPage'));
 const LessonsLearnedPage = lazyNamed(() => import('./pages/project/LessonsLearnedPage'));
 const ProjectManagementPlan = lazyNamed(() => import('./pages/project/pmp/ProjectManagementPlan'));
@@ -280,7 +280,9 @@ const AppRoutes: React.FC = () => (
         </ProjectRequiredRoute>
       } />
       <Route path="/operations/schedule" element={
-        <ProjectRequiredRoute><ProjectScheduleCriticalPath /></ProjectRequiredRoute>
+        <FeatureGate featureName="ScheduleModule" fallback={<NotFoundPage />}>
+          <ProjectRequiredRoute><SchedulePage /></ProjectRequiredRoute>
+        </FeatureGate>
       } />
       <Route path="/operations/quality-concerns" element={
         <ProjectRequiredRoute><QualityConcernsTracker /></ProjectRequiredRoute>

@@ -1,6 +1,6 @@
 /**
  * Project List Schema validation tests.
- * Ensures schema integrity for the 42 project-site lists used during provisioning.
+ * Ensures schema integrity for the 44 project-site lists used during provisioning.
  */
 import { getProjectListSchemas, getBuyoutLogSchema, getActiveProjectsPortfolioSchema } from '../projectListSchemas';
 import { IProjectListSchema, IFieldDefinition } from '../../models/IProvisioningLog';
@@ -17,8 +17,8 @@ describe('projectListSchemas', () => {
   });
 
   it('exports all project-site list schemas', () => {
-    // 41 schemas in the ALL_PROJECT_SCHEMAS array (Shared Documents created by default)
-    expect(schemas).toHaveLength(41);
+    // 43 schemas in the ALL_PROJECT_SCHEMAS array (Shared Documents created by default)
+    expect(schemas).toHaveLength(43);
     expect(schemas.length).toBeGreaterThan(30);
   });
 

@@ -128,6 +128,8 @@ export const PROJECT_LISTS = {
   TURNOVER_SIGNATURES: 'Turnover_Signatures',
   TURNOVER_ATTACHMENTS: 'Turnover_Attachments',
   TURNOVER_ESTIMATE_OVERVIEWS: 'Turnover_Estimate_Overviews',
+  SCHEDULE_ACTIVITIES: 'Schedule_Activities',
+  SCHEDULE_IMPORTS: 'Schedule_Imports',
 } as const;
 
 export const LIST_NAMES = { ...HUB_LISTS, ...PROJECT_LISTS } as const;

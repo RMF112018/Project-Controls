@@ -1813,3 +1813,62 @@ export const PROJECT_DATA_MART_COLUMNS = {
   lastSyncDate: 'LastSyncDate',                // SP: DateTime
   lastSyncBy: 'LastSyncBy',                    // SP: Single Line of Text
 } as const;
+
+// ════════════════════════════════════════════════════════════════════════════
+// ──── Schedule Module ────
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * List: Schedule_Activities (Project Site)
+ * Interface: IScheduleActivity
+ */
+export const SCHEDULE_ACTIVITIES_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  projectCode: 'ProjectCode',                  // SP: Single Line of Text
+  importId: 'ImportId',                        // SP: Number (FK to Schedule_Imports.ID)
+  taskCode: 'Title',                           // SP: Single Line of Text (default)
+  wbsCode: 'WbsCode',                          // SP: Single Line of Text
+  activityName: 'ActivityName',                // SP: Single Line of Text
+  activityType: 'ActivityType',                // SP: Single Line of Text
+  status: 'Status',                            // SP: Choice
+  originalDuration: 'OriginalDuration',        // SP: Number
+  remainingDuration: 'RemainingDuration',      // SP: Number
+  actualDuration: 'ActualDuration',            // SP: Number
+  baselineStartDate: 'BaselineStartDate',      // SP: DateTime
+  baselineFinishDate: 'BaselineFinishDate',    // SP: DateTime
+  plannedStartDate: 'PlannedStartDate',        // SP: DateTime
+  plannedFinishDate: 'PlannedFinishDate',      // SP: DateTime
+  actualStartDate: 'ActualStartDate',          // SP: DateTime
+  actualFinishDate: 'ActualFinishDate',        // SP: DateTime
+  remainingFloat: 'RemainingFloat',            // SP: Number
+  freeFloat: 'FreeFloat',                      // SP: Number
+  predecessors: 'Predecessors',                // SP: Note (JSON string[])
+  successors: 'Successors',                    // SP: Note (JSON string[])
+  successorDetails: 'SuccessorDetails',        // SP: Note (JSON IScheduleRelationship[])
+  resources: 'Resources',                      // SP: Single Line of Text
+  calendarName: 'CalendarName',                // SP: Single Line of Text
+  primaryConstraint: 'PrimaryConstraint',      // SP: Single Line of Text
+  secondaryConstraint: 'SecondaryConstraint',  // SP: Single Line of Text
+  isCritical: 'IsCritical',                    // SP: Yes/No
+  percentComplete: 'PercentComplete',          // SP: Number
+  startVarianceDays: 'StartVarianceDays',      // SP: Number
+  finishVarianceDays: 'FinishVarianceDays',    // SP: Number
+  deleteFlag: 'DeleteFlag',                    // SP: Yes/No
+  createdDate: 'Created',                      // SP: DateTime (auto)
+  modifiedDate: 'Modified',                    // SP: DateTime (auto)
+} as const;
+
+/**
+ * List: Schedule_Imports (Project Site)
+ * Interface: IScheduleImport
+ */
+export const SCHEDULE_IMPORTS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  projectCode: 'ProjectCode',                  // SP: Single Line of Text
+  fileName: 'Title',                           // SP: Single Line of Text (default)
+  format: 'Format',                            // SP: Choice
+  importDate: 'ImportDate',                    // SP: DateTime
+  importedBy: 'ImportedBy',                    // SP: Single Line of Text
+  activityCount: 'ActivityCount',              // SP: Number
+  notes: 'Notes',                              // SP: Note
+} as const;
