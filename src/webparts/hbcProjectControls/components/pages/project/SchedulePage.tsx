@@ -209,17 +209,19 @@ export const SchedulePage: React.FC = () => {
         subtitle={projectCode}
         breadcrumb={<Breadcrumb items={breadcrumbs} />}
         actions={canImport ? (
-          <button onClick={() => setShowImport(true)} style={btnPrimary}>Import Schedule</button>
+          <button onClick={() => setShowImport(true)} style={btnPrimary} aria-label="Import schedule file">Import Schedule</button>
         ) : undefined}
       />
 
       {/* Tab Bar */}
-      <div style={{ display: 'flex', gap: 0, borderBottom: `2px solid ${HBC_COLORS.gray200}`, marginBottom: 24 }}>
+      <div role="tablist" aria-label="Schedule management tabs" style={{ display: 'flex', gap: 0, borderBottom: `2px solid ${HBC_COLORS.gray200}`, marginBottom: 24 }}>
         {TABS.map(tab => {
           if (tab === 'import' && !canImport) return null;
           return (
             <button
               key={tab}
+              role="tab"
+              aria-selected={activeTab === tab}
               onClick={() => setTab(tab)}
               style={{
                 padding: '10px 20px',
@@ -287,7 +289,7 @@ export const SchedulePage: React.FC = () => {
       )}
 
       {activeTab === 'analysis' && (
-        <ScheduleAnalysisTab activities={activities} metrics={metrics} />
+        <ScheduleAnalysisTab activities={activities} metrics={metrics} projectCode={projectCode} />
       )}
 
       {activeTab === 'import' && canImport && (
@@ -445,19 +447,20 @@ const ActivitiesTab: React.FC<IActivitiesTabProps> = ({
         value={search}
         onChange={e => onSearchChange(e.target.value)}
         style={{ ...inputStyle, flex: 1 }}
+        aria-label="Search schedule activities"
       />
-      <select value={statusFilter} onChange={e => onStatusFilterChange(e.target.value)} style={{ ...inputStyle, width: 150 }}>
+      <select value={statusFilter} onChange={e => onStatusFilterChange(e.target.value)} style={{ ...inputStyle, width: 150 }} aria-label="Filter by status">
         <option value="all">All Statuses</option>
         {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
       </select>
       {wbsPrefixes.length > 0 && (
-        <select value={wbsFilter} onChange={e => onWbsFilterChange(e.target.value)} style={{ ...inputStyle, width: 150 }}>
+        <select value={wbsFilter} onChange={e => onWbsFilterChange(e.target.value)} style={{ ...inputStyle, width: 150 }} aria-label="Filter by WBS">
           <option value="all">All WBS</option>
           {wbsPrefixes.map(w => <option key={w} value={w}>{w}</option>)}
         </select>
       )}
       {activityTypes.length > 1 && (
-        <select value={actTypeFilter} onChange={e => onActTypeFilterChange(e.target.value)} style={{ ...inputStyle, width: 160 }}>
+        <select value={actTypeFilter} onChange={e => onActTypeFilterChange(e.target.value)} style={{ ...inputStyle, width: 160 }} aria-label="Filter by activity type">
           <option value="all">All Types</option>
           {activityTypes.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
@@ -471,14 +474,14 @@ const ActivitiesTab: React.FC<IActivitiesTabProps> = ({
     {/* Filters — Row 2: Date range + Float range */}
     <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
       <label style={{ fontSize: 12, color: HBC_COLORS.gray500, whiteSpace: 'nowrap' }}>Start from:</label>
-      <input type="date" value={dateStart} onChange={e => onDateStartChange(e.target.value)} style={{ ...inputStyle, width: 140 }} />
+      <input type="date" value={dateStart} onChange={e => onDateStartChange(e.target.value)} style={{ ...inputStyle, width: 140 }} aria-label="Filter date range start" />
       <label style={{ fontSize: 12, color: HBC_COLORS.gray500, whiteSpace: 'nowrap' }}>to:</label>
-      <input type="date" value={dateEnd} onChange={e => onDateEndChange(e.target.value)} style={{ ...inputStyle, width: 140 }} />
+      <input type="date" value={dateEnd} onChange={e => onDateEndChange(e.target.value)} style={{ ...inputStyle, width: 140 }} aria-label="Filter date range end" />
       <div style={{ width: 1, height: 20, backgroundColor: HBC_COLORS.gray200 }} />
       <label style={{ fontSize: 12, color: HBC_COLORS.gray500, whiteSpace: 'nowrap' }}>Float:</label>
-      <input type="number" placeholder="Min" value={floatMin} onChange={e => onFloatMinChange(e.target.value)} style={{ ...inputStyle, width: 70 }} />
+      <input type="number" placeholder="Min" value={floatMin} onChange={e => onFloatMinChange(e.target.value)} style={{ ...inputStyle, width: 70 }} aria-label="Minimum float filter" />
       <span style={{ fontSize: 12, color: HBC_COLORS.gray500 }}>-</span>
-      <input type="number" placeholder="Max" value={floatMax} onChange={e => onFloatMaxChange(e.target.value)} style={{ ...inputStyle, width: 70 }} />
+      <input type="number" placeholder="Max" value={floatMax} onChange={e => onFloatMaxChange(e.target.value)} style={{ ...inputStyle, width: 70 }} aria-label="Maximum float filter" />
       <div style={{ flex: 1 }} />
       <ExportButtons
         pdfElementId="schedule-activities-table"
@@ -805,14 +808,20 @@ const Th: React.FC<{ children: React.ReactNode; align?: string }> = ({ children,
   </th>
 );
 
-const ThSort: React.FC<{ children: React.ReactNode; field: SortField; current: SortField; dir: SortDir; onSort: (f: SortField) => void }> = ({ children, field, current, dir, onSort }) => (
-  <th
-    onClick={() => onSort(field)}
-    style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: HBC_COLORS.gray600, textTransform: 'uppercase', letterSpacing: '0.3px', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
-  >
-    {children} {current === field ? (dir === 'asc' ? '\u25B2' : '\u25BC') : ''}
-  </th>
-);
+const ThSort: React.FC<{ children: React.ReactNode; field: SortField; current: SortField; dir: SortDir; onSort: (f: SortField) => void }> = ({ children, field, current, dir, onSort }) => {
+  const ariaSort = current === field ? (dir === 'asc' ? 'ascending' : 'descending') : 'none';
+  return (
+    <th
+      onClick={() => onSort(field)}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSort(field); } }}
+      tabIndex={0}
+      aria-sort={ariaSort as 'ascending' | 'descending' | 'none'}
+      style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: HBC_COLORS.gray600, textTransform: 'uppercase', letterSpacing: '0.3px', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+    >
+      {children} {current === field ? (dir === 'asc' ? '\u25B2' : '\u25BC') : ''}
+    </th>
+  );
+};
 
 const Td: React.FC<{ children: React.ReactNode; align?: string; bold?: boolean }> = ({ children, align, bold }) => (
   <td style={{ padding: '8px 8px', textAlign: (align as 'left') || 'left', fontWeight: bold ? 600 : 400, whiteSpace: 'nowrap', verticalAlign: 'middle' }}>

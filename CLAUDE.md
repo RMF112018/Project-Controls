@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-17 — Schedule Module Enhanced: XER/XML parsing, 6-tab SchedulePage (+ Analysis), 8 Recharts charts, earned value metrics, advanced filters, ExportButtons, sessionStorage caching
+**Last Updated:** 2026-02-17 — Schedule Module Validation: 3 new test suites (61 tests → 550 total), parser hardening (per-row try/catch), accessibility attrs, responsive charts, ExportButtons on Analysis, loading spinner, cache invalidation
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -80,7 +80,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §15 Current Phase Status
 
-**Phase COMPLETE**: Schedule Module (Enhanced) — 235/235 methods implemented.
+**Phase COMPLETE**: Schedule Module (Validated) — 235/235 methods implemented, 61 schedule-specific tests.
 
 Full P6-style schedule management with multi-format support:
 - **Parsing**: CSV, XER (Primavera P6), XML (MSProject + P6 PMXML) via `parseScheduleFile` dispatcher
@@ -116,7 +116,7 @@ Full P6-style schedule management with multi-format support:
 
 **Coverage**: ProvisioningService.ts 97%+ stmts/98%+ lines, projectListSchemas.ts 100%, NotificationService.ts ~65% stmts
 
-**Test Suites** (113 provisioning-related tests):
+**Test Suites** (113 provisioning-related + 61 schedule tests):
 - Service (node): ProvisioningService.test.ts (62), integration (13), MockDataService.provisioning (8), schemas (8), NotificationService.provisioning (6)
 - Component (jsdom): ProvisioningStatus.test.tsx (8), AdminPanel.provisioning.test.tsx (8)
 
@@ -125,9 +125,9 @@ Full P6-style schedule management with multi-format support:
 **Test utils**: `src/__tests__/test-utils.tsx` — `renderWithProviders` with FluentProvider + MemoryRouter + AppProvider
 
 **Run commands**:
-- `npx jest` — all 488 tests across both projects
+- `npx jest` — all 550 tests across both projects
 - `npx jest --selectProjects components` — UI tests only (16)
-- `npx jest --selectProjects sp-services` — service tests only (472)
+- `npx jest --selectProjects sp-services` — service tests only (534)
 
 ```mermaid
 graph TD
@@ -140,6 +140,9 @@ graph TD
   SP --> MOCK[MockDataService.provisioning — 8]
   SP --> SCH[projectListSchemas.test.ts — 8]
   SP --> NS[NotificationService.provisioning — 6]
+  SP --> SPAR[scheduleParser.test.ts — 33]
+  SP --> SMET[scheduleMetrics.test.ts — 15]
+  SP --> SMDS[MockDataService.schedule — 13]
 
   UI --> PSV[ProvisioningStatus.test.tsx — 8]
   UI --> AP[AdminPanel.provisioning.test.tsx — 8]
@@ -162,6 +165,8 @@ graph TD
 - `Turnover_Estimate_Overviews` is a new SP list — must be provisioned before feature goes live.
 - `Project_Data_Mart` is a new hub-site SP list (43 columns) — must be provisioned before Data Mart feature goes live.
 - Data Mart sync is fire-and-forget — never await in hooks; use `.catch(() => { /* silent */ })`.
+- XML parser tests require JSDOM's `DOMParser` (not `@xmldom/xmldom` — it lacks `querySelector`). Assign globally: `(global as unknown as Record<string, unknown>).DOMParser = new JSDOM('').window.DOMParser;`
+- Schedule metrics tests use `jest.useFakeTimers()` + `jest.setSystemTime()` for deterministic PV/SV calculations.
 - Keep `CLAUDE.md` lean — archive old content aggressively.
 
 ---

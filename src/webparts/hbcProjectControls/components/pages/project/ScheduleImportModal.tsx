@@ -19,6 +19,7 @@ export const ScheduleImportModal: React.FC<ScheduleImportModalProps> = ({
   const [format, setFormat] = React.useState<ScheduleImportFormat>('P6-CSV');
   const [parsed, setParsed] = React.useState<IScheduleActivity[]>([]);
   const [importing, setImporting] = React.useState(false);
+  const [isParsing, setIsParsing] = React.useState(false);
   const [parseError, setParseError] = React.useState<string | null>(null);
   const [notes, setNotes] = React.useState('');
 
@@ -27,6 +28,7 @@ export const ScheduleImportModal: React.FC<ScheduleImportModalProps> = ({
       setFile(null);
       setFormat('P6-CSV');
       setParsed([]);
+      setIsParsing(false);
       setParseError(null);
       setNotes('');
     }
@@ -41,6 +43,7 @@ export const ScheduleImportModal: React.FC<ScheduleImportModalProps> = ({
 
   const parseFile = React.useCallback(async (f: File, fmt: ScheduleImportFormat) => {
     setParseError(null);
+    setIsParsing(true);
     try {
       const text = await f.text();
       const activities = parseScheduleFile(text, fmt, projectCode);
@@ -53,6 +56,8 @@ export const ScheduleImportModal: React.FC<ScheduleImportModalProps> = ({
     } catch (err) {
       setParseError(err instanceof Error ? err.message : 'Failed to parse file');
       setParsed([]);
+    } finally {
+      setIsParsing(false);
     }
   }, [projectCode]);
 
@@ -118,17 +123,17 @@ export const ScheduleImportModal: React.FC<ScheduleImportModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div style={overlay}>
+    <div style={overlay} role="dialog" aria-modal="true" aria-labelledby="schedule-import-title">
       <div style={modal}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 18, color: HBC_COLORS.navy }}>Import Schedule</h3>
-          <button onClick={onClose} style={closeBtn}>&times;</button>
+          <h3 id="schedule-import-title" style={{ margin: 0, fontSize: 18, color: HBC_COLORS.navy }}>Import Schedule</h3>
+          <button onClick={onClose} style={closeBtn} aria-label="Close import dialog">&times;</button>
         </div>
 
         <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
           <div style={{ flex: 1 }}>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Select File</label>
-            <input type="file" accept=".csv,.xer,.xml" onChange={handleFileSelect} style={{ fontSize: 13 }} />
+            <input type="file" accept=".csv,.xer,.xml" onChange={handleFileSelect} style={{ fontSize: 13 }} aria-label="Select schedule file" />
           </div>
           <div style={{ width: 180 }}>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Format</label>
@@ -136,6 +141,7 @@ export const ScheduleImportModal: React.FC<ScheduleImportModalProps> = ({
               value={format}
               onChange={e => handleFormatChange(e.target.value as ScheduleImportFormat)}
               style={{ width: '100%', padding: '6px 8px', fontSize: 13, borderRadius: 6, border: '1px solid #D1D5DB' }}
+              aria-label="Schedule file format"
             >
               <option value="P6-CSV">P6 CSV</option>
               <option value="P6-XER">P6 XER</option>
@@ -144,6 +150,13 @@ export const ScheduleImportModal: React.FC<ScheduleImportModalProps> = ({
             </select>
           </div>
         </div>
+
+        {isParsing && (
+          <div style={{ padding: '8px 12px', color: HBC_COLORS.navy, fontSize: 13, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ display: 'inline-block', width: 14, height: 14, border: `2px solid ${HBC_COLORS.gray200}`, borderTopColor: HBC_COLORS.navy, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            Parsing file...
+          </div>
+        )}
 
         {parseError && (
           <div style={{ padding: '8px 12px', backgroundColor: HBC_COLORS.errorLight, color: '#991B1B', borderRadius: 6, fontSize: 13, marginBottom: 12 }}>
@@ -194,8 +207,9 @@ export const ScheduleImportModal: React.FC<ScheduleImportModalProps> = ({
         )}
 
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Notes (optional)</label>
+          <label htmlFor="schedule-import-notes" style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Notes (optional)</label>
           <textarea
+            id="schedule-import-notes"
             value={notes}
             onChange={e => setNotes(e.target.value)}
             style={{ width: '100%', minHeight: 60, fontSize: 13, padding: 8, borderRadius: 6, border: '1px solid #D1D5DB', resize: 'vertical' }}
@@ -209,6 +223,7 @@ export const ScheduleImportModal: React.FC<ScheduleImportModalProps> = ({
             onClick={handleImport}
             disabled={parsed.length === 0 || importing}
             style={{ ...importBtn, opacity: parsed.length === 0 || importing ? 0.5 : 1 }}
+            aria-label={importing ? 'Importing activities' : `Import ${parsed.length} activities`}
           >
             {importing ? 'Importing...' : `Import ${parsed.length} Activities`}
           </button>

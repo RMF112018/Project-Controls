@@ -121,77 +121,82 @@ export function parseScheduleCSV(csvText: string, projectCode: string): ISchedul
   const now = new Date().toISOString();
 
   for (let i = 2; i < lines.length; i++) {
-    const fields = parseCSVLine(lines[i]);
-    if (fields.length < 4 || !fields[0]) continue; // skip empty rows
+    try {
+      const fields = parseCSVLine(lines[i]);
+      if (fields.length < 4 || !fields[0]) continue; // skip empty rows
 
-    const taskCode = fields[0];
-    const statusRaw = fields[1] || 'Not Started';
-    const status: ActivityStatus =
-      statusRaw === 'Completed' ? 'Completed' :
-      statusRaw === 'In Progress' ? 'In Progress' : 'Not Started';
+      const taskCode = fields[0];
+      const statusRaw = fields[1] || 'Not Started';
+      const status: ActivityStatus =
+        statusRaw === 'Completed' ? 'Completed' :
+        statusRaw === 'In Progress' ? 'In Progress' : 'Not Started';
 
-    const originalDuration = parseFloat(fields[4]) || 0;
-    const remainingDuration = parseFloat(fields[5]) || 0;
-    const actualDuration = parseFloat(fields[6]) || 0;
+      const originalDuration = parseFloat(fields[4]) || 0;
+      const remainingDuration = parseFloat(fields[5]) || 0;
+      const actualDuration = parseFloat(fields[6]) || 0;
 
-    const baselineStartDate = parseP6Date(fields[7]);
-    const plannedStartDate = parseP6Date(fields[8]);
-    const actualStartDate = parseP6Date(fields[9]);
-    const baselineFinishDate = parseP6Date(fields[10]);
-    const plannedFinishDate = parseP6Date(fields[11]);
-    const actualFinishDate = parseP6Date(fields[12]);
+      const baselineStartDate = parseP6Date(fields[7]);
+      const plannedStartDate = parseP6Date(fields[8]);
+      const actualStartDate = parseP6Date(fields[9]);
+      const baselineFinishDate = parseP6Date(fields[10]);
+      const plannedFinishDate = parseP6Date(fields[11]);
+      const actualFinishDate = parseP6Date(fields[12]);
 
-    const remainingFloat = fields[13] !== undefined && fields[13] !== '' ? parseFloat(fields[13]) : null;
-    const freeFloat = fields[14] !== undefined && fields[14] !== '' ? parseFloat(fields[14]) : null;
+      const remainingFloat = fields[13] !== undefined && fields[13] !== '' ? parseFloat(fields[13]) : null;
+      const freeFloat = fields[14] !== undefined && fields[14] !== '' ? parseFloat(fields[14]) : null;
 
-    const predecessors = parsePredSuccList(fields[16] || '');
-    const successors = parsePredSuccList(fields[17] || '');
-    const successorDetails = parseSuccessorDetails(fields[18] || '');
+      const predecessors = parsePredSuccList(fields[16] || '');
+      const successors = parsePredSuccList(fields[17] || '');
+      const successorDetails = parseSuccessorDetails(fields[18] || '');
 
-    const isCritical = remainingFloat !== null ? remainingFloat <= 0 : false;
-    const percentComplete =
-      status === 'Completed' ? 100 :
-      status === 'In Progress' && (actualDuration + remainingDuration) > 0
-        ? Math.round((actualDuration / (actualDuration + remainingDuration)) * 100)
-        : 0;
+      const isCritical = remainingFloat !== null ? remainingFloat <= 0 : false;
+      const percentComplete =
+        status === 'Completed' ? 100 :
+        status === 'In Progress' && (actualDuration + remainingDuration) > 0
+          ? Math.round((actualDuration / (actualDuration + remainingDuration)) * 100)
+          : 0;
 
-    const startVarianceDays = computeVarianceDays(baselineStartDate, actualStartDate || plannedStartDate);
-    const finishVarianceDays = computeVarianceDays(baselineFinishDate, actualFinishDate || plannedFinishDate);
+      const startVarianceDays = computeVarianceDays(baselineStartDate, actualStartDate || plannedStartDate);
+      const finishVarianceDays = computeVarianceDays(baselineFinishDate, actualFinishDate || plannedFinishDate);
 
-    activities.push({
-      id: i - 1, // 1-based IDs
-      projectCode,
-      taskCode,
-      wbsCode: fields[2] || '',
-      activityName: fields[3] || '',
-      activityType: fields[15] || 'Task Dependent',
-      status,
-      originalDuration,
-      remainingDuration,
-      actualDuration,
-      baselineStartDate,
-      baselineFinishDate,
-      plannedStartDate,
-      plannedFinishDate,
-      actualStartDate,
-      actualFinishDate,
-      remainingFloat,
-      freeFloat,
-      predecessors,
-      successors,
-      successorDetails,
-      resources: fields[19] || '',
-      calendarName: fields[22] || '',
-      primaryConstraint: fields[20] || '',
-      secondaryConstraint: fields[21] || '',
-      isCritical,
-      percentComplete,
-      startVarianceDays,
-      finishVarianceDays,
-      deleteFlag: (fields[23] || '').toLowerCase() === 'y',
-      createdDate: now,
-      modifiedDate: now,
-    });
+      activities.push({
+        id: i - 1, // 1-based IDs
+        projectCode,
+        taskCode,
+        wbsCode: fields[2] || '',
+        activityName: fields[3] || '',
+        activityType: fields[15] || 'Task Dependent',
+        status,
+        originalDuration,
+        remainingDuration,
+        actualDuration,
+        baselineStartDate,
+        baselineFinishDate,
+        plannedStartDate,
+        plannedFinishDate,
+        actualStartDate,
+        actualFinishDate,
+        remainingFloat,
+        freeFloat,
+        predecessors,
+        successors,
+        successorDetails,
+        resources: fields[19] || '',
+        calendarName: fields[22] || '',
+        primaryConstraint: fields[20] || '',
+        secondaryConstraint: fields[21] || '',
+        isCritical,
+        percentComplete,
+        startVarianceDays,
+        finishVarianceDays,
+        deleteFlag: (fields[23] || '').toLowerCase() === 'y',
+        createdDate: now,
+        modifiedDate: now,
+      });
+    } catch (err) {
+      console.warn(`parseScheduleCSV: skipping row ${i + 1} due to error:`, err);
+      continue;
+    }
   }
 
   return activities;
@@ -290,95 +295,104 @@ export function parseScheduleXER(xerText: string, projectCode: string): ISchedul
   const activities: IScheduleActivity[] = [];
 
   for (let idx = 0; idx < tasks.length; idx++) {
-    const t = tasks[idx];
-    const taskId = t['task_id'] || '';
-    const taskCode = t['task_code'] || `TASK-${idx + 1}`;
-    const status = mapXERStatus(t['status_code'] || '');
+    try {
+      const t = tasks[idx];
+      const taskId = t['task_id'] || '';
+      const taskCode = t['task_code'] || `TASK-${idx + 1}`;
+      const status = mapXERStatus(t['status_code'] || '');
 
-    const originalDuration = (parseFloat(t['target_drtn_hr_cnt'] || '0') || 0) / 8;
-    const remainingDuration = (parseFloat(t['remain_drtn_hr_cnt'] || '0') || 0) / 8;
-    const actualDuration = Math.max(0, originalDuration - remainingDuration);
+      const originalDuration = (parseFloat(t['target_drtn_hr_cnt'] || '0') || 0) / 8;
+      const remainingDuration = (parseFloat(t['remain_drtn_hr_cnt'] || '0') || 0) / 8;
+      const actualDuration = Math.max(0, originalDuration - remainingDuration);
 
-    const baselineStartDate = parseXERDate(t['target_start_date']);
-    const baselineFinishDate = parseXERDate(t['target_end_date']);
-    const plannedStartDate = parseXERDate(t['early_start_date'] || t['target_start_date']);
-    const plannedFinishDate = parseXERDate(t['early_end_date'] || t['target_end_date']);
-    const actualStartDate = parseXERDate(t['act_start_date']);
-    const actualFinishDate = parseXERDate(t['act_end_date']);
+      const baselineStartDate = parseXERDate(t['target_start_date']);
+      const baselineFinishDate = parseXERDate(t['target_end_date']);
+      const plannedStartDate = parseXERDate(t['early_start_date'] || t['target_start_date']);
+      const plannedFinishDate = parseXERDate(t['early_end_date'] || t['target_end_date']);
+      const actualStartDate = parseXERDate(t['act_start_date']);
+      const actualFinishDate = parseXERDate(t['act_end_date']);
 
-    const totalFloatHrs = parseFloat(t['total_float_hr_cnt'] || '');
-    const remainingFloat = isNaN(totalFloatHrs) ? null : Math.round(totalFloatHrs / 8);
-    const freeFloatHrs = parseFloat(t['free_float_hr_cnt'] || '');
-    const freeFloat = isNaN(freeFloatHrs) ? null : Math.round(freeFloatHrs / 8);
+      const totalFloatHrs = parseFloat(t['total_float_hr_cnt'] || '');
+      const remainingFloat = isNaN(totalFloatHrs) ? null : Math.round(totalFloatHrs / 8);
+      const freeFloatHrs = parseFloat(t['free_float_hr_cnt'] || '');
+      const freeFloat = isNaN(freeFloatHrs) ? null : Math.round(freeFloatHrs / 8);
 
-    // Build predecessor/successor info
-    const preds = predMap.get(taskId) || [];
-    const predecessors = preds.map(p => idToCode.get(p.predTaskId) || p.predTaskId);
+      // Build predecessor/successor info
+      const preds = predMap.get(taskId) || [];
+      const predecessors = preds.map(p => idToCode.get(p.predTaskId) || p.predTaskId);
 
-    // Build successors by scanning all preds for entries pointing to this task
-    const successorCodes: string[] = [];
-    const successorDetails: IScheduleRelationship[] = [];
-    for (const [succTaskId, succPreds] of predMap) {
-      for (const sp of succPreds) {
-        if (sp.predTaskId === taskId) {
-          const succCode = idToCode.get(succTaskId) || succTaskId;
-          successorCodes.push(succCode);
-          const relTypeMap: Record<string, RelationshipType> = {
-            'PR_FS': 'FS', 'PR_FF': 'FF', 'PR_SS': 'SS', 'PR_SF': 'SF',
-          };
-          successorDetails.push({
-            taskCode: succCode,
-            relationshipType: relTypeMap[sp.predType] || 'FS',
-            lag: Math.round(sp.lagHours / 8),
-          });
+      // Build successors by scanning all preds for entries pointing to this task
+      const successorCodes: string[] = [];
+      const successorDetails: IScheduleRelationship[] = [];
+      for (const [succTaskId, succPreds] of predMap) {
+        for (const sp of succPreds) {
+          if (sp.predTaskId === taskId) {
+            const succCode = idToCode.get(succTaskId) || succTaskId;
+            successorCodes.push(succCode);
+            const relTypeMap: Record<string, RelationshipType> = {
+              'PR_FS': 'FS', 'PR_FF': 'FF', 'PR_SS': 'SS', 'PR_SF': 'SF',
+            };
+            successorDetails.push({
+              taskCode: succCode,
+              relationshipType: relTypeMap[sp.predType] || 'FS',
+              lag: Math.round(sp.lagHours / 8),
+            });
+          }
         }
       }
+
+      const isCritical = remainingFloat !== null ? remainingFloat <= 0 : false;
+      const percentComplete =
+        status === 'Completed' ? 100 :
+        status === 'In Progress' && (actualDuration + remainingDuration) > 0
+          ? Math.round((actualDuration / (actualDuration + remainingDuration)) * 100)
+          : 0;
+
+      const startVarianceDays = computeVarianceDays(baselineStartDate, actualStartDate || plannedStartDate);
+      const finishVarianceDays = computeVarianceDays(baselineFinishDate, actualFinishDate || plannedFinishDate);
+
+      activities.push({
+        id: idx + 1,
+        projectCode,
+        taskCode,
+        wbsCode: t['wbs_id'] || '',
+        activityName: t['task_name'] || '',
+        activityType: t['task_type'] || 'Task Dependent',
+        status,
+        originalDuration,
+        remainingDuration,
+        actualDuration,
+        baselineStartDate,
+        baselineFinishDate,
+        plannedStartDate,
+        plannedFinishDate,
+        actualStartDate,
+        actualFinishDate,
+        remainingFloat,
+        freeFloat,
+        predecessors,
+        successors: successorCodes,
+        successorDetails,
+        resources: t['rsrc_name'] || '',
+        calendarName: t['clndr_name'] || '',
+        primaryConstraint: t['cstr_type'] || '',
+        secondaryConstraint: t['cstr_type2'] || '',
+        isCritical,
+        percentComplete,
+        startVarianceDays,
+        finishVarianceDays,
+        deleteFlag: (t['delete_flag'] || '').toLowerCase() === 'y',
+        createdDate: now,
+        modifiedDate: now,
+      });
+    } catch (err) {
+      console.warn(`parseScheduleXER: skipping task at index ${idx} due to error:`, err);
+      continue;
     }
+  }
 
-    const isCritical = remainingFloat !== null ? remainingFloat <= 0 : false;
-    const percentComplete =
-      status === 'Completed' ? 100 :
-      status === 'In Progress' && (actualDuration + remainingDuration) > 0
-        ? Math.round((actualDuration / (actualDuration + remainingDuration)) * 100)
-        : 0;
-
-    const startVarianceDays = computeVarianceDays(baselineStartDate, actualStartDate || plannedStartDate);
-    const finishVarianceDays = computeVarianceDays(baselineFinishDate, actualFinishDate || plannedFinishDate);
-
-    activities.push({
-      id: idx + 1,
-      projectCode,
-      taskCode,
-      wbsCode: t['wbs_id'] || '',
-      activityName: t['task_name'] || '',
-      activityType: t['task_type'] || 'Task Dependent',
-      status,
-      originalDuration,
-      remainingDuration,
-      actualDuration,
-      baselineStartDate,
-      baselineFinishDate,
-      plannedStartDate,
-      plannedFinishDate,
-      actualStartDate,
-      actualFinishDate,
-      remainingFloat,
-      freeFloat,
-      predecessors,
-      successors: successorCodes,
-      successorDetails,
-      resources: t['rsrc_name'] || '',
-      calendarName: t['clndr_name'] || '',
-      primaryConstraint: t['cstr_type'] || '',
-      secondaryConstraint: t['cstr_type2'] || '',
-      isCritical,
-      percentComplete,
-      startVarianceDays,
-      finishVarianceDays,
-      deleteFlag: (t['delete_flag'] || '').toLowerCase() === 'y',
-      createdDate: now,
-      modifiedDate: now,
-    });
+  if (activities.length === 0 && tasks.length > 0) {
+    console.warn(`parseScheduleXER: parsed 0 activities from ${tasks.length} TASK rows — check XER format`);
   }
 
   return activities;
@@ -419,7 +433,10 @@ export function parseScheduleXML(xmlText: string, projectCode: string): ISchedul
   const doc = parser.parseFromString(xmlText, 'text/xml');
 
   const parseError = doc.querySelector('parsererror');
-  if (parseError) return [];
+  if (parseError) {
+    console.warn('parseScheduleXML: XML parse error:', parseError.textContent);
+    return [];
+  }
 
   const rootTag = doc.documentElement.tagName;
 
@@ -445,98 +462,102 @@ function parseMSProjectXML(doc: Document, projectCode: string): IScheduleActivit
 
   let idCounter = 1;
   tasks.forEach(task => {
-    const uid = getElText(task, 'UID');
-    const name = getElText(task, 'Name');
-    if (!uid || uid === '0' || !name) return; // skip summary/root
+    try {
+      const uid = getElText(task, 'UID');
+      const name = getElText(task, 'Name');
+      if (!uid || uid === '0' || !name) return; // skip summary/root
 
-    // MSProject Duration format: "PT480H0M0S" → hours
-    const durationStr = getElText(task, 'Duration');
-    const durationHrs = parseMSProjectDuration(durationStr);
-    const originalDuration = Math.round(durationHrs / 8);
+      // MSProject Duration format: "PT480H0M0S" → hours
+      const durationStr = getElText(task, 'Duration');
+      const durationHrs = parseMSProjectDuration(durationStr);
+      const originalDuration = Math.round(durationHrs / 8);
 
-    const percentComplete = getElNum(task, 'PercentComplete');
-    const status: ActivityStatus =
-      percentComplete >= 100 ? 'Completed' :
-      percentComplete > 0 ? 'In Progress' : 'Not Started';
+      const percentComplete = getElNum(task, 'PercentComplete');
+      const status: ActivityStatus =
+        percentComplete >= 100 ? 'Completed' :
+        percentComplete > 0 ? 'In Progress' : 'Not Started';
 
-    const remainingDuration = status === 'Completed' ? 0 : Math.round(originalDuration * (1 - percentComplete / 100));
-    const actualDuration = originalDuration - remainingDuration;
+      const remainingDuration = status === 'Completed' ? 0 : Math.round(originalDuration * (1 - percentComplete / 100));
+      const actualDuration = originalDuration - remainingDuration;
 
-    const plannedStartDate = parseXMLDate(task, 'Start');
-    const plannedFinishDate = parseXMLDate(task, 'Finish');
-    const baselineStartDate = parseXMLDate(task, 'BaselineStart') || parseXMLDate(task, 'Start');
-    const baselineFinishDate = parseXMLDate(task, 'BaselineFinish') || parseXMLDate(task, 'Finish');
-    const actualStartDate = parseXMLDate(task, 'ActualStart');
-    const actualFinishDate = parseXMLDate(task, 'ActualFinish');
+      const plannedStartDate = parseXMLDate(task, 'Start');
+      const plannedFinishDate = parseXMLDate(task, 'Finish');
+      const baselineStartDate = parseXMLDate(task, 'BaselineStart') || parseXMLDate(task, 'Start');
+      const baselineFinishDate = parseXMLDate(task, 'BaselineFinish') || parseXMLDate(task, 'Finish');
+      const actualStartDate = parseXMLDate(task, 'ActualStart');
+      const actualFinishDate = parseXMLDate(task, 'ActualFinish');
 
-    const totalSlack = getElText(task, 'TotalSlack');
-    const remainingFloat = totalSlack ? Math.round(parseMSProjectDuration(totalSlack) / 8) : null;
-    const freeSlack = getElText(task, 'FreeSlack');
-    const freeFloat = freeSlack ? Math.round(parseMSProjectDuration(freeSlack) / 8) : null;
+      const totalSlack = getElText(task, 'TotalSlack');
+      const remainingFloat = totalSlack ? Math.round(parseMSProjectDuration(totalSlack) / 8) : null;
+      const freeSlack = getElText(task, 'FreeSlack');
+      const freeFloat = freeSlack ? Math.round(parseMSProjectDuration(freeSlack) / 8) : null;
 
-    // Predecessors
-    const predLinks = task.querySelectorAll('PredecessorLink');
-    const predecessors: string[] = [];
-    const successorDetails: IScheduleRelationship[] = [];
-    predLinks.forEach(link => {
-      const predUID = getElText(link, 'PredecessorUID');
-      const predName = uidToName.get(predUID) || predUID;
-      predecessors.push(predName);
-      const typeCode = getElText(link, 'Type');
-      const msRelTypes: Record<string, RelationshipType> = { '0': 'FF', '1': 'FS', '2': 'SF', '3': 'SS' };
-      const relType = msRelTypes[typeCode] || 'FS';
-      const lagDur = getElText(link, 'LinkLag');
-      const lagDays = lagDur ? Math.round(parseInt(lagDur, 10) / 4800) : 0; // MSProject lag in tenths of minutes
-      successorDetails.push({ taskCode: predName, relationshipType: relType, lag: lagDays });
-    });
+      // Predecessors
+      const predLinks = task.querySelectorAll('PredecessorLink');
+      const predecessors: string[] = [];
+      const successorDetails: IScheduleRelationship[] = [];
+      predLinks.forEach(link => {
+        const predUID = getElText(link, 'PredecessorUID');
+        const predName = uidToName.get(predUID) || predUID;
+        predecessors.push(predName);
+        const typeCode = getElText(link, 'Type');
+        const msRelTypes: Record<string, RelationshipType> = { '0': 'FF', '1': 'FS', '2': 'SF', '3': 'SS' };
+        const relType = msRelTypes[typeCode] || 'FS';
+        const lagDur = getElText(link, 'LinkLag');
+        const lagDays = lagDur ? Math.round(parseInt(lagDur, 10) / 4800) : 0; // MSProject lag in tenths of minutes
+        successorDetails.push({ taskCode: predName, relationshipType: relType, lag: lagDays });
+      });
 
-    const wbsCode = getElText(task, 'WBS') || getElText(task, 'OutlineNumber');
-    const isCritical = getElText(task, 'Critical') === '1' || (remainingFloat !== null && remainingFloat <= 0);
-    const constraintType = getElText(task, 'ConstraintType');
-    const constraintMap: Record<string, string> = {
-      '0': '', '1': 'Must Start On', '2': 'Must Finish On',
-      '3': 'Start No Earlier Than', '4': 'Start No Later Than',
-      '5': 'Finish No Earlier Than', '6': 'Finish No Later Than',
-      '7': 'As Late As Possible',
-    };
+      const wbsCode = getElText(task, 'WBS') || getElText(task, 'OutlineNumber');
+      const isCritical = getElText(task, 'Critical') === '1' || (remainingFloat !== null && remainingFloat <= 0);
+      const constraintType = getElText(task, 'ConstraintType');
+      const constraintMap: Record<string, string> = {
+        '0': '', '1': 'Must Start On', '2': 'Must Finish On',
+        '3': 'Start No Earlier Than', '4': 'Start No Later Than',
+        '5': 'Finish No Earlier Than', '6': 'Finish No Later Than',
+        '7': 'As Late As Possible',
+      };
 
-    const startVarianceDays = computeVarianceDays(baselineStartDate, actualStartDate || plannedStartDate);
-    const finishVarianceDays = computeVarianceDays(baselineFinishDate, actualFinishDate || plannedFinishDate);
+      const startVarianceDays = computeVarianceDays(baselineStartDate, actualStartDate || plannedStartDate);
+      const finishVarianceDays = computeVarianceDays(baselineFinishDate, actualFinishDate || plannedFinishDate);
 
-    activities.push({
-      id: idCounter++,
-      projectCode,
-      taskCode: `MSP-${uid}`,
-      wbsCode,
-      activityName: name,
-      activityType: getElText(task, 'Type') === '1' ? 'Resource Dependent' : 'Task Dependent',
-      status,
-      originalDuration,
-      remainingDuration,
-      actualDuration,
-      baselineStartDate,
-      baselineFinishDate,
-      plannedStartDate,
-      plannedFinishDate,
-      actualStartDate,
-      actualFinishDate,
-      remainingFloat,
-      freeFloat,
-      predecessors,
-      successors: [],
-      successorDetails,
-      resources: getElText(task, 'ResourceName'),
-      calendarName: getElText(task, 'CalendarUID'),
-      primaryConstraint: constraintMap[constraintType] || constraintType,
-      secondaryConstraint: '',
-      isCritical,
-      percentComplete,
-      startVarianceDays,
-      finishVarianceDays,
-      deleteFlag: false,
-      createdDate: now,
-      modifiedDate: now,
-    });
+      activities.push({
+        id: idCounter++,
+        projectCode,
+        taskCode: `MSP-${uid}`,
+        wbsCode,
+        activityName: name,
+        activityType: getElText(task, 'Type') === '1' ? 'Resource Dependent' : 'Task Dependent',
+        status,
+        originalDuration,
+        remainingDuration,
+        actualDuration,
+        baselineStartDate,
+        baselineFinishDate,
+        plannedStartDate,
+        plannedFinishDate,
+        actualStartDate,
+        actualFinishDate,
+        remainingFloat,
+        freeFloat,
+        predecessors,
+        successors: [],
+        successorDetails,
+        resources: getElText(task, 'ResourceName'),
+        calendarName: getElText(task, 'CalendarUID'),
+        primaryConstraint: constraintMap[constraintType] || constraintType,
+        secondaryConstraint: '',
+        isCritical,
+        percentComplete,
+        startVarianceDays,
+        finishVarianceDays,
+        deleteFlag: false,
+        createdDate: now,
+        modifiedDate: now,
+      });
+    } catch (err) {
+      console.warn('parseMSProjectXML: skipping task element due to error:', err);
+    }
   });
 
   // Backfill successors
@@ -577,72 +598,76 @@ function parseP6PMXML(doc: Document, projectCode: string): IScheduleActivity[] {
   let idCounter = 1;
 
   activityEls.forEach(el => {
-    const actId = getElText(el, 'Id') || getElText(el, 'ObjectId');
-    const name = getElText(el, 'Name');
-    if (!actId || !name) return;
+    try {
+      const actId = getElText(el, 'Id') || getElText(el, 'ObjectId');
+      const name = getElText(el, 'Name');
+      if (!actId || !name) return;
 
-    const statusCode = getElText(el, 'Status');
-    const status: ActivityStatus =
-      statusCode === 'Completed' ? 'Completed' :
-      statusCode === 'In Progress' ? 'In Progress' : 'Not Started';
+      const statusCode = getElText(el, 'Status');
+      const status: ActivityStatus =
+        statusCode === 'Completed' ? 'Completed' :
+        statusCode === 'In Progress' ? 'In Progress' : 'Not Started';
 
-    const plannedDuration = getElNum(el, 'PlannedDuration') || getElNum(el, 'AtCompletionDuration');
-    const remainingDuration = getElNum(el, 'RemainingDuration');
-    const actualDuration = getElNum(el, 'ActualDuration');
-    const originalDuration = plannedDuration || (actualDuration + remainingDuration);
+      const plannedDuration = getElNum(el, 'PlannedDuration') || getElNum(el, 'AtCompletionDuration');
+      const remainingDuration = getElNum(el, 'RemainingDuration');
+      const actualDuration = getElNum(el, 'ActualDuration');
+      const originalDuration = plannedDuration || (actualDuration + remainingDuration);
 
-    const baselineStartDate = parseXMLDate(el, 'PlannedStartDate');
-    const baselineFinishDate = parseXMLDate(el, 'PlannedFinishDate');
-    const plannedStartDate = parseXMLDate(el, 'StartDate') || baselineStartDate;
-    const plannedFinishDate = parseXMLDate(el, 'FinishDate') || baselineFinishDate;
-    const actualStartDate = parseXMLDate(el, 'ActualStartDate');
-    const actualFinishDate = parseXMLDate(el, 'ActualFinishDate');
+      const baselineStartDate = parseXMLDate(el, 'PlannedStartDate');
+      const baselineFinishDate = parseXMLDate(el, 'PlannedFinishDate');
+      const plannedStartDate = parseXMLDate(el, 'StartDate') || baselineStartDate;
+      const plannedFinishDate = parseXMLDate(el, 'FinishDate') || baselineFinishDate;
+      const actualStartDate = parseXMLDate(el, 'ActualStartDate');
+      const actualFinishDate = parseXMLDate(el, 'ActualFinishDate');
 
-    const floatVal = getElText(el, 'RemainingTotalFloat') || getElText(el, 'TotalFloat');
-    const remainingFloat = floatVal ? parseFloat(floatVal) : null;
-    const freeFloatVal = getElText(el, 'RemainingFreeFloat') || getElText(el, 'FreeFloat');
-    const freeFloat = freeFloatVal ? parseFloat(freeFloatVal) : null;
+      const floatVal = getElText(el, 'RemainingTotalFloat') || getElText(el, 'TotalFloat');
+      const remainingFloat = floatVal ? parseFloat(floatVal) : null;
+      const freeFloatVal = getElText(el, 'RemainingFreeFloat') || getElText(el, 'FreeFloat');
+      const freeFloat = freeFloatVal ? parseFloat(freeFloatVal) : null;
 
-    const isCritical = remainingFloat !== null ? remainingFloat <= 0 : false;
-    const pctComplete = getElNum(el, 'DurationPercentComplete') || getElNum(el, 'PercentComplete');
+      const isCritical = remainingFloat !== null ? remainingFloat <= 0 : false;
+      const pctComplete = getElNum(el, 'DurationPercentComplete') || getElNum(el, 'PercentComplete');
 
-    const startVarianceDays = computeVarianceDays(baselineStartDate, actualStartDate || plannedStartDate);
-    const finishVarianceDays = computeVarianceDays(baselineFinishDate, actualFinishDate || plannedFinishDate);
+      const startVarianceDays = computeVarianceDays(baselineStartDate, actualStartDate || plannedStartDate);
+      const finishVarianceDays = computeVarianceDays(baselineFinishDate, actualFinishDate || plannedFinishDate);
 
-    activities.push({
-      id: idCounter++,
-      projectCode,
-      taskCode: actId,
-      wbsCode: getElText(el, 'WBSObjectId') || getElText(el, 'WBSCode') || '',
-      activityName: name,
-      activityType: getElText(el, 'Type') || 'Task Dependent',
-      status,
-      originalDuration,
-      remainingDuration,
-      actualDuration,
-      baselineStartDate,
-      baselineFinishDate,
-      plannedStartDate,
-      plannedFinishDate,
-      actualStartDate,
-      actualFinishDate,
-      remainingFloat,
-      freeFloat,
-      predecessors: [],
-      successors: [],
-      successorDetails: [],
-      resources: getElText(el, 'ResourceName') || '',
-      calendarName: getElText(el, 'CalendarName') || '',
-      primaryConstraint: getElText(el, 'PrimaryConstraintType') || '',
-      secondaryConstraint: getElText(el, 'SecondaryConstraintType') || '',
-      isCritical,
-      percentComplete: pctComplete,
-      startVarianceDays,
-      finishVarianceDays,
-      deleteFlag: false,
-      createdDate: now,
-      modifiedDate: now,
-    });
+      activities.push({
+        id: idCounter++,
+        projectCode,
+        taskCode: actId,
+        wbsCode: getElText(el, 'WBSObjectId') || getElText(el, 'WBSCode') || '',
+        activityName: name,
+        activityType: getElText(el, 'Type') || 'Task Dependent',
+        status,
+        originalDuration,
+        remainingDuration,
+        actualDuration,
+        baselineStartDate,
+        baselineFinishDate,
+        plannedStartDate,
+        plannedFinishDate,
+        actualStartDate,
+        actualFinishDate,
+        remainingFloat,
+        freeFloat,
+        predecessors: [],
+        successors: [],
+        successorDetails: [],
+        resources: getElText(el, 'ResourceName') || '',
+        calendarName: getElText(el, 'CalendarName') || '',
+        primaryConstraint: getElText(el, 'PrimaryConstraintType') || '',
+        secondaryConstraint: getElText(el, 'SecondaryConstraintType') || '',
+        isCritical,
+        percentComplete: pctComplete,
+        startVarianceDays,
+        finishVarianceDays,
+        deleteFlag: false,
+        createdDate: now,
+        modifiedDate: now,
+      });
+    } catch (err) {
+      console.warn('parseP6PMXML: skipping activity element due to error:', err);
+    }
   });
 
   // Parse Relationship elements for pred/succ
