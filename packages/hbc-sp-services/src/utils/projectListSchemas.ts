@@ -841,7 +841,32 @@ const SCHEDULE_IMPORTS: IProjectListSchema = {
   ],
 };
 
-// --- All 44 project-site list schemas ---
+const CONSTRAINTS_LOG: IProjectListSchema = {
+  listName: 'Constraints_Log',
+  description: 'Construction constraints tracking (permits, AHJ, materials, etc.)',
+  templateType: 100,
+  fields: [
+    text('ProjectCode', 'Project Code', { indexed: true }),
+    num('ConstraintNumber', 'Constraint Number'),
+    choice('Category', 'Category', [
+      'Permits', 'AHJ Coordination', 'Utility Coordination', 'Design Completion',
+      'Material Procurement', 'Subcontractor Mobilization', 'Owner Decisions',
+      'Site Access', 'Environmental', 'Other',
+    ]),
+    note('Description', 'Description'),
+    choice('Status', 'Status', ['Open', 'Closed']),
+    text('AssignedTo', 'Assigned To'),
+    dateTime('DateIdentified', 'Date Identified'),
+    dateTime('DueDate', 'Due Date'),
+    dateTime('DateClosed', 'Date Closed'),
+    text('Reference', 'Reference'),
+    text('ClosureDocument', 'Closure Document'),
+    currency('BudgetImpactCost', 'Budget Impact Cost'),
+    note('Comments', 'Comments'),
+  ],
+};
+
+// --- All 45 project-site list schemas ---
 
 const ALL_PROJECT_SCHEMAS: IProjectListSchema[] = [
   PROJECT_INFO,
@@ -887,10 +912,11 @@ const ALL_PROJECT_SCHEMAS: IProjectListSchema[] = [
   TURNOVER_SIGNATURES,
   TURNOVER_ATTACHMENTS,
   TURNOVER_ESTIMATE_OVERVIEWS,
+  CONSTRAINTS_LOG,
 ];
 
 /**
- * Returns all 44 project-site list schemas for provisioning.
+ * Returns all 45 project-site list schemas for provisioning.
  * Note: Shared Documents library is created by default with the site.
  */
 export function getProjectListSchemas(): IProjectListSchema[] {

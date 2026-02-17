@@ -46,6 +46,7 @@ import { IAssignmentMapping } from '../models/IAssignmentMapping';
 import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '../models/IPerformanceLog';
 import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
 import { IScheduleActivity, IScheduleImport, IScheduleMetrics } from '../models/IScheduleActivity';
+import { IConstraintLog } from '../models/IConstraintLog';
 import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -434,6 +435,12 @@ export interface IDataService {
   deleteScheduleActivity(projectCode: string, activityId: number): Promise<void>;
   getScheduleImports(projectCode: string): Promise<IScheduleImport[]>;
   getScheduleMetrics(projectCode: string): Promise<IScheduleMetrics>;
+
+  // Constraints Log
+  getConstraints(projectCode: string): Promise<IConstraintLog[]>;
+  addConstraint(projectCode: string, constraint: Partial<IConstraintLog>): Promise<IConstraintLog>;
+  updateConstraint(projectCode: string, constraintId: number, data: Partial<IConstraintLog>): Promise<IConstraintLog>;
+  removeConstraint(projectCode: string, constraintId: number): Promise<void>;
 
   // Project site URL targeting (Phase 26)
   setProjectSiteUrl(siteUrl: string | null): void;

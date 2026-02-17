@@ -243,7 +243,7 @@ export const SchedulePage: React.FC = () => {
 
       {/* Tab Content */}
       {activeTab === 'overview' && (
-        <OverviewTab metrics={metrics} activities={activities} />
+        <OverviewTab metrics={metrics} activities={activities} canImport={canImport} onOpenImport={() => setShowImport(true)} />
       )}
 
       {activeTab === 'activities' && (
@@ -317,13 +317,20 @@ export const SchedulePage: React.FC = () => {
 interface IOverviewTabProps {
   metrics: IScheduleMetrics;
   activities: IScheduleActivity[];
+  canImport: boolean;
+  onOpenImport: () => void;
 }
 
-const OverviewTab: React.FC<IOverviewTabProps> = ({ metrics, activities }) => {
+const OverviewTab: React.FC<IOverviewTabProps> = ({ metrics, activities, canImport, onOpenImport }) => {
   if (activities.length === 0) {
     return (
       <div style={{ padding: 48, textAlign: 'center', color: HBC_COLORS.gray400 }}>
-        No schedule data. Import a schedule file to get started.
+        <div>No schedule data. Import a schedule file to get started.</div>
+        {canImport && (
+          <button onClick={onOpenImport} style={{ ...btnPrimary, marginTop: 16 }} aria-label="Import schedule file">
+            Import Schedule
+          </button>
+        )}
       </div>
     );
   }

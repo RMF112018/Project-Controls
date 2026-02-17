@@ -126,11 +126,13 @@ import mockLossAutopsies from '../mock/lossAutopsies.json';
 import mockBuyoutEntries from '../mock/buyoutEntries.json';
 import mockScheduleActivities from '../mock/scheduleActivities.json';
 import mockScheduleImports from '../mock/scheduleImports.json';
+import mockConstraintLogs from '../mock/constraintLogs.json';
 import { createEstimatingKickoffTemplate } from '../utils/estimatingKickoffTemplate';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 import { DEFAULT_HUB_SITE_URL } from '../utils/constants';
 import { IEstimatingKickoff, IEstimatingKickoffItem, IKeyPersonnelEntry } from '../models/IEstimatingKickoff';
 import { IBuyoutEntry, EVerifyStatus } from '../models/IBuyoutEntry';
+import { IConstraintLog } from '../models/IConstraintLog';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverProjectHeader, ITurnoverPrerequisite, ITurnoverEstimateOverview, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverAttachment } from '../models/ITurnoverAgenda';
@@ -229,6 +231,7 @@ export class MockDataService implements IDataService {
   private performanceLogs: IPerformanceLog[];
   private helpGuides: IHelpGuide[];
   private dataMartRecords: IProjectDataMart[];
+  private constraintLogs: IConstraintLog[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -390,6 +393,7 @@ export class MockDataService implements IDataService {
     );
     this.scheduleActivities = JSON.parse(JSON.stringify(mockScheduleActivities)) as IScheduleActivity[];
     this.scheduleImports = JSON.parse(JSON.stringify(mockScheduleImports)) as IScheduleImport[];
+    this.constraintLogs = JSON.parse(JSON.stringify(mockConstraintLogs)) as IConstraintLog[];
     this.activeProjects = this.generateMockActiveProjects();
     this.workflowDefinitions = JSON.parse(JSON.stringify(mockWorkflowDefinitions)) as IWorkflowDefinition[];
     this.workflowStepOverrides = JSON.parse(JSON.stringify(mockWorkflowStepOverrides)) as IWorkflowStepOverride[];
@@ -6156,5 +6160,85 @@ export class MockDataService implements IDataService {
     await delay();
     const activities = this.scheduleActivities.filter(a => a.projectCode === projectCode);
     return computeScheduleMetrics(activities);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Constraints Log
+  // ---------------------------------------------------------------------------
+
+  public async getConstraints(projectCode: string): Promise<IConstraintLog[]> {
+    await delay();
+    return this.constraintLogs
+      .filter(c => c.projectCode === projectCode)
+      .map(c => ({ ...c }));
+  }
+
+  public async addConstraint(projectCode: string, constraint: Partial<IConstraintLog>): Promise<IConstraintLog> {
+    await delay();
+    const projectConstraints = this.constraintLogs.filter(c => c.projectCode === projectCode);
+    const nextNumber = projectConstraints.length > 0
+      ? Math.max(...projectConstraints.map(c => c.constraintNumber)) + 1
+      : 1;
+    const id = Math.max(0, ...this.constraintLogs.map(c => c.id)) + 1;
+    const created: IConstraintLog = {
+      id,
+      projectCode,
+      constraintNumber: nextNumber,
+      category: constraint.category || 'Other',
+      description: constraint.description || '',
+      status: constraint.status || 'Open',
+      assignedTo: constraint.assignedTo || '',
+      dateIdentified: constraint.dateIdentified || new Date().toISOString().split('T')[0],
+      dueDate: constraint.dueDate || '',
+      dateClosed: constraint.dateClosed,
+      reference: constraint.reference,
+      closureDocument: constraint.closureDocument,
+      budgetImpactCost: constraint.budgetImpactCost,
+      comments: constraint.comments,
+    };
+    this.constraintLogs.push(created);
+
+    this.logAudit({
+      Action: AuditAction.ConstraintUpdated,
+      EntityType: EntityType.Constraint,
+      EntityId: String(id),
+      Details: `Added constraint #${nextNumber} for ${projectCode}`,
+    });
+
+    return { ...created };
+  }
+
+  public async updateConstraint(projectCode: string, constraintId: number, data: Partial<IConstraintLog>): Promise<IConstraintLog> {
+    await delay();
+    const idx = this.constraintLogs.findIndex(c => c.id === constraintId && c.projectCode === projectCode);
+    if (idx === -1) throw new Error(`Constraint ${constraintId} not found`);
+
+    const updated = { ...this.constraintLogs[idx], ...data };
+    this.constraintLogs[idx] = updated;
+
+    this.logAudit({
+      Action: AuditAction.ConstraintUpdated,
+      EntityType: EntityType.Constraint,
+      EntityId: String(constraintId),
+      Details: `Updated constraint #${updated.constraintNumber}`,
+    });
+
+    return { ...updated };
+  }
+
+  public async removeConstraint(projectCode: string, constraintId: number): Promise<void> {
+    await delay();
+    const idx = this.constraintLogs.findIndex(c => c.id === constraintId && c.projectCode === projectCode);
+    if (idx === -1) throw new Error(`Constraint ${constraintId} not found`);
+
+    const removed = this.constraintLogs[idx];
+    this.constraintLogs.splice(idx, 1);
+
+    this.logAudit({
+      Action: AuditAction.ConstraintUpdated,
+      EntityType: EntityType.Constraint,
+      EntityId: String(constraintId),
+      Details: `Removed constraint #${removed.constraintNumber}`,
+    });
   }
 }

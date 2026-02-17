@@ -48,3 +48,4 @@ export type { IPresenceUser } from './usePresence';
 export { useFullScreen } from './useFullScreen';
 export type { IUseFullScreenResult } from './useFullScreen';
 export { useScheduleActivities } from './useScheduleActivities';
+export { useConstraintLog } from './useConstraintLog';

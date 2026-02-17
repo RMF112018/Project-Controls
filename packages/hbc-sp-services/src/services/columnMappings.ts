@@ -1819,6 +1819,27 @@ export const PROJECT_DATA_MART_COLUMNS = {
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
+ * List: Constraints_Log (Project Site)
+ * Interface: IConstraintLog
+ */
+export const CONSTRAINTS_LOG_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  projectCode: 'ProjectCode',                  // SP: Single Line of Text
+  constraintNumber: 'ConstraintNumber',        // SP: Number
+  category: 'Category',                        // SP: Choice
+  description: 'Description',                  // SP: Note
+  status: 'Status',                            // SP: Choice
+  assignedTo: 'AssignedTo',                    // SP: Single Line of Text
+  dateIdentified: 'DateIdentified',            // SP: DateTime
+  dueDate: 'DueDate',                          // SP: DateTime
+  dateClosed: 'DateClosed',                    // SP: DateTime
+  reference: 'Reference',                      // SP: Single Line of Text
+  closureDocument: 'ClosureDocument',          // SP: Single Line of Text
+  budgetImpactCost: 'BudgetImpactCost',        // SP: Currency
+  comments: 'Comments',                        // SP: Note
+} as const;
+
+/**
  * List: Schedule_Activities (Project Site)
  * Interface: IScheduleActivity
  */
