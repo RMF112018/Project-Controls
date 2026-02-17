@@ -47,3 +47,4 @@ export * from './IPerformanceLog';
 export * from './IHelpGuide';
 export * from './ISignalRMessage';
 export * from './IProjectDataMart';
+export * from './IScheduleActivity';

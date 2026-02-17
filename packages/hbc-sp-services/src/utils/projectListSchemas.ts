@@ -790,7 +790,58 @@ const TURNOVER_ESTIMATE_OVERVIEWS: IProjectListSchema = {
   ],
 };
 
-// --- All 42 project-site list schemas ---
+const SCHEDULE_ACTIVITIES: IProjectListSchema = {
+  listName: 'Schedule_Activities',
+  description: 'P6-style schedule activities imported from CSV',
+  templateType: 100,
+  fields: [
+    text('ProjectCode', 'Project Code', { indexed: true }),
+    num('ImportId', 'Import ID'),
+    text('WbsCode', 'WBS Code'),
+    text('ActivityName', 'Activity Name'),
+    text('ActivityType', 'Activity Type'),
+    choice('Status', 'Status', ['Completed', 'In Progress', 'Not Started']),
+    num('OriginalDuration', 'Original Duration'),
+    num('RemainingDuration', 'Remaining Duration'),
+    num('ActualDuration', 'Actual Duration'),
+    dateTime('BaselineStartDate', 'Baseline Start Date'),
+    dateTime('BaselineFinishDate', 'Baseline Finish Date'),
+    dateTime('PlannedStartDate', 'Planned Start Date'),
+    dateTime('PlannedFinishDate', 'Planned Finish Date'),
+    dateTime('ActualStartDate', 'Actual Start Date'),
+    dateTime('ActualFinishDate', 'Actual Finish Date'),
+    num('RemainingFloat', 'Remaining Float'),
+    num('FreeFloat', 'Free Float'),
+    note('Predecessors', 'Predecessors'),
+    note('Successors', 'Successors'),
+    note('SuccessorDetails', 'Successor Details'),
+    text('Resources', 'Resources'),
+    text('CalendarName', 'Calendar Name'),
+    text('PrimaryConstraint', 'Primary Constraint'),
+    text('SecondaryConstraint', 'Secondary Constraint'),
+    bool('IsCritical', 'Is Critical'),
+    num('PercentComplete', 'Percent Complete'),
+    num('StartVarianceDays', 'Start Variance Days'),
+    num('FinishVarianceDays', 'Finish Variance Days'),
+    bool('DeleteFlag', 'Delete Flag'),
+  ],
+};
+
+const SCHEDULE_IMPORTS: IProjectListSchema = {
+  listName: 'Schedule_Imports',
+  description: 'Schedule import history and metadata',
+  templateType: 100,
+  fields: [
+    text('ProjectCode', 'Project Code', { indexed: true }),
+    choice('Format', 'Format', ['P6-CSV', 'MSProject-CSV']),
+    dateTime('ImportDate', 'Import Date'),
+    text('ImportedBy', 'Imported By'),
+    num('ActivityCount', 'Activity Count'),
+    note('Notes', 'Notes'),
+  ],
+};
+
+// --- All 44 project-site list schemas ---
 
 const ALL_PROJECT_SCHEMAS: IProjectListSchema[] = [
   PROJECT_INFO,
@@ -812,6 +863,8 @@ const ALL_PROJECT_SCHEMAS: IProjectListSchema[] = [
   SAFETY_CONCERNS,
   PROJECT_SCHEDULE,
   CRITICAL_PATH_ITEMS,
+  SCHEDULE_ACTIVITIES,
+  SCHEDULE_IMPORTS,
   SUPERINTENDENT_PLAN,
   SUPERINTENDENT_PLAN_SECTIONS,
   LESSONS_LEARNED,
@@ -837,7 +890,7 @@ const ALL_PROJECT_SCHEMAS: IProjectListSchema[] = [
 ];
 
 /**
- * Returns all 42 project-site list schemas for provisioning.
+ * Returns all 44 project-site list schemas for provisioning.
  * Note: Shared Documents library is created by default with the site.
  */
 export function getProjectListSchemas(): IProjectListSchema[] {

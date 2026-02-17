@@ -209,6 +209,9 @@ export enum AuditAction {
   ContractTrackingApproved = 'ContractTracking.Approved',
   ContractTrackingRejected = 'ContractTracking.Rejected',
   ContractTrackingSkipped = 'ContractTracking.Skipped',
+  ScheduleActivitiesImported = 'Schedule.ActivitiesImported',
+  ScheduleActivityUpdated = 'Schedule.ActivityUpdated',
+  ScheduleActivityDeleted = 'Schedule.ActivityDeleted',
 }
 
 export enum EntityType {
@@ -241,6 +244,7 @@ export enum EntityType {
   DataMart = 'DataMart',
   Closeout = 'Closeout',
   ContractTracking = 'ContractTracking',
+  ScheduleActivity = 'ScheduleActivity',
 }
 
 export enum DeliverableStatus {

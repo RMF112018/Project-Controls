@@ -154,7 +154,7 @@ const NAV_STRUCTURE: INavGroupDef[] = [
           { label: 'ReadiCheck', path: '/operations/readicheck', requiresProject: true },
           { label: 'Best Practices', path: '/operations/best-practices', requiresProject: true },
           { label: 'Responsibility', path: '/operations/responsibility', requiresProject: true, featureFlag: 'ProjectStartup' },
-          { label: 'Schedule', path: '/operations/schedule', requiresProject: true },
+          { label: 'Schedule', path: '/operations/schedule', requiresProject: true, featureFlag: 'ScheduleModule' },
           { label: 'Safety Concerns', path: '/operations/safety-concerns', requiresProject: true },
           { label: 'Quality Concerns', path: '/operations/quality-concerns', requiresProject: true },
           { label: 'Closeout Checklist', path: '/operations/closeout-checklist', requiresProject: true },

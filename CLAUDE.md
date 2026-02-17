@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-16 — Provisioning Operations: 8 new IDataService methods (229 total), real PnP.js implementations gated behind ProvisioningRealOps flag
+**Last Updated:** 2026-02-17 — Schedule Module: 6 new IDataService methods (235 total), full P6-style schedule management with 5-tab SchedulePage
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -48,7 +48,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §4 Core Architecture Patterns (Active)
 
-- **Data Service**: `IDataService` (229 methods) → `MockDataService` (full) + `SharePointDataService` (229/229 — COMPLETE)
+- **Data Service**: `IDataService` (235 methods) → `MockDataService` (full) + `SharePointDataService` (235/235 — COMPLETE)
 - **Data Mart**: Denormalized 43-column hub list aggregating 8+ project-site lists; fire-and-forget sync from hooks; `useDataMart` hook with SignalR refresh
 - **Hooks**: Feature-specific hooks call `dataService` methods in `useCallback`
 - **RBAC**: `resolveUserPermissions` → `PermissionGate` / `RoleGate` / `FeatureGate`
@@ -61,11 +61,12 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §7 Service Methods Status (Live)
 
-**Total methods**: 229
-**Implemented**: 229
+**Total methods**: 235
+**Implemented**: 235
 **Remaining stubs**: 0 — DATA LAYER COMPLETE
 
 **Last Completed**:
+- Schedule Module (Feb 17): 6 new methods → 235/235
 - Provisioning Ops (Feb 16): 8 new methods → 229/229
 - Data Mart (Feb 15): 4 methods (`syncToDataMart`, `getDataMartRecords`, `getDataMartRecord`, `triggerDataMartSync`) → 225/225
 - SP-13 (Feb 15): Action Inbox — 1 method → 221/221
@@ -79,9 +80,9 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §15 Current Phase Status
 
-**Phase COMPLETE**: Provisioning Operations — 229/229 methods implemented.
+**Phase COMPLETE**: Schedule Module — 235/235 methods implemented.
 
-All IDataService methods now have SharePoint REST implementations. 8 new provisioning operation methods added with real PnP.js implementations gated behind `ProvisioningRealOps` feature flag. The Data Mart feature adds a 43-column denormalized hub list (`Project_Data_Mart`) that aggregates data from 8+ project-site lists with fire-and-forget sync from hooks.
+Full P6-style schedule management module added: `IScheduleActivity` model (35+ fields), CSV parser (`parseScheduleCSV`), `useScheduleActivities` hook with SignalR, 5-tab `SchedulePage` (Overview KPIs, Activities table with sort/filter, Gantt timeline, Critical Path, Import with history). 6 new IDataService methods: `getScheduleActivities`, `importScheduleActivities`, `updateScheduleActivity`, `deleteScheduleActivity`, `getScheduleImports`, `getScheduleMetrics`. Feature-gated behind `ScheduleModule` flag. 2 new SP list schemas (Schedule_Activities, Schedule_Imports) → 44 total project-site schemas.
 
 **Next Phase**: Integration testing and deployment readiness.
 
@@ -100,7 +101,7 @@ All IDataService methods now have SharePoint REST implementations. 8 new provisi
 
 **Steps**: 1.CreateSite → 2.ProvisionLists(batch/5) → 3.HubAssociate → 4.SecurityGroups → 5.CopyTemplates → 6.CopyLeadData → 7.UpdateLead
 
-**Key files**: `ProvisioningService.ts` (orchestrator), `projectListSchemas.ts` (41 list schemas), `ProvisioningService.test.ts` (62 tests), `ProvisioningService.integration.test.ts` (13 tests), `MockDataService.provisioning.test.ts` (8 tests), `projectListSchemas.test.ts` (8 tests)
+**Key files**: `ProvisioningService.ts` (orchestrator), `projectListSchemas.ts` (44 list schemas), `ProvisioningService.test.ts` (62 tests), `ProvisioningService.integration.test.ts` (13 tests), `MockDataService.provisioning.test.ts` (8 tests), `projectListSchemas.test.ts` (8 tests)
 
 **Test coverage** (Feb 16): ProvisioningService.ts — 97.27% stmts, 80.76% branches, 94.73% functions, 98.44% lines. projectListSchemas.ts — 100% all metrics. Total: 92 provisioning-specific tests across 4 suites.
 
