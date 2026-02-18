@@ -1,23 +1,44 @@
 import * as React from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
-import { IBuyoutEntry, IContractTrackingApproval, IResolvedWorkflowStep, EntityType, WorkflowKey, IEntityChangedMessage } from '@hbc/sp-services';
+import { IBuyoutEntry, IContractTrackingApproval, IResolvedWorkflowStep, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { qk } from '../../tanstack/query/queryKeys';
+import { buyoutTrackingChainOptions, buyoutTrackingHistoryOptions } from '../../tanstack/query/queryOptions/buyout';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
 
 export function useContractTracking() {
   const { dataService, currentUser } = useAppContext();
   const { broadcastChange } = useSignalRContext();
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const scope = useQueryScope();
+  const queryClient = useQueryClient();
+  const [localError, setLocalError] = React.useState<string | null>(null);
 
-  const refreshCallbackRef = React.useRef<(() => void) | null>(null);
-
-  // SignalR: listen for ContractTracking entity changes
-  useSignalR({
+  useSignalRQueryInvalidation({
     entityType: EntityType.ContractTracking,
-    onEntityChanged: React.useCallback(() => {
-      refreshCallbackRef.current?.();
-    }, []),
+    queryKeys: [qk.buyout.base(scope)],
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: async (vars: { projectCode: string; entryId: number; submittedBy: string }): Promise<IBuyoutEntry> =>
+      dataService.submitContractTracking(vars.projectCode, vars.entryId, vars.submittedBy),
+    onSuccess: async (_result, vars) => {
+      await queryClient.invalidateQueries({ queryKey: qk.buyout.entries(scope, vars.projectCode) });
+    },
+  });
+
+  const respondMutation = useMutation({
+    mutationFn: async (vars: {
+      projectCode: string;
+      entryId: number;
+      approved: boolean;
+      comment: string;
+    }): Promise<IBuyoutEntry> =>
+      dataService.respondToContractTracking(vars.projectCode, vars.entryId, vars.approved, vars.comment),
+    onSuccess: async (_result, vars) => {
+      await queryClient.invalidateQueries({ queryKey: qk.buyout.entries(scope, vars.projectCode) });
+    },
   });
 
   const broadcastTrackingChange = React.useCallback((
@@ -44,21 +65,18 @@ export function useContractTracking() {
     entryId: number,
     submittedBy: string
   ): Promise<IBuyoutEntry> => {
-    setLoading(true);
-    setError(null);
+    setLocalError(null);
     try {
-      const result = await dataService.submitContractTracking(projectCode, entryId, submittedBy);
+      const result = await submitMutation.mutateAsync({ projectCode, entryId, submittedBy });
       broadcastTrackingChange(entryId, 'updated', projectCode, 'Contract tracking submitted');
       dataService.syncToDataMart(projectCode).catch(() => { /* silent */ });
       return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to submit for tracking';
-      setError(msg);
+      setLocalError(msg);
       throw err;
-    } finally {
-      setLoading(false);
     }
-  }, [dataService, broadcastTrackingChange]);
+  }, [submitMutation, broadcastTrackingChange, dataService]);
 
   const respondToTracking = React.useCallback(async (
     projectCode: string,
@@ -66,48 +84,48 @@ export function useContractTracking() {
     approved: boolean,
     comment: string
   ): Promise<IBuyoutEntry> => {
-    setLoading(true);
-    setError(null);
+    setLocalError(null);
     try {
-      const result = await dataService.respondToContractTracking(projectCode, entryId, approved, comment);
+      const result = await respondMutation.mutateAsync({ projectCode, entryId, approved, comment });
       broadcastTrackingChange(entryId, 'updated', projectCode, approved ? 'Contract tracking approved' : 'Contract tracking rejected');
       dataService.syncToDataMart(projectCode).catch(() => { /* silent */ });
       return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to respond to tracking';
-      setError(msg);
+      setLocalError(msg);
       throw err;
-    } finally {
-      setLoading(false);
     }
-  }, [dataService, broadcastTrackingChange]);
+  }, [respondMutation, broadcastTrackingChange, dataService]);
 
   const getTrackingHistory = React.useCallback(async (
     projectCode: string,
     entryId: number
   ): Promise<IContractTrackingApproval[]> => {
-    setError(null);
+    setLocalError(null);
     try {
-      return await dataService.getContractTrackingHistory(projectCode, entryId);
+      return await queryClient.fetchQuery(buyoutTrackingHistoryOptions(scope, dataService, projectCode, entryId));
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to load tracking history';
-      setError(msg);
+      setLocalError(msg);
       throw err;
     }
-  }, [dataService]);
+  }, [queryClient, scope, dataService]);
 
   const resolveTrackingChain = React.useCallback(async (
     projectCode: string
   ): Promise<IResolvedWorkflowStep[]> => {
-    setError(null);
+    setLocalError(null);
     try {
-      return await dataService.resolveWorkflowChain(WorkflowKey.CONTRACT_TRACKING, projectCode);
+      return await queryClient.fetchQuery(buyoutTrackingChainOptions(scope, dataService, projectCode));
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to resolve tracking chain';
-      setError(msg);
+      setLocalError(msg);
       throw err;
     }
-  }, [dataService]);
+  }, [queryClient, scope, dataService]);
+
+  const loading = submitMutation.isPending || respondMutation.isPending;
+  const error = localError;
 
   return {
     loading,
@@ -116,6 +134,6 @@ export function useContractTracking() {
     respondToTracking,
     getTrackingHistory,
     resolveTrackingChain,
-    setRefreshCallback: (cb: (() => void) | null) => { refreshCallbackRef.current = cb; },
+    setRefreshCallback: (_cb: (() => void) | null) => { /* compatibility no-op */ },
   };
 }

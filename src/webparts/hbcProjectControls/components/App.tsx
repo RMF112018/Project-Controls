@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { FluentProvider } from '@fluentui/react-components';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { hbcLightTheme } from '../theme/hbcTheme';
 import { AppProvider } from './contexts/AppContext';
 import { HelpProvider } from './contexts/HelpContext';
@@ -15,6 +17,7 @@ import { IDataService, PERMISSIONS } from '@hbc/sp-services';
 import type { ITelemetryService } from '@hbc/sp-services';
 import { ProtectedRoute, ProjectRequiredRoute, FeatureGate } from './guards';
 import { useTelemetryPageView } from '../hooks/useTelemetryPageView';
+import { getQueryClient } from '../tanstack/query/queryClient';
 
 // ---------------------------------------------------------------------------
 // Helper: wrap React.lazy() for named exports
@@ -389,24 +392,30 @@ const AppRoutes: React.FC = () => {
 };
 
 export const App: React.FC<IAppProps> = ({ dataService, telemetryService, siteUrl, dataServiceMode }) => {
+  const queryClient = React.useMemo(() => getQueryClient(), []);
+  const showQueryDevtools = process.env.NODE_ENV !== 'production';
+
   return (
     <FluentProvider theme={hbcLightTheme}>
       <ErrorBoundary>
-        <AppProvider dataService={dataService} telemetryService={telemetryService} siteUrl={siteUrl} dataServiceMode={dataServiceMode}>
-          <SignalRProvider>
-            <HelpProvider>
-              <ToastProvider>
-                <OfflineMonitor />
-                <SwUpdateMonitor />
-                <HashRouter>
-                  <AppShell>
-                    <AppRoutes />
-                  </AppShell>
-                </HashRouter>
-              </ToastProvider>
-            </HelpProvider>
-          </SignalRProvider>
-        </AppProvider>
+        <QueryClientProvider client={queryClient}>
+          <AppProvider dataService={dataService} telemetryService={telemetryService} siteUrl={siteUrl} dataServiceMode={dataServiceMode}>
+            <SignalRProvider>
+              <HelpProvider>
+                <ToastProvider>
+                  <OfflineMonitor />
+                  <SwUpdateMonitor />
+                  <HashRouter>
+                    <AppShell>
+                      <AppRoutes />
+                    </AppShell>
+                  </HashRouter>
+                </ToastProvider>
+              </HelpProvider>
+            </SignalRProvider>
+          </AppProvider>
+          {showQueryDevtools && <ReactQueryDevtools initialIsOpen={false} />}
+        </QueryClientProvider>
       </ErrorBoundary>
     </FluentProvider>
   );
