@@ -1,0 +1,152 @@
+{
+  "$schema": "./template-registry.schema.json",
+  "version": "1.0.0",
+  "lastModified": "2026-02-18T00:00:00Z",
+  "lastModifiedBy": "admin@hedrickbrothers.com",
+  "templates": [
+    {
+      "id": "tmpl-001",
+      "templateName": "Subcontractor Agreement",
+      "sourcePath": "/sites/HBC-Templates/Contracts/SubcontractorAgreement.docx",
+      "targetFolder": "00_Project_Admin/Contracts/Templates",
+      "fileName": "SubcontractorAgreement.docx",
+      "division": "Both",
+      "active": true,
+      "fileHash": "sha256:placeholder-hash-001",
+      "fileSize": 51200,
+      "lastModifiedInTemplateSite": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "tmpl-002",
+      "templateName": "GMP Amendment",
+      "sourcePath": "/sites/HBC-Templates/Contracts/GMPAmendment.docx",
+      "targetFolder": "00_Project_Admin/Contracts/Templates",
+      "fileName": "GMPAmendment.docx",
+      "division": "Both",
+      "active": true,
+      "fileHash": "sha256:placeholder-hash-002",
+      "fileSize": 48640,
+      "lastModifiedInTemplateSite": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "tmpl-003",
+      "templateName": "Change Order Template",
+      "sourcePath": "/sites/HBC-Templates/Contracts/ChangeOrder.docx",
+      "targetFolder": "00_Project_Admin/Change_Orders",
+      "fileName": "ChangeOrder.docx",
+      "division": "Both",
+      "active": true,
+      "fileHash": "sha256:placeholder-hash-003",
+      "fileSize": 46080,
+      "lastModifiedInTemplateSite": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "tmpl-004",
+      "templateName": "Safety Plan Template",
+      "sourcePath": "/sites/HBC-Templates/Safety/SafetyPlan.docx",
+      "targetFolder": "02_Safety/Plans",
+      "fileName": "SafetyPlan.docx",
+      "division": "Both",
+      "active": true,
+      "fileHash": "sha256:placeholder-hash-004",
+      "fileSize": 53248,
+      "lastModifiedInTemplateSite": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "tmpl-005",
+      "templateName": "Quality Control Plan",
+      "sourcePath": "/sites/HBC-Templates/Quality/QCPlan.docx",
+      "targetFolder": "03_Quality_Control",
+      "fileName": "QCPlan.docx",
+      "division": "Both",
+      "active": true,
+      "fileHash": "sha256:placeholder-hash-005",
+      "fileSize": 50176,
+      "lastModifiedInTemplateSite": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "tmpl-006",
+      "templateName": "Schedule Template",
+      "sourcePath": "/sites/HBC-Templates/Scheduling/MasterSchedule.mpp",
+      "targetFolder": "10_Scheduling",
+      "fileName": "MasterSchedule.mpp",
+      "division": "Both",
+      "active": true,
+      "fileHash": "sha256:placeholder-hash-006",
+      "fileSize": 102400,
+      "lastModifiedInTemplateSite": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "tmpl-007",
+      "templateName": "Budget Template",
+      "sourcePath": "/sites/HBC-Templates/Budget/ProjectBudget.xlsx",
+      "targetFolder": "05_Budget",
+      "fileName": "ProjectBudget.xlsx",
+      "division": "Both",
+      "active": true,
+      "fileHash": "sha256:placeholder-hash-007",
+      "fileSize": 30720,
+      "lastModifiedInTemplateSite": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "tmpl-008",
+      "templateName": "RFI Log",
+      "sourcePath": "/sites/HBC-Templates/Admin/RFILog.xlsx",
+      "targetFolder": "00_Project_Admin/RFI",
+      "fileName": "RFILog.xlsx",
+      "division": "Both",
+      "active": true,
+      "fileHash": "sha256:placeholder-hash-008",
+      "fileSize": 28672,
+      "lastModifiedInTemplateSite": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "tmpl-009",
+      "templateName": "Submittal Log",
+      "sourcePath": "/sites/HBC-Templates/Admin/SubmittalLog.xlsx",
+      "targetFolder": "00_Project_Admin/Submittals",
+      "fileName": "SubmittalLog.xlsx",
+      "division": "Both",
+      "active": true,
+      "fileHash": "sha256:placeholder-hash-009",
+      "fileSize": 29696,
+      "lastModifiedInTemplateSite": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "tmpl-010",
+      "templateName": "Luxury Finish Schedule",
+      "sourcePath": "/sites/HBC-Templates/LuxRes/FinishSchedule.xlsx",
+      "targetFolder": "04_Design/Finish_Schedules",
+      "fileName": "FinishSchedule.xlsx",
+      "division": "Luxury Residential",
+      "active": true,
+      "fileHash": "sha256:placeholder-hash-010",
+      "fileSize": 32768,
+      "lastModifiedInTemplateSite": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "tmpl-011",
+      "templateName": "Preconstruction Proposal",
+      "sourcePath": "/sites/HBC-Templates/Precon/PreconProposal.docx",
+      "targetFolder": "01_Preconstruction/Proposals",
+      "fileName": "PreconProposal.docx",
+      "division": "Both",
+      "active": true,
+      "fileHash": "sha256:placeholder-hash-011",
+      "fileSize": 55296,
+      "lastModifiedInTemplateSite": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "tmpl-012",
+      "templateName": "Turnover Checklist",
+      "sourcePath": "/sites/HBC-Templates/Ops/TurnoverChecklist.xlsx",
+      "targetFolder": "00_Project_Admin/Turnover",
+      "fileName": "TurnoverChecklist.xlsx",
+      "division": "Both",
+      "active": true,
+      "fileHash": "sha256:placeholder-hash-012",
+      "fileSize": 31744,
+      "lastModifiedInTemplateSite": "2026-01-15T10:00:00Z"
+    }
+  ]
+}

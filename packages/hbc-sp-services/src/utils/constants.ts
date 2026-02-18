@@ -42,6 +42,8 @@ export const CACHE_KEYS = {
   ACCESSIBLE_PROJECTS: 'hbc_accessible_projects',
   CONSTRAINTS: 'hbc_constraints',
   PERMITS: 'hbc_permits',
+  TEMPLATE_SITE_CONFIG: 'hbc_template_site_config',
+  TEMPLATE_REGISTRY: 'hbc_template_registry',
 } as const;
 
 export const HUB_LISTS = {
@@ -85,6 +87,8 @@ export const HUB_LISTS = {
   DIVISION_APPROVERS: 'Division_Approvers',
   PMP_BOILERPLATE: 'PMP_Boilerplate',
   PROJECT_DATA_MART: 'Project_Data_Mart',
+  TEMPLATE_SITE_CONFIG: 'Template_Site_Config',
+  TEMPLATE_MANIFEST_LOG: 'Template_Manifest_Log',
 } as const;
 
 export const PROJECT_LISTS = {

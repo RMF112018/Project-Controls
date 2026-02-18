@@ -94,7 +94,7 @@ const AccountingQueueContent: React.FC = () => {
       const lead = leadsMap[request.LeadID];
       if (lead?.ProjectSiteURL) {
         const hubNavSvc = new MockHubNavigationService();
-        const provisioningService = new ProvisioningService(dataService, hubNavSvc, undefined, undefined, false, isFeatureEnabled('ProvisioningRealOps'));
+        const provisioningService = new ProvisioningService(dataService, hubNavSvc, undefined, undefined, false, isFeatureEnabled('ProvisioningRealOps'), isFeatureEnabled('GitOpsProvisioning'));
         await provisioningService.updateSiteTitle(
           lead.ProjectSiteURL,
           `${jobNumber} — ${lead.Title}`
@@ -104,7 +104,7 @@ const AccountingQueueContent: React.FC = () => {
       // 4. If provisioning was held, trigger it now
       if (request.SiteProvisioningHeld && lead) {
         const hubNavSvc = new MockHubNavigationService();
-        const provisioningService = new ProvisioningService(dataService, hubNavSvc, undefined, undefined, false, isFeatureEnabled('ProvisioningRealOps'));
+        const provisioningService = new ProvisioningService(dataService, hubNavSvc, undefined, undefined, false, isFeatureEnabled('ProvisioningRealOps'), isFeatureEnabled('GitOpsProvisioning'));
         provisioningService.provisionSite({
           leadId: request.LeadID,
           projectCode: jobNumber,

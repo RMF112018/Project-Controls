@@ -1,0 +1,20 @@
+name: Validate GitOps Templates
+on:
+  pull_request:
+    branches: [main]
+    paths: ['templates/**']
+
+jobs:
+  validate-templates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'npm'
+      - run: npm ci
+      - run: node scripts/validate-template-registry.js
+      - run: node scripts/generate-site-schema.js --check
+      - run: npx tsc --noEmit
+      - run: npx eslint src/ --ext .ts,.tsx

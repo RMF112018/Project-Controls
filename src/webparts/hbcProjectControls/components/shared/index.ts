@@ -41,3 +41,4 @@ export { ChecklistTable } from './ChecklistTable';
 export type { IChecklistTableProps, IChecklistTableItem } from './ChecklistTable';
 export { HbcEChart } from './HbcEChart';
 export type { IHbcEChartProps } from './HbcEChart';
+export { TemplateSiteSyncPanel } from './TemplateSiteSyncPanel';

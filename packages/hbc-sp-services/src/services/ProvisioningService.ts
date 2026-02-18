@@ -3,6 +3,7 @@ import { NotificationService } from './NotificationService';
 import { PowerAutomateService } from './PowerAutomateService';
 import { OfflineQueueService } from './OfflineQueueService';
 import { IHubNavigationService } from './HubNavigationService';
+import { GitOpsProvisioningService } from './GitOpsProvisioningService';
 import { IProvisioningLog, ProvisioningStatus, PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS, NotificationEvent, AuditAction, EntityType } from '../models';
 import { HubNavLinkStatus } from '../models/IProvisioningLog';
 import { getBuyoutLogSchema, getActiveProjectsPortfolioSchema } from '../utils/projectListSchemas';
@@ -32,6 +33,7 @@ export class ProvisioningService {
   private offlineQueueService?: OfflineQueueService;
   private usePowerAutomate: boolean;
   private useRealOps: boolean;
+  private useGitOpsProvisioning: boolean;
 
   constructor(
     dataService: IDataService,
@@ -39,7 +41,8 @@ export class ProvisioningService {
     powerAutomateService?: PowerAutomateService,
     offlineQueueService?: OfflineQueueService,
     usePowerAutomate?: boolean,
-    useRealOps?: boolean
+    useRealOps?: boolean,
+    useGitOpsProvisioning?: boolean
   ) {
     this.dataService = dataService;
     this.notificationService = new NotificationService(dataService);
@@ -48,6 +51,7 @@ export class ProvisioningService {
     this.offlineQueueService = offlineQueueService;
     this.usePowerAutomate = usePowerAutomate ?? false;
     this.useRealOps = useRealOps ?? false;
+    this.useGitOpsProvisioning = useGitOpsProvisioning ?? false;
   }
 
   /**
@@ -241,7 +245,13 @@ export class ProvisioningService {
       case 2: await this.dataService.provisionProjectLists(siteUrl, input.projectCode); break;
       case 3: await this.dataService.associateWithHubSite(siteUrl, hubSiteUrl); break;
       case 4: await this.dataService.createProjectSecurityGroups(siteUrl, input.projectCode, input.division); break;
-      case 5: await this.dataService.copyTemplateFiles(siteUrl, input.projectCode, input.division); break;
+      case 5:
+        if (this.useGitOpsProvisioning) {
+          await new GitOpsProvisioningService(this.dataService).applyTemplates(siteUrl, input.division);
+        } else {
+          await this.dataService.copyTemplateFiles(siteUrl, input.projectCode, input.division);
+        }
+        break;
       case 6: await this.dataService.copyLeadDataToProjectSite(siteUrl, input.leadId, input.projectCode); break;
       case 7: break; // Handled post-loop via updateLead()
       default: throw new Error(`Unknown provisioning step: ${step}`);

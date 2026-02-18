@@ -1,0 +1,89 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/pnp/provisioning/2021-03/ProvisioningTemplate.schema.json",
+  "generator": { "name": "HBC-GitOps", "version": "1.0.0" },
+  "parameters": {
+    "TemplateSiteUrl": {
+      "type": "string",
+      "description": "Source URL of the HBC Template Site"
+    }
+  },
+  "files": [
+    {
+      "id": "tmpl-001",
+      "sourcePath": "{TemplateSiteUrl}/Contracts/SubcontractorAgreement.docx",
+      "targetFolder": "00_Project_Admin/Contracts/Templates",
+      "overwriteIfAlreadyExists": true,
+      "division": "Both"
+    },
+    {
+      "id": "tmpl-002",
+      "sourcePath": "{TemplateSiteUrl}/Contracts/GMPAmendment.docx",
+      "targetFolder": "00_Project_Admin/Contracts/Templates",
+      "overwriteIfAlreadyExists": true,
+      "division": "Both"
+    },
+    {
+      "id": "tmpl-003",
+      "sourcePath": "{TemplateSiteUrl}/Contracts/ChangeOrder.docx",
+      "targetFolder": "00_Project_Admin/Change_Orders",
+      "overwriteIfAlreadyExists": true,
+      "division": "Both"
+    },
+    {
+      "id": "tmpl-004",
+      "sourcePath": "{TemplateSiteUrl}/Safety/SafetyPlan.docx",
+      "targetFolder": "02_Safety/Plans",
+      "overwriteIfAlreadyExists": true,
+      "division": "Both"
+    },
+    {
+      "id": "tmpl-005",
+      "sourcePath": "{TemplateSiteUrl}/Quality/QCPlan.docx",
+      "targetFolder": "03_Quality_Control",
+      "overwriteIfAlreadyExists": true,
+      "division": "Both"
+    },
+    {
+      "id": "tmpl-006",
+      "sourcePath": "{TemplateSiteUrl}/Scheduling/MasterSchedule.mpp",
+      "targetFolder": "10_Scheduling",
+      "overwriteIfAlreadyExists": true,
+      "division": "Both"
+    },
+    {
+      "id": "tmpl-007",
+      "sourcePath": "{TemplateSiteUrl}/Budget/ProjectBudget.xlsx",
+      "targetFolder": "05_Budget",
+      "overwriteIfAlreadyExists": true,
+      "division": "Both"
+    },
+    {
+      "id": "tmpl-008",
+      "sourcePath": "{TemplateSiteUrl}/Admin/RFILog.xlsx",
+      "targetFolder": "00_Project_Admin/RFI",
+      "overwriteIfAlreadyExists": true,
+      "division": "Both"
+    },
+    {
+      "id": "tmpl-009",
+      "sourcePath": "{TemplateSiteUrl}/Admin/SubmittalLog.xlsx",
+      "targetFolder": "00_Project_Admin/Submittals",
+      "overwriteIfAlreadyExists": true,
+      "division": "Both"
+    },
+    {
+      "id": "tmpl-011",
+      "sourcePath": "{TemplateSiteUrl}/Precon/PreconProposal.docx",
+      "targetFolder": "01_Preconstruction/Proposals",
+      "overwriteIfAlreadyExists": true,
+      "division": "Both"
+    },
+    {
+      "id": "tmpl-012",
+      "sourcePath": "{TemplateSiteUrl}/Ops/TurnoverChecklist.xlsx",
+      "targetFolder": "00_Project_Admin/Turnover",
+      "overwriteIfAlreadyExists": true,
+      "division": "Both"
+    }
+  ]
+}

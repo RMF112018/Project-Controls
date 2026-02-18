@@ -7,7 +7,7 @@ export const PROVISIONING_STEPS = [
   { step: 2, label: 'Apply PnP Template' },
   { step: 3, label: 'Hub Association' },
   { step: 4, label: 'Security Groups & Members' },
-  { step: 5, label: 'Copy Templates from Registry' },
+  { step: 5, label: 'Apply GitOps Template' },
   { step: 6, label: 'Copy Lead Data & Documents' },
   { step: 7, label: 'Update Leads_Master with Site URL' },
 ] as const;

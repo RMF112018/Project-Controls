@@ -1,0 +1,239 @@
+{
+  "generatedAt": "2026-02-18T16:23:17.282Z",
+  "generatorVersion": "1.0.0",
+  "source": "src-regex",
+  "note": "Run npm run build:lib in packages/hbc-sp-services to generate full schema with field data",
+  "listCount": 46,
+  "lists": [
+    {
+      "listName": "Project_Info",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Team_Members",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Deliverables",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Action_Items",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Turnover_Checklist",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Buyout_Log",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Commitment_Approvals",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Startup_Checklist",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Checklist_Activity_Log",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Internal_Matrix",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Team_Role_Assignments",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Owner_Contract_Matrix",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Sub_Contract_Matrix",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Risk_Cost_Management",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Risk_Cost_Items",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Quality_Concerns",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Safety_Concerns",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Project_Schedule",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Critical_Path_Items",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Superintendent_Plan",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Superintendent_Plan_Sections",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Lessons_Learned",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Project_Management_Plans",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "PMP_Signatures",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "PMP_Approval_Cycles",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "PMP_Approval_Steps",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Monthly_Reviews",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Monthly_Checklist_Items",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Monthly_Follow_Ups",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Closeout_Items",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Marketing_Project_Record",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Contract_Info",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Interview_Prep",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Turnover_Agendas",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Turnover_Prerequisites",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Turnover_Discussion_Items",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Turnover_Subcontractors",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Turnover_Exhibits",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Turnover_Signatures",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Turnover_Attachments",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Turnover_Estimate_Overviews",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Schedule_Activities",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Schedule_Imports",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Constraints_Log",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Permits_Log",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    },
+    {
+      "listName": "Active_Projects_Portfolio",
+      "fieldCount": 0,
+      "note": "Full field list available after build:lib"
+    }
+  ]
+}

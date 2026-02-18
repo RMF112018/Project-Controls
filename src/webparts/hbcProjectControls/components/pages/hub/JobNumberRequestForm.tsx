@@ -153,7 +153,7 @@ export const JobNumberRequestForm: React.FC = () => {
         }
 
         const hubNavSvc = new MockHubNavigationService();
-        const provisioningService = new ProvisioningService(dataService, hubNavSvc, undefined, undefined, false, isFeatureEnabled('ProvisioningRealOps'));
+        const provisioningService = new ProvisioningService(dataService, hubNavSvc, undefined, undefined, false, isFeatureEnabled('ProvisioningRealOps'), isFeatureEnabled('GitOpsProvisioning'));
         provisioningService.provisionSiteWithFallback({
           leadId,
           projectCode: lead.ProjectCode,

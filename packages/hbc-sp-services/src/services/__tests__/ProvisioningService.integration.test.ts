@@ -328,4 +328,108 @@ describe('ProvisioningService integration', () => {
       );
     });
   });
+
+  // ────────────────────────────────────────────────────────
+  // GitOps step 5 routing
+  // ────────────────────────────────────────────────────────
+
+  describe('GitOps step 5 routing', () => {
+    function createGitOpsMockDataService(): Record<string, jest.Mock> {
+      const base = createProvisioningMockDataService();
+      return {
+        ...base,
+        getCommittedTemplateRegistry: jest.fn().mockResolvedValue({
+          version: '1.0.0',
+          lastModified: new Date().toISOString(),
+          lastModifiedBy: 'test@hedrickbrothers.com',
+          templates: [],
+        }),
+        applyGitOpsTemplates: jest.fn().mockResolvedValue({ appliedCount: 0 }),
+      };
+    }
+
+    it('calls applyGitOpsTemplates when useGitOpsProvisioning=true', async () => {
+      const gitOpsMockDs = createGitOpsMockDataService();
+      gitOpsMockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+      }));
+
+      // Args: dataService, hubNavService, powerAutomateService, offlineQueueService, usePowerAutomate, useRealOps, useGitOpsProvisioning
+      const service = new ProvisioningService(
+        gitOpsMockDs as unknown as IDataService,
+        undefined, undefined, undefined,
+        false, // usePowerAutomate
+        true,  // useRealOps
+        true   // useGitOpsProvisioning
+      );
+
+      await service.provisionSite(createTestInput());
+      await jest.advanceTimersByTimeAsync(5000);
+      await flushPromises();
+      await flushPromises();
+
+      expect(gitOpsMockDs.applyGitOpsTemplates).toHaveBeenCalledTimes(1);
+      expect(gitOpsMockDs.applyGitOpsTemplates).toHaveBeenCalledWith(
+        expect.any(String), // siteUrl
+        'Commercial',       // division from input
+        expect.objectContaining({ templates: expect.any(Array) })
+      );
+
+      await flushPromises(); // allow fire-and-forget logAudit to settle
+      expect(gitOpsMockDs.logAudit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Action: AuditAction.TemplateAppliedFromGitOps,
+        })
+      );
+    });
+
+    it('calls copyTemplateFiles when useGitOpsProvisioning=false', async () => {
+      const gitOpsMockDs = createGitOpsMockDataService();
+      gitOpsMockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+      }));
+
+      const service = new ProvisioningService(
+        gitOpsMockDs as unknown as IDataService,
+        undefined, undefined, undefined,
+        false, // usePowerAutomate
+        true,  // useRealOps
+        false  // useGitOpsProvisioning — traditional path
+      );
+
+      await service.provisionSite(createTestInput());
+      await jest.advanceTimersByTimeAsync(5000);
+      await flushPromises();
+      await flushPromises();
+
+      expect(gitOpsMockDs.copyTemplateFiles).toHaveBeenCalledTimes(1);
+      expect(gitOpsMockDs.applyGitOpsTemplates).not.toHaveBeenCalled();
+    });
+
+    it('never calls both copyTemplateFiles and applyGitOpsTemplates in same run', async () => {
+      const gitOpsMockDs = createGitOpsMockDataService();
+      gitOpsMockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+      }));
+
+      // Run with GitOps enabled
+      const service = new ProvisioningService(
+        gitOpsMockDs as unknown as IDataService,
+        undefined, undefined, undefined,
+        false, true, true
+      );
+
+      await service.provisionSite(createTestInput());
+      await jest.advanceTimersByTimeAsync(5000);
+      await flushPromises();
+      await flushPromises();
+
+      // Exactly one of the two step-5 methods should have been called
+      const gitOpsCalled = (gitOpsMockDs.applyGitOpsTemplates as jest.Mock).mock.calls.length;
+      const traditionalCalled = (gitOpsMockDs.copyTemplateFiles as jest.Mock).mock.calls.length;
+      expect(gitOpsCalled + traditionalCalled).toBe(1);
+      expect(gitOpsCalled).toBe(1);
+      expect(traditionalCalled).toBe(0);
+    });
+  });
 });

@@ -72,11 +72,12 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §7 Service Methods Status (Live)
 
-**Total methods**: 244
-**Implemented**: 244
+**Total methods**: 250
+**Implemented**: 250
 **Remaining stubs**: 0 — DATA LAYER COMPLETE
 
 **Last Completed**:
+- GitOps Provisioning (Feb 18): +6 GitOps template methods (getTemplateSiteConfig, updateTemplateSiteConfig, getCommittedTemplateRegistry, getTemplateSiteFiles, applyGitOpsTemplates, logTemplateSyncPR) → 250/250
 - Constraints Health Widget (Feb 17): `getAllConstraints()` hub-level cross-project query → 244/244
 - Permits Log (Feb 17): 4 new methods → 243/243
 - Constraints Log (Feb 17): 4 new methods → 239/239
@@ -184,6 +185,33 @@ graph TD
   UTILS -.-> SETUP[setup.ts — jest-dom + matchMedia]
 ```
 
+## §15c GitOps Template Provisioning (Feb 18)
+
+**Feature flags**: `GitOpsProvisioning` (id:33, step 5 routing), `TemplateSiteSync` (id:34, Admin Panel UI)
+
+**6 IDataService GitOps methods** (250 total):
+`getTemplateSiteConfig`, `updateTemplateSiteConfig`, `getCommittedTemplateRegistry`,
+`getTemplateSiteFiles`, `applyGitOpsTemplates`, `logTemplateSyncPR`
+
+**Architecture**:
+- `TemplateSyncService.computeDiff()` — SHA-256 hash diff between live Template Site and committed registry
+- `GitOpsProvisioningService.applyTemplates()` — step 5 orchestrator with `TemplateAppliedFromGitOps` audit
+- `ProvisioningService` step 5: delegates to `GitOpsProvisioningService` when `GitOpsProvisioning=true`
+- `TemplateSiteSyncPanel` — Admin Panel sub-panel with [Check for Changes] + [Create GitHub PR] flow
+- Azure Function `createTemplatePR` — creates GitHub branch + commits registry + opens PR
+- CI: `.github/workflows/gitops-validate.yml` validates `/templates/**` on PRs
+
+**New files**:
+- `templates/template-registry.json` — committed source of truth (12 entries)
+- `templates/{All,Commercial,LuxuryResidential}/pnp-template.json` — PnP provisioning templates
+- `infrastructure/gitops.bicep` — GitOps Function App with Key Vault ref for `GITHUB_APP_TOKEN`
+- `functions/src/functions/createTemplatePR.ts` — Azure Function v4
+- `packages/hbc-sp-services/src/services/GitOpsProvisioningService.ts`
+- `packages/hbc-sp-services/src/services/TemplateSyncService.ts`
+- `src/webparts/.../components/shared/TemplateSiteSyncPanel.tsx`
+
+**Test coverage**: 22 new tests (F1-F4) + 3 E2E tests → 602 total tests
+
 ---
 
 ## §16 Active Pitfalls & Rules
@@ -217,6 +245,12 @@ graph TD
 - **Chromatic usage**: Free tier = 5,000 snapshots/month. TurboSnap enabled by default with `@chromatic-com/storybook@3+`. Upgrade to Starter ($20/month) if PR volume >10/week or story count >30.
 - **WCAG 2.2 AA a11y config**: `runOnly.values` in preview.ts includes `wcag22aa` explicitly. Covers 2.5.8 Target Size + 2.4.11 Focus Visible. Fluent UI v9 native components pass without override.
 - **Storybook tsconfig**: Uses `.storybook/tsconfig.storybook.json` (extends root). `rootDir: ".."` is required — otherwise TypeScript won't find `@hbc/sp-services` source.
+- **GitOps step 5**: `ProvisioningService` case 5 delegates to `new GitOpsProvisioningService(this.dataService).applyTemplates(siteUrl, input.division)` — NOT inline `dataService` calls. The `GitOpsProvisioningService` provides the `TemplateAppliedFromGitOps` audit fire-and-forget.
+- **GitOps constructor arg**: `ProvisioningService` 7th arg is `useGitOpsProvisioning`. All 3 instantiation sites (AdminPanel, AccountingQueuePage, JobNumberRequestForm) pass `isFeatureEnabled('GitOpsProvisioning')`.
+- **GitHub raw content URL**: `https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}` — used in `SharePointDataService.getCommittedTemplateRegistry()`.
+- **fileHash convention**: always `sha256:` prefix + hex (e.g. `sha256:a3b4c5...`) — set in `getTemplateSiteFiles()` and validated by `scripts/validate-template-registry.js`.
+- **Template Site files**: `getBuffer()` returns `ArrayBuffer` — wrap in `Buffer.from()` before `createHash()`.
+- **TemplateSiteSync flag**: Disabled by default (Enabled:false in featureFlags.json). Feature gates both Admin Panel UI and the `Check for Changes` flow.
 
 ---
 
