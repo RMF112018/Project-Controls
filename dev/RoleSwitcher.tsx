@@ -28,6 +28,7 @@ interface IRoleSwitcherProps {
   mode: 'mock' | 'standalone';
   standaloneUser?: { displayName: string; email: string } | null;
   onSwitchMode: () => void;
+  authError?: string | null;
 }
 
 export const RoleSwitcher: React.FC<IRoleSwitcherProps> = ({
@@ -36,6 +37,7 @@ export const RoleSwitcher: React.FC<IRoleSwitcherProps> = ({
   mode,
   standaloneUser,
   onSwitchMode,
+  authError,
 }) => {
   const [isHovered, setIsHovered] = React.useState(false);
 
@@ -111,6 +113,11 @@ export const RoleSwitcher: React.FC<IRoleSwitcherProps> = ({
             >
               ← Mock Mode
             </button>
+            {authError && (
+              <span style={{ fontSize: 10, color: '#ffd700', fontWeight: 600 }}>
+                &#9888; Session issue
+              </span>
+            )}
           </>
         )}
       </div>

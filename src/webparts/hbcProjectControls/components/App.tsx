@@ -9,6 +9,8 @@ import { AppShell } from './layouts/AppShell';
 import { ErrorBoundary } from './shared/ErrorBoundary';
 import { ToastProvider } from './shared/ToastContainer';
 import { PageLoader } from './shared/PageLoader';
+import { OfflineMonitor } from './shared/OfflineMonitor';
+import { SwUpdateMonitor } from './shared/SwUpdateMonitor';
 import { IDataService, PERMISSIONS } from '@hbc/sp-services';
 import type { ITelemetryService } from '@hbc/sp-services';
 import { ProtectedRoute, ProjectRequiredRoute, FeatureGate } from './guards';
@@ -394,6 +396,8 @@ export const App: React.FC<IAppProps> = ({ dataService, telemetryService, siteUr
           <SignalRProvider>
             <HelpProvider>
               <ToastProvider>
+                <OfflineMonitor />
+                <SwUpdateMonitor />
                 <HashRouter>
                   <AppShell>
                     <AppRoutes />

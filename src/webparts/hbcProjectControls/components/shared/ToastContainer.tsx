@@ -11,11 +11,13 @@ export interface IToast {
 }
 
 interface IToastContext {
-  addToast: (message: string, type?: ToastType, duration?: number) => void;
+  addToast: (message: string, type?: ToastType, duration?: number) => string;
+  dismissToast: (id: string) => void;
 }
 
 const ToastContext = React.createContext<IToastContext>({
-  addToast: () => { /* noop */ },
+  addToast: () => '',
+  dismissToast: () => { /* noop */ },
 });
 
 export const useToast = (): IToastContext => React.useContext(ToastContext);
@@ -33,6 +35,8 @@ const ToastItem: React.FC<{ toast: IToast; onDismiss: (id: string) => void }> = 
   const colors = TOAST_COLORS[toast.type];
 
   React.useEffect(() => {
+    // duration === 0 means persistent — no auto-dismiss
+    if (toast.duration === 0) return;
     const timer = setTimeout(() => onDismiss(toast.id), toast.duration || 4000);
     return () => clearTimeout(timer);
   }, [toast.id, toast.duration, onDismiss]);
@@ -79,9 +83,10 @@ const ToastItem: React.FC<{ toast: IToast; onDismiss: (id: string) => void }> = 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = React.useState<IToast[]>([]);
 
-  const addToast = React.useCallback((message: string, type: ToastType = 'success', duration?: number) => {
+  const addToast = React.useCallback((message: string, type: ToastType = 'success', duration?: number): string => {
     const id = `toast-${++toastCounter}`;
     setToasts(prev => [...prev, { id, message, type, duration }]);
+    return id;
   }, []);
 
   const dismissToast = React.useCallback((id: string) => {
@@ -89,7 +94,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   return (
-    <ToastContext.Provider value={{ addToast }}>
+    <ToastContext.Provider value={{ addToast, dismissToast }}>
       {children}
       {toasts.length > 0 && (
         <div

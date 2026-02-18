@@ -136,6 +136,16 @@ function buildCacheKeySuffix(params: Record<string, unknown> | undefined): strin
   return '_' + JSON.stringify(obj);
 }
 
+async function computeSha256Hex(input: ArrayBuffer): Promise<string> {
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', input);
+  const bytes = new Uint8Array(digest);
+  let hex = '';
+  for (const b of bytes) {
+    hex += b.toString(16).padStart(2, '0');
+  }
+  return hex;
+}
+
 const USER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes for user-scoped data
 const DATA_MART_SYNC_BATCH_SIZE = 5; // Concurrent syncToDataMart calls in triggerDataMartSync
 
@@ -969,9 +979,7 @@ export class SharePointDataService implements IDataService {
         const files = await templateWeb.getFolderByServerRelativePath(folder.ServerRelativeUrl).files();
         for (const file of files) {
           const buf = await templateWeb.getFileByServerRelativePath(file.ServerRelativeUrl).getBuffer();
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const { createHash } = require('crypto');
-          const fileHash = `sha256:${createHash('sha256').update(Buffer.from(buf as ArrayBuffer)).digest('hex')}`;
+          const fileHash = `sha256:${await computeSha256Hex(buf as ArrayBuffer)}`;
           results.push({
             sourcePath: file.ServerRelativeUrl as string,
             fileName: file.Name as string,

@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-18 — MSAL + PWA standalone mode (Three-mode architecture, StandaloneSharePointDataService, dev/auth/ MSAL layer, PWA manifest+SW+offline) + GitOps template provisioning (+6 methods → 250 total, TemplateSiteSync, 575 tests passing).
+**Last Updated:** 2026-02-18 — MSAL + PWA standalone mode (Three-mode architecture, StandaloneSharePointDataService, dev/auth/ MSAL layer, PWA manifest+SW+offline) + GitOps template provisioning (+6 methods → 250 total, TemplateSiteSync, 575 tests passing) + CI build fix (replace Node `crypto` usage with Web Crypto in browser service path).
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -258,6 +258,7 @@ graph TD
 - XML parser tests require JSDOM's `DOMParser` (not `@xmldom/xmldom` — it lacks `querySelector`). Assign globally: `(global as unknown as Record<string, unknown>).DOMParser = new JSDOM('').window.DOMParser;`
 - Schedule metrics tests use `jest.useFakeTimers()` + `jest.setSystemTime()` for deterministic PV/SV calculations.
 - **ECharts**: NEVER import `* as echarts from 'echarts'` (disables tree-shaking). Use `echarts/core` + `echarts.use([...])`.
+- **SPFx/browser runtime**: Never import Node core modules (`crypto`, `fs`, `path`, etc.) in `src/` or `packages/hbc-sp-services/src/` service code. Use browser APIs (e.g., `globalThis.crypto.subtle`) to avoid webpack ship-bundle failures.
 - **ECharts**: NEVER build `EChartsOption` inline in JSX — always `useMemo`. Radar `indicator` array ≠ Recharts data array shape.
 - **ECharts Jest**: `echarts-for-react` + `echarts/*` mocked in `src/__mocks__/`. Assert on `data-chart-type` attr. `ResizeObserver` stubbed on `window` in `src/__tests__/setup.ts`.
 - **ECharts label formatter**: type parameter as `unknown`, cast to `{ name: string; value: number; percent: number }` — never use typed params directly (ECharts uses `CallbackDataParams`).

@@ -12,6 +12,7 @@ import {
 import type { ITelemetryService } from '@hbc/sp-services';
 import { MockTelemetryService } from '@hbc/sp-services';
 import { useFullScreen } from '../hooks/useFullScreen';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
 export interface ISelectedProject {
   projectCode: string;
@@ -40,6 +41,7 @@ export interface IAppContextValue {
   toggleFullScreen: () => void;
   exitFullScreen: () => void;
   dataServiceMode: 'mock' | 'standalone' | 'sharepoint';
+  isOnline: boolean;
 }
 
 const AppContext = React.createContext<IAppContextValue | undefined>(undefined);
@@ -77,6 +79,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
 
   const isProjectSite = !siteContext.isHubSite && !!siteContext.projectCode;
   const { isFullScreen, toggleFullScreen, exitFullScreen } = useFullScreen();
+  const isOnline = useOnlineStatus();
 
   // Guard: cannot clear project on project-specific sites
   const handleSetSelectedProject = React.useCallback((project: ISelectedProject | null) => {
@@ -222,7 +225,8 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     toggleFullScreen,
     exitFullScreen,
     dataServiceMode: dataServiceMode ?? 'mock',
-  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode]);
+    isOnline,
+  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode, isOnline]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

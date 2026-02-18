@@ -34,6 +34,9 @@ jobs:
       - name: Lint
         run: npx eslint src/ --ext .ts,.tsx
 
+      - name: Guard browser bundles against Node core imports
+        run: npm run check:browser-node-core
+
       - name: Bundle (production)
         run: npx gulp bundle --ship
 

@@ -115,10 +115,12 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
   public render(): void {
     performanceService.startMark('webpart:render');
 
+    const useSP = this.properties.dataServiceMode === 'sharepoint';
     const element: React.ReactElement<IAppProps> = React.createElement(App, {
       dataService: this._dataService,
       telemetryService: this._telemetryService,
       siteUrl: this.context.pageContext.web.absoluteUrl,
+      dataServiceMode: useSP ? 'sharepoint' : 'mock',
     });
 
     if (!this._root) {
