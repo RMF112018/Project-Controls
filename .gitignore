@@ -38,8 +38,6 @@ Thumbs.db
 .env.local
 .env.*.local
 
-# SPFx scaffolding
-.yo-rc.json
 
 # Coverage
 coverage/
