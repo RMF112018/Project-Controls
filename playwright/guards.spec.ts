@@ -28,7 +28,7 @@ test.describe('RoleGate — RBAC enforcement', () => {
     await switchRole('OperationsTeam');
     await page.goto('/#/');
     // Operations Team sees project-related navigation
-    await expect(page.locator('nav')).toBeVisible();
+    await expect(page.locator('nav[aria-label="Main navigation"]')).toBeVisible();
   });
 
   test('FeatureGate — Schedule nav exists for enabled flag', async ({ page }) => {
