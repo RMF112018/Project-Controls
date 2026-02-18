@@ -3,7 +3,8 @@
  * Mirrors the SPFx WebPart pattern: spfi().using(SPFx(context)) → spfi().using(DefaultHeaders(), DefaultInit(), BrowserFetch(), MsalBehavior(...))
  */
 import { spfi, SPFI } from '@pnp/sp';
-import { DefaultHeaders, DefaultInit, BrowserFetch } from '@pnp/core';
+import { DefaultHeaders, DefaultInit } from '@pnp/sp/behaviors/defaults';
+import { BrowserFetch } from '@pnp/queryable/behaviors/browser-fetch';
 import '@pnp/sp/webs';
 import '@pnp/sp/lists';
 import '@pnp/sp/items';

@@ -52,7 +52,6 @@ export const RoleSwitcher: React.FC<IRoleSwitcherProps> = ({
         bottom: 12,
         left: 12,
         display: 'flex',
-        alignItems: 'center',
         gap: 8,
         background: isHovered
           ? 'rgba(27, 42, 74, 0.97)'
