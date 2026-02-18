@@ -8,9 +8,17 @@ import {
   IEntityChangedMessage,
 } from '@hbc/sp-services';
 import * as React from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { qk } from '../../tanstack/query/queryKeys';
+import {
+  permissionAssignmentsOptions,
+  permissionMappingsOptions,
+  permissionTemplatesOptions,
+} from '../../tanstack/query/queryOptions/permissionEngine';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
 
 export interface IUsePermissionEngineResult {
   templates: IPermissionTemplate[];
@@ -36,46 +44,88 @@ export interface IUsePermissionEngineResult {
 export function usePermissionEngine(): IUsePermissionEngineResult {
   const { dataService, currentUser } = useAppContext();
   const { broadcastChange } = useSignalRContext();
-  const [templates, setTemplates] = React.useState<IPermissionTemplate[]>([]);
-  const [securityGroupMappings, setSecurityGroupMappings] = React.useState<ISecurityGroupMapping[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const scope = useQueryScope();
+  const queryClient = useQueryClient();
+  const [localError, setLocalError] = React.useState<string | null>(null);
+
+  const templatesQuery = useQuery(permissionTemplatesOptions(scope, dataService));
+  const mappingsQuery = useQuery(permissionMappingsOptions(scope, dataService));
+
+  useSignalRQueryInvalidation({
+    entityType: EntityType.Permission,
+    queryKeys: [qk.permission.base(scope)],
+  });
+
+  useSignalRQueryInvalidation({
+    entityType: EntityType.ProjectTeamAssignment,
+    queryKeys: [qk.permission.assignmentsRoot(scope), qk.permission.mappings(scope)],
+  });
+
+  const invalidatePermissionQueries = React.useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: qk.permission.base(scope) });
+  }, [queryClient, scope]);
+
+  const invalidateAssignmentQueries = React.useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: qk.permission.assignmentsRoot(scope) });
+  }, [queryClient, scope]);
+
+  const createTemplateMutation = useMutation({
+    mutationFn: async (data: Partial<IPermissionTemplate>): Promise<IPermissionTemplate> => dataService.createPermissionTemplate(data),
+    onSuccess: async () => invalidatePermissionQueries(),
+  });
+
+  const updateTemplateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<IPermissionTemplate> }): Promise<IPermissionTemplate> =>
+      dataService.updatePermissionTemplate(id, data),
+    onSuccess: async () => invalidatePermissionQueries(),
+  });
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (id: number): Promise<void> => dataService.deletePermissionTemplate(id),
+    onSuccess: async () => invalidatePermissionQueries(),
+  });
+
+  const updateMappingMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<ISecurityGroupMapping> }): Promise<ISecurityGroupMapping> =>
+      dataService.updateSecurityGroupMapping(id, data),
+    onSuccess: async () => invalidatePermissionQueries(),
+  });
+
+  const assignToProjectMutation = useMutation({
+    mutationFn: async (data: Partial<IProjectTeamAssignment>): Promise<IProjectTeamAssignment> =>
+      dataService.createProjectTeamAssignment(data),
+    onSuccess: async () => invalidateAssignmentQueries(),
+  });
+
+  const updateAssignmentMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<IProjectTeamAssignment> }): Promise<IProjectTeamAssignment> =>
+      dataService.updateProjectTeamAssignment(id, data),
+    onSuccess: async () => invalidateAssignmentQueries(),
+  });
+
+  const removeAssignmentMutation = useMutation({
+    mutationFn: async (id: number): Promise<void> => dataService.removeProjectTeamAssignment(id),
+    onSuccess: async () => invalidateAssignmentQueries(),
+  });
 
   const fetchTemplates = React.useCallback(async () => {
+    setLocalError(null);
     try {
-      setLoading(true);
-      setError(null);
-      const result = await dataService.getPermissionTemplates();
-      setTemplates(result);
+      await queryClient.fetchQuery(permissionTemplatesOptions(scope, dataService));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load templates');
-    } finally {
-      setLoading(false);
+      setLocalError(err instanceof Error ? err.message : 'Failed to load templates');
     }
-  }, [dataService]);
+  }, [queryClient, scope, dataService]);
 
   const fetchMappings = React.useCallback(async () => {
+    setLocalError(null);
     try {
-      const result = await dataService.getSecurityGroupMappings();
-      setSecurityGroupMappings(result);
+      await queryClient.fetchQuery(permissionMappingsOptions(scope, dataService));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load mappings');
+      setLocalError(err instanceof Error ? err.message : 'Failed to load mappings');
     }
-  }, [dataService]);
+  }, [queryClient, scope, dataService]);
 
-  // SignalR: refresh on Permission entity changes from other users
-  useSignalR({
-    entityType: EntityType.Permission,
-    onEntityChanged: React.useCallback(() => { fetchTemplates(); }, [fetchTemplates]),
-  });
-
-  // SignalR: refresh on ProjectTeamAssignment entity changes from other users
-  useSignalR({
-    entityType: EntityType.ProjectTeamAssignment,
-    onEntityChanged: React.useCallback(() => { fetchMappings(); }, [fetchMappings]),
-  });
-
-  // Helper to broadcast permission changes
   const broadcastPermissionChange = React.useCallback((
     entityId: number | string,
     action: IEntityChangedMessage['action'],
@@ -93,7 +143,6 @@ export function usePermissionEngine(): IUsePermissionEngineResult {
     });
   }, [broadcastChange, currentUser]);
 
-  // Helper to broadcast project team assignment changes
   const broadcastAssignmentChange = React.useCallback((
     entityId: number | string,
     action: IEntityChangedMessage['action'],
@@ -115,7 +164,7 @@ export function usePermissionEngine(): IUsePermissionEngineResult {
     try {
       return await dataService.resolveUserPermissions(userEmail, projectCode);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resolve permissions');
+      setLocalError(err instanceof Error ? err.message : 'Failed to resolve permissions');
       throw err;
     }
   }, [dataService]);
@@ -124,28 +173,28 @@ export function usePermissionEngine(): IUsePermissionEngineResult {
     try {
       return await dataService.getAccessibleProjects(userEmail);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to get accessible projects');
+      setLocalError(err instanceof Error ? err.message : 'Failed to get accessible projects');
       return [];
     }
   }, [dataService]);
 
   const getProjectTeam = React.useCallback(async (projectCode: string) => {
     try {
-      return await dataService.getProjectTeamAssignments(projectCode);
+      return await queryClient.fetchQuery(permissionAssignmentsOptions(scope, dataService, projectCode));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to get project team');
+      setLocalError(err instanceof Error ? err.message : 'Failed to get project team');
       return [];
     }
-  }, [dataService]);
+  }, [queryClient, scope, dataService]);
 
   const getAllAssignments = React.useCallback(async () => {
     try {
-      return await dataService.getAllProjectTeamAssignments();
+      return await queryClient.fetchQuery(permissionAssignmentsOptions(scope, dataService));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to get all assignments');
+      setLocalError(err instanceof Error ? err.message : 'Failed to get all assignments');
       return [];
     }
-  }, [dataService]);
+  }, [queryClient, scope, dataService]);
 
   const inviteToSiteGroup = React.useCallback(async (
     projectCode: string, userEmail: string, role: string
@@ -154,7 +203,6 @@ export function usePermissionEngine(): IUsePermissionEngineResult {
       return await dataService.inviteToProjectSiteGroup(projectCode, userEmail, role);
     } catch (err) {
       console.warn('inviteToProjectSiteGroup failed (non-blocking):', err);
-      // Record the failure in audit trail so admins can see unapproved scope / group errors
       dataService.logAudit({
         Action: AuditAction.GraphGroupMemberAddFailed,
         EntityType: EntityType.ProjectTeamAssignment,
@@ -167,82 +215,95 @@ export function usePermissionEngine(): IUsePermissionEngineResult {
 
   const assignToProject = React.useCallback(async (data: Partial<IProjectTeamAssignment>) => {
     try {
-      const result = await dataService.createProjectTeamAssignment(data);
+      const result = await assignToProjectMutation.mutateAsync(data);
       broadcastAssignmentChange(result.id, 'created', 'Team member assigned to project');
       return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to assign to project');
+      setLocalError(err instanceof Error ? err.message : 'Failed to assign to project');
       throw err;
     }
-  }, [dataService, broadcastAssignmentChange]);
+  }, [assignToProjectMutation, broadcastAssignmentChange]);
 
   const removeFromProject = React.useCallback(async (id: number) => {
     try {
-      await dataService.removeProjectTeamAssignment(id);
+      await removeAssignmentMutation.mutateAsync(id);
       broadcastAssignmentChange(id, 'deleted', 'Team member removed from project');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to remove from project');
+      setLocalError(err instanceof Error ? err.message : 'Failed to remove from project');
       throw err;
     }
-  }, [dataService, broadcastAssignmentChange]);
+  }, [removeAssignmentMutation, broadcastAssignmentChange]);
 
   const updateAssignment = React.useCallback(async (id: number, data: Partial<IProjectTeamAssignment>) => {
     try {
-      const result = await dataService.updateProjectTeamAssignment(id, data);
+      const result = await updateAssignmentMutation.mutateAsync({ id, data });
       broadcastAssignmentChange(id, 'updated', 'Team assignment updated');
       return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update assignment');
+      setLocalError(err instanceof Error ? err.message : 'Failed to update assignment');
       throw err;
     }
-  }, [dataService, broadcastAssignmentChange]);
+  }, [updateAssignmentMutation, broadcastAssignmentChange]);
 
   const createTemplate = React.useCallback(async (data: Partial<IPermissionTemplate>) => {
     try {
-      const result = await dataService.createPermissionTemplate(data);
-      setTemplates(prev => [...prev, result]);
+      const result = await createTemplateMutation.mutateAsync(data);
       broadcastPermissionChange(result.id, 'created', 'Permission template created');
       return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create template');
+      setLocalError(err instanceof Error ? err.message : 'Failed to create template');
       throw err;
     }
-  }, [dataService, broadcastPermissionChange]);
+  }, [createTemplateMutation, broadcastPermissionChange]);
 
   const updateTemplate = React.useCallback(async (id: number, data: Partial<IPermissionTemplate>) => {
     try {
-      const result = await dataService.updatePermissionTemplate(id, data);
-      setTemplates(prev => prev.map(t => t.id === id ? result : t));
+      const result = await updateTemplateMutation.mutateAsync({ id, data });
       broadcastPermissionChange(id, 'updated', 'Permission template updated');
       return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update template');
+      setLocalError(err instanceof Error ? err.message : 'Failed to update template');
       throw err;
     }
-  }, [dataService, broadcastPermissionChange]);
+  }, [updateTemplateMutation, broadcastPermissionChange]);
 
   const deleteTemplate = React.useCallback(async (id: number) => {
     try {
-      await dataService.deletePermissionTemplate(id);
-      setTemplates(prev => prev.filter(t => t.id !== id));
+      await deleteTemplateMutation.mutateAsync(id);
       broadcastPermissionChange(id, 'deleted', 'Permission template deleted');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete template');
+      setLocalError(err instanceof Error ? err.message : 'Failed to delete template');
       throw err;
     }
-  }, [dataService, broadcastPermissionChange]);
+  }, [deleteTemplateMutation, broadcastPermissionChange]);
 
   const updateMapping = React.useCallback(async (id: number, data: Partial<ISecurityGroupMapping>) => {
     try {
-      const result = await dataService.updateSecurityGroupMapping(id, data);
-      setSecurityGroupMappings(prev => prev.map(m => m.id === id ? result : m));
+      const result = await updateMappingMutation.mutateAsync({ id, data });
       broadcastPermissionChange(id, 'updated', 'Security group mapping updated');
       return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update mapping');
+      setLocalError(err instanceof Error ? err.message : 'Failed to update mapping');
       throw err;
     }
-  }, [dataService, broadcastPermissionChange]);
+  }, [updateMappingMutation, broadcastPermissionChange]);
+
+  const templates = React.useMemo(() => templatesQuery.data ?? [], [templatesQuery.data]);
+  const securityGroupMappings = React.useMemo(() => mappingsQuery.data ?? [], [mappingsQuery.data]);
+
+  const queryError = templatesQuery.error ?? mappingsQuery.error;
+  const error = localError ?? (queryError instanceof Error ? queryError.message : null);
+
+  const loading =
+    templatesQuery.isFetching ||
+    mappingsQuery.isFetching ||
+    createTemplateMutation.isPending ||
+    updateTemplateMutation.isPending ||
+    deleteTemplateMutation.isPending ||
+    updateMappingMutation.isPending ||
+    assignToProjectMutation.isPending ||
+    updateAssignmentMutation.isPending ||
+    removeAssignmentMutation.isPending;
 
   return {
     templates,

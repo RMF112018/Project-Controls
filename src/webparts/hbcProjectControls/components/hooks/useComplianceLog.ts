@@ -1,6 +1,6 @@
 import * as React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
-import { useSignalR } from './useSignalR';
 import {
   IComplianceEntry,
   IComplianceSummary,
@@ -9,55 +9,47 @@ import {
   CommitmentStatus,
   EntityType,
 } from '@hbc/sp-services';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { qk } from '../../tanstack/query/queryKeys';
+import { complianceLogOptions, complianceSummaryOptions } from '../../tanstack/query/queryOptions/compliance';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
 
 export function useComplianceLog() {
   const { dataService } = useAppContext();
-  const [entries, setEntries] = React.useState<IComplianceEntry[]>([]);
-  const [summary, setSummary] = React.useState<IComplianceSummary | null>(null);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const scope = useQueryScope();
+  const queryClient = useQueryClient();
   const [filters, setFilters] = React.useState<IComplianceLogFilter>({});
+  const [localError, setLocalError] = React.useState<string | null>(null);
 
   const fetchEntries = React.useCallback(async (filterOverrides?: IComplianceLogFilter) => {
-    setLoading(true);
-    setError(null);
+    setLocalError(null);
     try {
       const activeFilters = filterOverrides ?? filters;
-      const data = await dataService.getComplianceLog(activeFilters);
-      setEntries(data);
+      await queryClient.fetchQuery(complianceLogOptions(scope, dataService, activeFilters));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load compliance log');
-    } finally {
-      setLoading(false);
+      setLocalError(err instanceof Error ? err.message : 'Failed to load compliance log');
     }
-  }, [dataService, filters]);
+  }, [queryClient, scope, dataService, filters]);
 
   const fetchSummary = React.useCallback(async () => {
+    setLocalError(null);
     try {
-      const data = await dataService.getComplianceSummary();
-      setSummary(data);
+      await queryClient.fetchQuery(complianceSummaryOptions(scope, dataService));
     } catch (err) {
-      console.error('Failed to load compliance summary:', err);
+      setLocalError(err instanceof Error ? err.message : 'Failed to load compliance summary');
     }
-  }, [dataService]);
+  }, [queryClient, scope, dataService]);
 
-  // SignalR: refresh on Quality entity changes (read-only subscription)
-  useSignalR({
+  const entriesQuery = useQuery(complianceLogOptions(scope, dataService, filters));
+  const summaryQuery = useQuery(complianceSummaryOptions(scope, dataService));
+
+  useSignalRQueryInvalidation({
     entityType: EntityType.Quality,
-    onEntityChanged: React.useCallback(() => {
-      fetchEntries().catch(console.error);
-      fetchSummary().catch(console.error);
-    }, [fetchEntries, fetchSummary]),
+    queryKeys: [qk.compliance.base(scope)],
   });
 
-  // Initial fetch
-  React.useEffect(() => {
-    fetchEntries().catch(console.error);
-    fetchSummary().catch(console.error);
-  }, [fetchEntries, fetchSummary]);
-
   const updateFilters = React.useCallback((newFilters: Partial<IComplianceLogFilter>) => {
-    const merged = { ...filters, ...newFilters };
+    const merged = { ...filters, ...newFilters } as IComplianceLogFilter;
     setFilters(merged);
     fetchEntries(merged).catch(console.error);
   }, [filters, fetchEntries]);
@@ -66,6 +58,12 @@ export function useComplianceLog() {
     setFilters({});
     fetchEntries({}).catch(console.error);
   }, [fetchEntries]);
+
+  const entries = React.useMemo<IComplianceEntry[]>(() => entriesQuery.data ?? [], [entriesQuery.data]);
+  const summary = React.useMemo<IComplianceSummary | null>(() => summaryQuery.data ?? null, [summaryQuery.data]);
+  const queryError = entriesQuery.error ?? summaryQuery.error;
+  const error = localError ?? (queryError instanceof Error ? queryError.message : null);
+  const loading = entriesQuery.isFetching || summaryQuery.isFetching;
 
   // Computed values
   const uniqueProjects = React.useMemo(() => {

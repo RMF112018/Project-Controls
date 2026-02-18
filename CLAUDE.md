@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-18 — Added standalone production Vite pipeline (`build:standalone`, env validation, `standalone.yml`, optional SWA deploy) while preserving SPFx gulp ship path + prior MSAL/PWA/GitOps updates.
+**Last Updated:** 2026-02-18 — Completed TanStack Query Phase 2 Wave-1 migration (Hub + Buyout core hooks) with query-option modules, SignalR-driven query invalidation bridge, and optimistic rollback test coverage.
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -76,6 +76,12 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - **Data Layer**: `@hbc/sp-services` monorepo package (shared library)
 - **Charting**: Apache ECharts ^5.6.x + echarts-for-react ^3.x (replaced Recharts Feb 2026). Tree-shaking via `echarts/core`. Wrapper: `HbcEChart` (`shared/`). Theme: `hbcEChartsTheme.ts`.
 - **Testing (E2E)**: Playwright ^1.50.1 targeting http://localhost:3000 (MockDataService + RoleSwitcher). Specs: `playwright/guards.spec.ts`, `dashboard.spec.ts`, `provisioning.spec.ts`. Role fixture: `playwright/fixtures/roleFixture.ts`.
+- **TanStack Foundation (Phase 1/2 active)**: `@tanstack/react-query@5`, `@tanstack/react-router@1`, `@tanstack/react-table@8`, `@tanstack/react-virtual@3`, `@tanstack/react-form@1` installed for incremental migration; current production routing remains `react-router-dom` until feature-flagged cutover.
+- **TanStack Query Wave-1 complete (Hub + Buyout core)**:
+  - Query options: `queryOptions/{dataMart,compliance,permissionEngine,buyout}.ts`
+  - Hook migrations: `useDataMart`, `useComplianceLog`, `usePermissionEngine`, `useBuyoutLog`, `useCommitmentApproval`, `useContractTracking`
+  - SignalR bridge: `tanstack/query/useSignalRQueryInvalidation.ts`
+  - New tests: optimistic rollback (`useBuyoutLog`) + SignalR invalidation bridge tests
 - **Component Library**: Storybook 8.5 (webpack5 builder), stories colocated as `*.stories.tsx`. 9 story files covering KPICard, HbcEChart, RoleGate, FeatureGate, StatusBadge, DataTable, EmptyState, PageHeader, NavigationSidebar.
 - **Visual Regression**: Chromatic (cloud) on main pushes; TurboSnap for changed-story-only runs on PRs.
 - **Key Commands**:
@@ -95,6 +101,8 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - **Data Service**: `IDataService` (250 methods) → `MockDataService` (full) + `SharePointDataService` (250/250 — COMPLETE)
 - **Data Mart**: Denormalized 43-column hub list aggregating 8+ project-site lists; fire-and-forget sync from hooks; `useDataMart` hook with SignalR refresh
 - **Hooks**: Feature-specific hooks call `dataService` methods in `useCallback`
+- **TanStack Query pattern (Wave-1)**: hooks expose stable existing APIs while internal reads/mutations use `useQuery`/`useMutation`; query keys scoped by mode/site/project via `qk`.
+- **SignalR + Query sync**: migrated hooks use `useSignalRQueryInvalidation` to invalidate query families instead of ad-hoc callback refs.
 - **RBAC**: `resolveUserPermissions` → `PermissionGate` / `RoleGate` / `FeatureGate`
 - **Styling**: `makeStyles` (structure) + minimal inline (dynamic) + Fluent tokens + `HBC_COLORS`
 - **Routing**: `HashRouter` + `React.lazy()` + `Suspense` (40 lazy-loaded pages)
@@ -128,6 +136,23 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 ---
 
 ## §15 Current Phase Status
+
+**Active Focus (Feb 18): TanStack Query Phase 2 Wave-1 (Hub + Buyout core) implemented**
+
+- Migrated hooks (contract-preserving):
+  - `useDataMart` and `useComplianceLog` now query-driven (filters + summary/records cache)
+  - `usePermissionEngine` now query + mutation driven for templates/mappings/assignments
+  - `useBuyoutLog`, `useCommitmentApproval`, `useContractTracking` now mutation/invalidation driven
+- Added query namespaces in `queryKeys.ts`: `dataMart`, `compliance`, `permission`, `buyout`
+- Added query option modules:
+  - `queryOptions/dataMart.ts`
+  - `queryOptions/compliance.ts`
+  - `queryOptions/permissionEngine.ts`
+  - `queryOptions/buyout.ts`
+- Added `useSignalRQueryInvalidation` bridge for entity-to-query-family invalidation
+- Test coverage additions:
+  - `components/hooks/__tests__/useBuyoutLog.test.tsx` (optimistic rollback)
+  - `tanstack/query/__tests__/useSignalRQueryInvalidation.test.tsx` (SignalR invalidation behavior)
 
 **Phase COMPLETE**: Permits Log Module — 243/243 methods implemented, 550 total tests.
 
@@ -304,6 +329,10 @@ graph TD
 - **createDelegatingService TypeScript**: Proxy `get` trap uses `string | symbol` prop key. Cast targets as `unknown as Record<string | symbol, unknown>` to avoid "implicit any" under `strict: true`.
 - **IBinaryAttachment markupJson**: Store as string (not object) to survive JSON round-trips through SP column storage.
 - **RoleSwitcher standalone mode**: `onRoleChange` is a no-op in standalone (real user from MSAL). "Login (Real Data)" button only shown when `process.env.AAD_CLIENT_ID` is set.
+- **TanStack query-key scoping**: Always include mode + siteContext + siteUrl + projectCode in query keys to prevent cache leakage across mock/standalone/sharepoint and hub/project contexts.
+- **TanStack migration rule**: Wrap `IDataService` with Query/Mutation; never bypass directly to PnP in UI-layer TanStack query functions.
+- **TanStack optimistic mutation rule**: For editable grids/logs, `onMutate` must snapshot previous cache and `onError` must restore it (rollback is mandatory, not optional).
+- **SignalR invalidation rule**: Migrate new Query-based hooks to `useSignalRQueryInvalidation`; avoid reintroducing callback-ref refresh patterns.
 
 ---
 
