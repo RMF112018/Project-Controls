@@ -39,6 +39,7 @@ export interface IAppContextValue {
   isFullScreen: boolean;
   toggleFullScreen: () => void;
   exitFullScreen: () => void;
+  dataServiceMode: 'mock' | 'standalone' | 'sharepoint';
 }
 
 const AppContext = React.createContext<IAppContextValue | undefined>(undefined);
@@ -47,10 +48,11 @@ interface IAppProviderProps {
   dataService: IDataService;
   telemetryService?: ITelemetryService;
   siteUrl?: string;
+  dataServiceMode?: 'mock' | 'standalone' | 'sharepoint';
   children: React.ReactNode;
 }
 
-export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetryService, siteUrl, children }) => {
+export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetryService, siteUrl, dataServiceMode, children }) => {
   // Fallback to no-op MockTelemetryService if none provided (dev/test convenience)
   const resolvedTelemetry = React.useMemo<ITelemetryService>(() => {
     if (telemetryService) return telemetryService;
@@ -219,7 +221,8 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     isFullScreen,
     toggleFullScreen,
     exitFullScreen,
-  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isFullScreen, toggleFullScreen, exitFullScreen]);
+    dataServiceMode: dataServiceMode ?? 'mock',
+  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "name": "HBC Project Controls",
+  "short_name": "HBC Controls",
+  "description": "Hedrick Brothers Construction – Project Controls field application",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#cc3333",
+  "orientation": "any",
+  "scope": "/",
+  "lang": "en-US",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable any" }
+  ],
+  "categories": ["business", "productivity"],
+  "screenshots": []
+}

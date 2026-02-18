@@ -11,6 +11,9 @@
     "test:coverage": "jest --coverage",
     "test:ci": "jest --coverage --ci"
   },
+  "dependencies": {
+    "@microsoft/applicationinsights-web": "^3.3.11"
+  },
   "peerDependencies": {
     "@fluentui/react-icons": "^2.0.230",
     "@microsoft/signalr": "^8.0.0 || ^10.0.0",

@@ -1,6 +1,12 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
+const CopyPlugin = require('copy-webpack-plugin');
+
+// Load .env from repo root (silently skipped if not present — mock mode still works)
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
+
+const dataServiceMode = process.env.VITE_DATA_SERVICE_MODE || 'mock';
 
 const srcRoot = path.resolve(__dirname, '../src/webparts/hbcProjectControls');
 
@@ -72,8 +78,21 @@ module.exports = {
       template: path.resolve(__dirname, 'index.html'),
     }),
     new webpack.DefinePlugin({
-      'process.env.REACT_APP_USE_MOCK': JSON.stringify('true'),
+      'process.env.REACT_APP_USE_MOCK': JSON.stringify(dataServiceMode !== 'standalone' ? 'true' : 'false'),
       'process.env.DEMO_MODE': JSON.stringify('false'),
+      'process.env.DATA_SERVICE_MODE': JSON.stringify(dataServiceMode),
+      'process.env.AAD_CLIENT_ID': JSON.stringify(process.env.VITE_AAD_CLIENT_ID || ''),
+      'process.env.AAD_TENANT_ID': JSON.stringify(process.env.VITE_AAD_TENANT_ID || ''),
+      'process.env.SP_HUB_URL': JSON.stringify(process.env.VITE_SP_HUB_URL || ''),
+      'process.env.APPINSIGHTS_CONNECTION_STRING': JSON.stringify(
+        process.env.VITE_APPINSIGHTS_CONNECTION_STRING || ''
+      ),
+    }),
+    // Copy public/ assets (manifest.json, sw.js, offline.html, icons) to output
+    new CopyPlugin({
+      patterns: [
+        { from: path.resolve(__dirname, '..', 'public'), to: '.', noErrorOnMissing: true },
+      ],
     }),
   ],
 
