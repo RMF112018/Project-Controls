@@ -13,7 +13,7 @@
   },
   "peerDependencies": {
     "@fluentui/react-icons": "^2.0.230",
-    "@microsoft/signalr": "^8.0.0",
+    "@microsoft/signalr": "^8.0.0 || ^10.0.0",
     "@pnp/graph": "^4.4.1",
     "@pnp/logging": "^4.4.1",
     "@pnp/queryable": "^4.4.1",

@@ -1,0 +1,17 @@
+{
+  "generator-sharepoint": {
+    "version": "1.22.2",
+    "libraryName": "hbc-project-controls",
+    "libraryId": "a3e7b5d2-9f14-4c68-b3a1-2d5e8f6c9b04",
+    "environment": "spo",
+    "isCreatingSolution": true,
+    "packageManager": "npm",
+    "solutionName": "hbc-project-controls",
+    "framework": "react",
+    "componentType": "webpart",
+    "componentName": "HbcProjectControls",
+    "componentDescription": "Unified project lifecycle management",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false
+  }
+}
