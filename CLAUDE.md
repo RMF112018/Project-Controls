@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-18 — Playwright E2E + Storybook: Storybook 8.5 (webpack5), 9 story files, Playwright 1.50 (17 E2E tests, roleFixture), CI jobs (storybook + e2e). ECharts Migration (Recharts → ECharts ^5.6, 553 tests passing) + SPFx 1.22.2 upgrade (rush-stack-compiler-5.3, future-proof scaffolding).
+**Last Updated:** 2026-02-18 — MSAL + PWA standalone mode (Three-mode architecture, StandaloneSharePointDataService, dev/auth/ MSAL layer, PWA manifest+SW+offline) + GitOps template provisioning (+6 methods → 250 total, TemplateSiteSync, 575 tests passing).
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -38,6 +38,34 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ---
 
+## §0a Three-Mode Architecture (Locked — Do Not Change)
+
+| # | Mode | Trigger | Data Service | Auth |
+|---|------|---------|-------------|------|
+| 1 | **mock** | Default (no .env or DATA_SERVICE_MODE=mock) | MockDataService | None |
+| 2 | **standalone** | VITE_DATA_SERVICE_MODE=standalone + login click | StandaloneSharePointDataService | MSAL 5.x browser OAuth |
+| 3 | **sharepoint** | SPFx onInit() | SharePointDataService | SPFx implicit |
+
+### Immutable Constraints
+- MSAL packages imported ONLY in `dev/auth/` — never in `src/` or `@hbc/sp-services`
+- `SharePointDataService` remains auth-agnostic (accepts any SPFI via `.initialize(sp)`)
+- `StandaloneSharePointDataService` uses Proxy via `createDelegatingService` — static `.create(spfi, user)` factory
+- `AppContext` gains only `dataServiceMode: 'mock' | 'standalone' | 'sharepoint'` — no MSAL types leak in
+- Login/logout UI lives exclusively in `dev/RoleSwitcher.tsx` + `dev/auth/MSALAuthProvider.tsx`
+- PWA assets in `public/` folder; CopyPlugin copies to webpack output; SW registration in `dev/index.html`
+- Mock mode MUST be the absolute default — no .env file needed, no network calls on first load
+
+### New Files (standalone + PWA)
+- `dev/auth/msalConfig.ts` — MSAL PublicClientApplication singleton
+- `dev/auth/MsalBehavior.ts` — PnP v4 on.auth behavior
+- `dev/auth/createStandaloneSpfi.ts` — SPFI factory
+- `dev/auth/MSALAuthProvider.tsx` — React bootstrapper
+- `packages/hbc-sp-services/src/services/StandaloneSharePointDataService.ts` — Proxy-based wrapper
+- `packages/hbc-sp-services/src/services/createDelegatingService.ts` — ES2015 Proxy helper
+- `public/manifest.json`, `public/sw.js`, `public/offline.html` — PWA layer
+
+---
+
 ## §1 Tech Stack & Build (Current)
 
 - **Framework**: SPFx 1.22.2 + React 18.2.0 + Fluent UI v9 (makeStyles + tokens)
@@ -58,7 +86,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §4 Core Architecture Patterns (Active)
 
-- **Data Service**: `IDataService` (244 methods) → `MockDataService` (full) + `SharePointDataService` (244/244 — COMPLETE)
+- **Data Service**: `IDataService` (250 methods) → `MockDataService` (full) + `SharePointDataService` (250/250 — COMPLETE)
 - **Data Mart**: Denormalized 43-column hub list aggregating 8+ project-site lists; fire-and-forget sync from hooks; `useDataMart` hook with SignalR refresh
 - **Hooks**: Feature-specific hooks call `dataService` methods in `useCallback`
 - **RBAC**: `resolveUserPermissions` → `PermissionGate` / `RoleGate` / `FeatureGate`
@@ -159,9 +187,9 @@ Full P6-style schedule management with multi-format support:
 **Test utils**: `src/__tests__/test-utils.tsx` — `renderWithProviders` with FluentProvider + MemoryRouter + AppProvider
 
 **Run commands**:
-- `npx jest` — all 550 tests across both projects
+- `npx jest` — all 575 tests across both projects
 - `npx jest --selectProjects components` — UI tests only (16)
-- `npx jest --selectProjects sp-services` — service tests only (534)
+- `npx jest --selectProjects sp-services` — service tests only (575)
 
 ```mermaid
 graph TD
@@ -210,7 +238,7 @@ graph TD
 - `packages/hbc-sp-services/src/services/TemplateSyncService.ts`
 - `src/webparts/.../components/shared/TemplateSiteSyncPanel.tsx`
 
-**Test coverage**: 22 new tests (F1-F4) + 3 E2E tests → 602 total tests
+**Test coverage**: 22 new tests (F1-F4) + 3 E2E tests → 575 total Jest tests (602 incl. E2E)
 
 ---
 
@@ -251,6 +279,14 @@ graph TD
 - **fileHash convention**: always `sha256:` prefix + hex (e.g. `sha256:a3b4c5...`) — set in `getTemplateSiteFiles()` and validated by `scripts/validate-template-registry.js`.
 - **Template Site files**: `getBuffer()` returns `ArrayBuffer` — wrap in `Buffer.from()` before `createHash()`.
 - **TemplateSiteSync flag**: Disabled by default (Enabled:false in featureFlags.json). Feature gates both Admin Panel UI and the `Check for Changes` flow.
+- **MSAL v5 init**: `MsalProvider` from `@azure/msal-react@5.x` calls `instance.initialize()` internally — never call it manually before `<MsalProvider>` renders (double-init error).
+- **PnP v4 behavior order**: `DefaultHeaders()` → `DefaultInit()` → `BrowserFetch()` → auth behavior (auth MUST be last — prior behaviors set headers auth reads).
+- **SP scope format**: `https://{tenant}.sharepoint.com/.default` (with `.default`) — NOT `Sites.ReadWrite.All` format.
+- **SW on localhost**: SW registration skipped on localhost (`window.location.hostname !== 'localhost'`) to avoid dev cache issues.
+- **StandaloneSharePointDataService Proxy**: Uses `createDelegatingService` (ES2015 Proxy). New IDataService methods forwarded automatically — NO manual delegation needed.
+- **createDelegatingService TypeScript**: Proxy `get` trap uses `string | symbol` prop key. Cast targets as `unknown as Record<string | symbol, unknown>` to avoid "implicit any" under `strict: true`.
+- **IBinaryAttachment markupJson**: Store as string (not object) to survive JSON round-trips through SP column storage.
+- **RoleSwitcher standalone mode**: `onRoleChange` is a no-op in standalone (real user from MSAL). "Login (Real Data)" button only shown when `process.env.AAD_CLIENT_ID` is set.
 
 ---
 

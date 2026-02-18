@@ -28,3 +28,6 @@ export { MockTelemetryService, mockTelemetryService } from './MockTelemetryServi
 export { GitOpsProvisioningService } from './GitOpsProvisioningService';
 export { TemplateSyncService } from './TemplateSyncService';
 export type { IDiffResult } from './TemplateSyncService';
+export { StandaloneSharePointDataService } from './StandaloneSharePointDataService';
+export { createDelegatingService } from './createDelegatingService';
+export type { IBinaryAttachment } from './StandaloneSharePointDataService';

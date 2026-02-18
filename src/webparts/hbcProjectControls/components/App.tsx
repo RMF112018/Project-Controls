@@ -99,6 +99,7 @@ export interface IAppProps {
   dataService: IDataService;
   telemetryService?: ITelemetryService;
   siteUrl?: string;  // Provided by SPFx; undefined in dev server
+  dataServiceMode?: 'mock' | 'standalone' | 'sharepoint';
 }
 
 const NotFoundPage: React.FC = () => (
@@ -385,11 +386,11 @@ const AppRoutes: React.FC = () => {
   );
 };
 
-export const App: React.FC<IAppProps> = ({ dataService, telemetryService, siteUrl }) => {
+export const App: React.FC<IAppProps> = ({ dataService, telemetryService, siteUrl, dataServiceMode }) => {
   return (
     <FluentProvider theme={hbcLightTheme}>
       <ErrorBoundary>
-        <AppProvider dataService={dataService} telemetryService={telemetryService} siteUrl={siteUrl}>
+        <AppProvider dataService={dataService} telemetryService={telemetryService} siteUrl={siteUrl} dataServiceMode={dataServiceMode}>
           <SignalRProvider>
             <HelpProvider>
               <ToastProvider>

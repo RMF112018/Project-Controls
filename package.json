@@ -35,7 +35,11 @@
     "postinstall": "npm run build:lib",
     "clean:dev": "rm -rf node_modules packages/hbc-sp-services/node_modules packages/hbc-sp-services/lib dev/dist && npm install"
   },
+  "_three_mode_architecture": "MSAL packages support the standalone dev mode (mode 2 of 3). Mode 1=mock (MockDataService, no auth). Mode 2=standalone (MSAL browser OAuth + SharePointDataService via PnP.js, entry: dev/index.tsx). Mode 3=sharepoint/SPFx (SPFx aadTokenProviderFactory + SharePointDataService, entry: HbcProjectControlsWebPart.ts). MSAL is NOT imported by @hbc/sp-services or any src/ file — it lives exclusively in the dev/ standalone entry point wiring.",
   "dependencies": {
+    "@azure/msal-browser": "^5.2.0",
+    "@azure/msal-common": "^16.0.4",
+    "@azure/msal-react": "^5.0.4",
     "@fluentui/react-components": "^9.46.0",
     "@fluentui/react-icons": "2.0.319",
     "@hbc/sp-services": "*",
@@ -87,6 +91,8 @@
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
     "ajv": "^8.17.1",
+    "copy-webpack-plugin": "^13.0.1",
+    "dotenv": "^17.3.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.1",
     "eslint-plugin-react-hooks": "^4.6.0",

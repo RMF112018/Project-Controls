@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#cc3333">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <title>HBC Project Controls — Dev Preview</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -12,5 +17,16 @@
 </head>
 <body>
   <div id="root"></div>
+
+  <!-- Service Worker Registration — skipped on localhost to avoid dev cache issues -->
+  <script>
+    if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js')
+          .then(function(reg) { console.log('[SW] Registered:', reg.scope); })
+          .catch(function(err) { console.warn('[SW] Registration failed:', err); });
+      });
+    }
+  </script>
 </body>
 </html>
