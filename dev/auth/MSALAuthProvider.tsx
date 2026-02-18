@@ -8,12 +8,17 @@ import { MsalProvider, useIsAuthenticated, useMsal } from '@azure/msal-react';
 import type { AccountInfo } from '@azure/msal-browser';
 import { StandaloneSharePointDataService } from '@hbc/sp-services';
 import type { IDataService } from '@hbc/sp-services';
-import { msalInstance, SP_SCOPE } from './msalConfig';
-import { createStandaloneSpfi } from './createStandaloneSpfi';
+import type { ISiteContext } from '@hbc/sp-services';
+import { GRAPH_SCOPES, msalInstance, SP_SCOPE } from './msalConfig';
+import { createStandaloneRuntimeContext } from './createStandaloneSpfi';
 
 interface IStandaloneBootstrapperProps {
   hubSiteUrl: string;
-  onReady: (dataService: IDataService, user: { displayName: string; email: string; loginName: string }) => void;
+  onReady: (
+    dataService: IDataService,
+    user: { displayName: string; email: string; loginName: string },
+    siteContext: ISiteContext
+  ) => void;
   onLogout: () => void;
   onAuthError?: (error: Error) => void;
   sessionExpiredMessage?: string;
@@ -26,14 +31,23 @@ function StandaloneBootstrapper({ hubSiteUrl, onReady, onLogout, onAuthError, se
 
   const initDataService = React.useCallback(async (account: AccountInfo) => {
     try {
-      const sp = createStandaloneSpfi(instance, account, hubSiteUrl, SP_SCOPE);
+      const runtime = await createStandaloneRuntimeContext(
+        instance,
+        account,
+        hubSiteUrl,
+        SP_SCOPE,
+        GRAPH_SCOPES
+      );
       const user = {
         displayName: account.name ?? account.username,
         email: account.username,
         loginName: `i:0#.f|membership|${account.username}`,
       };
-      const svc = StandaloneSharePointDataService.create(sp, { ...user, id: 0 });
-      onReady(svc, user);
+      const svc = StandaloneSharePointDataService.create(runtime.sp, { ...user, id: 0 }, {
+        siteContext: runtime.siteContext,
+        graphMembership: runtime.graphMembership,
+      });
+      onReady(svc, user, runtime.siteContext);
     } catch (e) {
       const err = e instanceof Error ? e : new Error('Failed to initialize data service');
       setError(err.message);

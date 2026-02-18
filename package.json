@@ -38,6 +38,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
+    "test:e2e:standalone-smoke": "playwright test playwright/mode-switch.spec.ts playwright/offline-mode.spec.ts playwright/standalone-auth.spec.ts",
     "test:a11y": "playwright test playwright/accessibility.spec.ts",
     "test:storybook": "test-storybook",
     "postinstall": "npm run build:lib",

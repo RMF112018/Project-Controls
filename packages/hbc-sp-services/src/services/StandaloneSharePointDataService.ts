@@ -2,12 +2,23 @@ import { SharePointDataService } from './SharePointDataService';
 import { OfflineQueueService } from './OfflineQueueService';
 import { createDelegatingService } from './createDelegatingService';
 import type { IDataService } from './IDataService';
+import type { ISiteContext } from '../utils/siteDetector';
+import {
+  buildStandaloneCurrentUser,
+  type IStandaloneGraphMembership,
+  resolveStandalonePermissions,
+} from './standalone/resolveStandaloneRoles';
 
 interface IContextUser {
   displayName: string;
   email: string;
   loginName: string;
   id: number;
+}
+
+export interface IStandaloneRbacContext {
+  siteContext?: ISiteContext;
+  graphMembership?: IStandaloneGraphMembership;
 }
 
 /**
@@ -49,9 +60,9 @@ export class StandaloneSharePointDataService {
    * Static factory — two-phase init mirrors HbcProjectControlsWebPart.onInit().
    * Returns IDataService (not StandaloneSharePointDataService) to keep consumers
    * against the interface, not the concrete class.
-   */
+  */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static create(spfi: any, user: IContextUser): IDataService {
+  static create(spfi: any, user: IContextUser, standaloneContext?: IStandaloneRbacContext): IDataService {
     const inner = new SharePointDataService();
     inner.initialize(spfi);
     inner.initializeContext(user);
@@ -71,7 +82,30 @@ export class StandaloneSharePointDataService {
     //     return inner.createQualityConcern(data);
     //   },
 
-    const overrides: Partial<IDataService> = {};
+    const overrides: Partial<IDataService> = {
+      getCurrentUser: async () => {
+        const roles = await inner.getRoles();
+        return buildStandaloneCurrentUser(
+          user,
+          roles,
+          standaloneContext?.graphMembership ?? { groupIds: new Set<string>(), groupNames: new Set<string>() }
+        );
+      },
+      resolveUserPermissions: async (userEmail: string, projectCode: string | null) => {
+        const roles = await inner.getRoles();
+        const currentUser = buildStandaloneCurrentUser(
+          { ...user, email: userEmail, loginName: `i:0#.f|membership|${userEmail}` },
+          roles,
+          standaloneContext?.graphMembership ?? { groupIds: new Set<string>(), groupNames: new Set<string>() }
+        );
+        return resolveStandalonePermissions({
+          dataService: inner,
+          userEmail,
+          projectCode,
+          roles: currentUser.roles,
+        });
+      },
+    };
 
     return createDelegatingService(inner, overrides);
   }

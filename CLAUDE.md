@@ -27,6 +27,8 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - **After completing a data service chunk**, run `/review-chunk` to scan real stub counts and generate CLAUDE.md updates.
 - **Available commands**: `/verify-changes` (quick), `/verify-full-build` (full), `/status` (overview), `/permissions` (allowlist), `/sp-progress` (stub scan), `/review-chunk` (post-chunk).
 - `npm run verify:standalone` → Standalone validation guard (env + browser-node-core + Vite production build)
+- `npm run test --workspace=packages/hbc-sp-services -- StandaloneRbacResolver` → Standalone Graph-RBAC resolver safety checks
+- `npm run test:e2e -- playwright/mode-switch.spec.ts playwright/offline-mode.spec.ts playwright/standalone-auth.spec.ts` → Standalone shell/mode/offline E2E smoke
 - `npm run storybook` → Storybook dev server at http://localhost:6006
 - `npm run build-storybook` → Static build to storybook-static/
 - `npm run test:e2e` → Playwright E2E (starts dev server automatically)
@@ -263,6 +265,9 @@ graph TD
 - **ECharts**: NEVER import `* as echarts from 'echarts'` (disables tree-shaking). Use `echarts/core` + `echarts.use([...])`.
 - **SPFx/browser runtime**: Never import Node core modules (`crypto`, `fs`, `path`, etc.) in `src/` or `packages/hbc-sp-services/src/` service code. Use browser APIs (e.g., `globalThis.crypto.subtle`) to avoid webpack ship-bundle failures.
 - **Standalone env gate**: `VITE_DATA_SERVICE_MODE` must be `mock|standalone`; when `standalone`, require valid `VITE_AAD_CLIENT_ID`, `VITE_AAD_TENANT_ID`, and HTTPS `VITE_SP_HUB_URL` (`npm run validate:standalone-env`).
+- **Standalone context detection**: `createStandaloneRuntimeContext()` resolves live site URL from SharePoint, then `detectSiteContext()` determines hub/project context. `VITE_SP_SITE_URL` is optional override only.
+- **Standalone cross-tenant guard**: standalone runtime blocks if detected site origin differs from configured hub origin (prevents accidental cross-tenant queries).
+- **Standalone Graph RBAC fallback**: Graph `/me/transitiveMemberOf` failures must fail-soft to email-based role matching from `App_Roles.UserOrGroup`; never hard-fail app init solely due to missing `Group.Read.All` consent.
 - **SWA deploy safety**: Keep `public/staticwebapp.config.json` with SPA fallback exclusions for `/sw.js`, `/manifest.json`, `/offline.html`, `/icons/*`, `/assets/*` to preserve PWA behavior.
 - **ECharts**: NEVER build `EChartsOption` inline in JSX — always `useMemo`. Radar `indicator` array ≠ Recharts data array shape.
 - **ECharts Jest**: `echarts-for-react` + `echarts/*` mocked in `src/__mocks__/`. Assert on `data-chart-type` attr. `ResizeObserver` stubbed on `window` in `src/__tests__/setup.ts`.

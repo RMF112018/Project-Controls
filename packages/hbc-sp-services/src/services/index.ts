@@ -30,4 +30,5 @@ export { TemplateSyncService } from './TemplateSyncService';
 export type { IDiffResult } from './TemplateSyncService';
 export { StandaloneSharePointDataService } from './StandaloneSharePointDataService';
 export { createDelegatingService } from './createDelegatingService';
-export type { IBinaryAttachment } from './StandaloneSharePointDataService';
+export type { IBinaryAttachment, IStandaloneRbacContext } from './StandaloneSharePointDataService';
+export type { IStandaloneGraphMembership, IStandaloneUserIdentity } from './standalone/resolveStandaloneRoles';
