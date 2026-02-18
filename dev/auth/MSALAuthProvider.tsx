@@ -15,9 +15,11 @@ interface IStandaloneBootstrapperProps {
   hubSiteUrl: string;
   onReady: (dataService: IDataService, user: { displayName: string; email: string; loginName: string }) => void;
   onLogout: () => void;
+  onAuthError?: (error: Error) => void;
+  sessionExpiredMessage?: string;
 }
 
-function StandaloneBootstrapper({ hubSiteUrl, onReady, onLogout }: IStandaloneBootstrapperProps) {
+function StandaloneBootstrapper({ hubSiteUrl, onReady, onLogout, onAuthError, sessionExpiredMessage }: IStandaloneBootstrapperProps) {
   const { instance, accounts } = useMsal();
   const isAuthenticated = useIsAuthenticated();
   const [error, setError] = React.useState<string | null>(null);
@@ -33,9 +35,11 @@ function StandaloneBootstrapper({ hubSiteUrl, onReady, onLogout }: IStandaloneBo
       const svc = StandaloneSharePointDataService.create(sp, { ...user, id: 0 });
       onReady(svc, user);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to initialize data service');
+      const err = e instanceof Error ? e : new Error('Failed to initialize data service');
+      setError(err.message);
+      onAuthError?.(err);
     }
-  }, [instance, hubSiteUrl, onReady]);
+  }, [instance, hubSiteUrl, onReady, onAuthError]);
 
   React.useEffect(() => {
     if (!isAuthenticated) return;
@@ -43,11 +47,19 @@ function StandaloneBootstrapper({ hubSiteUrl, onReady, onLogout }: IStandaloneBo
     if (account) void initDataService(account);
   }, [isAuthenticated, accounts, initDataService]);
 
-  const handleLogin = async () => {
+  const handleLogin = async (): Promise<void> => {
     try {
       await instance.loginPopup({ scopes: [SP_SCOPE] });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Login failed');
+      const rawMessage = e instanceof Error ? e.message : 'Login failed';
+      const friendlyMessage = rawMessage.includes('popup_window_error')
+        ? 'Popup was blocked. Please allow popups for this site and try again.'
+        : rawMessage.includes('user_cancelled')
+        ? 'Sign-in was cancelled.'
+        : rawMessage.includes('interaction_in_progress')
+        ? 'Another sign-in is in progress. Please wait and try again.'
+        : rawMessage;
+      setError(friendlyMessage);
     }
   };
 
@@ -60,6 +72,11 @@ function StandaloneBootstrapper({ hubSiteUrl, onReady, onLogout }: IStandaloneBo
       }}>
         <h2 style={{ color: '#fff', marginBottom: 8 }}>HBC Project Controls</h2>
         <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 16 }}>Standalone Mode — Sign in to access live SharePoint data</p>
+        {sessionExpiredMessage && (
+          <p style={{ color: '#ffd700', fontSize: 13, marginBottom: 8, maxWidth: 360, textAlign: 'center' }}>
+            &#9888; {sessionExpiredMessage}
+          </p>
+        )}
         <button
           onClick={handleLogin}
           style={{
@@ -94,10 +111,16 @@ function StandaloneBootstrapper({ hubSiteUrl, onReady, onLogout }: IStandaloneBo
 }
 
 /** Exported: wraps children in MsalProvider + bootstrapper */
-export function MSALAuthProvider({ hubSiteUrl, onReady, onLogout }: IStandaloneBootstrapperProps) {
+export function MSALAuthProvider({ hubSiteUrl, onReady, onLogout, onAuthError, sessionExpiredMessage }: IStandaloneBootstrapperProps) {
   return (
     <MsalProvider instance={msalInstance}>
-      <StandaloneBootstrapper hubSiteUrl={hubSiteUrl} onReady={onReady} onLogout={onLogout} />
+      <StandaloneBootstrapper
+        hubSiteUrl={hubSiteUrl}
+        onReady={onReady}
+        onLogout={onLogout}
+        onAuthError={onAuthError}
+        sessionExpiredMessage={sessionExpiredMessage}
+      />
     </MsalProvider>
   );
 }

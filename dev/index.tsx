@@ -5,6 +5,7 @@ import { MockDataService, RoleName, StandaloneSharePointDataService } from '@hbc
 import type { IDataService } from '@hbc/sp-services';
 import { RoleSwitcher } from './RoleSwitcher';
 import { MSALAuthProvider } from './auth/MSALAuthProvider';
+import { MsalBoundary } from './auth/MsalBoundary';
 import { setMockUserRole, getMockUserRole } from './mockContext';
 
 const DEV_SUPER_ADMIN = 'DEV_SUPER_ADMIN';
@@ -27,6 +28,7 @@ const DevRoot: React.FC = () => {
   const [standaloneService, setStandaloneService] = React.useState<IDataService | null>(null);
   const [standaloneUser, setStandaloneUser] = React.useState<{ displayName: string; email: string } | null>(null);
   const [role, setRole] = React.useState<RoleValue>(getMockUserRole());
+  const [authError, setAuthError] = React.useState<string | null>(null);
 
   const handleRoleChange = React.useCallback(
     (newRole: RoleValue) => {
@@ -53,6 +55,7 @@ const DevRoot: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, 'mock');
     setStandaloneService(null);
     setStandaloneUser(null);
+    setAuthError(null);
     setMode('mock');
   }, []);
 
@@ -69,21 +72,30 @@ const DevRoot: React.FC = () => {
   if (mode === 'standalone') {
     if (!standaloneService) {
       return (
-        <MSALAuthProvider
-          hubSiteUrl={hubUrl}
-          onReady={handleStandaloneReady}
-          onLogout={handleReturnToMock}
-        />
+        <MsalBoundary onReset={() => { setAuthError(null); setStandaloneService(null); }}>
+          <MSALAuthProvider
+            hubSiteUrl={hubUrl}
+            onReady={handleStandaloneReady}
+            onLogout={handleReturnToMock}
+            onAuthError={(err) => {
+              setStandaloneService(null);
+              setStandaloneUser(null);
+              setAuthError(err.message);
+            }}
+            sessionExpiredMessage={authError ?? undefined}
+          />
+        </MsalBoundary>
       );
     }
     return (
-      <>
+      <MsalBoundary onReset={() => { setAuthError(null); setStandaloneService(null); }}>
         <RoleSwitcher
           role={role}
           onRoleChange={() => { /* role switching disabled in standalone — real user */ }}
           mode="standalone"
           standaloneUser={standaloneUser}
           onSwitchMode={handleReturnToMock}
+          authError={authError}
         />
         <App
           key="standalone"
@@ -91,7 +103,7 @@ const DevRoot: React.FC = () => {
           siteUrl={hubUrl}
           dataServiceMode="standalone"
         />
-      </>
+      </MsalBoundary>
     );
   }
 

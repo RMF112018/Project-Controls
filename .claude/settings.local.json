@@ -1,4 +1,7 @@
 {
+  "env": {
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "Claude-sonnet-4-6-1m"
+  },
   "permissions": {
     "allow": [
       "Bash(git -C /Users/bobbyfetting/Project-Controls log --oneline)",
@@ -73,7 +76,28 @@
       "Bash(find:*)",
       "Bash(lsof:*)",
       "Bash(git stash:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(unzip:*)",
+      "Bash(git describe:*)",
+      "Bash(GIT_EDITOR=true git -C /Users/bobbyfetting/Project-Controls/.worktrees/spfx-1-22-2-upgrade rebase --continue)",
+      "Bash(git check-ignore:*)",
+      "Bash(git worktree add:*)",
+      "Bash(git worktree remove:*)",
+      "Bash(WDIR=\"/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning\" find \"$WDIR/packages/hbc-sp-services/src\" -name \"columnMappings.ts\" -o -name \"constants.ts\" -o -name \"permissions.ts\")",
+      "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/templates/template-registry.json:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/templates/All/pnp-template.json:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/templates/Commercial/pnp-template.json:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/templates/LuxuryResidential/pnp-template.json:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/scripts/validate-template-registry.js:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/scripts/generate-site-schema.js:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/.github/workflows/gitops-validate.yml:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/packages/hbc-sp-services/src/mock/featureFlags.json:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/packages/hbc-sp-services/src/mock/templateRegistry.json:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/packages/hbc-sp-services/src/mock/templateSiteConfig.json:*)",
+      "Bash(/tmp/validate_phase_e.js:*)"
     ]
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true
   }
 }
