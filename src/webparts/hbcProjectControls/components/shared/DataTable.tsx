@@ -92,6 +92,8 @@ interface IDataTableProps<T> {
   sortAsc?: boolean;
   onSort?: (field: string) => void;
   pageSize?: number;
+  /** Accessible label for the table (required for WCAG 1.3.1 / 2.4.6) */
+  ariaLabel?: string;
 }
 
 export function DataTable<T>({
@@ -106,6 +108,7 @@ export function DataTable<T>({
   sortAsc = true,
   onSort,
   pageSize = 25,
+  ariaLabel = 'Data table',
 }: IDataTableProps<T>): React.ReactElement {
   const styles = useStyles();
   const { isMobile } = useResponsive();
@@ -132,22 +135,36 @@ export function DataTable<T>({
   return (
     <div>
       <div className={styles.tableWrapper}>
-        <table className={styles.table}>
+        <table className={styles.table} aria-label={ariaLabel}>
           <thead>
             <tr>
-              {visibleColumns.map(col => (
-                <th
-                  key={col.key}
-                  className={mergeClasses(styles.th, col.sortable && onSort ? styles.thSortable : undefined)}
-                  style={{ width: col.width, minWidth: col.minWidth }}
-                  onClick={() => col.sortable && onSort && onSort(col.key)}
-                >
-                  {col.header}
-                  {col.sortable && sortField === col.key && (
-                    <span className={styles.sortArrow}>{sortAsc ? '\u2191' : '\u2193'}</span>
-                  )}
-                </th>
-              ))}
+              {visibleColumns.map(col => {
+                const isSortActive = col.sortable && onSort;
+                const ariaSort = isSortActive && sortField === col.key
+                  ? (sortAsc ? 'ascending' : 'descending')
+                  : undefined;
+                return (
+                  <th
+                    key={col.key}
+                    className={mergeClasses(styles.th, isSortActive ? styles.thSortable : undefined)}
+                    style={{ width: col.width, minWidth: col.minWidth }}
+                    onClick={() => isSortActive && onSort(col.key)}
+                    aria-sort={ariaSort}
+                    tabIndex={isSortActive ? 0 : undefined}
+                    onKeyDown={isSortActive ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onSort(col.key);
+                      }
+                    } : undefined}
+                  >
+                    {col.header}
+                    {col.sortable && sortField === col.key && (
+                      <span className={styles.sortArrow} aria-hidden="true">{sortAsc ? '\u2191' : '\u2193'}</span>
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -156,6 +173,13 @@ export function DataTable<T>({
                 key={keyExtractor(item)}
                 onClick={() => onRowClick && onRowClick(item)}
                 className={onRowClick ? styles.rowClickable : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+                onKeyDown={onRowClick ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onRowClick(item);
+                  }
+                } : undefined}
               >
                 {visibleColumns.map(col => (
                   <td key={col.key} className={styles.td}>{col.render(item)}</td>
@@ -175,6 +199,7 @@ export function DataTable<T>({
               disabled={currentPage === 0}
               onClick={() => setCurrentPage(p => p - 1)}
               className={mergeClasses(styles.pageBtn, currentPage === 0 ? styles.pageBtnDisabled : undefined)}
+              aria-label="Previous page"
             >
               Previous
             </button>
@@ -182,6 +207,7 @@ export function DataTable<T>({
               disabled={currentPage >= totalPages - 1}
               onClick={() => setCurrentPage(p => p + 1)}
               className={mergeClasses(styles.pageBtn, currentPage >= totalPages - 1 ? styles.pageBtnDisabled : undefined)}
+              aria-label="Next page"
             >
               Next
             </button>

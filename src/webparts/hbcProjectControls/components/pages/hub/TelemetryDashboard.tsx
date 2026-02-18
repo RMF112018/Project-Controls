@@ -82,10 +82,17 @@ const ChartCard: React.FC<{
   children: React.ReactNode;
 }> = ({ title, subtitle, children }) => {
   const styles = useStyles();
+  // Stable slug-based ID for aria-labelledby association
+  const titleId = React.useId();
   return (
-    <div className={styles.chartCard} data-testid="chart-card">
-      <div className={styles.chartTitle}>{title}</div>
-      <div className={styles.chartSubtitle}>{subtitle}</div>
+    <div
+      className={styles.chartCard}
+      data-testid="chart-card"
+      role="region"
+      aria-labelledby={titleId}
+    >
+      <h3 id={titleId} className={styles.chartTitle}>{title}</h3>
+      <p className={styles.chartSubtitle}>{subtitle}</p>
       {children}
     </div>
   );

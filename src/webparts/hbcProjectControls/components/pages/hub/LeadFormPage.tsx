@@ -156,55 +156,72 @@ export const LeadFormPage: React.FC = () => {
         }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>Project Name *</label>
+              <label htmlFor="lead-Title" style={labelStyle}>Project Name *</label>
               <Input
+                id="lead-Title"
                 style={{ width: '100%' }}
                 value={formData.Title || ''}
                 onChange={(_, d) => handleChange('Title', d.value)}
+                aria-required={true}
+                aria-invalid={!!errors.Title}
+                aria-describedby={errors.Title ? 'err-Title' : undefined}
               />
               {errors.Title && (
-                <span style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.Title}</span>
+                <span id="err-Title" style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.Title}</span>
               )}
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Client Name *</label>
+              <label htmlFor="lead-ClientName" style={labelStyle}>Client Name *</label>
               <Input
+                id="lead-ClientName"
                 style={{ width: '100%' }}
                 value={formData.ClientName || ''}
                 onChange={(_, d) => handleChange('ClientName', d.value)}
+                aria-required={true}
+                aria-invalid={!!errors.ClientName}
+                aria-describedby={errors.ClientName ? 'err-ClientName' : undefined}
               />
               {errors.ClientName && (
-                <span style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.ClientName}</span>
+                <span id="err-ClientName" style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.ClientName}</span>
               )}
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>A/E</label>
+              <label htmlFor="lead-AE" style={labelStyle}>A/E</label>
               <Input
+                id="lead-AE"
                 style={{ width: '100%' }}
                 value={formData.AE || ''}
                 onChange={(_, d) => handleChange('AE', d.value)}
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Region *</label>
+              <label htmlFor="lead-Region" style={labelStyle}>Region *</label>
               <Select
+                id="lead-Region"
                 style={{ width: '100%' }}
                 value={formData.Region || ''}
                 onChange={(_, d) => handleChange('Region', d.value)}
+                aria-required={true}
+                aria-invalid={!!errors.Region}
+                aria-describedby={errors.Region ? 'err-Region' : undefined}
               >
                 <option value="">Select...</option>
                 {Object.values(Region).map(r => <option key={r} value={r}>{r}</option>)}
               </Select>
               {errors.Region && (
-                <span style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.Region}</span>
+                <span id="err-Region" style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.Region}</span>
               )}
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Sector *</label>
+              <label htmlFor="lead-Sector" style={labelStyle}>Sector *</label>
               <Select
+                id="lead-Sector"
                 style={{ width: '100%' }}
                 value={formData.Sector || ''}
                 onChange={(_, d) => handleChange('Sector', d.value)}
+                aria-required={true}
+                aria-invalid={!!errors.Sector}
+                aria-describedby={errors.Sector ? 'err-Sector' : undefined}
               >
                 <option value="">Select...</option>
                 {(isFeatureEnabled('PermissionEngine') && activeSectors.length > 0
@@ -213,40 +230,49 @@ export const LeadFormPage: React.FC = () => {
                 )}
               </Select>
               {errors.Sector && (
-                <span style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.Sector}</span>
+                <span id="err-Sector" style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.Sector}</span>
               )}
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Division *</label>
+              <label htmlFor="lead-Division" style={labelStyle}>Division *</label>
               <Select
+                id="lead-Division"
                 style={{ width: '100%' }}
                 value={formData.Division || ''}
                 onChange={(_, d) => handleChange('Division', d.value)}
+                aria-required={true}
+                aria-invalid={!!errors.Division}
+                aria-describedby={errors.Division ? 'err-Division' : undefined}
               >
                 <option value="">Select...</option>
                 {Object.values(Division).map(d => <option key={d} value={d}>{d}</option>)}
               </Select>
               {errors.Division && (
-                <span style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.Division}</span>
+                <span id="err-Division" style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.Division}</span>
               )}
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Department of Origin *</label>
+              <label htmlFor="lead-DepartmentOfOrigin" style={labelStyle}>Department of Origin *</label>
               <Select
+                id="lead-DepartmentOfOrigin"
                 style={{ width: '100%' }}
                 value={formData.DepartmentOfOrigin || ''}
                 onChange={(_, d) => handleChange('DepartmentOfOrigin', d.value)}
+                aria-required={true}
+                aria-invalid={!!errors.DepartmentOfOrigin}
+                aria-describedby={errors.DepartmentOfOrigin ? 'err-DepartmentOfOrigin' : undefined}
               >
                 <option value="">Select...</option>
                 {Object.values(DepartmentOfOrigin).map(d => <option key={d} value={d}>{d}</option>)}
               </Select>
               {errors.DepartmentOfOrigin && (
-                <span style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.DepartmentOfOrigin}</span>
+                <span id="err-DepartmentOfOrigin" style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.DepartmentOfOrigin}</span>
               )}
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Delivery Method</label>
+              <label htmlFor="lead-DeliveryMethod" style={labelStyle}>Delivery Method</label>
               <Select
+                id="lead-DeliveryMethod"
                 style={{ width: '100%' }}
                 value={formData.DeliveryMethod || ''}
                 onChange={(_, d) => handleChange('DeliveryMethod', d.value)}
@@ -256,8 +282,9 @@ export const LeadFormPage: React.FC = () => {
               </Select>
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Project Value ($)</label>
+              <label htmlFor="lead-ProjectValue" style={labelStyle}>Project Value ($)</label>
               <Input
+                id="lead-ProjectValue"
                 type="number"
                 style={{ width: '100%' }}
                 value={String(formData.ProjectValue || '')}
@@ -266,8 +293,9 @@ export const LeadFormPage: React.FC = () => {
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Square Feet</label>
+              <label htmlFor="lead-SquareFeet" style={labelStyle}>Square Feet</label>
               <Input
+                id="lead-SquareFeet"
                 type="number"
                 style={{ width: '100%' }}
                 value={String(formData.SquareFeet || '')}
@@ -275,57 +303,69 @@ export const LeadFormPage: React.FC = () => {
               />
             </div>
             <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>Street Address</label>
+              <label htmlFor="lead-AddressStreet" style={labelStyle}>Street Address</label>
               <Input
+                id="lead-AddressStreet"
                 style={{ width: '100%' }}
                 value={formData.AddressStreet || ''}
                 onChange={(_, d) => handleChange('AddressStreet', d.value)}
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>City *</label>
+              <label htmlFor="lead-AddressCity" style={labelStyle}>City *</label>
               <Input
+                id="lead-AddressCity"
                 style={{ width: '100%' }}
                 value={formData.AddressCity || ''}
                 onChange={(_, d) => handleChange('AddressCity', d.value)}
+                aria-required={true}
+                aria-invalid={!!errors.AddressCity}
+                aria-describedby={errors.AddressCity ? 'err-AddressCity' : undefined}
               />
               {errors.AddressCity && (
-                <span style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.AddressCity}</span>
+                <span id="err-AddressCity" style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.AddressCity}</span>
               )}
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>State *</label>
+              <label htmlFor="lead-AddressState" style={labelStyle}>State *</label>
               <Select
+                id="lead-AddressState"
                 style={{ width: '100%' }}
                 value={formData.AddressState || ''}
                 onChange={(_, d) => handleChange('AddressState', d.value)}
+                aria-required={true}
+                aria-invalid={!!errors.AddressState}
+                aria-describedby={errors.AddressState ? 'err-AddressState' : undefined}
               >
                 <option value="">Select...</option>
                 {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
               </Select>
               {errors.AddressState && (
-                <span style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.AddressState}</span>
+                <span id="err-AddressState" style={{ color: HBC_COLORS.error, fontSize: '12px' }}>{errors.AddressState}</span>
               )}
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Zip Code</label>
+              <label htmlFor="lead-AddressZip" style={labelStyle}>Zip Code</label>
               <Input
+                id="lead-AddressZip"
                 style={{ width: '100%' }}
                 value={formData.AddressZip || ''}
                 onChange={(_, d) => handleChange('AddressZip', d.value)}
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Sub-Sector</label>
+              <label htmlFor="lead-SubSector" style={labelStyle}>Sub-Sector</label>
               <Input
+                id="lead-SubSector"
                 style={{ width: '100%' }}
                 value={formData.SubSector || ''}
                 onChange={(_, d) => handleChange('SubSector', d.value)}
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Precon Duration (months)</label>
+              <label htmlFor="lead-PreconDurationMonths" style={labelStyle}>Precon Duration (months)</label>
               <Input
+                id="lead-PreconDurationMonths"
                 type="number"
                 style={{ width: '100%' }}
                 value={String(formData.PreconDurationMonths || '')}
@@ -333,8 +373,9 @@ export const LeadFormPage: React.FC = () => {
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Project Start Date</label>
+              <label htmlFor="lead-ProjectStartDate" style={labelStyle}>Project Start Date</label>
               <Input
+                id="lead-ProjectStartDate"
                 type="date"
                 style={{ width: '100%' }}
                 value={formData.ProjectStartDate || ''}
@@ -342,8 +383,9 @@ export const LeadFormPage: React.FC = () => {
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Project Duration (months)</label>
+              <label htmlFor="lead-ProjectDurationMonths" style={labelStyle}>Project Duration (months)</label>
               <Input
+                id="lead-ProjectDurationMonths"
                 type="number"
                 style={{ width: '100%' }}
                 value={String(formData.ProjectDurationMonths || '')}
@@ -351,8 +393,9 @@ export const LeadFormPage: React.FC = () => {
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Estimated Pursuit Cost ($)</label>
+              <label htmlFor="lead-EstimatedPursuitCost" style={labelStyle}>Estimated Pursuit Cost ($)</label>
               <Input
+                id="lead-EstimatedPursuitCost"
                 type="number"
                 style={{ width: '100%' }}
                 value={String(formData.EstimatedPursuitCost || '')}
@@ -361,8 +404,9 @@ export const LeadFormPage: React.FC = () => {
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Estimated Precon Budget ($)</label>
+              <label htmlFor="lead-EstimatedPreconBudget" style={labelStyle}>Estimated Precon Budget ($)</label>
               <Input
+                id="lead-EstimatedPreconBudget"
                 type="number"
                 style={{ width: '100%' }}
                 value={String(formData.EstimatedPreconBudget || '')}
@@ -371,8 +415,9 @@ export const LeadFormPage: React.FC = () => {
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Anticipated Fee (%)</label>
+              <label htmlFor="lead-AnticipatedFeePct" style={labelStyle}>Anticipated Fee (%)</label>
               <Input
+                id="lead-AnticipatedFeePct"
                 type="number"
                 style={{ width: '100%' }}
                 value={String(formData.AnticipatedFeePct || '')}
@@ -381,8 +426,9 @@ export const LeadFormPage: React.FC = () => {
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Anticipated Gross Margin (%)</label>
+              <label htmlFor="lead-AnticipatedGrossMargin" style={labelStyle}>Anticipated Gross Margin (%)</label>
               <Input
+                id="lead-AnticipatedGrossMargin"
                 type="number"
                 style={{ width: '100%' }}
                 value={String(formData.AnticipatedGrossMargin || '')}
@@ -391,8 +437,9 @@ export const LeadFormPage: React.FC = () => {
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Proposal/Bid Due Date</label>
+              <label htmlFor="lead-ProposalBidDue" style={labelStyle}>Proposal/Bid Due Date</label>
               <Input
+                id="lead-ProposalBidDue"
                 type="date"
                 style={{ width: '100%' }}
                 value={formData.ProposalBidDue || ''}
@@ -400,8 +447,9 @@ export const LeadFormPage: React.FC = () => {
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Award Date</label>
+              <label htmlFor="lead-AwardDate" style={labelStyle}>Award Date</label>
               <Input
+                id="lead-AwardDate"
                 type="date"
                 style={{ width: '100%' }}
                 value={formData.AwardDate || ''}
