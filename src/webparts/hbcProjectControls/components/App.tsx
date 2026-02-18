@@ -10,7 +10,9 @@ import { ErrorBoundary } from './shared/ErrorBoundary';
 import { ToastProvider } from './shared/ToastContainer';
 import { PageLoader } from './shared/PageLoader';
 import { IDataService, PERMISSIONS } from '@hbc/sp-services';
+import type { ITelemetryService } from '@hbc/sp-services';
 import { ProtectedRoute, ProjectRequiredRoute, FeatureGate } from './guards';
+import { useTelemetryPageView } from '../hooks/useTelemetryPageView';
 
 // ---------------------------------------------------------------------------
 // Helper: wrap React.lazy() for named exports
@@ -48,6 +50,7 @@ const ComplianceLog = lazyNamed(() => import('./pages/hub/ComplianceLog'));
 const AdminPanel = lazyNamed(() => import('./pages/hub/AdminPanel'));
 const PerformanceDashboard = lazyNamed(() => import('./pages/hub/PerformanceDashboard'));
 const ApplicationSupportPage = lazyNamed(() => import('./pages/hub/ApplicationSupportPage'));
+const TelemetryDashboard = lazyNamed(() => import('./pages/hub/TelemetryDashboard'));
 
 // ---------------------------------------------------------------------------
 // Lazy page imports — Precon
@@ -94,6 +97,7 @@ import { ComingSoonPage } from './shared/ComingSoonPage';
 
 export interface IAppProps {
   dataService: IDataService;
+  telemetryService?: ITelemetryService;
   siteUrl?: string;  // Provided by SPFx; undefined in dev server
 }
 
@@ -104,7 +108,9 @@ const NotFoundPage: React.FC = () => (
   </div>
 );
 
-const AppRoutes: React.FC = () => (
+const AppRoutes: React.FC = () => {
+  useTelemetryPageView();
+  return (
   <React.Suspense fallback={<PageLoader />}>
     <Routes>
       {/* Dashboard — universal landing page */}
@@ -363,19 +369,27 @@ const AppRoutes: React.FC = () => (
           </ProtectedRoute>
         </FeatureGate>
       } />
+      <Route path="/admin/telemetry" element={
+        <FeatureGate featureName="TelemetryDashboard" fallback={<NotFoundPage />}>
+          <ProtectedRoute permission={PERMISSIONS.ADMIN_CONFIG}>
+            <TelemetryDashboard />
+          </ProtectedRoute>
+        </FeatureGate>
+      } />
 
       {/* System */}
       <Route path="/access-denied" element={<AccessDeniedPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   </React.Suspense>
-);
+  );
+};
 
-export const App: React.FC<IAppProps> = ({ dataService, siteUrl }) => {
+export const App: React.FC<IAppProps> = ({ dataService, telemetryService, siteUrl }) => {
   return (
     <FluentProvider theme={hbcLightTheme}>
       <ErrorBoundary>
-        <AppProvider dataService={dataService} siteUrl={siteUrl}>
+        <AppProvider dataService={dataService} telemetryService={telemetryService} siteUrl={siteUrl}>
           <SignalRProvider>
             <HelpProvider>
               <ToastProvider>

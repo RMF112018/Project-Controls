@@ -4,7 +4,8 @@ import { Version } from '@microsoft/sp-core-library';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IPropertyPaneConfiguration, PropertyPaneTextField } from '@microsoft/sp-property-pane';
 import { App, IAppProps } from './components/App';
-import { IDataService, MockDataService, SharePointDataService, graphService, performanceService, signalRService } from '@hbc/sp-services';
+import { IDataService, MockDataService, SharePointDataService, graphService, performanceService, signalRService, TelemetryService, MockTelemetryService } from '@hbc/sp-services';
+import type { ITelemetryService } from '@hbc/sp-services';
 
 export interface IHbcProjectControlsWebPartProps {
   description?: string;
@@ -17,6 +18,7 @@ export interface IHbcProjectControlsWebPartProps {
 
 export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHbcProjectControlsWebPartProps> {
   private _dataService!: IDataService;
+  private _telemetryService!: ITelemetryService;
   private _root: Root | null = null;
 
   protected async onInit(): Promise<void> {
@@ -72,8 +74,29 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
       this._dataService = new MockDataService();
     }
 
-    // Initialize PerformanceService with logging function
-    performanceService.initialize((entry) => this._dataService.logPerformanceEntry(entry));
+    // Initialize TelemetryService
+    if (useSP) {
+      const ts = new TelemetryService();
+      const userEmail = this.context.pageContext.user.email ?? '';
+      const userHash = btoa(userEmail).slice(-8);
+      // Connection string read from environment config at runtime via getEnvironmentConfig()
+      // For now, empty string — will be populated once EnvironmentConfig SP list is provisioned
+      ts.initialize('', userHash, 'Unknown');
+      this._telemetryService = ts;
+    } else {
+      const mock = new MockTelemetryService();
+      mock.initialize('', 'dev-user', 'Dev');
+      this._telemetryService = mock;
+    }
+
+    // Initialize PerformanceService with logging function — also bridge to telemetry
+    performanceService.initialize((entry) => {
+      // Mirror to App Insights (fire-and-forget, non-blocking)
+      this._telemetryService.trackMetric('webpart.TotalLoadMs', entry.TotalLoadMs ?? 0, {
+        isProjectSite: String(entry.IsProjectSite ?? false),
+      });
+      return this._dataService.logPerformanceEntry(entry);
+    });
 
     // Initialize SignalR real-time service (connection deferred until feature flag checked)
     if (useSP) {
@@ -94,6 +117,7 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
 
     const element: React.ReactElement<IAppProps> = React.createElement(App, {
       dataService: this._dataService,
+      telemetryService: this._telemetryService,
       siteUrl: this.context.pageContext.web.absoluteUrl,
     });
 
@@ -106,6 +130,7 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
   }
 
   protected onDispose(): void {
+    this._telemetryService?.flush();
     signalRService.dispose();
     this._root?.unmount();
     this._root = null;

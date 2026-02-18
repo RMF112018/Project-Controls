@@ -50,3 +50,4 @@ export * from './IProjectDataMart';
 export * from './IScheduleActivity';
 export * from './IConstraintLog';
 export * from './IPermit';
+export * from './ITelemetryEvent';

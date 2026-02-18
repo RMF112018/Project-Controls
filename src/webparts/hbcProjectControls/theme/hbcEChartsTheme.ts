@@ -12,6 +12,7 @@ import {
   ScatterChart,
   RadarChart,
   GaugeChart,
+  HeatmapChart,
 } from 'echarts/charts';
 import {
   GridComponent,
@@ -20,6 +21,7 @@ import {
   PolarComponent,
   DataZoomComponent,
   TitleComponent,
+  VisualMapComponent,
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 
@@ -35,12 +37,14 @@ echarts.use([
   ScatterChart,
   RadarChart,
   GaugeChart,
+  HeatmapChart,
   GridComponent,
   TooltipComponent,
   LegendComponent,
   PolarComponent,
   DataZoomComponent,
   TitleComponent,
+  VisualMapComponent,
   CanvasRenderer,
 ]);
 

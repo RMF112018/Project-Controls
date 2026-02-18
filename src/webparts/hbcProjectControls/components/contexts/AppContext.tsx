@@ -9,6 +9,8 @@ import {
   DEFAULT_HUB_SITE_URL,
   performanceService,
 } from '@hbc/sp-services';
+import type { ITelemetryService } from '@hbc/sp-services';
+import { MockTelemetryService } from '@hbc/sp-services';
 import { useFullScreen } from '../hooks/useFullScreen';
 
 export interface ISelectedProject {
@@ -23,6 +25,7 @@ export interface ISelectedProject {
 
 export interface IAppContextValue {
   dataService: IDataService;
+  telemetryService: ITelemetryService;
   currentUser: ICurrentUser | null;
   featureFlags: IFeatureFlag[];
   isLoading: boolean;
@@ -42,11 +45,19 @@ const AppContext = React.createContext<IAppContextValue | undefined>(undefined);
 
 interface IAppProviderProps {
   dataService: IDataService;
+  telemetryService?: ITelemetryService;
   siteUrl?: string;
   children: React.ReactNode;
 }
 
-export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, siteUrl, children }) => {
+export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetryService, siteUrl, children }) => {
+  // Fallback to no-op MockTelemetryService if none provided (dev/test convenience)
+  const resolvedTelemetry = React.useMemo<ITelemetryService>(() => {
+    if (telemetryService) return telemetryService;
+    const mock = new MockTelemetryService();
+    mock.initialize('', 'dev', 'Dev');
+    return mock;
+  }, [telemetryService]);
   const [currentUser, setCurrentUser] = React.useState<ICurrentUser | null>(null);
   const [featureFlags, setFeatureFlags] = React.useState<IFeatureFlag[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -194,6 +205,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, siteUrl,
 
   const value: IAppContextValue = React.useMemo(() => ({
     dataService,
+    telemetryService: resolvedTelemetry,
     currentUser,
     featureFlags,
     isLoading,
@@ -207,7 +219,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, siteUrl,
     isFullScreen,
     toggleFullScreen,
     exitFullScreen,
-  }), [dataService, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isFullScreen, toggleFullScreen, exitFullScreen]);
+  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isFullScreen, toggleFullScreen, exitFullScreen]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

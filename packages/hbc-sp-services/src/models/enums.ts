@@ -214,6 +214,11 @@ export enum AuditAction {
   ScheduleActivityDeleted = 'Schedule.ActivityDeleted',
   ConstraintUpdated = 'Constraint.Updated',
   PermitUpdated = 'Permit.Updated',
+  Dashboard_Loaded = 'Dashboard.Loaded',
+  Dashboard_FilterApplied = 'Dashboard.FilterApplied',
+  Dashboard_ChartDrilledDown = 'Dashboard.ChartDrilledDown',
+  Dashboard_Exported = 'Dashboard.Exported',
+  Telemetry_QueryExecuted = 'Telemetry.QueryExecuted',
 }
 
 export enum EntityType {
@@ -249,6 +254,8 @@ export enum EntityType {
   ScheduleActivity = 'ScheduleActivity',
   Constraint = 'Constraint',
   Permit = 'Permit',
+  Telemetry = 'Telemetry',
+  Dashboard = 'Dashboard',
 }
 
 export enum DeliverableStatus {
