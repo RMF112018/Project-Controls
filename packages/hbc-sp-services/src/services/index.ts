@@ -25,3 +25,6 @@ export * from './columnMappings';
 export type { ITelemetryService, ITelemetryEvent } from './ITelemetryService';
 export { TelemetryService, telemetryService } from './TelemetryService';
 export { MockTelemetryService, mockTelemetryService } from './MockTelemetryService';
+export { GitOpsProvisioningService } from './GitOpsProvisioningService';
+export { TemplateSyncService } from './TemplateSyncService';
+export type { IDiffResult } from './TemplateSyncService';

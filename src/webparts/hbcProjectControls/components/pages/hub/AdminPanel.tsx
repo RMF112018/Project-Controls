@@ -32,6 +32,7 @@ import { ProvisioningStatusView } from '../../shared/ProvisioningStatus';
 import { RoleGate } from '../../guards/RoleGate';
 import { CollapsibleSection } from '../../shared/CollapsibleSection';
 import { FeatureGate } from '../../guards/FeatureGate';
+import { TemplateSiteSyncPanel } from '../../shared/TemplateSiteSyncPanel';
 import { WorkflowDefinitionsPanel } from './WorkflowDefinitionsPanel';
 import { PermissionTemplateEditor } from './PermissionTemplateEditor';
 import { ProjectAssignmentsPanel } from './ProjectAssignmentsPanel';
@@ -195,7 +196,7 @@ export const AdminPanel: React.FC = () => {
 
   const hubNavService = React.useMemo(() => new MockHubNavigationService(), []);
   const provisioningService = React.useMemo(
-    () => new ProvisioningService(dataService, hubNavService, undefined, undefined, false, isFeatureEnabled('ProvisioningRealOps')),
+    () => new ProvisioningService(dataService, hubNavService, undefined, undefined, false, isFeatureEnabled('ProvisioningRealOps'), isFeatureEnabled('GitOpsProvisioning')),
     [dataService, hubNavService, isFeatureEnabled]
   );
 
@@ -784,6 +785,11 @@ export const AdminPanel: React.FC = () => {
                   <ProvisioningStatusView projectCode={expandedCode} pollInterval={1000} />
                 </div>
               )}
+              <FeatureGate featureName="TemplateSiteSync">
+                {hasPermission(PERMISSIONS.ADMIN_TEMPLATE_SYNC) && (
+                  <TemplateSiteSyncPanel />
+                )}
+              </FeatureGate>
             </>
           )
         ) : (

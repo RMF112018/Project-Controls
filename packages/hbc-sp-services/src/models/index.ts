@@ -51,3 +51,4 @@ export * from './IScheduleActivity';
 export * from './IConstraintLog';
 export * from './IPermit';
 export * from './ITelemetryEvent';
+export * from './ITemplateManifest';

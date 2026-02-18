@@ -41,10 +41,12 @@ import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
 import { IScheduleActivity, IScheduleImport, IScheduleMetrics, IScheduleRelationship, ActivityStatus, RelationshipType } from '../models/IScheduleActivity';
 import { IConstraintLog } from '../models/IConstraintLog';
 import { IPermit } from '../models/IPermit';
+import { ITemplateRegistry, ITemplateSiteConfig, ITemplateManifestLog } from '../models/ITemplateManifest';
+import { ITemplateFileMetadata } from './IDataService';
 import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField, TurnoverStatus, ScorecardStatus, WorkflowActionType, ActionPriority, AuditAction, EntityType } from '../models/enums';
 import { DataServiceError } from './DataServiceError';
 import { performanceService } from './PerformanceService';
-import { LIST_NAMES, CACHE_KEYS, CACHE_TTL_MS } from '../utils/constants';
+import { LIST_NAMES, CACHE_KEYS, CACHE_TTL_MS, HUB_LISTS } from '../utils/constants';
 import { ROLE_PERMISSIONS } from '../utils/permissions';
 import { resolveToolPermissions, TOOL_DEFINITIONS } from '../utils/toolPermissionMap';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
@@ -113,6 +115,8 @@ import {
   SCHEDULE_IMPORTS_COLUMNS,
   CONSTRAINTS_LOG_COLUMNS,
   PERMITS_LOG_COLUMNS,
+  TEMPLATE_SITE_CONFIG_COLUMNS,
+  TEMPLATE_MANIFEST_LOG_COLUMNS,
 } from './columnMappings';
 import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
 import { cacheService } from './CacheService';
@@ -883,6 +887,158 @@ export class SharePointDataService implements IDataService {
     const req = field.required ? ' Required="TRUE"' : '';
     const idx = field.indexed ? ' Indexed="TRUE"' : '';
     return `<Field Type="${field.fieldType}" DisplayName="${field.displayName}" Name="${field.internalName}"${req}${idx}/>`;
+  }
+
+  // --- GitOps Template Provisioning ---
+
+  async getTemplateSiteConfig(): Promise<ITemplateSiteConfig | null> {
+    try {
+      const cached = cacheService.get<ITemplateSiteConfig>(CACHE_KEYS.TEMPLATE_SITE_CONFIG);
+      if (cached) return cached;
+      const items = await this.sp.web.lists.getByTitle(HUB_LISTS.TEMPLATE_SITE_CONFIG)
+        .items.filter('Active eq 1').orderBy('ID', false).top(1)();
+      if (items.length === 0) return null;
+      const item = items[0] as Record<string, unknown>;
+      const config: ITemplateSiteConfig = {
+        id: item[TEMPLATE_SITE_CONFIG_COLUMNS.id] as number,
+        templateSiteUrl: item[TEMPLATE_SITE_CONFIG_COLUMNS.TemplateSiteUrl] as string,
+        lastSnapshotHash: (item[TEMPLATE_SITE_CONFIG_COLUMNS.LastSnapshotHash] as string) ?? '',
+        lastSnapshotDate: (item[TEMPLATE_SITE_CONFIG_COLUMNS.LastSnapshotDate] as string) ?? '',
+        githubRepoOwner: (item[TEMPLATE_SITE_CONFIG_COLUMNS.GitHubRepoOwner] as string) ?? '',
+        githubRepoName: (item[TEMPLATE_SITE_CONFIG_COLUMNS.GitHubRepoName] as string) ?? '',
+        githubBranch: (item[TEMPLATE_SITE_CONFIG_COLUMNS.GitHubBranch] as string) ?? 'main',
+        active: item[TEMPLATE_SITE_CONFIG_COLUMNS.Active] as boolean,
+      };
+      cacheService.set(CACHE_KEYS.TEMPLATE_SITE_CONFIG, config);
+      return config;
+    } catch (e) {
+      throw this.handleError('getTemplateSiteConfig', e, { entityType: 'TemplateSiteConfig' });
+    }
+  }
+
+  async updateTemplateSiteConfig(data: Partial<ITemplateSiteConfig>): Promise<ITemplateSiteConfig> {
+    const current = await this.getTemplateSiteConfig();
+    if (!current) throw new Error('Template_Site_Config entry not found');
+    await this.sp.web.lists.getByTitle(HUB_LISTS.TEMPLATE_SITE_CONFIG)
+      .items.getById(current.id).update({
+        [TEMPLATE_SITE_CONFIG_COLUMNS.LastSnapshotHash]: data.lastSnapshotHash ?? current.lastSnapshotHash,
+        [TEMPLATE_SITE_CONFIG_COLUMNS.LastSnapshotDate]: data.lastSnapshotDate ?? current.lastSnapshotDate,
+        [TEMPLATE_SITE_CONFIG_COLUMNS.Active]: data.active ?? current.active,
+      });
+    cacheService.remove(CACHE_KEYS.TEMPLATE_SITE_CONFIG);
+    this.logAudit({
+      Action: AuditAction.TemplateSiteConfigUpdated,
+      EntityType: EntityType.TemplateSiteConfig,
+      EntityId: String(current.id),
+      User: this._pageContextUser?.email ?? 'unknown',
+      Details: 'Template site config updated',
+    }).catch(console.error);
+    return { ...current, ...data };
+  }
+
+  async getCommittedTemplateRegistry(): Promise<ITemplateRegistry> {
+    try {
+      const cached = cacheService.get<ITemplateRegistry>(CACHE_KEYS.TEMPLATE_REGISTRY);
+      if (cached) return cached;
+      const config = await this.getTemplateSiteConfig();
+      const owner = config?.githubRepoOwner ?? 'RMF112018';
+      const repo = config?.githubRepoName ?? 'Project-Controls';
+      const branch = config?.githubBranch ?? 'main';
+      const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/templates/template-registry.json`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`Failed to fetch template registry: HTTP ${resp.status}`);
+      const registry = (await resp.json()) as ITemplateRegistry;
+      cacheService.set(CACHE_KEYS.TEMPLATE_REGISTRY, registry, 5 * 60 * 1000); // 5-min TTL
+      return registry;
+    } catch (e) {
+      throw this.handleError('getCommittedTemplateRegistry', e, { entityType: 'TemplateRegistry' });
+    }
+  }
+
+  async getTemplateSiteFiles(): Promise<ITemplateFileMetadata[]> {
+    try {
+      const config = await this.getTemplateSiteConfig();
+      if (!config) return [];
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { Web } = require('@pnp/sp/webs');
+      const templateWeb = Web([this.sp.web, config.templateSiteUrl]);
+      const templateSiteRelUrl = new URL(config.templateSiteUrl).pathname;
+      const folders = await templateWeb.getFolderByServerRelativePath(templateSiteRelUrl + '/Shared Documents').folders();
+      const results: ITemplateFileMetadata[] = [];
+      for (const folder of folders) {
+        const files = await templateWeb.getFolderByServerRelativePath(folder.ServerRelativeUrl).files();
+        for (const file of files) {
+          const buf = await templateWeb.getFileByServerRelativePath(file.ServerRelativeUrl).getBuffer();
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const { createHash } = require('crypto');
+          const fileHash = `sha256:${createHash('sha256').update(Buffer.from(buf as ArrayBuffer)).digest('hex')}`;
+          results.push({
+            sourcePath: file.ServerRelativeUrl as string,
+            fileName: file.Name as string,
+            fileHash,
+            fileSize: (file.Length as number) ?? 0,
+            lastModified: file.TimeLastModified as string,
+            division: 'Both', // Template Site doesn't tag division; registry mapping determines this
+          });
+        }
+      }
+      return results;
+    } catch (e) {
+      throw this.handleError('getTemplateSiteFiles', e, { entityType: 'TemplateRegistry' });
+    }
+  }
+
+  async applyGitOpsTemplates(siteUrl: string, division: string, registry: ITemplateRegistry): Promise<{ appliedCount: number }> {
+    const applicable = registry.templates.filter(
+      t => t.active && (t.division === 'Both' || t.division === division)
+    );
+    let appliedCount = 0;
+    const config = await this.getTemplateSiteConfig();
+    if (!config) throw new Error('Template_Site_Config not found — cannot apply GitOps templates');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Web } = require('@pnp/sp/webs');
+    for (const entry of applicable) {
+      try {
+        const buf = await Web([this.sp.web, config.templateSiteUrl])
+          .getFileByServerRelativePath(entry.sourcePath)
+          .getBuffer();
+        await Web([this.sp.web, siteUrl])
+          .getFolderByServerRelativePath(entry.targetFolder)
+          .files.addUsingPath(entry.fileName, buf, { Overwrite: true });
+        appliedCount++;
+      } catch (err) {
+        console.warn(`[GitOps] Failed to copy ${entry.fileName}:`, err);
+        // Continue — do not fail the entire provisioning for a single file error
+      }
+    }
+    this.logAudit({
+      Action: AuditAction.TemplateAppliedFromGitOps,
+      EntityType: EntityType.TemplateRegistry,
+      EntityId: siteUrl,
+      User: this._pageContextUser?.email ?? 'unknown',
+      Details: `Applied ${appliedCount}/${applicable.length} templates to ${siteUrl} (division: ${division})`,
+    }).catch(console.error);
+    return { appliedCount };
+  }
+
+  async logTemplateSyncPR(entry: Omit<ITemplateManifestLog, 'id'>): Promise<ITemplateManifestLog> {
+    const created = await this.sp.web.lists.getByTitle(HUB_LISTS.TEMPLATE_MANIFEST_LOG)
+      .items.add({
+        [TEMPLATE_MANIFEST_LOG_COLUMNS.SyncDate]: entry.syncDate,
+        [TEMPLATE_MANIFEST_LOG_COLUMNS.TriggeredBy]: entry.triggeredBy,
+        [TEMPLATE_MANIFEST_LOG_COLUMNS.DiffSummary]: JSON.stringify(entry.diffSummary),
+        [TEMPLATE_MANIFEST_LOG_COLUMNS.PRNumber]: entry.prNumber,
+        [TEMPLATE_MANIFEST_LOG_COLUMNS.PRUrl]: entry.prUrl,
+        [TEMPLATE_MANIFEST_LOG_COLUMNS.Status]: entry.status,
+      });
+    this.logAudit({
+      Action: AuditAction.TemplateSyncPRCreated,
+      EntityType: EntityType.TemplateRegistry,
+      EntityId: String((created.data as Record<string, unknown>)?.['ID'] ?? 0),
+      User: this._pageContextUser?.email ?? 'unknown',
+      Details: `Template sync PR #${entry.prNumber} logged`,
+    }).catch(console.error);
+    return { id: ((created.data as Record<string, unknown>)?.['ID'] as number) ?? 0, ...entry };
   }
 
   // --- Phase 6: Workflow ---

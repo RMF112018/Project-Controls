@@ -1917,3 +1917,36 @@ export const PERMITS_LOG_COLUMNS = {
   ahj: 'AHJ',                                 // SP: Single Line of Text
   comments: 'Comments',                        // SP: Note
 } as const;
+
+// ════════════════════════════════════════════════════════════════════════════
+// ──── GitOps Template Hub Lists ────
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * List: Template_Site_Config
+ * Interface: ITemplateSiteConfig
+ */
+export const TEMPLATE_SITE_CONFIG_COLUMNS = {
+  id: 'ID',
+  TemplateSiteUrl: 'TemplateSiteUrl',
+  LastSnapshotHash: 'LastSnapshotHash',
+  LastSnapshotDate: 'LastSnapshotDate',
+  GitHubRepoOwner: 'GitHubRepoOwner',
+  GitHubRepoName: 'GitHubRepoName',
+  GitHubBranch: 'GitHubBranch',
+  Active: 'Active',
+} as const;
+
+/**
+ * List: Template_Manifest_Log
+ * Interface: ITemplateManifestLog
+ */
+export const TEMPLATE_MANIFEST_LOG_COLUMNS = {
+  id: 'ID',
+  SyncDate: 'SyncDate',
+  TriggeredBy: 'TriggeredBy',
+  DiffSummary: 'DiffSummary',
+  PRNumber: 'PRNumber',
+  PRUrl: 'PRUrl',
+  Status: 'Status',
+} as const;

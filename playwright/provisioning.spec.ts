@@ -48,3 +48,61 @@ test.describe('Provisioning workflow — BD Lead to site creation', () => {
     expect(errors).toHaveLength(0);
   });
 });
+
+// ── GitOps / Template Site Sync E2E tests ────────────────────────────────────
+
+test.describe('GitOps provisioning — TemplateSiteSync feature flag', () => {
+  test('template-site-sync-panel is absent when TemplateSiteSync flag is disabled', async ({ page, switchRole }) => {
+    // Switch to ExecutiveLeadership (who would be able to see the panel if enabled)
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('ExecutiveLeadership');
+
+    await page.goto('/#/admin');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('main, [role="main"]')).toBeVisible({ timeout: 8_000 });
+
+    // TemplateSiteSync flag is Enabled: false in featureFlags.json
+    // so the panel must not be present in the DOM / visible
+    await expect(page.locator('[data-testid="template-site-sync-panel"]')).not.toBeVisible();
+  });
+
+  test('admin panel provisioning tab renders without errors after GitOps wiring', async ({ page, switchRole }) => {
+    // Regression guard: verifies that wiring ProvisioningService with useGitOpsProvisioning
+    // does not break the admin panel render path.
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('ExecutiveLeadership');
+
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+
+    await page.goto('/#/admin');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('main, [role="main"]')).toBeVisible({ timeout: 8_000 });
+
+    // Allow any deferred rendering to settle
+    await page.waitForTimeout(500);
+
+    // No uncaught JS errors should be present after GitOps wiring
+    expect(errors).toHaveLength(0);
+  });
+
+  test('admin panel loads and heading is visible for ExecutiveLeadership after GitOps changes', async ({ page, switchRole }) => {
+    // Basic smoke test: confirms the admin route still renders correctly
+    // after all GitOps Phase D wiring changes to AdminPanel.tsx.
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('ExecutiveLeadership');
+
+    await page.goto('/#/admin');
+    await page.waitForLoadState('networkidle');
+
+    const main = page.locator('main, [role="main"]');
+    await expect(main).toBeVisible({ timeout: 8_000 });
+
+    // There should be at least one heading element rendered
+    const heading = page.getByRole('heading');
+    await expect(heading.first()).toBeVisible({ timeout: 8_000 });
+  });
+});

@@ -48,6 +48,7 @@ import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
 import { IScheduleActivity, IScheduleImport, IScheduleMetrics } from '../models/IScheduleActivity';
 import { IConstraintLog } from '../models/IConstraintLog';
 import { IPermit } from '../models/IPermit';
+import { ITemplateRegistry, ITemplateSiteConfig, ITemplateManifestLog } from '../models/ITemplateManifest';
 import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -57,6 +58,16 @@ export interface IListQueryOptions {
   top?: number;
   skip?: number;
   select?: string[];
+}
+
+// GitOps Template Provisioning — file metadata from the live template site
+export interface ITemplateFileMetadata {
+  sourcePath: string;
+  fileName: string;
+  fileHash: string;
+  fileSize: number;
+  lastModified: string;
+  division: string;
 }
 
 export interface IPagedResult<T> {
@@ -140,6 +151,14 @@ export interface IDataService {
   copyLeadDataToProjectSite(siteUrl: string, leadId: number, projectCode: string): Promise<void>;
   updateSiteProperties(siteUrl: string, properties: Record<string, string>): Promise<void>;
   createList(siteUrl: string, listName: string, templateType: number, fields: IFieldDefinition[]): Promise<void>;
+
+  // GitOps Template Provisioning
+  getTemplateSiteConfig(): Promise<ITemplateSiteConfig | null>;
+  updateTemplateSiteConfig(data: Partial<ITemplateSiteConfig>): Promise<ITemplateSiteConfig>;
+  getCommittedTemplateRegistry(): Promise<ITemplateRegistry>;
+  getTemplateSiteFiles(): Promise<ITemplateFileMetadata[]>;
+  applyGitOpsTemplates(siteUrl: string, division: string, registry: ITemplateRegistry): Promise<{ appliedCount: number }>;
+  logTemplateSyncPR(entry: Omit<ITemplateManifestLog, 'id'>): Promise<ITemplateManifestLog>;
 
   // Phase 6 — Workflow
   getTeamMembers(projectCode: string): Promise<ITeamMember[]>;

@@ -219,6 +219,12 @@ export enum AuditAction {
   Dashboard_ChartDrilledDown = 'Dashboard.ChartDrilledDown',
   Dashboard_Exported = 'Dashboard.Exported',
   Telemetry_QueryExecuted = 'Telemetry.QueryExecuted',
+  TemplateAppliedFromGitOps = 'Template.AppliedFromGitOps',
+  TemplateSyncPRCreated     = 'Template.SyncPRCreated',
+  TemplateSyncDiffComputed  = 'Template.SyncDiffComputed',
+  TemplateSiteConfigUpdated = 'Template.SiteConfigUpdated',
+  GitOpsProvisioningEnabled = 'Template.GitOpsEnabled',
+  GitOpsProvisioningDisabled= 'Template.GitOpsDisabled',
 }
 
 export enum EntityType {
@@ -256,6 +262,8 @@ export enum EntityType {
   Permit = 'Permit',
   Telemetry = 'Telemetry',
   Dashboard = 'Dashboard',
+  TemplateRegistry   = 'TemplateRegistry',
+  TemplateSiteConfig = 'TemplateSiteConfig',
 }
 
 export enum DeliverableStatus {

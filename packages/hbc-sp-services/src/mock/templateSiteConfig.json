@@ -1,0 +1,10 @@
+{
+  "id": 1,
+  "TemplateSiteUrl": "https://hedrickbrotherscom.sharepoint.com/sites/HBC-Templates",
+  "LastSnapshotHash": "sha256:initial-baseline-hash",
+  "LastSnapshotDate": "2026-01-01T00:00:00Z",
+  "GitHubRepoOwner": "RMF112018",
+  "GitHubRepoName": "Project-Controls",
+  "GitHubBranch": "main",
+  "Active": true
+}

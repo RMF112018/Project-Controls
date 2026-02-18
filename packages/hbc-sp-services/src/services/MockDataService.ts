@@ -128,6 +128,8 @@ import mockScheduleActivities from '../mock/scheduleActivities.json';
 import mockScheduleImports from '../mock/scheduleImports.json';
 import mockConstraintLogs from '../mock/constraintLogs.json';
 import mockPermits from '../mock/permits.json';
+import templateSiteConfigData from '../mock/templateSiteConfig.json';
+import templateRegistryData from '../mock/templateRegistry.json';
 import { createEstimatingKickoffTemplate } from '../utils/estimatingKickoffTemplate';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 import { DEFAULT_HUB_SITE_URL } from '../utils/constants';
@@ -135,6 +137,8 @@ import { IEstimatingKickoff, IEstimatingKickoffItem, IKeyPersonnelEntry } from '
 import { IBuyoutEntry, EVerifyStatus } from '../models/IBuyoutEntry';
 import { IConstraintLog } from '../models/IConstraintLog';
 import { IPermit } from '../models/IPermit';
+import { ITemplateRegistry, ITemplateSiteConfig, ITemplateManifestLog } from '../models/ITemplateManifest';
+import { ITemplateFileMetadata } from './IDataService';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverProjectHeader, ITurnoverPrerequisite, ITurnoverEstimateOverview, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverAttachment } from '../models/ITurnoverAgenda';
@@ -2141,6 +2145,88 @@ export class MockDataService implements IDataService {
   public async createList(siteUrl: string, listName: string, _templateType: number, fields: IFieldDefinition[]): Promise<void> {
     await delay();
     console.log(`[Mock] Created list "${listName}" with ${fields.length} fields on ${siteUrl}`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // GitOps Template Provisioning
+  // ---------------------------------------------------------------------------
+
+  async getTemplateSiteConfig(): Promise<ITemplateSiteConfig | null> {
+    await delay();
+    console.log('[Mock] getTemplateSiteConfig');
+    const raw = templateSiteConfigData as unknown as Record<string, unknown>;
+    return {
+      id: raw['id'] as number,
+      templateSiteUrl: raw['TemplateSiteUrl'] as string,
+      lastSnapshotHash: raw['LastSnapshotHash'] as string,
+      lastSnapshotDate: raw['LastSnapshotDate'] as string,
+      githubRepoOwner: raw['GitHubRepoOwner'] as string,
+      githubRepoName: raw['GitHubRepoName'] as string,
+      githubBranch: raw['GitHubBranch'] as string,
+      active: raw['Active'] as boolean,
+    };
+  }
+
+  async updateTemplateSiteConfig(data: Partial<ITemplateSiteConfig>): Promise<ITemplateSiteConfig> {
+    await delay();
+    console.log('[Mock] updateTemplateSiteConfig', data);
+    const current = await this.getTemplateSiteConfig();
+    return { ...current!, ...data };
+  }
+
+  async getCommittedTemplateRegistry(): Promise<ITemplateRegistry> {
+    await delay();
+    console.log('[Mock] getCommittedTemplateRegistry');
+    const raw = templateRegistryData as unknown as Array<Record<string, unknown>>;
+    return {
+      version: '1.0.0',
+      lastModified: new Date().toISOString(),
+      lastModifiedBy: 'mock@hedrickbrothers.com',
+      templates: raw.map(r => ({
+        id: String(r['id']),
+        templateName: r['TemplateName'] as string,
+        sourcePath: r['SourceURL'] as string,
+        targetFolder: r['TargetFolder'] as string,
+        fileName: (r['SourceURL'] as string).split('/').pop() ?? '',
+        division: r['Division'] as 'Both' | 'Commercial' | 'Luxury Residential',
+        active: r['Active'] as boolean,
+        fileHash: `sha256:mock-hash-${r['id']}`,
+        fileSize: 50000,
+        lastModifiedInTemplateSite: '2026-01-15T10:00:00Z',
+      })),
+    };
+  }
+
+  async getTemplateSiteFiles(): Promise<ITemplateFileMetadata[]> {
+    await delay();
+    console.log('[Mock] getTemplateSiteFiles');
+    // In mock mode, return same entries as registry (zero-diff by default)
+    const registry = await this.getCommittedTemplateRegistry();
+    return registry.templates.map(t => ({
+      sourcePath: t.sourcePath,
+      fileName: t.fileName,
+      fileHash: t.fileHash,
+      fileSize: t.fileSize,
+      lastModified: t.lastModifiedInTemplateSite,
+      division: t.division,
+    }));
+  }
+
+  async applyGitOpsTemplates(siteUrl: string, division: string, registry: ITemplateRegistry): Promise<{ appliedCount: number }> {
+    await delay();
+    const applicable = registry.templates.filter(
+      t => t.active && (t.division === 'Both' || t.division === division)
+    );
+    console.log(`[Mock] applyGitOpsTemplates → siteUrl=${siteUrl}, division=${division}, appliedCount=${applicable.length}`);
+    return { appliedCount: applicable.length };
+  }
+
+  async logTemplateSyncPR(entry: Omit<ITemplateManifestLog, 'id'>): Promise<ITemplateManifestLog> {
+    await delay();
+    const id = this.getNextId();
+    const log: ITemplateManifestLog = { id, ...entry };
+    console.log('[Mock] logTemplateSyncPR', log);
+    return log;
   }
 
   // ---------------------------------------------------------------------------
