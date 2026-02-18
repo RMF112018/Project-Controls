@@ -6170,6 +6170,11 @@ export class MockDataService implements IDataService {
   // Constraints Log
   // ---------------------------------------------------------------------------
 
+  public async getAllConstraints(): Promise<IConstraintLog[]> {
+    await delay();
+    return this.constraintLogs.map(c => ({ ...c }));
+  }
+
   public async getConstraints(projectCode: string): Promise<IConstraintLog[]> {
     await delay();
     return this.constraintLogs

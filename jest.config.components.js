@@ -20,6 +20,11 @@ module.exports = {
     '^@hbc/sp-services$': '<rootDir>/packages/hbc-sp-services/src/index.ts',
     // Stub CSS/SCSS modules
     '\\.(css|scss|sass|less)$': '<rootDir>/src/__mocks__/styleMock.js',
+    // ECharts mocks — prevent canvas/DOM issues in jsdom
+    '^echarts-for-react$': '<rootDir>/src/__mocks__/echarts-for-react.tsx',
+    '^echarts/core$': '<rootDir>/src/__mocks__/echarts__core.ts',
+    '^echarts/(.*)$': '<rootDir>/src/__mocks__/echarts__core.ts',
+    '^echarts$': '<rootDir>/src/__mocks__/echarts__core.ts',
   },
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
 };

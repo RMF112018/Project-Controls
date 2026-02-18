@@ -1,10 +1,8 @@
 import * as React from 'react';
 import { Button, Input, makeStyles, tokens } from '@fluentui/react-components';
 import { ArrowClockwiseRegular, ChevronDownRegular, ChevronUpRegular } from '@fluentui/react-icons';
-import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, Legend, Cell,
-} from 'recharts';
+import type { EChartsOption } from 'echarts';
+import { HbcEChart } from '../../shared/HbcEChart';
 import { PERFORMANCE_THRESHOLDS, IPerformanceLog } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { PageHeader } from '../../shared/PageHeader';
@@ -216,6 +214,55 @@ export const PerformanceDashboard: React.FC = () => {
     }));
   }, [logs]);
 
+  // ─── ECharts option memos ────────────────────────────────────────────────
+
+  const lineChartOption = React.useMemo<EChartsOption>(() => ({
+    grid: { top: 10, right: 16, bottom: 8, left: 0, containLabel: true },
+    tooltip: { trigger: 'axis', formatter: (p: unknown) => {
+      const params = p as Array<{ name: string; value: number; marker: string }>;
+      return `<div style="font-family:'Segoe UI',sans-serif;padding:4px 0"><div style="font-size:11px;color:${HBC_COLORS.gray500};margin-bottom:4px">${params[0].name}</div><div style="font-size:13px;font-weight:600;color:${HBC_COLORS.navy}">${params[0].marker}Avg Load: ${params[0].value}ms</div></div>`;
+    }, extraCssText: `border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);padding:10px 14px;` },
+    xAxis: { type: 'category', data: (summary?.byDay ?? []).map(d => d.date), axisLabel: { fontSize: 11, color: HBC_COLORS.gray500 }, axisLine: { lineStyle: { color: '#E5E7EB' } }, axisTick: { show: false } },
+    yAxis: { type: 'value', axisLabel: { formatter: (v: number) => `${v}ms`, fontSize: 11, color: HBC_COLORS.gray500 }, splitLine: { lineStyle: { color: '#F3F4F6', type: 'dashed' } }, axisLine: { show: false }, axisTick: { show: false } },
+    series: [{
+      type: 'line',
+      name: 'Avg Load (ms)',
+      data: (summary?.byDay ?? []).map(d => d.avgMs),
+      smooth: false,
+      symbol: 'circle',
+      symbolSize: 4,
+      lineStyle: { color: HBC_COLORS.navy, width: 2 },
+      itemStyle: { color: HBC_COLORS.navy },
+    }],
+  }), [summary]);
+
+  const stackedBarOption = React.useMemo<EChartsOption>(() => ({
+    grid: { top: 10, right: 16, bottom: 8, left: 0, containLabel: true },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p: unknown) => {
+      const params = p as Array<{ seriesName: string; value: number; marker: string }>;
+      const name = (p as Array<{ name: string }>)[0]?.name ?? '';
+      const rows = params.map(item => `<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">${item.marker}<span style="flex:1;font-size:12px;color:${HBC_COLORS.gray600}">${item.seriesName}</span><span style="font-size:13px;font-weight:600;color:${HBC_COLORS.navy}">${item.value}ms</span></div>`).join('');
+      return `<div style="font-family:'Segoe UI',sans-serif;padding:4px 0"><div style="font-size:11px;color:${HBC_COLORS.gray500};margin-bottom:6px">${name}</div>${rows}</div>`;
+    }, extraCssText: `border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);padding:10px 14px;` },
+    legend: { bottom: 0, textStyle: { fontSize: 11, color: HBC_COLORS.gray600 } },
+    xAxis: { type: 'category', data: breakdownData.map(d => d.name), axisLabel: { fontSize: 11, color: HBC_COLORS.gray500 }, axisLine: { lineStyle: { color: '#E5E7EB' } }, axisTick: { show: false } },
+    yAxis: { type: 'value', axisLabel: { formatter: (v: number) => `${v}ms`, fontSize: 11, color: HBC_COLORS.gray500 }, splitLine: { lineStyle: { color: '#F3F4F6', type: 'dashed' } }, axisLine: { show: false }, axisTick: { show: false } },
+    series: [
+      { type: 'bar', name: 'WebPart Init', stack: 'total', data: breakdownData.map(d => d.WebPart), itemStyle: { color: HBC_COLORS.navy } },
+      { type: 'bar', name: 'App Init', stack: 'total', data: breakdownData.map(d => d.AppInit), itemStyle: { color: HBC_COLORS.orange } },
+      {
+        type: 'bar',
+        name: 'Data Fetch',
+        stack: 'total',
+        barMaxWidth: 60,
+        data: breakdownData.map(d => ({
+          value: d.DataFetch,
+          itemStyle: { color: getBarColor(d.total) },
+        })),
+      },
+    ],
+  }), [breakdownData]);
+
   if (loading && logs.length === 0) {
     return (
       <div className={styles.container}>
@@ -293,41 +340,20 @@ export const PerformanceDashboard: React.FC = () => {
         <div className={styles.chartRow}>
           <div className={styles.chartCard}>
             <div className={styles.chartTitle}>Daily Average Load Time</div>
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={summary.byDay}>
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} unit="ms" />
-                <Tooltip formatter={(value: number) => `${value}ms`} />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="avgMs"
-                  name="Avg Load (ms)"
-                  stroke={HBC_COLORS.navy}
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <HbcEChart
+              option={lineChartOption}
+              height={250}
+              ariaLabel="Daily average page load time in milliseconds"
+            />
           </div>
 
           <div className={styles.chartCard}>
             <div className={styles.chartTitle}>Load Time Breakdown (Recent Sessions)</div>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={breakdownData}>
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} unit="ms" />
-                <Tooltip formatter={(value: number) => `${value}ms`} />
-                <Legend />
-                <Bar dataKey="WebPart" name="WebPart Init" stackId="a" fill={HBC_COLORS.navy} />
-                <Bar dataKey="AppInit" name="App Init" stackId="a" fill={HBC_COLORS.orange} />
-                <Bar dataKey="DataFetch" name="Data Fetch" stackId="a" fill={HBC_COLORS.info}>
-                  {breakdownData.map((entry, index) => (
-                    <Cell key={index} fill={getBarColor(entry.total)} opacity={0.4} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <HbcEChart
+              option={stackedBarOption}
+              height={250}
+              ariaLabel="Load time breakdown by component for recent sessions"
+            />
           </div>
         </div>
       )}

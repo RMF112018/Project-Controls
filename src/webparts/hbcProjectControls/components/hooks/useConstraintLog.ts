@@ -11,6 +11,7 @@ export interface IConstraintMetrics {
   overdue: number;
   totalBIC: number;
   byCategory: Record<string, number>;
+  byCategoryAndStatus: Record<string, { open: number; closed: number }>;
 }
 
 export function useConstraintLog() {
@@ -108,8 +109,12 @@ export function useConstraintLog() {
     const totalBIC = entries.reduce((sum, e) => sum + (e.budgetImpactCost || 0), 0);
 
     const byCategory: Record<string, number> = {};
+    const byCategoryAndStatus: Record<string, { open: number; closed: number }> = {};
     for (const e of entries) {
       byCategory[e.category] = (byCategory[e.category] || 0) + 1;
+      if (!byCategoryAndStatus[e.category]) byCategoryAndStatus[e.category] = { open: 0, closed: 0 };
+      if (e.status === 'Open') byCategoryAndStatus[e.category].open++;
+      else byCategoryAndStatus[e.category].closed++;
     }
 
     return {
@@ -119,6 +124,7 @@ export function useConstraintLog() {
       overdue: overdue.length,
       totalBIC,
       byCategory,
+      byCategoryAndStatus,
     };
   }, [entries]);
 

@@ -438,6 +438,7 @@ export interface IDataService {
   getScheduleMetrics(projectCode: string): Promise<IScheduleMetrics>;
 
   // Constraints Log
+  getAllConstraints(): Promise<IConstraintLog[]>;
   getConstraints(projectCode: string): Promise<IConstraintLog[]>;
   addConstraint(projectCode: string, constraint: Partial<IConstraintLog>): Promise<IConstraintLog>;
   updateConstraint(projectCode: string, constraintId: number, data: Partial<IConstraintLog>): Promise<IConstraintLog>;

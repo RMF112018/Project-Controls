@@ -24,25 +24,15 @@ import {
 import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Select } from '@fluentui/react-components';
-import {
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts';
+import type { EChartsOption } from 'echarts';
+import { HbcEChart } from '../../shared/HbcEChart';
+import { NAVY_GRADIENT, SECTOR_COLORS as HBC_SECTOR_COLORS } from '../../../theme/hbcEChartsTheme';
 import { useLeads } from '../../hooks/useLeads';
 import { useEstimating } from '../../hooks/useEstimating';
 import { useActionInbox } from '../../hooks/useActionInbox';
 import { useProvisioningTracker } from '../../hooks/useProvisioningTracker';
 import { useDataMart } from '../../hooks/useDataMart';
+import { useConstraintsSummary } from '../../hooks/useConstraintsSummary';
 import { usePersistedState } from '../../hooks/usePersistedState';
 import { useResponsive } from '../../hooks/useResponsive';
 import { PageHeader } from '../../shared/PageHeader';
@@ -65,8 +55,6 @@ const PIE_COLORS = {
   [GoNoGoDecision.NoGo]: HBC_COLORS.error,
   [GoNoGoDecision.ConditionalGo]: HBC_COLORS.warning,
 };
-const REGION_COLORS = [HBC_COLORS.navy, HBC_COLORS.orange, HBC_COLORS.info, HBC_COLORS.success, '#8B5CF6'];
-
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -77,6 +65,7 @@ export const DashboardPage: React.FC = () => {
   const { items: actionItems, loading: actionLoading, totalCount: actionTotal, urgentCount, refresh: refreshActions } = useActionInbox();
   const { logs: provLogs, isLoading: provLoading, summary: provSummary, refresh: refreshProvisioning } = useProvisioningTracker();
   const { records: dataMartRecords, healthDistribution, alertCount, fetchRecords: fetchDataMart } = useDataMart();
+  const { summary: constraintSummary, isLoading: constraintsLoading, fetchSummary: fetchConstraints } = useConstraintsSummary();
   const { isMobile, isTablet } = useResponsive();
   const [showAllActions, setShowAllActions] = React.useState(false);
   const [showAllProv, setShowAllProv] = React.useState(false);
@@ -97,7 +86,8 @@ export const DashboardPage: React.FC = () => {
     fetchLeads().catch(console.error);
     fetchRecords().catch(console.error);
     fetchDataMart().catch(console.error);
-  }, [fetchLeads, fetchRecords, fetchDataMart]);
+    fetchConstraints().catch(console.error);
+  }, [fetchLeads, fetchRecords, fetchDataMart, fetchConstraints]);
 
   // Filter options
   const years = React.useMemo(() => {
@@ -210,7 +200,7 @@ export const DashboardPage: React.FC = () => {
       .sort((a, b) => b.value - a.value);
   }, [filteredLeads]);
 
-  const SECTOR_COLORS = [HBC_COLORS.navy, HBC_COLORS.orange, HBC_COLORS.info, HBC_COLORS.success, '#8B5CF6', '#F472B6', '#34D399', '#FBBF24', '#A78BFA', '#F87171', '#60A5FA', '#4ADE80'];
+  // Use imported HBC_SECTOR_COLORS from theme for chart palette
 
   // Top pursuits (top 10 by value)
   const topPursuits = React.useMemo(() => {
@@ -273,6 +263,100 @@ export const DashboardPage: React.FC = () => {
     { key: 'Score', header: 'Score', width: '60px', render: (l) => <span>{l.GoNoGoScore_Originator ?? '-'}</span> },
     { key: 'Date', header: 'Date', width: '100px', render: (l) => formatDate(l.GoNoGoDecisionDate || l.DateOfEvaluation) },
   ], []);
+
+  // ─── ECharts option memos ────────────────────────────────────────────────
+
+  const winRateOption = React.useMemo<EChartsOption>(() => ({
+    grid: { top: 10, right: 16, bottom: 8, left: 0, containLabel: true },
+    tooltip: { trigger: 'axis', formatter: (p: unknown) => {
+      const params = p as Array<{ name: string; value: number; marker: string }>;
+      return `<div style="font-family:'Segoe UI',sans-serif;padding:4px 0"><div style="font-size:11px;color:${HBC_COLORS.gray500};margin-bottom:4px">${params[0].name}</div><div style="font-size:13px;font-weight:600;color:${HBC_COLORS.navy}">${params[0].marker}Win Rate: ${params[0].value}%</div></div>`;
+    }, extraCssText: `border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);padding:10px 14px;border:1px solid ${HBC_COLORS.gray200};` },
+    xAxis: { type: 'category', data: winRateTrend.map(d => d.month), axisLabel: { fontSize: 11, color: HBC_COLORS.gray500 }, axisLine: { lineStyle: { color: HBC_COLORS.gray200 } }, axisTick: { show: false } },
+    yAxis: { type: 'value', min: 0, max: 100, axisLabel: { formatter: (v: number) => `${v}%`, fontSize: 11, color: HBC_COLORS.gray500 }, splitLine: { lineStyle: { color: HBC_COLORS.gray100, type: 'dashed' } }, axisLine: { show: false }, axisTick: { show: false } },
+    series: [{
+      type: 'line',
+      name: 'Win Rate',
+      data: winRateTrend.map(d => d.winRate),
+      smooth: false,
+      symbol: 'circle',
+      symbolSize: 6,
+      lineStyle: { color: HBC_COLORS.navy, width: 2 },
+      itemStyle: { color: HBC_COLORS.navy },
+      areaStyle: { color: NAVY_GRADIENT },
+    }],
+  }), [winRateTrend]);
+
+  const gonogoOption = React.useMemo<EChartsOption>(() => ({
+    tooltip: { trigger: 'item', formatter: (p: unknown) => {
+      const params = p as { name: string; value: number; percent: number; marker: string };
+      return `<div style="font-family:'Segoe UI',sans-serif;padding:4px 0"><div style="font-size:13px;font-weight:600;color:${HBC_COLORS.navy}">${params.marker}${params.name}: ${params.value} (${params.percent}%)</div></div>`;
+    }, extraCssText: `border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);padding:10px 14px;border:1px solid ${HBC_COLORS.gray200};` },
+    legend: { bottom: 0, textStyle: { fontSize: 12, color: HBC_COLORS.gray600 } },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '68%'],
+      center: ['50%', '45%'],
+      animationType: 'scale',
+      label: { formatter: (p: unknown) => { const pi = p as { name: string; value: number }; return `${pi.name}: ${pi.value}`; }, fontSize: 11 },
+      data: gonogoDistribution.map(d => ({
+        name: d.name,
+        value: d.value,
+        itemStyle: { color: d.color, borderWidth: 2, borderColor: '#fff' },
+      })),
+    }],
+  }), [gonogoDistribution]);
+
+  const sectorOption = React.useMemo<EChartsOption>(() => ({
+    tooltip: { trigger: 'item', formatter: (p: unknown) => {
+      const params = p as { name: string; value: number; percent: number; marker: string };
+      return `<div style="font-family:'Segoe UI',sans-serif;padding:4px 0"><div style="font-size:13px;font-weight:600;color:${HBC_COLORS.navy}">${params.marker}${params.name}: ${params.value} (${params.percent}%)</div></div>`;
+    }, extraCssText: `border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);padding:10px 14px;border:1px solid ${HBC_COLORS.gray200};` },
+    legend: { bottom: 0, textStyle: { fontSize: 12, color: HBC_COLORS.gray600 } },
+    series: [{
+      type: 'pie',
+      radius: '65%',
+      center: ['50%', '45%'],
+      label: { formatter: (p: unknown) => { const pi = p as { name: string; value: number }; return `${pi.name}: ${pi.value}`; }, fontSize: 11 },
+      data: sectorDistribution.map((d, idx) => ({
+        name: d.name,
+        value: d.value,
+        itemStyle: { color: HBC_SECTOR_COLORS[idx % HBC_SECTOR_COLORS.length], borderWidth: 2, borderColor: '#fff' },
+      })),
+    }],
+  }), [sectorDistribution]);
+
+  const regionPipelineOption = React.useMemo<EChartsOption>(() => {
+    const REGION_COLORS = [HBC_COLORS.navy, HBC_COLORS.orange, HBC_COLORS.info, HBC_COLORS.success, '#8B5CF6'];
+    return {
+      grid: { top: 10, right: 16, bottom: 8, left: 8, containLabel: true },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p: unknown) => {
+        const params = p as Array<{ name: string; value: number; marker: string }>;
+        return `<div style="font-family:'Segoe UI',sans-serif;padding:4px 0"><div style="font-size:11px;color:${HBC_COLORS.gray500};margin-bottom:4px">${params[0].name}</div><div style="font-size:13px;font-weight:600;color:${HBC_COLORS.navy}">${params[0].marker}Pipeline Value: ${formatCurrencyCompact(params[0].value)}</div></div>`;
+      }, extraCssText: `border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);padding:10px 14px;border:1px solid ${HBC_COLORS.gray200};` },
+      xAxis: { type: 'value', axisLabel: { formatter: (v: number) => formatCurrencyCompact(v), fontSize: 11, color: HBC_COLORS.gray500 }, splitLine: { lineStyle: { color: HBC_COLORS.gray100, type: 'dashed' } }, axisLine: { show: false }, axisTick: { show: false } },
+      yAxis: { type: 'category', data: regionPipeline.map(d => d.region), axisLabel: { fontSize: 12, color: HBC_COLORS.gray700 }, axisLine: { lineStyle: { color: HBC_COLORS.gray200 } }, axisTick: { show: false } },
+      series: [{
+        type: 'bar',
+        name: 'Pipeline Value',
+        data: regionPipeline.map((d, idx) => ({
+          value: d.value,
+          itemStyle: { color: REGION_COLORS[idx % REGION_COLORS.length], borderRadius: [0, 4, 4, 0] },
+        })),
+        barMaxWidth: 40,
+      }],
+    };
+  }, [regionPipeline]);
+
+  // Click handlers for drill-down
+  const regionClickHandler = React.useCallback(
+    (params: { name: string }) => navigate(`/preconstruction/pipeline?region=${encodeURIComponent(params.name)}`),
+    [navigate]
+  );
+  const gonogoClickHandler = React.useCallback(
+    (params: { name: string }) => navigate(`/lead?decision=${encodeURIComponent(params.name)}`),
+    [navigate]
+  );
 
   // Export data
   const exportData = React.useMemo(() =>
@@ -496,14 +580,11 @@ export const DashboardPage: React.FC = () => {
           <div>
             {sectionTitle('Win Rate Trend (12-Month)')}
             <div style={chartCardStyle}>
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={winRateTrend} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: HBC_COLORS.gray500 }} />
-                  <YAxis domain={[0, 100]} tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 11, fill: HBC_COLORS.gray500 }} />
-                  <Tooltip formatter={(v: number) => [`${v}%`, 'Win Rate']} contentStyle={{ borderRadius: '6px', border: `1px solid ${HBC_COLORS.gray200}`, fontSize: '13px' }} />
-                  <Line type="monotone" dataKey="winRate" stroke={HBC_COLORS.navy} strokeWidth={2} dot={{ fill: HBC_COLORS.navy, r: 3 }} name="Win Rate" />
-                </LineChart>
-              </ResponsiveContainer>
+              <HbcEChart
+                option={winRateOption}
+                height={280}
+                ariaLabel="Win rate trend over trailing 12 months"
+              />
             </div>
           </div>
 
@@ -511,32 +592,14 @@ export const DashboardPage: React.FC = () => {
           <div>
             {sectionTitle('Go/No-Go Decisions')}
             <div style={chartCardStyle}>
-              {gonogoDistribution.length > 0 ? (
-                <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie
-                      data={gonogoDistribution}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      dataKey="value"
-                      nameKey="name"
-                      label={({ name, value }) => `${name}: ${value}`}
-                    >
-                      {gonogoDistribution.map((entry, idx) => (
-                        <Cell key={idx} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ borderRadius: '6px', border: `1px solid ${HBC_COLORS.gray200}`, fontSize: '13px' }} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div style={{ height: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: HBC_COLORS.gray400 }}>
-                  No decisions recorded
-                </div>
-              )}
+              <HbcEChart
+                option={gonogoOption}
+                height={280}
+                empty={gonogoDistribution.length === 0}
+                emptyMessage="No decisions recorded"
+                ariaLabel="Go/No-Go decision distribution"
+                onEvents={{ click: gonogoClickHandler }}
+              />
             </div>
           </div>
 
@@ -544,31 +607,13 @@ export const DashboardPage: React.FC = () => {
           <div>
             {sectionTitle('Sector Distribution')}
             <div style={chartCardStyle}>
-              {sectorDistribution.length > 0 ? (
-                <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie
-                      data={sectorDistribution}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      dataKey="value"
-                      nameKey="name"
-                      label={({ name, value }) => `${name}: ${value}`}
-                    >
-                      {sectorDistribution.map((_, idx) => (
-                        <Cell key={idx} fill={SECTOR_COLORS[idx % SECTOR_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ borderRadius: '6px', border: `1px solid ${HBC_COLORS.gray200}`, fontSize: '13px' }} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div style={{ height: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: HBC_COLORS.gray400 }}>
-                  No active pipeline data
-                </div>
-              )}
+              <HbcEChart
+                option={sectorOption}
+                height={280}
+                empty={sectorDistribution.length === 0}
+                emptyMessage="No active pipeline data"
+                ariaLabel="Active pipeline sector distribution"
+              />
             </div>
           </div>
 
@@ -576,27 +621,14 @@ export const DashboardPage: React.FC = () => {
           <div style={{ gridColumn: isMobile ? undefined : '1 / -1' }}>
             {sectionTitle('Pipeline Value by Region')}
             <div style={chartCardStyle}>
-              {regionPipeline.length > 0 ? (
-                <ResponsiveContainer width="100%" height={Math.max(200, regionPipeline.length * 50)}>
-                  <BarChart data={regionPipeline} layout="vertical" margin={{ top: 8, right: 16, bottom: 8, left: 100 }}>
-                    <XAxis type="number" tickFormatter={(v: number) => formatCurrencyCompact(v)} tick={{ fontSize: 11, fill: HBC_COLORS.gray500 }} />
-                    <YAxis dataKey="region" type="category" tick={{ fontSize: 12, fill: HBC_COLORS.gray700 }} width={90} />
-                    <Tooltip
-                      formatter={(v: number) => [formatCurrencyCompact(v), 'Pipeline Value']}
-                      contentStyle={{ borderRadius: '6px', border: `1px solid ${HBC_COLORS.gray200}`, fontSize: '13px' }}
-                    />
-                    <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                      {regionPipeline.map((_, idx) => (
-                        <Cell key={idx} fill={REGION_COLORS[idx % REGION_COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: HBC_COLORS.gray400 }}>
-                  No active pipeline data
-                </div>
-              )}
+              <HbcEChart
+                option={regionPipelineOption}
+                height={Math.max(200, regionPipeline.length * 50)}
+                empty={regionPipeline.length === 0}
+                emptyMessage="No active pipeline data"
+                ariaLabel="Pipeline value by region — click to filter"
+                onEvents={{ click: regionClickHandler }}
+              />
             </div>
           </div>
         </div>
@@ -738,6 +770,92 @@ export const DashboardPage: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* Constraints Health */}
+            <FeatureGate featureName="ConstraintsLog">
+              <div style={{ marginTop: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 600, color: HBC_COLORS.navy }}>Constraints Health</span>
+                  <button
+                    onClick={() => navigate('/operations/constraints')}
+                    style={{
+                      padding: '4px 12px', fontSize: '12px', color: HBC_COLORS.navy,
+                      backgroundColor: 'transparent', border: `1px solid ${HBC_COLORS.gray300}`,
+                      borderRadius: '4px', cursor: 'pointer',
+                    }}
+                  >
+                    View All
+                  </button>
+                </div>
+                {constraintsLoading ? (
+                  <LoadingSpinner size="small" label="Loading constraints..." />
+                ) : (
+                  <>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+                      gap: '12px',
+                    }}>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: '12px 16px', backgroundColor: '#fff', borderRadius: '8px',
+                        boxShadow: ELEVATION.level1, borderLeft: `4px solid ${HBC_COLORS.info}`,
+                      }}>
+                        <span style={{ fontSize: '24px', fontWeight: 700, color: HBC_COLORS.info }}>{constraintSummary.open}</span>
+                        <span style={{ fontSize: '13px', color: HBC_COLORS.gray600 }}>Open</span>
+                      </div>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: '12px 16px', backgroundColor: '#fff', borderRadius: '8px',
+                        boxShadow: ELEVATION.level1, borderLeft: `4px solid ${constraintSummary.overdue > 0 ? HBC_COLORS.error : HBC_COLORS.gray300}`,
+                      }}>
+                        <span style={{ fontSize: '24px', fontWeight: 700, color: constraintSummary.overdue > 0 ? HBC_COLORS.error : HBC_COLORS.gray500 }}>{constraintSummary.overdue}</span>
+                        <span style={{ fontSize: '13px', color: HBC_COLORS.gray600 }}>Overdue</span>
+                      </div>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: '12px 16px', backgroundColor: '#fff', borderRadius: '8px',
+                        boxShadow: ELEVATION.level1, borderLeft: `4px solid ${HBC_COLORS.success}`,
+                      }}>
+                        <span style={{ fontSize: '24px', fontWeight: 700, color: HBC_COLORS.success }}>{constraintSummary.closed}</span>
+                        <span style={{ fontSize: '13px', color: HBC_COLORS.gray600 }}>Closed</span>
+                      </div>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: '12px 16px', backgroundColor: '#fff', borderRadius: '8px',
+                        boxShadow: ELEVATION.level1, borderLeft: `4px solid ${constraintSummary.totalBudgetImpact > 0 ? HBC_COLORS.warning : HBC_COLORS.gray300}`,
+                      }}>
+                        <span style={{ fontSize: '24px', fontWeight: 700, color: constraintSummary.totalBudgetImpact > 0 ? HBC_COLORS.warning : HBC_COLORS.gray500 }}>{formatCurrencyCompact(constraintSummary.totalBudgetImpact)}</span>
+                        <span style={{ fontSize: '13px', color: HBC_COLORS.gray600 }}>Budget Impact</span>
+                      </div>
+                    </div>
+                    {constraintSummary.topOverdue.length > 0 && (
+                      <div style={{
+                        marginTop: '12px', backgroundColor: '#fff', borderRadius: '8px',
+                        boxShadow: ELEVATION.level1, padding: '12px 16px',
+                      }}>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: HBC_COLORS.gray600, marginBottom: '8px' }}>Top Overdue Constraints</div>
+                        {constraintSummary.topOverdue.map(c => (
+                          <div key={c.id} style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '6px 0', borderBottom: `1px solid ${HBC_COLORS.gray100}`,
+                            fontSize: '13px',
+                          }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <span style={{ color: HBC_COLORS.navy, fontWeight: 500 }}>{c.description}</span>
+                              <span style={{ color: HBC_COLORS.gray400, marginLeft: '8px' }}>{c.projectCode}</span>
+                            </div>
+                            <span style={{ color: HBC_COLORS.error, fontSize: '12px', whiteSpace: 'nowrap', marginLeft: '12px' }}>
+                              Due {formatDate(c.dueDate)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </FeatureGate>
           </div>
         </RoleGate>
       </div>
