@@ -33,6 +33,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:a11y": "playwright test playwright/accessibility.spec.ts",
+    "test:storybook": "test-storybook",
     "postinstall": "npm run build:lib",
     "clean:dev": "rm -rf node_modules packages/hbc-sp-services/node_modules packages/hbc-sp-services/lib dev/dist && npm install"
   },
@@ -80,6 +81,7 @@
     "@storybook/addon-themes": "^8.5.0",
     "@storybook/react-webpack5": "^8.5.0",
     "@storybook/test": "^8.5.0",
+    "@storybook/test-runner": "^0.24.2",
     "@testing-library/dom": "^10.0.0",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^16.3.2",
@@ -92,6 +94,7 @@
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
     "ajv": "^8.17.1",
+    "axe-playwright": "^2.2.2",
     "copy-webpack-plugin": "^13.0.1",
     "dotenv": "^17.3.1",
     "eslint": "^8.57.0",

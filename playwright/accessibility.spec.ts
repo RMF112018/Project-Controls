@@ -98,4 +98,35 @@ test.describe('Accessibility — WCAG 2.2 AA', () => {
     await page.keyboard.press('Tab');
     await checkA11y(page);
   });
+
+  test('monthly review page (OperationsTeam)', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('OperationsTeam');
+    await page.goto('/#/operations/monthly-review');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+    await checkA11y(page);
+  });
+
+  test('buyout log page (OperationsTeam)', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('OperationsTeam');
+    await page.goto('/#/operations/buyout-log');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+    await checkA11y(page);
+  });
+
+  test('schedule gantt tab (OperationsTeam)', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('OperationsTeam');
+    // useTabFromUrl reads ?tab= from location.search — works with HashRouter
+    await page.goto('/#/operations/schedule?tab=gantt');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(800); // gantt renders async after data loads
+    await checkA11y(page);
+  });
 });
