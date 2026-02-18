@@ -38,6 +38,7 @@ export const WithData: Story = {
       columns={COLUMNS}
       items={MOCK_ROWS}
       keyExtractor={(r) => r.id}
+      ariaLabel="Projects data table"
     />
   ),
 };
@@ -49,6 +50,7 @@ export const Loading: Story = {
       items={[]}
       keyExtractor={(r) => r.id}
       isLoading={true}
+      ariaLabel="Projects data table"
     />
   ),
 };
@@ -61,6 +63,7 @@ export const Empty: Story = {
       keyExtractor={(r) => r.id}
       emptyTitle="No projects found"
       emptyDescription="No projects match your search criteria."
+      ariaLabel="Projects data table"
     />
   ),
 };
@@ -72,6 +75,7 @@ export const Paginated: Story = {
       items={MOCK_ROWS}
       keyExtractor={(r) => r.id}
       pageSize={3}
+      ariaLabel="Projects data table"
     />
   ),
 };

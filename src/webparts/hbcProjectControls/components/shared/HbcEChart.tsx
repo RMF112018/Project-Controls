@@ -62,6 +62,16 @@ const useStyles = makeStyles({
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
+// Visually-hidden style for screen-reader-only content
+const srOnly: React.CSSProperties = {
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  overflow: 'hidden',
+  clip: 'rect(0,0,0,0)',
+  whiteSpace: 'nowrap',
+};
+
 export const HbcEChart: React.FC<IHbcEChartProps> = ({
   option,
   height = 300,
@@ -80,6 +90,8 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
   const styles = useStyles();
   const chartRef = React.useRef<ReactECharts | null>(null);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
+  // Stable unique ID for aria-describedby association
+  const descriptionId = React.useId();
 
   // -------------------------------------------------------------------------
   // Merge animation defaults into option
@@ -146,8 +158,11 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
       style={{ height, width, ...style }}
       role="img"
       aria-label={ariaLabel}
-      aria-description={ariaDescription}
+      aria-describedby={ariaDescription ? descriptionId : undefined}
     >
+      {ariaDescription && (
+        <p id={descriptionId} style={srOnly}>{ariaDescription}</p>
+      )}
       <ReactECharts
         ref={chartRef}
         echarts={echartsCore}

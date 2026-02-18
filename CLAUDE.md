@@ -30,6 +30,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - `npm run build-storybook` → Static build to storybook-static/
 - `npm run test:e2e` → Playwright E2E (starts dev server automatically)
 - `npm run test:e2e:ui` → Playwright interactive UI mode
+- `npm run test:a11y` → axe WCAG 2.2 AA accessibility tests (run before marking work complete)
 
 ### Command Evolution Guidelines
 - **Add** a command when: a workflow repeats 3+ times/week, manual execution is error-prone, or it has clear success/failure criteria.
@@ -261,6 +262,11 @@ graph TD
 - **ECharts Jest**: `echarts-for-react` + `echarts/*` mocked in `src/__mocks__/`. Assert on `data-chart-type` attr. `ResizeObserver` stubbed on `window` in `src/__tests__/setup.ts`.
 - **ECharts label formatter**: type parameter as `unknown`, cast to `{ name: string; value: number; percent: number }` — never use typed params directly (ECharts uses `CallbackDataParams`).
 - Keep `CLAUDE.md` lean — archive old content aggressively.
+- **A11y rule**: All new components require a Storybook story that passes axe WCAG 2.2 AA zero-violations check. Run `npm run test:a11y` before marking work complete.
+- **A11y rule**: Never use `gray400`, `gray500`, `orange`, or `lightOrange` as foreground text on white — use `textGray` (#4B5563) or `textOrangeLarge` (#C45E0A) for text instead.
+- **A11y rule**: All `<table>` elements require `ariaLabel` prop; sortable `<th>` require `aria-sort` + `tabIndex={0}` + keyboard handler; clickable `<tr>` require `tabIndex={0}` and `onKeyDown` handler.
+- **A11y rule**: ECharts `ariaDescription` prop uses `aria-describedby` + visually-hidden `<p id="...">` — never `aria-description` (non-standard attribute, ignored by screen readers).
+- **A11y rule**: Form `<label>` elements must use `htmlFor` paired with `id` on the input; required fields must have `aria-required={true}`; fields with errors must have `aria-invalid={true}` + `aria-describedby` pointing to error span `id`.
 - **SPFx 1.22.2**: Uses `@microsoft/rush-stack-compiler-5.3` (TypeScript 5.3.3). `npx tsc --noEmit` uses TS 5.3.3. The SPFx gulp internal tsc subtask still reports 4.7.4 (from `gulp-core-build-typescript` internals) — this is expected, not an error.
 - **Future-proofing artifacts**: `.yo-rc.json` (Yeoman generator config for `yo @microsoft/sharepoint --upgrade`), `config/heft.json` (inert scaffold for 1.23+ Heft-native builds), `scripts/upgrade-spfx.sh` (version-bump helper). @microsoft/signalr peer dep range updated to `^8.0.0 || ^10.0.0` in hbc-sp-services.
 - **Storybook ECharts**: Real ECharts in Storybook (browser canvas), no mock. Always pass explicit numeric `height` prop to HbcEChart in stories (0×0 canvas collapses otherwise).

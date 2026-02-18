@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { IAuditEntry, IPerformanceLog, AuditAction } from '@hbc/sp-services';
+import type { IAuditEntry, IPerformanceLog } from '@hbc/sp-services';
 import { useAppContext } from '../components/contexts/AppContext';
 
 // ---------------------------------------------------------------------------
@@ -166,9 +166,47 @@ function computeLoadPerf(logs: IPerformanceLog[]): ILoadPerf[] {
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
+/**
+ * Detects and tracks a11y-relevant browser environment signals.
+ * Fire-and-forget — does not affect the component render cycle.
+ */
+function useA11yEnvironmentDetection(): void {
+  const { telemetryService } = useAppContext();
+
+  React.useEffect(() => {
+    if (!telemetryService.isInitialized()) return;
+
+    // Detect Windows High Contrast Mode (forced-colors: active)
+    const highContrastQuery = window.matchMedia('(forced-colors: active)');
+    if (highContrastQuery.matches) {
+      telemetryService.trackEvent({ name: 'a11y:high-contrast', properties: { mode: 'forced-colors' } });
+    }
+
+    // Detect keyboard-only navigation: first Tab key without prior pointer event
+    let pointerUsed = false;
+    const onPointer = (): void => { pointerUsed = true; };
+    const onKeydown = (e: KeyboardEvent): void => {
+      if (e.key === 'Tab' && !pointerUsed) {
+        telemetryService.trackEvent({ name: 'a11y:keyboard-user-detected' });
+        document.removeEventListener('keydown', onKeydown);
+        document.removeEventListener('pointerdown', onPointer);
+      }
+    };
+    document.addEventListener('pointerdown', onPointer, { once: false });
+    document.addEventListener('keydown', onKeydown);
+    return () => {
+      document.removeEventListener('keydown', onKeydown);
+      document.removeEventListener('pointerdown', onPointer);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+}
+
 export function useTelemetryMetrics(dateRange: [Date, Date]): ITelemetryMetrics {
   const { dataService, resolvedPermissions, selectedProject } = useAppContext();
   const [metrics, setMetrics] = React.useState<ITelemetryMetrics>(defaultMetrics);
+
+  useA11yEnvironmentDetection();
 
   const projectCode = resolvedPermissions?.globalAccess ? undefined : selectedProject?.projectCode;
 
