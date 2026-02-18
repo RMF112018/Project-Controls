@@ -8,7 +8,7 @@ test.describe('Dashboard — smoke tests', () => {
 
   test('App boots and renders main content area', async ({ page }) => {
     await expect(page.locator('main, [role="main"]')).toBeVisible();
-    await expect(page.locator('header, [role="banner"], nav')).toBeVisible();
+    await expect(page.locator('header')).toBeVisible();
   });
 
   test('Navigation renders', async ({ page }) => {

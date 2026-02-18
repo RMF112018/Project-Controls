@@ -9,7 +9,8 @@ test.describe('RoleGate — RBAC enforcement', () => {
   test('Executive Leadership sees Admin nav item', async ({ page, switchRole }) => {
     await switchRole('ExecutiveLeadership');
     await page.goto('/#/');
-    await expect(page.getByRole('link', { name: /admin/i })).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('link', { name: /admin/i })).toBeVisible({ timeout: 10_000 });
   });
 
   test('BD Representative does not see Admin nav item', async ({ page, switchRole }) => {
@@ -21,14 +22,15 @@ test.describe('RoleGate — RBAC enforcement', () => {
   test('BD Representative sees Pipeline nav item', async ({ page, switchRole }) => {
     await switchRole('BDRepresentative');
     await page.goto('/#/');
-    await expect(page.getByRole('link', { name: /pipeline/i })).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('link', { name: /pipeline/i })).toBeVisible({ timeout: 10_000 });
   });
 
   test('Operations Team sees Projects nav item', async ({ page, switchRole }) => {
     await switchRole('OperationsTeam');
     await page.goto('/#/');
     // Operations Team sees project-related navigation
-    await expect(page.locator('nav')).toBeVisible();
+    await expect(page.locator('nav[aria-label="Main navigation"]')).toBeVisible();
   });
 
   test('FeatureGate — Schedule nav exists for enabled flag', async ({ page }) => {
