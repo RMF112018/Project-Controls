@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-18 — Playwright E2E + Storybook: Storybook 8.5 (webpack5), 9 story files, Playwright 1.50 (3 spec files, roleFixture), CI jobs (storybook + e2e in parallel with build). ECharts Migration: Recharts replaced by Apache ECharts ^5.6 + echarts-for-react ^3.x. 553 tests passing.
+**Last Updated:** 2026-02-18 — Playwright E2E + Storybook: Storybook 8.5 (webpack5), 9 story files, Playwright 1.50 (17 E2E tests, roleFixture), CI jobs (storybook + e2e). ECharts Migration (Recharts → ECharts ^5.6, 553 tests passing) + SPFx 1.22.2 upgrade (rush-stack-compiler-5.3, future-proof scaffolding).
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -40,7 +40,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §1 Tech Stack & Build (Current)
 
-- **Framework**: SPFx 1.21.1 + React 18.2.0 + Fluent UI v9 (makeStyles + tokens)
+- **Framework**: SPFx 1.22.2 + React 18.2.0 + Fluent UI v9 (makeStyles + tokens)
 - **Data Layer**: `@hbc/sp-services` monorepo package (shared library)
 - **Charting**: Apache ECharts ^5.6.x + echarts-for-react ^3.x (replaced Recharts Feb 2026). Tree-shaking via `echarts/core`. Wrapper: `HbcEChart` (`shared/`). Theme: `hbcEChartsTheme.ts`.
 - **Testing (E2E)**: Playwright ^1.50.1 targeting http://localhost:3000 (MockDataService + RoleSwitcher). Specs: `playwright/guards.spec.ts`, `dashboard.spec.ts`, `provisioning.spec.ts`. Role fixture: `playwright/fixtures/roleFixture.ts`.
@@ -205,6 +205,8 @@ graph TD
 - **ECharts Jest**: `echarts-for-react` + `echarts/*` mocked in `src/__mocks__/`. Assert on `data-chart-type` attr. `ResizeObserver` stubbed on `window` in `src/__tests__/setup.ts`.
 - **ECharts label formatter**: type parameter as `unknown`, cast to `{ name: string; value: number; percent: number }` — never use typed params directly (ECharts uses `CallbackDataParams`).
 - Keep `CLAUDE.md` lean — archive old content aggressively.
+- **SPFx 1.22.2**: Uses `@microsoft/rush-stack-compiler-5.3` (TypeScript 5.3.3). `npx tsc --noEmit` uses TS 5.3.3. The SPFx gulp internal tsc subtask still reports 4.7.4 (from `gulp-core-build-typescript` internals) — this is expected, not an error.
+- **Future-proofing artifacts**: `.yo-rc.json` (Yeoman generator config for `yo @microsoft/sharepoint --upgrade`), `config/heft.json` (inert scaffold for 1.23+ Heft-native builds), `scripts/upgrade-spfx.sh` (version-bump helper). @microsoft/signalr peer dep range updated to `^8.0.0 || ^10.0.0` in hbc-sp-services.
 - **Storybook ECharts**: Real ECharts in Storybook (browser canvas), no mock. Always pass explicit numeric `height` prop to HbcEChart in stories (0×0 canvas collapses otherwise).
 - **Storybook providers**: Global decorator in preview.ts omits SignalRProvider (WebSocket noise). Stack order: FluentProvider → MemoryRouter → AppProvider → HelpProvider → ToastProvider.
 - **Storybook dataService**: `new MockDataService()` singleton at preview.ts level. `createComponentMockDataService()` from test-utils.tsx is Jest-only (uses jest.fn()) — DO NOT import in stories.
