@@ -32,6 +32,7 @@ export const RoleSwitcher: React.FC<{
 
   return (
     <div
+      data-testid="role-switcher"
       style={{
         position: 'fixed',
         bottom: 12,

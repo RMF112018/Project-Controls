@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-18 — ECharts Migration: Recharts replaced by Apache ECharts ^5.6 + echarts-for-react ^3.x across all 6 chart files (22 chart instances). HbcEChart wrapper, hbcEChartsTheme.ts, Jest mocks, drill-down onEvents. 553 tests passing.
+**Last Updated:** 2026-02-18 — Playwright E2E + Storybook: Storybook 8.5 (webpack5), 9 story files, Playwright 1.50 (3 spec files, roleFixture), CI jobs (storybook + e2e in parallel with build). ECharts Migration: Recharts replaced by Apache ECharts ^5.6 + echarts-for-react ^3.x. 553 tests passing.
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -26,6 +26,10 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - **Before commits and PRs**, run `/verify-full-build` to confirm the full production build succeeds.
 - **After completing a data service chunk**, run `/review-chunk` to scan real stub counts and generate CLAUDE.md updates.
 - **Available commands**: `/verify-changes` (quick), `/verify-full-build` (full), `/status` (overview), `/permissions` (allowlist), `/sp-progress` (stub scan), `/review-chunk` (post-chunk).
+- `npm run storybook` → Storybook dev server at http://localhost:6006
+- `npm run build-storybook` → Static build to storybook-static/
+- `npm run test:e2e` → Playwright E2E (starts dev server automatically)
+- `npm run test:e2e:ui` → Playwright interactive UI mode
 
 ### Command Evolution Guidelines
 - **Add** a command when: a workflow repeats 3+ times/week, manual execution is error-prone, or it has clear success/failure criteria.
@@ -39,8 +43,13 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - **Framework**: SPFx 1.21.1 + React 18.2.0 + Fluent UI v9 (makeStyles + tokens)
 - **Data Layer**: `@hbc/sp-services` monorepo package (shared library)
 - **Charting**: Apache ECharts ^5.6.x + echarts-for-react ^3.x (replaced Recharts Feb 2026). Tree-shaking via `echarts/core`. Wrapper: `HbcEChart` (`shared/`). Theme: `hbcEChartsTheme.ts`.
+- **Testing (E2E)**: Playwright ^1.50.1 targeting http://localhost:3000 (MockDataService + RoleSwitcher). Specs: `playwright/guards.spec.ts`, `dashboard.spec.ts`, `provisioning.spec.ts`. Role fixture: `playwright/fixtures/roleFixture.ts`.
+- **Component Library**: Storybook 8.5 (webpack5 builder), stories colocated as `*.stories.tsx`. 9 story files covering KPICard, HbcEChart, RoleGate, FeatureGate, StatusBadge, DataTable, EmptyState, PageHeader, NavigationSidebar.
+- **Visual Regression**: Chromatic (cloud) on main pushes; TurboSnap for changed-story-only runs on PRs.
 - **Key Commands**:
-  - `npm run dev` → Standalone dev server + RoleSwitcher
+  - `npm run dev` → Standalone dev server + RoleSwitcher (port 3000)
+  - `npm run storybook` → Storybook dev server (port 6006)
+  - `npm run test:e2e` → Playwright E2E (auto-starts dev server)
   - `gulp serve --nobrowser` → SPFx workbench
   - `npm run build` → Full production build (lib → app)
   - `npm run test:ci` → Jest coverage
@@ -196,6 +205,16 @@ graph TD
 - **ECharts Jest**: `echarts-for-react` + `echarts/*` mocked in `src/__mocks__/`. Assert on `data-chart-type` attr. `ResizeObserver` stubbed on `window` in `src/__tests__/setup.ts`.
 - **ECharts label formatter**: type parameter as `unknown`, cast to `{ name: string; value: number; percent: number }` — never use typed params directly (ECharts uses `CallbackDataParams`).
 - Keep `CLAUDE.md` lean — archive old content aggressively.
+- **Storybook ECharts**: Real ECharts in Storybook (browser canvas), no mock. Always pass explicit numeric `height` prop to HbcEChart in stories (0×0 canvas collapses otherwise).
+- **Storybook providers**: Global decorator in preview.ts omits SignalRProvider (WebSocket noise). Stack order: FluentProvider → MemoryRouter → AppProvider → HelpProvider → ToastProvider.
+- **Storybook dataService**: `new MockDataService()` singleton at preview.ts level. `createComponentMockDataService()` from test-utils.tsx is Jest-only (uses jest.fn()) — DO NOT import in stories.
+- **Storybook RoleName**: Use `RoleName.BDRepresentative` (not `BDRep`) — enum value is `'BD Representative'`.
+- **Playwright role switching**: Use `[data-testid="role-switcher"] select` locator. Labels from `dev/RoleSwitcher.tsx` ROLE_OPTIONS: `'President / VP Operations'` for ExecutiveLeadership, `'BD Representative'` for BDRepresentative, `'Project Executive'` for OperationsTeam.
+- **Playwright webServer**: `reuseExistingServer: !process.env.CI` — reuses existing `npm run dev` session locally; spawns fresh in CI.
+- **Playwright fullyParallel**: Set to `false` initially (single dev server). Switch to `true` after specs stable for ~50% CI time reduction.
+- **Chromatic usage**: Free tier = 5,000 snapshots/month. TurboSnap enabled by default with `@chromatic-com/storybook@3+`. Upgrade to Starter ($20/month) if PR volume >10/week or story count >30.
+- **WCAG 2.2 AA a11y config**: `runOnly.values` in preview.ts includes `wcag22aa` explicitly. Covers 2.5.8 Target Size + 2.4.11 Focus Visible. Fluent UI v9 native components pass without override.
+- **Storybook tsconfig**: Uses `.storybook/tsconfig.storybook.json` (extends root). `rootDir: ".."` is required — otherwise TypeScript won't find `@hbc/sp-services` source.
 
 ---
 
