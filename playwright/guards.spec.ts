@@ -8,22 +8,22 @@ test.describe('RoleGate — RBAC enforcement', () => {
 
   test('Executive Leadership sees Admin nav item', async ({ page, switchRole }) => {
     await switchRole('ExecutiveLeadership');
-    await page.goto('/#/');
+    await page.goto('/#/admin');
     await page.waitForLoadState('networkidle');
-    await expect(page.getByRole('link', { name: /admin/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('nav').getByText('Admin Panel')).toBeVisible({ timeout: 10_000 });
   });
 
   test('BD Representative does not see Admin nav item', async ({ page, switchRole }) => {
     await switchRole('BDRepresentative');
     await page.goto('/#/');
-    await expect(page.getByRole('link', { name: /admin/i })).not.toBeVisible();
+    await expect(page.locator('nav').getByText('Admin Panel')).not.toBeVisible();
   });
 
   test('BD Representative sees Pipeline nav item', async ({ page, switchRole }) => {
     await switchRole('BDRepresentative');
-    await page.goto('/#/');
+    await page.goto('/#/preconstruction/pipeline');
     await page.waitForLoadState('networkidle');
-    await expect(page.getByRole('link', { name: /pipeline/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('nav').getByText('Pipeline')).toBeVisible({ timeout: 10_000 });
   });
 
   test('Operations Team sees Projects nav item', async ({ page, switchRole }) => {

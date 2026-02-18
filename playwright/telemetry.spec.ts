@@ -11,10 +11,12 @@ test.describe('Telemetry Dashboard', () => {
     await page.goto('/#/');
     await page.waitForLoadState('networkidle');
     await switchRole('ExecutiveLeadership');
+    await page.goto('/#/admin');
+    await page.waitForLoadState('networkidle');
 
-    // The nav item "Telemetry" should appear in the sidebar
+    // The nav item "Telemetry" should appear in the sidebar (Admin group expanded)
     await expect(
-      page.getByRole('navigation').getByText('Telemetry')
+      page.locator('nav').getByText('Telemetry')
     ).toBeVisible({ timeout: 10_000 });
   });
 

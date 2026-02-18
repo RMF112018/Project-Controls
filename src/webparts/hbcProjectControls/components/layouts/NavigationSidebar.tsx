@@ -294,7 +294,7 @@ export const NavigationSidebar: React.FC = () => {
   };
 
   return (
-    <nav className={styles.nav}>
+    <nav className={styles.nav} aria-label="Main navigation">
       {/* Project Picker */}
       <ProjectPicker selected={selectedProject} onSelect={setSelectedProject} locked={isProjectSite} />
 
