@@ -1,0 +1,28 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "baseUrl": "..",
+    "paths": {
+      "@webparts/*": ["src/webparts/*"],
+      "@components/*": ["src/webparts/hbcProjectControls/components/*"],
+      "@hooks/*": ["src/webparts/hbcProjectControls/components/hooks/*"],
+      "@contexts/*": ["src/webparts/hbcProjectControls/components/contexts/*"],
+      "@theme/*": ["src/webparts/hbcProjectControls/theme/*"]
+    }
+  },
+  "include": [
+    "../src/**/*.ts",
+    "../src/**/*.tsx",
+    "./**/*.ts",
+    "./**/*.tsx",
+    "../dev/shims/**/*.ts"
+  ],
+  "exclude": [
+    "../node_modules",
+    "../lib",
+    "../dist",
+    "../temp"
+  ]
+}

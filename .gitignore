@@ -49,3 +49,4 @@ coverage/
 
 # Reference materials (local only)
 reference/
+.worktrees/

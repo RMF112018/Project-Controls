@@ -47,3 +47,72 @@ jobs:
           name: sppkg-${{ github.sha }}
           path: sharepoint/solution/hbc-project-controls.sppkg
           retention-days: 30
+
+  storybook:
+    name: Storybook Build + Chromatic
+    runs-on: ubuntu-latest
+    # Runs in parallel with 'build' — no dependency
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # Chromatic needs full git history for TurboSnap
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22.14.0'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build @hbc/sp-services lib
+        run: npm run build:lib
+
+      - name: Build Storybook
+        run: npm run build-storybook
+
+      - name: Publish to Chromatic (main push — auto-accept)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npx chromatic --project-token=${{ secrets.CHROMATIC_PROJECT_TOKEN }} --storybook-build-dir=storybook-static --auto-accept-changes
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+
+      - name: Publish to Chromatic (PR — require approval for visual changes)
+        if: github.event_name == 'pull_request'
+        run: npx chromatic --project-token=${{ secrets.CHROMATIC_PROJECT_TOKEN }} --storybook-build-dir=storybook-static --exit-zero-on-changes
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    # Runs in parallel — targets npm run dev (webpack dev server), not SPFx bundle
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22.14.0'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build @hbc/sp-services lib
+        run: npm run build:lib
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-report-${{ github.sha }}
+          path: playwright-report/
+          retention-days: 14
