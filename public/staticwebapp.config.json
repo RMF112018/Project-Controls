@@ -1,0 +1,20 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": [
+      "/sw.js",
+      "/manifest.json",
+      "/offline.html",
+      "/icons/*",
+      "/assets/*"
+    ]
+  },
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "X-Frame-Options": "SAMEORIGIN"
+  },
+  "mimeTypes": {
+    ".json": "application/json"
+  }
+}

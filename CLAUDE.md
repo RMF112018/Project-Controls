@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-18 — MSAL + PWA standalone mode (Three-mode architecture, StandaloneSharePointDataService, dev/auth/ MSAL layer, PWA manifest+SW+offline) + GitOps template provisioning (+6 methods → 250 total, TemplateSiteSync, 575 tests passing) + CI build fix (replace Node `crypto` usage with Web Crypto in browser service path).
+**Last Updated:** 2026-02-18 — Added standalone production Vite pipeline (`build:standalone`, env validation, `standalone.yml`, optional SWA deploy) while preserving SPFx gulp ship path + prior MSAL/PWA/GitOps updates.
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -26,6 +26,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - **Before commits and PRs**, run `/verify-full-build` to confirm the full production build succeeds.
 - **After completing a data service chunk**, run `/review-chunk` to scan real stub counts and generate CLAUDE.md updates.
 - **Available commands**: `/verify-changes` (quick), `/verify-full-build` (full), `/status` (overview), `/permissions` (allowlist), `/sp-progress` (stub scan), `/review-chunk` (post-chunk).
+- `npm run verify:standalone` → Standalone validation guard (env + browser-node-core + Vite production build)
 - `npm run storybook` → Storybook dev server at http://localhost:6006
 - `npm run build-storybook` → Static build to storybook-static/
 - `npm run test:e2e` → Playwright E2E (starts dev server automatically)
@@ -77,6 +78,8 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - **Visual Regression**: Chromatic (cloud) on main pushes; TurboSnap for changed-story-only runs on PRs.
 - **Key Commands**:
   - `npm run dev` → Standalone dev server + RoleSwitcher (port 3000)
+  - `npm run build:standalone` → Vite standalone production artifact to `dist-standalone/`
+  - `npm run preview:standalone` → Serve standalone production artifact locally (port 4173)
   - `npm run storybook` → Storybook dev server (port 6006)
   - `npm run test:e2e` → Playwright E2E (auto-starts dev server)
   - `gulp serve --nobrowser` → SPFx workbench
@@ -259,6 +262,8 @@ graph TD
 - Schedule metrics tests use `jest.useFakeTimers()` + `jest.setSystemTime()` for deterministic PV/SV calculations.
 - **ECharts**: NEVER import `* as echarts from 'echarts'` (disables tree-shaking). Use `echarts/core` + `echarts.use([...])`.
 - **SPFx/browser runtime**: Never import Node core modules (`crypto`, `fs`, `path`, etc.) in `src/` or `packages/hbc-sp-services/src/` service code. Use browser APIs (e.g., `globalThis.crypto.subtle`) to avoid webpack ship-bundle failures.
+- **Standalone env gate**: `VITE_DATA_SERVICE_MODE` must be `mock|standalone`; when `standalone`, require valid `VITE_AAD_CLIENT_ID`, `VITE_AAD_TENANT_ID`, and HTTPS `VITE_SP_HUB_URL` (`npm run validate:standalone-env`).
+- **SWA deploy safety**: Keep `public/staticwebapp.config.json` with SPA fallback exclusions for `/sw.js`, `/manifest.json`, `/offline.html`, `/icons/*`, `/assets/*` to preserve PWA behavior.
 - **ECharts**: NEVER build `EChartsOption` inline in JSX — always `useMemo`. Radar `indicator` array ≠ Recharts data array shape.
 - **ECharts Jest**: `echarts-for-react` + `echarts/*` mocked in `src/__mocks__/`. Assert on `data-chart-type` attr. `ResizeObserver` stubbed on `window` in `src/__tests__/setup.ts`.
 - **ECharts label formatter**: type parameter as `unknown`, cast to `{ name: string; value: number; percent: number }` — never use typed params directly (ECharts uses `CallbackDataParams`).

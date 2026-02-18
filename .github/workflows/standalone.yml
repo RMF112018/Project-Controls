@@ -1,0 +1,129 @@
+name: Standalone Build & Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy to Azure Static Web Apps
+        required: true
+        type: boolean
+        default: false
+      analyze:
+        description: Generate bundle analysis report
+        required: true
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - 'dev/**'
+      - 'public/**'
+      - 'src/**'
+      - 'packages/hbc-sp-services/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/standalone.yml'
+
+concurrency:
+  group: standalone-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-standalone:
+    name: Build Standalone Artifact
+    runs-on: ubuntu-latest
+    env:
+      VITE_DATA_SERVICE_MODE: standalone
+      VITE_AAD_CLIENT_ID: ${{ vars.STANDALONE_AAD_CLIENT_ID }}
+      VITE_AAD_TENANT_ID: ${{ vars.STANDALONE_AAD_TENANT_ID }}
+      VITE_SP_HUB_URL: ${{ vars.STANDALONE_SP_HUB_URL }}
+      VITE_APPINSIGHTS_CONNECTION_STRING: ${{ secrets.STANDALONE_APPINSIGHTS_CONNECTION_STRING }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22.14.0'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build @hbc/sp-services lib
+        run: npm run build:lib
+
+      - name: Guard browser bundles against Node core imports
+        run: npm run check:browser-node-core
+
+      - name: Validate standalone environment
+        run: npm run validate:standalone-env
+
+      - name: Build standalone app
+        run: npm run build:standalone
+
+      - name: Assert standalone output files
+        run: |
+          test -f dist-standalone/index.html
+          test -f dist-standalone/manifest.json
+          test -f dist-standalone/sw.js
+          test -f dist-standalone/offline.html
+          test -d dist-standalone/icons
+
+      - name: Preview smoke test
+        run: |
+          npx vite preview --config dev/vite.standalone.config.ts --host 127.0.0.1 --port 4173 > /tmp/vite-preview.log 2>&1 &
+          PREVIEW_PID=$!
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
+              echo "Preview server responded."
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "Preview smoke test failed. Preview logs:"
+              cat /tmp/vite-preview.log
+              kill $PREVIEW_PID || true
+              exit 1
+            fi
+            sleep 1
+          done
+          kill $PREVIEW_PID || true
+
+      - name: Upload standalone artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: standalone-dist-${{ github.sha }}
+          path: dist-standalone/
+          retention-days: 30
+
+      - name: Build standalone with bundle report
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.analyze == true }}
+        run: npm run build:standalone:analyze
+
+      - name: Upload bundle report
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.analyze == true }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: standalone-stats-${{ github.sha }}
+          path: dist-standalone/stats.html
+          retention-days: 30
+
+  deploy-swa:
+    name: Deploy Standalone to Azure Static Web Apps
+    needs: build-standalone
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy == true && secrets.AZURE_STATIC_WEB_APPS_API_TOKEN != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download standalone artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: standalone-dist-${{ github.sha }}
+          path: dist-standalone
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          app_location: dist-standalone
+          output_location: ''
+          skip_app_build: true

@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+dist-standalone/
 dev/dist/
 lib/
 packages/hbc-sp-services/lib/

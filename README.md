@@ -141,7 +141,7 @@ Hash-based routing (`HashRouter`) with 51 routes across 5 groups:
 | Charts | Recharts | ^2.12.3 |
 | PDF Export | jsPDF + html2canvas | ^2.5.2 / ^1.4.1 |
 | Excel Export | SheetJS (xlsx) | ^0.18.5 |
-| Build | gulp + webpack | ^4.0.2 / ^5.90.0 |
+| Build | gulp (SPFx) + webpack (dev) + Vite (standalone prod) | ^4.0.2 / ^5.90.0 / ^7.1.0 |
 | Tests | Jest + React Testing Library | ^29.7.0 / ^14.0.0 |
 | Styling | Griffel makeStyles (Fluent UI v9 CSS-in-JS) | (bundled) |
 | Code Splitting | React.lazy() + Suspense | 40 lazy-loaded pages |
@@ -192,6 +192,15 @@ npm run build
 
 Runs `gulp bundle --ship && gulp package-solution --ship`. Outputs `sharepoint/solution/hbc-project-controls.sppkg`.
 
+### Standalone Production Build (Vite)
+
+```bash
+npm run build:standalone
+```
+
+Builds a production standalone artifact to `dist-standalone/` using `dev/index.html` + `dev/index.tsx`.
+The build validates standalone environment variables first (`VITE_AAD_CLIENT_ID`, `VITE_AAD_TENANT_ID`, `VITE_SP_HUB_URL` when `VITE_DATA_SERVICE_MODE=standalone`).
+
 ### Deploy to SharePoint
 
 1. Build the `.sppkg` package (see above)
@@ -209,6 +218,11 @@ Runs `gulp bundle --ship && gulp package-solution --ship`. Outputs `sharepoint/s
 | `npm run build` | Build library + production bundle + package |
 | `npm run build:lib` | Build `@hbc/sp-services` library only |
 | `npm run build:app` | SPFx bundle + package only |
+| `npm run build:standalone` | Vite standalone production artifact to `dist-standalone/` |
+| `npm run build:standalone:analyze` | Standalone build + `dist-standalone/stats.html` bundle report |
+| `npm run preview:standalone` | Preview standalone production artifact (port 4173) |
+| `npm run validate:standalone-env` | Validate required standalone env vars |
+| `npm run verify:standalone` | Env validation + browser-node-core guard + standalone build |
 | `npm run test` | Run Jest tests |
 | `npm run test:coverage` | Jest with coverage report |
 | `npm run test:ci` | Jest with coverage + CI mode |

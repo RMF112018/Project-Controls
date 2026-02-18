@@ -26,6 +26,9 @@ function walk(dir, out) {
       continue;
     }
     if (TS_EXTENSIONS.has(path.extname(entry.name))) {
+      if (entry.name.endsWith('.config.ts') || entry.name.endsWith('.config.js')) {
+        continue;
+      }
       if (entry.name.endsWith('.test.ts') || entry.name.endsWith('.test.tsx') || entry.name.endsWith('.spec.ts') || entry.name.endsWith('.spec.tsx')) {
         continue;
       }
