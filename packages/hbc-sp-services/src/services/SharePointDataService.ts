@@ -8784,6 +8784,40 @@ export class SharePointDataService implements IDataService {
   // ──── Constraints Log ────
   // ═══════════════════════════════════════════════════════════════════
 
+  async getAllConstraints(): Promise<IConstraintLog[]> {
+    const cacheKey = CACHE_KEYS.CONSTRAINTS + '_all';
+    const cached = cacheService.get<IConstraintLog[]>(cacheKey);
+    if (cached) return cached;
+
+    performanceService.startMark('sp:getAllConstraints');
+    try {
+      // Get active project codes from Data Mart
+      const dmItems = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.PROJECT_DATA_MART)
+        .items.select('ProjectCode').top(500)();
+      const projectCodes = dmItems
+        .map((i: Record<string, unknown>) => i.ProjectCode as string)
+        .filter(Boolean);
+
+      // Batch-fetch constraints per project (groups of 5)
+      const allConstraints: IConstraintLog[] = [];
+      for (let i = 0; i < projectCodes.length; i += 5) {
+        const batch = projectCodes.slice(i, i + 5);
+        const results = await Promise.all(
+          batch.map((code: string) => this.getConstraints(code).catch(() => [] as IConstraintLog[]))
+        );
+        results.forEach(r => allConstraints.push(...r));
+      }
+
+      cacheService.set(cacheKey, allConstraints, CACHE_TTL_MS);
+      performanceService.endMark('sp:getAllConstraints');
+      return allConstraints;
+    } catch (err) {
+      performanceService.endMark('sp:getAllConstraints');
+      throw this.handleError('getAllConstraints', err, { entityType: 'Constraint' });
+    }
+  }
+
   async getConstraints(projectCode: string): Promise<IConstraintLog[]> {
     performanceService.startMark('sp:getConstraints');
     try {

@@ -310,11 +310,13 @@ const AppRoutes: React.FC = () => (
         <ProjectRequiredRoute><ComingSoonPage title="Best Practices" /></ProjectRequiredRoute>
       } />
       <Route path="/operations/constraints" element={
-        <ProjectRequiredRoute>
-          <ProtectedRoute permission={PERMISSIONS.CONSTRAINTS_VIEW}>
-            <ConstraintsLogPage />
-          </ProtectedRoute>
-        </ProjectRequiredRoute>
+        <FeatureGate featureName="ConstraintsLog" fallback={<NotFoundPage />}>
+          <ProjectRequiredRoute>
+            <ProtectedRoute permission={PERMISSIONS.CONSTRAINTS_VIEW}>
+              <ConstraintsLogPage />
+            </ProtectedRoute>
+          </ProjectRequiredRoute>
+        </FeatureGate>
       } />
       <Route path="/operations/permits" element={
         <ProjectRequiredRoute>

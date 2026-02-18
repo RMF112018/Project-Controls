@@ -39,3 +39,5 @@ export { PresenceIndicator } from './PresenceIndicator';
 export { ComingSoonPage } from './ComingSoonPage';
 export { ChecklistTable } from './ChecklistTable';
 export type { IChecklistTableProps, IChecklistTableItem } from './ChecklistTable';
+export { HbcEChart } from './HbcEChart';
+export type { IHbcEChartProps } from './HbcEChart';

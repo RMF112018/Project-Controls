@@ -1,18 +1,8 @@
 import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Select, Input, Button } from '@fluentui/react-components';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  PieChart,
-  Pie,
-  Legend,
-} from 'recharts';
+import type { EChartsOption } from 'echarts';
+import { HbcEChart } from '../../shared/HbcEChart';
 import { useActiveProjects } from '../../hooks/useActiveProjects';
 import { useDataMart } from '../../hooks/useDataMart';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -152,6 +142,62 @@ export const ActiveProjectsDashboard: React.FC = () => {
       .map(([region, value]) => ({ region, value }))
       .sort((a, b) => b.value - a.value);
   }, [filteredProjects]);
+
+  // ─── ECharts option memos ───────────────────────────────────────────────
+
+  const statusChartOption = React.useMemo<EChartsOption>(() => ({
+    tooltip: { trigger: 'item', formatter: (p: unknown) => {
+      const params = p as { name: string; value: number; percent: number; marker: string };
+      return `<div style="font-family:'Segoe UI',sans-serif;padding:4px 0"><div style="font-size:13px;font-weight:600;color:${HBC_COLORS.navy}">${params.marker}${params.name}: ${params.value} (${params.percent}%)</div></div>`;
+    }, extraCssText: `border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);padding:10px 14px;border:1px solid ${HBC_COLORS.gray200};` },
+    legend: { bottom: 0, textStyle: { fontSize: 12, color: HBC_COLORS.gray600 } },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '65%'],
+      center: ['50%', '45%'],
+      label: { formatter: (p: unknown) => { const pi = p as { name: string; value: number }; return `${pi.name}: ${pi.value}`; }, fontSize: 11 },
+      data: statusChartData.map(d => ({
+        name: d.name,
+        value: d.value,
+        itemStyle: { color: d.color, borderWidth: 2, borderColor: '#fff' },
+      })),
+    }],
+  }), [statusChartData]);
+
+  const sectorChartOption = React.useMemo<EChartsOption>(() => ({
+    tooltip: { trigger: 'item', formatter: (p: unknown) => {
+      const params = p as { name: string; value: number; percent: number; marker: string };
+      return `<div style="font-family:'Segoe UI',sans-serif;padding:4px 0"><div style="font-size:13px;font-weight:600;color:${HBC_COLORS.navy}">${params.marker}${params.name}: ${params.value} (${params.percent}%)</div></div>`;
+    }, extraCssText: `border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);padding:10px 14px;border:1px solid ${HBC_COLORS.gray200};` },
+    legend: { bottom: 0, textStyle: { fontSize: 12, color: HBC_COLORS.gray600 } },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '65%'],
+      center: ['50%', '45%'],
+      label: { formatter: (p: unknown) => { const pi = p as { name: string; value: number }; return `${pi.name}: ${pi.value}`; }, fontSize: 11 },
+      data: sectorChartData.map(d => ({
+        name: d.name,
+        value: d.value,
+        itemStyle: { color: d.color, borderWidth: 2, borderColor: '#fff' },
+      })),
+    }],
+  }), [sectorChartData]);
+
+  const regionBacklogOption = React.useMemo<EChartsOption>(() => ({
+    grid: { top: 10, right: 16, bottom: 8, left: 8, containLabel: true },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p: unknown) => {
+      const params = p as Array<{ name: string; value: number; marker: string }>;
+      return `<div style="font-family:'Segoe UI',sans-serif;padding:4px 0"><div style="font-size:11px;color:${HBC_COLORS.gray500};margin-bottom:4px">${params[0].name}</div><div style="font-size:13px;font-weight:600;color:${HBC_COLORS.navy}">${params[0].marker}Backlog: ${formatCurrencyCompact(params[0].value)}</div></div>`;
+    }, extraCssText: `border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);padding:10px 14px;border:1px solid ${HBC_COLORS.gray200};` },
+    xAxis: { type: 'value', axisLabel: { formatter: (v: number) => formatCurrencyCompact(v), fontSize: 11, color: HBC_COLORS.gray500 }, splitLine: { lineStyle: { color: HBC_COLORS.gray100, type: 'dashed' } }, axisLine: { show: false }, axisTick: { show: false } },
+    yAxis: { type: 'category', data: regionBacklogData.map(d => d.region), axisLabel: { fontSize: 12, color: HBC_COLORS.gray700 }, axisLine: { lineStyle: { color: HBC_COLORS.gray200 } }, axisTick: { show: false } },
+    series: [{
+      type: 'bar',
+      name: 'Backlog',
+      data: regionBacklogData.map(d => ({ value: d.value, itemStyle: { color: HBC_COLORS.navy, borderRadius: [0, 4, 4, 0] } })),
+      barMaxWidth: 40,
+    }],
+  }), [regionBacklogData]);
 
   // Table columns
   const columns: IDataTableColumn<IActiveProject>[] = React.useMemo(() => [
@@ -546,32 +592,12 @@ export const ActiveProjectsDashboard: React.FC = () => {
             <div>
               {sectionTitle('Projects by Status')}
               <div style={chartCardStyle}>
-                {statusChartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
-                      <Pie
-                        data={statusChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={90}
-                        dataKey="value"
-                        nameKey="name"
-                        label={({ name, value }) => `${name}: ${value}`}
-                      >
-                        {statusChartData.map((entry, idx) => (
-                          <Cell key={idx} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div style={{ height: '250px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: HBC_COLORS.gray400 }}>
-                    No data
-                  </div>
-                )}
+                <HbcEChart
+                  option={statusChartOption}
+                  height={250}
+                  empty={statusChartData.length === 0}
+                  ariaLabel="Projects by status distribution"
+                />
               </div>
             </div>
 
@@ -579,32 +605,12 @@ export const ActiveProjectsDashboard: React.FC = () => {
             <div>
               {sectionTitle('Projects by Sector')}
               <div style={chartCardStyle}>
-                {sectorChartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
-                      <Pie
-                        data={sectorChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={90}
-                        dataKey="value"
-                        nameKey="name"
-                        label={({ name, value }) => `${name}: ${value}`}
-                      >
-                        {sectorChartData.map((entry, idx) => (
-                          <Cell key={idx} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div style={{ height: '250px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: HBC_COLORS.gray400 }}>
-                    No data
-                  </div>
-                )}
+                <HbcEChart
+                  option={sectorChartOption}
+                  height={250}
+                  empty={sectorChartData.length === 0}
+                  ariaLabel="Projects by sector distribution"
+                />
               </div>
             </div>
 
@@ -612,20 +618,12 @@ export const ActiveProjectsDashboard: React.FC = () => {
             <div style={{ gridColumn: isMobile ? undefined : '1 / -1' }}>
               {sectionTitle('Backlog by Region')}
               <div style={chartCardStyle}>
-                {regionBacklogData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={Math.max(200, regionBacklogData.length * 50)}>
-                    <BarChart data={regionBacklogData} layout="vertical" margin={{ top: 8, right: 16, bottom: 8, left: 100 }}>
-                      <XAxis type="number" tickFormatter={(v: number) => formatCurrencyCompact(v)} tick={{ fontSize: 11, fill: HBC_COLORS.gray500 }} />
-                      <YAxis dataKey="region" type="category" tick={{ fontSize: 12, fill: HBC_COLORS.gray700 }} width={90} />
-                      <Tooltip formatter={(v: number) => [formatCurrencyCompact(v), 'Backlog']} />
-                      <Bar dataKey="value" fill={HBC_COLORS.navy} radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: HBC_COLORS.gray400 }}>
-                    No data
-                  </div>
-                )}
+                <HbcEChart
+                  option={regionBacklogOption}
+                  height={Math.max(200, regionBacklogData.length * 50)}
+                  empty={regionBacklogData.length === 0}
+                  ariaLabel="Remaining contract backlog by region"
+                />
               </div>
             </div>
           </div>

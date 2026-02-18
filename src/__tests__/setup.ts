@@ -1,5 +1,13 @@
 import '@testing-library/jest-dom';
 
+// jsdom doesn't implement ResizeObserver — stub it for components using HbcEChart
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).ResizeObserver = class MockResizeObserver {
+  observe = jest.fn();
+  unobserve = jest.fn();
+  disconnect = jest.fn();
+};
+
 // jsdom doesn't implement window.matchMedia — stub it for components that use useResponsive
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

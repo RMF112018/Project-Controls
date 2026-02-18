@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-17 — Permits Log Module: IPermit model, 4 new IDataService methods (243 total), MockDataService + SharePointDataService, usePermitsLog hook, PermitsLogPage with grouped table, route + navigation wiring, 20 mock entries
+**Last Updated:** 2026-02-18 — ECharts Migration: Recharts replaced by Apache ECharts ^5.6 + echarts-for-react ^3.x across all 6 chart files (22 chart instances). HbcEChart wrapper, hbcEChartsTheme.ts, Jest mocks, drill-down onEvents. 553 tests passing.
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -38,6 +38,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 - **Framework**: SPFx 1.21.1 + React 18.2.0 + Fluent UI v9 (makeStyles + tokens)
 - **Data Layer**: `@hbc/sp-services` monorepo package (shared library)
+- **Charting**: Apache ECharts ^5.6.x + echarts-for-react ^3.x (replaced Recharts Feb 2026). Tree-shaking via `echarts/core`. Wrapper: `HbcEChart` (`shared/`). Theme: `hbcEChartsTheme.ts`.
 - **Key Commands**:
   - `npm run dev` → Standalone dev server + RoleSwitcher
   - `gulp serve --nobrowser` → SPFx workbench
@@ -48,12 +49,13 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §4 Core Architecture Patterns (Active)
 
-- **Data Service**: `IDataService` (243 methods) → `MockDataService` (full) + `SharePointDataService` (243/243 — COMPLETE)
+- **Data Service**: `IDataService` (244 methods) → `MockDataService` (full) + `SharePointDataService` (244/244 — COMPLETE)
 - **Data Mart**: Denormalized 43-column hub list aggregating 8+ project-site lists; fire-and-forget sync from hooks; `useDataMart` hook with SignalR refresh
 - **Hooks**: Feature-specific hooks call `dataService` methods in `useCallback`
 - **RBAC**: `resolveUserPermissions` → `PermissionGate` / `RoleGate` / `FeatureGate`
 - **Styling**: `makeStyles` (structure) + minimal inline (dynamic) + Fluent tokens + `HBC_COLORS`
 - **Routing**: `HashRouter` + `React.lazy()` + `Suspense` (40 lazy-loaded pages)
+- **Charts**: `HbcEChart` wrapper → `EChartsOption` object (always `useMemo`) → ECharts canvas. Theme injected once via `registerHbcTheme()`. `onEvents` for drill-down. `ResizeObserver` handles responsive resize.
 - **Audit**: Fire-and-forget `this.logAudit()` with debounce
 - **Cross-site Access**: `_getProjectWeb()` helper in SharePointDataService
 
@@ -61,11 +63,12 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §7 Service Methods Status (Live)
 
-**Total methods**: 243
-**Implemented**: 243
+**Total methods**: 244
+**Implemented**: 244
 **Remaining stubs**: 0 — DATA LAYER COMPLETE
 
 **Last Completed**:
+- Constraints Health Widget (Feb 17): `getAllConstraints()` hub-level cross-project query → 244/244
 - Permits Log (Feb 17): 4 new methods → 243/243
 - Constraints Log (Feb 17): 4 new methods → 239/239
 - Schedule Module (Feb 17): 6 new methods → 235/235
@@ -188,6 +191,10 @@ graph TD
 - Data Mart sync is fire-and-forget — never await in hooks; use `.catch(() => { /* silent */ })`.
 - XML parser tests require JSDOM's `DOMParser` (not `@xmldom/xmldom` — it lacks `querySelector`). Assign globally: `(global as unknown as Record<string, unknown>).DOMParser = new JSDOM('').window.DOMParser;`
 - Schedule metrics tests use `jest.useFakeTimers()` + `jest.setSystemTime()` for deterministic PV/SV calculations.
+- **ECharts**: NEVER import `* as echarts from 'echarts'` (disables tree-shaking). Use `echarts/core` + `echarts.use([...])`.
+- **ECharts**: NEVER build `EChartsOption` inline in JSX — always `useMemo`. Radar `indicator` array ≠ Recharts data array shape.
+- **ECharts Jest**: `echarts-for-react` + `echarts/*` mocked in `src/__mocks__/`. Assert on `data-chart-type` attr. `ResizeObserver` stubbed on `window` in `src/__tests__/setup.ts`.
+- **ECharts label formatter**: type parameter as `unknown`, cast to `{ name: string; value: number; percent: number }` — never use typed params directly (ECharts uses `CallbackDataParams`).
 - Keep `CLAUDE.md` lean — archive old content aggressively.
 
 ---
