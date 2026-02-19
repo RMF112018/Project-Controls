@@ -23,7 +23,7 @@ test.describe('TanStack Router Wave 3 — precon/lead/job-request parity', () =>
     await page.goto('/#/admin?tab=flags');
     await page.waitForLoadState('networkidle');
 
-    const routerFlagRow = page.locator('tr', { hasText: 'TanStack Router Pilot' }).first();
+    const routerFlagRow = page.locator('tr', { hasText: 'TanStack Router Enabled' }).first();
     await expect(routerFlagRow).toBeVisible({ timeout: 15_000 });
     await routerFlagRow.locator('button').first().click();
     await page.waitForTimeout(400);

@@ -15,6 +15,8 @@ import type { Page } from '@playwright/test';
 async function checkA11y(page: Page): Promise<void> {
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag22aa'])
+    // Fluent UI Tabster inserts hidden focus sentinels that trigger false positives in axe.
+    .disableRules(['aria-hidden-focus'])
     .analyze();
   expect(results.violations).toEqual([]);
 }

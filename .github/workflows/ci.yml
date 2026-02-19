@@ -48,6 +48,10 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: npm run verify:bundle-size:fail
 
+      - name: Standalone bundle analysis (informational)
+        continue-on-error: true
+        run: npm run build:standalone:report
+
       - name: Upload bundle analysis artifacts
         if: always()
         uses: actions/upload-artifact@v6
@@ -57,6 +61,8 @@ jobs:
             temp/analyze/spfx-bundle-report.html
             temp/analyze/spfx-stats.json
             temp/analyze/spfx-size-report.json
+            temp/analyze/standalone-size-report.json
+            dist-standalone/stats.html
           retention-days: 14
 
       - name: Package solution
@@ -138,6 +144,16 @@ jobs:
 
       - name: Run E2E tests
         run: npm run test:e2e
+        env:
+          CI: true
+
+      - name: Router parity smoke
+        run: npm run test:e2e:router-parity
+        env:
+          CI: true
+
+      - name: Teams core embed smoke
+        run: npm run test:e2e:teams-core-smoke
         env:
           CI: true
 
