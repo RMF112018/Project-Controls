@@ -16,14 +16,17 @@ import {
   ProjectStatus,
   SectorType,
   RoleName,
+  performanceService,
   formatCurrencyCompact,
   formatPercent
 } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { KPICard } from '../../shared/KPICard';
-import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
-import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
+import { HbcDataTable, type IHbcDataTableColumn } from '../../shared/HbcDataTable';
+import { usePersistedState } from '../../hooks/usePersistedState';
+import { useToast } from '../../shared/ToastContainer';
+import { useHbcMotionStyles } from '../../shared/HbcMotion';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ExportButtons } from '../../shared/ExportButtons';
@@ -62,7 +65,14 @@ export const ActiveProjectsDashboard: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { isMobile, isTablet } = useResponsive();
-  const { setSelectedProject } = useAppContext();
+  const motionStyles = useHbcMotionStyles();
+  const { addToast } = useToast();
+  const {
+    setSelectedProject,
+    isFeatureEnabled,
+    getDashboardPreference,
+    setDashboardPreference,
+  } = useAppContext();
   const {
     filteredProjects,
     summary,
@@ -83,17 +93,66 @@ export const ActiveProjectsDashboard: React.FC = () => {
   } = useActiveProjects();
 
   const { records: dataMartRecords, fetchRecords: fetchDataMart } = useDataMart();
-  const [viewMode, setViewMode] = React.useState<'standard' | 'datamart'>('standard');
+  const [viewMode, setViewMode] = usePersistedState<'standard' | 'datamart'>('active-projects-view-mode', 'standard');
   const [selectedPersonnel, setSelectedPersonnel] = React.useState<string | null>(null);
-  const [showPersonnelPanel, setShowPersonnelPanel] = React.useState(false);
+  const [showPersonnelPanel, setShowPersonnelPanel] = usePersistedState<boolean>('active-projects-panel-visible', false);
+  const [highlightedProjectId, setHighlightedProjectId] = React.useState<string | number | null>(null);
+  const dashboardPreferenceKey = 'active-projects-dashboard';
+  const enablePersonalization = isFeatureEnabled('uxPersonalizedDashboardsV1');
+  const enableSyncGlow = isFeatureEnabled('uxChartTableSyncGlowV1');
+  const enableDelightMotion = isFeatureEnabled('uxDelightMotionV1');
+  const isSyncActive = enableSyncGlow && highlightedProjectId !== null;
 
   // Fetch data on mount
   React.useEffect(() => {
+    performanceService.startMark('operations:dashboardDataFetch');
     fetchProjects().catch(console.error);
     fetchSummary().catch(console.error);
     fetchPersonnelWorkload().catch(console.error);
     fetchDataMart().catch(console.error);
+    return () => {
+      performanceService.endMark('operations:dashboardDataFetch');
+    };
   }, [fetchProjects, fetchSummary, fetchPersonnelWorkload, fetchDataMart]);
+
+  React.useEffect(() => {
+    if (!enablePersonalization) {
+      return;
+    }
+    const saved = getDashboardPreference(dashboardPreferenceKey);
+    if (!saved?.filters) {
+      return;
+    }
+    const savedFilters = saved.filters;
+    if (saved.viewMode === 'standard' || saved.viewMode === 'datamart') {
+      setViewMode(saved.viewMode);
+    }
+    const nextFilters = { ...filters };
+    if (typeof savedFilters.status === 'string' && savedFilters.status.length > 0) nextFilters.status = savedFilters.status as ProjectStatus;
+    if (typeof savedFilters.sector === 'string' && savedFilters.sector.length > 0) nextFilters.sector = savedFilters.sector as SectorType;
+    if (typeof savedFilters.region === 'string' && savedFilters.region.length > 0) nextFilters.region = savedFilters.region;
+    if (typeof savedFilters.searchQuery === 'string' && savedFilters.searchQuery.length > 0) nextFilters.searchQuery = savedFilters.searchQuery;
+    setFilters(nextFilters);
+    if (typeof savedFilters.showPersonnelPanel === 'boolean') setShowPersonnelPanel(savedFilters.showPersonnelPanel);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enablePersonalization, getDashboardPreference, dashboardPreferenceKey]);
+
+  React.useEffect(() => {
+    if (!enablePersonalization) {
+      return;
+    }
+    setDashboardPreference(dashboardPreferenceKey, {
+      filters: {
+        status: filters.status ?? '',
+        sector: filters.sector ?? '',
+        region: filters.region ?? '',
+        searchQuery: filters.searchQuery ?? '',
+        showPersonnelPanel,
+      },
+      viewMode,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [enablePersonalization, setDashboardPreference, dashboardPreferenceKey, filters, showPersonnelPanel, viewMode]);
 
   // Re-fetch when filters change
   React.useEffect(() => {
@@ -130,6 +189,34 @@ export const ActiveProjectsDashboard: React.FC = () => {
       { name: 'Residential', value: summary.projectsBySector['Residential'], color: SECTOR_COLORS['Residential'] },
     ].filter(d => d.value > 0);
   }, [summary]);
+
+  const chartEvents = React.useMemo(() => ({
+    click: (params: { name?: string }) => {
+      performanceService.startMark('operations:chartFilterInteraction');
+      const value = params.name;
+      if (!value) {
+        performanceService.endMark('operations:chartFilterInteraction');
+        return;
+      }
+
+      if (value === 'Precon' || value === 'Construction' || value === 'Final Payment') {
+        setFilters({ ...filters, status: value as ProjectStatus });
+        performanceService.endMark('operations:chartFilterInteraction');
+        return;
+      }
+
+      if (value === 'Commercial' || value === 'Residential') {
+        setFilters({ ...filters, sector: value as SectorType });
+        performanceService.endMark('operations:chartFilterInteraction');
+        return;
+      }
+
+      if (uniqueRegions.includes(value)) {
+        setFilters({ ...filters, region: value });
+      }
+      performanceService.endMark('operations:chartFilterInteraction');
+    },
+  }), [filters, setFilters, uniqueRegions]);
 
   // Region backlog chart
   const regionBacklogData = React.useMemo(() => {
@@ -201,7 +288,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
   }), [regionBacklogData]);
 
   // Table columns
-  const columns: IHbcTanStackTableColumn<IActiveProject>[] = React.useMemo(() => [
+  const columns: IHbcDataTableColumn<IActiveProject>[] = React.useMemo(() => [
     {
       key: 'jobNumber',
       header: 'Job #',
@@ -348,7 +435,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
   ], [handlePersonnelClick]);
 
   // Data Mart enriched columns
-  const dataMartColumns: IHbcTanStackTableColumn<IProjectDataMart>[] = React.useMemo(() => [
+  const dataMartColumns: IHbcDataTableColumn<IProjectDataMart>[] = React.useMemo(() => [
     { key: 'jobNumber', header: 'Job #', width: '90px', render: (r) => <span style={{ fontWeight: 600, color: HBC_COLORS.navy }}>{r.jobNumber}</span> },
     { key: 'projectName', header: 'Project', render: (r) => r.projectName },
     { key: 'overallHealth', header: 'Health', width: '80px', render: (r) => {
@@ -450,7 +537,16 @@ export const ActiveProjectsDashboard: React.FC = () => {
                 </div>
                 <Button
                   appearance="outline"
-                  onClick={() => triggerFullSync()}
+                  onClick={() => {
+                    addToast('Sync started', 'info', 0, { progress: 10 });
+                    triggerFullSync();
+                    addToast('Portfolio sync completed', 'success', 3500, {
+                      actionLabel: 'Retry',
+                      onAction: () => triggerFullSync(),
+                      undoLabel: 'Dismiss',
+                      onUndo: () => undefined,
+                    });
+                  }}
                   disabled={isLoading}
                 >
                   Sync All
@@ -593,7 +689,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
           </div>
 
           {/* Charts Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: chartGridCols, gap: '16px', marginBottom: '24px' }}>
+          <div className={`${enableDelightMotion ? motionStyles.optimisticFade : ''} ${isSyncActive ? motionStyles.chartTableGlowActive : ''}`} style={{ display: 'grid', gridTemplateColumns: chartGridCols, gap: '16px', marginBottom: '24px' }}>
             {/* Status Distribution */}
             <div>
               {sectionTitle('Projects by Status')}
@@ -603,6 +699,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
                   height={250}
                   empty={statusChartData.length === 0}
                   ariaLabel="Projects by status distribution"
+                  onEvents={chartEvents}
                 />
               </div>
             </div>
@@ -616,6 +713,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
                   height={250}
                   empty={sectorChartData.length === 0}
                   ariaLabel="Projects by sector distribution"
+                  onEvents={chartEvents}
                 />
               </div>
             </div>
@@ -629,6 +727,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
                   height={Math.max(200, regionBacklogData.length * 50)}
                   empty={regionBacklogData.length === 0}
                   ariaLabel="Remaining contract backlog by region"
+                  onEvents={chartEvents}
                 />
               </div>
             </div>
@@ -681,7 +780,8 @@ export const ActiveProjectsDashboard: React.FC = () => {
             {viewMode === 'standard' ? (
               <>
                 {sectionTitle(`All Projects (${filteredProjects.length})`)}
-                <HbcTanStackTable<IActiveProject>
+                <HbcDataTable<IActiveProject>
+                  tableId="active-projects-standard"
                   columns={columns}
                   items={filteredProjects}
                   keyExtractor={(p) => p.id}
@@ -699,12 +799,16 @@ export const ActiveProjectsDashboard: React.FC = () => {
                   pageSize={20}
                   virtualization={{ enabled: true, threshold: 200 }}
                   ariaLabel="Active projects table"
+                  linkedChartId="active-projects-overview-chart"
+                  onChartLinkHighlight={(payload) => setHighlightedProjectId(payload.rowKey)}
+                  motion={{ enabled: enableDelightMotion, durationMs: 220 }}
                 />
               </>
             ) : (
               <>
                 {sectionTitle(`Data Mart View (${dataMartRecords.length})`)}
-                <HbcTanStackTable<IProjectDataMart>
+                <HbcDataTable<IProjectDataMart>
+                  tableId="active-projects-datamart"
                   columns={dataMartColumns}
                   items={dataMartRecords}
                   keyExtractor={(r) => r.id}
@@ -721,10 +825,18 @@ export const ActiveProjectsDashboard: React.FC = () => {
                   pageSize={20}
                   virtualization={{ enabled: true, threshold: 200 }}
                   ariaLabel="Data mart projects table"
+                  linkedChartId="active-projects-overview-chart"
+                  onChartLinkHighlight={(payload) => setHighlightedProjectId(payload.rowKey)}
+                  motion={{ enabled: enableDelightMotion, durationMs: 220 }}
                 />
               </>
             )}
           </div>
+          {highlightedProjectId !== null && (
+            <div style={{ fontSize: '12px', color: HBC_COLORS.gray500, marginTop: '8px' }}>
+              Highlighted project key: {String(highlightedProjectId)}
+            </div>
+          )}
 
           {/* Personnel Workload Panel */}
           {showPersonnelPanel && selectedPersonnel && (

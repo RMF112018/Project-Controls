@@ -313,6 +313,109 @@ graph TD
 
 ---
 
+## UI Design System & Token Usage Guide
+
+### Mandatory Rules (Non-Negotiable)
+- Use `HbcDataTable` from `src/webparts/hbcProjectControls/components/shared/HbcDataTable.tsx` for all UI-layer table implementations.
+- Keep `src/webparts/hbcProjectControls/tanstack/table/HbcTanStackTable.tsx` as the only `@tanstack/react-table` integration layer.
+- Keep styling token-first: Griffel `makeStyles` + Fluent tokens + merged host theme (`mergeThemes(hbcLightTheme, hostThemePatch)`).
+- Do not introduce new hard-coded color literals or new inline style objects in design-system files.
+- Preserve strict TypeScript and backward compatibility for all additive Prompt 6 enhancements.
+- Every shared component update must include Storybook stories, Chromatic-ready snapshots, and Playwright a11y coverage.
+
+### Governance Enforcement
+- Audit script: `dev/audit-ui-governance.mjs`
+- Reports:
+- `docs/ui-governance/audit-baseline.md`
+- `docs/ui-governance/audit-baseline.json`
+- ESLint governance rules (`eslint-rules/`):
+- `no-hardcoded-color` (`warn`)
+- `prefer-griffel-tokens` (`warn`)
+- `no-direct-tanstack-table` (`error`)
+- Validation commands:
+- `npm run lint:governance`
+- `npx tsc --noEmit`
+- `npm run build-storybook`
+- `npm run test:a11y`
+
+### Token Reference and Priority
+Use this exact order:
+1. Fluent v9 `tokens` from `@fluentui/react-components`
+2. `hbcLightTheme` semantic slots from `src/webparts/hbcProjectControls/theme/hbcTheme.ts`
+3. HBC constants only when no semantic token exists
+4. Literal values only with explicit documented exception
+
+Primary references:
+- `src/webparts/hbcProjectControls/theme/tokens.ts`
+- `src/webparts/hbcProjectControls/theme/hbcTheme.ts`
+- `src/webparts/hbcProjectControls/components/App.tsx` (merged host theme entry point)
+
+### Prompt 6 Delight and Personalization Standards
+- Motion:
+- Source of truth: `src/webparts/hbcProjectControls/components/shared/HbcMotion.ts`
+- Maximum duration: `300ms` (`HBC_MOTION_MAX_MS`)
+- Respect reduced motion (`prefers-reduced-motion`) for all non-essential transitions
+- Personalization:
+- Use `AppContext` methods (`getDashboardPreference`, `setDashboardPreference`, `resetDashboardPreference`)
+- Persist per-user keys under `hbc:dash-pref:<user-email>:<dashboard-key>`
+- Store additive preference payloads only (layout/filter/view mode)
+- Synchronized visualization:
+- `HbcDataTable` and `HbcEChart` must link through `linkedChartId`/highlight callbacks
+- Row click and chart click interactions must support keyboard parity
+- Highlight feedback must be tokenized and motion-gated
+- Toast and insights:
+- Toast upgrades (`progress`, `actionLabel`, `onAction`, `undoLabel`, `onUndo`) are additive and backward-compatible
+- Contextual insights are delivered by `HbcInsightsPanel` and gated by feature flags
+
+### Prompt 6 Feature Flags (Required)
+These flags must be wired in mock data, production service retrieval, and AppContext gating:
+- `uxDelightMotionV1`
+- `uxPersonalizedDashboardsV1`
+- `uxChartTableSyncGlowV1`
+- `uxInsightsPanelV1`
+- `uxToastEnhancementsV1`
+
+Rules:
+- Feature disabled => safe fallback behavior with no runtime errors.
+- Feature enabled => enhancement path only (no breaking route or data behavior).
+
+### Component Contribution Template
+```md
+## Component: <Name>
+
+### Purpose
+- Problem solved
+- Consumers and routes
+
+### API Contract
+- Props (required/optional)
+- Defaults and compatibility guarantees
+
+### Styling and Tokens
+- Griffel class strategy
+- Token mapping and semantic usage
+- Reduced-motion behavior (if animated)
+
+### Accessibility
+- Keyboard model
+- ARIA roles/labels/states
+- Focus management
+
+### Storybook
+- Before/after (if migration)
+- Loading/empty/error
+- Theme variants (light/dark/high-contrast/host-merged if relevant)
+
+### Testing
+- Type checks and lint governance
+- Playwright a11y scenarios
+- Interaction tests for feature-flag on/off states
+
+### Rollout
+- Feature flags used
+- Migration notes and fallback behavior
+```
+
 ## §16 Active Pitfalls & Rules
 
 (Only the most relevant current ones are kept here. Full historical list is in CLAUDE_ARCHIVE.md)

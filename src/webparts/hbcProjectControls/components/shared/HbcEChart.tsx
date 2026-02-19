@@ -50,6 +50,15 @@ export interface IHbcEChartProps {
   /** Event handlers — e.g. { 'click': handler } for drill-down navigation */
   onEvents?: EChartsReactProps['onEvents'];
   onChartReady?: EChartsReactProps['onChartReady'];
+  linkedTableId?: string;
+  highlightKey?: string | null;
+  onDataPointSelect?: (payload: IHbcChartSelection) => void;
+}
+
+export interface IHbcChartSelection {
+  dimension: string;
+  value: string;
+  series?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -98,6 +107,9 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
   ariaDescription,
   onEvents,
   onChartReady,
+  linkedTableId,
+  highlightKey,
+  onDataPointSelect,
 }) => {
   const styles = useStyles();
   const chartRef = React.useRef<{ getEchartsInstance?: () => { resize: () => void } } | null>(null);
@@ -216,6 +228,25 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
   };
 
   const ReactECharts = runtime.ReactECharts;
+  const onEventsWithSelection = React.useMemo<EChartsReactProps['onEvents']>(() => {
+    const existingClick = onEvents?.click;
+    return {
+      ...onEvents,
+      click: (params: unknown) => {
+        const payload = params as { name?: string; seriesName?: string };
+        if (payload?.name && onDataPointSelect) {
+          onDataPointSelect({
+            dimension: linkedTableId ?? 'chart',
+            value: payload.name,
+            series: payload.seriesName,
+          });
+        }
+        if (typeof existingClick === 'function') {
+          existingClick(params);
+        }
+      },
+    };
+  }, [onEvents, onDataPointSelect, linkedTableId]);
 
   return (
     <div
@@ -225,6 +256,8 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
       role="img"
       aria-label={ariaLabel}
       aria-describedby={ariaDescription ? descriptionId : undefined}
+      data-linked-table-id={linkedTableId}
+      data-highlight-key={highlightKey ?? undefined}
     >
       {ariaDescription && (
         <p id={descriptionId} style={srOnly}>{ariaDescription}</p>
@@ -239,7 +272,7 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
         showLoading={loading}
         loadingOption={loadingOption}
         opts={{ renderer: 'canvas', useDirtyRect: true } as { renderer: 'canvas'; useDirtyRect: boolean }}
-        onEvents={onEvents}
+        onEvents={onEventsWithSelection}
         onChartReady={onChartReady}
         style={{ height: '100%', width: '100%' }}
       />

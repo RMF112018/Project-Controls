@@ -1,5 +1,15 @@
 import * as React from 'react';
-import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
+import {
+  Button,
+  ProgressBar,
+  makeStyles,
+  mergeClasses,
+  shorthands,
+  tokens,
+} from '@fluentui/react-components';
+import { DismissRegular } from '@fluentui/react-icons';
+import { useHbcMotionStyles } from './HbcMotion';
+import { useAppContext } from '../contexts/AppContext';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -8,10 +18,25 @@ export interface IToast {
   message: string;
   type: ToastType;
   duration?: number;
+  progress?: number;
+  actionLabel?: string;
+  onAction?: () => void;
+  undoLabel?: string;
+  onUndo?: () => void;
+  contextKey?: string;
+}
+
+export interface IToastOptions {
+  progress?: number;
+  actionLabel?: string;
+  onAction?: () => void;
+  undoLabel?: string;
+  onUndo?: () => void;
+  contextKey?: string;
 }
 
 interface IToastContext {
-  addToast: (message: string, type?: ToastType, duration?: number) => string;
+  addToast: (message: string, type?: ToastType, duration?: number, options?: IToastOptions) => string;
   dismissToast: (id: string) => void;
 }
 
@@ -20,112 +45,173 @@ const ToastContext = React.createContext<IToastContext>({
   dismissToast: () => { /* noop */ },
 });
 
-export const useToast = (): IToastContext => React.useContext(ToastContext);
+const useStyles = makeStyles({
+  viewport: {
+    position: 'fixed',
+    top: tokens.spacingVerticalM,
+    right: tokens.spacingHorizontalM,
+    zIndex: 2000,
+    display: 'grid',
+    ...shorthands.gap(tokens.spacingVerticalS),
+    maxInlineSize: 'min(96vw, 420px)',
+  },
+  toast: {
+    display: 'grid',
+    ...shorthands.gap(tokens.spacingVerticalXS),
+    ...shorthands.padding(tokens.spacingVerticalS, tokens.spacingHorizontalM),
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    ...shorthands.border(tokens.strokeWidthThin, 'solid', tokens.colorNeutralStroke1),
+    backgroundColor: tokens.colorNeutralBackground1,
+    boxShadow: tokens.shadow16,
+  },
+  row: {
+    display: 'grid',
+    gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+    alignItems: 'start',
+    ...shorthands.gap(tokens.spacingHorizontalS),
+  },
+  message: {
+    color: tokens.colorNeutralForeground1,
+    fontSize: tokens.fontSizeBase300,
+    lineHeight: tokens.lineHeightBase300,
+  },
+  badge: {
+    inlineSize: tokens.spacingHorizontalM,
+    blockSize: tokens.spacingHorizontalM,
+    ...shorthands.borderRadius(tokens.borderRadiusCircular),
+    marginTop: tokens.spacingVerticalXXS,
+  },
+  badgeInfo: { backgroundColor: tokens.colorBrandForeground1 },
+  badgeSuccess: { backgroundColor: tokens.colorStatusSuccessForeground1 },
+  badgeWarning: { backgroundColor: tokens.colorStatusWarningForeground1 },
+  badgeError: { backgroundColor: tokens.colorStatusDangerForeground1 },
+  actions: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    ...shorthands.gap(tokens.spacingHorizontalXS),
+  },
+  dismissBtn: {
+    minInlineSize: 'unset',
+  },
+  progressWrap: {
+    inlineSize: '100%',
+  },
+});
 
-const TOAST_COLORS: Record<ToastType, { bg: string; border: string; icon: string }> = {
-  success: { bg: HBC_COLORS.successLight, border: HBC_COLORS.success, icon: '\u2713' },
-  error: { bg: HBC_COLORS.errorLight, border: HBC_COLORS.error, icon: '\u2715' },
-  warning: { bg: HBC_COLORS.warningLight, border: HBC_COLORS.warning, icon: '\u26A0' },
-  info: { bg: HBC_COLORS.infoLight, border: HBC_COLORS.info, icon: '\u2139' },
-};
+export const useToast = (): IToastContext => React.useContext(ToastContext);
 
 let toastCounter = 0;
 
-const ToastItem: React.FC<{ toast: IToast; onDismiss: (id: string) => void }> = ({ toast, onDismiss }) => {
-  const colors = TOAST_COLORS[toast.type];
+function getBadgeClass(
+  styles: ReturnType<typeof useStyles>,
+  type: ToastType
+): string {
+  switch (type) {
+    case 'success':
+      return styles.badgeSuccess;
+    case 'warning':
+      return styles.badgeWarning;
+    case 'error':
+      return styles.badgeError;
+    case 'info':
+    default:
+      return styles.badgeInfo;
+  }
+}
+
+const ToastItem: React.FC<{ toast: IToast; onDismiss: (id: string) => void; enableMotion: boolean }> = ({
+  toast,
+  onDismiss,
+  enableMotion,
+}) => {
+  const styles = useStyles();
+  const motionStyles = useHbcMotionStyles();
 
   React.useEffect(() => {
-    // duration === 0 means persistent — no auto-dismiss
-    if (toast.duration === 0) return;
-    const timer = setTimeout(() => onDismiss(toast.id), toast.duration || 4000);
-    return () => clearTimeout(timer);
-  }, [toast.id, toast.duration, onDismiss]);
+    if (toast.duration === 0) {
+      return;
+    }
+    const timer = window.setTimeout(() => onDismiss(toast.id), toast.duration || 4000);
+    return () => window.clearTimeout(timer);
+  }, [onDismiss, toast.duration, toast.id]);
 
   return (
     <div
       role="alert"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        padding: '12px 16px',
-        backgroundColor: colors.bg,
-        borderLeft: `4px solid ${colors.border}`,
-        borderRadius: '6px',
-        boxShadow: ELEVATION.level2,
-        fontSize: '14px',
-        color: HBC_COLORS.gray800,
-        animation: 'toastSlideIn 0.25s ease-out',
-        maxWidth: '400px',
-      }}
+      className={mergeClasses(styles.toast, enableMotion && motionStyles.dialogEntrance)}
+      aria-label={toast.type}
     >
-      <span style={{ fontSize: '16px', flexShrink: 0 }}>{colors.icon}</span>
-      <span style={{ flex: 1 }}>{toast.message}</span>
-      <button
-        onClick={() => onDismiss(toast.id)}
-        aria-label="Dismiss"
-        style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          fontSize: '14px',
-          color: HBC_COLORS.gray500,
-          padding: '2px 4px',
-          flexShrink: 0,
-        }}
-      >
-        {'\u2715'}
-      </button>
+      <div className={styles.row}>
+        <span className={mergeClasses(styles.badge, getBadgeClass(styles, toast.type))} aria-hidden />
+        <span className={styles.message}>{toast.message}</span>
+        <div className={styles.actions}>
+          {toast.actionLabel && toast.onAction ? (
+            <Button size="small" appearance="subtle" onClick={() => toast.onAction?.()}>
+              {toast.actionLabel}
+            </Button>
+          ) : null}
+          {toast.undoLabel && toast.onUndo ? (
+            <Button size="small" appearance="subtle" onClick={() => toast.onUndo?.()}>
+              {toast.undoLabel}
+            </Button>
+          ) : null}
+          <Button
+            size="small"
+            appearance="subtle"
+            className={styles.dismissBtn}
+            icon={<DismissRegular />}
+            aria-label="Dismiss toast"
+            onClick={() => onDismiss(toast.id)}
+          />
+        </div>
+      </div>
+      {typeof toast.progress === 'number' ? (
+        <div className={styles.progressWrap}>
+          <ProgressBar value={Math.max(0, Math.min(1, toast.progress / 100))} />
+        </div>
+      ) : null}
     </div>
   );
 };
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const styles = useStyles();
+  const { isFeatureEnabled } = useAppContext();
   const [toasts, setToasts] = React.useState<IToast[]>([]);
 
-  const addToast = React.useCallback((message: string, type: ToastType = 'success', duration?: number): string => {
+  const addToast = React.useCallback((
+    message: string,
+    type: ToastType = 'success',
+    duration?: number,
+    options?: IToastOptions
+  ): string => {
     const id = `toast-${++toastCounter}`;
-    setToasts(prev => [...prev, { id, message, type, duration }]);
+    setToasts((prev) => [...prev, { id, message, type, duration, ...options }]);
     return id;
   }, []);
 
   const dismissToast = React.useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
+
+  const enableEnhancements = isFeatureEnabled('uxToastEnhancementsV1');
+  const enableMotion = isFeatureEnabled('uxDelightMotionV1');
 
   return (
     <ToastContext.Provider value={{ addToast, dismissToast }}>
       {children}
-      {toasts.length > 0 && (
-        <div
-          aria-live="polite"
-          style={{
-            position: 'fixed',
-            top: '16px',
-            right: '16px',
-            zIndex: 2000,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-          }}
-        >
-          {toasts.map(toast => (
-            <ToastItem key={toast.id} toast={toast} onDismiss={dismissToast} />
+      {toasts.length > 0 ? (
+        <div aria-live="polite" className={styles.viewport}>
+          {toasts.map((toast) => (
+            <ToastItem
+              key={toast.id}
+              toast={enableEnhancements ? toast : { ...toast, progress: undefined, actionLabel: undefined, onAction: undefined, undoLabel: undefined, onUndo: undefined }}
+              onDismiss={dismissToast}
+              enableMotion={enableMotion}
+            />
           ))}
         </div>
-      )}
-      <style>{`
-        @keyframes toastSlideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          @keyframes toastSlideIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-        }
-      `}</style>
+      ) : null}
     </ToastContext.Provider>
   );
 };

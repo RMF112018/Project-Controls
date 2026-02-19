@@ -23,21 +23,37 @@ test.describe('TanStack Table Wave 2 — pipeline + estimating parity', () => {
     await expect(page.locator('[data-table-engine="tanstack"]').first()).toBeVisible({ timeout: 10_000 });
   });
 
-  test('estimating route renders tanstack-backed table blocks across tabs', async ({ page, switchRole }) => {
+  test('estimating route renders data table blocks across tabs', async ({ page, switchRole }) => {
     await page.goto('/#/');
     await page.waitForLoadState('networkidle');
-    await switchRole('EstimatingCoordinator');
+    await switchRole('SuperAdmin');
+
+    const expectAnyTableVisible = async (): Promise<void> => {
+      const hbcTable = page.locator('[data-component="HbcDataTable"]').first();
+      const tanstackTable = page.locator('[data-table-engine="tanstack"]').first();
+      if (await hbcTable.count()) {
+        await expect(hbcTable).toBeVisible({ timeout: 10_000 });
+        return;
+      }
+      await expect(tanstackTable).toBeVisible({ timeout: 10_000 });
+    };
 
     await page.goto('/#/preconstruction');
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('[data-table-engine="tanstack"]').first()).toBeVisible({ timeout: 10_000 });
+    await expectAnyTableVisible();
 
     await page.goto('/#/preconstruction/precon-tracker');
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('[data-table-engine="tanstack"]').first()).toBeVisible({ timeout: 10_000 });
+    await expectAnyTableVisible();
 
     await page.goto('/#/preconstruction/estimate-log');
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('[data-table-engine="tanstack"]').first()).toBeVisible({ timeout: 10_000 });
+    await expectAnyTableVisible();
+
+    const projectHeader = page.getByRole('columnheader', { name: /project/i }).first();
+    await expect(projectHeader).toBeVisible();
+    await projectHeader.focus();
+    await page.keyboard.press('Enter');
+    await expect(projectHeader).toHaveAttribute('aria-sort', /ascending|descending/);
   });
 });

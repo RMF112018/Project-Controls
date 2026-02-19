@@ -8,6 +8,11 @@ import { SearchBar } from '../shared/SearchBar';
 import { SyncStatusIndicator } from '../shared/SyncStatusIndicator';
 import { PresenceIndicator } from '../shared/PresenceIndicator';
 import { WhatsNewModal, shouldShowWhatsNew } from '../shared/WhatsNewModal';
+import { HbcCommandPalette } from '../shared/HbcCommandPalette';
+import type { IHbcCommandPaletteCommand } from '../shared/HbcCommandPalette';
+import { HbcInsightsPanel } from '../shared/HbcInsightsPanel';
+import type { IHbcInsightItem } from '../shared/HbcInsightsPanel';
+import { useHbcMotionStyles } from '../shared/HbcMotion';
 import { HelpMenu, HelpPanel, GuidedTour, ContactSupportDialog } from '../help';
 import { FeatureGate } from '../guards';
 import { useResponsive } from '../hooks/useResponsive';
@@ -198,10 +203,60 @@ interface IAppShellProps {
 
 export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
   const styles = useStyles();
-  const { isLoading, error, currentUser, dataService, isFeatureEnabled, isFullScreen, toggleFullScreen, exitFullScreen } = useAppContext();
+  const motionStyles = useHbcMotionStyles();
+  const { isLoading, error, currentUser, dataService, isFeatureEnabled, isFullScreen, toggleFullScreen, exitFullScreen, isOnline } = useAppContext();
   const { isMobile, isTablet } = useResponsive();
   const { setCurrentModuleKey, isHelpPanelOpen, helpPanelMode, startTour: startHelpTour, isTourActive } = useHelp();
   const currentModuleKey = useCurrentModule();
+  const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
+  const [whatsNewOpen, setWhatsNewOpen] = React.useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = React.useState(false);
+  const [isInsightsPanelOpen, setIsInsightsPanelOpen] = React.useState(false);
+
+  const commandPaletteCommands = React.useMemo<IHbcCommandPaletteCommand[]>(() => [
+    {
+      id: 'toggle-fullscreen',
+      label: isFullScreen ? 'Exit Full Screen' : 'Enter Full Screen',
+      keywords: ['fullscreen', 'layout', 'focus'],
+      section: 'View',
+      run: toggleFullScreen,
+    },
+    {
+      id: 'open-whats-new',
+      label: 'Open What\'s New',
+      keywords: ['release', 'version', 'notes'],
+      section: 'Help',
+      run: () => setWhatsNewOpen(true),
+    },
+    {
+      id: 'toggle-mobile-navigation',
+      label: mobileNavOpen ? 'Close Navigation' : 'Open Navigation',
+      keywords: ['navigation', 'menu', 'sidebar'],
+      section: 'Navigation',
+      run: () => setMobileNavOpen((current) => !current),
+    },
+    {
+      id: 'start-guided-tour',
+      label: 'Start Guided Tour',
+      keywords: ['tour', 'help', 'guide'],
+      section: 'Help',
+      requiredFeatureFlags: ['EnableHelpSystem'],
+      isVisible: () => Boolean(currentModuleKey),
+      run: () => {
+        if (currentModuleKey) {
+          startHelpTour(currentModuleKey);
+        }
+      },
+    },
+    {
+      id: 'open-insights',
+      label: 'Open Insights Panel',
+      keywords: ['insights', 'guidance', 'context'],
+      section: 'View',
+      requiredFeatureFlags: ['uxInsightsPanelV1'],
+      run: () => setIsInsightsPanelOpen(true),
+    },
+  ], [currentModuleKey, isFullScreen, mobileNavOpen, startHelpTour, toggleFullScreen]);
 
   // Keyboard shortcuts
   useKeyboardShortcut([
@@ -226,9 +281,24 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
       handler: () => { if (isFullScreen) exitFullScreen(); },
       ignoreInputs: false,
     },
+    {
+      key: 'k',
+      ctrlKey: true,
+      handler: () => setIsCommandPaletteOpen(true),
+      ignoreInputs: false,
+    },
+    {
+      key: 'i',
+      ctrlKey: true,
+      shiftKey: true,
+      handler: () => {
+        if (isFeatureEnabled('uxInsightsPanelV1')) {
+          setIsInsightsPanelOpen(true);
+        }
+      },
+      ignoreInputs: false,
+    },
   ]);
-  const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
-  const [whatsNewOpen, setWhatsNewOpen] = React.useState(false);
   const [envConfig, setEnvConfig] = React.useState<IEnvironmentConfig | null>(null);
 
   // Sync current module key into HelpContext whenever route changes
@@ -251,6 +321,35 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
       setWhatsNewOpen(true);
     }
   }, []);
+
+  const insightsItems = React.useMemo<IHbcInsightItem[]>(() => [
+    {
+      id: 'offline-signal',
+      title: isOnline ? 'Connection is healthy' : 'Offline mode active',
+      description: isOnline
+        ? 'Live data updates and synchronization are available.'
+        : 'Actions will continue using cached data until connectivity is restored.',
+      severity: isOnline ? 'info' : 'warning',
+    },
+    {
+      id: 'help-system',
+      title: isFeatureEnabled('EnableHelpSystem') ? 'Guided help is enabled' : 'Guided help is disabled',
+      description: isFeatureEnabled('EnableHelpSystem')
+        ? 'Use Ctrl+K and search for "tour" to start contextual guidance.'
+        : 'Enable the help system feature flag to activate tours and contextual documentation.',
+      severity: isFeatureEnabled('EnableHelpSystem') ? 'info' : 'warning',
+      isVisible: true,
+    },
+    {
+      id: 'fullscreen-tip',
+      title: isFullScreen ? 'Focused mode enabled' : 'Focused mode available',
+      description: isFullScreen
+        ? 'Press Escape to exit focused mode.'
+        : 'Press Ctrl+Shift+F to enter focused mode and reduce visual clutter.',
+      severity: 'info',
+    },
+  ], [isOnline, isFeatureEnabled, isFullScreen]);
+  const enableMotion = isFeatureEnabled('uxDelightMotionV1');
 
   if (isLoading) {
     return (
@@ -356,13 +455,31 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
         <main
           id="hbc-main-content"
           tabIndex={-1}
-          className={mergeClasses(styles.main, isMobile ? styles.mainMobile : styles.mainDesktop)}
+          className={mergeClasses(
+            styles.main,
+            isMobile ? styles.mainMobile : styles.mainDesktop,
+            enableMotion ? motionStyles.routeTransition : undefined
+          )}
         >
           {children}
         </main>
       </div>
 
       <WhatsNewModal isOpen={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
+      <HbcCommandPalette
+        open={isCommandPaletteOpen}
+        onOpenChange={setIsCommandPaletteOpen}
+        commands={commandPaletteCommands}
+      />
+      {isFeatureEnabled('uxInsightsPanelV1') ? (
+        <HbcInsightsPanel
+          open={isInsightsPanelOpen}
+          onOpenChange={setIsInsightsPanelOpen}
+          title="Contextual Insights"
+          contextKey={currentModuleKey ?? undefined}
+          items={insightsItems}
+        />
+      ) : null}
       {isHelpPanelOpen && <HelpPanel mode={helpPanelMode} />}
       <FeatureGate featureName="EnableHelpSystem">
         <GuidedTour />

@@ -1,21 +1,34 @@
 import * as React from 'react';
 import {
+  flexRender,
   getCoreRowModel,
+  getExpandedRowModel,
+  getFilteredRowModel,
+  getGroupedRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type ColumnSizingState,
+  type GroupingState,
+  type PaginationState,
+  type RowSelectionState,
+  type SortingState,
+  type VisibilityState,
 } from '@tanstack/react-table';
 import { makeStyles, mergeClasses, shorthands, tokens } from '@fluentui/react-components';
 import { ELEVATION } from '../../theme/tokens';
 import { useResponsive } from '../../components/hooks/useResponsive';
-import { EmptyState } from '../../components/shared/EmptyState';
+import { HbcEmptyState } from '../../components/shared/HbcEmptyState';
 import { SkeletonLoader } from '../../components/shared/SkeletonLoader';
-import { useHbcTableState } from './useHbcTableState';
 import { useVirtualRows } from './useVirtualRows';
 import type { IHbcTanStackTableProps, IHbcTanStackTableColumn } from './types';
 
 const useStyles = makeStyles({
+  root: {
+    display: 'grid',
+    ...shorthands.gap('8px'),
+  },
   tableWrapper: {
     backgroundColor: tokens.colorNeutralBackground1,
     ...shorthands.borderRadius('8px'),
@@ -32,21 +45,32 @@ const useStyles = makeStyles({
   th: {
     ...shorthands.padding('8px', '12px'),
     textAlign: 'left',
-    fontSize: '12px',
-    fontWeight: '600',
+    fontSize: tokens.fontSizeBase200,
+    fontWeight: tokens.fontWeightSemibold,
     color: tokens.colorNeutralForeground3,
     borderBottom: `2px solid ${tokens.colorNeutralStroke1}`,
     whiteSpace: 'nowrap',
+    position: 'relative',
   },
   thSortable: {
     cursor: 'pointer',
     userSelect: 'none',
   },
+  thGrouped: {
+    backgroundColor: tokens.colorNeutralBackground2,
+  },
+  thSelect: {
+    width: '44px',
+  },
   td: {
     ...shorthands.padding('10px', '12px'),
-    fontSize: '13px',
+    fontSize: tokens.fontSizeBase300,
     borderBottom: `1px solid ${tokens.colorNeutralBackground3}`,
     color: tokens.colorNeutralForeground1,
+  },
+  tdGrouped: {
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorBrandForeground1,
   },
   rowClickable: {
     cursor: 'pointer',
@@ -54,15 +78,43 @@ const useStyles = makeStyles({
       backgroundColor: tokens.colorNeutralBackground2,
     },
   },
+  rowSelected: {
+    backgroundColor: tokens.colorNeutralBackground2,
+  },
+  selectCell: {
+    width: '44px',
+    textAlign: 'center',
+  },
+  selectControl: {
+    cursor: 'pointer',
+  },
   sortArrow: {
     marginLeft: '4px',
+  },
+  resizeHandle: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: '6px',
+    height: '100%',
+    cursor: 'col-resize',
+    touchAction: 'none',
+    ':hover': {
+      backgroundColor: tokens.colorBrandBackground2Hover,
+    },
+  },
+  toolbarMeta: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    color: tokens.colorNeutralForeground3,
+    fontSize: tokens.fontSizeBase200,
   },
   paginationContainer: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: '12px',
-    fontSize: '13px',
+    fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground3,
   },
   paginationButtons: {
@@ -75,7 +127,8 @@ const useStyles = makeStyles({
     ...shorthands.borderRadius('4px'),
     backgroundColor: tokens.colorNeutralBackground1,
     cursor: 'pointer',
-    fontSize: '13px',
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground1,
   },
   pageBtnDisabled: {
     cursor: 'not-allowed',
@@ -94,7 +147,9 @@ function resolveSortValue<TData>(item: TData, key: string): unknown {
   const parts = key.split('.');
   let current: unknown = item;
   for (const part of parts) {
-    if (typeof current !== 'object' || current === null) return undefined;
+    if (typeof current !== 'object' || current === null) {
+      return undefined;
+    }
     current = (current as Record<string, unknown>)[part];
   }
   return current;
@@ -105,13 +160,42 @@ function mapColumns<TData>(columns: IHbcTanStackTableColumn<TData>[]): ColumnDef
     id: column.key,
     accessorFn: (item) => resolveSortValue(item, column.key),
     enableSorting: column.sortable ?? false,
-    header: column.header,
+    enableResizing: true,
+    header: () => column.header,
     cell: ({ row }) => column.render(row.original),
-    meta: {
-      width: column.width,
-      minWidth: column.minWidth,
-    },
   }));
+}
+
+function toRowSelectionMap(keys: Array<string | number>): RowSelectionState {
+  return keys.reduce<RowSelectionState>((acc, key) => {
+    acc[String(key)] = true;
+    return acc;
+  }, {});
+}
+
+function toSelectedKeys<TData>(
+  rowSelection: RowSelectionState,
+  rows: TData[],
+  keyExtractor: (item: TData) => string | number
+): Array<string | number> {
+  return rows
+    .map((item) => keyExtractor(item))
+    .filter((key) => rowSelection[String(key)]);
+}
+
+function toVisibilityState(
+  columns: IHbcTanStackTableColumn<unknown>[],
+  visibility?: Record<string, boolean>
+): VisibilityState {
+  const defaults = columns.reduce<VisibilityState>((acc, column) => {
+    acc[column.key] = true;
+    return acc;
+  }, {});
+
+  return {
+    ...defaults,
+    ...(visibility ?? {}),
+  };
 }
 
 export function HbcTanStackTable<TData>({
@@ -128,53 +212,198 @@ export function HbcTanStackTable<TData>({
   pageSize = DEFAULT_PAGE_SIZE,
   ariaLabel = 'Data table',
   virtualization = { enabled: true, threshold: 200 },
+  enableFiltering,
+  globalFilter,
+  onGlobalFilterChange,
+  enableGrouping,
+  groupBy,
+  onGroupByChange,
+  enableColumnVisibility,
+  columnVisibility,
+  onColumnVisibilityChange,
+  enableRowSelection,
+  selectedRowKeys,
+  onSelectedRowKeysChange,
+  enableColumnResize,
+  columnSizing,
+  onColumnSizingChange,
+  pageIndex,
+  onPageIndexChange,
+  rowActions,
 }: IHbcTanStackTableProps<TData>): React.ReactElement {
   const styles = useStyles();
   const { isMobile } = useResponsive();
   const scrollElementRef = React.useRef<HTMLDivElement>(null);
-  const { currentPage, setCurrentPage, sorting, setSorting } = useHbcTableState(items.length, sortField, sortAsc);
+
+  const [internalSorting, setInternalSorting] = React.useState<SortingState>(
+    sortField ? [{ id: sortField, desc: !sortAsc }] : []
+  );
+  const [internalPageIndex, setInternalPageIndex] = React.useState(0);
+  const [internalGlobalFilter, setInternalGlobalFilter] = React.useState('');
+  const [internalGrouping, setInternalGrouping] = React.useState<GroupingState>([]);
+  const [internalColumnVisibility, setInternalColumnVisibility] = React.useState<VisibilityState>(() =>
+    toVisibilityState(columns as IHbcTanStackTableColumn<unknown>[], undefined)
+  );
+  const [internalRowSelection, setInternalRowSelection] = React.useState<RowSelectionState>({});
+  const [internalColumnSizing, setInternalColumnSizing] = React.useState<ColumnSizingState>({});
+
+  const controlledSorting: SortingState = sortField ? [{ id: sortField, desc: !sortAsc }] : internalSorting;
+  const resolvedPageIndex = pageIndex ?? internalPageIndex;
+  const resolvedGlobalFilter = globalFilter ?? internalGlobalFilter;
+  const resolvedGrouping = groupBy ?? internalGrouping;
+  const resolvedColumnVisibility: VisibilityState = columnVisibility
+    ? toVisibilityState(columns as IHbcTanStackTableColumn<unknown>[], columnVisibility)
+    : internalColumnVisibility;
+  const resolvedRowSelection = selectedRowKeys ? toRowSelectionMap(selectedRowKeys) : internalRowSelection;
+  const resolvedColumnSizing = columnSizing ?? internalColumnSizing;
+
+  React.useEffect(() => {
+    if (sortField) {
+      setInternalSorting([{ id: sortField, desc: !sortAsc }]);
+    }
+  }, [sortField, sortAsc]);
+
+  React.useEffect(() => {
+    setInternalColumnVisibility((prev) => toVisibilityState(columns as IHbcTanStackTableColumn<unknown>[], prev));
+  }, [columns]);
 
   const visibleColumns = React.useMemo(
-    () => (isMobile ? columns.filter((c) => !c.hideOnMobile) : columns),
+    () => (isMobile ? columns.filter((column) => !column.hideOnMobile) : columns),
     [columns, isMobile]
   );
 
+  const tableColumns = React.useMemo<ColumnDef<TData>[]>(() => {
+    const mapped = mapColumns(visibleColumns);
+
+    if (enableRowSelection) {
+      mapped.unshift({
+        id: '__select',
+        header: ({ table }) => (
+          <input
+            className={styles.selectControl}
+            type="checkbox"
+            aria-label="Select all rows"
+            checked={table.getIsAllPageRowsSelected()}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+          />
+        ),
+        cell: ({ row }) => (
+          <input
+            className={styles.selectControl}
+            type="checkbox"
+            aria-label="Select row"
+            checked={row.getIsSelected()}
+            onChange={row.getToggleSelectedHandler()}
+            onClick={(event) => event.stopPropagation()}
+          />
+        ),
+        size: 44,
+        enableSorting: false,
+        enableResizing: false,
+      });
+    }
+
+    if (rowActions) {
+      mapped.push({
+        id: '__actions',
+        header: () => 'Actions',
+        cell: ({ row }) => rowActions(row.original),
+        enableSorting: false,
+        enableResizing: false,
+      });
+    }
+
+    return mapped;
+  }, [enableRowSelection, rowActions, styles.selectControl, visibleColumns]);
+
   const table = useReactTable({
     data: items,
-    columns: mapColumns(visibleColumns),
+    columns: tableColumns,
+    getRowId: (row) => String(keyExtractor(row)),
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getGroupedRowModel: getGroupedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     state: {
-      sorting,
+      sorting: controlledSorting,
       pagination: {
-        pageIndex: currentPage,
+        pageIndex: resolvedPageIndex,
         pageSize,
       },
+      globalFilter: enableFiltering ? resolvedGlobalFilter : undefined,
+      grouping: enableGrouping ? resolvedGrouping : [],
+      columnVisibility: enableColumnVisibility ? resolvedColumnVisibility : undefined,
+      rowSelection: enableRowSelection ? resolvedRowSelection : undefined,
+      columnSizing: resolvedColumnSizing,
     },
-    onSortingChange: setSorting,
+    onSortingChange: (updater) => {
+      if (onSort) {
+        return;
+      }
+      const next = typeof updater === 'function' ? updater(controlledSorting) : updater;
+      setInternalSorting(next);
+    },
     onPaginationChange: (updater) => {
-      const next = typeof updater === 'function'
-        ? updater({ pageIndex: currentPage, pageSize })
-        : updater;
-      setCurrentPage(next.pageIndex);
+      const current: PaginationState = { pageIndex: resolvedPageIndex, pageSize };
+      const next = typeof updater === 'function' ? updater(current) : updater;
+      if (pageIndex === undefined) {
+        setInternalPageIndex(next.pageIndex);
+      }
+      onPageIndexChange?.(next.pageIndex);
+    },
+    onGlobalFilterChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(resolvedGlobalFilter) : updater;
+      if (globalFilter === undefined) {
+        setInternalGlobalFilter(String(next ?? ''));
+      }
+      onGlobalFilterChange?.(String(next ?? ''));
+    },
+    onGroupingChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(resolvedGrouping) : updater;
+      if (groupBy === undefined) {
+        setInternalGrouping(next);
+      }
+      onGroupByChange?.(next);
+    },
+    onColumnVisibilityChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(resolvedColumnVisibility) : updater;
+      if (columnVisibility === undefined) {
+        setInternalColumnVisibility(next);
+      }
+      onColumnVisibilityChange?.(next as Record<string, boolean>);
+    },
+    onRowSelectionChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(resolvedRowSelection) : updater;
+      if (selectedRowKeys === undefined) {
+        setInternalRowSelection(next);
+      }
+      onSelectedRowKeysChange?.(toSelectedKeys(next, items, keyExtractor));
+    },
+    onColumnSizingChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(resolvedColumnSizing) : updater;
+      if (columnSizing === undefined) {
+        setInternalColumnSizing(next);
+      }
+      onColumnSizingChange?.(next);
     },
     manualSorting: Boolean(onSort),
+    enableRowSelection: Boolean(enableRowSelection),
+    enableGrouping: Boolean(enableGrouping),
+    enableColumnResizing: Boolean(enableColumnResize),
+    columnResizeMode: 'onChange',
+    globalFilterFn: 'includesString',
   });
 
   const rowModel = table.getRowModel();
   const totalPages = table.getPageCount();
-  const paginationStart = items.length === 0 ? 0 : currentPage * pageSize + 1;
-  const paginationEnd = Math.min((currentPage + 1) * pageSize, items.length);
+  const paginationStart = items.length === 0 ? 0 : resolvedPageIndex * pageSize + 1;
+  const paginationEnd = Math.min((resolvedPageIndex + 1) * pageSize, items.length);
 
-  const {
-    isVirtualized,
-    rowsToRender,
-    paddingTop,
-    paddingBottom,
-  } = useVirtualRows({
+  const { isVirtualized, rowsToRender, paddingTop, paddingBottom } = useVirtualRows({
     rows: rowModel.rows,
-    totalItemCount: items.length,
+    totalItemCount: rowModel.rows.length,
     scrollElementRef,
     virtualization,
   });
@@ -184,11 +413,11 @@ export function HbcTanStackTable<TData>({
   }
 
   if (items.length === 0) {
-    return <EmptyState title={emptyTitle} description={emptyDescription} />;
+    return <HbcEmptyState title={emptyTitle} description={emptyDescription} />;
   }
 
   return (
-    <div data-table-engine="tanstack">
+    <div className={styles.root} data-table-engine="tanstack">
       <div className={styles.tableWrapper}>
         <div
           ref={scrollElementRef}
@@ -198,61 +427,83 @@ export function HbcTanStackTable<TData>({
         >
           <table className={styles.table} aria-label={ariaLabel}>
             <thead>
-              <tr>
-                {table.getHeaderGroups()[0].headers.map((header) => {
-                  const column = visibleColumns.find((c) => c.key === header.id);
-                  const canSort = Boolean(column?.sortable);
-                  const isSortActive = sortField === header.id;
-                  const ariaSort = canSort && isSortActive
-                    ? (sortAsc ? 'ascending' : 'descending')
-                    : undefined;
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    const headerId = header.id;
+                    const column = visibleColumns.find((item) => item.key === headerId);
+                    const canSort = Boolean(column?.sortable);
+                    const isSortActive = sortField === headerId || (sortField === undefined && header.column.getIsSorted());
+                    const ariaSort = canSort && isSortActive
+                      ? ((sortField ? sortAsc : header.column.getIsSorted() === 'asc') ? 'ascending' : 'descending')
+                      : undefined;
 
-                  const clickHandler = (): void => {
-                    if (!canSort) return;
-                    if (onSort) {
-                      onSort(header.id);
-                    } else {
+                    const clickHandler = (): void => {
+                      if (!canSort) {
+                        return;
+                      }
+                      if (onSort) {
+                        onSort(headerId);
+                        return;
+                      }
                       header.column.toggleSorting();
-                    }
-                  };
+                    };
 
-                  return (
-                    <th
-                      key={header.id}
-                      className={mergeClasses(styles.th, canSort ? styles.thSortable : undefined)}
-                      style={{ width: column?.width, minWidth: column?.minWidth }}
-                      onClick={clickHandler}
-                      aria-sort={ariaSort}
-                      tabIndex={canSort ? 0 : undefined}
-                      onKeyDown={canSort ? (event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          clickHandler();
-                        }
-                      } : undefined}
-                    >
-                      {header.isPlaceholder ? null : String(header.column.columnDef.header)}
-                      {canSort && isSortActive && (
-                        <span className={styles.sortArrow} aria-hidden="true">
-                          {sortAsc ? '\u2191' : '\u2193'}
-                        </span>
-                      )}
-                    </th>
-                  );
-                })}
-              </tr>
+                    return (
+                      <th
+                        key={header.id}
+                        className={mergeClasses(
+                          styles.th,
+                          headerId === '__select' ? styles.thSelect : undefined,
+                          canSort ? styles.thSortable : undefined,
+                          header.column.getIsGrouped() ? styles.thGrouped : undefined
+                        )}
+                        onClick={clickHandler}
+                        aria-sort={ariaSort}
+                        tabIndex={canSort ? 0 : undefined}
+                        onKeyDown={canSort ? (event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            clickHandler();
+                          }
+                        } : undefined}
+                      >
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                        {canSort && isSortActive && (
+                          <span className={styles.sortArrow} aria-hidden="true">
+                            {(sortField ? sortAsc : header.column.getIsSorted() === 'asc') ? '\u2191' : '\u2193'}
+                          </span>
+                        )}
+                        {enableColumnResize && header.column.getCanResize() && (
+                          <span
+                            className={styles.resizeHandle}
+                            onMouseDown={header.getResizeHandler()}
+                            onTouchStart={header.getResizeHandler()}
+                            role="separator"
+                            aria-orientation="vertical"
+                            aria-label={`Resize ${String(header.column.columnDef.header)}`}
+                          />
+                        )}
+                      </th>
+                    );
+                  })}
+                </tr>
+              ))}
             </thead>
             <tbody>
               {paddingTop > 0 && (
                 <tr>
-                  <td className={styles.spacerCell} style={{ height: `${paddingTop}px` }} colSpan={visibleColumns.length} />
+                  <td className={styles.spacerCell} style={{ height: `${paddingTop}px` }} colSpan={table.getVisibleLeafColumns().length} />
                 </tr>
               )}
               {rowsToRender.map((row) => (
                 <tr
-                  key={keyExtractor(row.original)}
+                  key={row.id}
                   onClick={() => onRowClick?.(row.original)}
-                  className={onRowClick ? styles.rowClickable : undefined}
+                  className={mergeClasses(
+                    onRowClick ? styles.rowClickable : undefined,
+                    row.getIsSelected() ? styles.rowSelected : undefined
+                  )}
                   tabIndex={onRowClick ? 0 : undefined}
                   onKeyDown={onRowClick ? (event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
@@ -262,21 +513,34 @@ export function HbcTanStackTable<TData>({
                   } : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className={styles.td}>
-                      {cell.renderValue() as React.ReactNode}
+                    <td
+                      key={cell.id}
+                      className={mergeClasses(
+                        styles.td,
+                        cell.column.id === '__select' ? styles.selectCell : undefined,
+                        cell.getIsGrouped() ? styles.tdGrouped : undefined
+                      )}
+                    >
+                      {cell.getIsPlaceholder() ? null : flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
                 </tr>
               ))}
               {paddingBottom > 0 && (
                 <tr>
-                  <td className={styles.spacerCell} style={{ height: `${paddingBottom}px` }} colSpan={visibleColumns.length} />
+                  <td className={styles.spacerCell} style={{ height: `${paddingBottom}px` }} colSpan={table.getVisibleLeafColumns().length} />
                 </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      <div className={styles.toolbarMeta}>
+        <span>{rowModel.rows.length} row(s)</span>
+        {enableRowSelection && <span>{Object.keys(resolvedRowSelection).length} selected</span>}
+      </div>
+
       {totalPages > 1 && (
         <div className={styles.paginationContainer}>
           <span>
@@ -284,17 +548,31 @@ export function HbcTanStackTable<TData>({
           </span>
           <div className={styles.paginationButtons}>
             <button
-              disabled={currentPage === 0}
-              onClick={() => setCurrentPage((prev) => prev - 1)}
-              className={mergeClasses(styles.pageBtn, currentPage === 0 ? styles.pageBtnDisabled : undefined)}
+              type="button"
+              disabled={resolvedPageIndex === 0}
+              onClick={() => {
+                const next = Math.max(0, resolvedPageIndex - 1);
+                if (pageIndex === undefined) {
+                  setInternalPageIndex(next);
+                }
+                onPageIndexChange?.(next);
+              }}
+              className={mergeClasses(styles.pageBtn, resolvedPageIndex === 0 ? styles.pageBtnDisabled : undefined)}
               aria-label="Previous page"
             >
               Previous
             </button>
             <button
-              disabled={currentPage >= totalPages - 1}
-              onClick={() => setCurrentPage((prev) => prev + 1)}
-              className={mergeClasses(styles.pageBtn, currentPage >= totalPages - 1 ? styles.pageBtnDisabled : undefined)}
+              type="button"
+              disabled={resolvedPageIndex >= totalPages - 1}
+              onClick={() => {
+                const next = Math.min(totalPages - 1, resolvedPageIndex + 1);
+                if (pageIndex === undefined) {
+                  setInternalPageIndex(next);
+                }
+                onPageIndexChange?.(next);
+              }}
+              className={mergeClasses(styles.pageBtn, resolvedPageIndex >= totalPages - 1 ? styles.pageBtnDisabled : undefined)}
               aria-label="Next page"
             >
               Next

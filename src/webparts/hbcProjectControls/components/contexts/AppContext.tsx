@@ -14,6 +14,22 @@ import { MockTelemetryService } from '@hbc/sp-services';
 import { useFullScreen } from '../hooks/useFullScreen';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
+export const PROMPT6_FEATURE_FLAGS = [
+  'uxDelightMotionV1',
+  'uxPersonalizedDashboardsV1',
+  'uxChartTableSyncGlowV1',
+  'uxInsightsPanelV1',
+  'uxToastEnhancementsV1',
+] as const;
+
+export interface IDashboardPreference {
+  layout?: string[];
+  collapsedWidgets?: string[];
+  filters?: Record<string, string | number | boolean | string[]>;
+  viewMode?: string;
+  updatedAt: string;
+}
+
 export interface ISelectedProject {
   projectCode: string;
   projectName: string;
@@ -42,6 +58,10 @@ export interface IAppContextValue {
   exitFullScreen: () => void;
   dataServiceMode: 'mock' | 'standalone' | 'sharepoint';
   isOnline: boolean;
+  dashboardPreferences: Record<string, IDashboardPreference>;
+  getDashboardPreference: (key: string) => IDashboardPreference | undefined;
+  setDashboardPreference: (key: string, value: IDashboardPreference) => void;
+  resetDashboardPreference: (key: string) => void;
 }
 
 const AppContext = React.createContext<IAppContextValue | undefined>(undefined);
@@ -68,6 +88,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
   const [error, setError] = React.useState<string | null>(null);
   const [selectedProject, setSelectedProject] = React.useState<ISelectedProject | null>(null);
   const [resolvedPermissions, setResolvedPermissions] = React.useState<IResolvedPermissions | null>(null);
+  const [dashboardPreferences, setDashboardPreferences] = React.useState<Record<string, IDashboardPreference>>({});
 
   // Site detection — compute once on mount
   const siteContext = React.useMemo(() => {
@@ -80,6 +101,37 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
   const isProjectSite = !siteContext.isHubSite && !!siteContext.projectCode;
   const { isFullScreen, toggleFullScreen, exitFullScreen } = useFullScreen();
   const isOnline = useOnlineStatus();
+  const dashboardStoragePrefix = React.useMemo(
+    () => `hbc:dash-pref:${currentUser?.email ?? 'anonymous'}`,
+    [currentUser?.email]
+  );
+
+  const getPreferenceStorageKey = React.useCallback((key: string): string => (
+    `${dashboardStoragePrefix}:${key}`
+  ), [dashboardStoragePrefix]);
+
+  const normalizeFeatureFlags = React.useCallback((flags: IFeatureFlag[]): IFeatureFlag[] => {
+    const normalized = [...flags];
+    let nextId = normalized.reduce((max, flag) => Math.max(max, flag.id), 0) + 1;
+    const existingNames = new Set(normalized.map((flag) => flag.FeatureName));
+
+    for (const featureName of PROMPT6_FEATURE_FLAGS) {
+      if (!existingNames.has(featureName)) {
+        normalized.push({
+          id: nextId++,
+          FeatureName: featureName,
+          DisplayName: featureName,
+          Enabled: false,
+          EnabledForRoles: undefined,
+          TargetDate: undefined,
+          Notes: 'Auto-injected fallback flag for Prompt 6 capability gating',
+          Category: 'Infrastructure',
+        });
+      }
+    }
+
+    return normalized;
+  }, []);
 
   // Guard: cannot clear project on project-specific sites
   const handleSetSelectedProject = React.useCallback((project: ISelectedProject | null) => {
@@ -99,10 +151,11 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
       try {
         setIsLoading(true);
         performanceService.startMark('app:userFlagsFetch');
-        const [user, flags] = await Promise.all([
+        const [user, rawFlags] = await Promise.all([
           dataService.getCurrentUser(),
           dataService.getFeatureFlags(),
         ]);
+        const flags = normalizeFeatureFlags(rawFlags);
         performanceService.endMark('app:userFlagsFetch');
 
         // If PermissionEngine flag is enabled, resolve permissions via the engine
@@ -148,6 +201,10 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
 
         performanceService.endMark('app:contextInit');
 
+        if (typeof window !== 'undefined') {
+          (window as Window & { __hbcPerformanceMarks__?: unknown }).__hbcPerformanceMarks__ = performanceService.getAllMarks();
+        }
+
         // Fire-and-forget performance log
         performanceService.logWebPartLoad({
           userEmail: user.email,
@@ -163,7 +220,36 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
       }
     };
     init().catch(console.error);
-  }, [dataService, isProjectSite, siteContext]);
+  }, [dataService, isProjectSite, siteContext, normalizeFeatureFlags]);
+
+  React.useEffect(() => {
+    if (!currentUser) {
+      setDashboardPreferences({});
+      return;
+    }
+
+    const loaded: Record<string, IDashboardPreference> = {};
+    if (typeof window !== 'undefined') {
+      for (let index = 0; index < window.localStorage.length; index += 1) {
+        const storageKey = window.localStorage.key(index);
+        if (!storageKey || !storageKey.startsWith(`${dashboardStoragePrefix}:`)) {
+          continue;
+        }
+        const preferenceKey = storageKey.replace(`${dashboardStoragePrefix}:`, '');
+        try {
+          const raw = window.localStorage.getItem(storageKey);
+          if (!raw) {
+            continue;
+          }
+          loaded[preferenceKey] = JSON.parse(raw) as IDashboardPreference;
+        } catch {
+          // Ignore corrupt preference entry.
+        }
+      }
+    }
+
+    setDashboardPreferences(loaded);
+  }, [currentUser, dashboardStoragePrefix]);
 
   // Route project-scoped data service queries to project site when selected
   React.useEffect(() => {
@@ -208,6 +294,32 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     return true;
   }, [featureFlags, currentUser]);
 
+  const getDashboardPreference = React.useCallback((key: string): IDashboardPreference | undefined => (
+    dashboardPreferences[key]
+  ), [dashboardPreferences]);
+
+  const setDashboardPreference = React.useCallback((key: string, value: IDashboardPreference): void => {
+    setDashboardPreferences((previous) => ({ ...previous, [key]: value }));
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(getPreferenceStorageKey(key), JSON.stringify(value));
+      } catch {
+        // best-effort persistence
+      }
+    }
+  }, [getPreferenceStorageKey]);
+
+  const resetDashboardPreference = React.useCallback((key: string): void => {
+    setDashboardPreferences((previous) => {
+      const next = { ...previous };
+      delete next[key];
+      return next;
+    });
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(getPreferenceStorageKey(key));
+    }
+  }, [getPreferenceStorageKey]);
+
   const value: IAppContextValue = React.useMemo(() => ({
     dataService,
     telemetryService: resolvedTelemetry,
@@ -226,7 +338,11 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     exitFullScreen,
     dataServiceMode: dataServiceMode ?? 'mock',
     isOnline,
-  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode, isOnline]);
+    dashboardPreferences,
+    getDashboardPreference,
+    setDashboardPreference,
+    resetDashboardPreference,
+  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode, isOnline, dashboardPreferences, getDashboardPreference, setDashboardPreference, resetDashboardPreference]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
