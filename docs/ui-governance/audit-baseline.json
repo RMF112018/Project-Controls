@@ -1,0 +1,1164 @@
+{
+  "generatedAt": "2026-02-19T09:37:56.498Z",
+  "totals": {
+    "filesScanned": 249,
+    "nativeTableFiles": 18,
+    "inlineStyleHits": 2533,
+    "hardcodedHexHits": 747,
+    "makeStylesFiles": 22,
+    "nonTokenMakeStylesHits": 496,
+    "rawTanstackImportsOutsideAdapter": 0,
+    "fluentTablePrimitiveImports": 6
+  },
+  "nativeTableFiles": [
+    "src/webparts/hbcProjectControls/components/help/ContactSupportDialog.tsx",
+    "src/webparts/hbcProjectControls/components/pages/hub/ComplianceLog.tsx",
+    "src/webparts/hbcProjectControls/components/pages/hub/GoNoGoDetail.tsx",
+    "src/webparts/hbcProjectControls/components/pages/hub/GoNoGoScorecard.tsx",
+    "src/webparts/hbcProjectControls/components/pages/project/BuyoutLogPage.tsx",
+    "src/webparts/hbcProjectControls/components/pages/project/ConstraintsLogPage.tsx",
+    "src/webparts/hbcProjectControls/components/pages/project/InternalResponsibilityMatrix.tsx",
+    "src/webparts/hbcProjectControls/components/pages/project/OwnerContractMatrix.tsx",
+    "src/webparts/hbcProjectControls/components/pages/project/PermitsLogPage.tsx",
+    "src/webparts/hbcProjectControls/components/pages/project/ProjectRecord.tsx",
+    "src/webparts/hbcProjectControls/components/pages/project/ProjectScheduleCriticalPath.tsx",
+    "src/webparts/hbcProjectControls/components/pages/project/RiskCostManagement.tsx",
+    "src/webparts/hbcProjectControls/components/pages/project/ScheduleImportModal.tsx",
+    "src/webparts/hbcProjectControls/components/pages/project/SchedulePage.tsx",
+    "src/webparts/hbcProjectControls/components/pages/project/SubContractMatrix.tsx",
+    "src/webparts/hbcProjectControls/components/pages/project/TurnoverToOps.tsx",
+    "src/webparts/hbcProjectControls/components/shared/ChecklistTable.tsx",
+    "src/webparts/hbcProjectControls/tanstack/table/HbcTanStackTable.tsx"
+  ],
+  "inlineStyleHits": [
+    {
+      "file": "src/webparts/hbcProjectControls/components/App.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/guards/ProjectRequiredRoute.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/help/HelpPanel.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/layouts/AppShell.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/layouts/NavigationSidebar.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/AccountingQueuePage.tsx",
+      "count": 35
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/ActiveProjectsDashboard.tsx",
+      "count": 58
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/AdminPanel.tsx",
+      "count": 114
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/ApplicationSupportPage.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/ComplianceLog.tsx",
+      "count": 64
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/DashboardPage.tsx",
+      "count": 97
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/GoNoGoDetail.tsx",
+      "count": 54
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/GoNoGoMeetingScheduler.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/GoNoGoScorecard.tsx",
+      "count": 161
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/JobNumberRequestForm.tsx",
+      "count": 64
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/LeadDetailPage.tsx",
+      "count": 24
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/LeadFormPage.tsx",
+      "count": 43
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/MarketingDashboard.tsx",
+      "count": 24
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/PerformanceDashboard.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/PermissionTemplateEditor.tsx",
+      "count": 44
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/PipelinePage.tsx",
+      "count": 25
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/ProjectAssignmentsPanel.tsx",
+      "count": 27
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/WorkflowDefinitionsPanel.tsx",
+      "count": 16
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/EstimatingDashboard.tsx",
+      "count": 32
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/EstimatingKickoffList.tsx",
+      "count": 15
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/EstimatingKickoffPage.tsx",
+      "count": 31
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/GoNoGoTracker.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/PostBidAutopsyForm.tsx",
+      "count": 38
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/PostBidAutopsyList.tsx",
+      "count": 19
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/PursuitDetail.tsx",
+      "count": 23
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/BuyoutLogPage.tsx",
+      "count": 46
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/CloseoutChecklist.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/CommitmentApprovalPanel.tsx",
+      "count": 18
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/CommitmentForm.tsx",
+      "count": 40
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ConstraintsLogPage.tsx",
+      "count": 69
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ContractTracking.tsx",
+      "count": 28
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ContractTrackingPanel.tsx",
+      "count": 22
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ContractTrackingSubmitModal.tsx",
+      "count": 20
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/DeliverablesTracker.tsx",
+      "count": 23
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/InternalResponsibilityMatrix.tsx",
+      "count": 23
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/InterviewPrep.tsx",
+      "count": 20
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/LessonsLearnedPage.tsx",
+      "count": 29
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/LossAutopsy.tsx",
+      "count": 21
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/MonthlyProjectReview.tsx",
+      "count": 41
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/OwnerContractMatrix.tsx",
+      "count": 26
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/PermitsLogPage.tsx",
+      "count": 44
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/PreconKickoff.tsx",
+      "count": 13
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ProjectDashboard.tsx",
+      "count": 32
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ProjectRecord.tsx",
+      "count": 83
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ProjectScheduleCriticalPath.tsx",
+      "count": 42
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ProjectSettingsPage.tsx",
+      "count": 14
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ProjectTeamPanel.tsx",
+      "count": 22
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/QualityConcernsTracker.tsx",
+      "count": 27
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ResponsibilityMatrices.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/RiskCostManagement.tsx",
+      "count": 33
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/SafetyConcernsTracker.tsx",
+      "count": 27
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ScheduleAnalysisTab.tsx",
+      "count": 7
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ScheduleImportModal.tsx",
+      "count": 26
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/SchedulePage.tsx",
+      "count": 78
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/SubContractMatrix.tsx",
+      "count": 22
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/SuperintendentPlanPage.tsx",
+      "count": 23
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/TurnoverToOps.tsx",
+      "count": 113
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/WinLossRecorder.tsx",
+      "count": 40
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/pmp/PMPApprovalPanel.tsx",
+      "count": 26
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/pmp/PMPSection.tsx",
+      "count": 8
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/pmp/PMPSignatureBlock.tsx",
+      "count": 14
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/pmp/ProjectManagementPlan.tsx",
+      "count": 52
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/shared/AccessDeniedPage.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ActivityTimeline.tsx",
+      "count": 13
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/AutopsyMeetingScheduler.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/AzureADPeoplePicker.tsx",
+      "count": 33
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/Breadcrumb.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ChecklistTable.tsx",
+      "count": 40
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/CollapsibleSection.tsx",
+      "count": 8
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ComingSoonPage.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ConditionBuilder.tsx",
+      "count": 16
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/EmptyState.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ErrorBoundary.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/GranularFlagEditor.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/HbcEChart.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/KPICard.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/KickoffMeetingScheduler.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/MeetingScheduler.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/PipelineChart.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/PresenceIndicator.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ProjectPicker.tsx",
+      "count": 18
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ProvisioningStatus.tsx",
+      "count": 16
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ScoreTierBadge.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/SearchBar.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/SkeletonLoader.tsx",
+      "count": 16
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/SlideDrawer.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/StageBadge.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/StageIndicator.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/StatusBadge.stories.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/StatusBadge.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/SyncStatusIndicator.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/TemplateSiteSyncPanel.tsx",
+      "count": 9
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ToastContainer.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ToolPermissionMatrix.tsx",
+      "count": 18
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/WhatsNewModal.tsx",
+      "count": 15
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/WorkflowPreview.tsx",
+      "count": 28
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/WorkflowStepCard.tsx",
+      "count": 27
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/tanstack/router/routes.system.batchE.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/tanstack/table/HbcTanStackTable.tsx",
+      "count": 3
+    }
+  ],
+  "hardcodedHexHits": [
+    {
+      "file": "src/webparts/hbcProjectControls/components/guards/FeatureGate.stories.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/guards/ProjectRequiredRoute.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/guards/RoleGate.stories.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/help/GuidedTour.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/help/HelpMenu.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/help/HelpPanel.tsx",
+      "count": 8
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/layouts/AppShell.tsx",
+      "count": 13
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/AccountingQueuePage.tsx",
+      "count": 15
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/ActiveProjectsDashboard.tsx",
+      "count": 24
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/AdminPanel.tsx",
+      "count": 23
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/ApplicationSupportPage.tsx",
+      "count": 8
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/ComplianceLog.tsx",
+      "count": 25
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/DashboardPage.tsx",
+      "count": 26
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/GoNoGoDetail.tsx",
+      "count": 17
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/GoNoGoScorecard.tsx",
+      "count": 74
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/JobNumberRequestForm.tsx",
+      "count": 16
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/LeadDetailPage.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/LeadFormPage.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/PerformanceDashboard.tsx",
+      "count": 7
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/PermissionTemplateEditor.tsx",
+      "count": 9
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/PipelinePage.tsx",
+      "count": 15
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/WorkflowDefinitionsPanel.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/EstimatingDashboard.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/EstimatingKickoffList.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/EstimatingKickoffPage.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/GoNoGoTracker.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/PostBidAutopsyForm.tsx",
+      "count": 26
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/PostBidAutopsyList.tsx",
+      "count": 15
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/PursuitDetail.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/BuyoutLogPage.tsx",
+      "count": 32
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/CloseoutChecklist.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/CommitmentApprovalPanel.tsx",
+      "count": 13
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/CommitmentForm.tsx",
+      "count": 14
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ConstraintsLogPage.tsx",
+      "count": 11
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ContractTracking.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ContractTrackingPanel.tsx",
+      "count": 12
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ContractTrackingSubmitModal.tsx",
+      "count": 7
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/InterviewPrep.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/LessonsLearnedPage.tsx",
+      "count": 13
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/LossAutopsy.tsx",
+      "count": 9
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/MonthlyProjectReview.tsx",
+      "count": 7
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/PermitsLogPage.tsx",
+      "count": 10
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ProjectDashboard.tsx",
+      "count": 18
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ProjectScheduleCriticalPath.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ProjectSettingsPage.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ProjectTeamPanel.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/QualityConcernsTracker.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/RiskCostManagement.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/SafetyConcernsTracker.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ScheduleAnalysisTab.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ScheduleImportModal.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/SchedulePage.tsx",
+      "count": 11
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/SuperintendentPlanPage.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/TurnoverToOps.tsx",
+      "count": 14
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/WinLossRecorder.tsx",
+      "count": 25
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/pmp/PMPApprovalPanel.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/pmp/PMPSection.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/pmp/PMPSignatureBlock.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/pmp/ProjectManagementPlan.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/shared/AccessDeniedPage.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/AutopsyMeetingScheduler.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/AzureADPeoplePicker.tsx",
+      "count": 8
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ChecklistTable.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/CollapsibleSection.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ConditionBuilder.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ConfirmDialog.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/EmptyState.stories.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ErrorBoundary.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/HbcEChart.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/KickoffMeetingScheduler.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/PageHeader.stories.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/PipelineChart.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/PresenceIndicator.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ProjectPicker.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ScoreTierBadge.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/SkeletonLoader.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/SlideDrawer.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/StageBadge.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/StatusBadge.stories.tsx",
+      "count": 10
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/SyncStatusIndicator.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/TemplateSiteSyncPanel.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ToolPermissionMatrix.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/WhatsNewModal.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/WorkflowPreview.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/WorkflowStepCard.tsx",
+      "count": 7
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/theme/globalStyles.ts",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/theme/hbcTheme.ts",
+      "count": 19
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/theme/tokens.ts",
+      "count": 30
+    }
+  ],
+  "makeStylesFiles": [
+    "src/webparts/hbcProjectControls/components/help/ContactSupportDialog.tsx",
+    "src/webparts/hbcProjectControls/components/help/HelpMenu.tsx",
+    "src/webparts/hbcProjectControls/components/help/HelpPanel.tsx",
+    "src/webparts/hbcProjectControls/components/layouts/AppShell.tsx",
+    "src/webparts/hbcProjectControls/components/layouts/NavigationSidebar.tsx",
+    "src/webparts/hbcProjectControls/components/pages/hub/ApplicationSupportPage.tsx",
+    "src/webparts/hbcProjectControls/components/pages/hub/PerformanceDashboard.tsx",
+    "src/webparts/hbcProjectControls/components/pages/hub/TelemetryDashboard.tsx",
+    "src/webparts/hbcProjectControls/components/shared/ExportButtons.tsx",
+    "src/webparts/hbcProjectControls/components/shared/HbcDataTable.tsx",
+    "src/webparts/hbcProjectControls/components/shared/HbcEChart.tsx",
+    "src/webparts/hbcProjectControls/components/shared/KPICard.tsx",
+    "src/webparts/hbcProjectControls/components/shared/LoadingSpinner.tsx",
+    "src/webparts/hbcProjectControls/components/shared/PageHeader.tsx",
+    "src/webparts/hbcProjectControls/components/shared/PageLoader.tsx",
+    "src/webparts/hbcProjectControls/components/shared/PresenceIndicator.tsx",
+    "src/webparts/hbcProjectControls/components/shared/SearchBar.tsx",
+    "src/webparts/hbcProjectControls/components/shared/StageBadge.tsx",
+    "src/webparts/hbcProjectControls/components/shared/StatusBadge.tsx",
+    "src/webparts/hbcProjectControls/components/shared/TemplateSiteSyncPanel.tsx",
+    "src/webparts/hbcProjectControls/tanstack/table/HbcTanStackTable.tsx",
+    "src/webparts/hbcProjectControls/theme/globalStyles.ts"
+  ],
+  "nonTokenMakeStylesHits": [
+    {
+      "file": "src/webparts/hbcProjectControls/components/guards/FeatureGate.stories.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/guards/ProjectRequiredRoute.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/guards/RoleGate.stories.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/help/GuidedTour.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/help/HelpMenu.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/help/HelpPanel.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/layouts/AppShell.tsx",
+      "count": 8
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/AccountingQueuePage.tsx",
+      "count": 8
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/ActiveProjectsDashboard.tsx",
+      "count": 15
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/AdminPanel.tsx",
+      "count": 9
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/ComplianceLog.tsx",
+      "count": 13
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/DashboardPage.tsx",
+      "count": 21
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/GoNoGoDetail.tsx",
+      "count": 16
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/GoNoGoScorecard.tsx",
+      "count": 62
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/JobNumberRequestForm.tsx",
+      "count": 14
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/LeadDetailPage.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/LeadFormPage.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/PerformanceDashboard.tsx",
+      "count": 7
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/hub/PipelinePage.tsx",
+      "count": 10
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/EstimatingDashboard.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/EstimatingKickoffList.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/EstimatingKickoffPage.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/GoNoGoTracker.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/PostBidAutopsyForm.tsx",
+      "count": 9
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/PostBidAutopsyList.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/precon/PursuitDetail.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/BuyoutLogPage.tsx",
+      "count": 24
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/CloseoutChecklist.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/CommitmentApprovalPanel.tsx",
+      "count": 10
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/CommitmentForm.tsx",
+      "count": 12
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ConstraintsLogPage.tsx",
+      "count": 10
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ContractTracking.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ContractTrackingPanel.tsx",
+      "count": 8
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ContractTrackingSubmitModal.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/InterviewPrep.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/LessonsLearnedPage.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/LossAutopsy.tsx",
+      "count": 9
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/MonthlyProjectReview.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/PermitsLogPage.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ProjectDashboard.tsx",
+      "count": 18
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ProjectScheduleCriticalPath.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ProjectSettingsPage.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ProjectTeamPanel.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/QualityConcernsTracker.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/RiskCostManagement.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/SafetyConcernsTracker.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ScheduleAnalysisTab.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/ScheduleImportModal.tsx",
+      "count": 7
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/SchedulePage.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/SuperintendentPlanPage.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/TurnoverToOps.tsx",
+      "count": 11
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/WinLossRecorder.tsx",
+      "count": 16
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/pmp/PMPApprovalPanel.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/pmp/PMPSection.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/pmp/PMPSignatureBlock.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/project/pmp/ProjectManagementPlan.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/pages/shared/AccessDeniedPage.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/AutopsyMeetingScheduler.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/AzureADPeoplePicker.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/CollapsibleSection.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ConditionBuilder.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ConfirmDialog.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/EmptyState.stories.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ErrorBoundary.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/HbcEChart.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/KickoffMeetingScheduler.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/PageHeader.stories.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/PipelineChart.tsx",
+      "count": 1
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/PresenceIndicator.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ProjectPicker.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ScoreTierBadge.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/SkeletonLoader.tsx",
+      "count": 4
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/SlideDrawer.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/StageBadge.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/StatusBadge.stories.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/TemplateSiteSyncPanel.tsx",
+      "count": 3
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/ToolPermissionMatrix.tsx",
+      "count": 2
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/WhatsNewModal.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/WorkflowPreview.tsx",
+      "count": 6
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/components/shared/WorkflowStepCard.tsx",
+      "count": 5
+    },
+    {
+      "file": "src/webparts/hbcProjectControls/theme/globalStyles.ts",
+      "count": 4
+    }
+  ],
+  "rawTanstackImportsOutsideAdapter": [],
+  "fluentTablePrimitiveImports": [
+    "src/webparts/hbcProjectControls/components/pages/hub/ActiveProjectsDashboard.tsx",
+    "src/webparts/hbcProjectControls/components/pages/hub/AdminPanel.tsx",
+    "src/webparts/hbcProjectControls/components/pages/hub/DashboardPage.tsx",
+    "src/webparts/hbcProjectControls/components/pages/hub/PerformanceDashboard.tsx",
+    "src/webparts/hbcProjectControls/components/shared/HbcDataTable.tsx",
+    "src/webparts/hbcProjectControls/theme/globalStyles.ts"
+  ]
+}
