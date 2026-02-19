@@ -20,6 +20,7 @@ export const ProjectStartupChecklist: React.FC = () => {
   const { selectedProject, hasPermission, currentUser, dataService } = useAppContext();
   const {
     items, isLoading, fetchChecklist, updateItem, addItem, removeItem,
+    hasMore, loadMore, isLoadingMore,
   } = useStartupChecklist();
   const { addToast } = useToast();
 
@@ -134,6 +135,9 @@ export const ProjectStartupChecklist: React.FC = () => {
       onRemoveItem={handleRemoveItem}
       onSignOff={handleSignOff}
       exportFilename="Project-Startup-Checklist"
+      hasMore={hasMore}
+      loadMore={loadMore}
+      isLoadingMore={isLoadingMore}
     />
   );
 };

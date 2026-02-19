@@ -1,8 +1,12 @@
 import * as React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
 import { IConstraintLog, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { qk } from '../../tanstack/query/queryKeys';
+import { useInfiniteSharePointList } from '../../tanstack/query/useInfiniteSharePointList';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
 
 export interface IConstraintMetrics {
   total: number;
@@ -15,34 +19,34 @@ export interface IConstraintMetrics {
 }
 
 export function useConstraintLog() {
-  const { dataService, currentUser } = useAppContext();
+  const { dataService, currentUser, isFeatureEnabled } = useAppContext();
   const { broadcastChange } = useSignalRContext();
-  const [entries, setEntries] = React.useState<IConstraintLog[]>([]);
-  const [loading, setLoading] = React.useState(false);
+  const scope = useQueryScope();
+  const queryClient = useQueryClient();
   const [error, setError] = React.useState<string | null>(null);
-  const lastProjectCodeRef = React.useRef<string | null>(null);
+  const [activeProjectCode, setActiveProjectCode] = React.useState<string | null>(null);
 
-  const fetchConstraints = React.useCallback(async (projectCode: string) => {
-    setLoading(true);
-    setError(null);
-    lastProjectCodeRef.current = projectCode;
-    try {
-      const data = await dataService.getConstraints(projectCode);
-      setEntries(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load constraints');
-    } finally {
-      setLoading(false);
-    }
-  }, [dataService]);
+  const infiniteEnabled =
+    isFeatureEnabled('InfinitePagingEnabled') &&
+    isFeatureEnabled('InfinitePaging_OpsLogs') &&
+    typeof dataService.getConstraintsPage === 'function';
+  const paged = useInfiniteSharePointList<IConstraintLog>({
+    infiniteEnabled,
+    enabled: Boolean(activeProjectCode),
+    queryKey: qk.constraints.infinite(scope, activeProjectCode ?? ''),
+    fetchPage: ({ token, pageSize }) => dataService.getConstraintsPage({ pageSize, token, projectCode: activeProjectCode ?? '' }),
+    fetchAll: () => dataService.getConstraints(activeProjectCode ?? ''),
+    pageSize: 100,
+  });
 
-  useSignalR({
+  useSignalRQueryInvalidation({
     entityType: EntityType.Constraint,
-    onEntityChanged: React.useCallback(() => {
-      if (lastProjectCodeRef.current) {
-        fetchConstraints(lastProjectCodeRef.current);
+    queryKeys: activeProjectCode ? [qk.constraints.base(scope, activeProjectCode)] : [],
+    onInvalidated: () => {
+      if (activeProjectCode) {
+        void queryClient.invalidateQueries({ queryKey: qk.constraints.infinite(scope, activeProjectCode) });
       }
-    }, [fetchConstraints]),
+    },
   });
 
   const broadcastConstraintChange = React.useCallback((
@@ -59,47 +63,76 @@ export function useConstraintLog() {
       changedByName: currentUser?.displayName,
       timestamp: new Date().toISOString(),
       summary,
-      projectCode: lastProjectCodeRef.current || undefined,
+      projectCode: activeProjectCode || undefined,
     });
-  }, [broadcastChange, currentUser]);
+  }, [broadcastChange, currentUser, activeProjectCode]);
+
+  const fetchConstraints = React.useCallback(async (projectCode: string) => {
+    setActiveProjectCode(projectCode);
+    setError(null);
+    try {
+      if (infiniteEnabled) {
+        await queryClient.invalidateQueries({ queryKey: qk.constraints.infinite(scope, projectCode) });
+        await queryClient.refetchQueries({ queryKey: qk.constraints.infinite(scope, projectCode), type: 'active' });
+      } else {
+        await queryClient.fetchQuery({
+          queryKey: [...qk.constraints.infinite(scope, projectCode), 'full'],
+          queryFn: () => dataService.getConstraints(projectCode),
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load constraints');
+    }
+  }, [queryClient, scope, dataService, infiniteEnabled]);
 
   const addConstraint = React.useCallback(async (projectCode: string, constraint: Partial<IConstraintLog>) => {
     setError(null);
     try {
       const created = await dataService.addConstraint(projectCode, constraint);
-      setEntries(prev => [...prev, created].sort((a, b) => a.constraintNumber - b.constraintNumber));
+      await queryClient.invalidateQueries({ queryKey: qk.constraints.infinite(scope, projectCode) });
       broadcastConstraintChange(created.id, 'created', 'Constraint added');
       return created;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add constraint');
       throw err;
     }
-  }, [dataService, broadcastConstraintChange]);
+  }, [dataService, queryClient, scope, broadcastConstraintChange]);
 
   const updateConstraint = React.useCallback(async (projectCode: string, constraintId: number, data: Partial<IConstraintLog>) => {
     setError(null);
     try {
       const updated = await dataService.updateConstraint(projectCode, constraintId, data);
-      setEntries(prev => prev.map(e => e.id === constraintId ? updated : e));
+      await queryClient.invalidateQueries({ queryKey: qk.constraints.infinite(scope, projectCode) });
       broadcastConstraintChange(constraintId, 'updated', 'Constraint updated');
       return updated;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update constraint');
       throw err;
     }
-  }, [dataService, broadcastConstraintChange]);
+  }, [dataService, queryClient, scope, broadcastConstraintChange]);
 
   const removeConstraint = React.useCallback(async (projectCode: string, constraintId: number) => {
     setError(null);
     try {
       await dataService.removeConstraint(projectCode, constraintId);
-      setEntries(prev => prev.filter(e => e.id !== constraintId));
+      await queryClient.invalidateQueries({ queryKey: qk.constraints.infinite(scope, projectCode) });
       broadcastConstraintChange(constraintId, 'deleted', 'Constraint removed');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove constraint');
       throw err;
     }
-  }, [dataService, broadcastConstraintChange]);
+  }, [dataService, queryClient, scope, broadcastConstraintChange]);
+
+  const entries = React.useMemo<IConstraintLog[]>(() => {
+    if (paged.mode === 'infinite') {
+      return (paged.infiniteQuery.data?.pages ?? []).flatMap((page: { items: IConstraintLog[] }) => page.items);
+    }
+    return (paged.fullQuery.data as IConstraintLog[] | undefined) ?? [];
+  }, [paged]);
+
+  const loading = paged.mode === 'infinite' ? paged.infiniteQuery.isFetching : paged.fullQuery.isFetching;
+  const queryError = paged.mode === 'infinite' ? paged.infiniteQuery.error : paged.fullQuery.error;
+  const resolvedError = error ?? (queryError instanceof Error ? queryError.message : null);
 
   const metrics: IConstraintMetrics = React.useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -131,11 +164,15 @@ export function useConstraintLog() {
   return {
     entries,
     loading,
-    error,
+    error: resolvedError,
     metrics,
     fetchConstraints,
     addConstraint,
     updateConstraint,
     removeConstraint,
+    hasMore: paged.mode === 'infinite' ? Boolean(paged.infiniteQuery.hasNextPage) : false,
+    loadMore: paged.mode === 'infinite' ? () => paged.infiniteQuery.fetchNextPage() : undefined,
+    isLoadingMore: paged.mode === 'infinite' ? paged.infiniteQuery.isFetchingNextPage : false,
+    infiniteMode: paged.mode,
   };
 }

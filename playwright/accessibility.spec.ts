@@ -153,6 +153,27 @@ test.describe('Accessibility — WCAG 2.2 AA', () => {
     await checkA11y(page);
   });
 
+  test('constraints log page (OperationsTeam)', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('OperationsTeam');
+    await ensureProjectSelected(page);
+    await page.goto('/#/operations/constraints-log');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+    await checkA11y(page);
+  });
+
+  test('compliance log page (ExecutiveLeadership)', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('ExecutiveLeadership');
+    await page.goto('/#/admin/compliance');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+    await checkA11y(page);
+  });
+
   test('schedule gantt tab (OperationsTeam)', async ({ page, switchRole }) => {
     await page.goto('/#/');
     await page.waitForLoadState('networkidle');

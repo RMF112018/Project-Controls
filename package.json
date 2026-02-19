@@ -53,9 +53,11 @@
     "test:e2e:standalone-smoke": "playwright test playwright/mode-switch.spec.ts playwright/offline-mode.spec.ts playwright/standalone-auth.spec.ts",
     "test:e2e:router-parity": "playwright test playwright/router-branch-parity.spec.ts",
     "test:e2e:teams-core-smoke": "playwright test playwright/teams-core-smoke.spec.ts",
+    "test:e2e:virtualized-infinite": "playwright test playwright/virtualized-infinite.spec.ts",
     "test:a11y": "playwright test playwright/accessibility.spec.ts",
     "verify:sprint1": "npm run lint && npx tsc --noEmit && npm run test:ci && npm run test:e2e:router-parity && npm run test:e2e:teams-core-smoke && npm run test:a11y && npm run build:standalone:report && npm run verify:bundle-size:warn",
     "verify:sprint2": "npm run lint && npx tsc --noEmit && npm run test:ci && npm run test:e2e:router-parity && npm run test:e2e:teams-core-smoke && npm run test:a11y && npm run build:standalone:report && npm run verify:bundle-size:fail",
+    "verify:sprint3": "npm run lint && npx tsc --noEmit && npm run test:ci && npm run test:e2e:router-parity && npm run test:e2e:teams-core-smoke && npm run test:e2e:virtualized-infinite && npm run test:a11y && npm run build:standalone:report && npm run verify:bundle-size:fail",
     "test:storybook": "test-storybook",
     "postinstall": "npm run build:lib",
     "clean:dev": "rm -rf node_modules packages/hbc-sp-services/node_modules packages/hbc-sp-services/lib dev/dist && npm install"

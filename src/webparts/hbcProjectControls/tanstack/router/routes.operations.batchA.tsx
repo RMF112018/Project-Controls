@@ -209,14 +209,14 @@ export function createOperationsBatchARoutes(rootRoute: unknown) {
 
   const constraintsRoute = createRoute({
     getParentRoute: () => rootRoute as never,
-    path: '/operations/constraints',
+    path: '/operations/constraints-log',
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardConstraints(context),
     component: ConstraintsLogPage,
   });
 
   const permitsRoute = createRoute({
     getParentRoute: () => rootRoute as never,
-    path: '/operations/permits',
+    path: '/operations/permits-log',
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardPermits(context),
     component: PermitsLogPage,
   });

@@ -2,6 +2,9 @@ import {
   IDataService,
   IListQueryOptions,
   IPagedResult,
+  ICursorPageRequest,
+  ICursorPageResult,
+  ICursorToken,
   IActiveProjectsQueryOptions,
   IActiveProjectsFilter
 } from './IDataService';
@@ -1055,6 +1058,31 @@ export class MockDataService implements IDataService {
   // Leads
   // ---------------------------------------------------------------------------
 
+  private paginateArray<T extends { id?: number }>(
+    items: T[],
+    request: ICursorPageRequest
+  ): ICursorPageResult<T> {
+    const pageSize = Math.max(1, request.pageSize || 100);
+    const start = request.token?.lastId && request.token.lastId > 0 ? request.token.lastId : 0;
+    const pageItems = items.slice(start, start + pageSize);
+    const nextOffset = start + pageItems.length;
+    const hasMore = nextOffset < items.length;
+    const last = pageItems[pageItems.length - 1];
+    const nextToken: ICursorToken | null = hasMore
+      ? {
+          lastId: nextOffset,
+          lastModified: (last as { modifiedDate?: string })?.modifiedDate,
+        }
+      : null;
+
+    return {
+      items: pageItems,
+      nextToken,
+      hasMore,
+      totalApprox: items.length,
+    };
+  }
+
   public async getLeads(options?: IListQueryOptions): Promise<IPagedResult<ILead>> {
     await delay();
 
@@ -2022,6 +2050,16 @@ export class MockDataService implements IDataService {
     return results.sort((a, b) => new Date(b.Timestamp).getTime() - new Date(a.Timestamp).getTime());
   }
 
+  public async getAuditLogPage(request: ICursorPageRequest): Promise<ICursorPageResult<IAuditEntry>> {
+    const filters = request.filters ?? {};
+    const entityType = typeof filters.entityType === 'string' ? filters.entityType : undefined;
+    const entityId = typeof filters.entityId === 'string' ? filters.entityId : undefined;
+    const startDate = typeof filters.startDate === 'string' ? filters.startDate : undefined;
+    const endDate = typeof filters.endDate === 'string' ? filters.endDate : undefined;
+    const all = await this.getAuditLog(entityType, entityId, startDate, endDate);
+    return this.paginateArray(all, request);
+  }
+
   // ---------------------------------------------------------------------------
   // Provisioning
   // ---------------------------------------------------------------------------
@@ -2476,6 +2514,15 @@ export class MockDataService implements IDataService {
   public async getStartupChecklist(projectCode: string): Promise<IStartupChecklistItem[]> {
     await delay();
     return this.checklistItems.filter(i => i.projectCode === projectCode && !i.isHidden);
+  }
+
+  public async getStartupChecklistPage(request: ICursorPageRequest): Promise<ICursorPageResult<IStartupChecklistItem>> {
+    await delay();
+    const projectCode = request.projectCode ?? String(request.filters?.projectCode ?? '');
+    const items = this.checklistItems
+      .filter(i => i.projectCode === projectCode && !i.isHidden)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+    return this.paginateArray(items, request);
   }
 
   public async updateChecklistItem(projectCode: string, itemId: number, data: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> {
@@ -3522,6 +3569,15 @@ export class MockDataService implements IDataService {
       .sort((a, b) => a.divisionCode.localeCompare(b.divisionCode));
   }
 
+  public async getBuyoutEntriesPage(request: ICursorPageRequest): Promise<ICursorPageResult<IBuyoutEntry>> {
+    await delay();
+    const projectCode = request.projectCode ?? String(request.filters?.projectCode ?? '');
+    const rows = this.buyoutEntries
+      .filter(e => e.projectCode === projectCode)
+      .sort((a, b) => a.divisionCode.localeCompare(b.divisionCode));
+    return this.paginateArray(rows, request);
+  }
+
   public async initializeBuyoutLog(projectCode: string): Promise<IBuyoutEntry[]> {
     await delay();
     const existing = this.buyoutEntries.filter(e => e.projectCode === projectCode);
@@ -3951,6 +4007,17 @@ export class MockDataService implements IDataService {
     }
 
     return entries.map(e => this.mapBuyoutToComplianceEntry(e));
+  }
+
+  public async getComplianceLogPage(request: ICursorPageRequest): Promise<ICursorPageResult<IComplianceEntry>> {
+    const filters = (request.filters ?? {}) as Partial<IComplianceLogFilter>;
+    const rows = await this.getComplianceLog({
+      projectCode: request.projectCode ?? filters.projectCode,
+      commitmentStatus: filters.commitmentStatus,
+      eVerifyStatus: filters.eVerifyStatus,
+      searchQuery: filters.searchQuery,
+    });
+    return this.paginateArray(rows, request);
   }
 
   public async getComplianceSummary(): Promise<IComplianceSummary> {
@@ -6268,6 +6335,16 @@ export class MockDataService implements IDataService {
       .map(c => ({ ...c }));
   }
 
+  public async getConstraintsPage(request: ICursorPageRequest): Promise<ICursorPageResult<IConstraintLog>> {
+    await delay();
+    const projectCode = request.projectCode ?? String(request.filters?.projectCode ?? '');
+    const rows = this.constraintLogs
+      .filter(c => c.projectCode === projectCode)
+      .map(c => ({ ...c }))
+      .sort((a, b) => a.constraintNumber - b.constraintNumber);
+    return this.paginateArray(rows, request);
+  }
+
   public async addConstraint(projectCode: string, constraint: Partial<IConstraintLog>): Promise<IConstraintLog> {
     await delay();
     const projectConstraints = this.constraintLogs.filter(c => c.projectCode === projectCode);
@@ -6346,6 +6423,15 @@ export class MockDataService implements IDataService {
     return this.permits
       .filter(p => p.projectCode === projectCode)
       .map(p => ({ ...p }));
+  }
+
+  public async getPermitsPage(request: ICursorPageRequest): Promise<ICursorPageResult<IPermit>> {
+    await delay();
+    const projectCode = request.projectCode ?? String(request.filters?.projectCode ?? '');
+    const rows = this.permits
+      .filter(p => p.projectCode === projectCode)
+      .map(p => ({ ...p }));
+    return this.paginateArray(rows, request);
   }
 
   public async addPermit(projectCode: string, permit: Partial<IPermit>): Promise<IPermit> {

@@ -24,6 +24,7 @@ export const qk = {
   compliance: {
     base: (scope: IQueryScope) => [...qk.scope(scope), 'compliance'] as const,
     log: (scope: IQueryScope, filtersHash: string) => [...qk.scope(scope), 'compliance', 'log', filtersHash] as const,
+    infinite: (scope: IQueryScope, filtersHash: string) => [...qk.scope(scope), 'compliance', 'infinite', filtersHash] as const,
     summary: (scope: IQueryScope) => [...qk.scope(scope), 'compliance', 'summary'] as const,
   },
   permission: {
@@ -36,10 +37,27 @@ export const qk = {
   buyout: {
     base: (scope: IQueryScope) => [...qk.scope(scope), 'buyout'] as const,
     entries: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'buyout', 'entries', projectCode] as const,
+    infinite: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'buyout', 'infinite', projectCode] as const,
     approvalHistory: (scope: IQueryScope, projectCode: string, entryId: number) =>
       [...qk.scope(scope), 'buyout', 'approvalHistory', projectCode, entryId] as const,
     trackingHistory: (scope: IQueryScope, projectCode: string, entryId: number) =>
       [...qk.scope(scope), 'buyout', 'trackingHistory', projectCode, entryId] as const,
     trackingChain: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'buyout', 'trackingChain', projectCode] as const,
+  },
+  constraints: {
+    base: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'constraints', projectCode] as const,
+    infinite: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'constraints', 'infinite', projectCode] as const,
+  },
+  permits: {
+    base: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'permits', projectCode] as const,
+    infinite: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'permits', 'infinite', projectCode] as const,
+  },
+  startupChecklist: {
+    base: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'startupChecklist', projectCode] as const,
+    infinite: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'startupChecklist', 'infinite', projectCode] as const,
+  },
+  audit: {
+    base: (scope: IQueryScope) => [...qk.scope(scope), 'audit'] as const,
+    infinite: (scope: IQueryScope, filtersHash: string) => [...qk.scope(scope), 'audit', 'infinite', filtersHash] as const,
   },
 };

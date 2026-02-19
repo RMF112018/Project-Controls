@@ -35,6 +35,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - `npm run test:e2e:ui` → Playwright interactive UI mode
 - `npm run test:a11y` → axe WCAG 2.2 AA accessibility tests (run before marking work complete)
 - `npm run verify:sprint2` → Sprint 2 closeout gate (lint + TS + tests + e2e/a11y + standalone report + hard bundle cap checks)
+- `npm run verify:sprint3` → Sprint 3 gate (Sprint 2 checks + virtualized/infinite e2e coverage + hard bundle cap checks)
 
 ### Command Evolution Guidelines
 - **Add** a command when: a workflow repeats 3+ times/week, manual execution is error-prone, or it has clear success/failure criteria.
@@ -374,6 +375,8 @@ graph TD
 - **TanStack query-key scoping**: Always include mode + siteContext + siteUrl + projectCode in query keys to prevent cache leakage across mock/standalone/sharepoint and hub/project contexts.
 - **TanStack migration rule**: Wrap `IDataService` with Query/Mutation; never bypass directly to PnP in UI-layer TanStack query functions.
 - **TanStack optimistic mutation rule**: For editable grids/logs, `onMutate` must snapshot previous cache and `onError` must restore it (rollback is mandatory, not optional).
+- **Sprint 3 infinite-query rule**: `useInfiniteSharePointList` must keep explicit fallback to full-list `useQuery` when `InfinitePagingEnabled` is OFF.
+- **Sprint 3 SignalR rule**: infinite list surfaces invalidate the base infinite query key on entity change; do not invalidate per-page keys.
 - **Optimistic mutation flag contract**: global `OptimisticMutationsEnabled` must be true before any domain flag is honored. Wave A domain flags: `OptimisticMutations_Leads`, `OptimisticMutations_Estimating`, `OptimisticMutations_Buyout`, `OptimisticMutations_PMP`.
 - **Pessimistic fallback contract**: when global/domain flags are off or method is unmapped, mutation must run without optimistic cache writes and still run success/settled invalidation effects.
 - **Sprint 2 verification rule**: run `npm run verify:sprint2` before merge (lint, strict type-check, tests/a11y/e2e smoke, standalone analyze report, hard bundle-size gate).

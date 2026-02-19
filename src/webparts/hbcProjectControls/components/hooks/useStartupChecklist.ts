@@ -1,8 +1,12 @@
 import * as React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
 import { IStartupChecklistItem, IStartupChecklistSummary, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { qk } from '../../tanstack/query/queryKeys';
+import { useInfiniteSharePointList } from '../../tanstack/query/useInfiniteSharePointList';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
 
 interface IUseStartupChecklistResult {
   items: IStartupChecklistItem[];
@@ -14,41 +18,43 @@ interface IUseStartupChecklistResult {
   removeItem: (projectCode: string, itemId: number) => Promise<void>;
   getSummary: () => IStartupChecklistSummary;
   getSectionSummary: (sectionNumber: number) => IStartupChecklistSummary;
+  hasMore: boolean;
+  loadMore?: () => Promise<unknown>;
+  isLoadingMore: boolean;
+  infiniteMode: 'full' | 'infinite';
 }
 
 export function useStartupChecklist(): IUseStartupChecklistResult {
-  const { dataService, currentUser } = useAppContext();
+  const { dataService, currentUser, isFeatureEnabled } = useAppContext();
   const { broadcastChange } = useSignalRContext();
-  const [items, setItems] = React.useState<IStartupChecklistItem[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const scope = useQueryScope();
+  const queryClient = useQueryClient();
   const [error, setError] = React.useState<string | null>(null);
-  const lastProjectCodeRef = React.useRef<string | null>(null);
+  const [activeProjectCode, setActiveProjectCode] = React.useState<string | null>(null);
 
-  const fetchChecklist = React.useCallback(async (projectCode: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      lastProjectCodeRef.current = projectCode;
-      const result = await dataService.getStartupChecklist(projectCode);
-      setItems(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch checklist');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService]);
-
-  // SignalR: refresh on Checklist entity changes from other users
-  useSignalR({
-    entityType: EntityType.Checklist,
-    onEntityChanged: React.useCallback(() => {
-      if (lastProjectCodeRef.current) {
-        fetchChecklist(lastProjectCodeRef.current);
-      }
-    }, [fetchChecklist]),
+  const infiniteEnabled =
+    isFeatureEnabled('InfinitePagingEnabled') &&
+    isFeatureEnabled('InfinitePaging_StartupRisk') &&
+    typeof dataService.getStartupChecklistPage === 'function';
+  const paged = useInfiniteSharePointList<IStartupChecklistItem>({
+    infiniteEnabled,
+    enabled: Boolean(activeProjectCode),
+    queryKey: qk.startupChecklist.infinite(scope, activeProjectCode ?? ''),
+    fetchPage: ({ token, pageSize }) => dataService.getStartupChecklistPage({ pageSize, token, projectCode: activeProjectCode ?? '' }),
+    fetchAll: () => dataService.getStartupChecklist(activeProjectCode ?? ''),
+    pageSize: 100,
   });
 
-  // Helper to broadcast checklist changes
+  useSignalRQueryInvalidation({
+    entityType: EntityType.Checklist,
+    queryKeys: activeProjectCode ? [qk.startupChecklist.base(scope, activeProjectCode)] : [],
+    onInvalidated: () => {
+      if (activeProjectCode) {
+        void queryClient.invalidateQueries({ queryKey: qk.startupChecklist.infinite(scope, activeProjectCode) });
+      }
+    },
+  });
+
   const broadcastChecklistChange = React.useCallback((
     entityId: number | string,
     action: IEntityChangedMessage['action'],
@@ -63,29 +69,54 @@ export function useStartupChecklist(): IUseStartupChecklistResult {
       changedByName: currentUser?.displayName,
       timestamp: new Date().toISOString(),
       summary,
-      projectCode: lastProjectCodeRef.current || undefined,
+      projectCode: activeProjectCode || undefined,
     });
-  }, [broadcastChange, currentUser]);
+  }, [broadcastChange, currentUser, activeProjectCode]);
+
+  const fetchChecklist = React.useCallback(async (projectCode: string) => {
+    setError(null);
+    setActiveProjectCode(projectCode);
+    try {
+      if (infiniteEnabled) {
+        await queryClient.invalidateQueries({ queryKey: qk.startupChecklist.infinite(scope, projectCode) });
+        await queryClient.refetchQueries({ queryKey: qk.startupChecklist.infinite(scope, projectCode), type: 'active' });
+      } else {
+        await queryClient.fetchQuery({
+          queryKey: [...qk.startupChecklist.infinite(scope, projectCode), 'full'],
+          queryFn: () => dataService.getStartupChecklist(projectCode),
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch checklist');
+    }
+  }, [queryClient, scope, dataService, infiniteEnabled]);
 
   const updateItem = React.useCallback(async (projectCode: string, itemId: number, data: Partial<IStartupChecklistItem>) => {
     const updated = await dataService.updateChecklistItem(projectCode, itemId, data);
-    setItems(prev => prev.map(i => i.id === itemId ? updated : i));
+    await queryClient.invalidateQueries({ queryKey: qk.startupChecklist.infinite(scope, projectCode) });
     broadcastChecklistChange(itemId, 'updated', 'Checklist item updated');
     return updated;
-  }, [dataService, broadcastChecklistChange]);
+  }, [dataService, queryClient, scope, broadcastChecklistChange]);
 
   const addItem = React.useCallback(async (projectCode: string, item: Partial<IStartupChecklistItem>) => {
     const created = await dataService.addChecklistItem(projectCode, item);
-    setItems(prev => [...prev, created]);
+    await queryClient.invalidateQueries({ queryKey: qk.startupChecklist.infinite(scope, projectCode) });
     broadcastChecklistChange(created.id, 'created', 'Checklist item added');
     return created;
-  }, [dataService, broadcastChecklistChange]);
+  }, [dataService, queryClient, scope, broadcastChecklistChange]);
 
   const removeItem = React.useCallback(async (projectCode: string, itemId: number) => {
     await dataService.removeChecklistItem(projectCode, itemId);
-    setItems(prev => prev.filter(i => i.id !== itemId));
+    await queryClient.invalidateQueries({ queryKey: qk.startupChecklist.infinite(scope, projectCode) });
     broadcastChecklistChange(itemId, 'deleted', 'Checklist item removed');
-  }, [dataService, broadcastChecklistChange]);
+  }, [dataService, queryClient, scope, broadcastChecklistChange]);
+
+  const items = React.useMemo<IStartupChecklistItem[]>(() => {
+    if (paged.mode === 'infinite') {
+      return (paged.infiniteQuery.data?.pages ?? []).flatMap((page: { items: IStartupChecklistItem[] }) => page.items);
+    }
+    return (paged.fullQuery.data as IStartupChecklistItem[] | undefined) ?? [];
+  }, [paged]);
 
   const computeSummary = React.useCallback((subset: IStartupChecklistItem[]): IStartupChecklistSummary => {
     return {
@@ -104,5 +135,21 @@ export function useStartupChecklist(): IUseStartupChecklistResult {
     return computeSummary(items.filter(i => i.sectionNumber === sectionNumber));
   }, [items, computeSummary]);
 
-  return { items, isLoading, error, fetchChecklist, updateItem, addItem, removeItem, getSummary, getSectionSummary };
+  const queryError = paged.mode === 'infinite' ? paged.infiniteQuery.error : paged.fullQuery.error;
+
+  return {
+    items,
+    isLoading: paged.mode === 'infinite' ? paged.infiniteQuery.isFetching : paged.fullQuery.isFetching,
+    error: error ?? (queryError instanceof Error ? queryError.message : null),
+    fetchChecklist,
+    updateItem,
+    addItem,
+    removeItem,
+    getSummary,
+    getSectionSummary,
+    hasMore: paged.mode === 'infinite' ? Boolean(paged.infiniteQuery.hasNextPage) : false,
+    loadMore: paged.mode === 'infinite' ? () => paged.infiniteQuery.fetchNextPage() : undefined,
+    isLoadingMore: paged.mode === 'infinite' ? paged.infiniteQuery.isFetchingNextPage : false,
+    infiniteMode: paged.mode,
+  };
 }

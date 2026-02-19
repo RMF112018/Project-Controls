@@ -166,8 +166,8 @@ const NAV_STRUCTURE: INavGroupDef[] = [
         items: [
           { label: 'Buyout', path: '/operations/buyout-log', requiresProject: true, permission: PERMISSIONS.BUYOUT_VIEW },
           { label: 'Monthly Review', path: '/operations/monthly-review', requiresProject: true, featureFlag: 'MonthlyProjectReview' },
-          { label: 'Constraints', path: '/operations/constraints', requiresProject: true, permission: PERMISSIONS.CONSTRAINTS_VIEW, featureFlag: 'ConstraintsLog' },
-          { label: 'Permits', path: '/operations/permits', requiresProject: true, permission: PERMISSIONS.PERMITS_VIEW },
+          { label: 'Constraints', path: '/operations/constraints-log', requiresProject: true, permission: PERMISSIONS.CONSTRAINTS_VIEW, featureFlag: 'ConstraintsLog' },
+          { label: 'Permits', path: '/operations/permits-log', requiresProject: true, permission: PERMISSIONS.PERMITS_VIEW },
           { label: 'Compliance Log', path: '/operations/compliance-log', permission: PERMISSIONS.COMPLIANCE_LOG_VIEW },
         ],
       },

@@ -65,6 +65,7 @@ export const BuyoutLogPage: React.FC = () => {
   const {
     entries, loading, error, metrics,
     fetchEntries, initializeLog, addEntry, updateEntry, removeEntry,
+    hasMore, loadMore, isLoadingMore,
   } = useBuyoutLog();
   const { submitForApproval, respondToApproval } = useCommitmentApproval();
   const { submitForTracking, respondToTracking, resolveTrackingChain, loading: trackingLoading } = useContractTracking();
@@ -595,6 +596,13 @@ export const BuyoutLogPage: React.FC = () => {
           <div style={{ padding: 32, textAlign: 'center', color: HBC_COLORS.gray400 }}>
             No divisions match your filter.
           </div>
+        )}
+      </div>
+      <div aria-live="polite" style={{ marginTop: 12 }}>
+        {hasMore && loadMore && (
+          <button onClick={() => { void loadMore(); }} disabled={isLoadingMore} style={btnOutline}>
+            {isLoadingMore ? 'Loading more...' : 'Load more'}
+          </button>
         )}
       </div>
 

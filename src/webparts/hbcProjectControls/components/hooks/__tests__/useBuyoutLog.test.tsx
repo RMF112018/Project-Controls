@@ -126,7 +126,7 @@ describe('useBuyoutLog', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.entries.some((entry) => entry.id < 0)).toBe(true);
+      expect(result.current.entries.some((entry: IBuyoutEntry) => entry.id < 0)).toBe(true);
     });
 
     act(() => {
@@ -188,14 +188,14 @@ describe('useBuyoutLog', () => {
       }).catch(() => { /* not expected */ });
     });
 
-    expect(result.current.entries.some((entry) => entry.id < 0)).toBe(false);
+    expect(result.current.entries.some((entry: IBuyoutEntry) => entry.id < 0)).toBe(false);
 
     act(() => {
       resolveAdd?.(createdEntry);
     });
 
     await waitFor(() => {
-      expect(result.current.entries.some((entry) => entry.id === 2)).toBe(true);
+      expect(result.current.entries.some((entry: IBuyoutEntry) => entry.id === 2)).toBe(true);
     });
   });
 });
