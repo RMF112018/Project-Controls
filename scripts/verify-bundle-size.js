@@ -191,6 +191,19 @@ function computeChunkMetrics(stats, assetSizeMap) {
   return chunkMap;
 }
 
+function computeTotalGzipBytes(stats) {
+  const outputPath = stats.outputPath || path.resolve(repoRoot, 'dist');
+  let total = 0;
+  for (const asset of stats.assets || []) {
+    const fileName = basename(asset.name || '');
+    if (!fileName || !fileName.endsWith('.js')) continue;
+    const filePath = resolveFilePath(outputPath, fileName);
+    if (!filePath) continue;
+    total += getCompressedSize(filePath, 'gzip');
+  }
+  return total;
+}
+
 function createDefaultBaseline(current) {
   const chunkBudgets = {};
   for (const chunkName of MONITORED_CHUNKS) {
@@ -343,6 +356,7 @@ function printResult(report) {
   console.log(`- Entrypoint raw: ${report.entrypoint.rawBytes} bytes (baseline ${report.baseline.entrypoint.rawBytes})`);
   console.log(`- Entrypoint gzip: ${report.entrypoint.gzipBytes} bytes (baseline ${report.baseline.entrypoint.gzipBytes})`);
   console.log(`- Entrypoint brotli: ${report.entrypoint.brotliBytes} bytes (baseline ${report.baseline.entrypoint.brotliBytes})`);
+  console.log(`- Total gzip JS: ${report.totalGzipBytes} bytes`);
 
   const entryDelta = report.metrics.find((m) => m.name === 'entrypoint.rawBytes');
   if (entryDelta) {
@@ -373,6 +387,13 @@ function printResult(report) {
     }
   }
 
+  if (report.hardCapViolations.length > 0) {
+    console.log('- Hard cap violations:');
+    for (const violation of report.hardCapViolations) {
+      console.log(`  - ${violation.metric}: actual=${violation.actual} limit=${violation.limit}`);
+    }
+  }
+
   console.log(`- Report: ${reportPath}`);
 }
 
@@ -387,6 +408,7 @@ function main() {
   const current = {
     entrypoint: computeEntrypointMetrics(stats, assetSizeMap),
     chunks: computeChunkMetrics(stats, assetSizeMap),
+    totalGzipBytes: computeTotalGzipBytes(stats),
   };
 
   let baseline;
@@ -417,6 +439,9 @@ function main() {
       thresholds: {
         ...DEFAULT_THRESHOLDS,
         ...baseline.thresholds,
+      },
+      hardCaps: {
+        ...(baseline.hardCaps || {}),
       },
       forbiddenModulePatterns: baseline.forbiddenModulePatterns || [
         'node_modules/echarts/dist/echarts',
@@ -457,7 +482,26 @@ function main() {
 
   const forbiddenModules = findForbiddenModules(stats, baseline);
   const importViolations = scanSourceForImportViolations();
-  const status = summarizeStatus(metrics, forbiddenModules, importViolations);
+  const hardCaps = baseline.hardCaps || {};
+  const hardCapViolations = [];
+  if (hardCaps.entrypointRawMaxBytes && current.entrypoint.rawBytes > Number(hardCaps.entrypointRawMaxBytes)) {
+    hardCapViolations.push({
+      metric: 'entrypoint.rawBytes',
+      limit: Number(hardCaps.entrypointRawMaxBytes),
+      actual: current.entrypoint.rawBytes,
+    });
+  }
+  if (hardCaps.totalGzipMaxBytes && current.totalGzipBytes > Number(hardCaps.totalGzipMaxBytes)) {
+    hardCapViolations.push({
+      metric: 'bundle.totalGzipBytes',
+      limit: Number(hardCaps.totalGzipMaxBytes),
+      actual: current.totalGzipBytes,
+    });
+  }
+
+  const status = hardCapViolations.length > 0
+    ? 'FAIL'
+    : summarizeStatus(metrics, forbiddenModules, importViolations);
 
   const report = {
     status,
@@ -469,13 +513,16 @@ function main() {
       generatedAt: baseline.generatedAt,
       entrypoint: baseline.entrypoint,
       thresholds,
+      hardCaps,
     },
     entrypoint: current.entrypoint,
+    totalGzipBytes: current.totalGzipBytes,
     monitoredChunks: MONITORED_CHUNKS.reduce((acc, name) => {
       acc[name] = current.chunks[name] || { name, files: [], rawBytes: 0, gzipBytes: 0, brotliBytes: 0 };
       return acc;
     }, {}),
     metrics,
+    hardCapViolations,
     forbiddenModules,
     importViolations,
     topAssets: collectTopAssets(stats),

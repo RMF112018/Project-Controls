@@ -40,9 +40,9 @@ jobs:
       - name: Bundle (production)
         run: npm run bundle:ship:analyze
 
-      - name: Verify bundle size (PR warn)
+      - name: Verify bundle size (PR fail)
         if: github.event_name == 'pull_request'
-        run: npm run verify:bundle-size:warn
+        run: npm run verify:bundle-size:fail
 
       - name: Verify bundle size (main fail)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

@@ -65,6 +65,10 @@
     "warnAbsoluteBytes": 51200,
     "failAbsoluteBytes": 102400
   },
+  "hardCaps": {
+    "entrypointRawMaxBytes": 2097152,
+    "totalGzipMaxBytes": 4718592
+  },
   "forbiddenModulePatterns": [
     "node_modules/echarts/dist/echarts",
     "node_modules/echarts/echarts.js"

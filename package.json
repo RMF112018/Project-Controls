@@ -28,7 +28,7 @@
     "bundle:ship": "gulp bundle --ship",
     "bundle:ship:analyze": "gulp bundle --ship --analyze",
     "build:analyze": "npm run build:lib && gulp bundle --ship --analyze && gulp package-solution --ship",
-    "verify:bundle-size": "npm run bundle:ship:analyze && npm run verify:bundle-size:warn",
+    "verify:bundle-size": "npm run bundle:ship:analyze && npm run verify:bundle-size:fail",
     "verify:bundle-size:warn": "node scripts/verify-bundle-size.js --mode=warn",
     "verify:bundle-size:fail": "node scripts/verify-bundle-size.js --mode=fail",
     "bundle:baseline:update": "npm run bundle:ship:analyze && node scripts/verify-bundle-size.js --mode=warn --update-baseline",
@@ -55,6 +55,7 @@
     "test:e2e:teams-core-smoke": "playwright test playwright/teams-core-smoke.spec.ts",
     "test:a11y": "playwright test playwright/accessibility.spec.ts",
     "verify:sprint1": "npm run lint && npx tsc --noEmit && npm run test:ci && npm run test:e2e:router-parity && npm run test:e2e:teams-core-smoke && npm run test:a11y && npm run build:standalone:report && npm run verify:bundle-size:warn",
+    "verify:sprint2": "npm run lint && npx tsc --noEmit && npm run test:ci && npm run test:e2e:router-parity && npm run test:e2e:teams-core-smoke && npm run test:a11y && npm run build:standalone:report && npm run verify:bundle-size:fail",
     "test:storybook": "test-storybook",
     "postinstall": "npm run build:lib",
     "clean:dev": "rm -rf node_modules packages/hbc-sp-services/node_modules packages/hbc-sp-services/lib dev/dist && npm install"
@@ -92,7 +93,6 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-joyride": "^2.9.3",
-    "react-router-dom": "^6.22.3",
     "tslib": "^2.6.2",
     "workbox-window": "^7.4.0",
     "xlsx": "^0.18.5"
@@ -119,7 +119,6 @@
     "@types/node": "^22.19.11",
     "@types/react": "18.2.0",
     "@types/react-dom": "18.2.0",
-    "@types/react-router-dom": "^5.3.3",
     "@types/webpack-env": "^1.18.8",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
