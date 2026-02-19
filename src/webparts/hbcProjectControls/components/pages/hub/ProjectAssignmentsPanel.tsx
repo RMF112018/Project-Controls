@@ -7,10 +7,11 @@ import {
 } from '@fluentui/react-icons';
 import { useAppContext } from '../../contexts/AppContext';
 import { usePermissionEngine } from '../../hooks/usePermissionEngine';
-import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { AzureADPeoplePicker } from '../../shared/AzureADPeoplePicker';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { StatusBadge } from '../../shared/StatusBadge';
+import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
+import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 import {
   IProjectTeamAssignment,
   IPersonAssignment,
@@ -199,7 +200,7 @@ export const ProjectAssignmentsPanel: React.FC = () => {
     boxSizing: 'border-box' as const,
   };
 
-  const projectColumns: IDataTableColumn<IProjectRow>[] = [
+  const projectColumns: IHbcTanStackTableColumn<IProjectRow>[] = [
     {
       key: 'projectCode', header: 'Project Code', width: '130px', sortable: true, render: (row) => (
         <span style={{ fontFamily: 'monospace', fontWeight: 600, color: HBC_COLORS.navy }}>{row.projectCode}</span>
@@ -241,7 +242,7 @@ export const ProjectAssignmentsPanel: React.FC = () => {
     },
   ];
 
-  const assignmentColumns: IDataTableColumn<IProjectTeamAssignment>[] = [
+  const assignmentColumns: IHbcTanStackTableColumn<IProjectTeamAssignment>[] = [
     {
       key: 'name', header: 'Name', render: (a) => (
         <div>
@@ -303,12 +304,13 @@ export const ProjectAssignmentsPanel: React.FC = () => {
       }}>
         {/* Sub-table of assignments */}
         <div style={{ marginBottom: '16px' }}>
-          <DataTable<IProjectTeamAssignment>
+          <HbcTanStackTable<IProjectTeamAssignment>
             columns={assignmentColumns}
             items={members}
             keyExtractor={a => a.id}
             emptyTitle="No team members assigned"
             emptyDescription="Use the form below to assign team members."
+            ariaLabel="Project team assignments table"
           />
         </div>
 
@@ -341,6 +343,7 @@ export const ProjectAssignmentsPanel: React.FC = () => {
                 Role
               </label>
               <select
+                aria-label="Select project role"
                 value={formRole}
                 onChange={e => setFormRole(e.target.value)}
                 style={{ ...inputStyle, width: '100%' }}
@@ -356,6 +359,7 @@ export const ProjectAssignmentsPanel: React.FC = () => {
                 Template Override (Optional)
               </label>
               <select
+                aria-label="Select template override"
                 value={formTemplateOverrideId || ''}
                 onChange={e => setFormTemplateOverrideId(e.target.value ? Number(e.target.value) : undefined)}
                 style={{ ...inputStyle, width: '100%' }}
@@ -412,13 +416,14 @@ export const ProjectAssignmentsPanel: React.FC = () => {
       </div>
 
       {/* Project table */}
-      <DataTable<IProjectRow>
+      <HbcTanStackTable<IProjectRow>
         columns={projectColumns}
         items={projectRows}
         keyExtractor={row => row.projectCode}
         onRowClick={(row) => handleExpandToggle(row.projectCode)}
         emptyTitle="No project assignments"
         emptyDescription="Assign users to projects using the admin interface."
+        ariaLabel="Projects with team assignment counts table"
       />
 
       {/* Expanded section renders below the project table */}

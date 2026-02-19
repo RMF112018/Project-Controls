@@ -8,8 +8,6 @@ export { EmptyState } from './EmptyState';
 export { PageHeader } from './PageHeader';
 export { ConfirmDialog } from './ConfirmDialog';
 export { SearchBar } from './SearchBar';
-export { DataTable } from './DataTable';
-export type { IDataTableColumn } from './DataTable';
 export { PipelineChart } from './PipelineChart';
 export { ExportButtons } from './ExportButtons';
 export { StageIndicator } from './StageIndicator';

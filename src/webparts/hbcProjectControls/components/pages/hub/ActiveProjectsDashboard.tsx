@@ -22,7 +22,8 @@ import {
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { KPICard } from '../../shared/KPICard';
-import { DataTable, IDataTableColumn } from '../../shared/DataTable';
+import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
+import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ExportButtons } from '../../shared/ExportButtons';
@@ -200,7 +201,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
   }), [regionBacklogData]);
 
   // Table columns
-  const columns: IDataTableColumn<IActiveProject>[] = React.useMemo(() => [
+  const columns: IHbcTanStackTableColumn<IActiveProject>[] = React.useMemo(() => [
     {
       key: 'jobNumber',
       header: 'Job #',
@@ -347,7 +348,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
   ], [handlePersonnelClick]);
 
   // Data Mart enriched columns
-  const dataMartColumns: IDataTableColumn<IProjectDataMart>[] = React.useMemo(() => [
+  const dataMartColumns: IHbcTanStackTableColumn<IProjectDataMart>[] = React.useMemo(() => [
     { key: 'jobNumber', header: 'Job #', width: '90px', render: (r) => <span style={{ fontWeight: 600, color: HBC_COLORS.navy }}>{r.jobNumber}</span> },
     { key: 'projectName', header: 'Project', render: (r) => r.projectName },
     { key: 'overallHealth', header: 'Health', width: '80px', render: (r) => {
@@ -675,7 +676,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
             {viewMode === 'standard' ? (
               <>
                 {sectionTitle(`All Projects (${filteredProjects.length})`)}
-                <DataTable<IActiveProject>
+                <HbcTanStackTable<IActiveProject>
                   columns={columns}
                   items={filteredProjects}
                   keyExtractor={(p) => p.id}
@@ -691,12 +692,14 @@ export const ActiveProjectsDashboard: React.FC = () => {
                   emptyTitle="No projects found"
                   emptyDescription="Try adjusting your filters"
                   pageSize={20}
+                  virtualization={{ enabled: true, threshold: 200 }}
+                  ariaLabel="Active projects table"
                 />
               </>
             ) : (
               <>
                 {sectionTitle(`Data Mart View (${dataMartRecords.length})`)}
-                <DataTable<IProjectDataMart>
+                <HbcTanStackTable<IProjectDataMart>
                   columns={dataMartColumns}
                   items={dataMartRecords}
                   keyExtractor={(r) => r.id}
@@ -711,6 +714,8 @@ export const ActiveProjectsDashboard: React.FC = () => {
                   emptyTitle="No Data Mart records"
                   emptyDescription="Run a sync to populate Data Mart"
                   pageSize={20}
+                  virtualization={{ enabled: true, threshold: 200 }}
+                  ariaLabel="Data mart projects table"
                 />
               </>
             )}

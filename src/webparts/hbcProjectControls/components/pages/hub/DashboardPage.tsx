@@ -38,7 +38,8 @@ import { useResponsive } from '../../hooks/useResponsive';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { KPICard } from '../../shared/KPICard';
-import { DataTable, IDataTableColumn } from '../../shared/DataTable';
+import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
+import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
@@ -231,7 +232,7 @@ export const DashboardPage: React.FC = () => {
   }, [filteredLeads]);
 
   // Table columns
-  const recentLeadColumns: IDataTableColumn<ILead>[] = React.useMemo(() => [
+  const recentLeadColumns: IHbcTanStackTableColumn<ILead>[] = React.useMemo(() => [
     { key: 'Title', header: 'Project', render: (l) => <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{l.Title}</span> },
     { key: 'ClientName', header: 'Client', width: '140px', render: (l) => l.ClientName },
     { key: 'Region', header: 'Region', width: '120px', render: (l) => l.Region },
@@ -241,7 +242,7 @@ export const DashboardPage: React.FC = () => {
     { key: 'ProjectValue', header: 'Value', width: '100px', render: (l) => formatCurrencyCompact(l.ProjectValue) },
   ], []);
 
-  const deadlineColumns: IDataTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
+  const deadlineColumns: IHbcTanStackTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
     { key: 'Title', header: 'Project', render: (r) => <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{r.Title}</span> },
     { key: 'DueDate_OutTheDoor', header: 'Due', width: '100px', render: (r) => formatDate(r.DueDate_OutTheDoor) },
     { key: 'LeadEstimator', header: 'Estimator', width: '100px', render: (r) => r.LeadEstimator || '-' },
@@ -252,7 +253,7 @@ export const DashboardPage: React.FC = () => {
     }},
   ], []);
 
-  const gonogoColumns: IDataTableColumn<ILead>[] = React.useMemo(() => [
+  const gonogoColumns: IHbcTanStackTableColumn<ILead>[] = React.useMemo(() => [
     { key: 'Title', header: 'Project', render: (l) => <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{l.Title}</span> },
     { key: 'GoNoGoDecision', header: 'Decision', width: '90px', render: (l) => {
       const decision = l.GoNoGoDecision!;
@@ -434,18 +435,42 @@ export const DashboardPage: React.FC = () => {
 
         {/* Filters */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <Select size="small" value={yearFilter} onChange={(_, d) => setYearFilter(d.value)} style={{ minWidth: '100px' }}>
+          <Select
+            size="small"
+            aria-label="Filter dashboard by year"
+            value={yearFilter}
+            onChange={(_, d) => setYearFilter(d.value)}
+            style={{ minWidth: '100px' }}
+          >
             {years.map(y => <option key={y} value={y}>{y === 'All' ? 'All Years' : y}</option>)}
           </Select>
-          <Select size="small" value={regionFilter} onChange={(_, d) => setRegionFilter(d.value)} style={{ minWidth: '140px' }}>
+          <Select
+            size="small"
+            aria-label="Filter dashboard by region"
+            value={regionFilter}
+            onChange={(_, d) => setRegionFilter(d.value)}
+            style={{ minWidth: '140px' }}
+          >
             <option value="All">All Regions</option>
             {Object.values(Region).map(r => <option key={r} value={r}>{r}</option>)}
           </Select>
-          <Select size="small" value={divisionFilter} onChange={(_, d) => setDivisionFilter(d.value)} style={{ minWidth: '140px' }}>
+          <Select
+            size="small"
+            aria-label="Filter dashboard by division"
+            value={divisionFilter}
+            onChange={(_, d) => setDivisionFilter(d.value)}
+            style={{ minWidth: '140px' }}
+          >
             <option value="All">All Divisions</option>
             {Object.values(Division).map(d => <option key={d} value={d}>{d}</option>)}
           </Select>
-          <Select size="small" value={chartMode} onChange={(_, d) => setChartMode(d.value as 'count' | 'value')} style={{ minWidth: '100px' }}>
+          <Select
+            size="small"
+            aria-label="Select dashboard chart mode"
+            value={chartMode}
+            onChange={(_, d) => setChartMode(d.value as 'count' | 'value')}
+            style={{ minWidth: '100px' }}
+          >
             <option value="count">Count</option>
             <option value="value">Value</option>
           </Select>
@@ -637,35 +662,41 @@ export const DashboardPage: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '16px' }}>
           <div>
             {sectionTitle('Top Pursuits')}
-            <DataTable<ILead>
+            <HbcTanStackTable<ILead>
               columns={recentLeadColumns}
               items={topPursuits}
               keyExtractor={l => l.id}
               onRowClick={l => navigate(`/lead/${l.id}`)}
               emptyTitle="No active pursuits"
               pageSize={10}
+              virtualization={{ enabled: true, threshold: 200 }}
+              ariaLabel="Top pursuits table"
             />
           </div>
           <div>
             {sectionTitle('Upcoming Deadlines')}
-            <DataTable<IEstimatingTracker>
+            <HbcTanStackTable<IEstimatingTracker>
               columns={deadlineColumns}
               items={upcomingDeadlines}
               keyExtractor={r => r.id}
               onRowClick={r => navigate(`/preconstruction/pursuit/${r.id}`)}
               emptyTitle="No deadlines"
               pageSize={10}
+              virtualization={{ enabled: true, threshold: 200 }}
+              ariaLabel="Upcoming deadlines table"
             />
           </div>
           <div>
             {sectionTitle('Recent Go/No-Go')}
-            <DataTable<ILead>
+            <HbcTanStackTable<ILead>
               columns={gonogoColumns}
               items={recentGoNoGo}
               keyExtractor={l => l.id}
               onRowClick={l => navigate(`/lead/${l.id}/gonogo/detail`)}
               emptyTitle="No decisions"
               pageSize={10}
+              virtualization={{ enabled: true, threshold: 200 }}
+              ariaLabel="Recent go no-go decisions table"
             />
           </div>
         </div>

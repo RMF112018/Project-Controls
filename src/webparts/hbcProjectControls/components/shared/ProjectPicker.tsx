@@ -122,7 +122,7 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
           <span style={{ flex: 1, fontWeight: 500, color: HBC_COLORS.navy, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {selected.projectName}
           </span>
-          <span style={{ color: HBC_COLORS.gray400, fontSize: 11 }}>{selected.projectCode}</span>
+            <span style={{ color: HBC_COLORS.gray600, fontSize: 11 }}>{selected.projectCode}</span>
         </div>
       </div>
     );
@@ -152,14 +152,14 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
             </span>
             <span
               onClick={handleClear}
-              style={{ color: HBC_COLORS.gray400, cursor: 'pointer', fontSize: '16px', lineHeight: 1, flexShrink: 0 }}
+              style={{ color: HBC_COLORS.gray600, cursor: 'pointer', fontSize: '16px', lineHeight: 1, flexShrink: 0 }}
               title="Clear selection"
             >
               &times;
             </span>
           </>
         ) : (
-          <span style={{ flex: 1, color: HBC_COLORS.gray400 }}>Select a project...</span>
+          <span style={{ flex: 1, color: HBC_COLORS.gray600 }}>Select a project...</span>
         )}
       </div>
 
@@ -196,7 +196,7 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
           </div>
 
           {filtered.length === 0 ? (
-            <div style={{ padding: '16px', textAlign: 'center', color: HBC_COLORS.gray400, fontSize: '13px' }}>
+            <div style={{ padding: '16px', textAlign: 'center', color: HBC_COLORS.gray600, fontSize: '13px' }}>
               {accessibleCodes !== null && accessibleCodes.length === 0
                 ? 'No projects assigned to you'
                 : 'No matching projects'}
@@ -210,7 +210,7 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
                     padding: '6px 12px',
                     fontSize: '10px',
                     fontWeight: 700,
-                    color: HBC_COLORS.gray400,
+                    color: HBC_COLORS.gray600,
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
                     backgroundColor: HBC_COLORS.gray50,
@@ -236,7 +236,7 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
                     >
                       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{p.projectName}</span>
-                        <span style={{ color: HBC_COLORS.gray400, marginLeft: '6px' }}>{p.projectCode}</span>
+                        <span style={{ color: HBC_COLORS.gray600, marginLeft: '6px' }}>{p.projectCode}</span>
                       </span>
                     </div>
                   ))}

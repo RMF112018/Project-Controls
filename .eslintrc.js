@@ -28,6 +28,17 @@ module.exports = {
         '@typescript-eslint/no-var-requires': 'off',
         'prefer-const': 'off'
       }
+    },
+    {
+      files: ['src/webparts/hbcProjectControls/components/**/*.ts', 'src/webparts/hbcProjectControls/components/**/*.tsx'],
+      rules: {
+        'no-restricted-imports': ['error', {
+          patterns: [{
+            group: ['**/shared/DataTable'],
+            message: 'DataTable is removed. Use HbcTanStackTable from tanstack/table.'
+          }]
+        }]
+      }
     }
   ]
 };

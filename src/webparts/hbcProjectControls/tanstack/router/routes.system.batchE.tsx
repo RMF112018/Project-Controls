@@ -1,0 +1,52 @@
+import * as React from 'react';
+import { createRoute } from '@tanstack/react-router';
+import { PERMISSIONS } from '@hbc/sp-services';
+import type { ITanStackRouteContext } from './routeContext';
+import { requireFeature } from './guards/requireFeature';
+import { requirePermission } from './guards/requirePermission';
+import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
+import { MarketingDashboard } from '../../components/pages/hub/MarketingDashboard';
+import { AccessDeniedPage } from '../../components/pages/shared/AccessDeniedPage';
+
+const NotFoundPage: React.FC = () => (
+  <div style={{ padding: 48, textAlign: 'center' }}>
+    <h2>Page Not Found</h2>
+    <p>The page you requested does not exist.</p>
+  </div>
+);
+
+function requirePilot(context: ITanStackRouteContext): void {
+  requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
+}
+
+export function guardMarketing(context: ITanStackRouteContext): void {
+  requirePilot(context);
+  requirePermission(context, PERMISSIONS.MARKETING_DASHBOARD_VIEW);
+}
+
+export function createSystemBatchERoutes(rootRoute: unknown) {
+  const marketingRoute = createRoute({
+    getParentRoute: () => rootRoute as never,
+    path: '/marketing',
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardMarketing(context),
+    component: MarketingDashboard,
+  });
+
+  const accessDeniedRoute = createRoute({
+    getParentRoute: () => rootRoute as never,
+    path: '/access-denied',
+    component: AccessDeniedPage,
+  });
+
+  const notFoundRoute = createRoute({
+    getParentRoute: () => rootRoute as never,
+    path: '/$',
+    component: NotFoundPage,
+  });
+
+  return [
+    marketingRoute,
+    accessDeniedRoute,
+    notFoundRoute,
+  ] as unknown[];
+}

@@ -29,11 +29,12 @@ import { PipelineChart } from '../../shared/PipelineChart';
 import { StageBadge } from '../../shared/StageBadge';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
-import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { useSectorDefinitions } from '../../hooks/useSectorDefinitions';
 import { HBC_COLORS } from '../../../theme/tokens';
+import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
+import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 
 const TAB_PATHS = ['/preconstruction/pipeline', '/preconstruction/pipeline/gonogo'];
 const TAB_LABELS = ['Pipeline', 'Go/No-Go Tracker'];
@@ -132,7 +133,7 @@ export const PipelinePage: React.FC = () => {
     })),
   [filteredLeads]);
 
-  const columns: IDataTableColumn<ILead>[] = React.useMemo(() => [
+  const columns: IHbcTanStackTableColumn<ILead>[] = React.useMemo(() => [
     {
       key: 'Title',
       header: 'Project',
@@ -337,7 +338,7 @@ export const PipelinePage: React.FC = () => {
     return result;
   }, [activeGonogoRows, gonogoRegionFilter, gonogoSectorFilter, gonogoBdRepFilter, gonogoStatusFilter]);
 
-  const gonogoColumns: IDataTableColumn<IScorecardRow>[] = React.useMemo(() => [
+  const gonogoColumns: IHbcTanStackTableColumn<IScorecardRow>[] = React.useMemo(() => [
     { key: 'title', header: 'Lead Title', sortable: true,
       render: (r) => (
         <span
@@ -481,22 +482,22 @@ export const PipelinePage: React.FC = () => {
             </div>
 
             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <Select value={stageFilter} onChange={(_, data) => setStageFilter(data.value)} style={{ minWidth: '160px' }}>
+              <Select aria-label="Filter pipeline by stage" value={stageFilter} onChange={(_, data) => setStageFilter(data.value)} style={{ minWidth: '160px' }}>
                 <option value="all">All Stages</option>
                 {Object.values(Stage).map(s => <option key={s} value={s}>{s}</option>)}
               </Select>
-              <Select value={regionFilter} onChange={(_, data) => setRegionFilter(data.value)} style={{ minWidth: '160px' }}>
+              <Select aria-label="Filter pipeline by region" value={regionFilter} onChange={(_, data) => setRegionFilter(data.value)} style={{ minWidth: '160px' }}>
                 <option value="all">All Regions</option>
                 {Object.values(Region).map(r => <option key={r} value={r}>{r}</option>)}
               </Select>
-              <Select value={sectorFilter} onChange={(_, data) => setSectorFilter(data.value)} style={{ minWidth: '160px' }}>
+              <Select aria-label="Filter pipeline by sector" value={sectorFilter} onChange={(_, data) => setSectorFilter(data.value)} style={{ minWidth: '160px' }}>
                 <option value="all">All Sectors</option>
                 {(isFeatureEnabled('PermissionEngine') && activeSectors.length > 0
                   ? activeSectors.map(s => <option key={s.label} value={s.label}>{s.label}</option>)
                   : Object.values(Sector).map(s => <option key={s} value={s}>{s}</option>)
                 )}
               </Select>
-              <Select value={divisionFilter} onChange={(_, data) => setDivisionFilter(data.value)} style={{ minWidth: '160px' }}>
+              <Select aria-label="Filter pipeline by division" value={divisionFilter} onChange={(_, data) => setDivisionFilter(data.value)} style={{ minWidth: '160px' }}>
                 <option value="all">All Divisions</option>
                 {Object.values(Division).map(d => <option key={d} value={d}>{d}</option>)}
               </Select>
@@ -504,7 +505,7 @@ export const PipelinePage: React.FC = () => {
                 <Button size="small" appearance="subtle" onClick={clearFilters}>Clear Filters</Button>
               )}
             </div>
-            <DataTable<ILead>
+            <HbcTanStackTable<ILead>
               columns={columns}
               items={filteredLeads}
               keyExtractor={(lead) => lead.id}
@@ -512,6 +513,7 @@ export const PipelinePage: React.FC = () => {
               sortField={sortField}
               sortAsc={sortAsc}
               onSort={handleSort}
+              ariaLabel="Pipeline leads table"
               emptyTitle="No leads found"
               emptyDescription={hasActiveFilters ? 'Try adjusting your filters' : 'No leads in the pipeline'}
             />
@@ -549,16 +551,17 @@ export const PipelinePage: React.FC = () => {
               display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center',
               padding: '12px', backgroundColor: HBC_COLORS.gray50, borderRadius: '8px', border: `1px solid ${HBC_COLORS.gray200}`,
             }}>
-              <select style={selectStyle} value={gonogoRegionFilter} onChange={e => setGonogoRegionFilter(e.target.value)}>
+              <select aria-label="Filter by region" style={selectStyle} value={gonogoRegionFilter} onChange={e => setGonogoRegionFilter(e.target.value)}>
                 {gonogoRegions.map(r => <option key={r} value={r}>{r === 'All' ? 'All Regions' : r}</option>)}
               </select>
-              <select style={selectStyle} value={gonogoSectorFilter} onChange={e => setGonogoSectorFilter(e.target.value)}>
+              <select aria-label="Filter by sector" style={selectStyle} value={gonogoSectorFilter} onChange={e => setGonogoSectorFilter(e.target.value)}>
                 {gonogoSectors.map(s => <option key={s} value={s}>{s === 'All' ? 'All Sectors' : s}</option>)}
               </select>
-              <select style={selectStyle} value={gonogoBdRepFilter} onChange={e => setGonogoBdRepFilter(e.target.value)}>
+              <select aria-label="Filter by business development representative" style={selectStyle} value={gonogoBdRepFilter} onChange={e => setGonogoBdRepFilter(e.target.value)}>
                 {gonogoBdReps.map(b => <option key={b} value={b}>{b === 'All' ? 'All BD Reps' : b}</option>)}
               </select>
               <select
+                aria-label="Filter by scorecard status"
                 style={selectStyle}
                 value={gonogoStatusFilter.length === 1 ? gonogoStatusFilter[0] : ''}
                 onChange={e => setGonogoStatusFilter(e.target.value ? [e.target.value] : [])}
@@ -571,7 +574,7 @@ export const PipelinePage: React.FC = () => {
               )}
             </div>
 
-            <DataTable<IScorecardRow>
+            <HbcTanStackTable<IScorecardRow>
               columns={gonogoColumns}
               items={gonogoFiltered}
               keyExtractor={r => r.id}
@@ -579,6 +582,7 @@ export const PipelinePage: React.FC = () => {
               sortAsc={gonogoSortAsc}
               onSort={handleGonogoSort}
               onRowClick={(r) => { if (r.lead) navigate(`/lead/${r.lead.id}/gonogo`); }}
+              ariaLabel="Go or no-go scorecards table"
               emptyTitle={gonogoSubTab === 'pending' ? 'No pending scorecards' : 'No archived scorecards'}
               emptyDescription={hasGonogoFilters ? 'Try adjusting your filters' : (gonogoSubTab === 'pending' ? 'Scorecards in progress will appear here' : 'Completed scorecards will appear here')}
             />

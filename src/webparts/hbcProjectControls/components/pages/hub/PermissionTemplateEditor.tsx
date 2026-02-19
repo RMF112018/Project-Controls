@@ -3,9 +3,10 @@ import { Button } from '@fluentui/react-components';
 import { useAppContext } from '../../contexts/AppContext';
 import { usePermissionEngine } from '../../hooks/usePermissionEngine';
 import { ToolPermissionMatrix } from '../../shared/ToolPermissionMatrix';
-import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { StatusBadge } from '../../shared/StatusBadge';
+import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
+import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 import {
   IPermissionTemplate,
   IToolAccess,
@@ -181,12 +182,13 @@ export const PermissionTemplateEditor: React.FC = () => {
   };
 
   // Security group mappings columns
-  const mappingColumns: IDataTableColumn<ISecurityGroupMapping>[] = [
+  const mappingColumns: IHbcTanStackTableColumn<ISecurityGroupMapping>[] = [
     { key: 'group', header: 'Security Group', render: (m) => (
       <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{m.securityGroupName}</span>
     )},
     { key: 'template', header: 'Default Template', width: '220px', render: (m) => (
       <select
+        aria-label={`Default template mapping for ${m.securityGroupName}`}
         value={m.defaultTemplateId}
         onChange={(e) => { handleMappingChange(m.id, Number(e.target.value)).catch(console.error); }}
         style={{ ...inputStyle, width: 'auto', minWidth: '180px' }}
@@ -269,11 +271,12 @@ export const PermissionTemplateEditor: React.FC = () => {
           <p style={{ fontSize: '13px', color: HBC_COLORS.gray500, margin: '0 0 16px 0' }}>
             Map Entra ID security groups to default permission templates. When a user authenticates, their group membership determines their base template.
           </p>
-          <DataTable<ISecurityGroupMapping>
+          <HbcTanStackTable<ISecurityGroupMapping>
             columns={mappingColumns}
             items={securityGroupMappings}
             keyExtractor={m => m.id}
             emptyTitle="No group mappings configured"
+            ariaLabel="Permission security group mappings table"
           />
         </div>
       )}

@@ -98,7 +98,7 @@ export const RoleSwitcher: React.FC<IRoleSwitcherProps> = ({
               LIVE DATA
             </span>
             {standaloneUser && (
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.92)' }}>
                 {standaloneUser.displayName || standaloneUser.email}
               </span>
             )}
@@ -131,8 +131,8 @@ export const RoleSwitcher: React.FC<IRoleSwitcherProps> = ({
           <span
             style={{
               display: 'inline-block',
-              background: role === DEV_SUPER_ADMIN ? '#EF4444' : '#E87722',
-              color: '#fff',
+              background: role === DEV_SUPER_ADMIN ? '#B42318' : '#E87722',
+              color: role === DEV_SUPER_ADMIN ? '#fff' : '#1B2A4A',
               fontSize: 10,
               fontWeight: 700,
               borderRadius: 10,
@@ -150,6 +150,7 @@ export const RoleSwitcher: React.FC<IRoleSwitcherProps> = ({
 
           {/* Dropdown */}
           <select
+            aria-label="Select mock role"
             value={role}
             onChange={(e) => onRoleChange(e.target.value as RoleValue)}
             style={{
@@ -158,7 +159,7 @@ export const RoleSwitcher: React.FC<IRoleSwitcherProps> = ({
               background: 'transparent',
               border: '1px solid rgba(255,255,255,0.2)',
               borderRadius: 4,
-              color: 'rgba(255,255,255,0.85)',
+              color: '#FFFFFF',
               fontSize: 11,
               fontWeight: 500,
               padding: '2px 22px 2px 8px',

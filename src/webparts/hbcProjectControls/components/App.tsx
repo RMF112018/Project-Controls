@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { FluentProvider } from '@fluentui/react-components';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { hbcLightTheme } from '../theme/hbcTheme';
-import { AppProvider } from './contexts/AppContext';
+import { AppProvider, useAppContext } from './contexts/AppContext';
 import { HelpProvider } from './contexts/HelpContext';
 import { SignalRProvider } from './contexts/SignalRContext';
 import { AppShell } from './layouts/AppShell';
@@ -18,6 +18,9 @@ import type { ITelemetryService } from '@hbc/sp-services';
 import { ProtectedRoute, ProjectRequiredRoute, FeatureGate } from './guards';
 import { useTelemetryPageView } from '../hooks/useTelemetryPageView';
 import { getQueryClient } from '../tanstack/query/queryClient';
+import { useQueryScope } from '../tanstack/query/useQueryScope';
+import { TanStackPilotRouter } from '../tanstack/router/router';
+import { TANSTACK_ROUTER_PILOT_FLAG } from '../tanstack/router/constants';
 
 // ---------------------------------------------------------------------------
 // Helper: wrap React.lazy() for named exports
@@ -116,6 +119,22 @@ const NotFoundPage: React.FC = () => (
 
 const AppRoutes: React.FC = () => {
   useTelemetryPageView();
+  const { dataService, currentUser, selectedProject, isFeatureEnabled } = useAppContext();
+  const scope = useQueryScope();
+  const queryClient = useQueryClient();
+  const isTanStackRouterPilotEnabled = isFeatureEnabled(TANSTACK_ROUTER_PILOT_FLAG);
+
+  const renderTanStackPilotRoute = (): React.ReactElement => (
+    <TanStackPilotRouter
+      queryClient={queryClient}
+      dataService={dataService}
+      currentUser={currentUser}
+      selectedProject={selectedProject}
+      isFeatureEnabled={isFeatureEnabled}
+      scope={scope}
+    />
+  );
+
   return (
   <React.Suspense fallback={<PageLoader />}>
     <Routes>
@@ -123,125 +142,125 @@ const AppRoutes: React.FC = () => {
       <Route path="/" element={<DashboardPage />} />
 
       {/* Marketing */}
-      <Route path="/marketing" element={
+      <Route path="/marketing" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProtectedRoute permission={PERMISSIONS.MARKETING_DASHBOARD_VIEW}>
           <MarketingDashboard />
         </ProtectedRoute>
-      } />
+      )} />
 
       {/* Preconstruction */}
-      <Route path="/preconstruction" element={
+      <Route path="/preconstruction" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="EstimatingTracker" fallback={<NotFoundPage />}>
           <EstimatingDashboard />
         </FeatureGate>
-      } />
-      <Route path="/preconstruction/pipeline" element={
+      )} />
+      <Route path="/preconstruction/pipeline" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="PipelineDashboard" fallback={<NotFoundPage />}>
           <PipelinePage />
         </FeatureGate>
-      } />
-      <Route path="/preconstruction/pipeline/gonogo" element={
+      )} />
+      <Route path="/preconstruction/pipeline/gonogo" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="PipelineDashboard" fallback={<NotFoundPage />}>
           <PipelinePage />
         </FeatureGate>
-      } />
-      <Route path="/preconstruction/gonogo" element={
+      )} />
+      <Route path="/preconstruction/gonogo" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="PipelineDashboard" fallback={<NotFoundPage />}>
           <PipelinePage />
         </FeatureGate>
-      } />
-      <Route path="/preconstruction/precon-tracker" element={
+      )} />
+      <Route path="/preconstruction/precon-tracker" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="EstimatingTracker" fallback={<NotFoundPage />}>
           <EstimatingDashboard />
         </FeatureGate>
-      } />
-      <Route path="/preconstruction/estimate-log" element={
+      )} />
+      <Route path="/preconstruction/estimate-log" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="EstimatingTracker" fallback={<NotFoundPage />}>
           <EstimatingDashboard />
         </FeatureGate>
-      } />
-      <Route path="/preconstruction/kickoff-list" element={
+      )} />
+      <Route path="/preconstruction/kickoff-list" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProtectedRoute permission={PERMISSIONS.KICKOFF_VIEW}>
           <EstimatingKickoffList />
         </ProtectedRoute>
-      } />
-      <Route path="/preconstruction/autopsy-list" element={
+      )} />
+      <Route path="/preconstruction/autopsy-list" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="LossAutopsy" fallback={<NotFoundPage />}>
           <ProtectedRoute permission={PERMISSIONS.AUTOPSY_VIEW}>
             <PostBidAutopsyList />
           </ProtectedRoute>
         </FeatureGate>
-      } />
-      <Route path="/preconstruction/pursuit/:id" element={<PursuitDetail />} />
-      <Route path="/preconstruction/pursuit/:id/kickoff" element={
+      )} />
+      <Route path="/preconstruction/pursuit/:id" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : <PursuitDetail />} />
+      <Route path="/preconstruction/pursuit/:id/kickoff" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProtectedRoute permission={PERMISSIONS.KICKOFF_VIEW}>
           <EstimatingKickoffPage />
         </ProtectedRoute>
-      } />
-      <Route path="/preconstruction/pursuit/:id/interview" element={<InterviewPrep />} />
-      <Route path="/preconstruction/pursuit/:id/winloss" element={<WinLossRecorder />} />
-      <Route path="/preconstruction/pursuit/:id/turnover" element={
+      )} />
+      <Route path="/preconstruction/pursuit/:id/interview" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : <InterviewPrep />} />
+      <Route path="/preconstruction/pursuit/:id/winloss" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : <WinLossRecorder />} />
+      <Route path="/preconstruction/pursuit/:id/turnover" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="TurnoverWorkflow" fallback={<NotFoundPage />}>
           <TurnoverToOps />
         </FeatureGate>
-      } />
-      <Route path="/preconstruction/pursuit/:id/autopsy" element={
+      )} />
+      <Route path="/preconstruction/pursuit/:id/autopsy" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="LossAutopsy" fallback={<NotFoundPage />}>
           <LossAutopsy />
         </FeatureGate>
-      } />
-      <Route path="/preconstruction/pursuit/:id/autopsy-form" element={
+      )} />
+      <Route path="/preconstruction/pursuit/:id/autopsy-form" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="LossAutopsy" fallback={<NotFoundPage />}>
           <ProtectedRoute permission={PERMISSIONS.AUTOPSY_VIEW}>
             <PostBidAutopsyForm />
           </ProtectedRoute>
         </FeatureGate>
-      } />
-      <Route path="/preconstruction/pursuit/:id/deliverables" element={<DeliverablesTracker />} />
+      )} />
+      <Route path="/preconstruction/pursuit/:id/deliverables" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : <DeliverablesTracker />} />
 
       {/* Lead */}
-      <Route path="/lead/new" element={
+      <Route path="/lead/new" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="LeadIntake" fallback={<NotFoundPage />}>
           <LeadFormPage />
         </FeatureGate>
-      } />
-      <Route path="/lead/:id" element={<LeadDetailPage />} />
-      <Route path="/lead/:id/gonogo" element={
+      )} />
+      <Route path="/lead/:id" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : <LeadDetailPage />} />
+      <Route path="/lead/:id/gonogo" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="GoNoGoScorecard" fallback={<NotFoundPage />}>
           <GoNoGoScorecard />
         </FeatureGate>
-      } />
-      <Route path="/lead/:id/gonogo/detail" element={
+      )} />
+      <Route path="/lead/:id/gonogo/detail" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="GoNoGoScorecard" fallback={<NotFoundPage />}>
           <GoNoGoDetail />
         </FeatureGate>
-      } />
-      <Route path="/lead/:id/schedule-gonogo" element={
+      )} />
+      <Route path="/lead/:id/schedule-gonogo" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="GoNoGoScorecard" fallback={<NotFoundPage />}>
           <GoNoGoMeetingScheduler />
         </FeatureGate>
-      } />
+      )} />
 
       {/* Operations */}
-      <Route path="/operations" element={
+      <Route path="/operations" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProtectedRoute permission={PERMISSIONS.ACTIVE_PROJECTS_VIEW}>
           <ActiveProjectsDashboard />
         </ProtectedRoute>
-      } />
-      <Route path="/operations/project" element={
+      )} />
+      <Route path="/operations/project" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProjectRequiredRoute><ProjectDashboard /></ProjectRequiredRoute>
-      } />
-      <Route path="/operations/project-settings" element={
+      )} />
+      <Route path="/operations/project-settings" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="ContractTracking" fallback={<NotFoundPage />}>
           <ProjectRequiredRoute><ProjectSettingsPage /></ProjectRequiredRoute>
         </FeatureGate>
-      } />
-      <Route path="/operations/startup-checklist" element={
+      )} />
+      <Route path="/operations/startup-checklist" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="ProjectStartup" fallback={<NotFoundPage />}>
           <ProjectRequiredRoute><ProjectStartupChecklist /></ProjectRequiredRoute>
         </FeatureGate>
-      } />
-      <Route path="/operations/management-plan" element={
+      )} />
+      <Route path="/operations/management-plan" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="ProjectManagementPlan" fallback={<NotFoundPage />}>
           <ProjectRequiredRoute>
             <ProtectedRoute permission={PERMISSIONS.PMP_EDIT}>
@@ -249,79 +268,79 @@ const AppRoutes: React.FC = () => {
             </ProtectedRoute>
           </ProjectRequiredRoute>
         </FeatureGate>
-      } />
-      <Route path="/operations/superintendent-plan" element={
+      )} />
+      <Route path="/operations/superintendent-plan" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProjectRequiredRoute><SuperintendentPlanPage /></ProjectRequiredRoute>
-      } />
-      <Route path="/operations/responsibility" element={
+      )} />
+      <Route path="/operations/responsibility" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="ProjectStartup" fallback={<NotFoundPage />}>
           <ProjectRequiredRoute><ResponsibilityMatrices /></ProjectRequiredRoute>
         </FeatureGate>
-      } />
-      <Route path="/operations/responsibility/owner-contract" element={
+      )} />
+      <Route path="/operations/responsibility/owner-contract" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="ProjectStartup" fallback={<NotFoundPage />}>
           <ProjectRequiredRoute><ResponsibilityMatrices /></ProjectRequiredRoute>
         </FeatureGate>
-      } />
-      <Route path="/operations/responsibility/sub-contract" element={
+      )} />
+      <Route path="/operations/responsibility/sub-contract" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="ProjectStartup" fallback={<NotFoundPage />}>
           <ProjectRequiredRoute><ResponsibilityMatrices /></ProjectRequiredRoute>
         </FeatureGate>
-      } />
-      <Route path="/operations/closeout-checklist" element={
+      )} />
+      <Route path="/operations/closeout-checklist" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProjectRequiredRoute><CloseoutChecklist /></ProjectRequiredRoute>
-      } />
-      <Route path="/operations/buyout-log" element={
+      )} />
+      <Route path="/operations/buyout-log" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProjectRequiredRoute>
           <ProtectedRoute permission={PERMISSIONS.BUYOUT_VIEW}>
             <BuyoutLogPage />
           </ProtectedRoute>
         </ProjectRequiredRoute>
-      } />
-      <Route path="/operations/contract-tracking" element={
+      )} />
+      <Route path="/operations/contract-tracking" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProjectRequiredRoute><ContractTracking /></ProjectRequiredRoute>
-      } />
-      <Route path="/operations/compliance-log" element={
+      )} />
+      <Route path="/operations/compliance-log" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProtectedRoute permission={PERMISSIONS.COMPLIANCE_LOG_VIEW}>
           <ComplianceLog />
         </ProtectedRoute>
-      } />
-      <Route path="/operations/risk-cost" element={
+      )} />
+      <Route path="/operations/risk-cost" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProjectRequiredRoute>
           <ProtectedRoute permission={PERMISSIONS.RISK_EDIT}>
             <RiskCostManagement />
           </ProtectedRoute>
         </ProjectRequiredRoute>
-      } />
-      <Route path="/operations/schedule" element={
+      )} />
+      <Route path="/operations/schedule" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="ScheduleModule" fallback={<NotFoundPage />}>
           <ProjectRequiredRoute><SchedulePage /></ProjectRequiredRoute>
         </FeatureGate>
-      } />
-      <Route path="/operations/quality-concerns" element={
+      )} />
+      <Route path="/operations/quality-concerns" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProjectRequiredRoute><QualityConcernsTracker /></ProjectRequiredRoute>
-      } />
-      <Route path="/operations/safety-concerns" element={
+      )} />
+      <Route path="/operations/safety-concerns" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProjectRequiredRoute><SafetyConcernsTracker /></ProjectRequiredRoute>
-      } />
-      <Route path="/operations/monthly-review" element={
+      )} />
+      <Route path="/operations/monthly-review" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="MonthlyProjectReview" fallback={<NotFoundPage />}>
           <ProjectRequiredRoute><MonthlyProjectReview /></ProjectRequiredRoute>
         </FeatureGate>
-      } />
-      <Route path="/operations/project-record" element={
+      )} />
+      <Route path="/operations/project-record" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProjectRequiredRoute><ProjectRecord /></ProjectRequiredRoute>
-      } />
-      <Route path="/operations/lessons-learned" element={
+      )} />
+      <Route path="/operations/lessons-learned" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProjectRequiredRoute><LessonsLearnedPage /></ProjectRequiredRoute>
-      } />
-      <Route path="/operations/readicheck" element={
+      )} />
+      <Route path="/operations/readicheck" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProjectRequiredRoute><ComingSoonPage title="ReadiCheck" /></ProjectRequiredRoute>
-      } />
-      <Route path="/operations/best-practices" element={
+      )} />
+      <Route path="/operations/best-practices" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProjectRequiredRoute><ComingSoonPage title="Best Practices" /></ProjectRequiredRoute>
-      } />
-      <Route path="/operations/constraints" element={
+      )} />
+      <Route path="/operations/constraints" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="ConstraintsLog" fallback={<NotFoundPage />}>
           <ProjectRequiredRoute>
             <ProtectedRoute permission={PERMISSIONS.CONSTRAINTS_VIEW}>
@@ -329,63 +348,63 @@ const AppRoutes: React.FC = () => {
             </ProtectedRoute>
           </ProjectRequiredRoute>
         </FeatureGate>
-      } />
-      <Route path="/operations/permits" element={
+      )} />
+      <Route path="/operations/permits" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProjectRequiredRoute>
           <ProtectedRoute permission={PERMISSIONS.PERMITS_VIEW}>
             <PermitsLogPage />
           </ProtectedRoute>
         </ProjectRequiredRoute>
-      } />
-      <Route path="/operations/sub-scorecard" element={
+      )} />
+      <Route path="/operations/sub-scorecard" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProjectRequiredRoute><ComingSoonPage title="Sub Scorecard" /></ProjectRequiredRoute>
-      } />
-      <Route path="/operations/gonogo" element={
+      )} />
+      <Route path="/operations/gonogo" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProjectRequiredRoute><GoNoGoScorecard /></ProjectRequiredRoute>
-      } />
+      )} />
 
       {/* Job Request */}
-      <Route path="/job-request" element={<JobNumberRequestForm />} />
-      <Route path="/job-request/:leadId" element={<JobNumberRequestForm />} />
+      <Route path="/job-request" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : <JobNumberRequestForm />} />
+      <Route path="/job-request/:leadId" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : <JobNumberRequestForm />} />
 
       {/* Accounting */}
-      <Route path="/accounting-queue" element={
+      <Route path="/accounting-queue" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProtectedRoute permission={PERMISSIONS.ACCOUNTING_QUEUE_VIEW}>
           <AccountingQueuePage />
         </ProtectedRoute>
-      } />
+      )} />
 
       {/* Admin */}
-      <Route path="/admin" element={
+      <Route path="/admin" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <ProtectedRoute permission={PERMISSIONS.ADMIN_CONFIG}>
           <AdminPanel />
         </ProtectedRoute>
-      } />
-      <Route path="/admin/performance" element={
+      )} />
+      <Route path="/admin/performance" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="PerformanceMonitoring" fallback={<NotFoundPage />}>
           <ProtectedRoute permission={PERMISSIONS.ADMIN_CONFIG}>
             <PerformanceDashboard />
           </ProtectedRoute>
         </FeatureGate>
-      } />
-      <Route path="/admin/application-support" element={
+      )} />
+      <Route path="/admin/application-support" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="EnableHelpSystem" fallback={<NotFoundPage />}>
           <ProtectedRoute permission={PERMISSIONS.ADMIN_CONFIG}>
             <ApplicationSupportPage />
           </ProtectedRoute>
         </FeatureGate>
-      } />
-      <Route path="/admin/telemetry" element={
+      )} />
+      <Route path="/admin/telemetry" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : (
         <FeatureGate featureName="TelemetryDashboard" fallback={<NotFoundPage />}>
           <ProtectedRoute permission={PERMISSIONS.ADMIN_CONFIG}>
             <TelemetryDashboard />
           </ProtectedRoute>
         </FeatureGate>
-      } />
+      )} />
 
       {/* System */}
-      <Route path="/access-denied" element={<AccessDeniedPage />} />
-      <Route path="*" element={<NotFoundPage />} />
+      <Route path="/access-denied" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : <AccessDeniedPage />} />
+      <Route path="*" element={isTanStackRouterPilotEnabled ? renderTanStackPilotRoute() : <NotFoundPage />} />
     </Routes>
   </React.Suspense>
   );

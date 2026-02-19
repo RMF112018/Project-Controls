@@ -5,9 +5,10 @@ import { useLeads } from '../../hooks/useLeads';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { DataTable } from '../../shared/DataTable';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
+import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
+import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 import {
   ILead,
   ITeamMember,
@@ -18,7 +19,6 @@ import {
   formatSquareFeet
 } from '@hbc/sp-services';
 import { HBC_COLORS, SPACING, ELEVATION } from '../../../theme/tokens';
-import type { IDataTableColumn } from '../../shared/DataTable';
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: HBC_COLORS.white,
@@ -38,7 +38,7 @@ const fieldStyle: React.CSSProperties = { marginBottom: '12px' };
 const labelStyle: React.CSSProperties = { fontSize: '12px', color: HBC_COLORS.gray500, display: 'block', marginBottom: '2px' };
 const valueStyle: React.CSSProperties = { fontSize: '14px', color: HBC_COLORS.gray800 };
 
-const teamColumns: IDataTableColumn<ITeamMember>[] = [
+const teamColumns: IHbcTanStackTableColumn<ITeamMember>[] = [
   { key: 'name', header: 'Name', render: (m) => m.name },
   { key: 'role', header: 'Role', render: (m) => m.role },
   { key: 'department', header: 'Department', render: (m) => m.department },
@@ -283,13 +283,14 @@ export const PreconKickoff: React.FC = () => {
       {/* Team Members Table */}
       <div style={{ marginBottom: SPACING.lg }}>
         <h3 style={{ ...sectionTitleStyle, marginBottom: SPACING.md }}>Team Members</h3>
-        <DataTable<ITeamMember>
+        <HbcTanStackTable<ITeamMember>
           columns={teamColumns}
           items={teamMembers}
           keyExtractor={(m) => m.id}
           isLoading={workflowLoading}
           emptyTitle="No team members"
           emptyDescription="No team members have been assigned to this project yet."
+          ariaLabel="Preconstruction kickoff team members table"
         />
       </div>
     </div>

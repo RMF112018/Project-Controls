@@ -2,10 +2,11 @@ import * as React from 'react';
 import { Button } from '@fluentui/react-components';
 import { useAppContext } from '../../contexts/AppContext';
 import { usePermissionEngine } from '../../hooks/usePermissionEngine';
-import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { AzureADPeoplePicker } from '../../shared/AzureADPeoplePicker';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { StatusBadge } from '../../shared/StatusBadge';
+import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
+import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 import {
   IProjectTeamAssignment,
   IPersonAssignment,
@@ -131,7 +132,7 @@ export const ProjectTeamPanel: React.FC<IProjectTeamPanelProps> = ({ projectCode
     color: HBC_COLORS.gray800, boxSizing: 'border-box' as const,
   };
 
-  const columns: IDataTableColumn<IProjectTeamAssignment>[] = [
+  const columns: IHbcTanStackTableColumn<IProjectTeamAssignment>[] = [
     { key: 'name', header: 'Name', render: (a) => (
       <div>
         <div style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{a.userDisplayName}</div>
@@ -144,6 +145,7 @@ export const ProjectTeamPanel: React.FC<IProjectTeamPanelProps> = ({ projectCode
     { key: 'template', header: 'Template Override', width: '200px', render: (a) => (
       canManage ? (
         <select
+          aria-label={`Template override for ${a.userDisplayName}`}
           value={a.templateOverrideId || ''}
           onChange={(e) => {
             const val = e.target.value ? Number(e.target.value) : undefined;
@@ -247,6 +249,7 @@ export const ProjectTeamPanel: React.FC<IProjectTeamPanelProps> = ({ projectCode
                 Template Override (Optional)
               </label>
               <select
+                aria-label="Select new team member template override"
                 value={newTemplateId || ''}
                 onChange={e => setNewTemplateId(e.target.value ? Number(e.target.value) : undefined)}
                 style={{ ...inputStyle, width: '100%' }}
@@ -272,12 +275,13 @@ export const ProjectTeamPanel: React.FC<IProjectTeamPanelProps> = ({ projectCode
       {teamLoading ? (
         <SkeletonLoader variant="table" rows={4} columns={5} />
       ) : (
-        <DataTable<IProjectTeamAssignment>
+        <HbcTanStackTable<IProjectTeamAssignment>
           columns={columns}
           items={assignments}
           keyExtractor={a => a.id}
           emptyTitle="No team members assigned"
           emptyDescription={canManage ? 'Add team members to control project-level permissions.' : 'No team assignments for this project yet.'}
+          ariaLabel="Project team members table"
         />
       )}
     </div>

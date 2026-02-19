@@ -23,7 +23,6 @@ import { Button } from '@fluentui/react-components';
 import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
@@ -40,6 +39,8 @@ import { useTabFromUrl } from '../../hooks/useTabFromUrl';
 import { useSectorDefinitions } from '../../hooks/useSectorDefinitions';
 import { useAssignmentMappings } from '../../hooks/useAssignmentMappings';
 import { HBC_COLORS, SPACING } from '../../../theme/tokens';
+import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
+import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 
 const TAB_KEYS = ['connections', 'roles', 'flags', 'provisioning', 'workflows', 'permissions', 'sectors', 'assignments', 'devUsers', 'audit'] as const;
 type AdminTab = typeof TAB_KEYS[number];
@@ -346,7 +347,7 @@ export const AdminPanel: React.FC = () => {
   };
 
   // -- Column defs --
-  const connectionColumns: IDataTableColumn<IConnectionEntry>[] = [
+  const connectionColumns: IHbcTanStackTableColumn<IConnectionEntry>[] = [
     { key: 'name', header: 'Service', render: (c) => <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{c.name}</span> },
     { key: 'status', header: 'Status', width: '120px', render: (c) => {
       const color = c.status === 'Connected' ? '#065F46' : c.status === 'Disconnected' ? '#991B1B' : HBC_COLORS.gray500;
@@ -361,7 +362,7 @@ export const AdminPanel: React.FC = () => {
     )},
   ];
 
-  const roleColumns: IDataTableColumn<IRole>[] = [
+  const roleColumns: IHbcTanStackTableColumn<IRole>[] = [
     { key: 'Title', header: 'Role Name', render: (r) => <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{r.Title}</span> },
     { key: 'Users', header: 'Users', width: '200px', render: (r) => r.UserOrGroup.join(', ') || '-' },
     { key: 'Permissions', header: 'Permissions', width: '100px', render: (r) => <span>{r.Permissions.length}</span> },
@@ -376,7 +377,7 @@ export const AdminPanel: React.FC = () => {
     )},
   ];
 
-  const flagColumns: IDataTableColumn<IFeatureFlag>[] = [
+  const flagColumns: IHbcTanStackTableColumn<IFeatureFlag>[] = [
     { key: 'DisplayName', header: 'Feature', render: (f) => <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{f.DisplayName}</span> },
     { key: 'Enabled', header: 'Enabled', width: '80px', render: (f) => (
       <button
@@ -401,7 +402,7 @@ export const AdminPanel: React.FC = () => {
     )},
   ];
 
-  const provColumns: IDataTableColumn<IProvisioningLog>[] = [
+  const provColumns: IHbcTanStackTableColumn<IProvisioningLog>[] = [
     { key: 'projectCode', header: 'Project Code', width: '120px', render: (item) => (
       <span style={{ fontFamily: 'monospace', fontWeight: 600, color: HBC_COLORS.navy }}>{item.projectCode}</span>
     )},
@@ -504,7 +505,7 @@ export const AdminPanel: React.FC = () => {
       .sort((a, b) => new Date(b.Timestamp).getTime() - new Date(a.Timestamp).getTime());
   }, [auditEntries, auditEntityFilter, auditActionFilter]);
 
-  const auditColumns: IDataTableColumn<IAuditEntry>[] = [
+  const auditColumns: IHbcTanStackTableColumn<IAuditEntry>[] = [
     { key: 'Timestamp', header: 'Timestamp', sortable: true, width: '160px', render: (e) => (
       <span style={{ fontSize: '12px' }}>{formatDateTime(e.Timestamp)}</span>
     )},
@@ -585,11 +586,12 @@ export const AdminPanel: React.FC = () => {
               Test All
             </Button>
           </div>
-          <DataTable<IConnectionEntry>
+          <HbcTanStackTable<IConnectionEntry>
             columns={connectionColumns}
             items={connections}
             keyExtractor={c => c.id}
             emptyTitle="No connections configured"
+            ariaLabel="Admin connections table"
           />
 
           {/* Client-side Error Log */}
@@ -689,11 +691,12 @@ export const AdminPanel: React.FC = () => {
       {activeTab === 'roles' && (
         hasPermission(PERMISSIONS.ADMIN_ROLES) ? (
           rolesLoading ? <SkeletonLoader variant="table" rows={5} columns={4} /> : (
-            <DataTable<IRole>
+            <HbcTanStackTable<IRole>
               columns={roleColumns}
               items={roles}
               keyExtractor={r => r.id}
               emptyTitle="No roles configured"
+              ariaLabel="Admin role definitions table"
             />
           )
         ) : (
@@ -728,11 +731,12 @@ export const AdminPanel: React.FC = () => {
                     }
                     defaultExpanded
                   >
-                    <DataTable<IFeatureFlag>
+                    <HbcTanStackTable<IFeatureFlag>
                       columns={flagColumns}
                       items={group.items}
                       keyExtractor={f => f.id}
                       emptyTitle="No feature flags"
+                      ariaLabel={`Feature flags table for ${group.category}`}
                     />
                   </CollapsibleSection>
                 );
@@ -761,12 +765,13 @@ export const AdminPanel: React.FC = () => {
                   {isFeatureEnabled('ProvisioningRealOps') ? 'Live' : 'Simulation'}
                 </span>
               </div>
-              <DataTable<IProvisioningLog>
+              <HbcTanStackTable<IProvisioningLog>
                 columns={provColumns}
                 items={logs}
                 keyExtractor={item => item.id}
                 emptyTitle="No Provisioning Requests"
                 emptyDescription="Provisioning logs will appear here when GO decisions trigger site creation."
+                ariaLabel="Provisioning requests table"
               />
               {expandedCode && (
                 <div style={{
@@ -1047,7 +1052,7 @@ export const AdminPanel: React.FC = () => {
               {sectorsLoading ? (
                 <SkeletonLoader variant="table" rows={6} columns={4} />
               ) : (
-                <DataTable<ISectorDefinition>
+                <HbcTanStackTable<ISectorDefinition>
                   columns={[
                     { key: 'sortOrder', header: '#', width: '60px', render: (s: ISectorDefinition) => <span style={{ color: HBC_COLORS.gray500, fontSize: '12px' }}>{s.sortOrder}</span> },
                     { key: 'label', header: 'Label', render: (s: ISectorDefinition) => <span style={{ fontWeight: 500 }}>{s.label}</span> },
@@ -1080,6 +1085,7 @@ export const AdminPanel: React.FC = () => {
                   ]}
                   items={sectorDefs}
                   keyExtractor={(s: ISectorDefinition) => s.id.toString()}
+                  ariaLabel="Sector definitions table"
                 />
               )}
             </div>
@@ -1300,13 +1306,14 @@ export const AdminPanel: React.FC = () => {
             />
           </div>
           {auditLoading ? <SkeletonLoader variant="table" rows={8} columns={5} /> : (
-            <DataTable<IAuditEntry>
+            <HbcTanStackTable<IAuditEntry>
               columns={auditColumns}
               items={filteredAudit}
               keyExtractor={e => e.id}
               emptyTitle="No audit entries"
               emptyDescription="Audit events will appear here as actions are performed."
               pageSize={25}
+              ariaLabel="Audit log table"
             />
           )}
         </div>
