@@ -86,6 +86,22 @@ import {
   IScheduleActivity,
   IScheduleImport,
   IScheduleMetrics,
+  IScheduleFieldLink,
+  IScheduleImportReconciliationResult,
+  IScheduleConflict,
+  IScheduleCpmResult,
+  IScheduleQualityReport,
+  IForensicWindow,
+  IForensicAnalysisResult,
+  IMonteCarloConfig,
+  IMonteCarloResult,
+  IResourceLevelingResult,
+  IScheduleScenario,
+  IScheduleScenarioDiff,
+  IScheduleEvmResult,
+  IPortfolioScheduleHealth,
+  IFieldReadinessScore,
+  IScheduleEngineRuntimeInfo,
 } from '../models';
 
 import { IJobNumberRequest } from '../models/IJobNumberRequest';
@@ -95,6 +111,7 @@ import { IStandardCostCode } from '../models/IStandardCostCode';
 import { ROLE_PERMISSIONS } from '../utils/permissions';
 import { getRecommendedDecision, calculateTotalScore } from '../utils/scoreCalculator';
 import { computeScheduleMetrics } from '../utils/scheduleMetrics';
+import { ScheduleEngine, getScheduleEngineRuntimeInfo as resolveScheduleEngineRuntime } from '../engine';
 
 import mockLeads from '../mock/leads.json';
 import mockScorecards from '../mock/scorecards.json';
@@ -218,6 +235,12 @@ export class MockDataService implements IDataService {
   private buyoutEntries: IBuyoutEntry[];
   private scheduleActivities: IScheduleActivity[];
   private scheduleImports: IScheduleImport[];
+  private scheduleFieldLinks: IScheduleFieldLink[];
+  private scheduleConflictsByProject: Record<string, IScheduleConflict[]>;
+  private scheduleBaselinesByProject: Record<string, Array<{ baselineId: string; name: string; createdBy: string; createdAt: string }>>;
+  private scheduleScenariosByProject: Record<string, IScheduleScenario[]>;
+  private scheduleScenarioActivities: Record<string, IScheduleActivity[]>;
+  private readonly scheduleEngine: ScheduleEngine;
   private activeProjects: IActiveProject[];
   private scorecardApprovalCycles: IScorecardApprovalCycle[];
   private scorecardApprovalSteps: IScorecardApprovalStep[];
@@ -403,6 +426,12 @@ export class MockDataService implements IDataService {
     );
     this.scheduleActivities = JSON.parse(JSON.stringify(mockScheduleActivities)) as IScheduleActivity[];
     this.scheduleImports = JSON.parse(JSON.stringify(mockScheduleImports)) as IScheduleImport[];
+    this.scheduleFieldLinks = [];
+    this.scheduleConflictsByProject = {};
+    this.scheduleBaselinesByProject = {};
+    this.scheduleScenariosByProject = {};
+    this.scheduleScenarioActivities = {};
+    this.scheduleEngine = new ScheduleEngine();
     this.constraintLogs = JSON.parse(JSON.stringify(mockConstraintLogs)) as IConstraintLog[];
     this.permits = JSON.parse(JSON.stringify(mockPermits)) as IPermit[];
     this.activeProjects = this.generateMockActiveProjects();
@@ -6239,6 +6268,10 @@ export class MockDataService implements IDataService {
       importDate: now,
       importedBy: importMeta.importedBy || 'Unknown',
       activityCount: activities.length,
+      matchedCount: 0,
+      ambiguousCount: 0,
+      newCount: activities.length,
+      orphanedFieldLinkCount: 0,
       notes: importMeta.notes || '',
     };
     this.scheduleImports.push(importRecord);
@@ -6253,6 +6286,9 @@ export class MockDataService implements IDataService {
       id: nextId++,
       projectCode,
       importId,
+      externalActivityKey: a.externalActivityKey || `${projectCode}:${a.taskCode}`,
+      importFingerprint: a.importFingerprint || `${a.taskCode}|${a.activityName}|${a.wbsCode}`,
+      lineageStatus: a.lineageStatus || 'unmatched',
       createdDate: now,
       modifiedDate: now,
     }));
@@ -6317,6 +6353,341 @@ export class MockDataService implements IDataService {
     await delay();
     const activities = this.scheduleActivities.filter(a => a.projectCode === projectCode);
     return computeScheduleMetrics(activities);
+  }
+
+  public async previewScheduleImportReconciliation(
+    projectCode: string,
+    activities: IScheduleActivity[],
+    importMeta: Partial<IScheduleImport>
+  ): Promise<IScheduleImportReconciliationResult> {
+    await delay();
+    const existing = this.scheduleActivities.filter(a => a.projectCode === projectCode);
+    const existingByExternalKey = new Map(
+      existing.filter(a => !!a.externalActivityKey).map(a => [a.externalActivityKey as string, a]),
+    );
+
+    const previewItems = activities.map(a => {
+      const externalKey = a.externalActivityKey || `${projectCode}:${a.taskCode}`;
+      const matched = existingByExternalKey.get(externalKey);
+      if (matched) {
+        return {
+          incomingExternalActivityKey: externalKey,
+          incomingTaskCode: a.taskCode,
+          incomingActivityName: a.activityName,
+          confidenceScore: 1,
+          reason: 'ExternalActivityKey match',
+          existingActivityId: matched.id,
+          existingExternalActivityKey: matched.externalActivityKey,
+          action: 'matched' as const,
+        };
+      }
+      return {
+        incomingExternalActivityKey: externalKey,
+        incomingTaskCode: a.taskCode,
+        incomingActivityName: a.activityName,
+        confidenceScore: 0.6,
+        reason: 'No ExternalActivityKey match (new candidate)',
+        action: 'new' as const,
+      };
+    });
+
+    const matchedCount = previewItems.filter(i => i.action === 'matched').length;
+    const newCount = previewItems.filter(i => i.action === 'new').length;
+    return {
+      projectCode,
+      importId: importMeta.id || 0,
+      matchedCount,
+      ambiguousCount: 0,
+      newCount,
+      orphanedFieldLinkCount: 0,
+      previewItems,
+    };
+  }
+
+  public async applyScheduleImportReconciliation(
+    projectCode: string,
+    activities: IScheduleActivity[],
+    importMeta: Partial<IScheduleImport>,
+    _approvedBy: string
+  ): Promise<IScheduleImportReconciliationResult> {
+    await delay();
+    const preview = await this.previewScheduleImportReconciliation(projectCode, activities, importMeta);
+    await this.importScheduleActivities(projectCode, activities, importMeta);
+    return preview;
+  }
+
+  public async getScheduleFieldLinks(projectCode: string): Promise<IScheduleFieldLink[]> {
+    await delay();
+    return this.scheduleFieldLinks.filter(l => l.projectCode === projectCode).map(l => ({ ...l }));
+  }
+
+  public async createScheduleFieldLink(projectCode: string, data: Partial<IScheduleFieldLink>): Promise<IScheduleFieldLink> {
+    await delay();
+    const now = new Date().toISOString();
+    const id = Math.max(0, ...this.scheduleFieldLinks.map(l => l.id)) + 1;
+    const created: IScheduleFieldLink = {
+      id,
+      projectCode,
+      externalActivityKey: data.externalActivityKey || '',
+      scheduleActivityId: data.scheduleActivityId,
+      fieldTaskId: data.fieldTaskId || '',
+      fieldTaskType: data.fieldTaskType || 'Unknown',
+      confidenceScore: data.confidenceScore ?? 1,
+      isManual: data.isManual ?? true,
+      createdBy: data.createdBy || 'Unknown',
+      createdAt: now,
+      modifiedBy: data.modifiedBy || 'Unknown',
+      modifiedAt: now,
+    };
+    this.scheduleFieldLinks.push(created);
+    return { ...created };
+  }
+
+  public async updateScheduleFieldLink(projectCode: string, linkId: number, data: Partial<IScheduleFieldLink>): Promise<IScheduleFieldLink> {
+    await delay();
+    const idx = this.scheduleFieldLinks.findIndex(l => l.id === linkId && l.projectCode === projectCode);
+    if (idx === -1) throw new Error(`Schedule field link ${linkId} not found`);
+    const updated: IScheduleFieldLink = {
+      ...this.scheduleFieldLinks[idx],
+      ...data,
+      modifiedAt: new Date().toISOString(),
+    };
+    this.scheduleFieldLinks[idx] = updated;
+    return { ...updated };
+  }
+
+  public async deleteScheduleFieldLink(projectCode: string, linkId: number): Promise<void> {
+    await delay();
+    const idx = this.scheduleFieldLinks.findIndex(l => l.id === linkId && l.projectCode === projectCode);
+    if (idx === -1) throw new Error(`Schedule field link ${linkId} not found`);
+    this.scheduleFieldLinks.splice(idx, 1);
+  }
+
+  public async getPendingScheduleOps(projectCode: string): Promise<IScheduleConflict[]> {
+    await delay();
+    return [...(this.scheduleConflictsByProject[projectCode] || [])];
+  }
+
+  public async replayPendingScheduleOps(projectCode: string, replayedBy: string): Promise<IScheduleConflict[]> {
+    await delay();
+    const now = new Date().toISOString();
+    const updated = (this.scheduleConflictsByProject[projectCode] || []).map(c => ({
+      ...c,
+      resolvedAt: now,
+      resolvedBy: replayedBy,
+      resolution: c.resolution || 'replayed',
+    }));
+    this.scheduleConflictsByProject[projectCode] = updated;
+    return [...updated];
+  }
+
+  public async resolveScheduleConflict(projectCode: string, conflictId: string, resolution: string, resolvedBy: string): Promise<IScheduleConflict> {
+    await delay();
+    const conflicts = this.scheduleConflictsByProject[projectCode] || [];
+    const idx = conflicts.findIndex(c => c.id === conflictId);
+    if (idx === -1) throw new Error(`Schedule conflict ${conflictId} not found`);
+    const resolved: IScheduleConflict = {
+      ...conflicts[idx],
+      resolution,
+      resolvedBy,
+      resolvedAt: new Date().toISOString(),
+    };
+    conflicts[idx] = resolved;
+    this.scheduleConflictsByProject[projectCode] = conflicts;
+    return resolved;
+  }
+
+  public async createScheduleBaseline(projectCode: string, name: string, createdBy: string): Promise<{ baselineId: string; createdAt: string }> {
+    await delay();
+    const createdAt = new Date().toISOString();
+    const baselineId = `bl-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const existing = this.scheduleBaselinesByProject[projectCode] || [];
+    this.scheduleBaselinesByProject[projectCode] = [...existing, { baselineId, name, createdBy, createdAt }];
+    return { baselineId, createdAt };
+  }
+
+  public async getScheduleBaselines(projectCode: string): Promise<Array<{ baselineId: string; name: string; createdBy: string; createdAt: string }>> {
+    await delay();
+    return [...(this.scheduleBaselinesByProject[projectCode] || [])];
+  }
+
+  public async compareScheduleBaselines(
+    projectCode: string,
+    leftBaselineId: string,
+    rightBaselineId: string
+  ): Promise<{
+    projectCode: string;
+    leftBaselineId: string;
+    rightBaselineId: string;
+    changedActivities: number;
+    addedActivities: number;
+    removedActivities: number;
+  }> {
+    await delay();
+    return {
+      projectCode,
+      leftBaselineId,
+      rightBaselineId,
+      changedActivities: 0,
+      addedActivities: 0,
+      removedActivities: 0,
+    };
+  }
+
+  public async runScheduleEngine(projectCode: string, activities: IScheduleActivity[]): Promise<IScheduleCpmResult> {
+    await delay();
+    return this.scheduleEngine.runCpm(projectCode, activities);
+  }
+
+  public async runScheduleQualityChecks(projectCode: string, activities: IScheduleActivity[]): Promise<IScheduleQualityReport> {
+    await delay();
+    return this.scheduleEngine.runScheduleQualityChecks(projectCode, activities);
+  }
+
+  public async runForensicAnalysis(projectCode: string, windows: IForensicWindow[]): Promise<IForensicAnalysisResult> {
+    await delay();
+    return this.scheduleEngine.runForensicAnalysis(projectCode, windows);
+  }
+
+  public async runMonteCarlo(projectCode: string, config: IMonteCarloConfig): Promise<IMonteCarloResult> {
+    await delay();
+    const activities = this.scheduleActivities.filter(a => a.projectCode === projectCode);
+    return this.scheduleEngine.runMonteCarlo(projectCode, activities, config);
+  }
+
+  public async runResourceLeveling(projectCode: string, activities: IScheduleActivity[]): Promise<IResourceLevelingResult> {
+    await delay();
+    return this.scheduleEngine.runResourceLeveling(projectCode, activities);
+  }
+
+  public async createScheduleScenario(projectCode: string, name: string, createdBy: string): Promise<IScheduleScenario> {
+    await delay();
+    const now = new Date().toISOString();
+    const scenario: IScheduleScenario = {
+      id: `sc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      projectCode,
+      name,
+      createdBy,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const current = this.scheduleScenariosByProject[projectCode] || [];
+    this.scheduleScenariosByProject[projectCode] = [...current, scenario];
+    this.scheduleScenarioActivities[`${projectCode}:${scenario.id}`] = this.scheduleActivities
+      .filter(a => a.projectCode === projectCode)
+      .map(a => ({ ...a }));
+    return { ...scenario };
+  }
+
+  public async listScheduleScenarios(projectCode: string): Promise<IScheduleScenario[]> {
+    await delay();
+    return [...(this.scheduleScenariosByProject[projectCode] || [])];
+  }
+
+  public async getScheduleScenario(projectCode: string, scenarioId: string): Promise<IScheduleScenario | null> {
+    await delay();
+    return (this.scheduleScenariosByProject[projectCode] || []).find(s => s.id === scenarioId) || null;
+  }
+
+  public async saveScheduleScenarioActivities(projectCode: string, scenarioId: string, activities: IScheduleActivity[]): Promise<void> {
+    await delay();
+    this.scheduleScenarioActivities[`${projectCode}:${scenarioId}`] = activities.map(a => ({ ...a }));
+    const scenarios = this.scheduleScenariosByProject[projectCode] || [];
+    const idx = scenarios.findIndex(s => s.id === scenarioId);
+    if (idx >= 0) {
+      scenarios[idx] = { ...scenarios[idx], updatedAt: new Date().toISOString() };
+      this.scheduleScenariosByProject[projectCode] = scenarios;
+    }
+  }
+
+  public async compareScheduleScenarios(projectCode: string, leftScenarioId: string, rightScenarioId: string): Promise<IScheduleScenarioDiff> {
+    await delay();
+    const left = this.scheduleScenarioActivities[`${projectCode}:${leftScenarioId}`] || [];
+    const right = this.scheduleScenarioActivities[`${projectCode}:${rightScenarioId}`] || [];
+    const leftKeys = new Set(left.map(a => a.externalActivityKey).filter(Boolean) as string[]);
+    const rightKeys = new Set(right.map(a => a.externalActivityKey).filter(Boolean) as string[]);
+    let changed = 0;
+    right.forEach(r => {
+      const l = left.find(a => a.externalActivityKey === r.externalActivityKey);
+      if (l && (l.originalDuration !== r.originalDuration || l.remainingFloat !== r.remainingFloat || l.status !== r.status)) {
+        changed++;
+      }
+    });
+    const added = Array.from(rightKeys).filter(k => !leftKeys.has(k)).length;
+    const removed = Array.from(leftKeys).filter(k => !rightKeys.has(k)).length;
+    return {
+      projectCode,
+      leftScenarioId,
+      rightScenarioId,
+      changedActivities: changed,
+      addedActivities: added,
+      removedActivities: removed,
+    };
+  }
+
+  public async applyScheduleScenario(projectCode: string, scenarioId: string, approvedBy: string): Promise<{ importId: number }> {
+    await delay();
+    const activities = this.scheduleScenarioActivities[`${projectCode}:${scenarioId}`];
+    if (!activities) throw new Error(`Scenario ${scenarioId} has no activities`);
+    await this.importScheduleActivities(projectCode, activities, {
+      fileName: `scenario-${scenarioId}.json`,
+      importedBy: approvedBy,
+      format: 'P6-CSV',
+      notes: 'Applied from What-If scenario',
+    });
+    const lastImport = this.scheduleImports.filter(i => i.projectCode === projectCode).sort((a, b) => b.id - a.id)[0];
+    return { importId: lastImport?.id || 0 };
+  }
+
+  public async computeScheduleEvm(projectCode: string): Promise<IScheduleEvmResult> {
+    await delay();
+    const activities = this.scheduleActivities.filter(a => a.projectCode === projectCode);
+    const metrics = computeScheduleMetrics(activities);
+    return this.scheduleEngine.computeEvm(projectCode, metrics);
+  }
+
+  public async getPortfolioScheduleHealth(filters?: IDataMartFilter): Promise<IPortfolioScheduleHealth[]> {
+    await delay();
+    const records = await this.getDataMartRecords(filters);
+    const results: IPortfolioScheduleHealth[] = [];
+    for (const record of records) {
+      const activities = this.scheduleActivities.filter(a => a.projectCode === record.projectCode);
+      const metrics = computeScheduleMetrics(activities);
+      const evm = this.scheduleEngine.computeEvm(record.projectCode, metrics);
+      const fr = await this.computeFieldReadinessScore(record.projectCode);
+      results.push({
+        projectCode: record.projectCode,
+        projectName: record.projectName,
+        scheduleHealthScore: Math.max(0, Math.min(100, Math.round((metrics.percentComplete * 0.4 + (metrics.negativeFloatPercent ? 100 - metrics.negativeFloatPercent : 100) * 0.3 + (fr.score * 0.3)) * 10) / 10)),
+        spi: evm.spi,
+        cpi: evm.cpi,
+        criticalCount: metrics.criticalActivityCount,
+        negativeFloatCount: metrics.negativeFloatCount,
+        fieldReadinessScore: fr.score,
+      });
+    }
+    return results;
+  }
+
+  public async computeFieldReadinessScore(projectCode: string): Promise<IFieldReadinessScore> {
+    await delay();
+    const activities = this.scheduleActivities.filter(a => a.projectCode === projectCode);
+    const links = this.scheduleFieldLinks.filter(l => l.projectCode === projectCode);
+    const constraints = this.constraintLogs.filter(c => c.projectCode === projectCode);
+    const permits = this.permits.filter(p => p.projectCode === projectCode);
+    return this.scheduleEngine.computeFieldReadinessScore(projectCode, activities, links, constraints, permits);
+  }
+
+  public async getPortfolioFieldReadiness(filters?: IDataMartFilter): Promise<IFieldReadinessScore[]> {
+    await delay();
+    const records = await this.getDataMartRecords(filters);
+    const scores = await Promise.all(records.map(r => this.computeFieldReadinessScore(r.projectCode)));
+    return scores;
+  }
+
+  public async getScheduleEngineRuntimeInfo(): Promise<IScheduleEngineRuntimeInfo> {
+    await delay();
+    return resolveScheduleEngineRuntime();
   }
 
   // ---------------------------------------------------------------------------
