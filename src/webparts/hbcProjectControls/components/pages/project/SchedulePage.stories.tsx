@@ -17,3 +17,7 @@ export const Overview: Story = {
 export const GanttTab: Story = {
   parameters: { initialRoute: '/operations/schedule?tab=gantt' },
 };
+
+export const QualityTab: Story = {
+  parameters: { initialRoute: '/operations/schedule?tab=quality' },
+};

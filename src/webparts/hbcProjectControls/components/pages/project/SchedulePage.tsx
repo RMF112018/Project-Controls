@@ -28,8 +28,8 @@ import {
 // ---------------------------------------------------------------------------
 
 const BASE_TABS = ['overview', 'activities', 'gantt', 'critical-path', 'analysis', 'import'] as const;
-const OFFICE_TABS = ['gantt-v2', 'what-if', 'resources', 'portfolio'] as const;
-type ScheduleTab = typeof BASE_TABS[number] | typeof OFFICE_TABS[number];
+type OfficeTab = 'gantt-v2' | 'what-if' | 'resources' | 'portfolio' | 'quality';
+type ScheduleTab = typeof BASE_TABS[number] | OfficeTab;
 const TAB_LABELS: Record<ScheduleTab, string> = {
   overview: 'Overview',
   activities: 'Activities',
@@ -41,6 +41,7 @@ const TAB_LABELS: Record<ScheduleTab, string> = {
   'what-if': 'What-If',
   resources: 'Resources',
   portfolio: 'Portfolio',
+  quality: 'Quality',
 };
 
 const STATUS_OPTIONS: ActivityStatus[] = ['Completed', 'In Progress', 'Not Started'];
@@ -83,6 +84,7 @@ export const SchedulePage: React.FC = () => {
       if (isInteractiveGanttEnabled) list.push('gantt-v2');
       if (isWhatIfEnabled) list.push('what-if');
       if (isEngineEnabled) list.push('resources');
+      if (isEngineEnabled) list.push('quality');
       if (isEvmEnabled) list.push('portfolio');
     }
     return list;
@@ -336,6 +338,10 @@ export const SchedulePage: React.FC = () => {
 
       {activeTab === 'portfolio' && (
         <ScheduleOfficeV2Shell projectCode={projectCode} activities={filtered} section="portfolio" />
+      )}
+
+      {activeTab === 'quality' && (
+        <ScheduleOfficeV2Shell projectCode={projectCode} activities={filtered} section="quality" />
       )}
 
       {/* Import Modal */}

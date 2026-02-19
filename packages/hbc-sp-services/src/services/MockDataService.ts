@@ -111,7 +111,11 @@ import { IStandardCostCode } from '../models/IStandardCostCode';
 import { ROLE_PERMISSIONS } from '../utils/permissions';
 import { getRecommendedDecision, calculateTotalScore } from '../utils/scoreCalculator';
 import { computeScheduleMetrics } from '../utils/scheduleMetrics';
-import { ScheduleEngine, getScheduleEngineRuntimeInfo as resolveScheduleEngineRuntime } from '../engine';
+import {
+  ScheduleEngine,
+  getScheduleEngineRuntimeInfo as resolveScheduleEngineRuntime,
+  runScheduleQualityChecksWithWorker,
+} from '../engine';
 
 import mockLeads from '../mock/leads.json';
 import mockScorecards from '../mock/scorecards.json';
@@ -6608,7 +6612,7 @@ export class MockDataService implements IDataService {
 
   public async runScheduleQualityChecks(projectCode: string, activities: IScheduleActivity[]): Promise<IScheduleQualityReport> {
     await delay();
-    return this.scheduleEngine.runScheduleQualityChecks(projectCode, activities);
+    return runScheduleQualityChecksWithWorker(projectCode, activities);
   }
 
   public async runForensicAnalysis(projectCode: string, windows: IForensicWindow[]): Promise<IForensicAnalysisResult> {

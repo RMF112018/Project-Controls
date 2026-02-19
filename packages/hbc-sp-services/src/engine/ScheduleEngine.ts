@@ -8,6 +8,11 @@ import {
   IScheduleCpmActivityResult,
   IScheduleQualityReport,
   IScheduleDagDiagnostic,
+  IDcmaCheckResult,
+  IQualityRuleResult,
+  IQualityRemediationSuggestion,
+  IQualityExportRow,
+  IQualityActivityPatch,
   IForensicWindow,
   IForensicAnalysisResult,
   IMonteCarloConfig,
@@ -19,6 +24,11 @@ import {
 import { IConstraintLog } from '../models/IConstraintLog';
 import { IPermit } from '../models/IPermit';
 import { computeScheduleMetrics } from '../utils/scheduleMetrics';
+import {
+  DEFAULT_SCHEDULE_QUALITY_CONFIG,
+  IScheduleQualityConfig,
+  IQualityRuleDefinition,
+} from './qualityRulesConfig';
 
 function seededRandom(seed: number): () => number {
   let state = seed >>> 0;
@@ -34,6 +44,17 @@ interface IIdentityNode {
 }
 
 export class ScheduleEngine {
+  private readonly qualityConfig: IScheduleQualityConfig;
+
+  public constructor(config: Partial<IScheduleQualityConfig> = {}) {
+    this.qualityConfig = {
+      ...DEFAULT_SCHEDULE_QUALITY_CONFIG,
+      ...config,
+      dcmaRules: config.dcmaRules ?? DEFAULT_SCHEDULE_QUALITY_CONFIG.dcmaRules,
+      customRules: config.customRules ?? DEFAULT_SCHEDULE_QUALITY_CONFIG.customRules,
+    };
+  }
+
   private assertExternalActivityKeys(activities: IScheduleActivity[]): Map<string, IIdentityNode> {
     const map = new Map<string, IIdentityNode>();
     for (const a of activities) {
@@ -253,50 +274,301 @@ export class ScheduleEngine {
     };
   }
 
+  private evaluateDcmaRule(
+    def: IQualityRuleDefinition,
+    activities: IScheduleActivity[],
+    metrics: IScheduleMetrics,
+    dag: IScheduleDagDiagnostic,
+  ): IDcmaCheckResult {
+    const total = Math.max(1, activities.length);
+    const lagLinks = activities.flatMap(a => a.successorDetails || []).filter(d => (d.lag || 0) > 0).length;
+    const leadLinks = activities.flatMap(a => a.successorDetails || []).filter(d => (d.lag || 0) < 0).length;
+    const nonFsLinks = activities.flatMap(a => a.successorDetails || []).filter(d => d.relationshipType !== 'FS').length;
+    const totalLinks = activities.flatMap(a => a.successorDetails || []).length;
+    const hardConstrained = activities.filter(a => (a.primaryConstraint || '').trim().length > 0 || (a.secondaryConstraint || '').trim().length > 0);
+    const longDuration = activities.filter(a => a.originalDuration > 44);
+    const highFloat = activities.filter(a => (a.remainingFloat ?? 0) > 44);
+    const invalidDates = activities.filter(a => {
+      const s = a.plannedStartDate ? new Date(a.plannedStartDate).getTime() : NaN;
+      const f = a.plannedFinishDate ? new Date(a.plannedFinishDate).getTime() : NaN;
+      if (Number.isNaN(s) || Number.isNaN(f)) return true;
+      return f < s;
+    });
+    const dupPreds = dag.duplicatePredecessors.flatMap(d => d.duplicateTaskCodes.map(() => d.activityKey));
+    const orphans = dag.orphanReferences.map(o => o.activityKey);
+    const openEndKeys = Array.from(new Set([...dag.openEndNodes.noPred, ...dag.openEndNodes.noSucc]));
+    const progressIntegrity = activities.filter(a => (
+      (a.status === 'Completed' && a.percentComplete < 100) ||
+      (a.status !== 'Completed' && a.percentComplete === 100) ||
+      (a.status === 'In Progress' && !a.actualStartDate)
+    ));
+    const criticalNotStarted = activities.filter(a => a.isCritical && a.status === 'Not Started');
+    const heavyResource = activities.filter(a => a.resources.split(',').map(r => r.trim()).filter(Boolean).length > 4);
+
+    let value = 0;
+    let failedActivityKeys: string[] = [];
+    let details = '';
+    switch (def.id) {
+      case 'dcma-01':
+        value = metrics.logicMetrics.openEnds.noPredecessor + metrics.logicMetrics.openEnds.noSuccessor;
+        failedActivityKeys = openEndKeys;
+        details = 'Activities without predecessor or successor relationships.';
+        break;
+      case 'dcma-02':
+        value = leadLinks;
+        failedActivityKeys = activities.filter(a => (a.successorDetails || []).some(d => (d.lag || 0) < 0)).map(a => a.externalActivityKey as string);
+        details = 'Relationship leads in successor links.';
+        break;
+      case 'dcma-03':
+        value = lagLinks;
+        failedActivityKeys = activities.filter(a => (a.successorDetails || []).some(d => (d.lag || 0) > 0)).map(a => a.externalActivityKey as string);
+        details = 'Relationship lags in successor links.';
+        break;
+      case 'dcma-04':
+        value = totalLinks === 0 ? 0 : Math.round((nonFsLinks / totalLinks) * 100);
+        failedActivityKeys = activities.filter(a => (a.successorDetails || []).some(d => d.relationshipType !== 'FS')).map(a => a.externalActivityKey as string);
+        details = 'Non-FS relationship ratio.';
+        break;
+      case 'dcma-05':
+        value = hardConstrained.length;
+        failedActivityKeys = hardConstrained.map(a => a.externalActivityKey as string);
+        details = 'Hard or secondary constraints assigned.';
+        break;
+      case 'dcma-06':
+        value = longDuration.length;
+        failedActivityKeys = longDuration.map(a => a.externalActivityKey as string);
+        details = 'Activities exceeding 44 working days.';
+        break;
+      case 'dcma-07':
+        value = metrics.negativeFloatCount;
+        failedActivityKeys = activities.filter(a => (a.remainingFloat ?? 0) < 0).map(a => a.externalActivityKey as string);
+        details = 'Activities with negative float.';
+        break;
+      case 'dcma-08':
+        value = highFloat.length;
+        failedActivityKeys = highFloat.map(a => a.externalActivityKey as string);
+        details = 'Activities with excessive float (>44 days).';
+        break;
+      case 'dcma-09':
+        value = metrics.criticalActivityCount;
+        failedActivityKeys = activities.filter(a => a.isCritical).map(a => a.externalActivityKey as string);
+        details = 'Critical activity density.';
+        break;
+      case 'dcma-10':
+        value = invalidDates.length;
+        failedActivityKeys = invalidDates.map(a => a.externalActivityKey as string);
+        details = 'Invalid or reversed planned start/finish dates.';
+        break;
+      case 'dcma-11':
+        value = dupPreds.length;
+        failedActivityKeys = dupPreds;
+        details = 'Duplicate predecessor references.';
+        break;
+      case 'dcma-12':
+        value = orphans.length;
+        failedActivityKeys = orphans;
+        details = 'Orphan predecessor/successor references.';
+        break;
+      case 'dcma-13':
+        value = openEndKeys.length;
+        failedActivityKeys = openEndKeys;
+        details = 'Open-end concentration across network.';
+        break;
+      case 'dcma-14':
+        value = progressIntegrity.length;
+        failedActivityKeys = progressIntegrity.map(a => a.externalActivityKey as string);
+        details = 'Progress and status/date integrity mismatches.';
+        break;
+      default:
+        value = 0;
+        failedActivityKeys = [];
+        details = 'Rule not configured.';
+        break;
+    }
+    const threshold = def.threshold({ totalActivities: total });
+    const passed = value <= threshold;
+    return {
+      id: def.id,
+      name: def.name,
+      passed,
+      value,
+      threshold,
+      weight: def.weight,
+      category: def.category,
+      details: `${details} Value ${value} (threshold ${threshold}).`,
+      failedActivityKeys,
+    };
+  }
+
+  private buildRemediationSuggestions(
+    projectCode: string,
+    activities: IScheduleActivity[],
+    failedChecks: IDcmaCheckResult[],
+  ): IQualityRemediationSuggestion[] {
+    const mapByKey = new Map<string, IScheduleActivity>(activities.map(a => [a.externalActivityKey as string, a]));
+    const sorted = [...activities].sort((a, b) => {
+      const aStart = a.plannedStartDate ? new Date(a.plannedStartDate).getTime() : 0;
+      const bStart = b.plannedStartDate ? new Date(b.plannedStartDate).getTime() : 0;
+      return aStart - bStart;
+    });
+    const suggestions: IQualityRemediationSuggestion[] = [];
+    for (const check of failedChecks) {
+      const keys = Array.from(new Set(check.failedActivityKeys)).slice(0, 30);
+      const patches: IQualityActivityPatch[] = [];
+      keys.forEach((key) => {
+        const activity = mapByKey.get(key);
+        if (!activity) return;
+        if (check.id === 'dcma-05') {
+          patches.push({ externalActivityKey: key, patch: { primaryConstraint: '', secondaryConstraint: '' } });
+        } else if (check.id === 'dcma-06') {
+          patches.push({ externalActivityKey: key, patch: { originalDuration: Math.min(activity.originalDuration, 44), remainingDuration: Math.min(activity.remainingDuration, 44) } });
+        } else if (check.id === 'dcma-14') {
+          const forceComplete = activity.status === 'Completed';
+          patches.push({ externalActivityKey: key, patch: { percentComplete: forceComplete ? 100 : Math.min(99, Math.max(0, activity.percentComplete)) } });
+        } else if (check.id === 'dcma-13' || check.id === 'dcma-01') {
+          const idx = sorted.findIndex(s => s.externalActivityKey === key);
+          if (idx > 0) {
+            const pred = sorted[idx - 1];
+            if (!activity.predecessors.includes(pred.taskCode)) {
+              patches.push({
+                externalActivityKey: key,
+                patch: { predecessors: [...activity.predecessors, pred.taskCode] },
+              });
+            }
+          }
+        }
+      });
+      if (patches.length === 0) continue;
+      const projected = activities.map(a => ({ ...a }));
+      patches.forEach(p => {
+        const row = projected.find(a => a.externalActivityKey === p.externalActivityKey);
+        if (row) Object.assign(row, p.patch);
+      });
+      let cpCompressionDays = 0;
+      let avgFloatImprovementDays = 0;
+      let confidence: 'low' | 'medium' | 'high' = 'low';
+      try {
+        const baseCpm = this.runCpm(projectCode, activities);
+        const projectedCpm = this.runCpm(projectCode, projected);
+        cpCompressionDays = Math.max(0, baseCpm.projectDurationDays - projectedCpm.projectDurationDays);
+        const baseFloat = baseCpm.activities.reduce((sum, row) => sum + row.totalFloatDays, 0);
+        const nextFloat = projectedCpm.activities.reduce((sum, row) => sum + row.totalFloatDays, 0);
+        avgFloatImprovementDays = Math.round(((nextFloat - baseFloat) / Math.max(1, projectedCpm.activities.length)) * 10) / 10;
+        confidence = cpCompressionDays > 0 || avgFloatImprovementDays > 0 ? 'high' : 'medium';
+      } catch {
+        confidence = 'low';
+      }
+      suggestions.push({
+        id: `${check.id}-rem-${suggestions.length + 1}`,
+        ruleId: check.id,
+        title: `Remediate ${check.name}`,
+        description: `Targeted correction for ${check.name.toLowerCase()} findings.`,
+        severity: check.value > check.threshold * 2 ? 'high' : check.value > check.threshold ? 'medium' : 'low',
+        targetActivityKeys: keys,
+        activityPatches: patches,
+        estimatedImpact: {
+          cpCompressionDays,
+          avgFloatImprovementDays,
+          confidence,
+        },
+      });
+    }
+    return suggestions;
+  }
+
   public runScheduleQualityChecks(projectCode: string, activities: IScheduleActivity[]): IScheduleQualityReport {
     this.assertExternalActivityKeys(activities);
     const metrics = computeScheduleMetrics(activities);
-    const checks = [
-      {
-        id: 'dcma-01',
-        name: 'Missing Logic',
-        value: metrics.logicMetrics.openEnds.noPredecessor + metrics.logicMetrics.openEnds.noSuccessor,
-        threshold: Math.max(1, Math.round(metrics.totalActivities * 0.05)),
-      },
-      {
-        id: 'dcma-02',
-        name: 'High Negative Float',
-        value: metrics.negativeFloatCount,
-        threshold: Math.max(1, Math.round(metrics.totalActivities * 0.05)),
-      },
-      {
-        id: 'dcma-03',
-        name: 'Excessive Critical Density',
-        value: metrics.criticalActivityCount,
-        threshold: Math.max(1, Math.round(metrics.totalActivities * 0.2)),
-      },
+    const dag = this.analyzeDag(projectCode, activities);
+    const dcmaChecks = this.qualityConfig.dcmaRules.map(rule => this.evaluateDcmaRule(rule, activities, metrics, dag));
+    const customRuleResults: IQualityRuleResult[] = this.qualityConfig.customRules.map(rule => {
+      let value = 0;
+      let failedActivityKeys: string[] = [];
+      if (rule.id === 'custom-01') {
+        const laggers = activities.filter(a => a.isCritical && a.status !== 'Completed' && a.percentComplete < 25);
+        value = laggers.length;
+        failedActivityKeys = laggers.map(a => a.externalActivityKey as string);
+      } else if (rule.id === 'custom-02') {
+        const overloaded = activities.filter(a => a.resources.split(',').map(r => r.trim()).filter(Boolean).length > 4);
+        value = overloaded.length;
+        failedActivityKeys = overloaded.map(a => a.externalActivityKey as string);
+      }
+      const threshold = rule.threshold({ totalActivities: Math.max(1, activities.length) });
+      return {
+        id: rule.id,
+        name: rule.name,
+        passed: value <= threshold,
+        value,
+        threshold,
+        weight: rule.weight,
+        details: `${rule.name}: ${value} (threshold ${threshold}).`,
+        failedActivityKeys,
+      };
+    });
+
+    const weightedScore = <T extends { passed: boolean; weight: number }>(rows: T[]): number => {
+      const weightTotal = rows.reduce((sum, row) => sum + row.weight, 0);
+      if (weightTotal <= 0) return 100;
+      const passWeight = rows.reduce((sum, row) => sum + (row.passed ? row.weight : 0), 0);
+      return Math.round((passWeight / weightTotal) * 1000) / 10;
+    };
+
+    const dcmaScore = weightedScore(dcmaChecks);
+    const customRuleScore = weightedScore(customRuleResults);
+    const overallScore = Math.round(((dcmaScore * (1 - this.qualityConfig.customBlendWeight)) + (customRuleScore * this.qualityConfig.customBlendWeight)) * 10) / 10;
+    const failedDcma = dcmaChecks.filter(c => !c.passed);
+    const remediationSuggestions = this.buildRemediationSuggestions(projectCode, activities, failedDcma);
+    const remediationSteps = remediationSuggestions.map(s => `${s.title}: ${s.description}`);
+
+    const exportRows: IQualityExportRow[] = [
+      ...dcmaChecks.map(check => ({
+        section: 'DCMA',
+        id: check.id,
+        name: check.name,
+        passed: check.passed,
+        score: check.passed ? 100 : 0,
+        value: check.value,
+        threshold: check.threshold,
+        weight: check.weight,
+        details: check.details,
+        targetCount: check.failedActivityKeys.length,
+      })),
+      ...customRuleResults.map(check => ({
+        section: 'Custom',
+        id: check.id,
+        name: check.name,
+        passed: check.passed,
+        score: check.passed ? 100 : 0,
+        value: check.value,
+        threshold: check.threshold,
+        weight: check.weight,
+        details: check.details,
+        targetCount: check.failedActivityKeys.length,
+      })),
+      ...remediationSuggestions.map(s => ({
+        section: 'Remediation',
+        id: s.id,
+        name: s.title,
+        details: `${s.description} CP compression ${s.estimatedImpact.cpCompressionDays}d, float delta ${s.estimatedImpact.avgFloatImprovementDays}d.`,
+        targetCount: s.targetActivityKeys.length,
+      })),
     ];
-
-    const dcmaChecks = checks.map(c => ({
-      id: c.id,
-      name: c.name,
-      value: c.value,
-      threshold: c.threshold,
-      passed: c.value <= c.threshold,
-      details: `${c.name}: ${c.value} (threshold ${c.threshold})`,
-    }));
-
-    const remediationSteps = dcmaChecks
-      .filter(c => !c.passed)
-      .map(c => `Investigate and remediate ${c.name.toLowerCase()}.`);
-    const passCount = dcmaChecks.filter(c => c.passed).length;
-    const overallScore = Math.round((passCount / dcmaChecks.length) * 100);
 
     return {
       projectCode,
       generatedAt: new Date().toISOString(),
       overallScore,
+      dcmaScore,
+      customRuleScore,
+      scoreBreakdown: {
+        dcmaScore,
+        customRuleScore,
+        overallScore,
+      },
       dcmaChecks,
+      customRuleResults,
+      remediationSuggestions,
+      exportRows,
       remediationSteps,
     };
   }

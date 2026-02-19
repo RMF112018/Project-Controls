@@ -13,12 +13,13 @@ import { InteractiveGanttV2 } from './InteractiveGanttV2';
 import { WhatIfSandbox } from './WhatIfSandbox';
 import { ResourceManagement } from './ResourceManagement';
 import { PortfolioScheduleDashboard } from './PortfolioScheduleDashboard';
+import { ScheduleQualityWorkbench } from './ScheduleQualityWorkbench';
 import { HBC_COLORS } from '../../../theme/tokens';
 
 interface IScheduleOfficeV2ShellProps {
   projectCode: string;
   activities: IScheduleActivity[];
-  section: 'gantt-v2' | 'what-if' | 'resources' | 'portfolio';
+  section: 'gantt-v2' | 'what-if' | 'resources' | 'portfolio' | 'quality';
 }
 
 export const ScheduleOfficeV2Shell: React.FC<IScheduleOfficeV2ShellProps> = ({ projectCode, activities, section }) => {
@@ -81,6 +82,13 @@ export const ScheduleOfficeV2Shell: React.FC<IScheduleOfficeV2ShellProps> = ({ p
       )}
       {section === 'portfolio' && (
         <PortfolioScheduleDashboard healthRows={portfolioRows} fieldReadinessRows={portfolioReadiness} />
+      )}
+      {section === 'quality' && (
+        <ScheduleQualityWorkbench
+          projectCode={projectCode}
+          activities={activities}
+          onFieldReadinessRefresh={() => refresh().catch(() => undefined)}
+        />
       )}
       {runtimeInfo?.fallbackReason && (
         <div style={{ fontSize: 12, color: HBC_COLORS.gray600 }}>

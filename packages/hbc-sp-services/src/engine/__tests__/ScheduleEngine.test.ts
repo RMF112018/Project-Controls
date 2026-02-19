@@ -157,4 +157,34 @@ describe('ScheduleEngine', () => {
     expect(score.score).toBeLessThanOrEqual(100);
     expect(score.linkageCoveragePct).toBe(50);
   });
+
+  it('returns full DCMA 14 checks and weighted score breakdown', () => {
+    const tasks = [
+      activity({ id: 1, taskCode: 'A', externalActivityKey: 'k-A', originalDuration: 55 }),
+      activity({ id: 2, taskCode: 'B', externalActivityKey: 'k-B', predecessors: ['A'], primaryConstraint: 'Start On', percentComplete: 100, status: 'Not Started' }),
+      activity({ id: 3, taskCode: 'C', externalActivityKey: 'k-C', predecessors: ['B'], remainingFloat: -2, isCritical: true, status: 'Not Started' }),
+    ];
+    const report = engine.runScheduleQualityChecks('P-001', tasks);
+    expect(report.dcmaChecks).toHaveLength(14);
+    expect(report.dcmaScore).toBeGreaterThanOrEqual(0);
+    expect(report.customRuleScore).toBeGreaterThanOrEqual(0);
+    expect(report.overallScore).toBeGreaterThanOrEqual(0);
+    expect(report.scoreBreakdown.overallScore).toBe(report.overallScore);
+  });
+
+  it('builds remediation suggestions with externalActivityKey patches and impact estimates', () => {
+    const tasks = [
+      activity({ id: 1, taskCode: 'A', externalActivityKey: 'k-A', originalDuration: 60, primaryConstraint: 'Start On' }),
+      activity({ id: 2, taskCode: 'B', externalActivityKey: 'k-B', predecessors: ['A'], percentComplete: 100, status: 'Not Started', originalDuration: 60 }),
+      activity({ id: 3, taskCode: 'C', externalActivityKey: 'k-C', predecessors: ['B'] }),
+      activity({ id: 4, taskCode: 'D', externalActivityKey: 'k-D', predecessors: ['C'] }),
+    ];
+    const report = engine.runScheduleQualityChecks('P-001', tasks);
+    expect(report.remediationSuggestions.length).toBeGreaterThan(0);
+    const first = report.remediationSuggestions[0];
+    expect(first.activityPatches.length).toBeGreaterThan(0);
+    expect(first.activityPatches[0].externalActivityKey).toBeTruthy();
+    expect(typeof first.estimatedImpact.cpCompressionDays).toBe('number');
+    expect(typeof first.estimatedImpact.avgFloatImprovementDays).toBe('number');
+  });
 });

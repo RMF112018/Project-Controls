@@ -48,14 +48,82 @@ export interface IDcmaCheckResult {
   passed: boolean;
   value: number;
   threshold: number;
+  weight: number;
+  category: 'logic' | 'duration' | 'constraints' | 'float' | 'status' | 'relationships';
   details: string;
+  failedActivityKeys: string[];
+}
+
+export interface IQualityRuleResult {
+  id: string;
+  name: string;
+  passed: boolean;
+  value: number;
+  threshold: number;
+  weight: number;
+  details: string;
+  failedActivityKeys: string[];
+}
+
+export interface IQualityActivityPatch {
+  externalActivityKey: string;
+  patch: Partial<IScheduleActivity>;
+}
+
+export interface IQualityImpactEstimate {
+  cpCompressionDays: number;
+  avgFloatImprovementDays: number;
+  confidence: 'low' | 'medium' | 'high';
+}
+
+export interface IQualityRemediationSuggestion {
+  id: string;
+  ruleId: string;
+  title: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high';
+  targetActivityKeys: string[];
+  activityPatches: IQualityActivityPatch[];
+  estimatedImpact: IQualityImpactEstimate;
+}
+
+export interface IScheduleQualityScoreBreakdown {
+  dcmaScore: number;
+  customRuleScore: number;
+  overallScore: number;
+}
+
+export interface IQualityExportRow {
+  section: 'DCMA' | 'Custom' | 'Remediation';
+  id: string;
+  name: string;
+  passed?: boolean;
+  score?: number;
+  value?: number;
+  threshold?: number;
+  weight?: number;
+  details?: string;
+  targetCount?: number;
+}
+
+export interface IQualityReadinessProjection {
+  baselineFieldReadinessScore: number;
+  projectedFieldReadinessScore: number;
+  delta: number;
+  assumptions: string;
 }
 
 export interface IScheduleQualityReport {
   projectCode: string;
   generatedAt: string;
   overallScore: number;
+  dcmaScore: number;
+  customRuleScore: number;
+  scoreBreakdown: IScheduleQualityScoreBreakdown;
   dcmaChecks: IDcmaCheckResult[];
+  customRuleResults: IQualityRuleResult[];
+  remediationSuggestions: IQualityRemediationSuggestion[];
+  exportRows: IQualityExportRow[];
   remediationSteps: string[];
 }
 

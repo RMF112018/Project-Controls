@@ -156,7 +156,11 @@ import {
 import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
 import { cacheService } from './CacheService';
 import { getProjectListSchemas } from '../utils/projectListSchemas';
-import { ScheduleEngine, getScheduleEngineRuntimeInfo as resolveScheduleEngineRuntime } from '../engine';
+import {
+  ScheduleEngine,
+  getScheduleEngineRuntimeInfo as resolveScheduleEngineRuntime,
+  runScheduleQualityChecksWithWorker,
+} from '../engine';
 
 /** Build a deterministic cache key suffix from query parameters. */
 function buildCacheKeySuffix(params: Record<string, unknown> | undefined): string {
@@ -9271,7 +9275,7 @@ export class SharePointDataService implements IDataService {
   }
 
   async runScheduleQualityChecks(projectCode: string, activities: IScheduleActivity[]): Promise<IScheduleQualityReport> {
-    return this.scheduleEngine.runScheduleQualityChecks(projectCode, activities);
+    return runScheduleQualityChecksWithWorker(projectCode, activities);
   }
 
   async runForensicAnalysis(projectCode: string, windows: IForensicWindow[]): Promise<IForensicAnalysisResult> {
