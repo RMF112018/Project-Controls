@@ -18,6 +18,7 @@ const WAVE_A_METHODS = new Set<string>([
   'updateBuyoutEntry',
   'removeBuyoutEntry',
   'updateProjectManagementPlan',
+  'updateScheduleActivity',
   'submitPMPForApproval',
   'respondToPMPApproval',
   'signPMP',
