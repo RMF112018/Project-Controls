@@ -1,9 +1,11 @@
 import * as React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { Version } from '@microsoft/sp-core-library';
+import { ThemeProvider, IReadonlyTheme } from '@microsoft/sp-component-base';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IPropertyPaneConfiguration, PropertyPaneTextField } from '@microsoft/sp-property-pane';
 import { App, IAppProps } from './components/App';
+import { mapSpThemeToFluentTheme } from './theme/spThemeBridge';
 import { IDataService, MockDataService, SharePointDataService, graphService, performanceService, signalRService, TelemetryService, MockTelemetryService } from '@hbc/sp-services';
 import type { ITelemetryService } from '@hbc/sp-services';
 
@@ -20,10 +22,15 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
   private _dataService!: IDataService;
   private _telemetryService!: ITelemetryService;
   private _root: Root | null = null;
+  private _themeProvider: ThemeProvider | undefined;
+  private _themeVariant: IReadonlyTheme | undefined;
 
   protected async onInit(): Promise<void> {
     performanceService.startMark('webpart:onInit');
     await super.onInit();
+    this._themeProvider = this.context.serviceScope.consume(ThemeProvider.serviceKey);
+    this._themeVariant = this._themeProvider.tryGetTheme();
+    this._themeProvider.themeChangedEvent.add(this, this._handleThemeChanged);
 
     const useSP = this.properties.dataServiceMode === 'sharepoint';
 
@@ -121,6 +128,7 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
       telemetryService: this._telemetryService,
       siteUrl: this.context.pageContext.web.absoluteUrl,
       dataServiceMode: useSP ? 'sharepoint' : 'mock',
+      hostTheme: mapSpThemeToFluentTheme(this._themeVariant),
     });
 
     if (!this._root) {
@@ -132,10 +140,16 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
   }
 
   protected onDispose(): void {
+    this._themeProvider?.themeChangedEvent.remove(this, this._handleThemeChanged);
     this._telemetryService?.flush();
     signalRService.dispose();
     this._root?.unmount();
     this._root = null;
+  }
+
+  private _handleThemeChanged(args: { theme: IReadonlyTheme | undefined }): void {
+    this._themeVariant = args.theme;
+    this.render();
   }
 
   protected get dataVersion(): Version {

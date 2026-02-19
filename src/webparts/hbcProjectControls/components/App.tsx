@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FluentProvider } from '@fluentui/react-components';
+import { FluentProvider, type Theme } from '@fluentui/react-components';
 import { QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { hbcLightTheme } from '../theme/hbcTheme';
@@ -22,6 +22,14 @@ export interface IAppProps {
   telemetryService?: ITelemetryService;
   siteUrl?: string;
   dataServiceMode?: 'mock' | 'standalone' | 'sharepoint';
+  hostTheme?: Partial<Theme>;
+}
+
+function mergeThemes(baseTheme: Theme, hostThemePatch?: Partial<Theme>): Theme {
+  return {
+    ...baseTheme,
+    ...(hostThemePatch ?? {}),
+  };
 }
 
 const AppRoutes: React.FC = () => {
@@ -43,15 +51,20 @@ const AppRoutes: React.FC = () => {
   );
 };
 
-export const App: React.FC<IAppProps> = ({ dataService, telemetryService, siteUrl, dataServiceMode }) => {
+export const App: React.FC<IAppProps> = ({ dataService, telemetryService, siteUrl, dataServiceMode, hostTheme }) => {
   const queryClient = React.useMemo(() => getQueryClient(), []);
   const showQueryDevtools =
     typeof window !== 'undefined'
     && window.location.hostname === 'localhost'
     && window.localStorage.getItem('showQueryDevtools') === 'true';
+  // Merge SharePoint host tokens over the design-system base theme when available.
+  const mergedTheme = React.useMemo<Theme>(
+    () => mergeThemes(hbcLightTheme, hostTheme ?? {}),
+    [hostTheme]
+  );
 
   return (
-    <FluentProvider theme={hbcLightTheme}>
+    <FluentProvider theme={mergedTheme}>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <AppProvider dataService={dataService} telemetryService={telemetryService} siteUrl={siteUrl} dataServiceMode={dataServiceMode}>

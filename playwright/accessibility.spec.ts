@@ -185,4 +185,24 @@ test.describe('Accessibility — WCAG 2.2 AA', () => {
     await page.waitForTimeout(800); // gantt renders async after data loads
     await checkA11y(page);
   });
+
+  test('estimating dashboard route (EstimatingCoordinator)', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('EstimatingCoordinator');
+    await page.goto('/#/preconstruction');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(600);
+    await checkA11y(page);
+  });
+
+  test('operations dashboard route (OperationsTeam)', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('OperationsTeam');
+    await page.goto('/#/operations');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(600);
+    await checkA11y(page);
+  });
 });

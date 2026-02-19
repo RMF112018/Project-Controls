@@ -185,6 +185,72 @@ import { DEFAULT_PREREQUISITES, DEFAULT_DISCUSSION_ITEMS, DEFAULT_EXHIBITS, DEFA
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
 
+const REQUIRED_PROMPT6_FEATURE_FLAGS: ReadonlyArray<Omit<IFeatureFlag, 'id'>> = [
+  {
+    FeatureName: 'uxDelightMotionV1',
+    DisplayName: 'UX Delight Motion v1',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    TargetDate: undefined,
+    Notes: 'Prompt 6 motion polish and transitions',
+    Category: 'Infrastructure',
+  },
+  {
+    FeatureName: 'uxPersonalizedDashboardsV1',
+    DisplayName: 'UX Personalized Dashboards v1',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    TargetDate: undefined,
+    Notes: 'Prompt 6 per-user dashboard preference persistence',
+    Category: 'Infrastructure',
+  },
+  {
+    FeatureName: 'uxChartTableSyncGlowV1',
+    DisplayName: 'UX Chart-Table Sync Glow v1',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    TargetDate: undefined,
+    Notes: 'Prompt 6 synchronized chart/table highlight states',
+    Category: 'Infrastructure',
+  },
+  {
+    FeatureName: 'uxInsightsPanelV1',
+    DisplayName: 'UX Insights Panel v1',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    TargetDate: undefined,
+    Notes: 'Prompt 6 contextual insights panel',
+    Category: 'Infrastructure',
+  },
+  {
+    FeatureName: 'uxToastEnhancementsV1',
+    DisplayName: 'UX Toast Enhancements v1',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    TargetDate: undefined,
+    Notes: 'Prompt 6 undo/progress/action toasts',
+    Category: 'Infrastructure',
+  },
+];
+
+function ensurePrompt6FeatureFlags(flags: IFeatureFlag[]): IFeatureFlag[] {
+  const merged = [...flags];
+  const featureNames = new Set(merged.map((flag) => flag.FeatureName));
+  let nextId = merged.reduce((max, flag) => Math.max(max, flag.id), 0) + 1;
+
+  for (const requiredFlag of REQUIRED_PROMPT6_FEATURE_FLAGS) {
+    if (featureNames.has(requiredFlag.FeatureName)) {
+      continue;
+    }
+    merged.push({
+      id: nextId++,
+      ...requiredFlag,
+    });
+  }
+
+  return merged;
+}
+
 export class MockDataService implements IDataService {
   private leads: ILead[];
   private scorecards: IGoNoGoScorecard[];
@@ -308,7 +374,7 @@ export class MockDataService implements IDataService {
     this.scorecards = rawScorecardsData.scorecards.map(sc => this.assembleScorecard(sc));
     this.estimatingRecords = JSON.parse(JSON.stringify(mockEstimating)) as IEstimatingTracker[];
     this.users = JSON.parse(JSON.stringify(mockUsers));
-    this.featureFlags = JSON.parse(JSON.stringify(mockFeatureFlags)) as IFeatureFlag[];
+    this.featureFlags = ensurePrompt6FeatureFlags(JSON.parse(JSON.stringify(mockFeatureFlags)) as IFeatureFlag[]);
     this.calendarAvailability = JSON.parse(JSON.stringify(mockCalendarAvailability)) as ICalendarAvailability[];
     this.teamMembers = JSON.parse(JSON.stringify(mockTeamMembers)) as ITeamMember[];
     this.deliverables = JSON.parse(JSON.stringify(mockDeliverables)) as IDeliverable[];
@@ -1936,6 +2002,7 @@ export class MockDataService implements IDataService {
 
   public async getFeatureFlags(): Promise<IFeatureFlag[]> {
     await delay();
+    this.featureFlags = ensurePrompt6FeatureFlags(this.featureFlags);
     return [...this.featureFlags];
   }
 

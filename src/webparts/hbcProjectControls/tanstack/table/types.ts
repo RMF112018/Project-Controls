@@ -32,6 +32,31 @@ export interface IHbcTanStackTableProps<TData> {
   pageSize?: number;
   ariaLabel?: string;
   virtualization?: IHbcVirtualizationConfig;
+
+  enableFiltering?: boolean;
+  globalFilter?: string;
+  onGlobalFilterChange?: (value: string) => void;
+
+  enableGrouping?: boolean;
+  groupBy?: string[];
+  onGroupByChange?: (groupBy: string[]) => void;
+
+  enableColumnVisibility?: boolean;
+  columnVisibility?: Record<string, boolean>;
+  onColumnVisibilityChange?: (visibility: Record<string, boolean>) => void;
+
+  enableRowSelection?: boolean;
+  selectedRowKeys?: Array<string | number>;
+  onSelectedRowKeysChange?: (keys: Array<string | number>) => void;
+
+  enableColumnResize?: boolean;
+  columnSizing?: Record<string, number>;
+  onColumnSizingChange?: (sizes: Record<string, number>) => void;
+
+  pageIndex?: number;
+  onPageIndexChange?: (pageIndex: number) => void;
+
+  rowActions?: (item: TData) => React.ReactNode;
 }
 
 export interface IHbcTableState {

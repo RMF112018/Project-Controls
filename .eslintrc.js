@@ -1,5 +1,14 @@
 require('@rushstack/eslint-config/patch/modern-module-resolution');
 
+const governanceRulesEnabled = process.argv.includes('--rulesdir');
+const governanceRules = governanceRulesEnabled
+  ? {
+      'no-hardcoded-color': 'warn',
+      'prefer-griffel-tokens': 'warn',
+      'no-direct-tanstack-table': 'error'
+    }
+  : {};
+
 module.exports = {
   extends: ['@microsoft/eslint-config-spfx/lib/profiles/react'],
   parserOptions: { tsconfigRootDir: __dirname },
@@ -30,14 +39,28 @@ module.exports = {
       }
     },
     {
-      files: ['src/webparts/hbcProjectControls/components/**/*.ts', 'src/webparts/hbcProjectControls/components/**/*.tsx'],
+      files: ['src/webparts/hbcProjectControls/**/*.ts', 'src/webparts/hbcProjectControls/**/*.tsx'],
       rules: {
+        ...governanceRules,
         'no-restricted-imports': ['error', {
-          patterns: [{
-            group: ['**/shared/DataTable'],
-            message: 'DataTable is removed. Use HbcTanStackTable from tanstack/table.'
-          }]
+          patterns: [
+            {
+              group: ['**/shared/DataTable'],
+              message: 'Use HbcDataTable from @/components/shared/HbcDataTable instead.'
+            },
+            {
+              group: ['@tanstack/react-table'],
+              message: 'Do not import @tanstack/react-table outside the tanstack/table adapter layer.'
+            }
+          ]
         }]
+      }
+    },
+    {
+      files: ['src/webparts/hbcProjectControls/tanstack/table/**/*.ts', 'src/webparts/hbcProjectControls/tanstack/table/**/*.tsx'],
+      rules: {
+        ...(governanceRulesEnabled ? { 'no-direct-tanstack-table': 'off' } : {}),
+        'no-restricted-imports': 'off'
       }
     }
   ]

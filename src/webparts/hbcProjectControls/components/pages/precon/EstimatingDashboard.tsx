@@ -10,6 +10,7 @@ import {
   RoleName,
   PERMISSIONS,
   exportService,
+  performanceService,
   formatCurrency,
   formatCurrencyCompact,
   formatPercent,
@@ -18,6 +19,7 @@ import {
 } from '@hbc/sp-services';
 import * as React from 'react';
 import { useLocation, useNavigate } from '@router';
+import type { EChartsOption } from 'echarts';
 import { useEstimating } from '../../hooks/useEstimating';
 import { useLeads } from '../../hooks/useLeads';
 import { usePersistedState } from '../../hooks/usePersistedState';
@@ -27,9 +29,11 @@ import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { KPICard } from '../../shared/KPICard';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
+import { HbcDataTable, type IHbcDataTableColumn } from '../../shared/HbcDataTable';
+import { HbcEChart } from '../../shared/HbcEChart';
+import { useToast } from '../../shared/ToastContainer';
+import { useHbcMotionStyles } from '../../shared/HbcMotion';
 import { HBC_COLORS } from '../../../theme/tokens';
-import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
-import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 const TAB_PATHS = ['/preconstruction', '/preconstruction/precon-tracker', '/preconstruction/estimate-log'];
 const TAB_LABELS = ['Current Pursuits', 'Current Preconstruction', 'Estimate Log'];
 
@@ -179,7 +183,16 @@ export const EstimatingDashboard: React.FC = () => {
   const activeTab = pathToTab(location.pathname);
   const breadcrumbs = buildBreadcrumbs(location.pathname);
 
-  const { dataService, currentUser, hasPermission } = useAppContext();
+  const {
+    dataService,
+    currentUser,
+    hasPermission,
+    isFeatureEnabled,
+    getDashboardPreference,
+    setDashboardPreference,
+  } = useAppContext();
+  const { addToast } = useToast();
+  const motionStyles = useHbcMotionStyles();
   const { records, isLoading: estLoading, fetchRecords, updateRecord } = useEstimating();
   const { leads, isLoading: leadsLoading, fetchLeads } = useLeads();
 
@@ -190,11 +203,53 @@ export const EstimatingDashboard: React.FC = () => {
   const [regionFilter, setRegionFilter] = usePersistedState('estimating-region', 'All');
   const [sortField, setSortField] = React.useState<string>('');
   const [sortAsc, setSortAsc] = React.useState(true);
+  const [chartFilter, setChartFilter] = usePersistedState('estimating-award-status-filter', 'All');
+  const [highlightedRowKey, setHighlightedRowKey] = React.useState<string | number | null>(null);
+  const dashboardPreferenceKey = 'estimating-dashboard';
+  const enablePersonalization = isFeatureEnabled('uxPersonalizedDashboardsV1');
+  const enableSyncGlow = isFeatureEnabled('uxChartTableSyncGlowV1');
+  const enableDelightMotion = isFeatureEnabled('uxDelightMotionV1');
+  const isSyncActive = enableSyncGlow && highlightedRowKey !== null;
 
   React.useEffect(() => {
+    performanceService.startMark('estimating:dashboardDataFetch');
     fetchRecords().catch(console.error);
     fetchLeads().catch(console.error);
+    return () => {
+      performanceService.endMark('estimating:dashboardDataFetch');
+    };
   }, [fetchRecords, fetchLeads]);
+
+  React.useEffect(() => {
+    if (!enablePersonalization) {
+      return;
+    }
+    const saved = getDashboardPreference(dashboardPreferenceKey);
+    if (!saved?.filters) {
+      return;
+    }
+    const savedFilters = saved.filters;
+    if (typeof savedFilters.yearFilter === 'string') setYearFilter(savedFilters.yearFilter);
+    if (typeof savedFilters.estimatorFilter === 'string') setEstimatorFilter(savedFilters.estimatorFilter);
+    if (typeof savedFilters.regionFilter === 'string') setRegionFilter(savedFilters.regionFilter);
+    if (typeof savedFilters.chartFilter === 'string') setChartFilter(savedFilters.chartFilter);
+  }, [enablePersonalization, getDashboardPreference, setYearFilter, setEstimatorFilter, setRegionFilter, setChartFilter, dashboardPreferenceKey]);
+
+  React.useEffect(() => {
+    if (!enablePersonalization) {
+      return;
+    }
+    setDashboardPreference(dashboardPreferenceKey, {
+      filters: {
+        yearFilter,
+        estimatorFilter,
+        regionFilter,
+        chartFilter,
+        activeTab,
+      },
+      updatedAt: new Date().toISOString(),
+    });
+  }, [enablePersonalization, setDashboardPreference, yearFilter, estimatorFilter, regionFilter, chartFilter, activeTab, dashboardPreferenceKey]);
 
   // Inline update with audit
   const handleInlineUpdate = React.useCallback(async (id: number, data: Partial<IEstimatingTracker>) => {
@@ -211,7 +266,11 @@ export const EstimatingDashboard: React.FC = () => {
       UserId: currentUser?.id,
       Details: `Inline edit: ${fieldName} updated`,
     }).catch(console.error);
-  }, [canEdit, updateRecord, dataService, currentUser]);
+    addToast(`Updated ${fieldName}`, 'success', 3000, {
+      undoLabel: 'Undo',
+      onUndo: () => addToast('Undo is staged for Prompt 6 workflow integration', 'info', 2500),
+    });
+  }, [canEdit, updateRecord, dataService, currentUser, addToast]);
 
   // Build a lead lookup map
   const leadMap = React.useMemo(() => {
@@ -257,9 +316,10 @@ export const EstimatingDashboard: React.FC = () => {
         const lead = r.LeadID ? leadMap.get(r.LeadID) : undefined;
         if (!lead || lead.Region !== regionFilter) return false;
       }
+      if (chartFilter !== 'All' && (r.AwardStatus || 'Pending') !== chartFilter) return false;
       return true;
     });
-  }, [records, yearFilter, estimatorFilter, regionFilter, leadMap]);
+  }, [records, yearFilter, estimatorFilter, regionFilter, leadMap, chartFilter]);
 
   // Category splits
   const currentPursuits = React.useMemo(
@@ -340,7 +400,7 @@ export const EstimatingDashboard: React.FC = () => {
   const awardOptions = Object.values(AwardStatus);
 
   // Current Pursuits columns — no fixed width on text columns, removed Kick-Off button
-  const pursuitColumns: IHbcTanStackTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
+  const pursuitColumns: IHbcDataTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
     { key: 'Title', header: 'Project', sortable: true, minWidth: '180px', render: (r) => (
       <span style={{ fontWeight: 500, color: HBC_COLORS.navy, whiteSpace: 'nowrap' }}>{r.Title}</span>
     )},
@@ -396,7 +456,7 @@ export const EstimatingDashboard: React.FC = () => {
   ], [handleCheckToggle, handleInlineUpdate, canEdit, sourceOptions, typeOptions]);
 
   // Precon Engagements columns
-  const preconColumns: IHbcTanStackTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
+  const preconColumns: IHbcDataTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
     { key: 'Title', header: 'Project', sortable: true, render: (r) => (
       <span style={{ fontWeight: 500, color: HBC_COLORS.navy, whiteSpace: 'nowrap' }}>{r.Title}</span>
     )},
@@ -432,7 +492,7 @@ export const EstimatingDashboard: React.FC = () => {
   ], [handleInlineUpdate, canEdit, leadMap]);
 
   // Estimate Log columns
-  const logColumns: IHbcTanStackTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
+  const logColumns: IHbcDataTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
     { key: 'Title', header: 'Project', sortable: true, render: (r) => (
       <span style={{ fontWeight: 500, color: HBC_COLORS.navy, whiteSpace: 'nowrap' }}>{r.Title}</span>
     )},
@@ -481,6 +541,20 @@ export const EstimatingDashboard: React.FC = () => {
     const hitRate = awarded + notAwarded > 0 ? (awarded / (awarded + notAwarded)) * 100 : 0;
     return { totalValue, awarded, notAwarded, pending, hitRate };
   }, [estimateLog]);
+
+  const awardChartOption = React.useMemo<EChartsOption>(() => ({
+    tooltip: { trigger: 'item' },
+    legend: { bottom: 0 },
+    series: [{
+      type: 'pie',
+      radius: ['45%', '70%'],
+      data: [
+        { name: 'Pending', value: logSummary.pending },
+        { name: 'Awarded', value: logSummary.awarded },
+        { name: 'Not Awarded', value: logSummary.notAwarded },
+      ],
+    }],
+  }), [logSummary]);
 
   // Excel export
   const handleExport = React.useCallback(async () => {
@@ -660,6 +734,36 @@ export const EstimatingDashboard: React.FC = () => {
             {filterOptions.regions.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
         </label>
+        <label style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
+          Award Status:
+          <select style={{ ...selectStyle, marginLeft: '6px' }} value={chartFilter} onChange={e => setChartFilter(e.target.value)}>
+            <option value="All">All</option>
+            <option value="Pending">Pending</option>
+            <option value={AwardStatus.AwardedWithPrecon}>Awarded</option>
+            <option value={AwardStatus.NotAwarded}>Not Awarded</option>
+          </select>
+        </label>
+      </div>
+
+      <div className={`${enableDelightMotion ? motionStyles.optimisticFade : ''} ${isSyncActive ? motionStyles.chartTableGlowActive : ''}`} style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+        <HbcEChart
+          option={awardChartOption}
+          height={220}
+          ariaLabel="Estimate award status distribution"
+          onEvents={{
+            click: (params: { name?: string }) => {
+              performanceService.startMark('estimating:chartFilterInteraction');
+              const next = params.name || 'All';
+              if (next === 'Awarded') {
+                setChartFilter(AwardStatus.AwardedWithPrecon);
+                performanceService.endMark('estimating:chartFilterInteraction');
+                return;
+              }
+              setChartFilter(next);
+              performanceService.endMark('estimating:chartFilterInteraction');
+            },
+          }}
+        />
       </div>
 
       {/* Tabs */}
@@ -677,7 +781,8 @@ export const EstimatingDashboard: React.FC = () => {
 
       {/* Tab Content */}
       {activeTab === 0 && (
-        <HbcTanStackTable<IEstimatingTracker>
+        <HbcDataTable<IEstimatingTracker>
+          tableId="estimating-current-pursuits"
           columns={pursuitColumns}
           items={currentPursuits}
           keyExtractor={r => r.id}
@@ -689,12 +794,16 @@ export const EstimatingDashboard: React.FC = () => {
           emptyTitle="No active pursuits"
           emptyDescription="Estimating records without a submitted date appear here"
           pageSize={25}
+          linkedChartId="estimating-award-chart"
+          onChartLinkHighlight={(payload) => setHighlightedRowKey(payload.rowKey)}
+          motion={{ enabled: enableDelightMotion, durationMs: 220 }}
         />
       )}
 
       {activeTab === 1 && (
         <>
-          <HbcTanStackTable<IEstimatingTracker>
+          <HbcDataTable<IEstimatingTracker>
+            tableId="estimating-precon-engagements"
             columns={preconColumns}
             items={preconEngagements}
             keyExtractor={r => r.id}
@@ -705,6 +814,9 @@ export const EstimatingDashboard: React.FC = () => {
             ariaLabel="Preconstruction engagements table"
             emptyTitle="No precon engagements"
             emptyDescription="Records with PreconFee > 0 appear here"
+            linkedChartId="estimating-award-chart"
+            onChartLinkHighlight={(payload) => setHighlightedRowKey(payload.rowKey)}
+            motion={{ enabled: enableDelightMotion, durationMs: 220 }}
           />
           {preconEngagements.length > 0 && (
             <div style={summaryRowStyle}>
@@ -722,7 +834,8 @@ export const EstimatingDashboard: React.FC = () => {
 
       {activeTab === 2 && (
         <>
-          <HbcTanStackTable<IEstimatingTracker>
+          <HbcDataTable<IEstimatingTracker>
+            tableId="estimating-estimate-log"
             columns={logColumns}
             items={estimateLog}
             keyExtractor={r => r.id}
@@ -733,6 +846,9 @@ export const EstimatingDashboard: React.FC = () => {
             ariaLabel="Estimate log table"
             emptyTitle="No submitted estimates"
             emptyDescription="Estimates with a submitted date appear here"
+            linkedChartId="estimating-award-chart"
+            onChartLinkHighlight={(payload) => setHighlightedRowKey(payload.rowKey)}
+            motion={{ enabled: enableDelightMotion, durationMs: 220 }}
           />
           {estimateLog.length > 0 && (
             <div style={summaryRowStyle}>
@@ -744,6 +860,11 @@ export const EstimatingDashboard: React.FC = () => {
             </div>
           )}
         </>
+      )}
+      {highlightedRowKey !== null && (
+        <div style={{ fontSize: '12px', color: HBC_COLORS.gray500, marginTop: '8px' }}>
+          Highlighted row key: {String(highlightedRowKey)}
+        </div>
       )}
 
     </div>
