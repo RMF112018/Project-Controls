@@ -3,7 +3,7 @@ import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
-import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
+import { TANSTACK_ROUTER_ENABLED_FLAG } from './constants';
 const EstimatingKickoffPage = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
   'EstimatingKickoffPage'
@@ -34,7 +34,7 @@ const DeliverablesTracker = lazyRouteComponent(
 );
 
 function requirePilot(context: ITanStackRouteContext): void {
-  requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
+  requireFeature(context, TANSTACK_ROUTER_ENABLED_FLAG);
 }
 
 export function guardKickoffPage(context: ITanStackRouteContext): void {

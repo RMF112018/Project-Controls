@@ -3,9 +3,9 @@ import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
-import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
+import { TANSTACK_ROUTER_ENABLED_FLAG } from './constants';
 const EstimatingDashboard = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
+  () => import(/* webpackChunkName: "page-estimating-tracker" */ '../../components/pages/precon/EstimatingDashboard'),
   'EstimatingDashboard'
 );
 const PipelinePage = lazyRouteComponent(
@@ -26,7 +26,7 @@ const PursuitDetail = lazyRouteComponent(
 );
 
 function requirePilot(context: ITanStackRouteContext): void {
-  requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
+  requireFeature(context, TANSTACK_ROUTER_ENABLED_FLAG);
 }
 
 export function guardEstimatingTracker(context: ITanStackRouteContext): void {

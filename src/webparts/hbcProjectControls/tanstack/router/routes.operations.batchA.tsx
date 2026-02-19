@@ -4,7 +4,7 @@ import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
 import { requireProject } from './guards/requireProject';
-import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
+import { TANSTACK_ROUTER_ENABLED_FLAG } from './constants';
 import { buyoutEntriesOptions } from '../query/queryOptions/buyout';
 const ProjectSettingsPage = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
@@ -15,7 +15,7 @@ const ProjectStartupChecklist = lazyRouteComponent(
   'ProjectStartupChecklist'
 );
 const ProjectManagementPlan = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  () => import(/* webpackChunkName: "page-pmp-16-section" */ '../../components/pages/project/pmp/ProjectManagementPlan'),
   'ProjectManagementPlan'
 );
 const SuperintendentPlanPage = lazyRouteComponent(
@@ -64,7 +64,7 @@ const PermitsLogPage = lazyRouteComponent(
 );
 
 function requirePilot(context: ITanStackRouteContext): void {
-  requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
+  requireFeature(context, TANSTACK_ROUTER_ENABLED_FLAG);
 }
 
 export function guardProjectSettings(context: ITanStackRouteContext): void {

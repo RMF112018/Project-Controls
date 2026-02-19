@@ -4,7 +4,7 @@ import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
-import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
+import { TANSTACK_ROUTER_ENABLED_FLAG } from './constants';
 import { AccessDeniedPage } from '../../components/pages/shared/AccessDeniedPage';
 
 const MarketingDashboard = lazyRouteComponent(
@@ -20,7 +20,7 @@ const NotFoundPage: React.FC = () => (
 );
 
 function requirePilot(context: ITanStackRouteContext): void {
-  requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
+  requireFeature(context, TANSTACK_ROUTER_ENABLED_FLAG);
 }
 
 export function guardMarketing(context: ITanStackRouteContext): void {

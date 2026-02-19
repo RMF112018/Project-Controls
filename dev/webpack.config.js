@@ -125,7 +125,7 @@ module.exports = {
         },
         charts: {
           test: /[\\/]node_modules[\\/](echarts|echarts-for-react)[\\/]/,
-          name: 'lib-echarts-runtime',
+          name: 'lib-echarts-vendor',
           priority: 20,
           chunks: 'async',
         },

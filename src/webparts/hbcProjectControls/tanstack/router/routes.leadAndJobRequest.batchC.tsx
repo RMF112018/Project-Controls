@@ -1,7 +1,7 @@
 import { createRoute, lazyRouteComponent } from '@tanstack/react-router';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
-import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
+import { TANSTACK_ROUTER_ENABLED_FLAG } from './constants';
 const LeadFormPage = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
   'LeadFormPage'
@@ -28,7 +28,7 @@ const JobNumberRequestForm = lazyRouteComponent(
 );
 
 function requirePilot(context: ITanStackRouteContext): void {
-  requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
+  requireFeature(context, TANSTACK_ROUTER_ENABLED_FLAG);
 }
 
 export function guardLeadIntake(context: ITanStackRouteContext): void {

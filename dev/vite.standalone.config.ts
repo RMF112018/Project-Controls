@@ -80,6 +80,9 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
+            if (id.includes('/components/pages/hub/AdminPanel.tsx')) return 'page-admin-panel';
+            if (id.includes('/components/pages/precon/EstimatingDashboard.tsx')) return 'page-estimating-tracker';
+            if (id.includes('/components/pages/project/pmp/ProjectManagementPlan.tsx')) return 'page-pmp-16-section';
             if (!id.includes('node_modules')) return undefined;
             if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/react-router-dom/')) return 'react-vendor';
             if (id.includes('/@fluentui/')) return 'fluent-vendor';

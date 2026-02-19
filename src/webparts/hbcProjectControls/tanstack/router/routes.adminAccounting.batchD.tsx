@@ -3,13 +3,13 @@ import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
-import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
+import { TANSTACK_ROUTER_ENABLED_FLAG } from './constants';
 const AccountingQueuePage = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
   'AccountingQueuePage'
 );
 const AdminPanel = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
+  () => import(/* webpackChunkName: "page-admin-panel" */ '../../components/pages/hub/AdminPanel'),
   'AdminPanel'
 );
 const PerformanceDashboard = lazyRouteComponent(
@@ -26,7 +26,7 @@ const TelemetryDashboard = lazyRouteComponent(
 );
 
 function requirePilot(context: ITanStackRouteContext): void {
-  requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
+  requireFeature(context, TANSTACK_ROUTER_ENABLED_FLAG);
 }
 
 export function guardAccountingQueue(context: ITanStackRouteContext): void {
