@@ -101,9 +101,22 @@ jobs:
 
       - name: Run Storybook a11y tests (axe)
         run: |
-          npx concurrently -k -s first -n "SB,TEST" -c "magenta,blue" \
-            "npx http-server storybook-static --port 6006 --silent" \
-            "npx wait-on tcp:6006 && npm run test:storybook"
+          python3 -m http.server 6006 --directory storybook-static > /tmp/storybook-http.log 2>&1 &
+          SB_PID=$!
+          cleanup() {
+            kill $SB_PID >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          ./node_modules/.bin/wait-on tcp:6006
+
+          if ! npm run test:storybook -- --url http://127.0.0.1:6006; then
+            echo "Storybook a11y run failed. Server log tail:"
+            tail -n 200 /tmp/storybook-http.log || true
+            echo "playwright-report contents:"
+            ls -la playwright-report || true
+            exit 1
+          fi
         env:
           CI: true
 
