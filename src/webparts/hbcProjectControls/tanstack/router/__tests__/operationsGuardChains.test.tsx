@@ -18,7 +18,7 @@ const batchB = require('../routes.operations.batchB') as typeof import('../route
 
 function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRouteContext {
   const enabledFeatures = new Set([
-    'TanStackRouterPilot',
+    'TanStackRouterEnabled',
     'ContractTracking',
     'ProjectStartup',
     'ProjectManagementPlan',
@@ -64,7 +64,7 @@ function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRout
 describe('operations route guard chains', () => {
   it('project settings redirects to access denied when pilot flag is disabled', () => {
     const context = buildContext({
-      isFeatureEnabled: (featureName: string) => featureName !== 'TanStackRouterPilot',
+      isFeatureEnabled: (featureName: string) => featureName !== 'TanStackRouterEnabled',
     });
     expect(() => batchA.guardProjectSettings(context)).toThrow();
   });
@@ -86,7 +86,7 @@ describe('operations route guard chains', () => {
 
   it('constraints redirects to access denied when feature is disabled', () => {
     const context = buildContext({
-      isFeatureEnabled: (featureName: string) => featureName === 'TanStackRouterPilot',
+      isFeatureEnabled: (featureName: string) => featureName === 'TanStackRouterEnabled',
     });
     expect(() => batchA.guardConstraints(context)).toThrow();
   });
@@ -104,7 +104,7 @@ describe('operations route guard chains', () => {
   it('responsibility route redirects to access denied when ProjectStartup feature is off', () => {
     const context = buildContext({
       isFeatureEnabled: (featureName: string) =>
-        featureName === 'TanStackRouterPilot',
+        featureName === 'TanStackRouterEnabled',
     });
     expect(() => batchB.guardResponsibility(context)).toThrow();
   });

@@ -16,7 +16,7 @@ const batchE = require('../routes.system.batchE') as typeof import('../routes.sy
 
 function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRouteContext {
   const enabledFeatures = new Set([
-    'TanStackRouterPilot',
+    'TanStackRouterEnabled',
   ]);
 
   const base: ITanStackRouteContext = {
@@ -52,7 +52,7 @@ function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRout
 describe('system route guard chains', () => {
   it('marketing guard throws when pilot flag is disabled', () => {
     const context = buildContext({
-      isFeatureEnabled: (featureName: string) => featureName !== 'TanStackRouterPilot',
+      isFeatureEnabled: (featureName: string) => featureName !== 'TanStackRouterEnabled',
     });
     expect(() => batchE.guardMarketing(context)).toThrow();
   });

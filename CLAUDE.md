@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-19 — Performance modernization phase-4 hardening added: bundle stats-diff gate, baseline budget contract, CI PR-warn/main-fail policy, and suspense fallback a11y regression test.
+**Last Updated:** 2026-02-19 — Sprint 1 routing implementation landed: dual-router flag now `TanStackRouterEnabled`, shared AppShell + RouterAdapterProvider, heavy-page lazy chunks, standalone bundle reporting, and CI Teams/router smoke additions.
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -85,7 +85,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - **TanStack Router Wave-1 pilot (parallel)**:
   - Route tree + provider: `tanstack/router/{routes.activeProjects.tsx,router.tsx}`
   - Guard helpers: `tanstack/router/guards/{requirePermission,requireProject,requireFeature}.ts`
-  - Pilot flag constant: `tanstack/router/constants.ts` (`TanStackRouterPilot`)
+  - Pilot flag constant: `tanstack/router/constants.ts` (`TanStackRouterEnabled`)
   - Coexistence wiring in `components/App.tsx` now covers `/operations/*`, `/preconstruction*`, `/lead*`, `/job-request*`, `/admin*`, `/accounting-queue`, `/marketing`, `/access-denied`, and `*`
   - Wave-2 route modules: `tanstack/router/{routes.operations.batchA.tsx,routes.operations.batchB.tsx}`
   - Wave-3 route modules: `tanstack/router/{routes.preconstruction.batchA.tsx,routes.preconstruction.batchB.tsx,routes.leadAndJobRequest.batchC.tsx}`
@@ -131,7 +131,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - **SignalR + Query sync**: migrated hooks use `useSignalRQueryInvalidation` to invalidate query families instead of ad-hoc callback refs.
 - **RBAC**: `resolveUserPermissions` → `PermissionGate` / `RoleGate` / `FeatureGate`
 - **Styling**: `makeStyles` (structure) + minimal inline (dynamic) + Fluent tokens + `HBC_COLORS`
-- **Routing**: `HashRouter` remains primary with parallel TanStack Router pilot behind `TanStackRouterPilot` feature flag for Operations + Preconstruction + Lead + Job Request + Admin + Accounting + Marketing + system fallback routes.
+- **Routing**: `HashRouter` remains primary with parallel TanStack Router pilot behind `TanStackRouterEnabled` feature flag for Operations + Preconstruction + Lead + Job Request + Admin + Accounting + Marketing + system fallback routes.
 - **Tables**: `HbcTanStackTable` is the standard migration target for read-heavy grids; retain legacy `DataTable` for non-migrated surfaces until later waves, and block new `DataTable` imports via lint freeze.
 - **Charts**: `HbcEChart` wrapper lazily loads ECharts runtime (`echarts-for-react`, `echarts/core`, `hbcEChartsTheme`) into `lib-echarts-runtime` chunk. `EChartsOption` remains `useMemo`; `ResizeObserver` continues handling responsive resize.
 - **Audit**: Fire-and-forget `this.logAudit()` with debounce
@@ -333,7 +333,7 @@ graph TD
 - **Standalone cross-tenant guard**: standalone runtime blocks if detected site origin differs from configured hub origin (prevents accidental cross-tenant queries).
 - **Standalone Graph RBAC fallback**: Graph `/me/transitiveMemberOf` failures must fail-soft to email-based role matching from `App_Roles.UserOrGroup`; never hard-fail app init solely due to missing `Group.Read.All` consent.
 - **SWA deploy safety**: Keep `public/staticwebapp.config.json` with SPA fallback exclusions for `/sw.js`, `/manifest.json`, `/offline.html`, `/icons/*`, `/assets/*` to preserve PWA behavior.
-- **TanStack Router coexistence rule**: `TanStackRouterPilot` now gates Operations + Preconstruction + Lead + Job Request + Admin + Accounting + Marketing + system fallback routes while legacy `react-router-dom` remains installed for rollback safety.
+- **TanStack Router coexistence rule**: `TanStackRouterEnabled` now gates Operations + Preconstruction + Lead + Job Request + Admin + Accounting + Marketing + system fallback routes while legacy `react-router-dom` remains installed for rollback safety.
 - **TanStack Table rule**: use threshold virtualization only (`>= 200` rows). For smaller datasets prefer standard rendering for accessibility and behavior parity.
 - **TanStack Table governance rule**: no new imports from `shared/DataTable` outside grandfathered files; use `HbcTanStackTable` for all new table migrations.
 - **ECharts**: NEVER build `EChartsOption` inline in JSX — always `useMemo`. Radar `indicator` array ≠ Recharts data array shape.
