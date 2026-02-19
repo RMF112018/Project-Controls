@@ -18,7 +18,7 @@ import {
   EntityType
 } from '@hbc/sp-services';
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from '@router';
 import { Button } from '@fluentui/react-components';
 import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';

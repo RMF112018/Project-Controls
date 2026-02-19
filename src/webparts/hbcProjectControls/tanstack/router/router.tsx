@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { RouterProvider, createHashHistory, createRouter } from '@tanstack/react-router';
-import { TanStackRouterDevtools } from '@tanstack/router-devtools';
 import type { QueryClient } from '@tanstack/react-query';
 import type { IDataService, ICurrentUser } from '@hbc/sp-services';
 import type { IQueryScope } from '../query/queryKeys';
@@ -14,7 +13,6 @@ export interface ITanStackRouterProviderProps {
   selectedProject: ISelectedProject | null;
   isFeatureEnabled: (featureName: string) => boolean;
   scope: IQueryScope;
-  showDevtools?: boolean;
 }
 
 export function createHbcTanStackRouter(initialContext: ITanStackRouterProviderProps) {
@@ -41,7 +39,6 @@ export const TanStackPilotRouter: React.FC<ITanStackRouterProviderProps> = ({
   selectedProject,
   isFeatureEnabled,
   scope,
-  showDevtools = false,
 }) => {
   const router = React.useMemo(() => createHbcTanStackRouter({
     queryClient,
@@ -53,20 +50,17 @@ export const TanStackPilotRouter: React.FC<ITanStackRouterProviderProps> = ({
   }), [queryClient, dataService, currentUser, selectedProject, isFeatureEnabled, scope]);
 
   return (
-    <>
-      <RouterProvider
-        router={router}
-        context={{
-          queryClient,
-          dataService,
-          currentUser,
-          selectedProject,
-          isFeatureEnabled,
-          scope,
-        }}
-      />
-      {showDevtools ? <TanStackRouterDevtools /> : null}
-    </>
+    <RouterProvider
+      router={router}
+      context={{
+        queryClient,
+        dataService,
+        currentUser,
+        selectedProject,
+        isFeatureEnabled,
+        scope,
+      }}
+    />
   );
 };
 

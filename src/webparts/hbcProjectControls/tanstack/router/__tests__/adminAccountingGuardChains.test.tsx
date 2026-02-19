@@ -16,7 +16,6 @@ const batchD = require('../routes.adminAccounting.batchD') as typeof import('../
 
 function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRouteContext {
   const enabledFeatures = new Set([
-    'TanStackRouterEnabled',
     'PerformanceMonitoring',
     'EnableHelpSystem',
     'TelemetryDashboard',
@@ -54,9 +53,12 @@ function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRout
 }
 
 describe('admin and accounting route guard chains', () => {
-  it('accounting queue guard throws when pilot flag is disabled', () => {
+  it('accounting queue guard throws when accounting permission is missing', () => {
     const context = buildContext({
-      isFeatureEnabled: (featureName: string) => featureName !== 'TanStackRouterEnabled',
+      currentUser: {
+        ...buildContext().currentUser!,
+        permissions: new Set([PERMISSIONS.ADMIN_CONFIG]),
+      },
     });
     expect(() => batchD.guardAccountingQueue(context)).toThrow();
   });
@@ -74,7 +76,7 @@ describe('admin and accounting route guard chains', () => {
   it('admin performance guard throws when PerformanceMonitoring feature is disabled', () => {
     const context = buildContext({
       isFeatureEnabled: (featureName: string) =>
-        featureName !== 'PerformanceMonitoring' && featureName === 'TanStackRouterEnabled',
+        featureName !== 'PerformanceMonitoring',
     });
     expect(() => batchD.guardAdminPerformance(context)).toThrow();
   });
@@ -82,7 +84,7 @@ describe('admin and accounting route guard chains', () => {
   it('admin support guard throws when EnableHelpSystem feature is disabled', () => {
     const context = buildContext({
       isFeatureEnabled: (featureName: string) =>
-        featureName !== 'EnableHelpSystem' && featureName === 'TanStackRouterEnabled',
+        featureName !== 'EnableHelpSystem',
     });
     expect(() => batchD.guardAdminSupport(context)).toThrow();
   });
@@ -90,12 +92,12 @@ describe('admin and accounting route guard chains', () => {
   it('admin telemetry guard throws when TelemetryDashboard feature is disabled', () => {
     const context = buildContext({
       isFeatureEnabled: (featureName: string) =>
-        featureName !== 'TelemetryDashboard' && featureName === 'TanStackRouterEnabled',
+        featureName !== 'TelemetryDashboard',
     });
     expect(() => batchD.guardAdminTelemetry(context)).toThrow();
   });
 
-  it('all admin/accounting guard chains pass when pilot, features, and permission are present', () => {
+  it('all admin/accounting guard chains pass when features and permission are present', () => {
     const context = buildContext();
     expect(() => batchD.guardAccountingQueue(context)).not.toThrow();
     expect(() => batchD.guardAdmin(context)).not.toThrow();

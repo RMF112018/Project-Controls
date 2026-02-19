@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate } from '@router';
 import { useAppContext } from '../contexts/AppContext';
 
 export interface IProtectedRouteProps {

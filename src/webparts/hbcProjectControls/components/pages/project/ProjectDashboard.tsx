@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLeads } from '../../hooks/useLeads';
 import { useStartupChecklist } from '../../hooks/useStartupChecklist';

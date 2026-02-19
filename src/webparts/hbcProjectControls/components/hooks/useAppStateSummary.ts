@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from '@router';
 import { useAppContext } from '../contexts/AppContext';
 import { useCurrentModule } from './useCurrentModule';
 import { APP_VERSION } from '@hbc/sp-services';

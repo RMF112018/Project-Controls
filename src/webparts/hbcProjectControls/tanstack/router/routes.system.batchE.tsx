@@ -2,9 +2,7 @@ import * as React from 'react';
 import { createRoute, lazyRouteComponent } from '@tanstack/react-router';
 import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
-import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
-import { TANSTACK_ROUTER_ENABLED_FLAG } from './constants';
 import { AccessDeniedPage } from '../../components/pages/shared/AccessDeniedPage';
 
 const MarketingDashboard = lazyRouteComponent(
@@ -19,12 +17,7 @@ const NotFoundPage: React.FC = () => (
   </div>
 );
 
-function requirePilot(context: ITanStackRouteContext): void {
-  requireFeature(context, TANSTACK_ROUTER_ENABLED_FLAG);
-}
-
 export function guardMarketing(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requirePermission(context, PERMISSIONS.MARKETING_DASHBOARD_VIEW);
 }
 

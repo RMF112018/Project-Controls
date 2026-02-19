@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@router';
 import { Input, makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
 import { useAppContext } from '../contexts/AppContext';
 import { ILead, IEstimatingTracker, IGoNoGoScorecard, formatCurrencyCompact } from '@hbc/sp-services';

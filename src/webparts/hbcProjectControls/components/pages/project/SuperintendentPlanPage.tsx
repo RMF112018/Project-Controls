@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
 import { useSuperintendentPlan } from '../../hooks/useSuperintendentPlan';
 import { PageHeader } from '../../shared/PageHeader';

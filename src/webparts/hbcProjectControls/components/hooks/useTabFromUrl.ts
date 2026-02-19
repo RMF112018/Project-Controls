@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from '@router';
 
 /**
  * Syncs a tab selection with the URL hash query parameter `?tab=<value>`.

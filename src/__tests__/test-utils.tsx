@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { render, type RenderOptions, type RenderResult } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from '@router';
 import { FluentProvider, webLightTheme } from '@fluentui/react-components';
 import { AppProvider } from '../webparts/hbcProjectControls/components/contexts/AppContext';
 import type { IDataService, ICurrentUser, RoleName } from '@hbc/sp-services';

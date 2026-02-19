@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@router';
 import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 import { useAppContext } from '../../contexts/AppContext';
 import { useLeads } from '../../hooks/useLeads';

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from '@router';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useProjectManagementPlan } from '../../../hooks/useProjectManagementPlan';
 import { useRiskCostManagement } from '../../../hooks/useRiskCostManagement';

@@ -16,6 +16,8 @@ module.exports = {
     '^@hooks/(.*)$': '<rootDir>/src/webparts/hbcProjectControls/components/hooks/$1',
     '^@contexts/(.*)$': '<rootDir>/src/webparts/hbcProjectControls/components/contexts/$1',
     '^@theme/(.*)$': '<rootDir>/src/webparts/hbcProjectControls/theme/$1',
+    '^@router$': '<rootDir>/src/webparts/hbcProjectControls/router/index.tsx',
+    '^@router/(.*)$': '<rootDir>/src/webparts/hbcProjectControls/router/$1',
     // Map @hbc/sp-services to source TS (not compiled lib)
     '^@hbc/sp-services$': '<rootDir>/packages/hbc-sp-services/src/index.ts',
     // Stub CSS/SCSS modules

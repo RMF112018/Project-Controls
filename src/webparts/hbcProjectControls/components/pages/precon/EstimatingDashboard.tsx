@@ -17,7 +17,7 @@ import {
   getUrgencyColor
 } from '@hbc/sp-services';
 import * as React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from '@router';
 import { useEstimating } from '../../hooks/useEstimating';
 import { useLeads } from '../../hooks/useLeads';
 import { usePersistedState } from '../../hooks/usePersistedState';

@@ -8,7 +8,7 @@ import {
   getScoreTierColor,
 } from '@hbc/sp-services';
 import * as React from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from '@router';
 import { Button } from '@fluentui/react-components';
 import { useGoNoGo } from '../../hooks/useGoNoGo';
 import { useLeads } from '../../hooks/useLeads';

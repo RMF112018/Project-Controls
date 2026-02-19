@@ -3,7 +3,6 @@ import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
-import { TANSTACK_ROUTER_ENABLED_FLAG } from './constants';
 const AccountingQueuePage = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
   'AccountingQueuePage'
@@ -25,34 +24,25 @@ const TelemetryDashboard = lazyRouteComponent(
   'TelemetryDashboard'
 );
 
-function requirePilot(context: ITanStackRouteContext): void {
-  requireFeature(context, TANSTACK_ROUTER_ENABLED_FLAG);
-}
-
 export function guardAccountingQueue(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requirePermission(context, PERMISSIONS.ACCOUNTING_QUEUE_VIEW);
 }
 
 export function guardAdmin(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requirePermission(context, PERMISSIONS.ADMIN_CONFIG);
 }
 
 export function guardAdminPerformance(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'PerformanceMonitoring');
   requirePermission(context, PERMISSIONS.ADMIN_CONFIG);
 }
 
 export function guardAdminSupport(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'EnableHelpSystem');
   requirePermission(context, PERMISSIONS.ADMIN_CONFIG);
 }
 
 export function guardAdminTelemetry(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'TelemetryDashboard');
   requirePermission(context, PERMISSIONS.ADMIN_CONFIG);
 }

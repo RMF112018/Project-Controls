@@ -51,6 +51,7 @@ export default defineConfig(({ mode }) => {
         '@hooks': path.resolve(srcRoot, 'components/hooks'),
         '@contexts': path.resolve(srcRoot, 'components/contexts'),
         '@theme': path.resolve(srcRoot, 'theme'),
+        '@router': path.resolve(srcRoot, 'router'),
         '@hbc/sp-services': path.resolve(repoRoot, 'packages/hbc-sp-services/src'),
         '@fluentui/react-icons': path.resolve(repoRoot, 'node_modules/@fluentui/react-icons'),
         react: path.resolve(repoRoot, 'node_modules/react'),
@@ -84,7 +85,7 @@ export default defineConfig(({ mode }) => {
             if (id.includes('/components/pages/precon/EstimatingDashboard.tsx')) return 'page-estimating-tracker';
             if (id.includes('/components/pages/project/pmp/ProjectManagementPlan.tsx')) return 'page-pmp-16-section';
             if (!id.includes('node_modules')) return undefined;
-            if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/react-router-dom/')) return 'react-vendor';
+            if (id.includes('/react/') || id.includes('/react-dom/')) return 'react-vendor';
             if (id.includes('/@fluentui/')) return 'fluent-vendor';
             if (id.includes('/@pnp/')) return 'pnp-vendor';
             if (id.includes('/@azure/msal-')) return 'msal-vendor';

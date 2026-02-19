@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from '@router';
 import { HBC_COLORS, SPACING } from '../../../theme/tokens';
 import {
   MeetingType,

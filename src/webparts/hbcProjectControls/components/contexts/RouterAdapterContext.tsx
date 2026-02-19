@@ -5,8 +5,9 @@ export interface IAppNavigateOptions {
 }
 
 export interface IRouterAdapterValue {
-  navigate: (to: string, options?: IAppNavigateOptions) => void;
+  navigate: (to: string | number, options?: IAppNavigateOptions) => void;
   pathname: string;
+  search: string;
   params: Record<string, string | undefined>;
 }
 
