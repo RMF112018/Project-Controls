@@ -1847,6 +1847,9 @@ export const SCHEDULE_ACTIVITIES_COLUMNS = {
   id: 'ID',                                    // SP: Auto-generated
   projectCode: 'ProjectCode',                  // SP: Single Line of Text
   importId: 'ImportId',                        // SP: Number (FK to Schedule_Imports.ID)
+  externalActivityKey: 'ExternalActivityKey',  // SP: Single Line of Text (stable identity, indexed)
+  importFingerprint: 'ImportFingerprint',      // SP: Single Line of Text
+  lineageStatus: 'LineageStatus',              // SP: Choice
   taskCode: 'Title',                           // SP: Single Line of Text (default)
   wbsCode: 'WbsCode',                          // SP: Single Line of Text
   activityName: 'ActivityName',                // SP: Single Line of Text
@@ -1891,7 +1894,30 @@ export const SCHEDULE_IMPORTS_COLUMNS = {
   importDate: 'ImportDate',                    // SP: DateTime
   importedBy: 'ImportedBy',                    // SP: Single Line of Text
   activityCount: 'ActivityCount',              // SP: Number
+  matchedCount: 'MatchedCount',                // SP: Number
+  ambiguousCount: 'AmbiguousCount',            // SP: Number
+  newCount: 'NewCount',                        // SP: Number
+  orphanedFieldLinkCount: 'OrphanedFieldLinkCount', // SP: Number
   notes: 'Notes',                              // SP: Note
+} as const;
+
+/**
+ * List: Schedule_Field_Links (Project Site)
+ * Interface: IScheduleFieldLink
+ */
+export const SCHEDULE_FIELD_LINKS_COLUMNS = {
+  id: 'ID',                                    // SP: Auto-generated
+  projectCode: 'ProjectCode',                  // SP: Single Line of Text (indexed)
+  externalActivityKey: 'ExternalActivityKey',  // SP: Single Line of Text (indexed)
+  scheduleActivityId: 'ScheduleActivityId',    // SP: Number (FK to Schedule_Activities.ID)
+  fieldTaskId: 'FieldTaskId',                  // SP: Single Line of Text (indexed)
+  fieldTaskType: 'FieldTaskType',              // SP: Single Line of Text
+  confidenceScore: 'ConfidenceScore',          // SP: Number
+  isManual: 'IsManual',                        // SP: Yes/No
+  createdBy: 'CreatedBy',                      // SP: Single Line of Text
+  createdAt: 'CreatedAt',                      // SP: DateTime
+  modifiedBy: 'ModifiedBy',                    // SP: Single Line of Text
+  modifiedAt: 'ModifiedAt',                    // SP: DateTime
 } as const;
 
 /**

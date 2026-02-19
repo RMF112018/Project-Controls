@@ -45,10 +45,32 @@ import { ISectorDefinition } from '../models/ISectorDefinition';
 import { IAssignmentMapping } from '../models/IAssignmentMapping';
 import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '../models/IPerformanceLog';
 import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
-import { IScheduleActivity, IScheduleImport, IScheduleMetrics } from '../models/IScheduleActivity';
+import {
+  IScheduleActivity,
+  IScheduleImport,
+  IScheduleMetrics,
+  IScheduleFieldLink,
+  IScheduleImportReconciliationResult,
+  IScheduleConflict,
+} from '../models/IScheduleActivity';
 import { IConstraintLog } from '../models/IConstraintLog';
 import { IPermit } from '../models/IPermit';
 import { ITemplateRegistry, ITemplateSiteConfig, ITemplateManifestLog } from '../models/ITemplateManifest';
+import {
+  IScheduleCpmResult,
+  IScheduleQualityReport,
+  IForensicWindow,
+  IForensicAnalysisResult,
+  IMonteCarloConfig,
+  IMonteCarloResult,
+  IResourceLevelingResult,
+  IScheduleScenario,
+  IScheduleScenarioDiff,
+  IScheduleEvmResult,
+  IPortfolioScheduleHealth,
+  IFieldReadinessScore,
+  IScheduleEngineRuntimeInfo,
+} from '../models/IScheduleEngine';
 import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -479,6 +501,41 @@ export interface IDataService {
   deleteScheduleActivity(projectCode: string, activityId: number): Promise<void>;
   getScheduleImports(projectCode: string): Promise<IScheduleImport[]>;
   getScheduleMetrics(projectCode: string): Promise<IScheduleMetrics>;
+  previewScheduleImportReconciliation(projectCode: string, activities: IScheduleActivity[], importMeta: Partial<IScheduleImport>): Promise<IScheduleImportReconciliationResult>;
+  applyScheduleImportReconciliation(projectCode: string, activities: IScheduleActivity[], importMeta: Partial<IScheduleImport>, approvedBy: string): Promise<IScheduleImportReconciliationResult>;
+  getScheduleFieldLinks(projectCode: string): Promise<IScheduleFieldLink[]>;
+  createScheduleFieldLink(projectCode: string, data: Partial<IScheduleFieldLink>): Promise<IScheduleFieldLink>;
+  updateScheduleFieldLink(projectCode: string, linkId: number, data: Partial<IScheduleFieldLink>): Promise<IScheduleFieldLink>;
+  deleteScheduleFieldLink(projectCode: string, linkId: number): Promise<void>;
+  getPendingScheduleOps(projectCode: string): Promise<IScheduleConflict[]>;
+  replayPendingScheduleOps(projectCode: string, replayedBy: string): Promise<IScheduleConflict[]>;
+  resolveScheduleConflict(projectCode: string, conflictId: string, resolution: string, resolvedBy: string): Promise<IScheduleConflict>;
+  createScheduleBaseline(projectCode: string, name: string, createdBy: string): Promise<{ baselineId: string; createdAt: string }>;
+  getScheduleBaselines(projectCode: string): Promise<Array<{ baselineId: string; name: string; createdBy: string; createdAt: string }>>;
+  compareScheduleBaselines(projectCode: string, leftBaselineId: string, rightBaselineId: string): Promise<{
+    projectCode: string;
+    leftBaselineId: string;
+    rightBaselineId: string;
+    changedActivities: number;
+    addedActivities: number;
+    removedActivities: number;
+  }>;
+  runScheduleEngine(projectCode: string, activities: IScheduleActivity[]): Promise<IScheduleCpmResult>;
+  runScheduleQualityChecks(projectCode: string, activities: IScheduleActivity[]): Promise<IScheduleQualityReport>;
+  runForensicAnalysis(projectCode: string, windows: IForensicWindow[]): Promise<IForensicAnalysisResult>;
+  runMonteCarlo(projectCode: string, config: IMonteCarloConfig): Promise<IMonteCarloResult>;
+  runResourceLeveling(projectCode: string, activities: IScheduleActivity[]): Promise<IResourceLevelingResult>;
+  createScheduleScenario(projectCode: string, name: string, createdBy: string): Promise<IScheduleScenario>;
+  listScheduleScenarios(projectCode: string): Promise<IScheduleScenario[]>;
+  getScheduleScenario(projectCode: string, scenarioId: string): Promise<IScheduleScenario | null>;
+  saveScheduleScenarioActivities(projectCode: string, scenarioId: string, activities: IScheduleActivity[]): Promise<void>;
+  compareScheduleScenarios(projectCode: string, leftScenarioId: string, rightScenarioId: string): Promise<IScheduleScenarioDiff>;
+  applyScheduleScenario(projectCode: string, scenarioId: string, approvedBy: string): Promise<{ importId: number }>;
+  computeScheduleEvm(projectCode: string): Promise<IScheduleEvmResult>;
+  getPortfolioScheduleHealth(filters?: IDataMartFilter): Promise<IPortfolioScheduleHealth[]>;
+  computeFieldReadinessScore(projectCode: string): Promise<IFieldReadinessScore>;
+  getPortfolioFieldReadiness(filters?: IDataMartFilter): Promise<IFieldReadinessScore[]>;
+  getScheduleEngineRuntimeInfo(): Promise<IScheduleEngineRuntimeInfo>;
 
   // Constraints Log
   getAllConstraints(): Promise<IConstraintLog[]>;
