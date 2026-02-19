@@ -1,8 +1,11 @@
 import * as React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
 import { useSignalR } from './useSignalR';
 import { ILead, ILeadFormData, Stage, IListQueryOptions, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
+import { useHbcOptimisticMutation } from '../../tanstack/query/mutations/useHbcOptimisticMutation';
+import { OPTIMISTIC_MUTATION_FLAGS } from '../../tanstack/query/mutations/optimisticMutationFlags';
 
 interface IUseLeadsResult {
   leads: ILead[];
@@ -21,10 +24,12 @@ interface IUseLeadsResult {
 export function useLeads(): IUseLeadsResult {
   const { dataService, currentUser } = useAppContext();
   const { broadcastChange } = useSignalRContext();
+  const queryClient = useQueryClient();
   const [leads, setLeads] = React.useState<ILead[]>([]);
   const [totalCount, setTotalCount] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const leadsCacheKey = React.useMemo(() => ['local', 'leads'] as const, []);
 
   const fetchLeads = React.useCallback(async (options?: IListQueryOptions) => {
     try {
@@ -33,12 +38,13 @@ export function useLeads(): IUseLeadsResult {
       const result = await dataService.getLeads(options);
       setLeads(result.items);
       setTotalCount(result.totalCount);
+      queryClient.setQueryData<ILead[]>(leadsCacheKey, result.items);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch leads');
     } finally {
       setIsLoading(false);
     }
-  }, [dataService]);
+  }, [dataService, leadsCacheKey, queryClient]);
 
   // SignalR: refresh on Lead entity changes from other users
   useSignalR({
@@ -71,34 +77,94 @@ export function useLeads(): IUseLeadsResult {
       const items = await dataService.getLeadsByStage(stage);
       setLeads(items);
       setTotalCount(items.length);
+      queryClient.setQueryData<ILead[]>(leadsCacheKey, items);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch leads');
     } finally {
       setIsLoading(false);
     }
-  }, [dataService]);
+  }, [dataService, leadsCacheKey, queryClient]);
+
+  const createLeadMutation = useHbcOptimisticMutation<ILead, ILeadFormData, ILead[]>({
+    method: 'createLead',
+    domainFlag: OPTIMISTIC_MUTATION_FLAGS.leads,
+    mutationFn: async (data) => dataService.createLead(data),
+    getStateKey: () => leadsCacheKey,
+    applyOptimistic: (previous, data) => [{
+      ...(data as Partial<ILead>),
+      id: -Date.now(),
+      Title: data.Title,
+      ClientName: data.ClientName,
+      Region: data.Region,
+      Sector: data.Sector,
+      Division: data.Division,
+      Stage: data.Stage,
+      Originator: currentUser?.displayName ?? 'Pending',
+      DateOfEvaluation: new Date().toISOString(),
+    } as ILead, ...(previous ?? [])],
+    onOptimisticStateChange: (state) => {
+      const next = state ?? [];
+      setLeads(next);
+      setTotalCount(next.length);
+    },
+    onSuccessEffects: async (lead) => {
+      setLeads((prev) => [lead, ...prev.filter((item) => item.id > 0)]);
+      setTotalCount((prev) => prev + 1);
+      broadcastLeadChange(lead.id, 'created', 'Lead created');
+    },
+    onSettledEffects: async () => {
+      await queryClient.invalidateQueries({ queryKey: leadsCacheKey });
+    },
+  });
+
+  const updateLeadMutation = useHbcOptimisticMutation<ILead, { id: number; data: Partial<ILead> }, ILead[]>({
+    method: 'updateLead',
+    domainFlag: OPTIMISTIC_MUTATION_FLAGS.leads,
+    mutationFn: async ({ id, data }) => dataService.updateLead(id, data),
+    getStateKey: () => leadsCacheKey,
+    applyOptimistic: (previous, vars) => (previous ?? []).map((lead) => lead.id === vars.id ? { ...lead, ...vars.data } : lead),
+    onOptimisticStateChange: (state) => setLeads(state ?? []),
+    onSuccessEffects: async (updated, vars) => {
+      setLeads((prev) => prev.map((lead) => lead.id === vars.id ? updated : lead));
+      broadcastLeadChange(vars.id, 'updated', 'Lead updated');
+    },
+    onSettledEffects: async () => {
+      await queryClient.invalidateQueries({ queryKey: leadsCacheKey });
+    },
+  });
+
+  const deleteLeadMutation = useHbcOptimisticMutation<void, number, ILead[]>({
+    method: 'deleteLead',
+    domainFlag: OPTIMISTIC_MUTATION_FLAGS.leads,
+    mutationFn: async (id) => dataService.deleteLead(id),
+    getStateKey: () => leadsCacheKey,
+    applyOptimistic: (previous, id) => (previous ?? []).filter((lead) => lead.id !== id),
+    onOptimisticStateChange: (state) => {
+      const next = state ?? [];
+      setLeads(next);
+      setTotalCount(next.length);
+    },
+    onSuccessEffects: async (_result, id) => {
+      setLeads((prev) => prev.filter((lead) => lead.id !== id));
+      setTotalCount((prev) => Math.max(0, prev - 1));
+      broadcastLeadChange(id, 'deleted', 'Lead deleted');
+    },
+    onSettledEffects: async () => {
+      await queryClient.invalidateQueries({ queryKey: leadsCacheKey });
+    },
+  });
 
   const createLead = React.useCallback(async (data: ILeadFormData): Promise<ILead> => {
-    const lead = await dataService.createLead(data);
-    setLeads(prev => [lead, ...prev]);
-    setTotalCount(prev => prev + 1);
-    broadcastLeadChange(lead.id, 'created', 'Lead created');
-    return lead;
-  }, [dataService, broadcastLeadChange]);
+    return createLeadMutation.mutateAsync(data);
+  }, [createLeadMutation]);
 
   const updateLead = React.useCallback(async (id: number, data: Partial<ILead>): Promise<ILead> => {
-    const updated = await dataService.updateLead(id, data);
-    setLeads(prev => prev.map(l => l.id === id ? updated : l));
-    broadcastLeadChange(id, 'updated', 'Lead updated');
-    return updated;
-  }, [dataService, broadcastLeadChange]);
+    return updateLeadMutation.mutateAsync({ id, data });
+  }, [updateLeadMutation]);
 
   const deleteLead = React.useCallback(async (id: number): Promise<void> => {
-    await dataService.deleteLead(id);
-    setLeads(prev => prev.filter(l => l.id !== id));
-    setTotalCount(prev => prev - 1);
-    broadcastLeadChange(id, 'deleted', 'Lead deleted');
-  }, [dataService, broadcastLeadChange]);
+    await deleteLeadMutation.mutateAsync(id);
+  }, [deleteLeadMutation]);
 
   const searchLeads = React.useCallback(async (query: string): Promise<void> => {
     try {
@@ -107,12 +173,13 @@ export function useLeads(): IUseLeadsResult {
       const items = await dataService.searchLeads(query);
       setLeads(items);
       setTotalCount(items.length);
+      queryClient.setQueryData<ILead[]>(leadsCacheKey, items);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed');
     } finally {
       setIsLoading(false);
     }
-  }, [dataService]);
+  }, [dataService, leadsCacheKey, queryClient]);
 
   const getLeadById = React.useCallback(async (id: number): Promise<ILead | null> => {
     return dataService.getLeadById(id);

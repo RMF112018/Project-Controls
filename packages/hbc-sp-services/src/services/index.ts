@@ -32,3 +32,4 @@ export { StandaloneSharePointDataService } from './StandaloneSharePointDataServi
 export { createDelegatingService } from './createDelegatingService';
 export type { IBinaryAttachment, IStandaloneRbacContext } from './StandaloneSharePointDataService';
 export type { IStandaloneGraphMembership, IStandaloneUserIdentity } from './standalone/resolveStandaloneRoles';
+export * from './mutations';
