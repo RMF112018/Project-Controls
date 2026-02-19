@@ -70,6 +70,7 @@ export default defineConfig(({ mode }) => {
       'process.env.AAD_TENANT_ID': JSON.stringify(env.VITE_AAD_TENANT_ID || ''),
       'process.env.SP_HUB_URL': JSON.stringify(env.VITE_SP_HUB_URL || ''),
       'process.env.SP_SITE_URL': JSON.stringify(env.VITE_SP_SITE_URL || ''),
+      'process.env.GITOPS_FUNCTION_URL': JSON.stringify(env.VITE_GITOPS_FUNCTION_URL || ''),
       'process.env.APPINSIGHTS_CONNECTION_STRING': JSON.stringify(env.VITE_APPINSIGHTS_CONNECTION_STRING || ''),
     },
     build: {

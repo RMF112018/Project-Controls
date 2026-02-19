@@ -12,7 +12,10 @@ import { HBC_COLORS, SPACING } from '../../theme/tokens';
 
 // Azure Function URL for creating GitHub PRs.
 // If empty, the panel operates in mock/simulation mode.
-const GITOPS_FUNCTION_URL: string = (process.env as Record<string, string | undefined>).GITOPS_FUNCTION_URL ?? '';
+const GITOPS_FUNCTION_URL: string = (() => {
+  const maybeProcess = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
+  return maybeProcess?.env?.GITOPS_FUNCTION_URL ?? '';
+})();
 
 const useStyles = makeStyles({
   root: {
