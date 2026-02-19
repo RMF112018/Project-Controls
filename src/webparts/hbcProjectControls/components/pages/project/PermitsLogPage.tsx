@@ -56,6 +56,7 @@ export const PermitsLogPage: React.FC = () => {
   const {
     permits, loading, error, metrics,
     fetchPermits, addPermit, updatePermit, removePermit,
+    hasMore, loadMore, isLoadingMore,
   } = usePermitsLog();
   const { addToast } = useToast();
 
@@ -490,6 +491,13 @@ export const PermitsLogPage: React.FC = () => {
           </div>
         )}
       </div>
+      {hasMore && loadMore && (
+        <div aria-live="polite" style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+          <button onClick={() => { void loadMore(); }} disabled={isLoadingMore} style={btnOutline}>
+            {isLoadingMore ? 'Loading more...' : 'Load more'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

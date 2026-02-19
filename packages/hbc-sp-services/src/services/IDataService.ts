@@ -60,6 +60,26 @@ export interface IListQueryOptions {
   select?: string[];
 }
 
+export interface ICursorToken {
+  nextLink?: string;
+  lastId?: number;
+  lastModified?: string;
+}
+
+export interface ICursorPageRequest {
+  pageSize: number;
+  token?: ICursorToken | null;
+  projectCode?: string;
+  filters?: Record<string, unknown>;
+}
+
+export interface ICursorPageResult<T> {
+  items: T[];
+  nextToken: ICursorToken | null;
+  hasMore: boolean;
+  totalApprox?: number;
+}
+
 // GitOps Template Provisioning — file metadata from the live template site
 export interface ITemplateFileMetadata {
   sourcePath: string;
@@ -133,6 +153,7 @@ export interface IDataService {
   // Audit Log
   logAudit(entry: Partial<IAuditEntry>): Promise<void>;
   getAuditLog(entityType?: string, entityId?: string, startDate?: string, endDate?: string): Promise<IAuditEntry[]>;
+  getAuditLogPage(request: ICursorPageRequest): Promise<ICursorPageResult<IAuditEntry>>;
   purgeOldAuditEntries(olderThanDays: number): Promise<number>;
 
   // Provisioning
@@ -183,6 +204,7 @@ export interface IDataService {
 
   // Startup Checklist
   getStartupChecklist(projectCode: string): Promise<IStartupChecklistItem[]>;
+  getStartupChecklistPage(request: ICursorPageRequest): Promise<ICursorPageResult<IStartupChecklistItem>>;
   updateChecklistItem(projectCode: string, itemId: number, data: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem>;
   addChecklistItem(projectCode: string, item: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem>;
   removeChecklistItem(projectCode: string, itemId: number): Promise<void>;
@@ -288,6 +310,7 @@ export interface IDataService {
 
   // Buyout Log
   getBuyoutEntries(projectCode: string): Promise<IBuyoutEntry[]>;
+  getBuyoutEntriesPage(request: ICursorPageRequest): Promise<ICursorPageResult<IBuyoutEntry>>;
   initializeBuyoutLog(projectCode: string): Promise<IBuyoutEntry[]>;
   addBuyoutEntry(projectCode: string, entry: Partial<IBuyoutEntry>): Promise<IBuyoutEntry>;
   updateBuyoutEntry(projectCode: string, entryId: number, data: Partial<IBuyoutEntry>): Promise<IBuyoutEntry>;
@@ -308,6 +331,7 @@ export interface IDataService {
 
   // Compliance Log
   getComplianceLog(filters?: IComplianceLogFilter): Promise<IComplianceEntry[]>;
+  getComplianceLogPage(request: ICursorPageRequest): Promise<ICursorPageResult<IComplianceEntry>>;
   getComplianceSummary(): Promise<IComplianceSummary>;
 
   // App Context
@@ -458,6 +482,7 @@ export interface IDataService {
 
   // Constraints Log
   getAllConstraints(): Promise<IConstraintLog[]>;
+  getConstraintsPage(request: ICursorPageRequest): Promise<ICursorPageResult<IConstraintLog>>;
   getConstraints(projectCode: string): Promise<IConstraintLog[]>;
   addConstraint(projectCode: string, constraint: Partial<IConstraintLog>): Promise<IConstraintLog>;
   updateConstraint(projectCode: string, constraintId: number, data: Partial<IConstraintLog>): Promise<IConstraintLog>;
@@ -465,6 +490,7 @@ export interface IDataService {
 
   // Permits Log
   getPermits(projectCode: string): Promise<IPermit[]>;
+  getPermitsPage(request: ICursorPageRequest): Promise<ICursorPageResult<IPermit>>;
   addPermit(projectCode: string, permit: Partial<IPermit>): Promise<IPermit>;
   updatePermit(projectCode: string, permitId: number, data: Partial<IPermit>): Promise<IPermit>;
   removePermit(projectCode: string, permitId: number): Promise<void>;

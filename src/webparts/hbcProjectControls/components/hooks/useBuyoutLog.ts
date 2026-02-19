@@ -1,14 +1,14 @@
 import * as React from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
 import { IBuyoutEntry, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
 import { useQueryScope } from '../../tanstack/query/useQueryScope';
 import { qk } from '../../tanstack/query/queryKeys';
-import { buyoutEntriesOptions } from '../../tanstack/query/queryOptions/buyout';
 import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
 import { useHbcOptimisticMutation } from '../../tanstack/query/mutations/useHbcOptimisticMutation';
 import { OPTIMISTIC_MUTATION_FLAGS } from '../../tanstack/query/mutations/optimisticMutationFlags';
+import { useInfiniteSharePointList } from '../../tanstack/query/useInfiniteSharePointList';
 import {
   appendBuyoutEntryOptimistic,
   removeBuyoutEntryOptimistic,
@@ -25,21 +25,46 @@ export interface IBuyoutMetrics {
 }
 
 export function useBuyoutLog() {
-  const { dataService, currentUser } = useAppContext();
+  const { dataService, currentUser, isFeatureEnabled } = useAppContext();
   const { broadcastChange } = useSignalRContext();
   const scope = useQueryScope();
   const queryClient = useQueryClient();
   const [activeProjectCode, setActiveProjectCode] = React.useState<string | null>(null);
   const [localError, setLocalError] = React.useState<string | null>(null);
 
-  const entriesQuery = useQuery({
-    ...buyoutEntriesOptions(scope, dataService, activeProjectCode ?? ''),
+  const infiniteEnabled =
+    isFeatureEnabled('InfinitePagingEnabled') &&
+    isFeatureEnabled('InfinitePaging_OpsLogs') &&
+    typeof dataService.getBuyoutEntriesPage === 'function';
+  const paged = useInfiniteSharePointList<IBuyoutEntry>({
+    infiniteEnabled,
     enabled: !!activeProjectCode,
+    queryKey: qk.buyout.infinite(scope, activeProjectCode ?? ''),
+    fetchPage: ({ token, pageSize }) =>
+      dataService.getBuyoutEntriesPage({
+        pageSize,
+        token,
+        projectCode: activeProjectCode ?? '',
+      }),
+    fetchAll: () => dataService.getBuyoutEntries(activeProjectCode ?? ''),
+    pageSize: 100,
   });
+
+  const getListStateKey = React.useCallback((projectCode: string) => {
+    if (infiniteEnabled) {
+      return qk.buyout.infinite(scope, projectCode);
+    }
+    return [...qk.buyout.infinite(scope, projectCode), 'full'] as const;
+  }, [infiniteEnabled, scope]);
 
   useSignalRQueryInvalidation({
     entityType: EntityType.RiskCost,
     queryKeys: [qk.buyout.base(scope)],
+    onInvalidated: () => {
+      if (activeProjectCode) {
+        void queryClient.invalidateQueries({ queryKey: qk.buyout.infinite(scope, activeProjectCode) });
+      }
+    },
   });
 
   const broadcastBuyoutChange = React.useCallback((
@@ -66,6 +91,9 @@ export function useBuyoutLog() {
     onSuccess: async (data, projectCode) => {
       queryClient.setQueryData(qk.buyout.entries(scope, projectCode), data);
       await queryClient.invalidateQueries({ queryKey: qk.buyout.entries(scope, projectCode) });
+      if (infiniteEnabled) {
+        await queryClient.invalidateQueries({ queryKey: qk.buyout.infinite(scope, projectCode) });
+      }
     },
   });
 
@@ -74,7 +102,7 @@ export function useBuyoutLog() {
     domainFlag: OPTIMISTIC_MUTATION_FLAGS.buyout,
     mutationFn: async (vars) =>
       dataService.addBuyoutEntry(vars.projectCode, vars.entry),
-    getStateKey: (vars) => qk.buyout.entries(scope, vars.projectCode),
+    getStateKey: (vars) => getListStateKey(vars.projectCode),
     applyOptimistic: (previous, vars) => {
       const now = new Date().toISOString();
       const optimisticEntry: IBuyoutEntry = {
@@ -99,9 +127,12 @@ export function useBuyoutLog() {
       return appendBuyoutEntryOptimistic(previous ?? [], optimisticEntry);
     },
     onSuccess: async (created, vars) => {
-      const key = qk.buyout.entries(scope, vars.projectCode);
+      const key = getListStateKey(vars.projectCode);
       queryClient.setQueryData<IBuyoutEntry[]>(key, (prev) => appendBuyoutEntryOptimistic((prev ?? []).filter((entry) => entry.id > 0), created));
       await queryClient.invalidateQueries({ queryKey: key });
+      if (infiniteEnabled) {
+        await queryClient.invalidateQueries({ queryKey: qk.buyout.infinite(scope, vars.projectCode) });
+      }
     },
   });
 
@@ -110,14 +141,17 @@ export function useBuyoutLog() {
     domainFlag: OPTIMISTIC_MUTATION_FLAGS.buyout,
     mutationFn: async (vars) =>
       dataService.updateBuyoutEntry(vars.projectCode, vars.entryId, vars.data),
-    getStateKey: (vars) => qk.buyout.entries(scope, vars.projectCode),
+    getStateKey: (vars) => getListStateKey(vars.projectCode),
     applyOptimistic: (previous, vars) => {
       return replaceBuyoutEntryOptimistic(previous ?? [], vars.entryId, vars.data);
     },
     onSuccess: async (updated, vars) => {
-      const key = qk.buyout.entries(scope, vars.projectCode);
+      const key = getListStateKey(vars.projectCode);
       queryClient.setQueryData<IBuyoutEntry[]>(key, (prev) => replaceBuyoutEntryOptimistic(prev ?? [], vars.entryId, updated));
       await queryClient.invalidateQueries({ queryKey: key });
+      if (infiniteEnabled) {
+        await queryClient.invalidateQueries({ queryKey: qk.buyout.infinite(scope, vars.projectCode) });
+      }
     },
   });
 
@@ -126,12 +160,15 @@ export function useBuyoutLog() {
     domainFlag: OPTIMISTIC_MUTATION_FLAGS.buyout,
     mutationFn: async (vars) =>
       dataService.removeBuyoutEntry(vars.projectCode, vars.entryId),
-    getStateKey: (vars) => qk.buyout.entries(scope, vars.projectCode),
+    getStateKey: (vars) => getListStateKey(vars.projectCode),
     applyOptimistic: (previous, vars) => {
       return removeBuyoutEntryOptimistic(previous ?? [], vars.entryId);
     },
     onSuccess: async (_result, vars) => {
-      await queryClient.invalidateQueries({ queryKey: qk.buyout.entries(scope, vars.projectCode) });
+      await queryClient.invalidateQueries({ queryKey: getListStateKey(vars.projectCode) });
+      if (infiniteEnabled) {
+        await queryClient.invalidateQueries({ queryKey: qk.buyout.infinite(scope, vars.projectCode) });
+      }
     },
   });
 
@@ -139,11 +176,19 @@ export function useBuyoutLog() {
     setLocalError(null);
     setActiveProjectCode(projectCode);
     try {
-      await queryClient.fetchQuery(buyoutEntriesOptions(scope, dataService, projectCode));
+      if (infiniteEnabled) {
+        await queryClient.invalidateQueries({ queryKey: qk.buyout.infinite(scope, projectCode) });
+        await queryClient.refetchQueries({ queryKey: qk.buyout.infinite(scope, projectCode), type: 'active' });
+      } else {
+        await queryClient.fetchQuery({
+          queryKey: [...qk.buyout.infinite(scope, projectCode), 'full'],
+          queryFn: () => dataService.getBuyoutEntries(projectCode),
+        });
+      }
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : 'Failed to load buyout entries');
     }
-  }, [queryClient, scope, dataService]);
+  }, [queryClient, scope, dataService, infiniteEnabled]);
 
   const initializeLog = React.useCallback(async (projectCode: string) => {
     setLocalError(null);
@@ -196,22 +241,27 @@ export function useBuyoutLog() {
     }
   }, [removeEntryMutation, broadcastBuyoutChange]);
 
-  const entries = React.useMemo(() => entriesQuery.data ?? [], [entriesQuery.data]);
-  const queryError = entriesQuery.error;
+  const entries = React.useMemo(() => {
+    if (paged.mode === 'infinite') {
+      return (paged.infiniteQuery.data?.pages ?? []).flatMap((page: { items: IBuyoutEntry[] }) => page.items);
+    }
+    return (paged.fullQuery.data as IBuyoutEntry[] | undefined) ?? [];
+  }, [paged]);
+  const queryError = paged.mode === 'infinite' ? paged.infiniteQuery.error : paged.fullQuery.error;
   const error = localError ?? (queryError instanceof Error ? queryError.message : null);
   const loading =
-    entriesQuery.isFetching ||
+    (paged.mode === 'infinite' ? paged.infiniteQuery.isFetching : paged.fullQuery.isFetching) ||
     initializeLogMutation.isPending ||
     addEntryMutation.isPending ||
     updateEntryMutation.isPending ||
     removeEntryMutation.isPending;
 
   const metrics: IBuyoutMetrics = React.useMemo(() => {
-    const totalOriginalBudget = entries.reduce((sum, e) => sum + e.originalBudget, 0);
-    const awarded = entries.filter(e => e.contractValue != null && e.contractValue > 0);
-    const totalAwardedValue = awarded.reduce((sum, e) => sum + (e.contractValue || 0), 0);
-    const totalOverUnder = awarded.reduce((sum, e) => sum + (e.overUnder || 0), 0);
-    const executedCount = entries.filter(e => e.status === 'Executed' || e.status === 'Awarded').length;
+    const totalOriginalBudget = entries.reduce((sum: number, e: IBuyoutEntry) => sum + e.originalBudget, 0);
+    const awarded = entries.filter((e: IBuyoutEntry) => e.contractValue != null && e.contractValue > 0);
+    const totalAwardedValue = awarded.reduce((sum: number, e: IBuyoutEntry) => sum + (e.contractValue || 0), 0);
+    const totalOverUnder = awarded.reduce((sum: number, e: IBuyoutEntry) => sum + (e.overUnder || 0), 0);
+    const executedCount = entries.filter((e: IBuyoutEntry) => e.status === 'Executed' || e.status === 'Awarded').length;
     const procurementProgress = entries.length > 0
       ? Math.round((executedCount / entries.length) * 100)
       : 0;
@@ -236,5 +286,9 @@ export function useBuyoutLog() {
     addEntry,
     updateEntry,
     removeEntry,
+    hasMore: paged.mode === 'infinite' ? Boolean(paged.infiniteQuery.hasNextPage) : false,
+    loadMore: paged.mode === 'infinite' ? () => paged.infiniteQuery.fetchNextPage() : undefined,
+    isLoadingMore: paged.mode === 'infinite' ? paged.infiniteQuery.isFetchingNextPage : false,
+    infiniteMode: paged.mode,
   };
 }

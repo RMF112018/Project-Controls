@@ -1,4 +1,13 @@
-import { IDataService, IListQueryOptions, IPagedResult, IActiveProjectsQueryOptions, IActiveProjectsFilter } from './IDataService';
+import {
+  IDataService,
+  IListQueryOptions,
+  IPagedResult,
+  ICursorPageRequest,
+  ICursorPageResult,
+  ICursorToken,
+  IActiveProjectsQueryOptions,
+  IActiveProjectsFilter
+} from './IDataService';
 import { ILead, ILeadFormData } from '../models/ILead';
 import { IGoNoGoScorecard, IScorecardApprovalCycle, IScorecardApprovalStep, IScorecardVersion } from '../models/IGoNoGoScorecard';
 import { IEstimatingTracker } from '../models/IEstimatingTracker';
@@ -184,6 +193,31 @@ export class SharePointDataService implements IDataService {
     id: number;
   }): void {
     this._pageContextUser = pageContextUser;
+  }
+
+  private paginateArray<T extends { id?: number }>(
+    rows: T[],
+    request: ICursorPageRequest
+  ): ICursorPageResult<T> {
+    const pageSize = Math.max(1, request.pageSize || 100);
+    const offset = request.token?.lastId && request.token.lastId > 0 ? request.token.lastId : 0;
+    const items = rows.slice(offset, offset + pageSize);
+    const nextOffset = offset + items.length;
+    const hasMore = nextOffset < rows.length;
+    const last = items[items.length - 1];
+    const nextToken: ICursorToken | null = hasMore
+      ? {
+          lastId: nextOffset,
+          lastModified: (last as { modifiedDate?: string })?.modifiedDate,
+        }
+      : null;
+
+    return {
+      items,
+      nextToken,
+      hasMore,
+      totalApprox: rows.length,
+    };
   }
 
   // --- Leads ---
@@ -612,6 +646,16 @@ export class SharePointDataService implements IDataService {
     const items = await query.orderBy('Timestamp', false).top(100)();
     performanceService.endMark('sp:getAuditLog');
     return items as IAuditEntry[];
+  }
+
+  async getAuditLogPage(request: ICursorPageRequest): Promise<ICursorPageResult<IAuditEntry>> {
+    const filters = request.filters ?? {};
+    const entityType = typeof filters.entityType === 'string' ? filters.entityType : undefined;
+    const entityId = typeof filters.entityId === 'string' ? filters.entityId : undefined;
+    const startDate = typeof filters.startDate === 'string' ? filters.startDate : undefined;
+    const endDate = typeof filters.endDate === 'string' ? filters.endDate : undefined;
+    const rows = await this.getAuditLog(entityType, entityId, startDate, endDate);
+    return this.paginateArray(rows, request);
   }
 
   async purgeOldAuditEntries(_olderThanDays: number): Promise<number> {
@@ -1324,6 +1368,12 @@ export class SharePointDataService implements IDataService {
     const result = items.map((item: Record<string, unknown>) => this.mapToStartupChecklistItem(item, activityMap.get(item.Id as number)));
     performanceService.endMark('sp:getStartupChecklist');
     return result;
+  }
+
+  async getStartupChecklistPage(request: ICursorPageRequest): Promise<ICursorPageResult<IStartupChecklistItem>> {
+    const projectCode = request.projectCode ?? String(request.filters?.projectCode ?? '');
+    const rows = await this.getStartupChecklist(projectCode);
+    return this.paginateArray(rows, request);
   }
 
   async updateChecklistItem(projectCode: string, itemId: number, data: Partial<IStartupChecklistItem>): Promise<IStartupChecklistItem> {
@@ -3215,6 +3265,12 @@ export class SharePointDataService implements IDataService {
     return items.map((item: Record<string, unknown>) => this.mapToBuyoutEntry(item));
   }
 
+  async getBuyoutEntriesPage(request: ICursorPageRequest): Promise<ICursorPageResult<IBuyoutEntry>> {
+    const projectCode = request.projectCode ?? String(request.filters?.projectCode ?? '');
+    const rows = await this.getBuyoutEntries(projectCode);
+    return this.paginateArray(rows, request);
+  }
+
   // LOAD-TEST: Batch-adds standard CSI divisions. Calls getBuyoutEntries first to check existing.
   async initializeBuyoutLog(projectCode: string): Promise<IBuyoutEntry[]> {
     performanceService.startMark('sp:initializeBuyoutLog');
@@ -3804,6 +3860,17 @@ export class SharePointDataService implements IDataService {
 
     performanceService.endMark('sp:getComplianceLog');
     return entries;
+  }
+
+  async getComplianceLogPage(request: ICursorPageRequest): Promise<ICursorPageResult<IComplianceEntry>> {
+    const filters = (request.filters ?? {}) as Partial<IComplianceLogFilter>;
+    const rows = await this.getComplianceLog({
+      projectCode: request.projectCode ?? filters.projectCode,
+      commitmentStatus: filters.commitmentStatus,
+      eVerifyStatus: filters.eVerifyStatus,
+      searchQuery: filters.searchQuery,
+    });
+    return this.paginateArray(rows, request);
   }
 
   // LOAD-TEST: Delegates to getComplianceLog. Client-side aggregation.
@@ -8999,6 +9066,12 @@ export class SharePointDataService implements IDataService {
     }
   }
 
+  async getConstraintsPage(request: ICursorPageRequest): Promise<ICursorPageResult<IConstraintLog>> {
+    const projectCode = request.projectCode ?? String(request.filters?.projectCode ?? '');
+    const rows = await this.getConstraints(projectCode);
+    return this.paginateArray(rows, request);
+  }
+
   async addConstraint(projectCode: string, constraint: Partial<IConstraintLog>): Promise<IConstraintLog> {
     performanceService.startMark('sp:addConstraint');
     try {
@@ -9153,6 +9226,12 @@ export class SharePointDataService implements IDataService {
       performanceService.endMark('sp:getPermits');
       throw this.handleError('getPermits', err, { entityType: 'Permit' });
     }
+  }
+
+  async getPermitsPage(request: ICursorPageRequest): Promise<ICursorPageResult<IPermit>> {
+    const projectCode = request.projectCode ?? String(request.filters?.projectCode ?? '');
+    const rows = await this.getPermits(projectCode);
+    return this.paginateArray(rows, request);
   }
 
   async addPermit(projectCode: string, permit: Partial<IPermit>): Promise<IPermit> {

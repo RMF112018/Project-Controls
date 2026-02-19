@@ -71,6 +71,7 @@ export const ComplianceLog: React.FC = () => {
     entries, summary, loading, error, filters,
     updateFilters, clearFilters,
     uniqueProjects, uniqueEVerifyStatuses, uniqueCommitmentStatuses,
+    hasMore, loadMore, isLoadingMore,
   } = useComplianceLog();
 
   const { isMobile } = useResponsive();
@@ -316,6 +317,25 @@ export const ComplianceLog: React.FC = () => {
             ))}
           </tbody>
         </table>
+      </div>
+      <div aria-live="polite" style={{ marginTop: 12 }}>
+        {hasMore && loadMore && (
+          <button
+            onClick={() => { void loadMore(); }}
+            disabled={isLoadingMore}
+            style={{
+              padding: '8px 14px',
+              borderRadius: 6,
+              border: `1px solid ${HBC_COLORS.gray300}`,
+              background: '#fff',
+              cursor: isLoadingMore ? 'not-allowed' : 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            {isLoadingMore ? 'Loading more...' : 'Load more'}
+          </button>
+        )}
       </div>
     </div>
   );

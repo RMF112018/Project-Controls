@@ -36,3 +36,25 @@ During `OptimisticMutationsEnabled` pilot:
 - watch rollback counts
 - confirm no sustained route latency regressions
 - disable `OptimisticMutationsEnabled` immediately if critical regression appears
+
+## Sprint 3 Rendering Scalability
+
+Feature flags (default OFF):
+- `VirtualizedListsV1`
+- `InfinitePagingEnabled`
+- `InfinitePaging_AuditCompliance`
+- `InfinitePaging_OpsLogs`
+- `InfinitePaging_StartupRisk`
+
+Monitoring events:
+- `query.infinite.page.requested`
+- `query.infinite.page.loaded`
+- `query.infinite.page.failed`
+- `render.virtualized.rows.visible`
+- `render.virtualized.commit.duration`
+- `render.virtualized.frame.drop`
+
+Operational targets:
+- page fetch p95 `< 800ms` (pilot cohorts)
+- frame-drop rate `< 5%`
+- hard bundle caps remain green in CI

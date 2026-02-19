@@ -1,8 +1,12 @@
 import * as React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
 import { IPermit, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { qk } from '../../tanstack/query/queryKeys';
+import { useInfiniteSharePointList } from '../../tanstack/query/useInfiniteSharePointList';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
 
 export interface IPermitMetrics {
   total: number;
@@ -16,34 +20,34 @@ export interface IPermitMetrics {
 }
 
 export function usePermitsLog() {
-  const { dataService, currentUser } = useAppContext();
+  const { dataService, currentUser, isFeatureEnabled } = useAppContext();
   const { broadcastChange } = useSignalRContext();
-  const [permits, setPermits] = React.useState<IPermit[]>([]);
-  const [loading, setLoading] = React.useState(false);
+  const scope = useQueryScope();
+  const queryClient = useQueryClient();
   const [error, setError] = React.useState<string | null>(null);
-  const lastProjectCodeRef = React.useRef<string | null>(null);
+  const [activeProjectCode, setActiveProjectCode] = React.useState<string | null>(null);
 
-  const fetchPermits = React.useCallback(async (projectCode: string) => {
-    setLoading(true);
-    setError(null);
-    lastProjectCodeRef.current = projectCode;
-    try {
-      const data = await dataService.getPermits(projectCode);
-      setPermits(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load permits');
-    } finally {
-      setLoading(false);
-    }
-  }, [dataService]);
+  const infiniteEnabled =
+    isFeatureEnabled('InfinitePagingEnabled') &&
+    isFeatureEnabled('InfinitePaging_OpsLogs') &&
+    typeof dataService.getPermitsPage === 'function';
+  const paged = useInfiniteSharePointList<IPermit>({
+    infiniteEnabled,
+    enabled: Boolean(activeProjectCode),
+    queryKey: qk.permits.infinite(scope, activeProjectCode ?? ''),
+    fetchPage: ({ token, pageSize }) => dataService.getPermitsPage({ pageSize, token, projectCode: activeProjectCode ?? '' }),
+    fetchAll: () => dataService.getPermits(activeProjectCode ?? ''),
+    pageSize: 100,
+  });
 
-  useSignalR({
+  useSignalRQueryInvalidation({
     entityType: EntityType.Permit,
-    onEntityChanged: React.useCallback(() => {
-      if (lastProjectCodeRef.current) {
-        fetchPermits(lastProjectCodeRef.current);
+    queryKeys: activeProjectCode ? [qk.permits.base(scope, activeProjectCode)] : [],
+    onInvalidated: () => {
+      if (activeProjectCode) {
+        void queryClient.invalidateQueries({ queryKey: qk.permits.infinite(scope, activeProjectCode) });
       }
-    }, [fetchPermits]),
+    },
   });
 
   const broadcastPermitChange = React.useCallback((
@@ -60,47 +64,76 @@ export function usePermitsLog() {
       changedByName: currentUser?.displayName,
       timestamp: new Date().toISOString(),
       summary,
-      projectCode: lastProjectCodeRef.current || undefined,
+      projectCode: activeProjectCode || undefined,
     });
-  }, [broadcastChange, currentUser]);
+  }, [broadcastChange, currentUser, activeProjectCode]);
+
+  const fetchPermits = React.useCallback(async (projectCode: string) => {
+    setActiveProjectCode(projectCode);
+    setError(null);
+    try {
+      if (infiniteEnabled) {
+        await queryClient.invalidateQueries({ queryKey: qk.permits.infinite(scope, projectCode) });
+        await queryClient.refetchQueries({ queryKey: qk.permits.infinite(scope, projectCode), type: 'active' });
+      } else {
+        await queryClient.fetchQuery({
+          queryKey: [...qk.permits.infinite(scope, projectCode), 'full'],
+          queryFn: () => dataService.getPermits(projectCode),
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load permits');
+    }
+  }, [queryClient, scope, dataService, infiniteEnabled]);
 
   const addPermit = React.useCallback(async (projectCode: string, permit: Partial<IPermit>) => {
     setError(null);
     try {
       const created = await dataService.addPermit(projectCode, permit);
-      setPermits(prev => [...prev, created]);
+      await queryClient.invalidateQueries({ queryKey: qk.permits.infinite(scope, projectCode) });
       broadcastPermitChange(created.id, 'created', 'Permit added');
       return created;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add permit');
       throw err;
     }
-  }, [dataService, broadcastPermitChange]);
+  }, [dataService, queryClient, scope, broadcastPermitChange]);
 
   const updatePermit = React.useCallback(async (projectCode: string, permitId: number, data: Partial<IPermit>) => {
     setError(null);
     try {
       const updated = await dataService.updatePermit(projectCode, permitId, data);
-      setPermits(prev => prev.map(p => p.id === permitId ? updated : p));
+      await queryClient.invalidateQueries({ queryKey: qk.permits.infinite(scope, projectCode) });
       broadcastPermitChange(permitId, 'updated', 'Permit updated');
       return updated;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update permit');
       throw err;
     }
-  }, [dataService, broadcastPermitChange]);
+  }, [dataService, queryClient, scope, broadcastPermitChange]);
 
   const removePermit = React.useCallback(async (projectCode: string, permitId: number) => {
     setError(null);
     try {
       await dataService.removePermit(projectCode, permitId);
-      setPermits(prev => prev.filter(p => p.id !== permitId));
+      await queryClient.invalidateQueries({ queryKey: qk.permits.infinite(scope, projectCode) });
       broadcastPermitChange(permitId, 'deleted', 'Permit removed');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove permit');
       throw err;
     }
-  }, [dataService, broadcastPermitChange]);
+  }, [dataService, queryClient, scope, broadcastPermitChange]);
+
+  const permits = React.useMemo<IPermit[]>(() => {
+    if (paged.mode === 'infinite') {
+      return (paged.infiniteQuery.data?.pages ?? []).flatMap((page: { items: IPermit[] }) => page.items);
+    }
+    return (paged.fullQuery.data as IPermit[] | undefined) ?? [];
+  }, [paged]);
+
+  const queryError = paged.mode === 'infinite' ? paged.infiniteQuery.error : paged.fullQuery.error;
+  const loading = paged.mode === 'infinite' ? paged.infiniteQuery.isFetching : paged.fullQuery.isFetching;
+  const resolvedError = error ?? (queryError instanceof Error ? queryError.message : null);
 
   const metrics: IPermitMetrics = React.useMemo(() => {
     const today = new Date();
@@ -143,11 +176,15 @@ export function usePermitsLog() {
   return {
     permits,
     loading,
-    error,
+    error: resolvedError,
     metrics,
     fetchPermits,
     addPermit,
     updatePermit,
     removePermit,
+    hasMore: paged.mode === 'infinite' ? Boolean(paged.infiniteQuery.hasNextPage) : false,
+    loadMore: paged.mode === 'infinite' ? () => paged.infiniteQuery.fetchNextPage() : undefined,
+    isLoadingMore: paged.mode === 'infinite' ? paged.infiniteQuery.isFetchingNextPage : false,
+    infiniteMode: paged.mode,
   };
 }

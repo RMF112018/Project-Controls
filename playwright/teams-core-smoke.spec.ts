@@ -12,8 +12,10 @@ test.describe('Teams embed core smoke', () => {
     const routes = [
       '/#/operations',
       '/#/operations/project',
+      '/#/operations/constraints-log',
       '/#/preconstruction',
       '/#/admin',
+      '/#/admin/compliance',
       '/#/marketing',
     ];
 

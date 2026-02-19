@@ -45,6 +45,9 @@ export interface IChecklistTableProps {
   onSignOff?: () => void;
   exportFilename: string;
   allItems?: IChecklistTableItem[];
+  hasMore?: boolean;
+  loadMore?: () => Promise<unknown> | void;
+  isLoadingMore?: boolean;
 }
 
 /* ---------- Styles ---------- */
@@ -386,7 +389,7 @@ function computeSummary(items: IChecklistTableItem[]): IStartupChecklistSummary 
 export const ChecklistTable: React.FC<IChecklistTableProps> = ({
   title, subtitle, breadcrumb, sections, items, isLoading, canEdit, canSignOff,
   onResponseChange, onCommentChange, onAddItem, onRemoveItem, onSignOff,
-  exportFilename, allItems,
+  exportFilename, allItems, hasMore, loadMore, isLoadingMore,
 }) => {
   const [editingDetails, setEditingDetails] = React.useState<number | null>(null);
   const [detailsText, setDetailsText] = React.useState('');
@@ -621,6 +624,25 @@ export const ChecklistTable: React.FC<IChecklistTableProps> = ({
             </tbody>
           </table>
         </div>
+        {hasMore && loadMore && (
+          <div aria-live="polite" style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+            <button
+              type="button"
+              onClick={() => { void loadMore(); }}
+              disabled={Boolean(isLoadingMore)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 6,
+                border: `1px solid ${HBC_COLORS.gray300}`,
+                backgroundColor: HBC_COLORS.white,
+                color: HBC_COLORS.navy,
+                cursor: isLoadingMore ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {isLoadingMore ? 'Loading more...' : 'Load more checklist items'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

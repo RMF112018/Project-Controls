@@ -1,4 +1,13 @@
-export type { IDataService, IListQueryOptions, IPagedResult, IActiveProjectsQueryOptions, IActiveProjectsFilter } from './IDataService';
+export type {
+  IDataService,
+  IListQueryOptions,
+  IPagedResult,
+  ICursorToken,
+  ICursorPageRequest,
+  ICursorPageResult,
+  IActiveProjectsQueryOptions,
+  IActiveProjectsFilter
+} from './IDataService';
 export { MockDataService } from './MockDataService';
 export { SharePointDataService } from './SharePointDataService';
 export { CacheService, cacheService } from './CacheService';

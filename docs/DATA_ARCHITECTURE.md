@@ -1667,3 +1667,21 @@ Sprint 2 introduces an incremental optimistic mutation pattern with explicit fal
   - `onSuccessEffects`, or
   - `onSettledEffects`
 - They must never run during `onMutate`.
+
+## Sprint 3: Virtualized Infinite Read Architecture
+
+Sprint 3 adds cursor-based read contracts and dual-path query hooks for large list surfaces.
+
+### Contracts
+- `ICursorToken`
+- `ICursorPageRequest`
+- `ICursorPageResult<T>`
+
+### Hook behavior
+- `useInfiniteSharePointList` uses `useInfiniteQuery` when `InfinitePagingEnabled` is ON.
+- Explicit fallback path: if `InfinitePagingEnabled` is OFF, hook uses original full-list `useQuery` behavior.
+
+### SignalR invalidation rule
+- Infinite surfaces invalidate the **base infinite query key** on entity change.
+- Do not invalidate individual page keys.
+- Base invalidation forces safe page-chain rebuild and avoids stale partial pages.

@@ -28,6 +28,10 @@ const ComplianceLog = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
   'ComplianceLog'
 );
+const DashboardPage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-shared" */ '../../features/shared/SharedModule'),
+  'DashboardPage'
+);
 
 const TanStackAdapterBridge: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
@@ -80,6 +84,12 @@ const rootRoute = createRootRouteWithContext<ITanStackRouteContext>()({
   component: RootLayout,
 });
 
+const dashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/',
+  component: DashboardPage,
+});
+
 const operationsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/operations',
@@ -111,6 +121,7 @@ const operationsComplianceLogRoute = createRoute({
 });
 
 export const tanStackPilotRouteTree = rootRoute.addChildren([
+  dashboardRoute,
   operationsRoute,
   operationsProjectRoute,
   operationsComplianceLogRoute,

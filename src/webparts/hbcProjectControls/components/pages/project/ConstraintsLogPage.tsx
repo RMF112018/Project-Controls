@@ -54,6 +54,7 @@ export const ConstraintsLogPage: React.FC = () => {
   const {
     entries, loading, error, metrics,
     fetchConstraints, addConstraint, updateConstraint, removeConstraint,
+    hasMore, loadMore, isLoadingMore,
   } = useConstraintLog();
   const { addToast } = useToast();
 
@@ -756,6 +757,13 @@ export const ConstraintsLogPage: React.FC = () => {
           </div>
         )}
       </div>
+      {hasMore && loadMore && (
+        <div aria-live="polite" style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+          <button onClick={() => { void loadMore(); }} disabled={isLoadingMore} style={btnOutline}>
+            {isLoadingMore ? 'Loading more...' : 'Load more'}
+          </button>
+        </div>
+      )}
 
       {/* Detail Modal */}
       {detailEntry && (
