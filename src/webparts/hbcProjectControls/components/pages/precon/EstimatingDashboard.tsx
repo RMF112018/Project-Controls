@@ -26,9 +26,10 @@ import { RoleGate } from '../../guards/RoleGate';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { KPICard } from '../../shared/KPICard';
-import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { HBC_COLORS } from '../../../theme/tokens';
+import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
+import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 const TAB_PATHS = ['/preconstruction', '/preconstruction/precon-tracker', '/preconstruction/estimate-log'];
 const TAB_LABELS = ['Current Pursuits', 'Current Preconstruction', 'Estimate Log'];
 
@@ -151,9 +152,11 @@ const InlineSelect = React.memo<{
   options: string[];
   updateFn: (id: number, data: Partial<IEstimatingTracker>) => Promise<unknown>;
   disabled?: boolean;
-}>(({ recordId, field, value, options, updateFn, disabled }) => {
+  ariaLabel?: string;
+}>(({ recordId, field, value, options, updateFn, disabled, ariaLabel }) => {
   return (
     <select
+      aria-label={ariaLabel || field}
       value={value || ''}
       onChange={e => { e.stopPropagation(); updateFn(recordId, { [field]: e.target.value || undefined } as Partial<IEstimatingTracker>); }}
       disabled={disabled}
@@ -337,7 +340,7 @@ export const EstimatingDashboard: React.FC = () => {
   const awardOptions = Object.values(AwardStatus);
 
   // Current Pursuits columns — no fixed width on text columns, removed Kick-Off button
-  const pursuitColumns: IDataTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
+  const pursuitColumns: IHbcTanStackTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
     { key: 'Title', header: 'Project', sortable: true, minWidth: '180px', render: (r) => (
       <span style={{ fontWeight: 500, color: HBC_COLORS.navy, whiteSpace: 'nowrap' }}>{r.Title}</span>
     )},
@@ -393,7 +396,7 @@ export const EstimatingDashboard: React.FC = () => {
   ], [handleCheckToggle, handleInlineUpdate, canEdit, sourceOptions, typeOptions]);
 
   // Precon Engagements columns
-  const preconColumns: IDataTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
+  const preconColumns: IHbcTanStackTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
     { key: 'Title', header: 'Project', sortable: true, render: (r) => (
       <span style={{ fontWeight: 500, color: HBC_COLORS.navy, whiteSpace: 'nowrap' }}>{r.Title}</span>
     )},
@@ -429,7 +432,7 @@ export const EstimatingDashboard: React.FC = () => {
   ], [handleInlineUpdate, canEdit, leadMap]);
 
   // Estimate Log columns
-  const logColumns: IDataTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
+  const logColumns: IHbcTanStackTableColumn<IEstimatingTracker>[] = React.useMemo(() => [
     { key: 'Title', header: 'Project', sortable: true, render: (r) => (
       <span style={{ fontWeight: 500, color: HBC_COLORS.navy, whiteSpace: 'nowrap' }}>{r.Title}</span>
     )},
@@ -674,7 +677,7 @@ export const EstimatingDashboard: React.FC = () => {
 
       {/* Tab Content */}
       {activeTab === 0 && (
-        <DataTable<IEstimatingTracker>
+        <HbcTanStackTable<IEstimatingTracker>
           columns={pursuitColumns}
           items={currentPursuits}
           keyExtractor={r => r.id}
@@ -682,6 +685,7 @@ export const EstimatingDashboard: React.FC = () => {
           sortField={sortField}
           sortAsc={sortAsc}
           onSort={handleSort}
+          ariaLabel="Current pursuits estimating table"
           emptyTitle="No active pursuits"
           emptyDescription="Estimating records without a submitted date appear here"
           pageSize={25}
@@ -690,7 +694,7 @@ export const EstimatingDashboard: React.FC = () => {
 
       {activeTab === 1 && (
         <>
-          <DataTable<IEstimatingTracker>
+          <HbcTanStackTable<IEstimatingTracker>
             columns={preconColumns}
             items={preconEngagements}
             keyExtractor={r => r.id}
@@ -698,6 +702,7 @@ export const EstimatingDashboard: React.FC = () => {
             sortField={sortField}
             sortAsc={sortAsc}
             onSort={handleSort}
+            ariaLabel="Preconstruction engagements table"
             emptyTitle="No precon engagements"
             emptyDescription="Records with PreconFee > 0 appear here"
           />
@@ -717,7 +722,7 @@ export const EstimatingDashboard: React.FC = () => {
 
       {activeTab === 2 && (
         <>
-          <DataTable<IEstimatingTracker>
+          <HbcTanStackTable<IEstimatingTracker>
             columns={logColumns}
             items={estimateLog}
             keyExtractor={r => r.id}
@@ -725,6 +730,7 @@ export const EstimatingDashboard: React.FC = () => {
             sortField={sortField}
             sortAsc={sortAsc}
             onSort={handleSort}
+            ariaLabel="Estimate log table"
             emptyTitle="No submitted estimates"
             emptyDescription="Estimates with a submitted date appear here"
           />

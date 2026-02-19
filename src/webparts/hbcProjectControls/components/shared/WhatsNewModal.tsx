@@ -92,7 +92,7 @@ export const WhatsNewModal: React.FC<IWhatsNewModalProps> = ({ isOpen, onClose }
             <span style={{
               padding: '2px 10px',
               borderRadius: '12px',
-              backgroundColor: HBC_COLORS.orange,
+              backgroundColor: HBC_COLORS.darkNavy,
               color: '#fff',
               fontSize: '12px',
               fontWeight: 600,

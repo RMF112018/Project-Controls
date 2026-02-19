@@ -12,9 +12,10 @@ import { useAppContext } from '../../contexts/AppContext';
 import { useHelp } from '../../contexts/HelpContext';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
-import { DataTable } from '../../shared/DataTable';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { useToast } from '../../shared/ToastContainer';
+import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
+import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 import {
   ISupportConfig,
   IHelpGuide,
@@ -141,7 +142,7 @@ export const ApplicationSupportPage: React.FC = () => {
     }
   }, [dataService, currentUser, supportEmail, supportPhone, knowledgeBaseUrl, feedbackFormUrl, responseTimeHours, addToast]);
 
-  const guideColumns = React.useMemo(() => [
+  const guideColumns = React.useMemo<IHbcTanStackTableColumn<IHelpGuide>[]>(() => [
     { key: 'moduleKey', header: 'Module', render: (g: IHelpGuide) => g.moduleKey, sortable: true, width: '150px' },
     { key: 'title', header: 'Title', render: (g: IHelpGuide) => g.title, sortable: true },
     { key: 'guideType', header: 'Type', render: (g: IHelpGuide) => (
@@ -241,12 +242,13 @@ export const ApplicationSupportPage: React.FC = () => {
       {/* Help Guide Overview */}
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>Help Guide Overview</h3>
-        <DataTable
+        <HbcTanStackTable
           columns={guideColumns}
           items={guides}
           keyExtractor={(g: IHelpGuide) => String(g.id)}
           isLoading={guidesLoading}
           pageSize={20}
+          ariaLabel="Application help guide overview table"
         />
       </div>
     </div>

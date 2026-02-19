@@ -4,10 +4,11 @@ import { useLeads } from '../../hooks/useLeads';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { buildBreadcrumbs, ILead, GoNoGoDecision, formatDate } from '@hbc/sp-services';
-import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { HBC_COLORS } from '../../../theme/tokens';
+import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
+import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 
 const CheckIcon: React.FC = () => (
   <span style={{ color: HBC_COLORS.success, fontSize: '16px', fontWeight: 700 }}>&#10003;</span>
@@ -49,7 +50,7 @@ export const GoNoGoTracker: React.FC = () => {
     });
   }, []);
 
-  const columns: IDataTableColumn<ILead>[] = React.useMemo(() => [
+  const columns: IHbcTanStackTableColumn<ILead>[] = React.useMemo(() => [
     { key: 'GoNoGoDecisionDate', header: 'Date', sortable: true, width: '100px',
       render: (l) => formatDate(l.GoNoGoDecisionDate || l.DateOfEvaluation) },
     { key: 'Title', header: 'Project', sortable: true,
@@ -102,19 +103,20 @@ export const GoNoGoTracker: React.FC = () => {
       <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center' }}>
         <label style={{ fontSize: '13px', color: HBC_COLORS.gray500 }}>
           Region:
-          <select style={{ ...selectStyle, marginLeft: '6px' }} value={regionFilter} onChange={e => setRegionFilter(e.target.value)}>
+          <select aria-label="Filter go no-go records by region" style={{ ...selectStyle, marginLeft: '6px' }} value={regionFilter} onChange={e => setRegionFilter(e.target.value)}>
             {regions.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
         </label>
       </div>
 
-      <DataTable<ILead>
+      <HbcTanStackTable<ILead>
         columns={columns}
         items={filtered}
         keyExtractor={l => l.id}
         sortField={sortField}
         sortAsc={sortAsc}
         onSort={handleSort}
+        ariaLabel="Go no-go tracker table"
         emptyTitle="No Go/No-Go records"
         emptyDescription="Leads with Go/No-Go scores or decisions appear here"
       />

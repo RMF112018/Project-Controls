@@ -7,11 +7,12 @@ import { PERFORMANCE_THRESHOLDS, IPerformanceLog } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
-import { DataTable } from '../../shared/DataTable';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { usePerformanceMetrics } from '../../hooks/usePerformanceMetrics';
+import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
+import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 
 const useStyles = makeStyles({
   container: {
@@ -126,7 +127,7 @@ export const PerformanceDashboard: React.FC = () => {
     { label: 'Performance' },
   ];
 
-  const tableColumns = React.useMemo(() => [
+  const tableColumns = React.useMemo<IHbcTanStackTableColumn<IPerformanceLog>[]>(() => [
     {
       key: 'Timestamp',
       header: 'Timestamp',
@@ -359,13 +360,14 @@ export const PerformanceDashboard: React.FC = () => {
       )}
 
       {/* Session Table */}
-      <DataTable
+      <HbcTanStackTable
         columns={tableColumns}
         items={logs}
         keyExtractor={(row) => row.SessionId}
         isLoading={loading}
         sortField="Timestamp"
         pageSize={20}
+        ariaLabel="Performance session logs table"
       />
     </div>
   );

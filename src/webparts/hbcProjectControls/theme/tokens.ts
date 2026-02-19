@@ -3,7 +3,7 @@ import * as React from 'react';
 export const HBC_COLORS = {
   // Primary brand
   navy: '#1B2A4A',
-  orange: '#E87722', // WCAG 2.2 AA: ratio ≈ 3.0:1 on white — use only for large text (≥18pt) or icons; never body text
+  orange: '#B45309', // WCAG 2.2 AA: ratio > 4.5:1 on white ✅
   white: '#FFFFFF',
 
   // Secondary
@@ -17,8 +17,8 @@ export const HBC_COLORS = {
   gray100: '#F3F4F6',
   gray200: '#E5E7EB',
   gray300: '#D1D5DB',
-  gray400: '#9CA3AF', // WCAG 2.2 AA: ratio ≈ 2.8:1 on white — FAIL; decorative/placeholder use only; never body text
-  gray500: '#6B7280', // WCAG 2.2 AA: ratio ≈ 4.4:1 on white — borderline FAIL; use gray600+ for body text
+  gray400: '#6B7280', // WCAG 2.2 AA: ratio ≈ 4.8:1 on white ✅
+  gray500: '#4B5563', // WCAG 2.2 AA: ratio ≈ 7.0:1 on white ✅
   gray600: '#4B5563', // ratio ≈ 7.0:1 on white ✅ — safe for body text
   gray700: '#374151',
   gray800: '#1F2937',
@@ -29,13 +29,13 @@ export const HBC_COLORS = {
   textOrangeLarge: '#C45E0A', // = darkOrange, ratio 4.8:1 ✅ — large text (≥18pt) or bold ≥14pt only
 
   // Semantic
-  success: '#10B981',
+  success: '#047857',
   successLight: '#D1FAE5',
-  warning: '#F59E0B',
+  warning: '#B45309',
   warningLight: '#FEF3C7',
-  error: '#EF4444',
+  error: '#B42318',
   errorLight: '#FEE2E2',
-  info: '#3B82F6',
+  info: '#1D4ED8',
   infoLight: '#DBEAFE',
 
   // Score tiers

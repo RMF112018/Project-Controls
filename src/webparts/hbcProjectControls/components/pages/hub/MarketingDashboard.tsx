@@ -14,10 +14,11 @@ import { FeatureGate } from '../../guards/FeatureGate';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { KPICard } from '../../shared/KPICard';
-import { DataTable, IDataTableColumn } from '../../shared/DataTable';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
+import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
+import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -230,7 +231,7 @@ export const MarketingDashboard: React.FC = () => {
   // ---------------------------------------------------------------------------
   // Table columns
   // ---------------------------------------------------------------------------
-  const columns: IDataTableColumn<IMarketingProjectRecord>[] = [
+  const columns: IHbcTanStackTableColumn<IMarketingProjectRecord>[] = [
     {
       key: 'projectName',
       header: 'Project Name',
@@ -294,8 +295,7 @@ export const MarketingDashboard: React.FC = () => {
   };
 
   // ---------------------------------------------------------------------------
-  // Build items with detail rows interleaved for the DataTable
-  // We handle expansion outside the DataTable via a custom render approach
+  // Inline details are rendered below the table for the selected record.
   // ---------------------------------------------------------------------------
 
   if (isLoading) return (<div><SkeletonLoader variant="kpi-grid" columns={4} style={{ marginBottom: '24px' }} /><SkeletonLoader variant="table" rows={6} columns={5} /></div>);
@@ -370,7 +370,7 @@ export const MarketingDashboard: React.FC = () => {
 
           {/* Data Table with custom expand */}
           <div style={{ backgroundColor: HBC_COLORS.white, borderRadius: '8px', boxShadow: ELEVATION.level1, overflow: 'hidden' }}>
-            <DataTable<IMarketingProjectRecord>
+            <HbcTanStackTable<IMarketingProjectRecord>
               columns={columns}
               items={sortedRecords}
               keyExtractor={r => r.projectCode}
@@ -381,6 +381,7 @@ export const MarketingDashboard: React.FC = () => {
               sortField={sortField}
               sortAsc={sortAsc}
               onSort={handleSort}
+              ariaLabel="Marketing project records table"
             />
           </div>
 

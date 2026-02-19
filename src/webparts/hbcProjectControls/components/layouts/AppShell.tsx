@@ -83,7 +83,7 @@ const useStyles = makeStyles({
   brandName: {
     fontWeight: '700',
     fontSize: '16px',
-    color: HBC_COLORS.orange,
+    color: '#FFFFFF',
   },
   appTitle: {
     fontSize: '14px',
@@ -102,7 +102,7 @@ const useStyles = makeStyles({
   },
   version: {
     fontSize: '11px',
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(255,255,255,0.85)',
     cursor: 'pointer',
   },
   // Body layout
@@ -181,9 +181,9 @@ const useStyles = makeStyles({
 });
 
 const ENV_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
-  dev: { bg: '#3B82F6', text: '#fff' },
-  vetting: { bg: '#F59E0B', text: '#000' },
-  prod: { bg: '#10B981', text: '#fff' },
+  dev: { bg: '#1E3A8A', text: '#fff' },
+  vetting: { bg: '#92400E', text: '#fff' },
+  prod: { bg: '#065F46', text: '#fff' },
 };
 
 const ENV_BADGE_LABELS: Record<string, string> = {

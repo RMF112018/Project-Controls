@@ -5,9 +5,10 @@ import { useWorkflow } from '../../hooks/useWorkflow';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { KPICard } from '../../shared/KPICard';
-import { DataTable } from '../../shared/DataTable';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { RoleGate } from '../../guards/RoleGate';
+import { HbcTanStackTable } from '../../../tanstack/table/HbcTanStackTable';
+import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 import {
   IDeliverable,
   RoleName,
@@ -18,7 +19,6 @@ import {
   getUrgencyColor
 } from '@hbc/sp-services';
 import { HBC_COLORS, SPACING, ELEVATION } from '../../../theme/tokens';
-import type { IDataTableColumn } from '../../shared/DataTable';
 
 type DeliverableDepartment = IDeliverable['department'];
 
@@ -148,7 +148,7 @@ export const DeliverablesTracker: React.FC = () => {
     setFormError(null);
   }, []);
 
-  const columns: IDataTableColumn<IDeliverable>[] = React.useMemo(
+  const columns: IHbcTanStackTableColumn<IDeliverable>[] = React.useMemo(
     () => [
       {
         key: 'name',
@@ -175,6 +175,7 @@ export const DeliverablesTracker: React.FC = () => {
           if (editingStatusId === d.id) {
             return (
               <select
+                aria-label={`Set status for deliverable ${d.name}`}
                 value={d.status}
                 onChange={(e) => {
                   const newStatus = e.target.value as DeliverableStatus;
@@ -464,6 +465,7 @@ export const DeliverablesTracker: React.FC = () => {
             <div>
               <label style={formLabelStyle}>Department *</label>
               <select
+                aria-label="Select deliverable department"
                 value={formData.department}
                 onChange={(e) =>
                   setFormData((prev) => ({
@@ -539,13 +541,14 @@ export const DeliverablesTracker: React.FC = () => {
       )}
 
       {/* Deliverables Table */}
-      <DataTable<IDeliverable>
+      <HbcTanStackTable<IDeliverable>
         columns={columns}
         items={deliverables}
         keyExtractor={(d) => d.id}
         isLoading={isLoading}
         emptyTitle="No deliverables"
         emptyDescription="No deliverables have been created for this project yet."
+        ariaLabel="Project deliverables tracker table"
       />
     </div>
   );

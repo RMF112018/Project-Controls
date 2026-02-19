@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-18 — Completed TanStack Query Phase 2 Wave-1 migration (Hub + Buyout core hooks) with query-option modules, SignalR-driven query invalidation bridge, and optimistic rollback test coverage.
+**Last Updated:** 2026-02-19 — Final hardening complete: removed legacy `DataTable` component/export after full `HbcTanStackTable` migration.
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -82,6 +82,24 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
   - Hook migrations: `useDataMart`, `useComplianceLog`, `usePermissionEngine`, `useBuyoutLog`, `useCommitmentApproval`, `useContractTracking`
   - SignalR bridge: `tanstack/query/useSignalRQueryInvalidation.ts`
   - New tests: optimistic rollback (`useBuyoutLog`) + SignalR invalidation bridge tests
+- **TanStack Router Wave-1 pilot (parallel)**:
+  - Route tree + provider: `tanstack/router/{routes.activeProjects.tsx,router.tsx}`
+  - Guard helpers: `tanstack/router/guards/{requirePermission,requireProject,requireFeature}.ts`
+  - Pilot flag constant: `tanstack/router/constants.ts` (`TanStackRouterPilot`)
+  - Coexistence wiring in `components/App.tsx` now covers `/operations/*`, `/preconstruction*`, `/lead*`, `/job-request*`, `/admin*`, `/accounting-queue`, `/marketing`, `/access-denied`, and `*`
+  - Wave-2 route modules: `tanstack/router/{routes.operations.batchA.tsx,routes.operations.batchB.tsx}`
+  - Wave-3 route modules: `tanstack/router/{routes.preconstruction.batchA.tsx,routes.preconstruction.batchB.tsx,routes.leadAndJobRequest.batchC.tsx}`
+  - Wave-4 route modules: `tanstack/router/routes.adminAccounting.batchD.tsx`
+  - Wave-5 route modules: `tanstack/router/routes.system.batchE.tsx`
+  - Guard tests: `tanstack/router/__tests__/{guards.test.tsx,operationsGuardChains.test.tsx,preconLeadGuardChains.test.tsx,adminAccountingGuardChains.test.tsx,systemGuardChains.test.tsx}`
+  - E2E deep-link parity: `playwright/{operations-router-wave2.spec.ts,precon-lead-router-wave3.spec.ts,admin-accounting-router-wave4.spec.ts,system-router-wave5.spec.ts}`
+- **TanStack Table Wave-2 (active)**:
+  - Wrapper + hooks: `tanstack/table/{HbcTanStackTable.tsx,useHbcTableState.ts,useVirtualRows.ts,types.ts}`
+  - Column adapter: `tanstack/table/columnFactories/toTanStackColumns.ts`
+  - Storybook: `components/shared/HbcTanStackTable.stories.tsx`
+  - Coverage: All dashboard/admin/preconstruction/project table surfaces now use `HbcTanStackTable`; legacy `DataTable` component and story are removed.
+  - Governance: ESLint `no-restricted-imports` blocks new `DataTable` imports outside grandfathered files
+  - Threshold virtualization rule: enabled only when row count is `>= 200`
 - **Component Library**: Storybook 8.5 (webpack5 builder), stories colocated as `*.stories.tsx`. 9 story files covering KPICard, HbcEChart, RoleGate, FeatureGate, StatusBadge, DataTable, EmptyState, PageHeader, NavigationSidebar.
 - **Visual Regression**: Chromatic (cloud) on main pushes; TurboSnap for changed-story-only runs on PRs.
 - **Key Commands**:
@@ -105,7 +123,8 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - **SignalR + Query sync**: migrated hooks use `useSignalRQueryInvalidation` to invalidate query families instead of ad-hoc callback refs.
 - **RBAC**: `resolveUserPermissions` → `PermissionGate` / `RoleGate` / `FeatureGate`
 - **Styling**: `makeStyles` (structure) + minimal inline (dynamic) + Fluent tokens + `HBC_COLORS`
-- **Routing**: `HashRouter` + `React.lazy()` + `Suspense` (40 lazy-loaded pages)
+- **Routing**: `HashRouter` remains primary with parallel TanStack Router pilot behind `TanStackRouterPilot` feature flag for Operations + Preconstruction + Lead + Job Request + Admin + Accounting + Marketing + system fallback routes.
+- **Tables**: `HbcTanStackTable` is the standard migration target for read-heavy grids; retain legacy `DataTable` for non-migrated surfaces until later waves, and block new `DataTable` imports via lint freeze.
 - **Charts**: `HbcEChart` wrapper → `EChartsOption` object (always `useMemo`) → ECharts canvas. Theme injected once via `registerHbcTheme()`. `onEvents` for drill-down. `ResizeObserver` handles responsive resize.
 - **Audit**: Fire-and-forget `this.logAudit()` with debounce
 - **Cross-site Access**: `_getProjectWeb()` helper in SharePointDataService
@@ -137,7 +156,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §15 Current Phase Status
 
-**Active Focus (Feb 18): TanStack Query Phase 2 Wave-1 (Hub + Buyout core) implemented**
+**Active Focus (Feb 19): TanStack Query Phase 2 Wave-1 complete + TanStack Router Phase 3 Wave-5 complete + TanStack Table hardening complete (legacy `DataTable` removed).**
 
 - Migrated hooks (contract-preserving):
   - `useDataMart` and `useComplianceLog` now query-driven (filters + summary/records cache)
@@ -153,6 +172,11 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - Test coverage additions:
   - `components/hooks/__tests__/useBuyoutLog.test.tsx` (optimistic rollback)
   - `tanstack/query/__tests__/useSignalRQueryInvalidation.test.tsx` (SignalR invalidation behavior)
+- TanStack Table Wave-2 additions:
+  - Page migrations: `PipelinePage`, `EstimatingDashboard`
+  - Tests: `tanstack/table/__tests__/HbcTanStackTable.sorting.test.tsx`
+  - E2E smoke: `playwright/pipeline-estimating-table-wave2.spec.ts`
+  - Parallel a11y lane: improved RoleSwitcher contrast and explicit `aria-label` coverage for migrated select controls
 
 **Phase COMPLETE**: Permits Log Module — 243/243 methods implemented, 550 total tests.
 
@@ -185,6 +209,7 @@ Full P6-style schedule management with multi-format support:
 - 45 project-site schemas, 20 mock entries across 2 project codes
 
 **Next Phase**: Integration testing and deployment readiness.
+**Router next steps**: run full parity soak (all deep links, telemetry labels, a11y smoke) and then retire legacy `react-router-dom` route table behind a controlled release gate.
 
 ## §15a Provisioning Workflows
 
@@ -294,6 +319,9 @@ graph TD
 - **Standalone cross-tenant guard**: standalone runtime blocks if detected site origin differs from configured hub origin (prevents accidental cross-tenant queries).
 - **Standalone Graph RBAC fallback**: Graph `/me/transitiveMemberOf` failures must fail-soft to email-based role matching from `App_Roles.UserOrGroup`; never hard-fail app init solely due to missing `Group.Read.All` consent.
 - **SWA deploy safety**: Keep `public/staticwebapp.config.json` with SPA fallback exclusions for `/sw.js`, `/manifest.json`, `/offline.html`, `/icons/*`, `/assets/*` to preserve PWA behavior.
+- **TanStack Router coexistence rule**: `TanStackRouterPilot` now gates Operations + Preconstruction + Lead + Job Request + Admin + Accounting + Marketing + system fallback routes while legacy `react-router-dom` remains installed for rollback safety.
+- **TanStack Table rule**: use threshold virtualization only (`>= 200` rows). For smaller datasets prefer standard rendering for accessibility and behavior parity.
+- **TanStack Table governance rule**: no new imports from `shared/DataTable` outside grandfathered files; use `HbcTanStackTable` for all new table migrations.
 - **ECharts**: NEVER build `EChartsOption` inline in JSX — always `useMemo`. Radar `indicator` array ≠ Recharts data array shape.
 - **ECharts Jest**: `echarts-for-react` + `echarts/*` mocked in `src/__mocks__/`. Assert on `data-chart-type` attr. `ResizeObserver` stubbed on `window` in `src/__tests__/setup.ts`.
 - **ECharts label formatter**: type parameter as `unknown`, cast to `{ name: string; value: number; percent: number }` — never use typed params directly (ECharts uses `CallbackDataParams`).
@@ -332,6 +360,7 @@ graph TD
 - **TanStack query-key scoping**: Always include mode + siteContext + siteUrl + projectCode in query keys to prevent cache leakage across mock/standalone/sharepoint and hub/project contexts.
 - **TanStack migration rule**: Wrap `IDataService` with Query/Mutation; never bypass directly to PnP in UI-layer TanStack query functions.
 - **TanStack optimistic mutation rule**: For editable grids/logs, `onMutate` must snapshot previous cache and `onError` must restore it (rollback is mandatory, not optional).
+- **TanStack Router coexistence rule**: While `react-router-dom` is still active, only explicitly migrated route families may mount `TanStackPilotRouter`; all remaining routes must stay on legacy routing until migrated and gated.
 - **SignalR invalidation rule**: Migrate new Query-based hooks to `useSignalRQueryInvalidation`; avoid reintroducing callback-ref refresh patterns.
 
 ---
