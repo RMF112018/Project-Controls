@@ -1,14 +1,29 @@
-import { createRoute } from '@tanstack/react-router';
+import { createRoute, lazyRouteComponent } from '@tanstack/react-router';
 import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
 import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
-import { EstimatingDashboard } from '../../components/pages/precon/EstimatingDashboard';
-import { PipelinePage } from '../../components/pages/hub/PipelinePage';
-import { EstimatingKickoffList } from '../../components/pages/precon/EstimatingKickoffList';
-import { PostBidAutopsyList } from '../../components/pages/precon/PostBidAutopsyList';
-import { PursuitDetail } from '../../components/pages/precon/PursuitDetail';
+const EstimatingDashboard = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
+  'EstimatingDashboard'
+);
+const PipelinePage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
+  'PipelinePage'
+);
+const EstimatingKickoffList = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
+  'EstimatingKickoffList'
+);
+const PostBidAutopsyList = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
+  'PostBidAutopsyList'
+);
+const PursuitDetail = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
+  'PursuitDetail'
+);
 
 function requirePilot(context: ITanStackRouteContext): void {
   requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
@@ -115,4 +130,3 @@ export function createPreconstructionBatchARoutes(rootRoute: unknown) {
     pursuitDetailRoute,
   ] as unknown[];
 }
-

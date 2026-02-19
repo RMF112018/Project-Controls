@@ -1,16 +1,37 @@
-import { createRoute } from '@tanstack/react-router';
+import { createRoute, lazyRouteComponent } from '@tanstack/react-router';
 import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
 import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
-import { EstimatingKickoffPage } from '../../components/pages/precon/EstimatingKickoffPage';
-import { InterviewPrep } from '../../components/pages/project/InterviewPrep';
-import { WinLossRecorder } from '../../components/pages/project/WinLossRecorder';
-import { TurnoverToOps } from '../../components/pages/project/TurnoverToOps';
-import { LossAutopsy } from '../../components/pages/project/LossAutopsy';
-import { PostBidAutopsyForm } from '../../components/pages/precon/PostBidAutopsyForm';
-import { DeliverablesTracker } from '../../components/pages/project/DeliverablesTracker';
+const EstimatingKickoffPage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
+  'EstimatingKickoffPage'
+);
+const InterviewPrep = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
+  'InterviewPrep'
+);
+const WinLossRecorder = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
+  'WinLossRecorder'
+);
+const TurnoverToOps = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
+  'TurnoverToOps'
+);
+const LossAutopsy = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
+  'LossAutopsy'
+);
+const PostBidAutopsyForm = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
+  'PostBidAutopsyForm'
+);
+const DeliverablesTracker = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
+  'DeliverablesTracker'
+);
 
 function requirePilot(context: ITanStackRouteContext): void {
   requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
@@ -100,4 +121,3 @@ export function createPreconstructionBatchBRoutes(rootRoute: unknown) {
     deliverablesRoute,
   ] as unknown[];
 }
-

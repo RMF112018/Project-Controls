@@ -38,7 +38,26 @@ jobs:
         run: npm run check:browser-node-core
 
       - name: Bundle (production)
-        run: npx gulp bundle --ship
+        run: npm run bundle:ship:analyze
+
+      - name: Verify bundle size (PR warn)
+        if: github.event_name == 'pull_request'
+        run: npm run verify:bundle-size:warn
+
+      - name: Verify bundle size (main fail)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npm run verify:bundle-size:fail
+
+      - name: Upload bundle analysis artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: bundle-analysis-${{ github.sha }}
+          path: |
+            temp/analyze/spfx-bundle-report.html
+            temp/analyze/spfx-stats.json
+            temp/analyze/spfx-size-report.json
+          retention-days: 14
 
       - name: Package solution
         run: npx gulp package-solution --ship

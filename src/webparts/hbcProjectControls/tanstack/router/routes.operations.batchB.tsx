@@ -1,14 +1,27 @@
 import * as React from 'react';
-import { createRoute } from '@tanstack/react-router';
+import { createRoute, lazyRouteComponent } from '@tanstack/react-router';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requireProject } from './guards/requireProject';
 import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
-import { ResponsibilityMatrices } from '../../components/pages/project/ResponsibilityMatrices';
-import { ProjectRecord } from '../../components/pages/project/ProjectRecord';
-import { LessonsLearnedPage } from '../../components/pages/project/LessonsLearnedPage';
-import { GoNoGoScorecard } from '../../components/pages/hub/GoNoGoScorecard';
 import { ComingSoonPage } from '../../components/shared/ComingSoonPage';
+
+const ResponsibilityMatrices = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'ResponsibilityMatrices'
+);
+const ProjectRecord = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'ProjectRecord'
+);
+const LessonsLearnedPage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'LessonsLearnedPage'
+);
+const GoNoGoScorecard = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
+  'GoNoGoScorecard'
+);
 
 function requirePilot(context: ITanStackRouteContext): void {
   requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);

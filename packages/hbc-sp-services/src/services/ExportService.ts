@@ -1,3 +1,5 @@
+import { loadPdfDeps, loadXlsx } from '../utils/LazyExportUtils';
+
 export interface IExportOptions {
   filename: string;
   title?: string;
@@ -7,9 +9,7 @@ export interface IExportOptions {
 export class ExportService {
   async exportToPDF(elementId: string, options: IExportOptions): Promise<void> {
     try {
-      // Dynamic imports for code splitting
-      const html2canvas = (await import('html2canvas')).default;
-      const { jsPDF } = await import('jspdf');
+      const { html2canvas, jsPDF } = await loadPdfDeps();
 
       const element = document.getElementById(elementId);
       if (!element) {
@@ -77,7 +77,7 @@ export class ExportService {
     options: IExportOptions & { sheetName?: string }
   ): Promise<void> {
     try {
-      const XLSX = await import('xlsx');
+      const XLSX = await loadXlsx();
       const worksheet = XLSX.utils.json_to_sheet(data);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, options.sheetName || 'Sheet1');
@@ -93,7 +93,7 @@ export class ExportService {
     options: IExportOptions
   ): Promise<void> {
     try {
-      const XLSX = await import('xlsx');
+      const XLSX = await loadXlsx();
       const workbook = XLSX.utils.book_new();
       for (const sheet of sheets) {
         const worksheet = XLSX.utils.json_to_sheet(sheet.data);

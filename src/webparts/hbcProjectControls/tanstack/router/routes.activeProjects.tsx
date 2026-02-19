@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Outlet, createRootRouteWithContext, createRoute, type AnyRoute } from '@tanstack/react-router';
+import { Outlet, createRootRouteWithContext, createRoute, lazyRouteComponent, type AnyRoute } from '@tanstack/react-router';
 import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { activeProjectsListOptions } from '../query/queryOptions/activeProjects';
@@ -14,9 +14,18 @@ import { createPreconstructionBatchBRoutes } from './routes.preconstruction.batc
 import { createLeadAndJobRequestBatchCRoutes } from './routes.leadAndJobRequest.batchC';
 import { createAdminAccountingBatchDRoutes } from './routes.adminAccounting.batchD';
 import { createSystemBatchERoutes } from './routes.system.batchE';
-import { ActiveProjectsDashboard } from '../../components/pages/hub/ActiveProjectsDashboard';
-import { ProjectDashboard } from '../../components/pages/project/ProjectDashboard';
-import { ComplianceLog } from '../../components/pages/hub/ComplianceLog';
+const ActiveProjectsDashboard = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'ActiveProjectsDashboard'
+);
+const ProjectDashboard = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'ProjectDashboard'
+);
+const ComplianceLog = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'ComplianceLog'
+);
 
 const rootRoute = createRootRouteWithContext<ITanStackRouteContext>()({
   component: () => <Outlet />,

@@ -1,13 +1,31 @@
-import { createRoute } from '@tanstack/react-router';
+import { createRoute, lazyRouteComponent } from '@tanstack/react-router';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
-import { LeadFormPage } from '../../components/pages/hub/LeadFormPage';
-import { LeadDetailPage } from '../../components/pages/hub/LeadDetailPage';
-import { GoNoGoScorecard } from '../../components/pages/hub/GoNoGoScorecard';
-import { GoNoGoDetail } from '../../components/pages/hub/GoNoGoDetail';
-import { GoNoGoMeetingScheduler } from '../../components/pages/hub/GoNoGoMeetingScheduler';
-import { JobNumberRequestForm } from '../../components/pages/hub/JobNumberRequestForm';
+const LeadFormPage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
+  'LeadFormPage'
+);
+const LeadDetailPage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
+  'LeadDetailPage'
+);
+const GoNoGoScorecard = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
+  'GoNoGoScorecard'
+);
+const GoNoGoDetail = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
+  'GoNoGoDetail'
+);
+const GoNoGoMeetingScheduler = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
+  'GoNoGoMeetingScheduler'
+);
+const JobNumberRequestForm = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
+  'JobNumberRequestForm'
+);
 
 function requirePilot(context: ITanStackRouteContext): void {
   requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
@@ -87,4 +105,3 @@ export function createLeadAndJobRequestBatchCRoutes(rootRoute: unknown) {
     jobRequestByLeadRoute,
   ] as unknown[];
 }
-
