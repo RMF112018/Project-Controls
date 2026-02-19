@@ -76,8 +76,12 @@ describe('useBuyoutLog', () => {
   it('rolls back optimistic add mutation when create fails', async () => {
     const initialEntries = [makeEntry()];
 
+    const createdEntry = makeEntry({ id: 2, divisionCode: '04-200', divisionDescription: 'Masonry' });
     const dataService = {
-      getBuyoutEntries: jest.fn().mockResolvedValue(initialEntries),
+      getBuyoutEntries: jest
+        .fn()
+        .mockResolvedValueOnce(initialEntries)
+        .mockResolvedValueOnce([...initialEntries, createdEntry]),
       addBuyoutEntry: jest.fn(),
       initializeBuyoutLog: jest.fn(),
       updateBuyoutEntry: jest.fn(),
@@ -93,6 +97,8 @@ describe('useBuyoutLog', () => {
     mockUseAppContext.mockReturnValue({
       dataService,
       currentUser: { email: 'tester@hbc.com', displayName: 'Tester' },
+      isFeatureEnabled: (featureName: string) =>
+        featureName === 'OptimisticMutationsEnabled' || featureName === 'OptimisticMutations_Buyout',
     });
 
     const queryClient = new QueryClient({
@@ -130,6 +136,66 @@ describe('useBuyoutLog', () => {
     await waitFor(() => {
       expect(result.current.entries).toHaveLength(1);
       expect(result.current.entries[0].divisionCode).toBe('03-100');
+    });
+  });
+
+  it('uses pessimistic fallback when mutation flags are disabled', async () => {
+    const initialEntries = [makeEntry()];
+    const createdEntry = makeEntry({ id: 2, divisionCode: '04-200', divisionDescription: 'Masonry' });
+
+    const dataService = {
+      getBuyoutEntries: jest
+        .fn()
+        .mockResolvedValueOnce(initialEntries)
+        .mockResolvedValueOnce([...initialEntries, createdEntry]),
+      addBuyoutEntry: jest.fn(),
+      initializeBuyoutLog: jest.fn(),
+      updateBuyoutEntry: jest.fn(),
+      removeBuyoutEntry: jest.fn(),
+    } as unknown as IDataService;
+
+    let resolveAdd: ((value: IBuyoutEntry) => void) | null = null;
+    const pendingAdd = new Promise<IBuyoutEntry>((resolve) => {
+      resolveAdd = resolve;
+    });
+    (dataService.addBuyoutEntry as jest.Mock).mockReturnValue(pendingAdd);
+
+    mockUseAppContext.mockReturnValue({
+      dataService,
+      currentUser: { email: 'tester@hbc.com', displayName: 'Tester' },
+      isFeatureEnabled: () => false,
+    });
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useBuyoutLog(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.fetchEntries('HBC-001');
+    });
+
+    act(() => {
+      void result.current.addEntry('HBC-001', {
+        divisionCode: '04-200',
+        divisionDescription: 'Masonry',
+      }).catch(() => { /* not expected */ });
+    });
+
+    expect(result.current.entries.some((entry) => entry.id < 0)).toBe(false);
+
+    act(() => {
+      resolveAdd?.(createdEntry);
+    });
+
+    await waitFor(() => {
+      expect(result.current.entries.some((entry) => entry.id === 2)).toBe(true);
     });
   });
 });
