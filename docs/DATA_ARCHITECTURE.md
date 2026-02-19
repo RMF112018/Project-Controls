@@ -1631,3 +1631,39 @@ export const PROJECT_LISTS = {
 | `{{ProjectCode}}_Owners` | Full Control | Executive Leadership, BD Representative |
 | `{{ProjectCode}}_Members` | Contribute | Preconstruction Team, Operations Team, Estimating Coordinator |
 | `{{ProjectCode}}_Visitors` | Read | Marketing, Legal, Accounting Manager, Risk Management, Quality Control, Safety |
+
+---
+
+## Optimistic Mutation Architecture (Wave A incremental)
+
+Sprint 2 introduces an incremental optimistic mutation pattern with explicit fallback behavior.
+
+### Scope (Wave A only)
+- Leads
+- Estimating
+- Buyout
+- PMP
+
+### Contracts
+- Service mutation metadata lives in:
+  - `packages/hbc-sp-services/src/services/mutations/mutationCatalog.ts`
+  - `packages/hbc-sp-services/src/services/mutations/defaultPlan.ts`
+- App mutation wrapper:
+  - `src/webparts/hbcProjectControls/tanstack/query/mutations/useHbcOptimisticMutation.ts`
+
+### Fallback behavior
+- If `OptimisticMutationsEnabled` is off, domain flag is off, or method is unmapped:
+  - mutation runs pessimistically (no optimistic cache patch)
+  - normal success/settled invalidation flow still executes
+
+### Invalidation model
+- Query invalidation and cache invalidation are descriptor-driven per domain.
+- Cache invalidation support was extended in `CacheService` with:
+  - `invalidateByTags()`
+  - `invalidatePlan()`
+
+### Side-effect rule
+- AuditService and NotificationService side effects must only run in
+  - `onSuccessEffects`, or
+  - `onSettledEffects`
+- They must never run during `onMutate`.
