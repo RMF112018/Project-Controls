@@ -32,6 +32,7 @@ const config: StorybookConfig = {
       '@hooks': path.resolve(srcRoot, 'components/hooks'),
       '@contexts': path.resolve(srcRoot, 'components/contexts'),
       '@theme': path.resolve(srcRoot, 'theme'),
+      '@router': path.resolve(srcRoot, 'router'),
       // Resolve @hbc/sp-services to source (not compiled lib) for HMR
       '@hbc/sp-services': path.resolve(__dirname, '../packages/hbc-sp-services/src'),
       // Pin React to root — prevents duplicate react-dom/client errors

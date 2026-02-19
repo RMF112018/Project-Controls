@@ -1,6 +1,6 @@
 import type { Preview, Decorator } from '@storybook/react';
 import * as React from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from '@router';
 import { FluentProvider } from '@fluentui/react-components';
 import { AppProvider } from '@components/contexts/AppContext';
 import { HelpProvider } from '@components/contexts/HelpContext';

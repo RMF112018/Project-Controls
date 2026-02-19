@@ -21,6 +21,8 @@ build.configureWebpack.mergeConfig({
 
     generatedConfiguration.resolve.alias['@hbc/sp-services'] =
       path.resolve(__dirname, 'packages/hbc-sp-services/lib');
+    generatedConfiguration.resolve.alias['@router'] =
+      path.resolve(__dirname, 'lib/webparts/hbcProjectControls/router/index.js');
 
     if (isAnalyze) {
       generatedConfiguration.plugins = generatedConfiguration.plugins || [];
