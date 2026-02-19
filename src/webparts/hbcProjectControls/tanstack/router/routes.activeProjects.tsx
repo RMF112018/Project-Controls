@@ -6,7 +6,7 @@ import { activeProjectsListOptions } from '../query/queryOptions/activeProjects'
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
 import { requireProject } from './guards/requireProject';
-import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
+import { TANSTACK_ROUTER_ENABLED_FLAG } from './constants';
 import { createOperationsBatchARoutes } from './routes.operations.batchA';
 import { createOperationsBatchBRoutes } from './routes.operations.batchB';
 import { createPreconstructionBatchARoutes } from './routes.preconstruction.batchA';
@@ -35,7 +35,7 @@ const operationsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/operations',
   beforeLoad: ({ context }) => {
-    requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
+    requireFeature(context, TANSTACK_ROUTER_ENABLED_FLAG);
     requirePermission(context, PERMISSIONS.ACTIVE_PROJECTS_VIEW);
   },
   loader: ({ context }) => context.queryClient.ensureQueryData(
@@ -48,7 +48,7 @@ const operationsProjectRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/operations/project',
   beforeLoad: ({ context }) => {
-    requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
+    requireFeature(context, TANSTACK_ROUTER_ENABLED_FLAG);
     requireProject(context);
   },
   component: ProjectDashboard,
@@ -58,7 +58,7 @@ const operationsComplianceLogRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/operations/compliance-log',
   beforeLoad: ({ context }) => {
-    requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
+    requireFeature(context, TANSTACK_ROUTER_ENABLED_FLAG);
     requirePermission(context, PERMISSIONS.COMPLIANCE_LOG_VIEW);
   },
   component: ComplianceLog,

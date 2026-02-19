@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { RouterProvider, createHashHistory, createRouter } from '@tanstack/react-router';
+import { TanStackRouterDevtools } from '@tanstack/router-devtools';
 import type { QueryClient } from '@tanstack/react-query';
 import type { IDataService, ICurrentUser } from '@hbc/sp-services';
 import type { IQueryScope } from '../query/queryKeys';
@@ -13,23 +14,19 @@ export interface ITanStackRouterProviderProps {
   selectedProject: ISelectedProject | null;
   isFeatureEnabled: (featureName: string) => boolean;
   scope: IQueryScope;
+  showDevtools?: boolean;
 }
 
-function createHbcTanStackRouter() {
+export function createHbcTanStackRouter(initialContext: ITanStackRouterProviderProps) {
   return createRouter({
     routeTree: tanStackPilotRouteTree,
     context: {
-      queryClient: undefined as unknown as QueryClient,
-      dataService: undefined as unknown as IDataService,
-      currentUser: null,
-      selectedProject: null,
-      isFeatureEnabled: () => false,
-      scope: {
-        mode: 'mock',
-        siteContext: 'hub',
-        siteUrl: '',
-        projectCode: null,
-      },
+      queryClient: initialContext.queryClient,
+      dataService: initialContext.dataService,
+      currentUser: initialContext.currentUser,
+      selectedProject: initialContext.selectedProject,
+      isFeatureEnabled: initialContext.isFeatureEnabled,
+      scope: initialContext.scope,
     },
     history: createHashHistory(),
     defaultPreload: 'intent',
@@ -44,20 +41,33 @@ export const TanStackPilotRouter: React.FC<ITanStackRouterProviderProps> = ({
   selectedProject,
   isFeatureEnabled,
   scope,
+  showDevtools = false,
 }) => {
-  const router = React.useMemo(() => createHbcTanStackRouter(), []);
+  const router = React.useMemo(() => createHbcTanStackRouter({
+    queryClient,
+    dataService,
+    currentUser,
+    selectedProject,
+    isFeatureEnabled,
+    scope,
+  }), [queryClient, dataService, currentUser, selectedProject, isFeatureEnabled, scope]);
 
   return (
-    <RouterProvider
-      router={router}
-      context={{
-        queryClient,
-        dataService,
-        currentUser,
-        selectedProject,
-        isFeatureEnabled,
-        scope,
-      }}
-    />
+    <>
+      <RouterProvider
+        router={router}
+        context={{
+          queryClient,
+          dataService,
+          currentUser,
+          selectedProject,
+          isFeatureEnabled,
+          scope,
+        }}
+      />
+      {showDevtools ? <TanStackRouterDevtools /> : null}
+    </>
   );
 };
+
+export const TanStackAppRouterProvider = TanStackPilotRouter;
