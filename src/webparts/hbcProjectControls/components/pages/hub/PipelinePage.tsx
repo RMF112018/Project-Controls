@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from '@router';
 import { Button, Select } from '@fluentui/react-components';
 import { useLeads } from '../../hooks/useLeads';
 import { useGoNoGo } from '../../hooks/useGoNoGo';

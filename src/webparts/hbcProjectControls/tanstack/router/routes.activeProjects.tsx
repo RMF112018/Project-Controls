@@ -1,12 +1,13 @@
 import * as React from 'react';
-import { Outlet, createRootRouteWithContext, createRoute, lazyRouteComponent, type AnyRoute } from '@tanstack/react-router';
+import { Outlet, createRootRouteWithContext, createRoute, lazyRouteComponent, type AnyRoute, useNavigate, useRouterState } from '@tanstack/react-router';
+import { TanStackRouterDevtools } from '@tanstack/router-devtools';
 import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { activeProjectsListOptions } from '../query/queryOptions/activeProjects';
-import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
 import { requireProject } from './guards/requireProject';
-import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
+import { AppShell } from '../../components/layouts/AppShell';
+import { RouterAdapterProvider } from '../../components/contexts/RouterAdapterContext';
 import { createOperationsBatchARoutes } from './routes.operations.batchA';
 import { createOperationsBatchBRoutes } from './routes.operations.batchB';
 import { createPreconstructionBatchARoutes } from './routes.preconstruction.batchA';
@@ -14,6 +15,7 @@ import { createPreconstructionBatchBRoutes } from './routes.preconstruction.batc
 import { createLeadAndJobRequestBatchCRoutes } from './routes.leadAndJobRequest.batchC';
 import { createAdminAccountingBatchDRoutes } from './routes.adminAccounting.batchD';
 import { createSystemBatchERoutes } from './routes.system.batchE';
+import { useTelemetryPageView } from '../../hooks/useTelemetryPageView';
 const ActiveProjectsDashboard = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
   'ActiveProjectsDashboard'
@@ -27,15 +29,61 @@ const ComplianceLog = lazyRouteComponent(
   'ComplianceLog'
 );
 
+const TanStackAdapterBridge: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const navigate = useNavigate();
+  const { pathname, searchStr, matches } = useRouterState({
+    select: (state) => ({
+      pathname: state.location.pathname,
+      searchStr: state.location.searchStr ?? '',
+      matches: state.matches,
+    }),
+  });
+
+  const params = (matches[matches.length - 1]?.params ?? {}) as Record<string, string | undefined>;
+
+  const adapterValue = React.useMemo(() => ({
+    navigate: (to: string | number, options?: { replace?: boolean }) => {
+      if (typeof to === 'number') {
+        window.history.go(to);
+        return;
+      }
+      void navigate({ to, replace: options?.replace });
+    },
+    pathname,
+    search: searchStr,
+    params,
+  }), [matches, navigate, pathname, searchStr]);
+
+  return <RouterAdapterProvider value={adapterValue}>{children}</RouterAdapterProvider>;
+};
+
+const TelemetryPageTracker: React.FC = () => {
+  useTelemetryPageView();
+  return null;
+};
+
+const RootLayout: React.FC = () => (
+  <TanStackAdapterBridge>
+    <TelemetryPageTracker />
+    <AppShell>
+      <Outlet />
+    </AppShell>
+    {(typeof window !== 'undefined'
+      && window.location.hostname === 'localhost'
+      && window.localStorage.getItem('showTanStackRouterDevtools') === 'true')
+      ? <TanStackRouterDevtools />
+      : null}
+  </TanStackAdapterBridge>
+);
+
 const rootRoute = createRootRouteWithContext<ITanStackRouteContext>()({
-  component: () => <Outlet />,
+  component: RootLayout,
 });
 
 const operationsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/operations',
   beforeLoad: ({ context }) => {
-    requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
     requirePermission(context, PERMISSIONS.ACTIVE_PROJECTS_VIEW);
   },
   loader: ({ context }) => context.queryClient.ensureQueryData(
@@ -48,7 +96,6 @@ const operationsProjectRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/operations/project',
   beforeLoad: ({ context }) => {
-    requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
     requireProject(context);
   },
   component: ProjectDashboard,
@@ -58,7 +105,6 @@ const operationsComplianceLogRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/operations/compliance-log',
   beforeLoad: ({ context }) => {
-    requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
     requirePermission(context, PERMISSIONS.COMPLIANCE_LOG_VIEW);
   },
   component: ComplianceLog,

@@ -1,14 +1,13 @@
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useAppLocation } from '../components/hooks/router/useAppLocation';
 import { useAppContext } from '../components/contexts/AppContext';
 
 /**
  * Tracks a page view in telemetry on every route change.
- * Must be called from within a <HashRouter> context.
  */
 export function useTelemetryPageView(pathnameOverride?: string): void {
   const { telemetryService } = useAppContext();
-  const location = useLocation();
+  const location = useAppLocation();
   const trackedPathname = pathnameOverride ?? location.pathname;
 
   React.useEffect(() => {

@@ -7,6 +7,13 @@ import { useQueryScope } from '../../tanstack/query/useQueryScope';
 import { qk } from '../../tanstack/query/queryKeys';
 import { buyoutEntriesOptions } from '../../tanstack/query/queryOptions/buyout';
 import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
+import { useHbcOptimisticMutation } from '../../tanstack/query/mutations/useHbcOptimisticMutation';
+import { OPTIMISTIC_MUTATION_FLAGS } from '../../tanstack/query/mutations/optimisticMutationFlags';
+import {
+  appendBuyoutEntryOptimistic,
+  removeBuyoutEntryOptimistic,
+  replaceBuyoutEntryOptimistic,
+} from '../../tanstack/query/mutations/optimisticPatchers';
 
 export interface IBuyoutMetrics {
   totalOriginalBudget: number;
@@ -15,12 +22,6 @@ export interface IBuyoutMetrics {
   procurementProgress: number;
   totalDivisions: number;
   awardedDivisions: number;
-}
-
-interface IOptimisticContext {
-  key: ReadonlyArray<unknown>;
-  previous: IBuyoutEntry[] | undefined;
-  optimisticId?: number;
 }
 
 export function useBuyoutLog() {
@@ -68,17 +69,16 @@ export function useBuyoutLog() {
     },
   });
 
-  const addEntryMutation = useMutation({
-    mutationFn: async (vars: { projectCode: string; entry: Partial<IBuyoutEntry> }): Promise<IBuyoutEntry> =>
+  const addEntryMutation = useHbcOptimisticMutation<IBuyoutEntry, { projectCode: string; entry: Partial<IBuyoutEntry> }, IBuyoutEntry[]>({
+    method: 'addBuyoutEntry',
+    domainFlag: OPTIMISTIC_MUTATION_FLAGS.buyout,
+    mutationFn: async (vars) =>
       dataService.addBuyoutEntry(vars.projectCode, vars.entry),
-    onMutate: async (vars): Promise<IOptimisticContext> => {
-      const key = qk.buyout.entries(scope, vars.projectCode);
-      await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<IBuyoutEntry[]>(key);
+    getStateKey: (vars) => qk.buyout.entries(scope, vars.projectCode),
+    applyOptimistic: (previous, vars) => {
       const now = new Date().toISOString();
-      const optimisticId = -Date.now();
       const optimisticEntry: IBuyoutEntry = {
-        id: optimisticId,
+        id: -Date.now(),
         projectCode: vars.projectCode,
         divisionCode: vars.entry.divisionCode ?? 'TEMP',
         divisionDescription: vars.entry.divisionDescription ?? 'Pending',
@@ -96,66 +96,42 @@ export function useBuyoutLog() {
         modifiedDate: vars.entry.modifiedDate ?? now,
         ...vars.entry,
       };
-      queryClient.setQueryData<IBuyoutEntry[]>(key, (prev) => {
-        const next = [...(prev ?? []), optimisticEntry];
-        return next.sort((a, b) => a.divisionCode.localeCompare(b.divisionCode));
-      });
-      return { key, previous, optimisticId };
+      return appendBuyoutEntryOptimistic(previous ?? [], optimisticEntry);
     },
-    onError: (_error, _vars, ctx) => {
-      if (ctx?.previous) {
-        queryClient.setQueryData(ctx.key, ctx.previous);
-      }
-    },
-    onSuccess: (created, vars, ctx) => {
+    onSuccess: async (created, vars) => {
       const key = qk.buyout.entries(scope, vars.projectCode);
-      queryClient.setQueryData<IBuyoutEntry[]>(key, (prev) => {
-        const withoutOptimistic = (prev ?? []).filter((entry) => entry.id !== ctx?.optimisticId);
-        const next = [...withoutOptimistic, created];
-        return next.sort((a, b) => a.divisionCode.localeCompare(b.divisionCode));
-      });
+      queryClient.setQueryData<IBuyoutEntry[]>(key, (prev) => appendBuyoutEntryOptimistic((prev ?? []).filter((entry) => entry.id > 0), created));
+      await queryClient.invalidateQueries({ queryKey: key });
     },
   });
 
-  const updateEntryMutation = useMutation({
-    mutationFn: async (vars: { projectCode: string; entryId: number; data: Partial<IBuyoutEntry> }): Promise<IBuyoutEntry> =>
+  const updateEntryMutation = useHbcOptimisticMutation<IBuyoutEntry, { projectCode: string; entryId: number; data: Partial<IBuyoutEntry> }, IBuyoutEntry[]>({
+    method: 'updateBuyoutEntry',
+    domainFlag: OPTIMISTIC_MUTATION_FLAGS.buyout,
+    mutationFn: async (vars) =>
       dataService.updateBuyoutEntry(vars.projectCode, vars.entryId, vars.data),
-    onMutate: async (vars): Promise<IOptimisticContext> => {
-      const key = qk.buyout.entries(scope, vars.projectCode);
-      await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<IBuyoutEntry[]>(key);
-      queryClient.setQueryData<IBuyoutEntry[]>(key, (prev) =>
-        (prev ?? []).map((entry) => entry.id === vars.entryId ? { ...entry, ...vars.data } : entry)
-      );
-      return { key, previous };
+    getStateKey: (vars) => qk.buyout.entries(scope, vars.projectCode),
+    applyOptimistic: (previous, vars) => {
+      return replaceBuyoutEntryOptimistic(previous ?? [], vars.entryId, vars.data);
     },
-    onError: (_error, _vars, ctx) => {
-      if (ctx?.previous) {
-        queryClient.setQueryData(ctx.key, ctx.previous);
-      }
-    },
-    onSuccess: (updated, vars) => {
+    onSuccess: async (updated, vars) => {
       const key = qk.buyout.entries(scope, vars.projectCode);
-      queryClient.setQueryData<IBuyoutEntry[]>(key, (prev) =>
-        (prev ?? []).map((entry) => entry.id === vars.entryId ? updated : entry)
-      );
+      queryClient.setQueryData<IBuyoutEntry[]>(key, (prev) => replaceBuyoutEntryOptimistic(prev ?? [], vars.entryId, updated));
+      await queryClient.invalidateQueries({ queryKey: key });
     },
   });
 
-  const removeEntryMutation = useMutation({
-    mutationFn: async (vars: { projectCode: string; entryId: number }): Promise<void> =>
+  const removeEntryMutation = useHbcOptimisticMutation<void, { projectCode: string; entryId: number }, IBuyoutEntry[]>({
+    method: 'removeBuyoutEntry',
+    domainFlag: OPTIMISTIC_MUTATION_FLAGS.buyout,
+    mutationFn: async (vars) =>
       dataService.removeBuyoutEntry(vars.projectCode, vars.entryId),
-    onMutate: async (vars): Promise<IOptimisticContext> => {
-      const key = qk.buyout.entries(scope, vars.projectCode);
-      await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<IBuyoutEntry[]>(key);
-      queryClient.setQueryData<IBuyoutEntry[]>(key, (prev) => (prev ?? []).filter((entry) => entry.id !== vars.entryId));
-      return { key, previous };
+    getStateKey: (vars) => qk.buyout.entries(scope, vars.projectCode),
+    applyOptimistic: (previous, vars) => {
+      return removeBuyoutEntryOptimistic(previous ?? [], vars.entryId);
     },
-    onError: (_error, _vars, ctx) => {
-      if (ctx?.previous) {
-        queryClient.setQueryData(ctx.key, ctx.previous);
-      }
+    onSuccess: async (_result, vars) => {
+      await queryClient.invalidateQueries({ queryKey: qk.buyout.entries(scope, vars.projectCode) });
     },
   });
 

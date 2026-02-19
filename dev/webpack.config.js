@@ -17,7 +17,8 @@ module.exports = {
 
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.[contenthash:8].js',
+    filename: '[name].js',
+    chunkFilename: '[name].chunk.js',
     publicPath: '/',
     clean: true,
   },
@@ -35,6 +36,7 @@ module.exports = {
       '@hooks': path.resolve(srcRoot, 'components/hooks'),
       '@contexts': path.resolve(srcRoot, 'components/contexts'),
       '@theme': path.resolve(srcRoot, 'theme'),
+      '@router': path.resolve(srcRoot, 'router'),
 
       // Point to source for HMR during dev
       '@hbc/sp-services': path.resolve(__dirname, '../packages/hbc-sp-services/src'),
@@ -125,7 +127,7 @@ module.exports = {
         },
         charts: {
           test: /[\\/]node_modules[\\/](echarts|echarts-for-react)[\\/]/,
-          name: 'lib-echarts-runtime',
+          name: 'lib-echarts-vendor',
           priority: 20,
           chunks: 'async',
         },

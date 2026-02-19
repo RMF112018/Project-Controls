@@ -11,7 +11,7 @@ import {
   PROJECT_RECORD_DELIVERY_METHODS
 } from '@hbc/sp-services';
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from '@router';
 import { useMarketingRecord } from '../../hooks/useMarketingRecord';
 import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';

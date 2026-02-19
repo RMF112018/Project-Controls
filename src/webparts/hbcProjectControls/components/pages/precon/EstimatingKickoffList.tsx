@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@router';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { useEstimating } from '../../hooks/useEstimating';
 

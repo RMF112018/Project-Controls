@@ -3,6 +3,12 @@ interface ICacheEntry<T> {
   expiry: number;
 }
 
+interface ICacheInvalidationPlan {
+  cacheTags?: readonly string[];
+  cachePrefixes?: readonly string[];
+  projectCode?: string | null;
+}
+
 export class CacheService {
   private memoryCache: Map<string, ICacheEntry<unknown>> = new Map();
   private defaultTTL: number;
@@ -81,6 +87,20 @@ export class CacheService {
     } catch {
       // Ignore
     }
+  }
+
+  invalidateByTags(tags: readonly string[], projectCode?: string | null): void {
+    tags.forEach((tag) => {
+      this.removeByPrefix(tag);
+      if (projectCode) {
+        this.removeByPrefix(`${tag}_${projectCode}`);
+      }
+    });
+  }
+
+  invalidatePlan(plan: ICacheInvalidationPlan): void {
+    this.invalidateByTags(plan.cacheTags ?? [], plan.projectCode);
+    (plan.cachePrefixes ?? []).forEach((prefix) => this.removeByPrefix(prefix));
   }
 
   clear(): void {

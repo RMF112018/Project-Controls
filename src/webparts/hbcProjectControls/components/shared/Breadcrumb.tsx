@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useTransitionNavigate } from '../hooks/router/useTransitionNavigate';
 import { HBC_COLORS } from '../../theme/tokens';
 import { IBreadcrumbItem } from '@hbc/sp-services';
 
@@ -8,7 +8,7 @@ interface IBreadcrumbProps {
 }
 
 export const Breadcrumb: React.FC<IBreadcrumbProps> = ({ items }) => {
-  const navigate = useNavigate();
+  const navigate = useTransitionNavigate();
 
   if (items.length <= 1) return null;
 

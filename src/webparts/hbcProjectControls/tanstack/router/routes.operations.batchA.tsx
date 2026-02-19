@@ -4,7 +4,6 @@ import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
 import { requireProject } from './guards/requireProject';
-import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
 import { buyoutEntriesOptions } from '../query/queryOptions/buyout';
 const ProjectSettingsPage = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
@@ -15,7 +14,7 @@ const ProjectStartupChecklist = lazyRouteComponent(
   'ProjectStartupChecklist'
 );
 const ProjectManagementPlan = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  () => import(/* webpackChunkName: "page-pmp-16-section" */ '../../components/pages/project/pmp/ProjectManagementPlan'),
   'ProjectManagementPlan'
 );
 const SuperintendentPlanPage = lazyRouteComponent(
@@ -63,67 +62,53 @@ const PermitsLogPage = lazyRouteComponent(
   'PermitsLogPage'
 );
 
-function requirePilot(context: ITanStackRouteContext): void {
-  requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
-}
-
 export function guardProjectSettings(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'ContractTracking');
   requireProject(context);
 }
 
 export function guardStartupChecklist(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'ProjectStartup');
   requireProject(context);
 }
 
 export function guardManagementPlan(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'ProjectManagementPlan');
   requireProject(context);
   requirePermission(context, PERMISSIONS.PMP_EDIT);
 }
 
 export function guardProjectOnly(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireProject(context);
 }
 
 export function guardBuyoutLog(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireProject(context);
   requirePermission(context, PERMISSIONS.BUYOUT_VIEW);
 }
 
 export function guardRiskCost(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireProject(context);
   requirePermission(context, PERMISSIONS.RISK_EDIT);
 }
 
 export function guardSchedule(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'ScheduleModule');
   requireProject(context);
 }
 
 export function guardMonthlyReview(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'MonthlyProjectReview');
   requireProject(context);
 }
 
 export function guardConstraints(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'ConstraintsLog');
   requireProject(context);
   requirePermission(context, PERMISSIONS.CONSTRAINTS_VIEW);
 }
 
 export function guardPermits(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireProject(context);
   requirePermission(context, PERMISSIONS.PERMITS_VIEW);
 }

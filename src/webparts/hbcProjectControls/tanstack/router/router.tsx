@@ -15,21 +15,16 @@ export interface ITanStackRouterProviderProps {
   scope: IQueryScope;
 }
 
-function createHbcTanStackRouter() {
+export function createHbcTanStackRouter(initialContext: ITanStackRouterProviderProps) {
   return createRouter({
     routeTree: tanStackPilotRouteTree,
     context: {
-      queryClient: undefined as unknown as QueryClient,
-      dataService: undefined as unknown as IDataService,
-      currentUser: null,
-      selectedProject: null,
-      isFeatureEnabled: () => false,
-      scope: {
-        mode: 'mock',
-        siteContext: 'hub',
-        siteUrl: '',
-        projectCode: null,
-      },
+      queryClient: initialContext.queryClient,
+      dataService: initialContext.dataService,
+      currentUser: initialContext.currentUser,
+      selectedProject: initialContext.selectedProject,
+      isFeatureEnabled: initialContext.isFeatureEnabled,
+      scope: initialContext.scope,
     },
     history: createHashHistory(),
     defaultPreload: 'intent',
@@ -45,7 +40,14 @@ export const TanStackPilotRouter: React.FC<ITanStackRouterProviderProps> = ({
   isFeatureEnabled,
   scope,
 }) => {
-  const router = React.useMemo(() => createHbcTanStackRouter(), []);
+  const router = React.useMemo(() => createHbcTanStackRouter({
+    queryClient,
+    dataService,
+    currentUser,
+    selectedProject,
+    isFeatureEnabled,
+    scope,
+  }), [queryClient, dataService, currentUser, selectedProject, isFeatureEnabled, scope]);
 
   return (
     <RouterProvider
@@ -61,3 +63,5 @@ export const TanStackPilotRouter: React.FC<ITanStackRouterProviderProps> = ({
     />
   );
 };
+
+export const TanStackAppRouterProvider = TanStackPilotRouter;

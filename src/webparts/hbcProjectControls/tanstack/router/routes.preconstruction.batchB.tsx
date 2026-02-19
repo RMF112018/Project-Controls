@@ -3,7 +3,6 @@ import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
-import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
 const EstimatingKickoffPage = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
   'EstimatingKickoffPage'
@@ -33,22 +32,15 @@ const DeliverablesTracker = lazyRouteComponent(
   'DeliverablesTracker'
 );
 
-function requirePilot(context: ITanStackRouteContext): void {
-  requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
-}
-
 export function guardKickoffPage(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requirePermission(context, PERMISSIONS.KICKOFF_VIEW);
 }
 
 export function guardTurnover(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'TurnoverWorkflow');
 }
 
 export function guardAutopsy(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'LossAutopsy');
 }
 
@@ -57,9 +49,7 @@ export function guardAutopsyForm(context: ITanStackRouteContext): void {
   requirePermission(context, PERMISSIONS.AUTOPSY_VIEW);
 }
 
-export function guardPilotOnly(context: ITanStackRouteContext): void {
-  requirePilot(context);
-}
+export function guardPilotOnly(_context: ITanStackRouteContext): void {}
 
 export function createPreconstructionBatchBRoutes(rootRoute: unknown) {
   const kickoffPageRoute = createRoute({

@@ -18,7 +18,6 @@ const batchB = require('../routes.operations.batchB') as typeof import('../route
 
 function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRouteContext {
   const enabledFeatures = new Set([
-    'TanStackRouterPilot',
     'ContractTracking',
     'ProjectStartup',
     'ProjectManagementPlan',
@@ -62,9 +61,9 @@ function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRout
 }
 
 describe('operations route guard chains', () => {
-  it('project settings redirects to access denied when pilot flag is disabled', () => {
+  it('project settings redirects to access denied when ContractTracking feature is disabled', () => {
     const context = buildContext({
-      isFeatureEnabled: (featureName: string) => featureName !== 'TanStackRouterPilot',
+      isFeatureEnabled: (featureName: string) => featureName !== 'ContractTracking',
     });
     expect(() => batchA.guardProjectSettings(context)).toThrow();
   });
@@ -86,7 +85,7 @@ describe('operations route guard chains', () => {
 
   it('constraints redirects to access denied when feature is disabled', () => {
     const context = buildContext({
-      isFeatureEnabled: (featureName: string) => featureName === 'TanStackRouterPilot',
+      isFeatureEnabled: () => false,
     });
     expect(() => batchA.guardConstraints(context)).toThrow();
   });
@@ -104,7 +103,7 @@ describe('operations route guard chains', () => {
   it('responsibility route redirects to access denied when ProjectStartup feature is off', () => {
     const context = buildContext({
       isFeatureEnabled: (featureName: string) =>
-        featureName === 'TanStackRouterPilot',
+        featureName === 'ProjectManagementPlan',
     });
     expect(() => batchB.guardResponsibility(context)).toThrow();
   });
@@ -114,7 +113,7 @@ describe('operations route guard chains', () => {
     expect(() => batchB.guardProjectOnly(context)).toThrow();
   });
 
-  it('project-only guard chain passes when pilot is enabled and project is selected', () => {
+  it('project-only guard chain passes when project is selected', () => {
     const context = buildContext();
     expect(() => batchA.guardProjectOnly(context)).not.toThrow();
   });

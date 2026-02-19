@@ -8,7 +8,7 @@ import {
   IStartupChecklistItem,
 } from '@hbc/sp-services';
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
 import { useStartupChecklist } from '../../hooks/useStartupChecklist';
 import { useToast } from '../../shared/ToastContainer';

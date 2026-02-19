@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from '@router';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { useEstimatingKickoff } from '../../hooks/useEstimatingKickoff';
 import { useEstimating } from '../../hooks/useEstimating';

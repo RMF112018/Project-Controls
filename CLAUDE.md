@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-19 — Performance modernization phase-4 hardening added: bundle stats-diff gate, baseline budget contract, CI PR-warn/main-fail policy, and suspense fallback a11y regression test.
+**Last Updated:** 2026-02-19 — Sprint 2 completion in progress: TanStack-only routing runtime, router adapter sweep/removal of `react-router-dom`, Wave A optimistic mutations (Leads/Estimating/Buyout/PMP), pessimistic fallback tests, and hard bundle budget enforcement.
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -34,6 +34,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - `npm run test:e2e` → Playwright E2E (starts dev server automatically)
 - `npm run test:e2e:ui` → Playwright interactive UI mode
 - `npm run test:a11y` → axe WCAG 2.2 AA accessibility tests (run before marking work complete)
+- `npm run verify:sprint2` → Sprint 2 closeout gate (lint + TS + tests + e2e/a11y + standalone report + hard bundle cap checks)
 
 ### Command Evolution Guidelines
 - **Add** a command when: a workflow repeats 3+ times/week, manual execution is error-prone, or it has clear success/failure criteria.
@@ -76,17 +77,16 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - **Data Layer**: `@hbc/sp-services` monorepo package (shared library)
 - **Charting**: Apache ECharts ^5.6.x + echarts-for-react ^3.x (replaced Recharts Feb 2026). Tree-shaking via `echarts/core`. Wrapper: `HbcEChart` (`shared/`). Theme: `hbcEChartsTheme.ts`.
 - **Testing (E2E)**: Playwright ^1.50.1 targeting http://localhost:3000 (MockDataService + RoleSwitcher). Specs: `playwright/guards.spec.ts`, `dashboard.spec.ts`, `provisioning.spec.ts`. Role fixture: `playwright/fixtures/roleFixture.ts`.
-- **TanStack Foundation (Phase 1/2 active)**: `@tanstack/react-query@5`, `@tanstack/react-router@1`, `@tanstack/react-table@8`, `@tanstack/react-virtual@3`, `@tanstack/react-form@1` installed for incremental migration; current production routing remains `react-router-dom` until feature-flagged cutover.
+- **TanStack Foundation (Phase 2 active)**: `@tanstack/react-query@5`, `@tanstack/react-router@1`, `@tanstack/react-table@8`, `@tanstack/react-virtual@3`, `@tanstack/react-form@1` installed and active; runtime routing is TanStack-only with hash history.
 - **TanStack Query Wave-1 complete (Hub + Buyout core)**:
   - Query options: `queryOptions/{dataMart,compliance,permissionEngine,buyout}.ts`
   - Hook migrations: `useDataMart`, `useComplianceLog`, `usePermissionEngine`, `useBuyoutLog`, `useCommitmentApproval`, `useContractTracking`
   - SignalR bridge: `tanstack/query/useSignalRQueryInvalidation.ts`
   - New tests: optimistic rollback (`useBuyoutLog`) + SignalR invalidation bridge tests
-- **TanStack Router Wave-1 pilot (parallel)**:
+- **TanStack Router runtime (active)**:
   - Route tree + provider: `tanstack/router/{routes.activeProjects.tsx,router.tsx}`
   - Guard helpers: `tanstack/router/guards/{requirePermission,requireProject,requireFeature}.ts`
-  - Pilot flag constant: `tanstack/router/constants.ts` (`TanStackRouterPilot`)
-  - Coexistence wiring in `components/App.tsx` now covers `/operations/*`, `/preconstruction*`, `/lead*`, `/job-request*`, `/admin*`, `/accounting-queue`, `/marketing`, `/access-denied`, and `*`
+  - Legacy `react-router-dom` runtime path removed; adapter hooks are the only navigation abstraction for shared components/tests.
   - Wave-2 route modules: `tanstack/router/{routes.operations.batchA.tsx,routes.operations.batchB.tsx}`
   - Wave-3 route modules: `tanstack/router/{routes.preconstruction.batchA.tsx,routes.preconstruction.batchB.tsx,routes.leadAndJobRequest.batchC.tsx}`
   - Wave-4 route modules: `tanstack/router/routes.adminAccounting.batchD.tsx`
@@ -131,7 +131,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - **SignalR + Query sync**: migrated hooks use `useSignalRQueryInvalidation` to invalidate query families instead of ad-hoc callback refs.
 - **RBAC**: `resolveUserPermissions` → `PermissionGate` / `RoleGate` / `FeatureGate`
 - **Styling**: `makeStyles` (structure) + minimal inline (dynamic) + Fluent tokens + `HBC_COLORS`
-- **Routing**: `HashRouter` remains primary with parallel TanStack Router pilot behind `TanStackRouterPilot` feature flag for Operations + Preconstruction + Lead + Job Request + Admin + Accounting + Marketing + system fallback routes.
+- **Routing**: TanStack Router (`createHashHistory`) is the sole runtime router; `RouterAdapterProvider` supplies stable `navigate/pathname/search/params` for shared hooks/components.
 - **Tables**: `HbcTanStackTable` is the standard migration target for read-heavy grids; retain legacy `DataTable` for non-migrated surfaces until later waves, and block new `DataTable` imports via lint freeze.
 - **Charts**: `HbcEChart` wrapper lazily loads ECharts runtime (`echarts-for-react`, `echarts/core`, `hbcEChartsTheme`) into `lib-echarts-runtime` chunk. `EChartsOption` remains `useMemo`; `ResizeObserver` continues handling responsive resize.
 - **Audit**: Fire-and-forget `this.logAudit()` with debounce
@@ -217,7 +217,7 @@ Full P6-style schedule management with multi-format support:
 - 45 project-site schemas, 20 mock entries across 2 project codes
 
 **Next Phase**: Integration testing and deployment readiness.
-**Router next steps**: run full parity soak (all deep links, telemetry labels, a11y smoke) and then retire legacy `react-router-dom` route table behind a controlled release gate.
+**Router next steps**: maintain parity/soak coverage and keep adapter contract stable while mutation waves continue.
 
 **Performance modernization status (active)**:
 - `ExportService` now loads PDF/Excel stack via memoized loaders in `utils/{DynamicImports,LazyExportUtils}.ts`
@@ -333,7 +333,7 @@ graph TD
 - **Standalone cross-tenant guard**: standalone runtime blocks if detected site origin differs from configured hub origin (prevents accidental cross-tenant queries).
 - **Standalone Graph RBAC fallback**: Graph `/me/transitiveMemberOf` failures must fail-soft to email-based role matching from `App_Roles.UserOrGroup`; never hard-fail app init solely due to missing `Group.Read.All` consent.
 - **SWA deploy safety**: Keep `public/staticwebapp.config.json` with SPA fallback exclusions for `/sw.js`, `/manifest.json`, `/offline.html`, `/icons/*`, `/assets/*` to preserve PWA behavior.
-- **TanStack Router coexistence rule**: `TanStackRouterPilot` now gates Operations + Preconstruction + Lead + Job Request + Admin + Accounting + Marketing + system fallback routes while legacy `react-router-dom` remains installed for rollback safety.
+- **TanStack Router rule**: do not introduce new direct router-library imports in app code; use adapter hooks (`useAppNavigate`, `useAppLocation`, `useAppParams`) for shared components and tests.
 - **TanStack Table rule**: use threshold virtualization only (`>= 200` rows). For smaller datasets prefer standard rendering for accessibility and behavior parity.
 - **TanStack Table governance rule**: no new imports from `shared/DataTable` outside grandfathered files; use `HbcTanStackTable` for all new table migrations.
 - **ECharts**: NEVER build `EChartsOption` inline in JSX — always `useMemo`. Radar `indicator` array ≠ Recharts data array shape.
@@ -374,7 +374,9 @@ graph TD
 - **TanStack query-key scoping**: Always include mode + siteContext + siteUrl + projectCode in query keys to prevent cache leakage across mock/standalone/sharepoint and hub/project contexts.
 - **TanStack migration rule**: Wrap `IDataService` with Query/Mutation; never bypass directly to PnP in UI-layer TanStack query functions.
 - **TanStack optimistic mutation rule**: For editable grids/logs, `onMutate` must snapshot previous cache and `onError` must restore it (rollback is mandatory, not optional).
-- **TanStack Router coexistence rule**: While `react-router-dom` is still active, only explicitly migrated route families may mount `TanStackPilotRouter`; all remaining routes must stay on legacy routing until migrated and gated.
+- **Optimistic mutation flag contract**: global `OptimisticMutationsEnabled` must be true before any domain flag is honored. Wave A domain flags: `OptimisticMutations_Leads`, `OptimisticMutations_Estimating`, `OptimisticMutations_Buyout`, `OptimisticMutations_PMP`.
+- **Pessimistic fallback contract**: when global/domain flags are off or method is unmapped, mutation must run without optimistic cache writes and still run success/settled invalidation effects.
+- **Sprint 2 verification rule**: run `npm run verify:sprint2` before merge (lint, strict type-check, tests/a11y/e2e smoke, standalone analyze report, hard bundle-size gate).
 - **SignalR invalidation rule**: Migrate new Query-based hooks to `useSignalRQueryInvalidation`; avoid reintroducing callback-ref refresh patterns.
 
 ---

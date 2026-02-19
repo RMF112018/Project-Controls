@@ -22,7 +22,7 @@ import {
   getUrgencyColor
 } from '@hbc/sp-services';
 import * as React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from '@router';
 import { Select } from '@fluentui/react-components';
 import type { EChartsOption } from 'echarts';
 import { HbcEChart } from '../../shared/HbcEChart';

@@ -1,7 +1,6 @@
 import { createRoute, lazyRouteComponent } from '@tanstack/react-router';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
-import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
 const LeadFormPage = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
   'LeadFormPage'
@@ -27,23 +26,15 @@ const JobNumberRequestForm = lazyRouteComponent(
   'JobNumberRequestForm'
 );
 
-function requirePilot(context: ITanStackRouteContext): void {
-  requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
-}
-
 export function guardLeadIntake(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'LeadIntake');
 }
 
 export function guardGoNoGo(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'GoNoGoScorecard');
 }
 
-export function guardPilotOnly(context: ITanStackRouteContext): void {
-  requirePilot(context);
-}
+export function guardPilotOnly(_context: ITanStackRouteContext): void {}
 
 export function createLeadAndJobRequestBatchCRoutes(rootRoute: unknown) {
   const leadNewRoute = createRoute({

@@ -3,7 +3,6 @@ import { createRoute, lazyRouteComponent } from '@tanstack/react-router';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requireProject } from './guards/requireProject';
-import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
 import { ComingSoonPage } from '../../components/shared/ComingSoonPage';
 
 const ResponsibilityMatrices = lazyRouteComponent(
@@ -23,18 +22,12 @@ const GoNoGoScorecard = lazyRouteComponent(
   'GoNoGoScorecard'
 );
 
-function requirePilot(context: ITanStackRouteContext): void {
-  requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
-}
-
 export function guardResponsibility(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'ProjectStartup');
   requireProject(context);
 }
 
 export function guardProjectOnly(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireProject(context);
 }
 

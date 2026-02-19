@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from '@router';
 import { Select, Input, Button } from '@fluentui/react-components';
 import type { EChartsOption } from 'echarts';
 import { HbcEChart } from '../../shared/HbcEChart';
@@ -532,6 +532,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
               style={{ minWidth: '200px' }}
             />
             <Select
+              aria-label="Filter projects by status"
               value={filters.status || ''}
               onChange={(_, d) => setFilters({ ...filters, status: d.value as ProjectStatus || undefined })}
               style={{ minWidth: '140px' }}
@@ -542,6 +543,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
               <option value="Final Payment">Final Payment</option>
             </Select>
             <Select
+              aria-label="Filter projects by sector"
               value={filters.sector || ''}
               onChange={(_, d) => setFilters({ ...filters, sector: d.value as SectorType || undefined })}
               style={{ minWidth: '140px' }}
@@ -551,6 +553,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
               <option value="Residential">Residential</option>
             </Select>
             <Select
+              aria-label="Filter projects by project executive"
               value={filters.projectExecutive || ''}
               onChange={(_, d) => setFilters({ ...filters, projectExecutive: d.value || undefined })}
               style={{ minWidth: '160px' }}
@@ -561,6 +564,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
               ))}
             </Select>
             <Select
+              aria-label="Filter projects by project manager"
               value={filters.projectManager || ''}
               onChange={(_, d) => setFilters({ ...filters, projectManager: d.value || undefined })}
               style={{ minWidth: '160px' }}
@@ -571,6 +575,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
               ))}
             </Select>
             <Select
+              aria-label="Filter projects by region"
               value={filters.region || ''}
               onChange={(_, d) => setFilters({ ...filters, region: d.value || undefined })}
               style={{ minWidth: '140px' }}

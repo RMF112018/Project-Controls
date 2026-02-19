@@ -19,7 +19,6 @@ const leadC = require('../routes.leadAndJobRequest.batchC') as typeof import('..
 
 function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRouteContext {
   const enabledFeatures = new Set([
-    'TanStackRouterPilot',
     'EstimatingTracker',
     'PipelineDashboard',
     'LossAutopsy',
@@ -60,9 +59,9 @@ function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRout
 }
 
 describe('preconstruction and lead guard chains', () => {
-  it('estimating tracker guard throws when pilot flag is disabled', () => {
+  it('estimating tracker guard throws when estimating feature is disabled', () => {
     const context = buildContext({
-      isFeatureEnabled: (featureName: string) => featureName !== 'TanStackRouterPilot',
+      isFeatureEnabled: (featureName: string) => featureName !== 'EstimatingTracker',
     });
     expect(() => preconA.guardEstimatingTracker(context)).toThrow();
   });
@@ -90,7 +89,7 @@ describe('preconstruction and lead guard chains', () => {
   it('turnover guard throws when feature is disabled', () => {
     const context = buildContext({
       isFeatureEnabled: (featureName: string) =>
-        featureName !== 'TurnoverWorkflow' && featureName === 'TanStackRouterPilot',
+        featureName !== 'TurnoverWorkflow',
     });
     expect(() => preconB.guardTurnover(context)).toThrow();
   });
@@ -98,7 +97,7 @@ describe('preconstruction and lead guard chains', () => {
   it('lead intake guard throws when LeadIntake feature is disabled', () => {
     const context = buildContext({
       isFeatureEnabled: (featureName: string) =>
-        featureName !== 'LeadIntake' && featureName === 'TanStackRouterPilot',
+        featureName !== 'LeadIntake',
     });
     expect(() => leadC.guardLeadIntake(context)).toThrow();
   });
@@ -106,14 +105,13 @@ describe('preconstruction and lead guard chains', () => {
   it('go/no-go guard throws when scorecard feature is disabled', () => {
     const context = buildContext({
       isFeatureEnabled: (featureName: string) =>
-        featureName !== 'GoNoGoScorecard' && featureName === 'TanStackRouterPilot',
+        featureName !== 'GoNoGoScorecard',
     });
     expect(() => leadC.guardGoNoGo(context)).toThrow();
   });
 
-  it('pilot-only guard passes when pilot feature is enabled', () => {
+  it('pilot-only guard passes without pilot feature gate', () => {
     const context = buildContext();
     expect(() => leadC.guardPilotOnly(context)).not.toThrow();
   });
 });
-

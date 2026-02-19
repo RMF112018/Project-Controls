@@ -15,9 +15,7 @@ if (typeof globalThis.TextEncoder === 'undefined') {
 const batchE = require('../routes.system.batchE') as typeof import('../routes.system.batchE');
 
 function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRouteContext {
-  const enabledFeatures = new Set([
-    'TanStackRouterPilot',
-  ]);
+  const enabledFeatures = new Set<string>([]);
 
   const base: ITanStackRouteContext = {
     queryClient: new QueryClient(),
@@ -50,13 +48,6 @@ function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRout
 }
 
 describe('system route guard chains', () => {
-  it('marketing guard throws when pilot flag is disabled', () => {
-    const context = buildContext({
-      isFeatureEnabled: (featureName: string) => featureName !== 'TanStackRouterPilot',
-    });
-    expect(() => batchE.guardMarketing(context)).toThrow();
-  });
-
   it('marketing guard throws when marketing permission is missing', () => {
     const context = buildContext({
       currentUser: {
@@ -67,7 +58,7 @@ describe('system route guard chains', () => {
     expect(() => batchE.guardMarketing(context)).toThrow();
   });
 
-  it('marketing guard passes when pilot is enabled and permission is present', () => {
+  it('marketing guard passes when permission is present', () => {
     const context = buildContext();
     expect(() => batchE.guardMarketing(context)).not.toThrow();
   });

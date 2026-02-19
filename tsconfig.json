@@ -40,6 +40,8 @@
       "@hooks/*": ["src/webparts/hbcProjectControls/components/hooks/*"],
       "@contexts/*": ["src/webparts/hbcProjectControls/components/contexts/*"],
       "@theme/*": ["src/webparts/hbcProjectControls/theme/*"],
+      "@router": ["src/webparts/hbcProjectControls/router/index.tsx"],
+      "@router/*": ["src/webparts/hbcProjectControls/router/*"]
     },
     "types": [
       "jest",

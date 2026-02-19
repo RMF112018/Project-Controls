@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
 import { usePostBidAutopsy } from '../../hooks/usePostBidAutopsy';
 import { PageHeader } from '../../shared/PageHeader';

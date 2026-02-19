@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from '@router';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { useComplianceLog } from '../../hooks/useComplianceLog';
 import { useResponsive } from '../../hooks/useResponsive';

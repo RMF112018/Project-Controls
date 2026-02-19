@@ -1,2 +1,1 @@
-export const TANSTACK_ROUTER_PILOT_FLAG = 'TanStackRouterPilot';
-
+export const TANSTACK_ROUTER_ENABLED_FLAG = 'TanStackRouterEnabled';

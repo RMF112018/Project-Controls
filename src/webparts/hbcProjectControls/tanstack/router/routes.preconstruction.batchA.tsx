@@ -3,9 +3,8 @@ import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
-import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
 const EstimatingDashboard = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule'),
+  () => import(/* webpackChunkName: "page-estimating-tracker" */ '../../components/pages/precon/EstimatingDashboard'),
   'EstimatingDashboard'
 );
 const PipelinePage = lazyRouteComponent(
@@ -25,34 +24,24 @@ const PursuitDetail = lazyRouteComponent(
   'PursuitDetail'
 );
 
-function requirePilot(context: ITanStackRouteContext): void {
-  requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);
-}
-
 export function guardEstimatingTracker(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'EstimatingTracker');
 }
 
 export function guardPipelineDashboard(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'PipelineDashboard');
 }
 
 export function guardKickoffList(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requirePermission(context, PERMISSIONS.KICKOFF_VIEW);
 }
 
 export function guardAutopsyList(context: ITanStackRouteContext): void {
-  requirePilot(context);
   requireFeature(context, 'LossAutopsy');
   requirePermission(context, PERMISSIONS.AUTOPSY_VIEW);
 }
 
-export function guardPilotOnly(context: ITanStackRouteContext): void {
-  requirePilot(context);
-}
+export function guardPilotOnly(_context: ITanStackRouteContext): void {}
 
 export function createPreconstructionBatchARoutes(rootRoute: unknown) {
   const preconstructionRoute = createRoute({
