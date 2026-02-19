@@ -10,7 +10,7 @@ import { SignalRProvider } from './contexts/SignalRContext';
 import { AppShell } from './layouts/AppShell';
 import { ErrorBoundary } from './shared/ErrorBoundary';
 import { ToastProvider } from './shared/ToastContainer';
-import { PageLoader } from './shared/PageLoader';
+import { PhaseSuspenseFallback } from './shared/PhaseSuspenseFallback';
 import { OfflineMonitor } from './shared/OfflineMonitor';
 import { SwUpdateMonitor } from './shared/SwUpdateMonitor';
 import { IDataService, PERMISSIONS } from '@hbc/sp-services';
@@ -26,76 +26,209 @@ import { TANSTACK_ROUTER_PILOT_FLAG } from '../tanstack/router/constants';
 // Helper: wrap React.lazy() for named exports
 // ---------------------------------------------------------------------------
 function lazyNamed<T extends React.ComponentType<Record<string, never>>>(
-  factory: () => Promise<{ [key: string]: T }>
+  factory: () => Promise<{ [key: string]: T }>,
+  exportName: string
 ): React.LazyExoticComponent<T> {
   return React.lazy(() =>
-    factory().then((mod) => {
-      const key = Object.keys(mod)[0];
-      return { default: mod[key] };
-    })
+    factory().then((mod) => ({ default: mod[exportName] }))
   );
 }
 
 // ---------------------------------------------------------------------------
-// Lazy page imports — Hub
+// Lazy page imports — Shared phase chunk
 // ---------------------------------------------------------------------------
-const DashboardPage = lazyNamed(() => import('./pages/hub/DashboardPage'));
-const PipelinePage = lazyNamed(() => import('./pages/hub/PipelinePage'));
-const MarketingDashboard = lazyNamed(() => import('./pages/hub/MarketingDashboard'));
-const LeadFormPage = lazyNamed(() => import('./pages/hub/LeadFormPage'));
-const LeadDetailPage = lazyNamed(() => import('./pages/hub/LeadDetailPage'));
-const GoNoGoScorecard = lazyNamed(() => import('./pages/hub/GoNoGoScorecard'));
-const GoNoGoDetail = lazyNamed(() => import('./pages/hub/GoNoGoDetail'));
-const GoNoGoMeetingScheduler = lazyNamed(() => import('./pages/hub/GoNoGoMeetingScheduler'));
-const JobNumberRequestForm = lazyNamed(() => import('./pages/hub/JobNumberRequestForm'));
-const AccountingQueuePage = lazyNamed(() => import('./pages/hub/AccountingQueuePage'));
-const ActiveProjectsDashboard = lazyNamed(() => import('./pages/hub/ActiveProjectsDashboard'));
-const ComplianceLog = lazyNamed(() => import('./pages/hub/ComplianceLog'));
+const DashboardPage = lazyNamed(
+  () => import(/* webpackChunkName: "phase-shared" */ '../features/shared/SharedModule'),
+  'DashboardPage'
+);
+const MarketingDashboard = lazyNamed(
+  () => import(/* webpackChunkName: "phase-shared" */ '../features/shared/SharedModule'),
+  'MarketingDashboard'
+);
 
 // ---------------------------------------------------------------------------
-// Lazy page imports — Admin
+// Lazy page imports — Admin/Hub phase chunk
 // ---------------------------------------------------------------------------
-const AdminPanel = lazyNamed(() => import('./pages/hub/AdminPanel'));
-const PerformanceDashboard = lazyNamed(() => import('./pages/hub/PerformanceDashboard'));
-const ApplicationSupportPage = lazyNamed(() => import('./pages/hub/ApplicationSupportPage'));
-const TelemetryDashboard = lazyNamed(() => import('./pages/hub/TelemetryDashboard'));
+const LeadFormPage = lazyNamed(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../features/adminHub/AdminHubModule'),
+  'LeadFormPage'
+);
+const LeadDetailPage = lazyNamed(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../features/adminHub/AdminHubModule'),
+  'LeadDetailPage'
+);
+const GoNoGoScorecard = lazyNamed(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../features/adminHub/AdminHubModule'),
+  'GoNoGoScorecard'
+);
+const GoNoGoDetail = lazyNamed(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../features/adminHub/AdminHubModule'),
+  'GoNoGoDetail'
+);
+const GoNoGoMeetingScheduler = lazyNamed(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../features/adminHub/AdminHubModule'),
+  'GoNoGoMeetingScheduler'
+);
+const JobNumberRequestForm = lazyNamed(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../features/adminHub/AdminHubModule'),
+  'JobNumberRequestForm'
+);
+const AccountingQueuePage = lazyNamed(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../features/adminHub/AdminHubModule'),
+  'AccountingQueuePage'
+);
+const AdminPanel = lazyNamed(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../features/adminHub/AdminHubModule'),
+  'AdminPanel'
+);
+const PerformanceDashboard = lazyNamed(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../features/adminHub/AdminHubModule'),
+  'PerformanceDashboard'
+);
+const ApplicationSupportPage = lazyNamed(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../features/adminHub/AdminHubModule'),
+  'ApplicationSupportPage'
+);
+const TelemetryDashboard = lazyNamed(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../features/adminHub/AdminHubModule'),
+  'TelemetryDashboard'
+);
 
 // ---------------------------------------------------------------------------
-// Lazy page imports — Precon
+// Lazy page imports — Preconstruction phase chunk
 // ---------------------------------------------------------------------------
-const EstimatingDashboard = lazyNamed(() => import('./pages/precon/EstimatingDashboard'));
-const PursuitDetail = lazyNamed(() => import('./pages/precon/PursuitDetail'));
-const EstimatingKickoffList = lazyNamed(() => import('./pages/precon/EstimatingKickoffList'));
-const EstimatingKickoffPage = lazyNamed(() => import('./pages/precon/EstimatingKickoffPage'));
-const PostBidAutopsyList = lazyNamed(() => import('./pages/precon/PostBidAutopsyList'));
-const PostBidAutopsyForm = lazyNamed(() => import('./pages/precon/PostBidAutopsyForm'));
+const PipelinePage = lazyNamed(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../features/preconstruction/PreconstructionModule'),
+  'PipelinePage'
+);
+const EstimatingDashboard = lazyNamed(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../features/preconstruction/PreconstructionModule'),
+  'EstimatingDashboard'
+);
+const PursuitDetail = lazyNamed(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../features/preconstruction/PreconstructionModule'),
+  'PursuitDetail'
+);
+const EstimatingKickoffList = lazyNamed(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../features/preconstruction/PreconstructionModule'),
+  'EstimatingKickoffList'
+);
+const EstimatingKickoffPage = lazyNamed(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../features/preconstruction/PreconstructionModule'),
+  'EstimatingKickoffPage'
+);
+const PostBidAutopsyList = lazyNamed(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../features/preconstruction/PreconstructionModule'),
+  'PostBidAutopsyList'
+);
+const PostBidAutopsyForm = lazyNamed(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../features/preconstruction/PreconstructionModule'),
+  'PostBidAutopsyForm'
+);
+const InterviewPrep = lazyNamed(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../features/preconstruction/PreconstructionModule'),
+  'InterviewPrep'
+);
+const WinLossRecorder = lazyNamed(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../features/preconstruction/PreconstructionModule'),
+  'WinLossRecorder'
+);
+const TurnoverToOps = lazyNamed(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../features/preconstruction/PreconstructionModule'),
+  'TurnoverToOps'
+);
+const LossAutopsy = lazyNamed(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../features/preconstruction/PreconstructionModule'),
+  'LossAutopsy'
+);
+const DeliverablesTracker = lazyNamed(
+  () => import(/* webpackChunkName: "phase-preconstruction" */ '../features/preconstruction/PreconstructionModule'),
+  'DeliverablesTracker'
+);
 
 // ---------------------------------------------------------------------------
-// Lazy page imports — Project execution
+// Lazy page imports — Operations phase chunk
 // ---------------------------------------------------------------------------
-const ProjectDashboard = lazyNamed(() => import('./pages/project/ProjectDashboard'));
-const DeliverablesTracker = lazyNamed(() => import('./pages/project/DeliverablesTracker'));
-const InterviewPrep = lazyNamed(() => import('./pages/project/InterviewPrep'));
-const WinLossRecorder = lazyNamed(() => import('./pages/project/WinLossRecorder'));
-const LossAutopsy = lazyNamed(() => import('./pages/project/LossAutopsy'));
-const ContractTracking = lazyNamed(() => import('./pages/project/ContractTracking'));
-const TurnoverToOps = lazyNamed(() => import('./pages/project/TurnoverToOps'));
-const CloseoutChecklist = lazyNamed(() => import('./pages/project/CloseoutChecklist'));
-const ProjectStartupChecklist = lazyNamed(() => import('./pages/project/ProjectStartupChecklist'));
-const ResponsibilityMatrices = lazyNamed(() => import('./pages/project/ResponsibilityMatrices'));
-const ProjectRecord = lazyNamed(() => import('./pages/project/ProjectRecord'));
-const RiskCostManagement = lazyNamed(() => import('./pages/project/RiskCostManagement'));
-const QualityConcernsTracker = lazyNamed(() => import('./pages/project/QualityConcernsTracker'));
-const SafetyConcernsTracker = lazyNamed(() => import('./pages/project/SafetyConcernsTracker'));
-const SchedulePage = lazyNamed(() => import('./pages/project/SchedulePage'));
-const SuperintendentPlanPage = lazyNamed(() => import('./pages/project/SuperintendentPlanPage'));
-const LessonsLearnedPage = lazyNamed(() => import('./pages/project/LessonsLearnedPage'));
-const ProjectManagementPlan = lazyNamed(() => import('./pages/project/pmp/ProjectManagementPlan'));
-const MonthlyProjectReview = lazyNamed(() => import('./pages/project/MonthlyProjectReview'));
-const BuyoutLogPage = lazyNamed(() => import('./pages/project/BuyoutLogPage'));
-const ConstraintsLogPage = lazyNamed(() => import('./pages/project/ConstraintsLogPage'));
-const PermitsLogPage = lazyNamed(() => import('./pages/project/PermitsLogPage'));
-const ProjectSettingsPage = lazyNamed(() => import('./pages/project/ProjectSettingsPage'));
+const ActiveProjectsDashboard = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'ActiveProjectsDashboard'
+);
+const ComplianceLog = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'ComplianceLog'
+);
+const ProjectDashboard = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'ProjectDashboard'
+);
+const ProjectSettingsPage = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'ProjectSettingsPage'
+);
+const ProjectStartupChecklist = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'ProjectStartupChecklist'
+);
+const ProjectManagementPlan = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'ProjectManagementPlan'
+);
+const SuperintendentPlanPage = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'SuperintendentPlanPage'
+);
+const ResponsibilityMatrices = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'ResponsibilityMatrices'
+);
+const CloseoutChecklist = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'CloseoutChecklist'
+);
+const BuyoutLogPage = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'BuyoutLogPage'
+);
+const ContractTracking = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'ContractTracking'
+);
+const RiskCostManagement = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'RiskCostManagement'
+);
+const SchedulePage = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'SchedulePage'
+);
+const QualityConcernsTracker = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'QualityConcernsTracker'
+);
+const SafetyConcernsTracker = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'SafetyConcernsTracker'
+);
+const MonthlyProjectReview = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'MonthlyProjectReview'
+);
+const ProjectRecord = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'ProjectRecord'
+);
+const LessonsLearnedPage = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'LessonsLearnedPage'
+);
+const ConstraintsLogPage = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'ConstraintsLogPage'
+);
+const PermitsLogPage = lazyNamed(
+  () => import(/* webpackChunkName: "phase-operations" */ '../features/operations/OperationsModule'),
+  'PermitsLogPage'
+);
 
 // ---------------------------------------------------------------------------
 // Inline tiny pages — kept in main bundle (no benefit from splitting)
@@ -136,7 +269,7 @@ const AppRoutes: React.FC = () => {
   );
 
   return (
-  <React.Suspense fallback={<PageLoader />}>
+  <React.Suspense fallback={<PhaseSuspenseFallback label="Loading project controls module..." />}>
     <Routes>
       {/* Dashboard — universal landing page */}
       <Route path="/" element={<DashboardPage />} />

@@ -20,6 +20,8 @@ export * from './utils/turnoverAgendaTemplate';
 export * from './utils/siteDetector';
 export * from './utils/scheduleParser';
 export * from './utils/scheduleMetrics';
+export * from './utils/DynamicImports';
+export * from './utils/LazyExportUtils';
 
 // Mock data — for dev/test use
 export { default as MOCK_USERS } from './mock/users.json';

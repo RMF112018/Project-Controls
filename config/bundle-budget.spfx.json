@@ -1,0 +1,72 @@
+{
+  "baselineCommit": "412fb12",
+  "generatedAt": "2026-02-19T07:38:29.628Z",
+  "entrypoint": {
+    "name": "hbc-project-controls-web-part",
+    "rawBytes": 1963674,
+    "gzipBytes": 466180,
+    "brotliBytes": 363590
+  },
+  "chunkBudgets": {
+    "phase-preconstruction": {
+      "rawBytes": 155906,
+      "gzipBytes": 34188,
+      "brotliBytes": 28382
+    },
+    "phase-operations": {
+      "rawBytes": 372080,
+      "gzipBytes": 75389,
+      "brotliBytes": 57049
+    },
+    "phase-admin-hub": {
+      "rawBytes": 237000,
+      "gzipBytes": 51540,
+      "brotliBytes": 42270
+    },
+    "phase-shared": {
+      "rawBytes": 52047,
+      "gzipBytes": 12966,
+      "brotliBytes": 11296
+    },
+    "lib-echarts-runtime": {
+      "rawBytes": 3399,
+      "gzipBytes": 1458,
+      "brotliBytes": 1244
+    },
+    "lib-export-pdf": {
+      "rawBytes": 403357,
+      "gzipBytes": 127962,
+      "brotliBytes": 107297
+    },
+    "lib-export-excel": {
+      "rawBytes": 419929,
+      "gzipBytes": 139441,
+      "brotliBytes": 115030
+    },
+    "lib-export-canvas": {
+      "rawBytes": 0,
+      "gzipBytes": 0,
+      "brotliBytes": 0
+    },
+    "vendors": {
+      "rawBytes": 0,
+      "gzipBytes": 0,
+      "brotliBytes": 0
+    },
+    "runtime": {
+      "rawBytes": 0,
+      "gzipBytes": 0,
+      "brotliBytes": 0
+    }
+  },
+  "thresholds": {
+    "warnPercent": 7,
+    "failPercent": 10,
+    "warnAbsoluteBytes": 51200,
+    "failAbsoluteBytes": 102400
+  },
+  "forbiddenModulePatterns": [
+    "node_modules/echarts/dist/echarts",
+    "node_modules/echarts/echarts.js"
+  ]
+}

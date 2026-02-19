@@ -1,4 +1,4 @@
-import { createRoute } from '@tanstack/react-router';
+import { createRoute, lazyRouteComponent } from '@tanstack/react-router';
 import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
@@ -6,20 +6,62 @@ import { requirePermission } from './guards/requirePermission';
 import { requireProject } from './guards/requireProject';
 import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
 import { buyoutEntriesOptions } from '../query/queryOptions/buyout';
-import { ProjectSettingsPage } from '../../components/pages/project/ProjectSettingsPage';
-import { ProjectStartupChecklist } from '../../components/pages/project/ProjectStartupChecklist';
-import { ProjectManagementPlan } from '../../components/pages/project/pmp/ProjectManagementPlan';
-import { SuperintendentPlanPage } from '../../components/pages/project/SuperintendentPlanPage';
-import { CloseoutChecklist } from '../../components/pages/project/CloseoutChecklist';
-import { BuyoutLogPage } from '../../components/pages/project/BuyoutLogPage';
-import { ContractTracking } from '../../components/pages/project/ContractTracking';
-import { RiskCostManagement } from '../../components/pages/project/RiskCostManagement';
-import { SchedulePage } from '../../components/pages/project/SchedulePage';
-import { QualityConcernsTracker } from '../../components/pages/project/QualityConcernsTracker';
-import { SafetyConcernsTracker } from '../../components/pages/project/SafetyConcernsTracker';
-import { MonthlyProjectReview } from '../../components/pages/project/MonthlyProjectReview';
-import { ConstraintsLogPage } from '../../components/pages/project/ConstraintsLogPage';
-import { PermitsLogPage } from '../../components/pages/project/PermitsLogPage';
+const ProjectSettingsPage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'ProjectSettingsPage'
+);
+const ProjectStartupChecklist = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'ProjectStartupChecklist'
+);
+const ProjectManagementPlan = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'ProjectManagementPlan'
+);
+const SuperintendentPlanPage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'SuperintendentPlanPage'
+);
+const CloseoutChecklist = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'CloseoutChecklist'
+);
+const BuyoutLogPage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'BuyoutLogPage'
+);
+const ContractTracking = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'ContractTracking'
+);
+const RiskCostManagement = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'RiskCostManagement'
+);
+const SchedulePage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'SchedulePage'
+);
+const QualityConcernsTracker = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'QualityConcernsTracker'
+);
+const SafetyConcernsTracker = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'SafetyConcernsTracker'
+);
+const MonthlyProjectReview = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'MonthlyProjectReview'
+);
+const ConstraintsLogPage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'ConstraintsLogPage'
+);
+const PermitsLogPage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'PermitsLogPage'
+);
 
 function requirePilot(context: ITanStackRouteContext): void {
   requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);

@@ -1,14 +1,29 @@
-import { createRoute } from '@tanstack/react-router';
+import { createRoute, lazyRouteComponent } from '@tanstack/react-router';
 import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
 import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
-import { AccountingQueuePage } from '../../components/pages/hub/AccountingQueuePage';
-import { AdminPanel } from '../../components/pages/hub/AdminPanel';
-import { PerformanceDashboard } from '../../components/pages/hub/PerformanceDashboard';
-import { ApplicationSupportPage } from '../../components/pages/hub/ApplicationSupportPage';
-import { TelemetryDashboard } from '../../components/pages/hub/TelemetryDashboard';
+const AccountingQueuePage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
+  'AccountingQueuePage'
+);
+const AdminPanel = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
+  'AdminPanel'
+);
+const PerformanceDashboard = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
+  'PerformanceDashboard'
+);
+const ApplicationSupportPage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
+  'ApplicationSupportPage'
+);
+const TelemetryDashboard = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
+  'TelemetryDashboard'
+);
 
 function requirePilot(context: ITanStackRouteContext): void {
   requireFeature(context, TANSTACK_ROUTER_PILOT_FLAG);

@@ -2,11 +2,13 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
 const CopyPlugin = require('copy-webpack-plugin');
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 
 // Load .env from repo root (silently skipped if not present — mock mode still works)
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const dataServiceMode = process.env.VITE_DATA_SERVICE_MODE || 'mock';
+const isAnalyze = process.env.ANALYZE === 'true';
 
 const srcRoot = path.resolve(__dirname, '../src/webparts/hbcProjectControls');
 
@@ -96,7 +98,46 @@ module.exports = {
         { from: path.resolve(__dirname, '..', 'public'), to: '.', noErrorOnMissing: true },
       ],
     }),
+    ...(isAnalyze
+      ? [
+          new BundleAnalyzerPlugin({
+            analyzerMode: 'server',
+            openAnalyzer: true,
+            reportFilename: '../temp/analyze/standalone-webpack-report.html',
+            generateStatsFile: true,
+            statsFilename: '../temp/analyze/standalone-webpack-stats.json',
+            defaultSizes: 'gzip',
+          }),
+        ]
+      : []),
   ],
+
+  optimization: {
+    runtimeChunk: 'single',
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          priority: 10,
+          chunks: 'all',
+        },
+        charts: {
+          test: /[\\/]node_modules[\\/](echarts|echarts-for-react)[\\/]/,
+          name: 'lib-echarts-runtime',
+          priority: 20,
+          chunks: 'async',
+        },
+        exportLibs: {
+          test: /[\\/]node_modules[\\/](jspdf|html2canvas|xlsx)[\\/]/,
+          name: 'lib-export-stack',
+          priority: 20,
+          chunks: 'async',
+        },
+      },
+    },
+  },
 
   devServer: {
     port: 3000,

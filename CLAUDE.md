@@ -13,7 +13,7 @@ Update this file at these specific intervals:
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-19 — Final hardening complete: removed legacy `DataTable` component/export after full `HbcTanStackTable` migration.
+**Last Updated:** 2026-02-19 — Performance modernization phase-4 hardening added: bundle stats-diff gate, baseline budget contract, CI PR-warn/main-fail policy, and suspense fallback a11y regression test.
 
 **MANDATORY:** After every code change that affects the data layer, update the relevant sections before ending the session.
 
@@ -102,6 +102,14 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
   - Threshold virtualization rule: enabled only when row count is `>= 200`
 - **Component Library**: Storybook 8.5 (webpack5 builder), stories colocated as `*.stories.tsx`. 9 story files covering KPICard, HbcEChart, RoleGate, FeatureGate, StatusBadge, DataTable, EmptyState, PageHeader, NavigationSidebar.
 - **Visual Regression**: Chromatic (cloud) on main pushes; TurboSnap for changed-story-only runs on PRs.
+- **Bundle analysis + chunk strategy (Feb 19, 2026)**:
+  - Analyzer integration: `webpack-bundle-analyzer@4.10.2` in SPFx gulp (`--analyze`) and standalone webpack (`ANALYZE=true`)
+  - New scripts: `serve:analyze`, `bundle:analyze`, `bundle:ship:analyze`, `build:analyze`, `verify:bundle-size`, `dev:analyze`
+  - New command: `.claude/commands/verify-bundle-size.md`
+  - Stats gate script: `scripts/verify-bundle-size.js` with baseline contract `config/bundle-budget.spfx.json`
+  - CI policy: bundle budget warns on PRs and fails on main regressions
+  - Phase chunks: `phase-shared`, `phase-preconstruction`, `phase-operations`, `phase-admin-hub`
+  - Heavy libs deferred: export stack (`jspdf`, `html2canvas`, `xlsx`) and ECharts runtime
 - **Key Commands**:
   - `npm run dev` → Standalone dev server + RoleSwitcher (port 3000)
   - `npm run build:standalone` → Vite standalone production artifact to `dist-standalone/`
@@ -125,7 +133,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 - **Styling**: `makeStyles` (structure) + minimal inline (dynamic) + Fluent tokens + `HBC_COLORS`
 - **Routing**: `HashRouter` remains primary with parallel TanStack Router pilot behind `TanStackRouterPilot` feature flag for Operations + Preconstruction + Lead + Job Request + Admin + Accounting + Marketing + system fallback routes.
 - **Tables**: `HbcTanStackTable` is the standard migration target for read-heavy grids; retain legacy `DataTable` for non-migrated surfaces until later waves, and block new `DataTable` imports via lint freeze.
-- **Charts**: `HbcEChart` wrapper → `EChartsOption` object (always `useMemo`) → ECharts canvas. Theme injected once via `registerHbcTheme()`. `onEvents` for drill-down. `ResizeObserver` handles responsive resize.
+- **Charts**: `HbcEChart` wrapper lazily loads ECharts runtime (`echarts-for-react`, `echarts/core`, `hbcEChartsTheme`) into `lib-echarts-runtime` chunk. `EChartsOption` remains `useMemo`; `ResizeObserver` continues handling responsive resize.
 - **Audit**: Fire-and-forget `this.logAudit()` with debounce
 - **Cross-site Access**: `_getProjectWeb()` helper in SharePointDataService
 
@@ -210,6 +218,12 @@ Full P6-style schedule management with multi-format support:
 
 **Next Phase**: Integration testing and deployment readiness.
 **Router next steps**: run full parity soak (all deep links, telemetry labels, a11y smoke) and then retire legacy `react-router-dom` route table behind a controlled release gate.
+
+**Performance modernization status (active)**:
+- `ExportService` now loads PDF/Excel stack via memoized loaders in `utils/{DynamicImports,LazyExportUtils}.ts`
+- `App.tsx` lazy imports are phase-oriented and use explicit chunk names
+- TanStack pilot route batches now use `lazyRouteComponent` with phase chunk alignment
+- Mock flags added for controlled rollout: `LazyHeavyLibsV1`, `PhaseChunkingV1`
 
 ## §15a Provisioning Workflows
 

@@ -1,13 +1,25 @@
 import * as React from 'react';
-import ReactECharts from 'echarts-for-react';
 import type { EChartsReactProps } from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
-import * as echartsCore from 'echarts/core';
 import { makeStyles, tokens } from '@fluentui/react-components';
-import { registerHbcTheme, HBC_ANIMATION } from '../../theme/hbcEChartsTheme';
 
-// Register the HBC theme once at module load
-registerHbcTheme();
+interface IEChartsRuntime {
+  ReactECharts: React.ComponentType<EChartsReactProps & { ref?: React.Ref<unknown> }>;
+  echartsCore: unknown;
+  animation: {
+    duration: number;
+    easing: string;
+    durationUpdate: number;
+    easingUpdate: string;
+  };
+}
+
+const DEFAULT_ANIMATION = {
+  duration: 600,
+  easing: 'cubicOut',
+  durationUpdate: 300,
+  easingUpdate: 'cubicOut',
+} as const;
 
 // ---------------------------------------------------------------------------
 // Props
@@ -88,10 +100,48 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
   onChartReady,
 }) => {
   const styles = useStyles();
-  const chartRef = React.useRef<ReactECharts | null>(null);
+  const chartRef = React.useRef<{ getEchartsInstance?: () => { resize: () => void } } | null>(null);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const [runtime, setRuntime] = React.useState<IEChartsRuntime | null>(null);
   // Stable unique ID for aria-describedby association
   const descriptionId = React.useId();
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    const loadRuntime = async (): Promise<void> => {
+      const [echartsReactMod, echartsCoreMod, themeMod] = await Promise.all([
+        import(/* webpackChunkName: "lib-echarts-runtime" */ 'echarts-for-react'),
+        import(/* webpackChunkName: "lib-echarts-runtime" */ 'echarts/core'),
+        import(/* webpackChunkName: "lib-echarts-runtime" */ '../../theme/hbcEChartsTheme'),
+      ]);
+
+      themeMod.registerHbcTheme();
+
+      if (isMounted) {
+        setRuntime({
+          ReactECharts: echartsReactMod.default as React.ComponentType<
+            EChartsReactProps & { ref?: React.Ref<unknown> }
+          >,
+          echartsCore: echartsCoreMod,
+          animation: {
+            duration: themeMod.HBC_ANIMATION.duration,
+            easing: themeMod.HBC_ANIMATION.easing,
+            durationUpdate: themeMod.HBC_ANIMATION.durationUpdate,
+            easingUpdate: themeMod.HBC_ANIMATION.easingUpdate,
+          },
+        });
+      }
+    };
+
+    loadRuntime().catch((err) => {
+      console.error('[HbcEChart] Failed to load ECharts runtime:', err);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // -------------------------------------------------------------------------
   // Merge animation defaults into option
@@ -99,13 +149,13 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
   const mergedOption = React.useMemo<EChartsOption>(
     () => ({
       animation: true,
-      animationDuration: HBC_ANIMATION.duration,
-      animationEasing: HBC_ANIMATION.easing,
-      animationDurationUpdate: HBC_ANIMATION.durationUpdate,
-      animationEasingUpdate: HBC_ANIMATION.easingUpdate,
+      animationDuration: runtime?.animation.duration ?? DEFAULT_ANIMATION.duration,
+      animationEasing: (runtime?.animation.easing ?? DEFAULT_ANIMATION.easing) as never,
+      animationDurationUpdate: runtime?.animation.durationUpdate ?? DEFAULT_ANIMATION.durationUpdate,
+      animationEasingUpdate: (runtime?.animation.easingUpdate ?? DEFAULT_ANIMATION.easingUpdate) as never,
       ...option,
     }),
-    [option]
+    [option, runtime]
   );
 
   // -------------------------------------------------------------------------
@@ -142,6 +192,20 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
     );
   }
 
+  if (!runtime) {
+    return (
+      <div
+        ref={containerRef}
+        className={styles.emptyState}
+        style={{ height, width, ...style }}
+        role="status"
+        aria-live="polite"
+      >
+        Loading chart...
+      </div>
+    );
+  }
+
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
@@ -150,6 +214,8 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
     color: '#1B2A4A',
     maskColor: 'rgba(255, 255, 255, 0.7)',
   };
+
+  const ReactECharts = runtime.ReactECharts;
 
   return (
     <div
@@ -165,7 +231,7 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
       )}
       <ReactECharts
         ref={chartRef}
-        echarts={echartsCore}
+        echarts={runtime.echartsCore as EChartsReactProps['echarts']}
         option={mergedOption}
         theme="hbc"
         notMerge={notMerge}

@@ -33,6 +33,7 @@ export type { ITimelineEntry } from './ActivityTimeline';
 export { ToolPermissionMatrix } from './ToolPermissionMatrix';
 export { GranularFlagEditor } from './GranularFlagEditor';
 export { PageLoader } from './PageLoader';
+export { PhaseSuspenseFallback } from './PhaseSuspenseFallback';
 export { PresenceIndicator } from './PresenceIndicator';
 export { ComingSoonPage } from './ComingSoonPage';
 export { ChecklistTable } from './ChecklistTable';

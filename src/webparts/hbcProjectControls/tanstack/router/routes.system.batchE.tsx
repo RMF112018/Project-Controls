@@ -1,12 +1,16 @@
 import * as React from 'react';
-import { createRoute } from '@tanstack/react-router';
+import { createRoute, lazyRouteComponent } from '@tanstack/react-router';
 import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
 import { TANSTACK_ROUTER_PILOT_FLAG } from './constants';
-import { MarketingDashboard } from '../../components/pages/hub/MarketingDashboard';
 import { AccessDeniedPage } from '../../components/pages/shared/AccessDeniedPage';
+
+const MarketingDashboard = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-shared" */ '../../features/shared/SharedModule'),
+  'MarketingDashboard'
+);
 
 const NotFoundPage: React.FC = () => (
   <div style={{ padding: 48, textAlign: 'center' }}>
