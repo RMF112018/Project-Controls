@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useAppLocation } from '../hooks/router/useAppLocation';
+import { useTransitionNavigate } from '../hooks/router/useTransitionNavigate';
 import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
 import { useAppContext } from '../contexts/AppContext';
 import { ProjectPicker } from '../shared/ProjectPicker';
@@ -269,8 +270,8 @@ const NavSubGroup: React.FC<{
 
 export const NavigationSidebar: React.FC = () => {
   const styles = useStyles();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate = useTransitionNavigate();
+  const location = useAppLocation();
   const { currentUser, selectedProject, setSelectedProject, hasPermission, isFeatureEnabled, isProjectSite } = useAppContext();
 
   const userRoles = currentUser?.roles ?? [];
