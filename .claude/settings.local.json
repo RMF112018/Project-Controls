@@ -94,12 +94,7 @@
       "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/packages/hbc-sp-services/src/mock/featureFlags.json:*)",
       "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/packages/hbc-sp-services/src/mock/templateRegistry.json:*)",
       "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/packages/hbc-sp-services/src/mock/templateSiteConfig.json:*)",
-      "Bash(/tmp/validate_phase_e.js:*)",
-      "Bash(head -20 grep -n \"Main navigation\\\\|aria-label.*nav\" src/webparts/hbcProjectControls/components/App.tsx)",
-      "Bash(# Check AppShell which is the dual-router wrapping component grep -n \"\"Main navigation\\\\|aria-label\\\\|nav\\\\|TanStack\\\\|RouterAdapter\"\" src/webparts/hbcProjectControls/components/layouts/AppShell.tsx)",
-      "Bash(# Find how isFeatureEnabled works - does it check role-based feature flags? grep -n \"\"isFeatureEnabled\\\\|EnabledForRoles\\\\|featureFlag\"\" packages/hbc-sp-services/src/services/MockDataService.ts)",
-      "Bash(head -5 grep -rn \"SuperAdmin\\\\|SUPER_ADMIN\" playwright/)",
-      "Bash(# Check the guards.spec.ts:44 Access denied page test - what is causing 2 main elements? # The error was: \"\"getByRole\\(''heading'', {name: /access denied/i}\\).or\\(locator\\(''main, [role=\"\"main\"\"]''\\)\\) resolved to 2 elements\"\" # This is the .or\\(\\) locator finding 2 elements # Let me check what could cause 2 access-denied headings or main elements grep -rn \"\"access.denied\\\\|accessDenied\\\\|AccessDenied\\\\|Access Denied\"\" src/webparts/hbcProjectControls/)"
+      "Bash(/tmp/validate_phase_e.js:*)"
     ]
   },
   "enabledPlugins": {

@@ -60,13 +60,4 @@ export const qk = {
     base: (scope: IQueryScope) => [...qk.scope(scope), 'audit'] as const,
     infinite: (scope: IQueryScope, filtersHash: string) => [...qk.scope(scope), 'audit', 'infinite', filtersHash] as const,
   },
-  schedule: {
-    base: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'schedule', projectCode] as const,
-    activities: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'schedule', projectCode, 'activities'] as const,
-    imports: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'schedule', projectCode, 'imports'] as const,
-    fieldLinks: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'schedule', projectCode, 'fieldLinks'] as const,
-    scenarios: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'schedule', projectCode, 'scenarios'] as const,
-    portfolioHealth: (scope: IQueryScope) => [...qk.scope(scope), 'schedule', 'portfolioHealth'] as const,
-    portfolioReadiness: (scope: IQueryScope) => [...qk.scope(scope), 'schedule', 'portfolioReadiness'] as const,
-  },
 };

@@ -22,7 +22,6 @@ export * from './utils/scheduleParser';
 export * from './utils/scheduleMetrics';
 export * from './utils/DynamicImports';
 export * from './utils/LazyExportUtils';
-export * from './engine';
 
 // Mock data — for dev/test use
 export { default as MOCK_USERS } from './mock/users.json';

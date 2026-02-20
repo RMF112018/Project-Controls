@@ -42,7 +42,7 @@ function url(internalName: string, displayName: string): IFieldDefinition {
   return { internalName, displayName, fieldType: 'URL' };
 }
 
-// --- Project-site list schemas ---
+// --- Project-site list schemas (42 lists) ---
 
 const PROJECT_INFO: IProjectListSchema = {
   listName: 'Project_Info',
@@ -797,9 +797,6 @@ const SCHEDULE_ACTIVITIES: IProjectListSchema = {
   fields: [
     text('ProjectCode', 'Project Code', { indexed: true }),
     num('ImportId', 'Import ID'),
-    text('ExternalActivityKey', 'External Activity Key', { indexed: true }),
-    text('ImportFingerprint', 'Import Fingerprint'),
-    choice('LineageStatus', 'Lineage Status', ['linked', 'auto-matched', 'manual-remap', 'orphaned', 'unmatched']),
     text('WbsCode', 'WBS Code'),
     text('ActivityName', 'Activity Name'),
     text('ActivityType', 'Activity Type'),
@@ -840,30 +837,7 @@ const SCHEDULE_IMPORTS: IProjectListSchema = {
     dateTime('ImportDate', 'Import Date'),
     text('ImportedBy', 'Imported By'),
     num('ActivityCount', 'Activity Count'),
-    num('MatchedCount', 'Matched Count'),
-    num('AmbiguousCount', 'Ambiguous Count'),
-    num('NewCount', 'New Count'),
-    num('OrphanedFieldLinkCount', 'Orphaned Field Link Count'),
     note('Notes', 'Notes'),
-  ],
-};
-
-const SCHEDULE_FIELD_LINKS: IProjectListSchema = {
-  listName: 'Schedule_Field_Links',
-  description: 'Persistent links between master schedule activities and field tasks/cards',
-  templateType: 100,
-  fields: [
-    text('ProjectCode', 'Project Code', { indexed: true }),
-    text('ExternalActivityKey', 'External Activity Key', { indexed: true }),
-    num('ScheduleActivityId', 'Schedule Activity ID'),
-    text('FieldTaskId', 'Field Task ID', { indexed: true }),
-    text('FieldTaskType', 'Field Task Type'),
-    num('ConfidenceScore', 'Confidence Score'),
-    bool('IsManual', 'Is Manual'),
-    text('CreatedBy', 'Created By'),
-    dateTime('CreatedAt', 'Created At'),
-    text('ModifiedBy', 'Modified By'),
-    dateTime('ModifiedAt', 'Modified At'),
   ],
 };
 
@@ -916,7 +890,7 @@ const PERMITS_LOG: IProjectListSchema = {
   ],
 };
 
-// --- All project-site list schemas ---
+// --- All 45 project-site list schemas ---
 
 const ALL_PROJECT_SCHEMAS: IProjectListSchema[] = [
   PROJECT_INFO,
@@ -940,7 +914,6 @@ const ALL_PROJECT_SCHEMAS: IProjectListSchema[] = [
   CRITICAL_PATH_ITEMS,
   SCHEDULE_ACTIVITIES,
   SCHEDULE_IMPORTS,
-  SCHEDULE_FIELD_LINKS,
   SUPERINTENDENT_PLAN,
   SUPERINTENDENT_PLAN_SECTIONS,
   LESSONS_LEARNED,
@@ -968,7 +941,7 @@ const ALL_PROJECT_SCHEMAS: IProjectListSchema[] = [
 ];
 
 /**
- * Returns all project-site list schemas for provisioning.
+ * Returns all 45 project-site list schemas for provisioning.
  * Note: Shared Documents library is created by default with the site.
  */
 export function getProjectListSchemas(): IProjectListSchema[] {

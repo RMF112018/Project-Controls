@@ -1081,60 +1081,6 @@ Shared pattern:
 | `Status` | Choice | No | Active, Monitoring, Resolved |
 | `MitigationPlan` | Note | No | |
 
-### 4.9a Schedule v2 Foundation (Phase 0)
-
-| Attribute | Value |
-|-----------|-------|
-| **Purpose** | Preserve office/master-to-field linkage across full schedule reimports and enable deterministic reconciliation workflows. |
-| **Primary Actors** | Project Manager, Superintendent, Operations Team |
-| **Rollout** | Feature-gated (`ScheduleV2Foundation`, `ScheduleReconciliationV2`, `ScheduleFieldLinksV2`) |
-
-**Schedule_Activities additions**:
-
-| Column | SP Type | Indexed | Notes |
-|--------|---------|---------|-------|
-| `ExternalActivityKey` | Text | Yes | Stable identity key for cross-import matching |
-| `ImportFingerprint` | Text | No | Composite fingerprint fallback for remap suggestions |
-| `LineageStatus` | Choice | No | linked, auto-matched, manual-remap, orphaned, unmatched |
-
-**Schedule_Imports additions**:
-
-| Column | SP Type | Indexed | Notes |
-|--------|---------|---------|-------|
-| `MatchedCount` | Number | No | Count of deterministic matches in reconciliation preview/apply |
-| `AmbiguousCount` | Number | No | Count requiring PM approval |
-| `NewCount` | Number | No | Incoming activities treated as new |
-| `OrphanedFieldLinkCount` | Number | No | Field links that lost activity identity |
-
-**Schedule_Field_Links** (new project-site list):
-
-| Column | SP Type | Indexed | Notes |
-|--------|---------|---------|-------|
-| `ProjectCode` | Text | Yes | Project partition key |
-| `ExternalActivityKey` | Text | Yes | Stable join key to schedule activities |
-| `ScheduleActivityId` | Number | No | Optional FK to current row ID |
-| `FieldTaskId` | Text | Yes | Linked field card/task identifier |
-| `FieldTaskType` | Text | No | Board/card/canvas subtype |
-| `ConfidenceScore` | Number | No | 0-1 confidence from reconciliation |
-| `IsManual` | Boolean | No | Distinguishes user override links |
-| `CreatedBy`, `CreatedAt`, `ModifiedBy`, `ModifiedAt` | Text/DateTime | No | Audit-friendly lifecycle metadata |
-
-### 4.9b Schedule v2 Office Elevation (Phase 1)
-
-| Attribute | Value |
-|-----------|-------|
-| **Purpose** | Add office-side computational planning (CPM, quality, Monte Carlo, resource leveling), scenario branching, and portfolio rollups with field readiness bridging. |
-| **Primary Actors** | Project Manager, Operations Team, Executive Leadership |
-| **Rollout** | Feature-gated (`ScheduleOfficeV2`, `ScheduleEngineV1`, `ScheduleInteractiveGanttV1`, `ScheduleWhatIfV1`, `ScheduleEVMV1`) |
-
-Planned additive lists:
-
-| List | Scope | Purpose |
-|------|-------|---------|
-| `Schedule_Scenarios` | Project site | Scenario metadata (`id`, name, creator, timestamps) |
-| `Schedule_Scenario_Items` | Project site | Scenario activity snapshots keyed by `externalActivityKey` |
-| `Schedule_Analysis_Reports` | Project site | Persisted engine outputs (quality/forensic/risk summaries) |
-
 ### 4.10 Superintendent_Plan / Superintendent_Plan_Sections
 
 | Attribute | Value |

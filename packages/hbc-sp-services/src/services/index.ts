@@ -9,7 +9,6 @@ export type {
   IActiveProjectsFilter
 } from './IDataService';
 export { MockDataService } from './MockDataService';
-export { LocalDataService } from './LocalDataService';
 export { SharePointDataService } from './SharePointDataService';
 export { CacheService, cacheService } from './CacheService';
 export { DataServiceError } from './DataServiceError';

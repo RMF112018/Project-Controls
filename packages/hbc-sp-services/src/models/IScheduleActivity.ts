@@ -1,8 +1,6 @@
 export type ActivityStatus = 'Completed' | 'In Progress' | 'Not Started';
 export type ScheduleImportFormat = 'P6-CSV' | 'P6-XER' | 'MSProject-XML' | 'MSProject-CSV';
 export type RelationshipType = 'FS' | 'FF' | 'SS' | 'SF';
-export type ScheduleLineageStatus = 'linked' | 'auto-matched' | 'manual-remap' | 'orphaned' | 'unmatched';
-export type ScheduleConflictType = 'update_conflict' | 'delete_conflict' | 'link_orphaned' | 'identity_ambiguous';
 
 export interface IScheduleRelationship {
   taskCode: string;
@@ -14,9 +12,6 @@ export interface IScheduleActivity {
   id: number;
   projectCode: string;
   importId?: number;
-  externalActivityKey?: string;
-  importFingerprint?: string;
-  lineageStatus?: ScheduleLineageStatus;
   taskCode: string;
   wbsCode: string;
   activityName: string;
@@ -67,62 +62,7 @@ export interface IScheduleImport {
   importDate: string;
   importedBy: string;
   activityCount: number;
-  matchedCount?: number;
-  ambiguousCount?: number;
-  newCount?: number;
-  orphanedFieldLinkCount?: number;
   notes: string;
-}
-
-export interface IScheduleFieldLink {
-  id: number;
-  projectCode: string;
-  externalActivityKey: string;
-  scheduleActivityId?: number;
-  fieldTaskId: string;
-  fieldTaskType: string;
-  confidenceScore: number;
-  isManual: boolean;
-  createdBy: string;
-  createdAt: string;
-  modifiedBy: string;
-  modifiedAt: string;
-}
-
-export interface IScheduleReconcilePreviewItem {
-  incomingExternalActivityKey?: string;
-  incomingTaskCode: string;
-  incomingActivityName: string;
-  confidenceScore: number;
-  reason: string;
-  existingActivityId?: number;
-  existingExternalActivityKey?: string;
-  action: 'matched' | 'ambiguous' | 'new' | 'orphaned';
-}
-
-export interface IScheduleImportReconciliationResult {
-  projectCode: string;
-  importId: number;
-  matchedCount: number;
-  ambiguousCount: number;
-  newCount: number;
-  orphanedFieldLinkCount: number;
-  previewItems: IScheduleReconcilePreviewItem[];
-}
-
-export interface IScheduleConflict {
-  id: string;
-  projectCode: string;
-  type: ScheduleConflictType;
-  externalActivityKey?: string;
-  scheduleActivityId?: number;
-  fieldTaskId?: string;
-  detectedAt: string;
-  detectedBy: string;
-  details: string;
-  resolvedAt?: string;
-  resolvedBy?: string;
-  resolution?: string;
 }
 
 export interface IScheduleMetrics {

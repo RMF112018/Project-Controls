@@ -142,12 +142,11 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §7 Service Methods Status (Live)
 
-**Total methods**: 262
-**Implemented**: 262
+**Total methods**: 250
+**Implemented**: 250
 **Remaining stubs**: 0 — DATA LAYER COMPLETE
 
 **Last Completed**:
-- Schedule Phase 0 Foundation (Feb 19): +12 v2 methods (reconciliation, field links, conflicts, baselines) + resilient identity contract + Schedule_Field_Links schema → 262/262
 - GitOps Provisioning (Feb 18): +6 GitOps template methods (getTemplateSiteConfig, updateTemplateSiteConfig, getCommittedTemplateRegistry, getTemplateSiteFiles, applyGitOpsTemplates, logTemplateSyncPR) → 250/250
 - Constraints Health Widget (Feb 17): `getAllConstraints()` hub-level cross-project query → 244/244
 - Permits Log (Feb 17): 4 new methods → 243/243
@@ -166,7 +165,7 @@ For full historical phase logs (SP-1 through SP-7), complete 221-method table, o
 
 ## §15 Current Phase Status
 
-**Active Focus (Feb 19): Schedule Module v2 Phase 0 foundation complete (contracts + schema) alongside TanStack Query/Router stabilization.**
+**Active Focus (Feb 19): TanStack Query Phase 2 Wave-1 complete + TanStack Router Phase 3 Wave-5 complete + TanStack Table hardening complete (legacy `DataTable` removed).**
 
 - Migrated hooks (contract-preserving):
   - `useDataMart` and `useComplianceLog` now query-driven (filters + summary/records cache)
@@ -197,7 +196,7 @@ Full P6-style schedule management with multi-format support:
 - **Shared computation**: `computeScheduleMetrics()` utility used by hook, MockDataService, and SharePointDataService
 - **Caching**: sessionStorage with 5-min TTL, SignalR bypass
 - **Charts**: Variance scatter, Float distribution bar, Near-critical horizontal bar, Schedule health radar, Logic metrics pie, Constraint analysis bar, Status donut, Earned value combo
-- v1 core methods + v2 Phase 0 foundation methods (reconciliation/links/conflicts/baselines), feature-gated via `ScheduleModule`, `ScheduleV2Foundation`, `ScheduleReconciliationV2`, `ScheduleFieldLinksV2`, `ScheduleOfflineDexieV1`, `ScheduleTauriShellV1`
+- 6 IDataService methods, feature-gated behind `ScheduleModule` flag
 
 **Constraints Log Module** (Feb 17):
 - Full CRUD: `getConstraints`, `addConstraint`, `updateConstraint`, `removeConstraint` (4 methods)
@@ -206,7 +205,7 @@ Full P6-style schedule management with multi-format support:
 - `daysElapsed` calculated at render time (not stored), overdue detection for open + past-due items
 - Hook: `useConstraintLog` with SignalR subscription (`EntityType.Constraint`), computed metrics
 - Permissions: `CONSTRAINTS_VIEW`, `CONSTRAINTS_EDIT`, `CONSTRAINTS_MANAGE` (Ops=all 3, Exec/Director=VIEW+EDIT)
-- 46 project-site schemas, 12 mock entries across 2 project codes
+- 45 project-site schemas, 12 mock entries across 2 project codes
 
 **Permits Log Module** (Feb 17):
 - Full CRUD: `getPermits`, `addPermit`, `updatePermit`, `removePermit` (4 methods)
@@ -216,23 +215,9 @@ Full P6-style schedule management with multi-format support:
 - `daysToExpiry` and `expiringSoon` (30-day window) calculated at render time
 - Hook: `usePermitsLog` with SignalR subscription (`EntityType.Permit`), computed metrics (total/active/pending/expired/void/expiringSoon/byType/byLocation)
 - Permissions: `PERMITS_VIEW`, `PERMITS_EDIT`, `PERMITS_MANAGE` (Ops=all 3, Exec/Director=VIEW+EDIT)
-- 46 project-site schemas, 20 mock entries across 2 project codes
+- 45 project-site schemas, 20 mock entries across 2 project codes
 
-**Next Phase**: Phase 1 office-side elevation (interactive Gantt/CPM/sandbox) on top of Phase 0 contracts.
-
-### Schedule v2 — Phase 1 (Office Elevation)
-
-- Coexistence model: tab-level Office v2 features inside existing `/operations/schedule` route (v1 tabs unchanged when `ScheduleOfficeV2` is OFF).
-- Engine package added: `packages/hbc-sp-services/src/engine/` with CPM, quality, forensic, Monte Carlo, resource leveling, EVM, and Field Readiness score calculations.
-- Canonical identity rule: engine methods require `externalActivityKey` and reject ambiguous/missing identities.
-- New Phase 1 flags (default OFF): `ScheduleOfficeV2`, `ScheduleEngineV1`, `ScheduleInteractiveGanttV1`, `ScheduleWhatIfV1`, `ScheduleEVMV1`.
-- Permission matrix baseline: existing schedule permissions remain canonical (`SCHEDULE_VIEW`, `SCHEDULE_EDIT`, `SCHEDULE_IMPORT`, `SCHEDULE_MANAGE`) with feature flags used for phased exposure.
-- Rollout sequence: `ScheduleOfficeV2` (read-only shells) → `ScheduleEngineV1` → `ScheduleInteractiveGanttV1` → `ScheduleWhatIfV1` → `ScheduleEVMV1`.
-- Week 6 execution note (2026-02-19):
-  - DAG diagnostics shipped via `IScheduleDagDiagnostic` and enforced pre-commit for drag-to-connect link mutations.
-  - Interactive Gantt v2 now supports keyboard parity for move/resize/link/progress interactions plus ARIA polite/assertive live announcements.
-  - Virtualized row rendering (`@tanstack/react-virtual`) and memoized geometry path active for large datasets (5,000+ activities).
-  - Field Readiness ribbon refreshes on local mutation settle and inbound SignalR schedule/link events.
+**Next Phase**: Integration testing and deployment readiness.
 **Router next steps**: maintain parity/soak coverage and keep adapter contract stable while mutation waves continue.
 
 **Performance modernization status (active)**:

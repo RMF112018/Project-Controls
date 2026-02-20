@@ -12,7 +12,6 @@ import { useToast } from '../../shared/ToastContainer';
 import { ScheduleImportModal } from './ScheduleImportModal';
 import { ScheduleAnalysisTab } from './ScheduleAnalysisTab';
 import { ProjectScheduleCriticalPath } from './ProjectScheduleCriticalPath';
-import { ScheduleOfficeV2Shell } from './ScheduleOfficeV2Shell';
 import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 import {
   IScheduleActivity,
@@ -27,9 +26,8 @@ import {
 // Constants
 // ---------------------------------------------------------------------------
 
-const BASE_TABS = ['overview', 'activities', 'gantt', 'critical-path', 'analysis', 'import'] as const;
-const OFFICE_TABS = ['gantt-v2', 'what-if', 'resources', 'portfolio'] as const;
-type ScheduleTab = typeof BASE_TABS[number] | typeof OFFICE_TABS[number];
+const TABS = ['overview', 'activities', 'gantt', 'critical-path', 'analysis', 'import'] as const;
+type ScheduleTab = (typeof TABS)[number];
 const TAB_LABELS: Record<ScheduleTab, string> = {
   overview: 'Overview',
   activities: 'Activities',
@@ -37,10 +35,6 @@ const TAB_LABELS: Record<ScheduleTab, string> = {
   'critical-path': 'Critical Path',
   analysis: 'Analysis',
   import: 'Import',
-  'gantt-v2': 'Gantt v2',
-  'what-if': 'What-If',
-  resources: 'Resources',
-  portfolio: 'Portfolio',
 };
 
 const STATUS_OPTIONS: ActivityStatus[] = ['Completed', 'In Progress', 'Not Started'];
@@ -60,7 +54,7 @@ type SortDir = 'asc' | 'desc';
 export const SchedulePage: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject, hasPermission, isFeatureEnabled } = useAppContext();
+  const { selectedProject, hasPermission } = useAppContext();
   const {
     activities, imports, isLoading, error, metrics,
     fetchActivities, fetchImports, importActivities,
@@ -71,24 +65,7 @@ export const SchedulePage: React.FC = () => {
   const canView = hasPermission(PERMISSIONS.SCHEDULE_VIEW);
   const canImport = hasPermission(PERMISSIONS.SCHEDULE_IMPORT);
 
-  const isOfficeV2Enabled = isFeatureEnabled('ScheduleOfficeV2');
-  const isInteractiveGanttEnabled = isFeatureEnabled('ScheduleInteractiveGanttV1');
-  const isWhatIfEnabled = isFeatureEnabled('ScheduleWhatIfV1');
-  const isEngineEnabled = isFeatureEnabled('ScheduleEngineV1');
-  const isEvmEnabled = isFeatureEnabled('ScheduleEVMV1');
-
-  const tabs = React.useMemo<ScheduleTab[]>(() => {
-    const list: ScheduleTab[] = [...BASE_TABS];
-    if (isOfficeV2Enabled) {
-      if (isInteractiveGanttEnabled) list.push('gantt-v2');
-      if (isWhatIfEnabled) list.push('what-if');
-      if (isEngineEnabled) list.push('resources');
-      if (isEvmEnabled) list.push('portfolio');
-    }
-    return list;
-  }, [isEngineEnabled, isEvmEnabled, isInteractiveGanttEnabled, isOfficeV2Enabled, isWhatIfEnabled]);
-
-  const [activeTab, setTab] = useTabFromUrl<ScheduleTab>('overview', tabs);
+  const [activeTab, setTab] = useTabFromUrl<ScheduleTab>('overview', TABS);
 
   // Filters
   const [search, setSearch] = usePersistedState('schedule-search', '');
@@ -238,7 +215,7 @@ export const SchedulePage: React.FC = () => {
 
       {/* Tab Bar */}
       <div role="tablist" aria-label="Schedule management tabs" style={{ display: 'flex', gap: 0, borderBottom: `2px solid ${HBC_COLORS.gray200}`, marginBottom: 24 }}>
-        {tabs.map(tab => {
+        {TABS.map(tab => {
           if (tab === 'import' && !canImport) return null;
           return (
             <button
@@ -320,22 +297,6 @@ export const SchedulePage: React.FC = () => {
           imports={imports}
           onOpenImport={() => setShowImport(true)}
         />
-      )}
-
-      {activeTab === 'gantt-v2' && (
-        <ScheduleOfficeV2Shell projectCode={projectCode} activities={filtered} section="gantt-v2" />
-      )}
-
-      {activeTab === 'what-if' && (
-        <ScheduleOfficeV2Shell projectCode={projectCode} activities={filtered} section="what-if" />
-      )}
-
-      {activeTab === 'resources' && (
-        <ScheduleOfficeV2Shell projectCode={projectCode} activities={filtered} section="resources" />
-      )}
-
-      {activeTab === 'portfolio' && (
-        <ScheduleOfficeV2Shell projectCode={projectCode} activities={filtered} section="portfolio" />
       )}
 
       {/* Import Modal */}

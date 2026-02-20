@@ -47,32 +47,7 @@ import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IRe
 import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfig';
 import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '../models/IPerformanceLog';
 import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
-import {
-  IScheduleActivity,
-  IScheduleImport,
-  IScheduleMetrics,
-  IScheduleRelationship,
-  ActivityStatus,
-  RelationshipType,
-  IScheduleFieldLink,
-  IScheduleImportReconciliationResult,
-  IScheduleConflict,
-} from '../models/IScheduleActivity';
-import {
-  IScheduleCpmResult,
-  IScheduleQualityReport,
-  IForensicWindow,
-  IForensicAnalysisResult,
-  IMonteCarloConfig,
-  IMonteCarloResult,
-  IResourceLevelingResult,
-  IScheduleScenario,
-  IScheduleScenarioDiff,
-  IScheduleEvmResult,
-  IPortfolioScheduleHealth,
-  IFieldReadinessScore,
-  IScheduleEngineRuntimeInfo,
-} from '../models/IScheduleEngine';
+import { IScheduleActivity, IScheduleImport, IScheduleMetrics, IScheduleRelationship, ActivityStatus, RelationshipType } from '../models/IScheduleActivity';
 import { IConstraintLog } from '../models/IConstraintLog';
 import { IPermit } from '../models/IPermit';
 import { ITemplateRegistry, ITemplateSiteConfig, ITemplateManifestLog } from '../models/ITemplateManifest';
@@ -147,7 +122,6 @@ import {
   CLOSEOUT_ITEMS_COLUMNS,
   SCHEDULE_ACTIVITIES_COLUMNS,
   SCHEDULE_IMPORTS_COLUMNS,
-  SCHEDULE_FIELD_LINKS_COLUMNS,
   CONSTRAINTS_LOG_COLUMNS,
   PERMITS_LOG_COLUMNS,
   TEMPLATE_SITE_CONFIG_COLUMNS,
@@ -156,7 +130,6 @@ import {
 import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
 import { cacheService } from './CacheService';
 import { getProjectListSchemas } from '../utils/projectListSchemas';
-import { ScheduleEngine, getScheduleEngineRuntimeInfo as resolveScheduleEngineRuntime } from '../engine';
 
 /** Build a deterministic cache key suffix from query parameters. */
 function buildCacheKeySuffix(params: Record<string, unknown> | undefined): string {
@@ -225,11 +198,6 @@ export class SharePointDataService implements IDataService {
     loginName: string;
     id: number;
   } | null = null;
-  private scheduleConflictsByProject: Record<string, IScheduleConflict[]> = {};
-  private scheduleBaselinesByProject: Record<string, Array<{ baselineId: string; name: string; createdBy: string; createdAt: string }>> = {};
-  private scheduleScenariosByProject: Record<string, IScheduleScenario[]> = {};
-  private scheduleScenarioActivities: Record<string, IScheduleActivity[]> = {};
-  private readonly scheduleEngine = new ScheduleEngine();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   initialize(spInstance: any): void {
@@ -8830,10 +8798,6 @@ export class SharePointDataService implements IDataService {
           [icol.importDate]: now,
           [icol.importedBy]: importMeta.importedBy || 'Unknown',
           [icol.activityCount]: activities.length,
-          [icol.matchedCount]: 0,
-          [icol.ambiguousCount]: 0,
-          [icol.newCount]: activities.length,
-          [icol.orphanedFieldLinkCount]: 0,
           [icol.notes]: importMeta.notes || '',
         });
       const importId = (importResult as Record<string, unknown>).Id as number ||
@@ -8848,15 +8812,10 @@ export class SharePointDataService implements IDataService {
         const chunk = activities.slice(i, i + batchSize);
 
         for (const a of chunk) {
-          const externalActivityKey = a.externalActivityKey || `${projectCode}:${a.taskCode}`;
-          const importFingerprint = a.importFingerprint || `${a.taskCode}|${a.activityName}|${a.wbsCode}`;
           list.items.inBatch(batch).add({
             Title: a.taskCode,
             [col.projectCode]: projectCode,
             [col.importId]: importId,
-            [col.externalActivityKey]: externalActivityKey,
-            [col.importFingerprint]: importFingerprint,
-            [col.lineageStatus]: a.lineageStatus || 'unmatched',
             [col.wbsCode]: a.wbsCode,
             [col.activityName]: a.activityName,
             [col.activityType]: a.activityType,
@@ -9004,406 +8963,6 @@ export class SharePointDataService implements IDataService {
     }
   }
 
-  async previewScheduleImportReconciliation(
-    projectCode: string,
-    activities: IScheduleActivity[],
-    importMeta: Partial<IScheduleImport>
-  ): Promise<IScheduleImportReconciliationResult> {
-    const existing = await this.getScheduleActivities(projectCode);
-    const existingByExternalKey = new Map(
-      existing
-        .filter(a => !!a.externalActivityKey)
-        .map(a => [a.externalActivityKey as string, a]),
-    );
-
-    const previewItems = activities.map(a => {
-      const externalKey = a.externalActivityKey || `${projectCode}:${a.taskCode}`;
-      const matched = existingByExternalKey.get(externalKey);
-      if (matched) {
-        return {
-          incomingExternalActivityKey: externalKey,
-          incomingTaskCode: a.taskCode,
-          incomingActivityName: a.activityName,
-          confidenceScore: 1,
-          reason: 'ExternalActivityKey match',
-          existingActivityId: matched.id,
-          existingExternalActivityKey: matched.externalActivityKey,
-          action: 'matched' as const,
-        };
-      }
-      return {
-        incomingExternalActivityKey: externalKey,
-        incomingTaskCode: a.taskCode,
-        incomingActivityName: a.activityName,
-        confidenceScore: 0.6,
-        reason: 'No ExternalActivityKey match (new candidate)',
-        action: 'new' as const,
-      };
-    });
-
-    const matchedCount = previewItems.filter(i => i.action === 'matched').length;
-    const newCount = previewItems.filter(i => i.action === 'new').length;
-    return {
-      projectCode,
-      importId: importMeta.id || 0,
-      matchedCount,
-      ambiguousCount: 0,
-      newCount,
-      orphanedFieldLinkCount: 0,
-      previewItems,
-    };
-  }
-
-  async applyScheduleImportReconciliation(
-    projectCode: string,
-    activities: IScheduleActivity[],
-    importMeta: Partial<IScheduleImport>,
-    _approvedBy: string
-  ): Promise<IScheduleImportReconciliationResult> {
-    const preview = await this.previewScheduleImportReconciliation(projectCode, activities, importMeta);
-    await this.importScheduleActivities(projectCode, activities, importMeta);
-    return preview;
-  }
-
-  async getScheduleFieldLinks(projectCode: string): Promise<IScheduleFieldLink[]> {
-    performanceService.startMark('sp:getScheduleFieldLinks');
-    try {
-      const web = this._getProjectWeb();
-      const col = SCHEDULE_FIELD_LINKS_COLUMNS;
-      const items = await web.lists
-        .getByTitle(LIST_NAMES.SCHEDULE_FIELD_LINKS)
-        .items
-        .filter(`${col.projectCode} eq '${projectCode}'`)
-        .top(5000)();
-      performanceService.endMark('sp:getScheduleFieldLinks');
-      return items.map((item: Record<string, unknown>) => ({
-        id: item.Id as number,
-        projectCode: (item[col.projectCode] as string) || '',
-        externalActivityKey: (item[col.externalActivityKey] as string) || '',
-        scheduleActivityId: item[col.scheduleActivityId] as number | undefined,
-        fieldTaskId: (item[col.fieldTaskId] as string) || '',
-        fieldTaskType: (item[col.fieldTaskType] as string) || '',
-        confidenceScore: Number(item[col.confidenceScore] || 0),
-        isManual: !!item[col.isManual],
-        createdBy: (item[col.createdBy] as string) || '',
-        createdAt: (item[col.createdAt] as string) || '',
-        modifiedBy: (item[col.modifiedBy] as string) || '',
-        modifiedAt: (item[col.modifiedAt] as string) || '',
-      }));
-    } catch (err) {
-      performanceService.endMark('sp:getScheduleFieldLinks');
-      throw this.handleError('getScheduleFieldLinks', err, { entityType: 'ScheduleFieldLink' });
-    }
-  }
-
-  async createScheduleFieldLink(projectCode: string, data: Partial<IScheduleFieldLink>): Promise<IScheduleFieldLink> {
-    performanceService.startMark('sp:createScheduleFieldLink');
-    try {
-      const web = this._getProjectWeb();
-      const col = SCHEDULE_FIELD_LINKS_COLUMNS;
-      const now = new Date().toISOString();
-      const result = await web.lists
-        .getByTitle(LIST_NAMES.SCHEDULE_FIELD_LINKS)
-        .items.add({
-          Title: data.externalActivityKey || 'Schedule Link',
-          [col.projectCode]: projectCode,
-          [col.externalActivityKey]: data.externalActivityKey || '',
-          [col.scheduleActivityId]: data.scheduleActivityId ?? null,
-          [col.fieldTaskId]: data.fieldTaskId || '',
-          [col.fieldTaskType]: data.fieldTaskType || 'Unknown',
-          [col.confidenceScore]: data.confidenceScore ?? 1,
-          [col.isManual]: data.isManual ?? true,
-          [col.createdBy]: data.createdBy || this._pageContextUser?.email || 'system',
-          [col.createdAt]: now,
-          [col.modifiedBy]: data.modifiedBy || this._pageContextUser?.email || 'system',
-          [col.modifiedAt]: now,
-        });
-      const id = (result as Record<string, unknown>).Id as number ||
-        (result as Record<string, unknown>).id as number ||
-        ((result as { data?: Record<string, unknown> }).data?.Id as number) || 0;
-      const createdItem = await web.lists
-        .getByTitle(LIST_NAMES.SCHEDULE_FIELD_LINKS)
-        .items.getById(id)();
-      const created: IScheduleFieldLink = {
-        id: createdItem.Id as number,
-        projectCode: (createdItem[col.projectCode] as string) || projectCode,
-        externalActivityKey: (createdItem[col.externalActivityKey] as string) || '',
-        scheduleActivityId: createdItem[col.scheduleActivityId] as number | undefined,
-        fieldTaskId: (createdItem[col.fieldTaskId] as string) || '',
-        fieldTaskType: (createdItem[col.fieldTaskType] as string) || '',
-        confidenceScore: Number(createdItem[col.confidenceScore] || 0),
-        isManual: !!createdItem[col.isManual],
-        createdBy: (createdItem[col.createdBy] as string) || '',
-        createdAt: (createdItem[col.createdAt] as string) || '',
-        modifiedBy: (createdItem[col.modifiedBy] as string) || '',
-        modifiedAt: (createdItem[col.modifiedAt] as string) || '',
-      };
-      performanceService.endMark('sp:createScheduleFieldLink');
-      return created;
-    } catch (err) {
-      performanceService.endMark('sp:createScheduleFieldLink');
-      throw this.handleError('createScheduleFieldLink', err, { entityType: 'ScheduleFieldLink' });
-    }
-  }
-
-  async updateScheduleFieldLink(projectCode: string, linkId: number, data: Partial<IScheduleFieldLink>): Promise<IScheduleFieldLink> {
-    performanceService.startMark('sp:updateScheduleFieldLink');
-    try {
-      const web = this._getProjectWeb();
-      const col = SCHEDULE_FIELD_LINKS_COLUMNS;
-      const updateData: Record<string, unknown> = {};
-      if (data.externalActivityKey !== undefined) updateData[col.externalActivityKey] = data.externalActivityKey;
-      if (data.scheduleActivityId !== undefined) updateData[col.scheduleActivityId] = data.scheduleActivityId;
-      if (data.fieldTaskId !== undefined) updateData[col.fieldTaskId] = data.fieldTaskId;
-      if (data.fieldTaskType !== undefined) updateData[col.fieldTaskType] = data.fieldTaskType;
-      if (data.confidenceScore !== undefined) updateData[col.confidenceScore] = data.confidenceScore;
-      if (data.isManual !== undefined) updateData[col.isManual] = data.isManual;
-      updateData[col.modifiedBy] = data.modifiedBy || this._pageContextUser?.email || 'system';
-      updateData[col.modifiedAt] = new Date().toISOString();
-
-      await web.lists.getByTitle(LIST_NAMES.SCHEDULE_FIELD_LINKS).items.getById(linkId).update(updateData);
-      const updatedItem = await web.lists
-        .getByTitle(LIST_NAMES.SCHEDULE_FIELD_LINKS)
-        .items.getById(linkId)();
-      const updated: IScheduleFieldLink = {
-        id: updatedItem.Id as number,
-        projectCode: (updatedItem[col.projectCode] as string) || projectCode,
-        externalActivityKey: (updatedItem[col.externalActivityKey] as string) || '',
-        scheduleActivityId: updatedItem[col.scheduleActivityId] as number | undefined,
-        fieldTaskId: (updatedItem[col.fieldTaskId] as string) || '',
-        fieldTaskType: (updatedItem[col.fieldTaskType] as string) || '',
-        confidenceScore: Number(updatedItem[col.confidenceScore] || 0),
-        isManual: !!updatedItem[col.isManual],
-        createdBy: (updatedItem[col.createdBy] as string) || '',
-        createdAt: (updatedItem[col.createdAt] as string) || '',
-        modifiedBy: (updatedItem[col.modifiedBy] as string) || '',
-        modifiedAt: (updatedItem[col.modifiedAt] as string) || '',
-      };
-      performanceService.endMark('sp:updateScheduleFieldLink');
-      return updated;
-    } catch (err) {
-      performanceService.endMark('sp:updateScheduleFieldLink');
-      throw this.handleError('updateScheduleFieldLink', err, { entityType: 'ScheduleFieldLink' });
-    }
-  }
-
-  async deleteScheduleFieldLink(_projectCode: string, linkId: number): Promise<void> {
-    performanceService.startMark('sp:deleteScheduleFieldLink');
-    try {
-      const web = this._getProjectWeb();
-      await web.lists.getByTitle(LIST_NAMES.SCHEDULE_FIELD_LINKS).items.getById(linkId).delete();
-      performanceService.endMark('sp:deleteScheduleFieldLink');
-    } catch (err) {
-      performanceService.endMark('sp:deleteScheduleFieldLink');
-      throw this.handleError('deleteScheduleFieldLink', err, { entityType: 'ScheduleFieldLink' });
-    }
-  }
-
-  async getPendingScheduleOps(projectCode: string): Promise<IScheduleConflict[]> {
-    return [...(this.scheduleConflictsByProject[projectCode] || [])];
-  }
-
-  async replayPendingScheduleOps(projectCode: string, replayedBy: string): Promise<IScheduleConflict[]> {
-    const now = new Date().toISOString();
-    const updated = (this.scheduleConflictsByProject[projectCode] || []).map(c => ({
-      ...c,
-      resolvedAt: now,
-      resolvedBy: replayedBy,
-      resolution: c.resolution || 'replayed',
-    }));
-    this.scheduleConflictsByProject[projectCode] = updated;
-    return [...updated];
-  }
-
-  async resolveScheduleConflict(projectCode: string, conflictId: string, resolution: string, resolvedBy: string): Promise<IScheduleConflict> {
-    const conflicts = this.scheduleConflictsByProject[projectCode] || [];
-    const idx = conflicts.findIndex(c => c.id === conflictId);
-    if (idx === -1) {
-      throw new Error(`Schedule conflict ${conflictId} not found`);
-    }
-    const resolved: IScheduleConflict = {
-      ...conflicts[idx],
-      resolution,
-      resolvedBy,
-      resolvedAt: new Date().toISOString(),
-    };
-    conflicts[idx] = resolved;
-    this.scheduleConflictsByProject[projectCode] = conflicts;
-    return resolved;
-  }
-
-  async createScheduleBaseline(projectCode: string, name: string, createdBy: string): Promise<{ baselineId: string; createdAt: string }> {
-    const createdAt = new Date().toISOString();
-    const baselineId = `bl-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const existing = this.scheduleBaselinesByProject[projectCode] || [];
-    this.scheduleBaselinesByProject[projectCode] = [...existing, { baselineId, name, createdBy, createdAt }];
-    return { baselineId, createdAt };
-  }
-
-  async getScheduleBaselines(projectCode: string): Promise<Array<{ baselineId: string; name: string; createdBy: string; createdAt: string }>> {
-    return [...(this.scheduleBaselinesByProject[projectCode] || [])];
-  }
-
-  async compareScheduleBaselines(
-    projectCode: string,
-    leftBaselineId: string,
-    rightBaselineId: string
-  ): Promise<{
-    projectCode: string;
-    leftBaselineId: string;
-    rightBaselineId: string;
-    changedActivities: number;
-    addedActivities: number;
-    removedActivities: number;
-  }> {
-    return {
-      projectCode,
-      leftBaselineId,
-      rightBaselineId,
-      changedActivities: 0,
-      addedActivities: 0,
-      removedActivities: 0,
-    };
-  }
-
-  async runScheduleEngine(projectCode: string, activities: IScheduleActivity[]): Promise<IScheduleCpmResult> {
-    return this.scheduleEngine.runCpm(projectCode, activities);
-  }
-
-  async runScheduleQualityChecks(projectCode: string, activities: IScheduleActivity[]): Promise<IScheduleQualityReport> {
-    return this.scheduleEngine.runScheduleQualityChecks(projectCode, activities);
-  }
-
-  async runForensicAnalysis(projectCode: string, windows: IForensicWindow[]): Promise<IForensicAnalysisResult> {
-    return this.scheduleEngine.runForensicAnalysis(projectCode, windows);
-  }
-
-  async runMonteCarlo(projectCode: string, config: IMonteCarloConfig): Promise<IMonteCarloResult> {
-    const activities = await this.getScheduleActivities(projectCode);
-    return this.scheduleEngine.runMonteCarlo(projectCode, activities, config);
-  }
-
-  async runResourceLeveling(projectCode: string, activities: IScheduleActivity[]): Promise<IResourceLevelingResult> {
-    return this.scheduleEngine.runResourceLeveling(projectCode, activities);
-  }
-
-  async createScheduleScenario(projectCode: string, name: string, createdBy: string): Promise<IScheduleScenario> {
-    const now = new Date().toISOString();
-    const scenario: IScheduleScenario = {
-      id: `sc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      projectCode,
-      name,
-      createdBy,
-      createdAt: now,
-      updatedAt: now,
-    };
-    const current = this.scheduleScenariosByProject[projectCode] || [];
-    this.scheduleScenariosByProject[projectCode] = [...current, scenario];
-    this.scheduleScenarioActivities[`${projectCode}:${scenario.id}`] = (await this.getScheduleActivities(projectCode)).map(a => ({ ...a }));
-    return { ...scenario };
-  }
-
-  async listScheduleScenarios(projectCode: string): Promise<IScheduleScenario[]> {
-    return [...(this.scheduleScenariosByProject[projectCode] || [])];
-  }
-
-  async getScheduleScenario(projectCode: string, scenarioId: string): Promise<IScheduleScenario | null> {
-    return (this.scheduleScenariosByProject[projectCode] || []).find(s => s.id === scenarioId) || null;
-  }
-
-  async saveScheduleScenarioActivities(projectCode: string, scenarioId: string, activities: IScheduleActivity[]): Promise<void> {
-    this.scheduleScenarioActivities[`${projectCode}:${scenarioId}`] = activities.map(a => ({ ...a }));
-    const scenarios = this.scheduleScenariosByProject[projectCode] || [];
-    const idx = scenarios.findIndex(s => s.id === scenarioId);
-    if (idx >= 0) {
-      scenarios[idx] = { ...scenarios[idx], updatedAt: new Date().toISOString() };
-      this.scheduleScenariosByProject[projectCode] = scenarios;
-    }
-  }
-
-  async compareScheduleScenarios(projectCode: string, leftScenarioId: string, rightScenarioId: string): Promise<IScheduleScenarioDiff> {
-    const left = this.scheduleScenarioActivities[`${projectCode}:${leftScenarioId}`] || [];
-    const right = this.scheduleScenarioActivities[`${projectCode}:${rightScenarioId}`] || [];
-    const leftKeys = new Set(left.map(a => a.externalActivityKey).filter(Boolean) as string[]);
-    const rightKeys = new Set(right.map(a => a.externalActivityKey).filter(Boolean) as string[]);
-    let changed = 0;
-    right.forEach(r => {
-      const l = left.find(a => a.externalActivityKey === r.externalActivityKey);
-      if (l && (l.originalDuration !== r.originalDuration || l.remainingFloat !== r.remainingFloat || l.status !== r.status)) {
-        changed++;
-      }
-    });
-    const added = Array.from(rightKeys).filter(k => !leftKeys.has(k)).length;
-    const removed = Array.from(leftKeys).filter(k => !rightKeys.has(k)).length;
-    return {
-      projectCode,
-      leftScenarioId,
-      rightScenarioId,
-      changedActivities: changed,
-      addedActivities: added,
-      removedActivities: removed,
-    };
-  }
-
-  async applyScheduleScenario(projectCode: string, scenarioId: string, approvedBy: string): Promise<{ importId: number }> {
-    const activities = this.scheduleScenarioActivities[`${projectCode}:${scenarioId}`];
-    if (!activities) throw new Error(`Scenario ${scenarioId} has no activities`);
-    await this.importScheduleActivities(projectCode, activities, {
-      fileName: `scenario-${scenarioId}.json`,
-      importedBy: approvedBy,
-      format: 'P6-CSV',
-      notes: 'Applied from What-If scenario',
-    });
-    const imports = await this.getScheduleImports(projectCode);
-    const lastImport = imports.sort((a, b) => b.id - a.id)[0];
-    return { importId: lastImport?.id || 0 };
-  }
-
-  async computeScheduleEvm(projectCode: string): Promise<IScheduleEvmResult> {
-    const activities = await this.getScheduleActivities(projectCode);
-    const metrics = computeScheduleMetrics(activities);
-    return this.scheduleEngine.computeEvm(projectCode, metrics);
-  }
-
-  async getPortfolioScheduleHealth(filters?: IDataMartFilter): Promise<IPortfolioScheduleHealth[]> {
-    const records = await this.getDataMartRecords(filters);
-    return Promise.all(records.map(async record => {
-      const activities = await this.getScheduleActivities(record.projectCode);
-      const metrics = computeScheduleMetrics(activities);
-      const evm = this.scheduleEngine.computeEvm(record.projectCode, metrics);
-      const fr = await this.computeFieldReadinessScore(record.projectCode);
-      return {
-        projectCode: record.projectCode,
-        projectName: record.projectName,
-        scheduleHealthScore: Math.max(0, Math.min(100, Math.round((metrics.percentComplete * 0.4 + (metrics.negativeFloatPercent ? 100 - metrics.negativeFloatPercent : 100) * 0.3 + (fr.score * 0.3)) * 10) / 10)),
-        spi: evm.spi,
-        cpi: evm.cpi,
-        criticalCount: metrics.criticalActivityCount,
-        negativeFloatCount: metrics.negativeFloatCount,
-        fieldReadinessScore: fr.score,
-      };
-    }));
-  }
-
-  async computeFieldReadinessScore(projectCode: string): Promise<IFieldReadinessScore> {
-    const [activities, links, constraints, permits] = await Promise.all([
-      this.getScheduleActivities(projectCode),
-      this.getScheduleFieldLinks(projectCode),
-      this.getConstraints(projectCode),
-      this.getPermits(projectCode),
-    ]);
-    return this.scheduleEngine.computeFieldReadinessScore(projectCode, activities, links, constraints, permits);
-  }
-
-  async getPortfolioFieldReadiness(filters?: IDataMartFilter): Promise<IFieldReadinessScore[]> {
-    const records = await this.getDataMartRecords(filters);
-    return Promise.all(records.map(r => this.computeFieldReadinessScore(r.projectCode)));
-  }
-
-  async getScheduleEngineRuntimeInfo(): Promise<IScheduleEngineRuntimeInfo> {
-    return resolveScheduleEngineRuntime();
-  }
-
   private mapToScheduleActivity(item: Record<string, unknown>): IScheduleActivity {
     const col = SCHEDULE_ACTIVITIES_COLUMNS;
 
@@ -9427,9 +8986,6 @@ export class SharePointDataService implements IDataService {
       id: item.Id as number,
       projectCode: item[col.projectCode] as string || '',
       importId: item[col.importId] as number | undefined,
-      externalActivityKey: item[col.externalActivityKey] as string | undefined,
-      importFingerprint: item[col.importFingerprint] as string | undefined,
-      lineageStatus: item[col.lineageStatus] as IScheduleActivity['lineageStatus'] | undefined,
       taskCode: item[col.taskCode] as string || '',
       wbsCode: item[col.wbsCode] as string || '',
       activityName: item[col.activityName] as string || '',
@@ -9473,10 +9029,6 @@ export class SharePointDataService implements IDataService {
       importDate: item[col.importDate] as string || '',
       importedBy: item[col.importedBy] as string || '',
       activityCount: (item[col.activityCount] as number) || 0,
-      matchedCount: (item[col.matchedCount] as number) || 0,
-      ambiguousCount: (item[col.ambiguousCount] as number) || 0,
-      newCount: (item[col.newCount] as number) || 0,
-      orphanedFieldLinkCount: (item[col.orphanedFieldLinkCount] as number) || 0,
       notes: item[col.notes] as string || '',
     };
   }

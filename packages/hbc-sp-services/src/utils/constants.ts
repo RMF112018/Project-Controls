@@ -136,7 +136,6 @@ export const PROJECT_LISTS = {
   TURNOVER_ESTIMATE_OVERVIEWS: 'Turnover_Estimate_Overviews',
   SCHEDULE_ACTIVITIES: 'Schedule_Activities',
   SCHEDULE_IMPORTS: 'Schedule_Imports',
-  SCHEDULE_FIELD_LINKS: 'Schedule_Field_Links',
   CONSTRAINTS_LOG: 'Constraints_Log',
   PERMITS_LOG: 'Permits_Log',
 } as const;
