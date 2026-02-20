@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useConstraintLog } from '../../hooks/useConstraintLog';
 import { usePersistedState } from '../../hooks/usePersistedState';
 import { IConstraintLog, ConstraintStatus, DEFAULT_CONSTRAINT_CATEGORIES, PERMISSIONS } from '@hbc/sp-services';
@@ -50,7 +51,7 @@ type SortDirection = 'asc' | 'desc';
 // ---------------------------------------------------------------------------
 
 export const ConstraintsLogPage: React.FC = () => {
-  const { selectedProject, hasPermission } = useAppContext();
+  const { hasPermission } = useAppContext();
   const {
     entries, loading, error, metrics,
     fetchConstraints, addConstraint, updateConstraint, removeConstraint,
@@ -58,7 +59,8 @@ export const ConstraintsLogPage: React.FC = () => {
   } = useConstraintLog();
   const { addToast } = useToast();
 
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
   const [search, setSearch] = usePersistedState('constraints-search', '');
   const [statusFilter, setStatusFilter] = usePersistedState<string>('constraints-status', 'all');
   const [categoryFilter, setCategoryFilter] = usePersistedState<string>('constraints-category', 'all');

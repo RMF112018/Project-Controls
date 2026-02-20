@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Outlet, createRootRouteWithContext, createRoute, lazyRouteComponent, type AnyRoute, useNavigate, useRouterState } from '@tanstack/react-router';
+import { Outlet, createRootRouteWithContext, createRoute, lazyRouteComponent, redirect, type AnyRoute, useNavigate, useRouterState } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/router-devtools';
 import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
@@ -104,11 +104,23 @@ const operationsRoute = createRoute({
 
 const operationsProjectRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/operations/project',
-  beforeLoad: ({ context }) => {
-    requireProject(context);
+  path: '/operations/$projectId/project',
+  beforeLoad: ({ params }) => {
+    requireProject(params.projectId);
   },
   component: ProjectDashboard,
+});
+
+const operationsProjectLegacyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/operations/project',
+  beforeLoad: ({ context }) => {
+    if (!context.activeProjectCode) {
+      throw redirect({ to: '/operations', replace: true });
+    }
+    throw redirect({ to: `/operations/${encodeURIComponent(context.activeProjectCode)}/project`, replace: true });
+  },
+  component: () => null,
 });
 
 const operationsComplianceLogRoute = createRoute({
@@ -124,6 +136,7 @@ export const tanStackPilotRouteTree = rootRoute.addChildren([
   dashboardRoute,
   operationsRoute,
   operationsProjectRoute,
+  operationsProjectLegacyRoute,
   operationsComplianceLogRoute,
   ...(createOperationsBatchARoutes(rootRoute) as AnyRoute[]),
   ...(createOperationsBatchBRoutes(rootRoute) as AnyRoute[]),

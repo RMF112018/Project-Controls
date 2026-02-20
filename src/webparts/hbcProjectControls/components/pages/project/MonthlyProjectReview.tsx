@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useLocation } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useMonthlyReview } from '../../hooks/useMonthlyReview';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
@@ -27,9 +28,10 @@ const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 
 export const MonthlyProjectReview: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
+  const { hasPermission, dataService, currentUser } = useAppContext();
   const { reviews, currentReview, isLoading, error, fetchReviews, createReview, updateReview, advanceStatus, addFollowUp, selectReview } = useMonthlyReview();
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
   const isPM = hasPermission(PERMISSIONS.MONTHLY_REVIEW_PM);
   const isPX = hasPermission(PERMISSIONS.MONTHLY_REVIEW_PX);
   const canCreate = hasPermission(PERMISSIONS.MONTHLY_REVIEW_CREATE);

@@ -65,7 +65,7 @@ function buildEmailHtml(
     ['Roles', state.user.roles.join(', ') || 'None'],
     ['Current Module', state.currentModule || 'N/A'],
     ['URL', state.currentUrl],
-    ['Selected Project', state.selectedProject ? `${state.selectedProject.projectName} (${state.selectedProject.projectCode})` : 'None'],
+    ['Selected Project', state.activeProject ? `${state.activeProject.projectName} (${state.activeProject.projectCode})` : 'None'],
     ['Feature Flags', `${state.enabledFlagCount} of ${state.totalFlagCount} enabled`],
     ['Browser', state.browserInfo.userAgent],
     ['Screen Size', state.browserInfo.screenSize],

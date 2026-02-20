@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useNavigate } from '@router';
 import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useLeads } from '../../hooks/useLeads';
 import { useBuyoutLog } from '../../hooks/useBuyoutLog';
 import { usePersistedState } from '../../hooks/usePersistedState';
@@ -60,7 +61,7 @@ const TRACKING_STATUS_CONFIG: Record<ContractTrackingStatus, { label: string; bg
 
 export const BuyoutLogPage: React.FC = () => {
   const navigate = useNavigate();
-  const { selectedProject, hasPermission, currentUser, dataService, isFeatureEnabled } = useAppContext();
+  const { hasPermission, currentUser, dataService, isFeatureEnabled } = useAppContext();
   const { leads, fetchLeads } = useLeads();
   const {
     entries, loading, error, metrics,
@@ -70,7 +71,8 @@ export const BuyoutLogPage: React.FC = () => {
   const { submitForApproval, respondToApproval } = useCommitmentApproval();
   const { submitForTracking, respondToTracking, resolveTrackingChain, loading: trackingLoading } = useContractTracking();
 
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
   const [search, setSearch] = usePersistedState('buyout-search', '');
   const [statusFilter, setStatusFilter] = usePersistedState<string>('buyout-status', 'all');
   const [editingId, setEditingId] = React.useState<number | null>(null);

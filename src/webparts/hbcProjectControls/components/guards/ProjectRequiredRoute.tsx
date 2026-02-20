@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from '@router';
-import { useAppContext } from '../contexts/AppContext';
+import { useProjectRouteId } from '../hooks/useProjectRouteId';
 import { HBC_COLORS } from '../../theme/tokens';
 
 interface IProjectRequiredRouteProps {
@@ -8,10 +8,10 @@ interface IProjectRequiredRouteProps {
 }
 
 export const ProjectRequiredRoute: React.FC<IProjectRequiredRouteProps> = ({ children }) => {
-  const { selectedProject } = useAppContext();
+  const projectId = useProjectRouteId();
   const navigate = useNavigate();
 
-  if (!selectedProject) {
+  if (!projectId) {
     return (
       <div style={{
         padding: '48px',

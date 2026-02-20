@@ -3,7 +3,6 @@ import {
   IDataService,
   ICurrentUser,
   IFeatureFlag,
-  Stage,
   IResolvedPermissions,
   detectSiteContext,
   DEFAULT_HUB_SITE_URL,
@@ -30,16 +29,6 @@ export interface IDashboardPreference {
   updatedAt: string;
 }
 
-export interface ISelectedProject {
-  projectCode: string;
-  projectName: string;
-  stage: Stage;
-  region?: string;
-  division?: string;
-  leadId?: number;
-  siteUrl?: string;  // Project SP site URL (set on project sites, optional on hub selection)
-}
-
 export interface IAppContextValue {
   dataService: IDataService;
   telemetryService: ITelemetryService;
@@ -47,8 +36,7 @@ export interface IAppContextValue {
   featureFlags: IFeatureFlag[];
   isLoading: boolean;
   error: string | null;
-  selectedProject: ISelectedProject | null;
-  setSelectedProject: (project: ISelectedProject | null) => void;
+  activeProjectCode: string | null;
   hasPermission: (permission: string) => boolean;
   isFeatureEnabled: (featureName: string) => boolean;
   resolvedPermissions: IResolvedPermissions | null;
@@ -86,7 +74,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
   const [featureFlags, setFeatureFlags] = React.useState<IFeatureFlag[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [selectedProject, setSelectedProject] = React.useState<ISelectedProject | null>(null);
+  const [activeProjectCode, setActiveProjectCode] = React.useState<string | null>(null);
   const [resolvedPermissions, setResolvedPermissions] = React.useState<IResolvedPermissions | null>(null);
   const [dashboardPreferences, setDashboardPreferences] = React.useState<Record<string, IDashboardPreference>>({});
 
@@ -133,17 +121,53 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     return normalized;
   }, []);
 
-  // Guard: cannot clear project on project-specific sites
-  const handleSetSelectedProject = React.useCallback((project: ISelectedProject | null) => {
-    if (isProjectSite && project === null) return;
-    setSelectedProject(project);
-  }, [isProjectSite]);
+  const extractProjectCodeFromHash = React.useCallback((): string | null => {
+    if (typeof window === 'undefined') return null;
+    const hash = window.location.hash.replace(/^#/, '');
+    const pathname = hash.startsWith('/') ? hash : `/${hash}`;
+    if (!pathname.startsWith('/operations/')) return null;
+    const segments = pathname.split('/').filter(Boolean);
+    if (segments.length < 3) return null;
+    const legacySegments = new Set([
+      'project',
+      'compliance-log',
+      'project-settings',
+      'startup-checklist',
+      'management-plan',
+      'superintendent-plan',
+      'closeout-checklist',
+      'buyout-log',
+      'contract-tracking',
+      'risk-cost',
+      'schedule',
+      'quality-concerns',
+      'safety-concerns',
+      'monthly-review',
+      'constraints-log',
+      'permits-log',
+      'responsibility',
+      'project-record',
+      'lessons-learned',
+      'readicheck',
+      'best-practices',
+      'sub-scorecard',
+      'gonogo',
+    ]);
+    const candidate = segments[1];
+    if (!candidate || legacySegments.has(candidate)) return null;
+    return decodeURIComponent(candidate);
+  }, []);
 
   // Helper: check if PermissionEngine flag is enabled in a given set of flags
   const isPermissionEngineEnabled = React.useCallback((flags: IFeatureFlag[]): boolean => {
     const flag = flags.find(f => f.FeatureName === 'PermissionEngine');
     return flag?.Enabled === true;
   }, []);
+
+  React.useEffect(() => {
+    if (dataServiceMode === 'sharepoint') return;
+    performanceService.initialize((entry) => dataService.logPerformanceEntry(entry));
+  }, [dataService, dataServiceMode]);
 
   React.useEffect(() => {
     const init = async (): Promise<void> => {
@@ -176,27 +200,9 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
         setCurrentUser(user);
         setFeatureFlags(flags);
 
-        // Auto-select project on project-specific sites
+        // Auto-select project code on project-specific sites
         if (isProjectSite && siteContext.projectCode) {
-          performanceService.startMark('app:projectAutoSelect');
-          try {
-            const results = await dataService.searchLeads(siteContext.projectCode);
-            const lead = results.find(l => l.ProjectCode === siteContext.projectCode);
-            if (lead) {
-              setSelectedProject({
-                projectCode: lead.ProjectCode!,
-                projectName: lead.Title,
-                stage: lead.Stage,
-                region: lead.Region,
-                division: lead.Division,
-                leadId: lead.id,
-                siteUrl: siteContext.siteUrl,
-              });
-            }
-          } catch {
-            console.warn('Auto-select failed for project code:', siteContext.projectCode);
-          }
-          performanceService.endMark('app:projectAutoSelect');
+          setActiveProjectCode(siteContext.projectCode);
         }
 
         performanceService.endMark('app:contextInit');
@@ -221,6 +227,28 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     };
     init().catch(console.error);
   }, [dataService, isProjectSite, siteContext, normalizeFeatureFlags]);
+
+  React.useEffect(() => {
+    if (isProjectSite && siteContext.projectCode) {
+      setActiveProjectCode(siteContext.projectCode);
+      return;
+    }
+
+    const syncFromLocation = (): void => {
+      setActiveProjectCode(extractProjectCodeFromHash());
+    };
+    syncFromLocation();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('hashchange', syncFromLocation);
+      window.addEventListener('popstate', syncFromLocation);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('hashchange', syncFromLocation);
+        window.removeEventListener('popstate', syncFromLocation);
+      }
+    };
+  }, [extractProjectCodeFromHash, isProjectSite, siteContext.projectCode]);
 
   React.useEffect(() => {
     if (!currentUser) {
@@ -251,21 +279,20 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     setDashboardPreferences(loaded);
   }, [currentUser, dashboardStoragePrefix]);
 
-  // Route project-scoped data service queries to project site when selected
+  // Route project-scoped data service queries to project site when running inside a project site.
   React.useEffect(() => {
-    if (selectedProject?.siteUrl) {
-      dataService.setProjectSiteUrl(selectedProject.siteUrl);
-    } else if (!selectedProject) {
+    if (isProjectSite) {
+      dataService.setProjectSiteUrl(siteContext.siteUrl);
+    } else {
       dataService.setProjectSiteUrl(null);
     }
-  }, [selectedProject, dataService]);
+  }, [dataService, isProjectSite, siteContext.siteUrl]);
 
-  // Re-resolve permissions when selectedProject changes (if engine is enabled)
+  // Re-resolve permissions when active project code changes (if engine is enabled)
   React.useEffect(() => {
     if (!currentUser || !isPermissionEngineEnabled(featureFlags)) return;
 
-    const projectCode = selectedProject?.projectCode || null;
-    dataService.resolveUserPermissions(currentUser.email, projectCode)
+    dataService.resolveUserPermissions(currentUser.email, activeProjectCode)
       .then(resolved => {
         setCurrentUser(prev => {
           if (!prev) return prev;
@@ -277,7 +304,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
         // Keep existing permissions on failure
         console.warn('Permission re-resolution failed for project change');
       });
-  }, [selectedProject, currentUser?.email, dataService, featureFlags, isPermissionEngineEnabled]);
+  }, [activeProjectCode, currentUser?.email, dataService, featureFlags, isPermissionEngineEnabled]);
 
   const hasPermission = React.useCallback((permission: string): boolean => {
     if (!currentUser) return false;
@@ -320,6 +347,8 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     }
   }, [getPreferenceStorageKey]);
 
+  const stableActiveProjectCode = React.useMemo(() => activeProjectCode, [activeProjectCode]);
+
   const value: IAppContextValue = React.useMemo(() => ({
     dataService,
     telemetryService: resolvedTelemetry,
@@ -327,8 +356,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     featureFlags,
     isLoading,
     error,
-    selectedProject,
-    setSelectedProject: handleSetSelectedProject,
+    activeProjectCode: stableActiveProjectCode,
     hasPermission,
     isFeatureEnabled,
     resolvedPermissions,
@@ -342,7 +370,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     getDashboardPreference,
     setDashboardPreference,
     resetDashboardPreference,
-  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode, isOnline, dashboardPreferences, getDashboardPreference, setDashboardPreference, resetDashboardPreference]);
+  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, stableActiveProjectCode, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode, isOnline, dashboardPreferences, getDashboardPreference, setDashboardPreference, resetDashboardPreference]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

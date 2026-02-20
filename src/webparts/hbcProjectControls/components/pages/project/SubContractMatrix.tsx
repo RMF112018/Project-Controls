@@ -11,6 +11,7 @@ import {
 import * as React from 'react';
 import { useResponsibilityMatrix } from '../../hooks/useResponsibilityMatrix';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
@@ -87,7 +88,7 @@ function nextAssignment(current: MatrixAssignment): MatrixAssignment {
 
 /* ---------- Component ---------- */
 export const SubContractMatrix: React.FC = () => {
-  const { dataService, currentUser, selectedProject, hasPermission } = useAppContext();
+  const { dataService, currentUser, hasPermission } = useAppContext();
   const {
     subClauses,
     isLoading,
@@ -99,7 +100,8 @@ export const SubContractMatrix: React.FC = () => {
   } = useResponsibilityMatrix();
 
   const canEdit = hasPermission(PERMISSIONS.MATRIX_EDIT);
-  const projectCode = selectedProject?.projectCode || '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
 
   const [editingCell, setEditingCell] = React.useState<{ id: number; field: string } | null>(null);
   const [editValue, setEditValue] = React.useState('');

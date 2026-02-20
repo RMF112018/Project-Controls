@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { IAuditEntry, IPerformanceLog } from '@hbc/sp-services';
 import { useAppContext } from '../components/contexts/AppContext';
+import { useProjectSelection } from '../components/hooks/useProjectSelection';
 
 // ---------------------------------------------------------------------------
 // Public shape
@@ -203,12 +204,13 @@ function useA11yEnvironmentDetection(): void {
 }
 
 export function useTelemetryMetrics(dateRange: [Date, Date]): ITelemetryMetrics {
-  const { dataService, resolvedPermissions, selectedProject } = useAppContext();
+  const { dataService, resolvedPermissions } = useAppContext();
+  const { projectCode: activeProjectCode } = useProjectSelection();
   const [metrics, setMetrics] = React.useState<ITelemetryMetrics>(defaultMetrics);
 
   useA11yEnvironmentDetection();
 
-  const projectCode = resolvedPermissions?.globalAccess ? undefined : selectedProject?.projectCode;
+  const projectCode = resolvedPermissions?.globalAccess ? undefined : activeProjectCode ?? undefined;
 
   const startIso = dateRange[0].toISOString();
   const endIso = dateRange[1].toISOString();

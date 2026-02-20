@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useLocation } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useSuperintendentPlan } from '../../hooks/useSuperintendentPlan';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
@@ -19,9 +20,10 @@ const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 
 export const SuperintendentPlanPage: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
+  const { hasPermission, dataService, currentUser } = useAppContext();
   const { plan, isLoading, error, fetchPlan, updateSection, completionPercentage, incompleteSections } = useSuperintendentPlan();
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
   const canEdit = hasPermission(PERMISSIONS.SUPERINTENDENT_PLAN_EDIT);
   const [expandedSections, setExpandedSections] = React.useState<Set<string>>(new Set());
 

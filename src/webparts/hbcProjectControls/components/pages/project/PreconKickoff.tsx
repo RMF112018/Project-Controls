@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useLocation } from '@router';
-import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useLeads } from '../../hooks/useLeads';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { PageHeader } from '../../shared/PageHeader';
@@ -49,7 +49,6 @@ const teamColumns: IHbcTanStackTableColumn<ITeamMember>[] = [
 export const PreconKickoff: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject } = useAppContext();
   const { leads, isLoading: leadsLoading, fetchLeads } = useLeads();
   const {
     teamMembers,
@@ -64,7 +63,8 @@ export const PreconKickoff: React.FC = () => {
   const [toastMessage, setToastMessage] = React.useState<string | null>(null);
   const [scheduleError, setScheduleError] = React.useState<string | null>(null);
 
-  const projectCode = selectedProject?.projectCode || '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
 
   // Load leads to find the project
   React.useEffect(() => {

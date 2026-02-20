@@ -284,7 +284,7 @@ function filterItems<TData>(items: TData[], columns: IHbcDataTableColumn<TData>[
   );
 }
 
-export function HbcDataTable<TData>({
+const HbcDataTableComponent = <TData,>({
   tableId,
   columns,
   items,
@@ -332,7 +332,7 @@ export function HbcDataTable<TData>({
   persistenceNamespace = 'hbcDataTable',
   enableBuiltInToolbar = true,
   enableBuiltInFooter = true,
-}: IHbcDataTableProps<TData>): React.ReactElement {
+}: IHbcDataTableProps<TData>): React.ReactElement => {
   const styles = useStyles();
   const [lastHighlightKey, setLastHighlightKey] = React.useState<string | number | null>(null);
 
@@ -622,4 +622,6 @@ export function HbcDataTable<TData>({
       )}
     </section>
   );
-}
+};
+
+export const HbcDataTable = React.memo(HbcDataTableComponent) as typeof HbcDataTableComponent;

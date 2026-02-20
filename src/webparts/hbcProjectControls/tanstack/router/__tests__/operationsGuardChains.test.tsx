@@ -1,5 +1,4 @@
 import { QueryClient } from '@tanstack/react-query';
-import { Stage } from '@hbc/sp-services';
 import type { IDataService } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from '../routeContext';
 
@@ -43,16 +42,12 @@ function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRout
         'project:pmp:edit',
       ]),
     },
+    activeProjectCode: 'P-1001',
     scope: {
       mode: 'mock',
       siteContext: 'hub',
       siteUrl: 'https://tenant.sharepoint.com/sites/HBCentral',
       projectCode: null,
-    },
-    selectedProject: {
-      projectCode: 'P-1001',
-      projectName: 'Pilot Project',
-      stage: Stage.ActiveConstruction,
     },
     isFeatureEnabled: (featureName: string) => enabledFeatures.has(featureName),
   };
@@ -65,12 +60,12 @@ describe('operations route guard chains', () => {
     const context = buildContext({
       isFeatureEnabled: (featureName: string) => featureName !== 'ContractTracking',
     });
-    expect(() => batchA.guardProjectSettings(context)).toThrow();
+    expect(() => batchA.guardProjectSettingsWithId(context, 'P-1001')).toThrow();
   });
 
   it('project settings redirects to operations when project is missing', () => {
-    const context = buildContext({ selectedProject: null });
-    expect(() => batchA.guardProjectSettings(context)).toThrow();
+    const context = buildContext();
+    expect(() => batchA.guardProjectSettingsWithId(context, undefined)).toThrow();
   });
 
   it('management plan redirects to access denied when PMP permission is missing', () => {
@@ -87,7 +82,7 @@ describe('operations route guard chains', () => {
     const context = buildContext({
       isFeatureEnabled: () => false,
     });
-    expect(() => batchA.guardConstraints(context)).toThrow();
+    expect(() => batchA.guardConstraints(context, 'P-1001')).toThrow();
   });
 
   it('permits redirects to access denied when permission is missing', () => {
@@ -97,7 +92,7 @@ describe('operations route guard chains', () => {
         permissions: new Set(['project:buyout:view']),
       },
     });
-    expect(() => batchA.guardPermits(context)).toThrow();
+    expect(() => batchA.guardPermits(context, 'P-1001')).toThrow();
   });
 
   it('responsibility route redirects to access denied when ProjectStartup feature is off', () => {
@@ -109,12 +104,10 @@ describe('operations route guard chains', () => {
   });
 
   it('go/no-go route redirects to operations when project is missing', () => {
-    const context = buildContext({ selectedProject: null });
-    expect(() => batchB.guardProjectOnly(context)).toThrow();
+    expect(() => batchB.guardProjectOnly(undefined)).toThrow();
   });
 
   it('project-only guard chain passes when project is selected', () => {
-    const context = buildContext();
-    expect(() => batchA.guardProjectOnly(context)).not.toThrow();
+    expect(() => batchA.guardProjectOnly('P-1001')).not.toThrow();
   });
 });

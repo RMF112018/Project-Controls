@@ -10,6 +10,7 @@ import {
 import * as React from 'react';
 import { useLocation } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useStartupChecklist } from '../../hooks/useStartupChecklist';
 import { useToast } from '../../shared/ToastContainer';
 import { ChecklistTable, IChecklistTableItem } from '../../shared/ChecklistTable';
@@ -17,7 +18,7 @@ import { ChecklistTable, IChecklistTableItem } from '../../shared/ChecklistTable
 export const ProjectStartupChecklist: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject, hasPermission, currentUser, dataService } = useAppContext();
+  const { hasPermission, currentUser, dataService } = useAppContext();
   const {
     items, isLoading, fetchChecklist, updateItem, addItem, removeItem,
     hasMore, loadMore, isLoadingMore,
@@ -26,7 +27,8 @@ export const ProjectStartupChecklist: React.FC = () => {
 
   const canEdit = hasPermission(PERMISSIONS.STARTUP_CHECKLIST_EDIT);
   const canSignOff = hasPermission(PERMISSIONS.STARTUP_CHECKLIST_SIGNOFF);
-  const projectCode = selectedProject?.projectCode;
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
 
   React.useEffect(() => {
     if (projectCode) {

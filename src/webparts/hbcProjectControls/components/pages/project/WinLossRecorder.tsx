@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useLeads } from '../../hooks/useLeads';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { PageHeader } from '../../shared/PageHeader';
@@ -27,7 +28,7 @@ export const WinLossRecorder: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
   const navigate = useNavigate();
-  const { selectedProject, dataService, currentUser } = useAppContext();
+  const { dataService, currentUser } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
   const { recordWin, recordLoss } = useWorkflow();
   const [project, setProject] = React.useState<ILead | null>(null);
@@ -53,7 +54,8 @@ export const WinLossRecorder: React.FC = () => {
   const [competitor, setCompetitor] = React.useState('');
   const [autopsyNotes, setAutopsyNotes] = React.useState('');
 
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
 
   React.useEffect(() => { fetchLeads().catch(console.error); }, [fetchLeads]);
   React.useEffect(() => {

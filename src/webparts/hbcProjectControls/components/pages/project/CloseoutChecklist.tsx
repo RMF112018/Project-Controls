@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useLocation } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useLeads } from '../../hooks/useLeads';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { useCloseoutChecklist } from '../../hooks/useCloseoutChecklist';
@@ -17,7 +18,7 @@ import { HBC_COLORS } from '../../../theme/tokens';
 export const CloseoutChecklist: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject, currentUser, dataService } = useAppContext();
+  const { currentUser, dataService } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
   const { transitionStage } = useWorkflow();
   const {
@@ -28,7 +29,8 @@ export const CloseoutChecklist: React.FC = () => {
   const [project, setProject] = React.useState<ILead | null>(null);
   const [completing, setCompleting] = React.useState(false);
 
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
   const canEdit = true; // Operations team can edit via RoleGate on Complete button
 
   React.useEffect(() => { fetchLeads().catch(console.error); }, [fetchLeads]);

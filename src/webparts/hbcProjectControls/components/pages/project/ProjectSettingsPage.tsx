@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useLocation } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { StatusBadge } from '../../shared/StatusBadge';
@@ -39,9 +40,10 @@ function getSourceBadge(source: SourceType): React.ReactNode {
 }
 
 export const ProjectSettingsPage: React.FC = () => {
-  const { dataService, selectedProject, hasPermission, currentUser } = useAppContext();
+  const { dataService, hasPermission, currentUser } = useAppContext();
   const location = useLocation();
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode, projectMeta } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
 
   const [resolvedSteps, setResolvedSteps] = React.useState<IResolvedWorkflowStep[]>([]);
   const [overrides, setOverrides] = React.useState<IWorkflowStepOverride[]>([]);
@@ -108,7 +110,7 @@ export const ProjectSettingsPage: React.FC = () => {
     }
   }, [dataService, loadData]);
 
-  const breadcrumbs = buildBreadcrumbs(location.pathname, selectedProject?.projectName);
+  const breadcrumbs = buildBreadcrumbs(location.pathname, projectMeta?.projectName);
 
   return (
     <div>

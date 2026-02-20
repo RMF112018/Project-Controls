@@ -11,6 +11,7 @@ import {
 import * as React from 'react';
 import { useResponsibilityMatrix } from '../../hooks/useResponsibilityMatrix';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
@@ -90,7 +91,7 @@ function getOrderedCategories(tasks: IInternalMatrixTask[]): string[] {
 
 /* ---------- Component ---------- */
 export const InternalResponsibilityMatrix: React.FC = () => {
-  const { dataService, currentUser, selectedProject, hasPermission } = useAppContext();
+  const { dataService, currentUser, hasPermission } = useAppContext();
   const {
     internalTasks,
     teamAssignments,
@@ -105,7 +106,8 @@ export const InternalResponsibilityMatrix: React.FC = () => {
   } = useResponsibilityMatrix();
 
   const canEdit = hasPermission(PERMISSIONS.MATRIX_EDIT);
-  const projectCode = selectedProject?.projectCode || '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
 
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [newCategory, setNewCategory] = React.useState('');

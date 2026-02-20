@@ -1,9 +1,7 @@
 import { redirect } from '@tanstack/react-router';
-import type { ITanStackRouteContext } from '../routeContext';
 
-export function requireProject(context: ITanStackRouteContext): void {
-  if (!context.selectedProject?.projectCode) {
+export function requireProject(projectId?: string | null): void {
+  if (!projectId) {
     throw redirect({ to: '/operations', replace: true });
   }
 }
-

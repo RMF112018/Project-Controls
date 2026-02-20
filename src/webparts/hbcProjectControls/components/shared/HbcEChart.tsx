@@ -170,6 +170,26 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
     [option, runtime]
   );
 
+  const onEventsWithSelection = React.useMemo<EChartsReactProps['onEvents']>(() => {
+    const existingClick = onEvents?.click;
+    return {
+      ...onEvents,
+      click: (params: unknown) => {
+        const payload = params as { name?: string; seriesName?: string };
+        if (payload?.name && onDataPointSelect) {
+          onDataPointSelect({
+            dimension: linkedTableId ?? 'chart',
+            value: payload.name,
+            series: payload.seriesName,
+          });
+        }
+        if (typeof existingClick === 'function') {
+          existingClick(params);
+        }
+      },
+    };
+  }, [onEvents, onDataPointSelect, linkedTableId]);
+
   // -------------------------------------------------------------------------
   // ResizeObserver — triggers chart resize when container dimensions change
   // -------------------------------------------------------------------------
@@ -228,25 +248,6 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
   };
 
   const ReactECharts = runtime.ReactECharts;
-  const onEventsWithSelection = React.useMemo<EChartsReactProps['onEvents']>(() => {
-    const existingClick = onEvents?.click;
-    return {
-      ...onEvents,
-      click: (params: unknown) => {
-        const payload = params as { name?: string; seriesName?: string };
-        if (payload?.name && onDataPointSelect) {
-          onDataPointSelect({
-            dimension: linkedTableId ?? 'chart',
-            value: payload.name,
-            series: payload.seriesName,
-          });
-        }
-        if (typeof existingClick === 'function') {
-          existingClick(params);
-        }
-      },
-    };
-  }, [onEvents, onDataPointSelect, linkedTableId]);
 
   return (
     <div

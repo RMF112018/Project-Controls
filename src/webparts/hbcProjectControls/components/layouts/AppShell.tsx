@@ -18,6 +18,7 @@ import { FeatureGate } from '../guards';
 import { useResponsive } from '../hooks/useResponsive';
 import { useCurrentModule } from '../hooks/useCurrentModule';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
+import { useProjectSelectionBootstrap } from '../hooks/useProjectSelectionBootstrap';
 import { IEnvironmentConfig, APP_VERSION } from '@hbc/sp-services';
 import { ArrowMaximize24Regular, ArrowMinimize24Regular } from '@fluentui/react-icons';
 import { HBC_COLORS, SPACING, ELEVATION, TRANSITION } from '../../theme/tokens';
@@ -201,9 +202,10 @@ interface IAppShellProps {
   children: React.ReactNode;
 }
 
-export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
+const AppShellComponent: React.FC<IAppShellProps> = ({ children }) => {
   const styles = useStyles();
   const motionStyles = useHbcMotionStyles();
+  useProjectSelectionBootstrap();
   const { isLoading, error, currentUser, dataService, isFeatureEnabled, isFullScreen, toggleFullScreen, exitFullScreen, isOnline } = useAppContext();
   const { isMobile, isTablet } = useResponsive();
   const { setCurrentModuleKey, isHelpPanelOpen, helpPanelMode, startTour: startHelpTour, isTourActive } = useHelp();
@@ -498,3 +500,5 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
     </div>
   );
 };
+
+export const AppShell = React.memo(AppShellComponent);

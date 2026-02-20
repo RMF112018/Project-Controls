@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from '@router';
 import { useAppContext } from '../../../contexts/AppContext';
+import { useProjectSelection } from '../../../hooks/useProjectSelection';
 import { useProjectManagementPlan } from '../../../hooks/useProjectManagementPlan';
 import { useRiskCostManagement } from '../../../hooks/useRiskCostManagement';
 import { useQualityConcerns } from '../../../hooks/useQualityConcerns';
@@ -22,7 +23,7 @@ export const ProjectManagementPlan: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
   const navigate = useNavigate();
-  const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
+  const { hasPermission, dataService, currentUser } = useAppContext();
   const { pmp, boilerplate, isLoading, error, fetchPlan, updatePlan, submitForApproval, respondToApproval, signPlan, canSubmit } = useProjectManagementPlan();
   const riskCost = useRiskCostManagement();
   const quality = useQualityConcerns();
@@ -31,7 +32,8 @@ export const ProjectManagementPlan: React.FC = () => {
   const superPlan = useSuperintendentPlan();
   const lessons = useLessonsLearned();
   const { leads, fetchLeads } = useLeads();
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
   const canEdit = hasPermission(PERMISSIONS.PMP_EDIT);
   const canApprove = hasPermission(PERMISSIONS.PMP_APPROVE) || hasPermission(PERMISSIONS.PMP_FINAL_APPROVE);
   const canSign = hasPermission(PERMISSIONS.PMP_SIGN);

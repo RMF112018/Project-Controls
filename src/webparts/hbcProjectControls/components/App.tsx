@@ -33,7 +33,7 @@ function mergeThemes(baseTheme: Theme, hostThemePatch?: Partial<Theme>): Theme {
 }
 
 const AppRoutes: React.FC = () => {
-  const { dataService, currentUser, selectedProject, isFeatureEnabled } = useAppContext();
+  const { dataService, currentUser, activeProjectCode, isFeatureEnabled } = useAppContext();
   const scope = useQueryScope();
   const queryClient = useQueryClient();
 
@@ -43,7 +43,7 @@ const AppRoutes: React.FC = () => {
         queryClient={queryClient}
         dataService={dataService}
         currentUser={currentUser}
-        selectedProject={selectedProject}
+        activeProjectCode={activeProjectCode}
         isFeatureEnabled={isFeatureEnabled}
         scope={scope}
       />

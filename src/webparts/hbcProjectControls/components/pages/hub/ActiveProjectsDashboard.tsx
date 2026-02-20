@@ -1,14 +1,14 @@
 import * as React from 'react';
-import { useNavigate, useLocation } from '@router';
+import { useLocation } from '@router';
 import { Select, Input, Button } from '@fluentui/react-components';
 import type { EChartsOption } from 'echarts';
 import { HbcEChart } from '../../shared/HbcEChart';
 import { useActiveProjects } from '../../hooks/useActiveProjects';
 import { useDataMart } from '../../hooks/useDataMart';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useAppContext } from '../../contexts/AppContext';
 import {
-  Stage,
   buildBreadcrumbs,
   IActiveProject,
   IProjectDataMart,
@@ -61,14 +61,13 @@ const HEALTH_COLORS: Record<DataMartHealthStatus, { color: string; bg: string }>
 };
 
 export const ActiveProjectsDashboard: React.FC = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
   const { isMobile, isTablet } = useResponsive();
   const motionStyles = useHbcMotionStyles();
   const { addToast } = useToast();
+  const { setProjectId } = useProjectSelection();
   const {
-    setSelectedProject,
     isFeatureEnabled,
     getDashboardPreference,
     setDashboardPreference,
@@ -754,7 +753,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
                         cursor: 'pointer',
                         boxShadow: ELEVATION.level1,
                       }}
-                      onClick={() => { setSelectedProject({ projectCode: p.projectCode, projectName: p.projectName, stage: Stage.ActiveConstruction, region: p.region }); navigate('/operations/project'); }}
+                      onClick={() => { setProjectId(p.projectCode); }}
                     >
                       <span style={{ fontWeight: 600 }}>{p.jobNumber}</span>
                       <span style={{ marginLeft: '8px', color: HBC_COLORS.gray600 }}>{p.projectName}</span>
@@ -786,13 +785,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
                   items={filteredProjects}
                   keyExtractor={(p) => p.id}
                   onRowClick={(p) => {
-                    setSelectedProject({
-                      projectCode: p.projectCode,
-                      projectName: p.projectName,
-                      stage: Stage.ActiveConstruction,
-                      region: p.region,
-                    });
-                    navigate('/operations/project');
+                    setProjectId(p.projectCode);
                   }}
                   emptyTitle="No projects found"
                   emptyDescription="Try adjusting your filters"
@@ -813,12 +806,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
                   items={dataMartRecords}
                   keyExtractor={(r) => r.id}
                   onRowClick={(r) => {
-                    setSelectedProject({
-                      projectCode: r.projectCode,
-                      projectName: r.projectName,
-                      stage: Stage.ActiveConstruction,
-                    });
-                    navigate('/operations/project');
+                    setProjectId(r.projectCode);
                   }}
                   emptyTitle="No Data Mart records"
                   emptyDescription="Run a sync to populate Data Mart"
@@ -916,7 +904,7 @@ export const ActiveProjectsDashboard: React.FC = () => {
                             marginBottom: '8px',
                             cursor: 'pointer',
                           }}
-                          onClick={() => { setSelectedProject({ projectCode: p.projectCode, projectName: p.projectName, stage: Stage.ActiveConstruction, region: p.region }); navigate('/operations/project'); }}
+                          onClick={() => { setProjectId(p.projectCode); }}
                         >
                           <div style={{ fontWeight: 600, color: HBC_COLORS.navy }}>{p.jobNumber}</div>
                           <div style={{ fontSize: '14px' }}>{p.projectName}</div>

@@ -15,6 +15,7 @@ import {
 import * as React from 'react';
 import { useLocation } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useLeads } from '../../hooks/useLeads';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { useTurnoverAgenda } from '../../hooks/useTurnoverAgenda';
@@ -79,7 +80,7 @@ const CATEGORIES = Object.values(TurnoverCategory);
 export const TurnoverToOps: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject, dataService, hasPermission } = useAppContext();
+  const { dataService, hasPermission } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
   const workflow = useWorkflow();
   const turnoverHook = useTurnoverAgenda();
@@ -88,7 +89,8 @@ export const TurnoverToOps: React.FC = () => {
   const [toast, setToast] = React.useState<string | null>(null);
   const [showScheduler, setShowScheduler] = React.useState(false);
 
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
   const canEdit = hasPermission(PERMISSIONS.TURNOVER_AGENDA_EDIT);
   const canSign = hasPermission(PERMISSIONS.TURNOVER_SIGN);
 

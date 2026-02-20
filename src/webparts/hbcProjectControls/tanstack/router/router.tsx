@@ -3,14 +3,13 @@ import { RouterProvider, createHashHistory, createRouter } from '@tanstack/react
 import type { QueryClient } from '@tanstack/react-query';
 import type { IDataService, ICurrentUser } from '@hbc/sp-services';
 import type { IQueryScope } from '../query/queryKeys';
-import type { ISelectedProject } from '../../components/contexts/AppContext';
 import { tanStackPilotRouteTree } from './routes.activeProjects';
 
 export interface ITanStackRouterProviderProps {
   queryClient: QueryClient;
   dataService: IDataService;
   currentUser: ICurrentUser | null;
-  selectedProject: ISelectedProject | null;
+  activeProjectCode: string | null;
   isFeatureEnabled: (featureName: string) => boolean;
   scope: IQueryScope;
 }
@@ -22,7 +21,7 @@ export function createHbcTanStackRouter(initialContext: ITanStackRouterProviderP
       queryClient: initialContext.queryClient,
       dataService: initialContext.dataService,
       currentUser: initialContext.currentUser,
-      selectedProject: initialContext.selectedProject,
+      activeProjectCode: initialContext.activeProjectCode,
       isFeatureEnabled: initialContext.isFeatureEnabled,
       scope: initialContext.scope,
     },
@@ -36,18 +35,18 @@ export const TanStackPilotRouter: React.FC<ITanStackRouterProviderProps> = ({
   queryClient,
   dataService,
   currentUser,
-  selectedProject,
+  activeProjectCode,
   isFeatureEnabled,
   scope,
 }) => {
-  const router = React.useMemo(() => createHbcTanStackRouter({
+  const [router] = React.useState(() => createHbcTanStackRouter({
     queryClient,
     dataService,
     currentUser,
-    selectedProject,
+    activeProjectCode,
     isFeatureEnabled,
     scope,
-  }), [queryClient, dataService, currentUser, selectedProject, isFeatureEnabled, scope]);
+  }));
 
   return (
     <RouterProvider
@@ -56,7 +55,7 @@ export const TanStackPilotRouter: React.FC<ITanStackRouterProviderProps> = ({
         queryClient,
         dataService,
         currentUser,
-        selectedProject,
+        activeProjectCode,
         isFeatureEnabled,
         scope,
       }}

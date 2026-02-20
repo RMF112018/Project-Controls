@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useLocation } from '@router';
-import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
@@ -55,7 +55,6 @@ const emptyForm: INewDeliverableForm = {
 export const DeliverablesTracker: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject } = useAppContext();
   const {
     deliverables,
     isLoading,
@@ -71,7 +70,8 @@ export const DeliverablesTracker: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
 
-  const projectCode = selectedProject?.projectCode || '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
 
   // Load deliverables
   React.useEffect(() => {

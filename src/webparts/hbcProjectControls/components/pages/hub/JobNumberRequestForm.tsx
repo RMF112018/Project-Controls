@@ -42,7 +42,7 @@ export const JobNumberRequestForm: React.FC = () => {
   const [projectAddress, setProjectAddress] = React.useState('');
   const [projectExecutive, setProjectExecutive] = React.useState('');
   const [projectManager, setProjectManager] = React.useState('');
-  const [selectedProjectType, setSelectedProjectType] = React.useState('');
+  const [projectTypeSelection, setProjectTypeSelection] = React.useState('');
   const [isEstimatingOnly, setIsEstimatingOnly] = React.useState(false);
   const [selectedCostCodes, setSelectedCostCodes] = React.useState<string[]>([]);
   const [notes, setNotes] = React.useState('');
@@ -90,7 +90,7 @@ export const JobNumberRequestForm: React.FC = () => {
     if (!requiredByDate) errs.requiredByDate = 'Required by date is required';
     if (!projectAddress.trim()) errs.projectAddress = 'Project address is required';
     if (!projectExecutive.trim()) errs.projectExecutive = 'Project executive is required';
-    if (!selectedProjectType) errs.projectType = 'Project type is required';
+    if (!projectTypeSelection) errs.projectType = 'Project type is required';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -100,7 +100,7 @@ export const JobNumberRequestForm: React.FC = () => {
 
     try {
       setIsSaving(true);
-      const typeObj = projectTypes.find(t => t.code === selectedProjectType);
+      const typeObj = projectTypes.find(t => t.code === projectTypeSelection);
       const hasLead = Number.isFinite(leadId);
 
       await createRequest({
@@ -111,8 +111,8 @@ export const JobNumberRequestForm: React.FC = () => {
         ProjectAddress: projectAddress,
         ProjectExecutive: projectExecutive,
         ProjectManager: projectManager || undefined,
-        ProjectType: selectedProjectType,
-        ProjectTypeLabel: typeObj ? `${typeObj.code} ${typeObj.label}` : selectedProjectType,
+        ProjectType: projectTypeSelection,
+        ProjectTypeLabel: typeObj ? `${typeObj.code} ${typeObj.label}` : projectTypeSelection,
         IsEstimatingOnly: isEstimatingOnly,
         RequestedCostCodes: selectedCostCodes,
         SiteProvisioningHeld: holdProvisioning,
@@ -447,15 +447,15 @@ export const JobNumberRequestForm: React.FC = () => {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
                     cursor: 'pointer', fontSize: 13,
-                    background: selectedProjectType === t.code ? '#EFF6FF' : 'transparent',
+                    background: projectTypeSelection === t.code ? '#EFF6FF' : 'transparent',
                     borderBottom: `1px solid ${HBC_COLORS.gray100}`,
                   }}
                 >
                   <input
                     type="radio"
                     name="projectType"
-                    checked={selectedProjectType === t.code}
-                    onChange={() => setSelectedProjectType(t.code)}
+                    checked={projectTypeSelection === t.code}
+                    onChange={() => setProjectTypeSelection(t.code)}
                   />
                   <span style={{ fontWeight: 600, color: HBC_COLORS.navy, minWidth: 40 }}>{t.code}</span>
                   <span style={{ color: HBC_COLORS.gray600 }}>{t.label}</span>

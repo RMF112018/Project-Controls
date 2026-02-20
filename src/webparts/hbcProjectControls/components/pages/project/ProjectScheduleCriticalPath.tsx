@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useLocation } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useProjectSchedule } from '../../hooks/useProjectSchedule';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
@@ -14,9 +15,10 @@ const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 
 export const ProjectScheduleCriticalPath: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
+  const { hasPermission, dataService, currentUser } = useAppContext();
   const { schedule, isLoading, error, fetchSchedule, updateSchedule, addCriticalPathItem, daysToCompletion } = useProjectSchedule();
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
   const canEdit = hasPermission(PERMISSIONS.SCHEDULE_EDIT);
 
   React.useEffect(() => { if (projectCode) fetchSchedule(projectCode).catch(console.error); }, [projectCode, fetchSchedule]);

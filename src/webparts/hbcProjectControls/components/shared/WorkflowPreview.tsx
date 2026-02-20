@@ -1,10 +1,9 @@
 import * as React from 'react';
 import { Button } from '@fluentui/react-components';
 import { useWorkflowDefinitions } from '../hooks/useWorkflowDefinitions';
-import { useAppContext } from '../contexts/AppContext';
 import { useLeads } from '../hooks/useLeads';
 import { IResolvedWorkflowStep, WorkflowKey, isActiveStage } from '@hbc/sp-services';
-import { ISelectedProject } from '../contexts/AppContext';
+import { useProjectSelection, type IProjectMetadata } from '../hooks/useProjectSelection';
 import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
 import { LoadingSpinner } from './LoadingSpinner';
 
@@ -22,10 +21,10 @@ const SOURCE_COLORS: Record<string, { color: string; bg: string }> = {
 
 export const WorkflowPreview: React.FC<IWorkflowPreviewProps> = ({ workflowKey, onClose }) => {
   const { resolveChain } = useWorkflowDefinitions();
-  const { selectedProject } = useAppContext();
+  const { projectMeta } = useProjectSelection();
   const { leads, fetchLeads } = useLeads();
 
-  const [pickedProject, setPickedProject] = React.useState<ISelectedProject | null>(selectedProject);
+  const [pickedProject, setPickedProject] = React.useState<IProjectMetadata | null>(projectMeta);
   const [resolvedSteps, setResolvedSteps] = React.useState<IResolvedWorkflowStep[]>([]);
   const [resolving, setResolving] = React.useState(false);
   const [projectQuery, setProjectQuery] = React.useState('');

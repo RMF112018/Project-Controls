@@ -1,24 +1,34 @@
 import * as React from 'react';
 import { useLeads } from '../hooks/useLeads';
-import { useAppContext, ISelectedProject } from '../contexts/AppContext';
+import { useAppContext } from '../contexts/AppContext';
 import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
 import { Stage, getStageLabel, isActiveStage } from '@hbc/sp-services';
+import { useProjectPersistence } from '../hooks/useProjectPersistence';
+import type { IProjectMetadata } from '../hooks/useProjectSelection';
 
 interface IProjectPickerProps {
-  selected: ISelectedProject | null;
-  onSelect: (project: ISelectedProject | null) => void;
+  activeProjectId: string | null;
+  onSelectProjectId: (projectId: string | null) => void;
   locked?: boolean;
 }
 
-export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelect, locked }) => {
+const ProjectPickerComponent: React.FC<IProjectPickerProps> = ({ activeProjectId, onSelectProjectId, locked }) => {
   const { leads, fetchLeads } = useLeads();
   const { dataService, currentUser, resolvedPermissions } = useAppContext();
+  const persistence = useProjectPersistence(currentUser?.email ?? 'anonymous');
+  const [recentProjectIds, setRecentProjectIds] = React.useState<string[]>([]);
+  const [favoriteProjectIds, setFavoriteProjectIds] = React.useState<string[]>([]);
   const [query, setQuery] = React.useState('');
   const [isOpen, setIsOpen] = React.useState(false);
   const [accessibleCodes, setAccessibleCodes] = React.useState<string[] | null>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => { fetchLeads().catch(console.error); }, [fetchLeads]);
+
+  React.useEffect(() => {
+    setRecentProjectIds(persistence.loadRecents());
+    setFavoriteProjectIds(persistence.loadFavorites());
+  }, [persistence]);
 
   // Load accessible project codes when permission engine is active
   React.useEffect(() => {
@@ -49,7 +59,7 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
   }, []);
 
   // Map leads to selectable projects (only those with project codes)
-  const projects: ISelectedProject[] = React.useMemo(() => {
+  const projects: IProjectMetadata[] = React.useMemo(() => {
     let filteredLeads = leads
       .filter(l => l.ProjectCode && isActiveStage(l.Stage));
 
@@ -80,7 +90,7 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
 
   // Group by stage
   const grouped = React.useMemo(() => {
-    const groups: Record<string, ISelectedProject[]> = {};
+    const groups: Record<string, IProjectMetadata[]> = {};
     filtered.forEach(p => {
       const key = p.stage;
       if (!groups[key]) groups[key] = [];
@@ -97,15 +107,28 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
     Stage.Closeout,
   ];
 
-  const handleSelect = (project: ISelectedProject): void => {
-    onSelect(project);
+  const recentSet = React.useMemo(() => new Set(recentProjectIds), [recentProjectIds]);
+  const favoriteSet = React.useMemo(() => new Set(favoriteProjectIds), [favoriteProjectIds]);
+
+  const selected = React.useMemo(() => {
+    return projects.find((project) => project.projectCode === activeProjectId) ?? null;
+  }, [projects, activeProjectId]);
+
+  const handleSelect = (project: IProjectMetadata): void => {
+    if (activeProjectId === project.projectCode) {
+      setIsOpen(false);
+      setQuery('');
+      return;
+    }
+    onSelectProjectId(project.projectCode);
+    setRecentProjectIds(persistence.loadRecents());
     setIsOpen(false);
     setQuery('');
   };
 
   const handleClear = (e: React.MouseEvent): void => {
     e.stopPropagation();
-    onSelect(null);
+    onSelectProjectId(null);
     setQuery('');
   };
 
@@ -229,14 +252,29 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        backgroundColor: selected?.projectCode === p.projectCode ? HBC_COLORS.gray100 : 'transparent',
+                        backgroundColor: activeProjectId === p.projectCode ? HBC_COLORS.gray100 : 'transparent',
                       }}
                       onMouseEnter={e => (e.currentTarget.style.backgroundColor = HBC_COLORS.gray50)}
-                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = selected?.projectCode === p.projectCode ? HBC_COLORS.gray100 : 'transparent')}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = activeProjectId === p.projectCode ? HBC_COLORS.gray100 : 'transparent')}
                     >
                       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{p.projectName}</span>
                         <span style={{ color: HBC_COLORS.gray600, marginLeft: '6px' }}>{p.projectCode}</span>
+                        {recentSet.has(p.projectCode) && (
+                          <span style={{ color: HBC_COLORS.gray600, marginLeft: '6px', fontSize: 11 }}>(Recent)</span>
+                        )}
+                      </span>
+                        <span
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            persistence.toggleFavoriteProject(p.projectCode);
+                            setFavoriteProjectIds(persistence.loadFavorites());
+                          }}
+                          style={{ color: favoriteSet.has(p.projectCode) ? HBC_COLORS.orange : HBC_COLORS.gray400, fontSize: 14 }}
+                          title={favoriteSet.has(p.projectCode) ? 'Remove favorite' : 'Add favorite'}
+                        aria-label={favoriteSet.has(p.projectCode) ? 'Remove favorite' : 'Add favorite'}
+                      >
+                        ★
                       </span>
                     </div>
                   ))}
@@ -248,3 +286,5 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
     </div>
   );
 };
+
+export const ProjectPicker = React.memo(ProjectPickerComponent);

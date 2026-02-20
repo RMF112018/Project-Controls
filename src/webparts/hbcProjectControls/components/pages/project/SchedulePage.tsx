@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useLocation } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useScheduleActivities } from '../../hooks/useScheduleActivities';
 import { useTabFromUrl } from '../../hooks/useTabFromUrl';
 import { usePersistedState } from '../../hooks/usePersistedState';
@@ -61,14 +62,15 @@ type SortDir = 'asc' | 'desc';
 export const SchedulePage: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject, hasPermission, isFeatureEnabled } = useAppContext();
+  const { hasPermission, isFeatureEnabled } = useAppContext();
   const {
     activities, imports, isLoading, error, metrics,
     fetchActivities, fetchImports, importActivities,
   } = useScheduleActivities();
   const { addToast } = useToast();
 
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
   const canView = hasPermission(PERMISSIONS.SCHEDULE_VIEW);
   const canImport = hasPermission(PERMISSIONS.SCHEDULE_IMPORT);
 

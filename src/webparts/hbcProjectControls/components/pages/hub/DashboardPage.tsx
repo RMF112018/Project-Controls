@@ -48,7 +48,7 @@ import { ExportButtons } from '../../shared/ExportButtons';
 import { RoleGate } from '../../guards/RoleGate';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { useAppContext } from '../../contexts/AppContext';
-import { ISelectedProject } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 // Chart colors
 const PIE_COLORS = {
@@ -56,11 +56,12 @@ const PIE_COLORS = {
   [GoNoGoDecision.NoGo]: HBC_COLORS.error,
   [GoNoGoDecision.ConditionalGo]: HBC_COLORS.warning,
 };
-export const DashboardPage: React.FC = () => {
+const DashboardPageComponent: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { setSelectedProject, currentUser } = useAppContext();
+  const { currentUser } = useAppContext();
+  const { setProjectId } = useProjectSelection();
   const { leads, isLoading: leadsLoading, fetchLeads } = useLeads();
   const { records, isLoading: estLoading, fetchRecords } = useEstimating();
   const { items: actionItems, loading: actionLoading, totalCount: actionTotal, urgentCount, refresh: refreshActions } = useActionInbox();
@@ -373,15 +374,11 @@ export const DashboardPage: React.FC = () => {
 
   const handleGoToAction = React.useCallback((item: IActionInboxItem) => {
     if (item.routePath.startsWith('/operations/')) {
-      const proj: ISelectedProject = {
-        projectCode: item.projectCode,
-        projectName: item.projectName,
-        stage: Stage.ActiveConstruction,
-      };
-      setSelectedProject(proj);
+      setProjectId(item.projectCode);
+      return;
     }
     navigate(item.routePath);
-  }, [navigate, setSelectedProject]);
+  }, [navigate, setProjectId]);
 
   const getRelativeTime = (dateStr: string): string => {
     const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
@@ -892,6 +889,8 @@ export const DashboardPage: React.FC = () => {
       </div>
   );
 };
+
+export const DashboardPage = React.memo(DashboardPageComponent);
 
 /* ─── Internal: Project Setup Tracker Widget ─── */
 

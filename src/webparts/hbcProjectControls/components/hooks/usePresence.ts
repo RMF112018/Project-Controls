@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useLocation } from '@router';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
+import { useProjectSelection } from './useProjectSelection';
 import { IUserPresenceMessage, SignalRMessage } from '@hbc/sp-services';
 
 export interface IPresenceUser {
@@ -22,7 +23,8 @@ const IDLE_TIMEOUT_MS = 180_000; // 3 minutes
 const STALE_TIMEOUT_MS = 90_000; // 90 seconds — prune users not seen
 
 export function usePresence(): IUsePresenceResult {
-  const { currentUser, selectedProject } = useAppContext();
+  const { currentUser } = useAppContext();
+  const { projectCode } = useProjectSelection();
   const { isEnabled, subscribe, broadcastChange } = useSignalRContext();
   const location = useLocation();
 
@@ -30,8 +32,6 @@ export function usePresence(): IUsePresenceResult {
   const [myStatus, setMyStatus] = React.useState<'active' | 'idle'>('active');
 
   const myEmail = currentUser?.email ?? '';
-  const projectCode = selectedProject?.projectCode ?? '';
-
   // --- Idle detection ---
   const lastActivityRef = React.useRef(Date.now());
   const idleTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);

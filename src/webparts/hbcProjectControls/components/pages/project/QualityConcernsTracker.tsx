@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useLocation } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useQualityConcerns } from '../../hooks/useQualityConcerns';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
@@ -20,9 +21,10 @@ const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 
 export const QualityConcernsTracker: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
+  const { hasPermission, dataService, currentUser } = useAppContext();
   const { concerns, isLoading, error, fetchConcerns, addConcern, updateConcern, openCount, resolvedCount } = useQualityConcerns();
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
   const canEdit = hasPermission(PERMISSIONS.QUALITY_EDIT);
 
   React.useEffect(() => { if (projectCode) fetchConcerns(projectCode).catch(console.error); }, [projectCode, fetchConcerns]);

@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
-import { Stage, PERMISSIONS } from '@hbc/sp-services';
+import { PERMISSIONS } from '@hbc/sp-services';
 import type { IDataService } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from '../routeContext';
 
@@ -35,16 +35,12 @@ function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRout
         PERMISSIONS.ACCOUNTING_QUEUE_VIEW,
       ]),
     },
+    activeProjectCode: 'P-1001',
     scope: {
       mode: 'mock',
       siteContext: 'hub',
       siteUrl: 'https://tenant.sharepoint.com/sites/HBCentral',
       projectCode: null,
-    },
-    selectedProject: {
-      projectCode: 'P-1001',
-      projectName: 'Pilot Project',
-      stage: Stage.ActiveConstruction,
     },
     isFeatureEnabled: (featureName: string) => enabledFeatures.has(featureName),
   };

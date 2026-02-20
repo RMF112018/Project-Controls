@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { HBC_COLORS, ELEVATION, RISK_INDICATOR } from '../../../theme/tokens';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { usePermitsLog } from '../../hooks/usePermitsLog';
 import { usePersistedState } from '../../hooks/usePersistedState';
 import { IPermit, PermitType, PermitStatus, PERMIT_STATUS_OPTIONS, PERMIT_TYPE_OPTIONS, PERMISSIONS } from '@hbc/sp-services';
@@ -52,7 +53,7 @@ const isExpired = (permit: IPermit): boolean => {
 // ---------------------------------------------------------------------------
 
 export const PermitsLogPage: React.FC = () => {
-  const { selectedProject, hasPermission } = useAppContext();
+  const { hasPermission } = useAppContext();
   const {
     permits, loading, error, metrics,
     fetchPermits, addPermit, updatePermit, removePermit,
@@ -60,7 +61,8 @@ export const PermitsLogPage: React.FC = () => {
   } = usePermitsLog();
   const { addToast } = useToast();
 
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
   const [search, setSearch] = usePersistedState('permits-search', '');
   const [statusFilter, setStatusFilter] = usePersistedState<string>('permits-status', 'all');
   const [typeFilter, setTypeFilter] = usePersistedState<string>('permits-type', 'all');

@@ -520,38 +520,44 @@ export class ScheduleEngine {
     const remediationSuggestions = this.buildRemediationSuggestions(projectCode, activities, failedDcma);
     const remediationSteps = remediationSuggestions.map(s => `${s.title}: ${s.description}`);
 
+    const dcmaExportRows = dcmaChecks.map<IQualityExportRow>(check => ({
+      section: 'DCMA',
+      id: check.id,
+      name: check.name,
+      passed: check.passed,
+      score: check.passed ? 100 : 0,
+      value: check.value,
+      threshold: check.threshold,
+      weight: check.weight,
+      details: check.details,
+      targetCount: check.failedActivityKeys.length,
+    }));
+
+    const customExportRows = customRuleResults.map<IQualityExportRow>(check => ({
+      section: 'Custom',
+      id: check.id,
+      name: check.name,
+      passed: check.passed,
+      score: check.passed ? 100 : 0,
+      value: check.value,
+      threshold: check.threshold,
+      weight: check.weight,
+      details: check.details,
+      targetCount: check.failedActivityKeys.length,
+    }));
+
+    const remediationExportRows = remediationSuggestions.map<IQualityExportRow>(s => ({
+      section: 'Remediation',
+      id: s.id,
+      name: s.title,
+      details: `${s.description} CP compression ${s.estimatedImpact.cpCompressionDays}d, float delta ${s.estimatedImpact.avgFloatImprovementDays}d.`,
+      targetCount: s.targetActivityKeys.length,
+    }));
+
     const exportRows: IQualityExportRow[] = [
-      ...dcmaChecks.map(check => ({
-        section: 'DCMA',
-        id: check.id,
-        name: check.name,
-        passed: check.passed,
-        score: check.passed ? 100 : 0,
-        value: check.value,
-        threshold: check.threshold,
-        weight: check.weight,
-        details: check.details,
-        targetCount: check.failedActivityKeys.length,
-      })),
-      ...customRuleResults.map(check => ({
-        section: 'Custom',
-        id: check.id,
-        name: check.name,
-        passed: check.passed,
-        score: check.passed ? 100 : 0,
-        value: check.value,
-        threshold: check.threshold,
-        weight: check.weight,
-        details: check.details,
-        targetCount: check.failedActivityKeys.length,
-      })),
-      ...remediationSuggestions.map(s => ({
-        section: 'Remediation',
-        id: s.id,
-        name: s.title,
-        details: `${s.description} CP compression ${s.estimatedImpact.cpCompressionDays}d, float delta ${s.estimatedImpact.avgFloatImprovementDays}d.`,
-        targetCount: s.targetActivityKeys.length,
-      })),
+      ...dcmaExportRows,
+      ...customExportRows,
+      ...remediationExportRows,
     ];
 
     return {

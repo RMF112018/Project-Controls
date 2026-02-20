@@ -4,6 +4,7 @@ import { useTransitionNavigate } from '../hooks/router/useTransitionNavigate';
 import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
 import { useAppContext } from '../contexts/AppContext';
 import { ProjectPicker } from '../shared/ProjectPicker';
+import { useProjectSelection } from '../hooks/useProjectSelection';
 import { HBC_COLORS, TRANSITION } from '../../theme/tokens';
 import { NAV_GROUP_ROLES, PERMISSIONS } from '@hbc/sp-services';
 
@@ -268,11 +269,12 @@ const NavSubGroup: React.FC<{
   );
 };
 
-export const NavigationSidebar: React.FC = () => {
+const NavigationSidebarComponent: React.FC = () => {
   const styles = useStyles();
   const navigate = useTransitionNavigate();
   const location = useAppLocation();
-  const { currentUser, selectedProject, setSelectedProject, hasPermission, isFeatureEnabled, isProjectSite } = useAppContext();
+  const { currentUser, hasPermission, isFeatureEnabled, isProjectSite } = useAppContext();
+  const { projectId, projectMeta, setProjectId, toScopedPath } = useProjectSelection();
 
   const userRoles = currentUser?.roles ?? [];
 
@@ -285,19 +287,20 @@ export const NavigationSidebar: React.FC = () => {
   const isItemVisible = (item: INavItem): boolean => {
     if (item.featureFlag && !isFeatureEnabled(item.featureFlag)) return false;
     if (item.permission && !hasPermission(item.permission)) return false;
-    if (item.hubOnly && selectedProject) return false;
+    if (item.hubOnly && projectId) return false;
     return true;
   };
 
   const isActivePath = (path: string): boolean => {
+    const normalizedPath = location.pathname.replace(/^\/operations\/[^/]+(?=\/)/, '/operations');
     if (path === '/') return location.pathname === '/';
-    return location.pathname === path || location.pathname.startsWith(path + '/');
+    return normalizedPath === path || normalizedPath.startsWith(path + '/');
   };
 
   return (
     <nav className={styles.nav} aria-label="Main navigation">
       {/* Project Picker */}
-      <ProjectPicker selected={selectedProject} onSelect={setSelectedProject} locked={isProjectSite} />
+      <ProjectPicker activeProjectId={projectId} onSelectProjectId={setProjectId} locked={isProjectSite} />
 
       {/* Dashboard — always visible */}
       <div className={styles.dashboardSection}>
@@ -327,25 +330,25 @@ export const NavigationSidebar: React.FC = () => {
                 label={item.label}
                 path={item.path}
                 isActive={isActivePath(item.path)}
-                disabled={item.requiresProject && !selectedProject}
-                onClick={() => navigate(item.path)}
+                disabled={item.requiresProject && !projectId}
+                onClick={() => navigate(item.requiresProject ? toScopedPath(item.path) : item.path)}
               />
             ))}
 
             {/* Dynamic project-scoped items when a project is selected */}
-            {group.groupKey === 'Preconstruction' && selectedProject?.leadId && (
+            {group.groupKey === 'Preconstruction' && projectMeta?.leadId && (
               <>
                 <NavItemComponent
                   label="Lead Detail"
-                  path={`/lead/${selectedProject.leadId}`}
-                  isActive={isActivePath(`/lead/${selectedProject.leadId}`)}
-                  onClick={() => navigate(`/lead/${selectedProject.leadId}`)}
+                  path={`/lead/${projectMeta.leadId}`}
+                  isActive={isActivePath(`/lead/${projectMeta.leadId}`)}
+                  onClick={() => navigate(`/lead/${projectMeta.leadId}`)}
                 />
                 <NavItemComponent
                   label="Go/No-Go"
-                  path={`/lead/${selectedProject.leadId}/gonogo`}
-                  isActive={isActivePath(`/lead/${selectedProject.leadId}/gonogo`)}
-                  onClick={() => navigate(`/lead/${selectedProject.leadId}/gonogo`)}
+                  path={`/lead/${projectMeta.leadId}/gonogo`}
+                  isActive={isActivePath(`/lead/${projectMeta.leadId}/gonogo`)}
+                  onClick={() => navigate(`/lead/${projectMeta.leadId}/gonogo`)}
                 />
               </>
             )}
@@ -362,8 +365,8 @@ export const NavigationSidebar: React.FC = () => {
                       path={item.path}
                       isActive={isActivePath(item.path)}
                       indent={1}
-                      disabled={item.requiresProject && !selectedProject}
-                      onClick={() => navigate(item.path)}
+                      disabled={item.requiresProject && !projectId}
+                      onClick={() => navigate(item.requiresProject ? toScopedPath(item.path) : item.path)}
                     />
                   ))}
                 </NavSubGroup>
@@ -375,3 +378,5 @@ export const NavigationSidebar: React.FC = () => {
     </nav>
   );
 };
+
+export const NavigationSidebar = React.memo(NavigationSidebarComponent);

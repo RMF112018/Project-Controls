@@ -17,8 +17,8 @@ describe('projectListSchemas', () => {
   });
 
   it('exports all project-site list schemas', () => {
-    // 45 schemas in the ALL_PROJECT_SCHEMAS array (Shared Documents created by default)
-    expect(schemas).toHaveLength(45);
+    // 46 schemas in the ALL_PROJECT_SCHEMAS array (Shared Documents created by default)
+    expect(schemas).toHaveLength(46);
     expect(schemas.length).toBeGreaterThan(30);
   });
 

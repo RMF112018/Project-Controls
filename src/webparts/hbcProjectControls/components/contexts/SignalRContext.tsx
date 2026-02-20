@@ -83,7 +83,7 @@ interface ISignalRProviderProps {
 }
 
 export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) => {
-  const { isFeatureEnabled, selectedProject } = useAppContext();
+  const { isFeatureEnabled, activeProjectCode } = useAppContext();
   const isEnabled = isFeatureEnabled('RealTimeUpdates');
   const [connectionStatus, setConnectionStatus] = React.useState<SignalRConnectionStatus>(
     signalRService.status
@@ -91,6 +91,12 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
 
   // Track previous project for group management
   const prevProjectRef = React.useRef<string | null>(null);
+  const joinProjectGroup = React.useCallback((projectCode: string): void => {
+    signalRService.joinGroup(`project:${projectCode.toLowerCase()}`);
+  }, []);
+  const leaveProjectGroup = React.useCallback((projectCode: string): void => {
+    signalRService.leaveGroup(`project:${projectCode.toLowerCase()}`);
+  }, []);
 
   // Listen to status changes
   React.useEffect(() => {
@@ -107,24 +113,23 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
     }
   }, [isEnabled]);
 
-  // Auto-join/leave project group when selectedProject changes
+  // Auto-join/leave project group when active project code changes
   React.useEffect(() => {
     if (!isEnabled || connectionStatus !== 'connected') return;
+    if (!activeProjectCode) return;
 
     const prevCode = prevProjectRef.current;
-    const newCode = selectedProject?.projectCode || null;
+    const newCode = activeProjectCode;
 
     if (prevCode === newCode) return;
 
     if (prevCode) {
-      signalRService.leaveGroup(`project:${prevCode.toLowerCase()}`);
+      leaveProjectGroup(prevCode);
     }
-    if (newCode) {
-      signalRService.joinGroup(`project:${newCode.toLowerCase()}`);
-    }
+    joinProjectGroup(newCode);
 
     prevProjectRef.current = newCode;
-  }, [isEnabled, connectionStatus, selectedProject]);
+  }, [isEnabled, connectionStatus, activeProjectCode, joinProjectGroup, leaveProjectGroup]);
 
   // Cache invalidation: clear stale cache when entity changes arrive
   React.useEffect(() => {

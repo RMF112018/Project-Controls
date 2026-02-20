@@ -14,6 +14,7 @@ import * as React from 'react';
 import { useLocation } from '@router';
 import { useMarketingRecord } from '../../hooks/useMarketingRecord';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
@@ -153,7 +154,9 @@ const CompletionCircle: React.FC<{ pct: number }> = ({ pct }) => {
 export const ProjectRecord: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject, hasPermission, currentUser, dataService } = useAppContext();
+  const { hasPermission, currentUser, dataService } = useAppContext();
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
   const { record, isLoading, fetchRecord, updateRecord, createRecord } = useMarketingRecord();
 
   const [localRecord, setLocalRecord] = React.useState<IMarketingProjectRecord | null>(null);
@@ -170,10 +173,10 @@ export const ProjectRecord: React.FC = () => {
 
   // Fetch on mount
   React.useEffect(() => {
-    if (selectedProject?.projectCode) {
-      fetchRecord(selectedProject?.projectCode).catch(console.error);
+    if (projectCode) {
+      fetchRecord(projectCode).catch(console.error);
     }
-  }, [selectedProject?.projectCode, fetchRecord]);
+  }, [projectCode, fetchRecord]);
 
   // Sync fetched record to local state
   React.useEffect(() => {
@@ -191,25 +194,25 @@ export const ProjectRecord: React.FC = () => {
   };
 
   const handleBlurSave = async (field: keyof IMarketingProjectRecord): Promise<void> => {
-    if (!localRecord || !selectedProject?.projectCode) return;
+    if (!localRecord || !projectCode) return;
     const currentVal = (localRecord as unknown as Record<string, unknown>)[field];
     const origVal = record ? (record as unknown as Record<string, unknown>)[field] : undefined;
     if (JSON.stringify(currentVal) === JSON.stringify(origVal)) return;
 
     try {
       setIsSaving(true);
-      await updateRecord(selectedProject?.projectCode, { [field]: currentVal } as Partial<IMarketingProjectRecord>);
+      await updateRecord(projectCode, { [field]: currentVal } as Partial<IMarketingProjectRecord>);
       // Fire-and-forget audit
       dataService.logAudit({
         Action: AuditAction.ProjectRecordUpdated,
         EntityType: EntityType.ProjectRecord,
-        EntityId: selectedProject?.projectCode,
-        ProjectCode: selectedProject?.projectCode,
+        EntityId: projectCode,
+        ProjectCode: projectCode,
         User: currentUser?.displayName || 'Unknown',
         UserId: currentUser?.id,
         FieldChanged: field,
         NewValue: String(currentVal ?? ''),
-        Details: `Updated ${field} on project record ${selectedProject?.projectCode}`,
+        Details: `Updated ${field} on project record ${projectCode}`,
       }).catch(console.error);
     } catch (err) {
       console.error('Auto-save failed:', err);
@@ -219,22 +222,22 @@ export const ProjectRecord: React.FC = () => {
   };
 
   const handleCreateRecord = async (): Promise<void> => {
-    if (!selectedProject?.projectCode) return;
+    if (!projectCode) return;
     try {
       setIsCreating(true);
       const created = await createRecord({
-        projectName: selectedProject?.projectCode,
-        projectCode: selectedProject?.projectCode,
+        projectName: projectCode,
+        projectCode: projectCode,
       });
       setLocalRecord({ ...created });
       dataService.logAudit({
         Action: AuditAction.ProjectRecordCreated,
         EntityType: EntityType.ProjectRecord,
-        EntityId: selectedProject?.projectCode,
-        ProjectCode: selectedProject?.projectCode,
+        EntityId: projectCode,
+        ProjectCode: projectCode,
         User: currentUser?.displayName || 'Unknown',
         UserId: currentUser?.id,
-        Details: `Project record created for ${selectedProject?.projectCode}`,
+        Details: `Project record created for ${projectCode}`,
       }).catch(console.error);
     } catch (err) {
       console.error('Failed to create record:', err);
@@ -434,7 +437,7 @@ export const ProjectRecord: React.FC = () => {
   if (!localRecord && !record) {
     return (
       <div style={{ padding: '48px', textAlign: 'center' }}>
-        <PageHeader title="Marketing Project Record" subtitle={selectedProject?.projectCode || ''} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
+        <PageHeader title="Marketing Project Record" subtitle={projectCode || ''} breadcrumb={<Breadcrumb items={breadcrumbs} />} />
         <div style={cardStyle}>
           <h3 style={{ color: HBC_COLORS.gray500, marginBottom: '16px' }}>No Project Record Found</h3>
           <p style={{ color: HBC_COLORS.gray400, marginBottom: '24px' }}>

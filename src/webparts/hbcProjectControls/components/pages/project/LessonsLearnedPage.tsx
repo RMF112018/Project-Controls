@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useLocation } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useLessonsLearned } from '../../hooks/useLessonsLearned';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
@@ -28,9 +29,10 @@ const cardStyle: React.CSSProperties = { backgroundColor: '#fff', borderRadius: 
 export const LessonsLearnedPage: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject, hasPermission, dataService, currentUser } = useAppContext();
+  const { hasPermission, dataService, currentUser } = useAppContext();
   const { lessons, isLoading, error, fetchLessons, addLesson, updateLesson } = useLessonsLearned();
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
   const canEdit = hasPermission(PERMISSIONS.LESSONS_EDIT);
   const [filterCategory, setFilterCategory] = React.useState<string>('');
   const [filterImpact, setFilterImpact] = React.useState<string>('');

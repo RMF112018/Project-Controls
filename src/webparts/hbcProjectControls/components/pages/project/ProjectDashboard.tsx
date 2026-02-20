@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useLeads } from '../../hooks/useLeads';
 import { useStartupChecklist } from '../../hooks/useStartupChecklist';
 import { PageHeader } from '../../shared/PageHeader';
@@ -57,11 +58,13 @@ const quickActionCardStyle: React.CSSProperties = {
   border: `1px solid ${HBC_COLORS.gray200}`,
 };
 
-export const ProjectDashboard: React.FC = () => {
+const ProjectDashboardComponent: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
   const navigate = useNavigate();
-  const { selectedProject: selectedProjectCtx, hasPermission } = useAppContext();
+  const { hasPermission } = useAppContext();
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
   const { leads, isLoading, fetchLeads } = useLeads();
   const { items: checklistItems, fetchChecklist } = useStartupChecklist();
   const [project, setProject] = React.useState<ILead | null>(null);
@@ -71,17 +74,17 @@ export const ProjectDashboard: React.FC = () => {
   }, [fetchLeads]);
 
   React.useEffect(() => {
-    if (selectedProjectCtx?.projectCode) {
-      fetchChecklist(selectedProjectCtx?.projectCode).catch(console.error);
+    if (projectCode) {
+      fetchChecklist(projectCode).catch(console.error);
     }
-  }, [selectedProjectCtx?.projectCode, fetchChecklist]);
+  }, [projectCode, fetchChecklist]);
 
   React.useEffect(() => {
-    if (leads.length > 0 && selectedProjectCtx?.projectCode) {
-      const found = leads.find(l => l.ProjectCode === selectedProjectCtx?.projectCode);
+    if (leads.length > 0 && projectCode) {
+      const found = leads.find(l => l.ProjectCode === projectCode);
       setProject(found || null);
     }
-  }, [leads, selectedProjectCtx?.projectCode]);
+  }, [leads, projectCode]);
 
   if (isLoading) return <SkeletonLoader variant="kpi-grid" columns={3} />;
 
@@ -89,7 +92,7 @@ export const ProjectDashboard: React.FC = () => {
     return (
       <div style={{ padding: '48px', textAlign: 'center' }}>
         <h2 style={{ color: HBC_COLORS.gray500 }}>Project not found</h2>
-        <p style={{ color: HBC_COLORS.gray400 }}>No project matches code: {selectedProjectCtx?.projectCode || 'unknown'}</p>
+        <p style={{ color: HBC_COLORS.gray400 }}>No project matches code: {projectCode || 'unknown'}</p>
       </div>
     );
   }
@@ -233,3 +236,5 @@ export const ProjectDashboard: React.FC = () => {
     </div>
   );
 };
+
+export const ProjectDashboard = React.memo(ProjectDashboardComponent);

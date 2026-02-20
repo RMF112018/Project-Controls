@@ -1,5 +1,4 @@
 import { QueryClient } from '@tanstack/react-query';
-import { Stage } from '@hbc/sp-services';
 import type { IDataService } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from '../routeContext';
 
@@ -16,7 +15,7 @@ const { requireFeature } = require('../guards/requireFeature') as { requireFeatu
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { requirePermission } = require('../guards/requirePermission') as { requirePermission: (context: ITanStackRouteContext, permission: string) => void };
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { requireProject } = require('../guards/requireProject') as { requireProject: (context: ITanStackRouteContext) => void };
+const { requireProject } = require('../guards/requireProject') as { requireProject: (projectId?: string | null) => void };
 
 function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRouteContext {
   const base: ITanStackRouteContext = {
@@ -30,16 +29,12 @@ function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRout
       roles: [],
       permissions: new Set(['permission:read']),
     },
+    activeProjectCode: 'P-1001',
     scope: {
       mode: 'mock',
       siteContext: 'hub',
       siteUrl: 'https://tenant.sharepoint.com/sites/HBCentral',
       projectCode: null,
-    },
-    selectedProject: {
-      projectCode: 'P-1001',
-      projectName: 'Pilot Project',
-      stage: Stage.ActiveConstruction,
     },
     isFeatureEnabled: (featureName: string) => featureName === 'EnabledFeature',
   };
@@ -59,8 +54,11 @@ describe('tanstack router guard helpers', () => {
   });
 
   it('requireProject throws when selected project is missing', () => {
-    const context = buildContext({ selectedProject: null });
-    expect(() => requireProject(context)).toThrow();
+    expect(() => requireProject(null)).toThrow();
+  });
+
+  it('requireProject does not throw when project id is present', () => {
+    expect(() => requireProject('P-1001')).not.toThrow();
   });
 
   it('requireFeature throws when the feature is disabled', () => {

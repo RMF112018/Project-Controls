@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useLocation } from '@router';
-import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useLeads } from '../../hooks/useLeads';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { PageHeader } from '../../shared/PageHeader';
@@ -24,7 +24,6 @@ const textareaStyle: React.CSSProperties = { ...inputStyle, minHeight: 80, resiz
 export const InterviewPrep: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
   const { interviewPrep, fetchInterviewPrep, saveInterviewPrep, scheduleRedTeamReview, teamMembers, fetchTeamMembers } = useWorkflow();
   const [project, setProject] = React.useState<ILead | null>(null);
@@ -39,7 +38,8 @@ export const InterviewPrep: React.FC = () => {
   const [teamAssignments, setTeamAssignments] = React.useState('');
   const [rehearsalDate, setRehearsalDate] = React.useState('');
 
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
 
   React.useEffect(() => { fetchLeads().catch(console.error); }, [fetchLeads]);
   React.useEffect(() => {

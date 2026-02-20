@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useLocation } from '@router';
-import { useAppContext } from '../../contexts/AppContext';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
 import { useLeads } from '../../hooks/useLeads';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { PageHeader } from '../../shared/PageHeader';
@@ -25,7 +25,6 @@ const CONTRACT_STEPS: ContractStatus[] = ['Draft', 'In Review', 'Executed'];
 export const ContractTracking: React.FC = () => {
   const location = useLocation();
   const breadcrumbs = buildBreadcrumbs(location.pathname);
-  const { selectedProject } = useAppContext();
   const { leads, fetchLeads, isLoading: leadsLoading } = useLeads();
   const { contractInfo, fetchContractInfo, saveContractInfo, transitionStage } = useWorkflow();
   const [project, setProject] = React.useState<ILead | null>(null);
@@ -42,7 +41,8 @@ export const ContractTracking: React.FC = () => {
   const [substantialCompletion, setSubstantialCompletion] = React.useState('');
   const [finalCompletion, setFinalCompletion] = React.useState('');
 
-  const projectCode = selectedProject?.projectCode ?? '';
+  const { projectCode: activeProjectCode } = useProjectSelection();
+  const projectCode = activeProjectCode ?? '';
 
   React.useEffect(() => { fetchLeads().catch(console.error); }, [fetchLeads]);
   React.useEffect(() => {
