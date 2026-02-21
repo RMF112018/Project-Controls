@@ -1,7 +1,23 @@
 import * as React from 'react';
+import {
+  Home20Regular,
+  Notepad20Regular,
+  BuildingFactory20Regular,
+  Settings20Regular,
+} from '@fluentui/react-icons';
 import { useTransitionNavigate } from '../hooks/router/useTransitionNavigate';
+import { useAppLocation } from '../hooks/router/useAppLocation';
+import { useAppContext } from '../contexts/AppContext';
+import { getActivePillar, type PillarId } from './PillarTabBar';
 import { HBC_COLORS } from '../../theme/tokens';
 import { IBreadcrumbItem } from '@hbc/sp-services';
+
+const PILLAR_ICONS: Record<PillarId, React.ReactNode> = {
+  hub: <Home20Regular />,
+  precon: <Notepad20Regular />,
+  ops: <BuildingFactory20Regular />,
+  admin: <Settings20Regular />,
+};
 
 interface IBreadcrumbProps {
   items: IBreadcrumbItem[];
@@ -9,6 +25,10 @@ interface IBreadcrumbProps {
 
 export const Breadcrumb: React.FC<IBreadcrumbProps> = ({ items }) => {
   const navigate = useTransitionNavigate();
+  const location = useAppLocation();
+  const { isFeatureEnabled } = useAppContext();
+  const enhancedNav = isFeatureEnabled('uxEnhancedNavigationV1');
+  const activePillar = getActivePillar(location.pathname);
 
   if (items.length <= 1) return null;
 
@@ -17,6 +37,11 @@ export const Breadcrumb: React.FC<IBreadcrumbProps> = ({ items }) => {
       aria-label="Breadcrumb"
       style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', flexWrap: 'wrap' }}
     >
+      {enhancedNav && (
+        <span style={{ display: 'flex', alignItems: 'center', color: HBC_COLORS.gray400, marginRight: '2px' }} aria-hidden="true">
+          {PILLAR_ICONS[activePillar]}
+        </span>
+      )}
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
         return (

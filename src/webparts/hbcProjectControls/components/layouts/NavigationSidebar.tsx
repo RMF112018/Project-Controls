@@ -5,8 +5,11 @@ import { useTransitionNavigate } from '../hooks/router/useTransitionNavigate';
 import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
 import { useAppContext } from '../contexts/AppContext';
 import { ProjectPicker } from '../shared/ProjectPicker';
+import { EnhancedProjectPicker } from '../shared/EnhancedProjectPicker';
+import { ContextKPIStrip } from '../shared/ContextKPIStrip';
 import { HBC_COLORS, TRANSITION } from '../../theme/tokens';
 import { NAV_GROUP_ROLES, PERMISSIONS } from '@hbc/sp-services';
+import { getActivePillar, getPillarGroupKeys } from '../shared/PillarTabBar';
 
 const useStyles = makeStyles({
   nav: {
@@ -281,6 +284,7 @@ export const NavigationSidebar: React.FC = () => {
   const location = useAppLocation();
   const router = useRouter();
   const { currentUser, selectedProject, setSelectedProject, hasPermission, isFeatureEnabled, isProjectSite } = useAppContext();
+  const enhancedNavEnabled = isFeatureEnabled('uxEnhancedNavigationV1');
 
   // Stable preload callback — router instance is a singleton (useRef-backed).
   const handlePreload = React.useCallback((path: string) => {
@@ -289,10 +293,17 @@ export const NavigationSidebar: React.FC = () => {
 
   const userRoles = currentUser?.roles ?? [];
 
+  // When enhanced nav is enabled, only show groups belonging to the active pillar
+  const activePillar = getActivePillar(location.pathname);
+  const pillarGroupKeys = React.useMemo(() => getPillarGroupKeys(activePillar), [activePillar]);
+
   const isGroupVisible = (groupKey: string): boolean => {
     const allowedRoles = NAV_GROUP_ROLES[groupKey];
     if (!allowedRoles) return false;
-    return userRoles.some(r => allowedRoles.includes(r));
+    if (!userRoles.some(r => allowedRoles.includes(r))) return false;
+    // When enhanced nav is enabled, filter to active pillar's groups
+    if (enhancedNavEnabled && !pillarGroupKeys.includes(groupKey)) return false;
+    return true;
   };
 
   const isItemVisible = (item: INavItem): boolean => {
@@ -310,7 +321,14 @@ export const NavigationSidebar: React.FC = () => {
   return (
     <nav className={styles.nav} aria-label="Main navigation">
       {/* Project Picker */}
-      <ProjectPicker selected={selectedProject} onSelect={setSelectedProject} locked={isProjectSite} />
+      {enhancedNavEnabled ? (
+        <EnhancedProjectPicker selected={selectedProject} onSelect={setSelectedProject} locked={isProjectSite} />
+      ) : (
+        <ProjectPicker selected={selectedProject} onSelect={setSelectedProject} locked={isProjectSite} />
+      )}
+
+      {/* KPI Strip — only when enhanced nav + project selected */}
+      {enhancedNavEnabled && <ContextKPIStrip />}
 
       {/* Dashboard — always visible */}
       <div className={styles.dashboardSection}>

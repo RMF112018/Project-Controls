@@ -30,6 +30,8 @@ export interface IDashboardPreference {
   updatedAt: string;
 }
 
+export type ProjectHealthStatus = 'Green' | 'Yellow' | 'Red';
+
 export interface ISelectedProject {
   projectCode: string;
   projectName: string;
@@ -38,6 +40,9 @@ export interface ISelectedProject {
   division?: string;
   leadId?: number;
   siteUrl?: string;  // Project SP site URL (set on project sites, optional on hub selection)
+  clientName?: string;
+  projectValue?: number;
+  overallHealth?: ProjectHealthStatus;
 }
 
 export interface IAppContextValue {
@@ -56,6 +61,7 @@ export interface IAppContextValue {
   isFullScreen: boolean;
   toggleFullScreen: () => void;
   exitFullScreen: () => void;
+  isProjectSwitching: boolean;
   dataServiceMode: 'mock' | 'standalone' | 'sharepoint';
   isOnline: boolean;
   dashboardPreferences: Record<string, IDashboardPreference>;
@@ -88,6 +94,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
   const [error, setError] = React.useState<string | null>(null);
   const [selectedProject, setSelectedProject] = React.useState<ISelectedProject | null>(null);
   const [resolvedPermissions, setResolvedPermissions] = React.useState<IResolvedPermissions | null>(null);
+  const [isProjectSwitching, setIsProjectSwitching] = React.useState(false);
   const [dashboardPreferences, setDashboardPreferences] = React.useState<Record<string, IDashboardPreference>>({});
 
   // Site detection — compute once on mount
@@ -134,9 +141,16 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
   }, []);
 
   // Guard: cannot clear project on project-specific sites
+  const switchTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
   const handleSetSelectedProject = React.useCallback((project: ISelectedProject | null) => {
     if (isProjectSite && project === null) return;
     setSelectedProject(project);
+    if (project) {
+      setIsProjectSwitching(true);
+      clearTimeout(switchTimerRef.current);
+      // Auto-dismiss after 400ms max — TanStack Query cache usually resolves faster
+      switchTimerRef.current = setTimeout(() => setIsProjectSwitching(false), 400);
+    }
   }, [isProjectSite]);
 
   // Helper: check if PermissionEngine flag is enabled in a given set of flags
@@ -333,6 +347,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     isFeatureEnabled,
     resolvedPermissions,
     isProjectSite,
+    isProjectSwitching,
     isFullScreen,
     toggleFullScreen,
     exitFullScreen,
@@ -342,7 +357,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     getDashboardPreference,
     setDashboardPreference,
     resetDashboardPreference,
-  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode, isOnline, dashboardPreferences, getDashboardPreference, setDashboardPreference, resetDashboardPreference]);
+  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isProjectSwitching, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode, isOnline, dashboardPreferences, getDashboardPreference, setDashboardPreference, resetDashboardPreference]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

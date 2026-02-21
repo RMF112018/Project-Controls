@@ -93,6 +93,28 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground3,
     fontSize: tokens.fontSizeBase200,
   },
+  sectionDivider: {
+    ...shorthands.padding(tokens.spacingVerticalXS, tokens.spacingHorizontalM),
+    fontSize: tokens.fontSizeBase200,
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground3,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    marginBlockStart: tokens.spacingVerticalXS,
+  },
+  kbdHint: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    ...shorthands.gap(tokens.spacingHorizontalXS),
+    ...shorthands.padding('2px', '6px'),
+    ...shorthands.borderRadius(tokens.borderRadiusSmall),
+    backgroundColor: tokens.colorNeutralBackground3,
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
+    fontSize: '11px',
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground3,
+    fontFamily: 'inherit',
+  },
   empty: {
     ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalM),
     color: tokens.colorNeutralForeground3,
@@ -208,7 +230,12 @@ export const HbcCommandPalette: React.FC<IHbcCommandPaletteProps> = ({
     <Dialog open={open} onOpenChange={(_, data) => onOpenChange(data.open)}>
       <DialogSurface className={styles.surface} aria-label="Command palette">
         <DialogBody className={styles.body}>
-          <DialogTitle>Command Palette</DialogTitle>
+          <DialogTitle>
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              Command Palette
+              <span className={styles.kbdHint} aria-hidden="true">Ctrl+K</span>
+            </span>
+          </DialogTitle>
           <DialogContent>
             <Input
               autoFocus
@@ -226,24 +253,34 @@ export const HbcCommandPalette: React.FC<IHbcCommandPaletteProps> = ({
               {visibleCommands.length === 0 ? (
                 <div className={styles.empty}>{emptyState ?? 'No commands match your search.'}</div>
               ) : (
-                visibleCommands.map((command, index) => (
-                  <button
-                    key={command.id}
-                    id={`hbc-command-${command.id}`}
-                    type="button"
-                    role="option"
-                    aria-selected={index === activeIndex}
-                    className={mergeClasses(styles.option, index === activeIndex ? styles.optionActive : undefined)}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    onClick={() => runCommand(command)}
-                  >
-                    <span className={styles.optionLabel}>
-                      {command.icon}
-                      {command.label}
-                    </span>
-                    {command.section ? <span className={styles.optionMeta}>{command.section}</span> : null}
-                  </button>
-                ))
+                visibleCommands.map((command, index) => {
+                  const prevSection = index > 0 ? visibleCommands[index - 1].section : undefined;
+                  const showSectionHeader = command.section && command.section !== prevSection;
+                  return (
+                    <React.Fragment key={command.id}>
+                      {showSectionHeader && (
+                        <div className={styles.sectionDivider} role="separator">
+                          {command.section}
+                        </div>
+                      )}
+                      <button
+                        id={`hbc-command-${command.id}`}
+                        type="button"
+                        role="option"
+                        aria-selected={index === activeIndex}
+                        className={mergeClasses(styles.option, index === activeIndex ? styles.optionActive : undefined)}
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onClick={() => runCommand(command)}
+                      >
+                        <span className={styles.optionLabel}>
+                          {command.icon}
+                          {command.label}
+                        </span>
+                        {command.section ? <span className={styles.optionMeta}>{command.section}</span> : null}
+                      </button>
+                    </React.Fragment>
+                  );
+                })
               )}
             </div>
           </DialogContent>

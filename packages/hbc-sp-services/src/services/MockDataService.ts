@@ -214,6 +214,15 @@ const REQUIRED_PROMPT6_FEATURE_FLAGS: ReadonlyArray<Omit<IFeatureFlag, 'id'>> = 
     Notes: 'Prompt 6 undo/progress/action toasts',
     Category: 'Infrastructure',
   },
+  {
+    FeatureName: 'uxEnhancedNavigationV1',
+    DisplayName: 'Enhanced Navigation UX v1',
+    Enabled: false,
+    EnabledForRoles: undefined,
+    TargetDate: undefined,
+    Notes: 'Pillar tabs, enhanced project picker, Mac bar status pill, command palette unification',
+    Category: 'Infrastructure',
+  },
 ];
 
 function ensurePrompt6FeatureFlags(flags: IFeatureFlag[]): IFeatureFlag[] {

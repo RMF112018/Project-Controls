@@ -15,9 +15,16 @@ import type { IHbcInsightItem } from '../shared/HbcInsightsPanel';
 import { useHbcMotionStyles } from '../shared/HbcMotion';
 import { HelpMenu, HelpPanel, GuidedTour, ContactSupportDialog } from '../help';
 import { FeatureGate } from '../guards';
+import { PillarTabBar } from '../shared/PillarTabBar';
+import { MacBarStatusPill } from '../shared/MacBarStatusPill';
+import { ShellHydrationOverlay } from '../shared/ShellHydrationOverlay';
 import { useResponsive } from '../hooks/useResponsive';
 import { useCurrentModule } from '../hooks/useCurrentModule';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
+import { useTransitionNavigate } from '../hooks/router/useTransitionNavigate';
+import { useLeads } from '../hooks/useLeads';
+import { isActiveStage } from '@hbc/sp-services';
+import type { ISelectedProject } from '../contexts/AppContext';
 import { IEnvironmentConfig, APP_VERSION } from '@hbc/sp-services';
 import { ArrowMaximize24Regular, ArrowMinimize24Regular } from '@fluentui/react-icons';
 import { HBC_COLORS, SPACING, ELEVATION, TRANSITION } from '../../theme/tokens';
@@ -204,7 +211,7 @@ interface IAppShellProps {
 export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
   const styles = useStyles();
   const motionStyles = useHbcMotionStyles();
-  const { isLoading, error, currentUser, dataService, isFeatureEnabled, isFullScreen, toggleFullScreen, exitFullScreen, isOnline } = useAppContext();
+  const { isLoading, error, currentUser, dataService, isFeatureEnabled, isFullScreen, toggleFullScreen, exitFullScreen, isOnline, setSelectedProject } = useAppContext();
   const { isMobile, isTablet } = useResponsive();
   const { setCurrentModuleKey, isHelpPanelOpen, helpPanelMode, startTour: startHelpTour, isTourActive } = useHelp();
   const currentModuleKey = useCurrentModule();
@@ -212,6 +219,48 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
   const [whatsNewOpen, setWhatsNewOpen] = React.useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = React.useState(false);
   const [isInsightsPanelOpen, setIsInsightsPanelOpen] = React.useState(false);
+  const appNavigate = useTransitionNavigate();
+  const { leads } = useLeads();
+
+  // Project commands for enhanced command palette
+  const projectCommands = React.useMemo<IHbcCommandPaletteCommand[]>(() => {
+    if (!isFeatureEnabled('uxEnhancedNavigationV1')) return [];
+    return leads
+      .filter(l => l.ProjectCode && isActiveStage(l.Stage))
+      .slice(0, 20)
+      .map(l => ({
+        id: `project-${l.ProjectCode}`,
+        label: `Switch to ${l.Title}`,
+        keywords: [l.ProjectCode!, l.Title, l.Region || '', l.Division || ''].filter(Boolean),
+        section: 'Projects',
+        run: () => {
+          const project: ISelectedProject = {
+            projectCode: l.ProjectCode!,
+            projectName: l.Title,
+            stage: l.Stage,
+            region: l.Region,
+            division: l.Division,
+            leadId: l.id,
+          };
+          setSelectedProject(project);
+        },
+      }));
+  }, [leads, isFeatureEnabled, setSelectedProject]);
+
+  // Navigation commands for enhanced command palette
+  const navCommands = React.useMemo<IHbcCommandPaletteCommand[]>(() => {
+    if (!isFeatureEnabled('uxEnhancedNavigationV1')) return [];
+    return [
+      { id: 'nav-dashboard', label: 'Go to Dashboard', keywords: ['home'], section: 'Navigation', run: () => appNavigate('/') },
+      { id: 'nav-pipeline', label: 'Go to Pipeline', keywords: ['pipeline', 'leads'], section: 'Navigation', run: () => appNavigate('/preconstruction/pipeline') },
+      { id: 'nav-precon', label: 'Go to Estimating Dashboard', keywords: ['estimating', 'preconstruction'], section: 'Navigation', run: () => appNavigate('/preconstruction') },
+      { id: 'nav-marketing', label: 'Go to Marketing', keywords: ['marketing'], section: 'Navigation', run: () => appNavigate('/marketing') },
+      { id: 'nav-project', label: 'Go to Project Dashboard', keywords: ['project', 'operations'], section: 'Navigation', run: () => appNavigate('/operations/project') },
+      { id: 'nav-buyout', label: 'Go to Buyout Log', keywords: ['buyout', 'log'], section: 'Navigation', run: () => appNavigate('/operations/buyout-log') },
+      { id: 'nav-schedule', label: 'Go to Schedule', keywords: ['schedule', 'gantt'], section: 'Navigation', run: () => appNavigate('/operations/schedule') },
+      { id: 'nav-admin', label: 'Go to Admin Panel', keywords: ['admin', 'settings'], section: 'Navigation', run: () => appNavigate('/admin') },
+    ];
+  }, [isFeatureEnabled, appNavigate]);
 
   const commandPaletteCommands = React.useMemo<IHbcCommandPaletteCommand[]>(() => [
     {
@@ -256,7 +305,9 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
       requiredFeatureFlags: ['uxInsightsPanelV1'],
       run: () => setIsInsightsPanelOpen(true),
     },
-  ], [currentModuleKey, isFullScreen, mobileNavOpen, startHelpTour, toggleFullScreen]);
+    ...navCommands,
+    ...projectCommands,
+  ], [currentModuleKey, isFullScreen, mobileNavOpen, startHelpTour, toggleFullScreen, navCommands, projectCommands]);
 
   // Keyboard shortcuts
   useKeyboardShortcut([
@@ -400,11 +451,19 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
               {ENV_BADGE_LABELS[envConfig.currentTier] || envConfig.currentTier.toUpperCase()}
             </span>
           )}
+          {!isMobile && (
+            <FeatureGate featureName="uxEnhancedNavigationV1">
+              <PillarTabBar />
+            </FeatureGate>
+          )}
         </div>
 
         {!isMobile && <SearchBar />}
 
         <div className={styles.headerRight}>
+          <FeatureGate featureName="uxEnhancedNavigationV1">
+            <MacBarStatusPill />
+          </FeatureGate>
           <button
             onClick={toggleFullScreen}
             className={styles.fullScreenBtn}
@@ -460,7 +519,9 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
             isMobile ? styles.mainMobile : styles.mainDesktop,
             enableMotion ? motionStyles.routeTransition : undefined
           )}
+          style={{ position: 'relative' }}
         >
+          {isFeatureEnabled('uxEnhancedNavigationV1') && <ShellHydrationOverlay />}
           {children}
         </main>
       </div>

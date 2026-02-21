@@ -108,6 +108,9 @@ The TanStack Router instance MUST be created exactly once (via `useRef` in `rout
 
 - NavigationSidebar: `NavItemComponent` MUST be `React.memo` with stable `onNavigate` prop (never pass `() => navigate(path)` — pass `navigate` directly and let child invoke with its `path` prop). Route preloading via `router.preloadRoute()` on hover.
 
+**Navigation UX Architecture (uxEnhancedNavigationV1)**
+4-pillar tab bar (Hub|Precon|Ops|Admin) in AppShell header, driven by `PillarTabBar` component using `useTransitionNavigate`. Sidebar filters NavGroups to active pillar. `EnhancedProjectPicker` replaces ProjectPicker behind feature flag — Fluent Popover with Recent/Favorites/All sections, fuzzy search, KPI hover preview via `ProjectPreviewPane`. `MacBarStatusPill` in header shows selected project health. `ShellHydrationOverlay` during project switch (max 400ms). `useNavProfile` hook manages localStorage favorites/recent. All gated by FeatureGate. No router creation changes.
+
 See `CODE_ARCHITECTURE_GUIDE.md` for full folder and dependency rules.
 
 ---
@@ -131,6 +134,8 @@ Last major additions: GitOps Provisioning (Feb 18) + Constraints/Permits/Schedul
 - TanStack Table Wave-2 complete (legacy DataTable removed for new surfaces)  
 - Consolidated 8 Skills deployed for performance and Schedule v2.0 domains  
 
+- Navigation UX enhancement complete: PillarTabBar, EnhancedProjectPicker, MacBarStatusPill, ContextKPIStrip, HbcCommandPalette unification (Phases 0-6, feature-flagged under `uxEnhancedNavigationV1`)
+
 **Next steps:** Full E2E coverage expansion and Sprint 3 gate enforcement.  
 
 See `FEATURE_DEVELOPMENT_BLUEPRINT.md` for new domain patterns, `PERFORMANCE_OPTIMIZATION_GUIDE.md` for optimization framework, and `SKILLS_OVERVIEW.md` for active Skills.
@@ -153,6 +158,11 @@ See `FEATURE_DEVELOPMENT_BLUEPRINT.md` for new domain patterns, `PERFORMANCE_OPT
 - RBAC, permissions, guards, audit → `SECURITY_PERMISSIONS_GUIDE.md`  
 - Full Skills index and triggers → `SKILLS_OVERVIEW.md`  
 - Evolving decisions and session facts → project memory (`MEMORY.md`)  
+
+- **PillarTabBar must use `useTransitionNavigate`** — never `router.navigate()` directly. Tab bar reads `location.pathname` via `useAppLocation()` for active state.
+- **EnhancedProjectPicker uses Fluent Popover** (portal-based) — never Dialog (would steal focus from sidebar context). Popover `onOpenChange` must close before `startTransition(() => onSelect(project))` to prevent click-outside race.
+- **useNavProfile localStorage key**: `hbc:nav-profile:{email}` — always scope to user email. Max 5 recent (FIFO), unlimited favorites.
+- **ShellHydrationOverlay**: dismiss via `useIsFetching` (never global). Minimum 200ms display to prevent flash.
 
 **Keep CLAUDE.md lean** — archive aggressively to CLAUDE_ARCHIVE.md.
 
