@@ -5,7 +5,7 @@ import {
   BuildingFactory20Regular,
   Settings20Regular,
 } from '@fluentui/react-icons';
-import { useTransitionNavigate } from '../hooks/router/useTransitionNavigate';
+import { useAppNavigate } from '../hooks/router/useAppNavigate';
 import { useAppLocation } from '../hooks/router/useAppLocation';
 import { useAppContext } from '../contexts/AppContext';
 import { getActivePillar, type PillarId } from './PillarTabBar';
@@ -24,7 +24,7 @@ interface IBreadcrumbProps {
 }
 
 export const Breadcrumb: React.FC<IBreadcrumbProps> = ({ items }) => {
-  const navigate = useTransitionNavigate();
+  const navigate = useAppNavigate();
   const location = useAppLocation();
   const { isFeatureEnabled } = useAppContext();
   const enhancedNav = isFeatureEnabled('uxEnhancedNavigationV1');

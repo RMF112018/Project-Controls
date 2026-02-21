@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useRouter } from '@tanstack/react-router';
 import { useAppLocation } from '../hooks/router/useAppLocation';
-import { useTransitionNavigate } from '../hooks/router/useTransitionNavigate';
+import { useAppNavigate } from '../hooks/router/useAppNavigate';
 import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
 import { useAppContext } from '../contexts/AppContext';
 import { ProjectPicker } from '../shared/ProjectPicker';
@@ -280,7 +280,8 @@ const NavSubGroup: React.FC<{
 
 export const NavigationSidebar: React.FC = () => {
   const styles = useStyles();
-  const navigate = useTransitionNavigate();
+  // §4: useAppNavigate returns ref-stable callback — see Router Stability Rule
+  const navigate = useAppNavigate();
   const location = useAppLocation();
   const router = useRouter();
   const { currentUser, selectedProject, setSelectedProject, hasPermission, isFeatureEnabled, isProjectSite } = useAppContext();
@@ -297,26 +298,26 @@ export const NavigationSidebar: React.FC = () => {
   const activePillar = getActivePillar(location.pathname);
   const pillarGroupKeys = React.useMemo(() => getPillarGroupKeys(activePillar), [activePillar]);
 
-  const isGroupVisible = (groupKey: string): boolean => {
+  // §4: Stable callbacks prevent re-render cascade through NAV_STRUCTURE.map()
+  const isGroupVisible = React.useCallback((groupKey: string): boolean => {
     const allowedRoles = NAV_GROUP_ROLES[groupKey];
     if (!allowedRoles) return false;
     if (!userRoles.some(r => allowedRoles.includes(r))) return false;
-    // When enhanced nav is enabled, filter to active pillar's groups
     if (enhancedNavEnabled && !pillarGroupKeys.includes(groupKey)) return false;
     return true;
-  };
+  }, [userRoles, enhancedNavEnabled, pillarGroupKeys]);
 
-  const isItemVisible = (item: INavItem): boolean => {
+  const isItemVisible = React.useCallback((item: INavItem): boolean => {
     if (item.featureFlag && !isFeatureEnabled(item.featureFlag)) return false;
     if (item.permission && !hasPermission(item.permission)) return false;
     if (item.hubOnly && selectedProject) return false;
     return true;
-  };
+  }, [isFeatureEnabled, hasPermission, selectedProject]);
 
-  const isActivePath = (path: string): boolean => {
+  const isActivePath = React.useCallback((path: string): boolean => {
     if (path === '/') return location.pathname === '/';
     return location.pathname === path || location.pathname.startsWith(path + '/');
-  };
+  }, [location.pathname]);
 
   return (
     <nav className={styles.nav} aria-label="Main navigation">

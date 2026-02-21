@@ -18,17 +18,15 @@ import { FeatureGate } from '../guards';
 import { PillarTabBar } from '../shared/PillarTabBar';
 import { MacBarStatusPill } from '../shared/MacBarStatusPill';
 import { ShellHydrationOverlay } from '../shared/ShellHydrationOverlay';
-import { MobileBottomNav } from '../shared/MobileBottomNav';
-import { useSwitchProject } from '../hooks/useSwitchProject';
+import { useNavProfile } from '../hooks/useNavProfile';
 import { useResponsive } from '../hooks/useResponsive';
 import { useCurrentModule } from '../hooks/useCurrentModule';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
-import { useTransitionNavigate } from '../hooks/router/useTransitionNavigate';
+import { useAppNavigate } from '../hooks/router/useAppNavigate';
 import { useLeads } from '../hooks/useLeads';
-import { isActiveStage, ProjectService, MockProjectService, UserProfileService, MockUserProfileService } from '@hbc/sp-services';
+import { isActiveStage } from '@hbc/sp-services';
 import type { ISelectedProject } from '../contexts/AppContext';
 import { IEnvironmentConfig, APP_VERSION } from '@hbc/sp-services';
-import { NavigationServicesProvider, useNavigationServices } from '../contexts/NavigationServicesContext';
 import { ArrowMaximize24Regular, ArrowMinimize24Regular } from '@fluentui/react-icons';
 import { HBC_COLORS, SPACING, ELEVATION, TRANSITION } from '../../theme/tokens';
 
@@ -193,9 +191,6 @@ const useStyles = makeStyles({
       backgroundColor: 'rgba(255,255,255,0.15)',
     },
   },
-  mainMobileBottomNav: {
-    paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
-  },
   devToggle: {
     ...shorthands.border('1px', 'solid', 'rgba(255,255,255,0.3)'),
     ...shorthands.borderRadius('4px'),
@@ -235,52 +230,8 @@ interface IAppShellProps {
 
 export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
   const styles = useStyles();
-  const { isLoading, error, dataService, dataServiceMode } = useAppContext();
-
-  // Navigation domain services — created here so they're available to the provider
-  const projectService = React.useMemo(
-    () => dataServiceMode === 'mock' ? new MockProjectService() : new ProjectService(dataService),
-    [dataService, dataServiceMode]
-  );
-  const userProfileService = React.useMemo(
-    () => dataServiceMode === 'mock' ? new MockUserProfileService() : new UserProfileService(),
-    [dataServiceMode]
-  );
-
-  if (isLoading) {
-    return (
-      <div className={styles.loadingContainer}>
-        <SkeletonLoader variant="text" rows={1} style={{ marginBottom: '24px', maxWidth: '300px' }} />
-        <SkeletonLoader variant="kpi-grid" columns={4} style={{ marginBottom: '32px' }} />
-        <SkeletonLoader variant="table" rows={8} columns={5} />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={styles.errorContainer}>
-        <h2>Unable to load application</h2>
-        <p>{error}</p>
-      </div>
-    );
-  }
-
-  return (
-    <NavigationServicesProvider projectService={projectService} userProfileService={userProfileService}>
-      <AppShellContent>{children}</AppShellContent>
-    </NavigationServicesProvider>
-  );
-};
-
-/**
- * Inner shell content — rendered inside NavigationServicesProvider so hooks
- * like useSwitchProject → useProjectProfile → useNavigationServices work.
- */
-const AppShellContent: React.FC<IAppShellProps> = ({ children }) => {
-  const styles = useStyles();
   const motionStyles = useHbcMotionStyles();
-  const { currentUser, dataService, isFeatureEnabled, isFullScreen, toggleFullScreen, exitFullScreen, isOnline, setSelectedProject, dataServiceMode, selectedProject } = useAppContext();
+  const { currentUser, dataService, isFeatureEnabled, isFullScreen, toggleFullScreen, exitFullScreen, isOnline, setSelectedProject, dataServiceMode, isLoading, error } = useAppContext();
   const { isMobile, isTablet } = useResponsive();
   const { setCurrentModuleKey, isHelpPanelOpen, helpPanelMode, startTour: startHelpTour, isTourActive } = useHelp();
   const currentModuleKey = useCurrentModule();
@@ -289,10 +240,10 @@ const AppShellContent: React.FC<IAppShellProps> = ({ children }) => {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = React.useState(false);
   const [isInsightsPanelOpen, setIsInsightsPanelOpen] = React.useState(false);
   const [devNavOverride, setDevNavOverride] = React.useState(false);
-  const appNavigate = useTransitionNavigate();
+  // §4: useAppNavigate returns ref-stable callback (empty deps) — see Router Stability Rule
+  const appNavigate = useAppNavigate();
   const { leads } = useLeads();
-  const { switchProject } = useSwitchProject();
-  const { userProfileService } = useNavigationServices();
+  const { favorites, recent } = useNavProfile();
 
   // Computed: enhanced nav enabled via feature flag OR dev toggle (mock only)
   const isEnhancedNavEnabled = isFeatureEnabled('uxEnhancedNavigationV1') || devNavOverride;
@@ -300,8 +251,6 @@ const AppShellContent: React.FC<IAppShellProps> = ({ children }) => {
   // Project commands for enhanced command palette — favorites first, then recent, then rest
   const projectCommands = React.useMemo<IHbcCommandPaletteCommand[]>(() => {
     if (!isEnhancedNavEnabled) return [];
-    const email = currentUser?.email ?? '';
-    const profile = email ? userProfileService.getNavProfile(email) : { favorites: [], recent: [] };
 
     const allProjects = leads
       .filter(l => l.ProjectCode && isActiveStage(l.Stage))
@@ -315,8 +264,8 @@ const AppShellContent: React.FC<IAppShellProps> = ({ children }) => {
       }));
 
     // Order: favorites first, then recent, then rest
-    const favSet = new Set(profile.favorites);
-    const recentSet = new Set(profile.recent);
+    const favSet = new Set(favorites);
+    const recentSet = new Set(recent);
     const scored = allProjects.map(p => ({
       ...p,
       priority: favSet.has(p.projectCode) ? 0 : recentSet.has(p.projectCode) ? 1 : 2,
@@ -337,10 +286,10 @@ const AppShellContent: React.FC<IAppShellProps> = ({ children }) => {
           division: p.division,
           leadId: p.leadId,
         };
-        switchProject({ project });
+        setSelectedProject(project);
       },
     }));
-  }, [leads, isEnhancedNavEnabled, switchProject, currentUser?.email, userProfileService]);
+  }, [leads, isEnhancedNavEnabled, setSelectedProject, favorites, recent]);
 
   // Navigation commands for enhanced command palette
   const navCommands = React.useMemo<IHbcCommandPaletteCommand[]>(() => {
@@ -471,6 +420,9 @@ const AppShellContent: React.FC<IAppShellProps> = ({ children }) => {
     }
   }, []);
 
+  // §4: Extract primitive flag for stable useMemo deps — see Router Stability Rule
+  const isHelpSystemEnabled = isFeatureEnabled('EnableHelpSystem');
+
   const insightsItems = React.useMemo<IHbcInsightItem[]>(() => [
     {
       id: 'offline-signal',
@@ -482,11 +434,11 @@ const AppShellContent: React.FC<IAppShellProps> = ({ children }) => {
     },
     {
       id: 'help-system',
-      title: isFeatureEnabled('EnableHelpSystem') ? 'Guided help is enabled' : 'Guided help is disabled',
-      description: isFeatureEnabled('EnableHelpSystem')
+      title: isHelpSystemEnabled ? 'Guided help is enabled' : 'Guided help is disabled',
+      description: isHelpSystemEnabled
         ? 'Use Ctrl+K and search for "tour" to start contextual guidance.'
         : 'Enable the help system feature flag to activate tours and contextual documentation.',
-      severity: isFeatureEnabled('EnableHelpSystem') ? 'info' : 'warning',
+      severity: isHelpSystemEnabled ? 'info' : 'warning',
       isVisible: true,
     },
     {
@@ -497,10 +449,30 @@ const AppShellContent: React.FC<IAppShellProps> = ({ children }) => {
         : 'Press Ctrl+Shift+F to enter focused mode and reduce visual clutter.',
       severity: 'info',
     },
-  ], [isOnline, isFeatureEnabled, isFullScreen]);
+  ], [isOnline, isHelpSystemEnabled, isFullScreen]);
   const enableMotion = isFeatureEnabled('uxDelightMotionV1');
 
   const sidebarWidth = isMobile ? 0 : isTablet ? 48 : 220;
+
+  // Loading / error early exits — placed after all hooks to satisfy React rules-of-hooks
+  if (isLoading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <SkeletonLoader variant="text" rows={1} style={{ marginBottom: '24px', maxWidth: '300px' }} />
+        <SkeletonLoader variant="kpi-grid" columns={4} style={{ marginBottom: '32px' }} />
+        <SkeletonLoader variant="table" rows={8} columns={5} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles.errorContainer}>
+        <h2>Unable to load application</h2>
+        <p>{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className={mergeClasses(styles.root, isFullScreen && styles.rootFullScreen)}>
@@ -600,7 +572,6 @@ const AppShellContent: React.FC<IAppShellProps> = ({ children }) => {
           className={mergeClasses(
             styles.main,
             isMobile ? styles.mainMobile : styles.mainDesktop,
-            isMobile && isEnhancedNavEnabled && styles.mainMobileBottomNav,
             enableMotion ? motionStyles.routeTransition : undefined
           )}
           style={{ position: 'relative' }}
@@ -609,13 +580,6 @@ const AppShellContent: React.FC<IAppShellProps> = ({ children }) => {
           {children}
         </main>
       </div>
-
-      {isMobile && isEnhancedNavEnabled && (
-        <MobileBottomNav
-          selectedProject={selectedProject}
-          onSelectProject={setSelectedProject}
-        />
-      )}
 
       <WhatsNewModal isOpen={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
       <HbcCommandPalette

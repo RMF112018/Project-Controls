@@ -30,7 +30,7 @@ import { StageBadge } from './StageBadge';
 import { ProjectPreviewPane } from './ProjectPreviewPane';
 import { Stage, getStageLabel, isActiveStage } from '@hbc/sp-services';
 import { HBC_COLORS, SPACING, TOUCH_TARGET } from '../../theme/tokens';
-import { useTransitionNavigate } from '../hooks/router/useTransitionNavigate';
+import { useAppNavigate } from '../hooks/router/useAppNavigate';
 
 const useStyles = makeStyles({
   trigger: {
@@ -226,7 +226,8 @@ export const EnhancedProjectPicker: React.FC<IEnhancedProjectPickerProps> = ({ s
   const styles = useStyles();
   const { leads, fetchLeads } = useLeads();
   const { dataService, currentUser, resolvedPermissions } = useAppContext();
-  const navigate = useTransitionNavigate();
+  // §4: useAppNavigate returns ref-stable callback — see Router Stability Rule
+  const navigate = useAppNavigate();
   const navProfile = useNavProfile();
   const [query, setQuery] = React.useState('');
   const [isOpen, setIsOpen] = React.useState(false);

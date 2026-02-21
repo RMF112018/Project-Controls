@@ -109,14 +109,14 @@ The TanStack Router instance MUST be created exactly once (via `useRef` in `rout
 - NavigationSidebar: `NavItemComponent` MUST be `React.memo` with stable `onNavigate` prop (never pass `() => navigate(path)` — pass `navigate` directly and let child invoke with its `path` prop). Route preloading via `router.preloadRoute()` on hover.
 
 - **PillarTabBar must use `useAppNavigate`** — never `useTransitionNavigate`. The `useAppNavigate` hook returns a ref-stable callback (empty deps). `useTransitionNavigate` wraps it in `startTransition`, but TanStack Router's Transitioner already does this — double-wrapping causes concurrent scheduler deadlock. PillarTabBar is `React.memo`; `visibleTabs` memoized via `useMemo`; click handler uses `data-path` attribute for stable identity (no per-button closures).
+- **Late-Router rendering audit rule**: When adding new providers, contexts, or hooks to AppShell.tsx, the backing files MUST exist and compile before the import is added. Never commit phantom imports. The route tree's RootLayout renders AppShell which wraps `<Outlet />` — any broken provider in AppShell kills the entire route outlet.
+- **useTransitionNavigate eliminated**: All consumers migrated to `useAppNavigate` (ref-stable, empty deps). `useTransitionNavigate.ts` deleted. TanStack Router's Transitioner handles startTransition internally — no component should double-wrap. If new navigation hooks are needed, extend `useAppNavigate`, never wrap it in startTransition.
 
 **Navigation UX Architecture (uxEnhancedNavigationV1)**
 4-pillar tab bar (Hub|Precon|Ops|Admin) in AppShell header, driven by `PillarTabBar` component using `useAppNavigate` (ref-stable adapter). Sidebar filters NavGroups to active pillar. `EnhancedProjectPicker` replaces ProjectPicker behind feature flag — Fluent Popover with Recent/Favorites/All sections, fuzzy search, KPI hover preview via `ProjectPreviewPane`. `MacBarStatusPill` in header shows selected project health. `ShellHydrationOverlay` during project switch (max 400ms). `useNavProfile` hook manages localStorage favorites/recent. All gated by FeatureGate. No router creation changes.
 
-- **useSwitchProject hook**: TanStack Query v5 mutation for project switching. onMutate sets selectedProject optimistically + addRecent. onError rolls back to previousProject. onSuccess enriches with KPI data via ProjectService. Uses useTransitionNavigate for post-switch navigation. Never touches router creation.
 - **No keyed main container**: `<main>` does NOT use `key={selectedProject?.projectCode}` — removed to prevent thundering-herd remount. ShellHydrationOverlay + routeTransition CSS provide visual feedback.
-- **MobileBottomNav**: Fixed 4-pillar bottom bar for mobile (<768px), reuses PILLARS + getActivePillar from PillarTabBar. env(safe-area-inset-bottom) aware. Renders only when isMobile && uxEnhancedNavigationV1. Uses useTransitionNavigate.
-- **Region filter persistence**: IUserProfileService.setRegionFilter/setDivisionFilter persist to localStorage via INavProfile.preferredRegion/preferredDivision. EnhancedProjectPicker initializes from persisted values on open.
+- **Region filter persistence**: useNavProfile manages favorites/recent in localStorage. EnhancedProjectPicker initializes from persisted values on open.
 
 See `CODE_ARCHITECTURE_GUIDE.md` for full folder and dependency rules.
 
@@ -150,8 +150,9 @@ Last major additions: GitOps Provisioning (Feb 18) + Constraints/Permits/Schedul
 - Cmd+K unification: Projects section first in palette, favorites/recent priority ordering (25 commands max)
 
 - Rollout readiness: MobileBottomNav (4-pillar + project pill), region filter persistence, favorites stagger animation, full a11y pass (ARIA live regions), dev toggle for uxEnhancedNavigationV1 (mock mode only)
-- Storybook coverage: EnhancedProjectPicker WithRegionFilters + SwitchingState, HbcCommandPalette WithProjectCommands
-- PillarTabBar freeze fix: switched to `useAppNavigate` (stable identity), `React.memo`, `useMemo` visibleTabs, `data-path` click pattern — eliminates double-startTransition deadlock
+- Storybook coverage: HbcCommandPalette WithProjectCommands, HbcInsightsPanel (existing). EnhancedProjectPicker and PillarTabBar stories not yet created.
+- PillarTabBar + AppShell freeze fix: (1) PillarTabBar switched to useAppNavigate + React.memo + useMemo visibleTabs + data-path click pattern. (2) AppShell.tsx phantom imports removed (MobileBottomNav, useSwitchProject, NavigationServicesContext, ProjectService/UserProfileService never created) — flattened to single component, useNavProfile replaces NavigationServicesContext, useAppNavigate replaces useTransitionNavigate.
+- Post-V2 QC & cleanup audit: useTransitionNavigate eliminated (3 consumers migrated to useAppNavigate, hook deleted). NavigationSidebar filter callbacks stabilized with useCallback. insightsItems useMemo switched from isFeatureEnabled function ref to primitive boolean. aria-live added to ShellHydrationOverlay (assertive) and MacBarStatusPill (polite). CLAUDE.md false Storybook claims corrected.
 
 **Next steps:** Full E2E coverage expansion and Sprint 3 gate enforcement.  
 
@@ -176,7 +177,8 @@ See `FEATURE_DEVELOPMENT_BLUEPRINT.md` for new domain patterns, `PERFORMANCE_OPT
 - Full Skills index and triggers → `SKILLS_OVERVIEW.md`  
 - Evolving decisions and session facts → project memory (`MEMORY.md`)  
 
-- **PillarTabBar must use `useAppNavigate`** — never `useTransitionNavigate` or `router.navigate()` directly. `useAppNavigate` returns a ref-stable callback; `useTransitionNavigate` double-wraps in `startTransition` (TanStack Router Transitioner already handles it), causing concurrent scheduler deadlock. PillarTabBar is `React.memo`; `visibleTabs` memoized via `useMemo([isPillarVisible])`; click handler uses `data-path` + single `useCallback` (no per-button closures). Tab bar reads `location.pathname` via `useAppLocation()` for active state.
+- **useTransitionNavigate is DELETED — never recreate**: All navigation must use `useAppNavigate` (ref-stable, empty deps). TanStack Router's Transitioner handles startTransition internally. Double-wrapping causes concurrent scheduler deadlock. If new navigation patterns are needed, extend useAppNavigate or use router.navigate() directly.
+- **PillarTabBar stability pattern**: `React.memo`; `visibleTabs` memoized via `useMemo([isPillarVisible])`; click handler uses `data-path` + single `useCallback` (no per-button closures). Tab bar reads `location.pathname` via `useAppLocation()` for active state.
 - **EnhancedProjectPicker uses Fluent Popover** (portal-based) — never Dialog (would steal focus from sidebar context). Popover `onOpenChange` must close before `startTransition(() => onSelect(project))` to prevent click-outside race.
 - **EnhancedProjectPicker keyboard nav**: Uses `useArrowNavigationGroup({ axis: 'vertical', circular: true })` from Fluent v9 tabster. Home/End jump to first/last. Escape closes popover.
 - **Favorites reorder**: Move-up/move-down buttons (no DnD library). `IUserProfileService.reorderFavorites()` persists order to localStorage. Zero new npm deps.
@@ -184,9 +186,7 @@ See `FEATURE_DEVELOPMENT_BLUEPRINT.md` for new domain patterns, `PERFORMANCE_OPT
 - **MacBarStatusPill pulse**: Uses Griffel keyframe animation with `@media (prefers-reduced-motion: reduce)` guard. Never pulse on Green health.
 - **useNavProfile localStorage key**: `hbc:nav-profile:{email}` — always scope to user email. Max 5 recent (FIFO), unlimited favorites.
 - **ShellHydrationOverlay**: dismiss via `useIsFetching` (never global). Minimum 200ms display to prevent flash.
-- **useSwitchProject must NOT touch router creation**: Uses useTransitionNavigate only. Never passes dynamic values to createHbcTanStackRouter. The mutation is local state + KPI enrichment, not a server mutation.
 - **MacBarStatusPill skeleton with name**: Shows selectedProject.projectName (already set optimistically by onMutate) truncated to 16 chars. Falls back to generic skeleton if selectedProject is null during switch.
-- **MobileBottomNav safe-area**: Must use `paddingBottom: env(safe-area-inset-bottom)` for iOS notch. Height is 56px + safe area. Hidden via CSS >= 768px (not JS breakpoint) for SSR safety.
 - **Region filter persistence**: Persisted in same INavProfile localStorage object. Reset to null means "All Regions" — never remove the key, set to null explicitly.
 - **uxEnhancedNavigationV1 default ON**: MockDataService sets `Enabled: true`. SharePoint/standalone modes read from SP list (admin-controlled). Dev toggle in AppShell allows bidirectional override in mock mode only.
 - **Dev toggle (devNavOverride)**: Only available when `dataServiceMode === 'mock'`. Replaces FeatureGate for nav components in AppShell only — child components like NavigationSidebar still use their own isFeatureEnabled checks.
@@ -194,8 +194,9 @@ See `FEATURE_DEVELOPMENT_BLUEPRINT.md` for new domain patterns, `PERFORMANCE_OPT
 - **setSelectedProject skipSwitchingFlag**: KPI enrichment in `onSuccess` uses `{ skipSwitchingFlag: true }` to avoid restarting the isProjectSwitching timer. Only the initial optimistic call in `onMutate` sets the switching flag.
 - **Permission re-resolution debounced**: 300ms debounce on `selectedProject?.projectCode` (primitive dep, not object ref). Prevents third AppContext cascade on project switch.
 - **No keyed `<main>`**: Removed `key={selectedProject?.projectCode}` to prevent thundering-herd query refetch on project switch. ShellHydrationOverlay + routeTransition CSS handle the visual transition.
-- **switchProject identity**: Uses `mutation.mutate` (stable) not `mutation` (unstable) in useCallback deps.
-- **No `React.startTransition` in stableNavigate**: TanStack Router's Transitioner already wraps `router.load()` in startTransition. Double-wrapping causes React concurrent scheduler deadlock with useSyncExternalStore. stableNavigate calls navigateRef.current() directly.
+- **AppShell must not import non-existent modules**: Never add imports for files/exports that don't exist yet. Commit 8bc978f introduced imports for MobileBottomNav, useSwitchProject, NavigationServicesContext, and ProjectService/UserProfileService before those files were created, preventing compilation and killing the route outlet. Always create files FIRST, then import.
+- **NavigationSidebar filter callbacks must be useCallback**: `isGroupVisible`, `isItemVisible`, `isActivePath` must be wrapped in React.useCallback to prevent unstable function references from triggering downstream re-renders through NAV_STRUCTURE.map() iterations.
+- **insightsItems useMemo must use primitive deps**: Extract `isHelpSystemEnabled = isFeatureEnabled('EnableHelpSystem')` as a boolean before the useMemo. Never pass `isFeatureEnabled` function ref as a useMemo dependency — its identity changes on featureFlags/userRoles updates.
 - **isFeatureEnabled uses `userRoles` not `currentUser`**: Deps are `[featureFlags, userRoles]` where `userRoles = currentUser?.roles`. The roles array reference is stable across permission-only updates, preventing identity cascade through routerProps → RouterProvider → entire route tree.
 - **RouterProvider context is memoized**: `useMemo` on the context object prevents RouterProvider from calling `router.update()` on every render. No separate useEffect for router.update() — RouterProvider handles it during render.
 - **envConfig useEffect uses boolean dep**: `permissionEngineEnabled` (primitive) instead of `isFeatureEnabled` (function ref) prevents unnecessary re-fetches.
