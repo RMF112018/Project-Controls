@@ -2,12 +2,12 @@
 
 **Unified project lifecycle management for Hedrick Brothers Construction**
 
-![SPFx 1.21.1](https://img.shields.io/badge/SPFx-1.21.1-green)
+![SPFx 1.22.2](https://img.shields.io/badge/SPFx-1.22.2-green)
 ![React 18](https://img.shields.io/badge/React-18.2.0-61dafb)
 ![TypeScript 5.3](https://img.shields.io/badge/TypeScript-5.3.3-3178c6)
 ![Fluent UI v9](https://img.shields.io/badge/Fluent_UI-v9-0078d4)
 ![Node 22.14](https://img.shields.io/badge/Node-22.14.0_(Volta)-339933)
-![Last Updated](https://img.shields.io/badge/Last_Updated-2026--02--15-blue)
+![Last Updated](https://img.shields.io/badge/Last_Updated-2026--02--21-blue)
 
 ---
 
@@ -52,16 +52,16 @@ graph TB
     end
 
     subgraph "React Application"
-        APP["App.tsx<br/>FluentProvider + HashRouter"]
-        CTX["AppContext<br/>Auth + Permissions + Flags"]
+        APP["App.tsx<br/>FluentProvider + TanStack Router"]
+        CTX["3-Context Split<br/>Static + Project + UI"]
         SHELL["AppShell<br/>Sidebar + Header + Content"]
-        ROUTES["51 Routes<br/>5 Route Groups"]
+        ROUTES["58 Routes<br/>5 Route Groups<br/>53 lazy / 5 inline"]
     end
 
     subgraph "Data Layer"
-        IDS["IDataService<br/>221 methods"]
+        IDS["IDataService<br/>250 methods"]
         MOCK["MockDataService<br/>43 JSON files"]
-        SPDS["SharePointDataService<br/>176 impl / 39 stub"]
+        SPDS["SharePointDataService<br/>250 impl"]
         GRAPH["GraphService<br/>MS Graph API"]
     end
 
@@ -91,8 +91,10 @@ graph TB
 1. **SPFx Web Part** mounts the React app with a `dataService` instance (Mock or SharePoint based on `dataServiceMode` property)
 2. **AppContext** initializes current user, roles, permissions, feature flags, and site context
 3. **Hooks** (`use*.ts`) call `dataService` methods via `useCallback` — never in render
-4. **MockDataService** loads from JSON files and maintains in-memory state for mutations
-5. **SharePointDataService** reads/writes to SharePoint lists via PnP/sp, with column mappings in `columnMappings.ts`
+4. **TanStack Query** manages server state caching, deduplication, and background refetching (Wave-1 on hub/buyout/compliance)
+5. **TanStack Router** handles route matching, lazy loading, and provides `beforeLoad`/`loader` hooks for data prefetching
+6. **MockDataService** loads from JSON files and maintains in-memory state for mutations
+7. **SharePointDataService** reads/writes to SharePoint lists via PnP/sp, with column mappings in `columnMappings.ts`
 
 ### Security Model
 
@@ -114,15 +116,31 @@ Azure AD Groups --> RoleName (14 roles) --> ROLE_PERMISSIONS --> Set<string>
 
 ### Routing
 
-Hash-based routing (`HashRouter`) with 51 routes across 5 groups:
+TanStack Router v1 with hash history (`createHashHistory()`). 58 routes across 5 groups with two lazy-loading strategies:
 
-| Group | Prefix | Example Routes |
-|-------|--------|----------------|
-| Dashboard | `/` | `/` |
-| Marketing | `/marketing` | `/marketing` |
-| Preconstruction | `/preconstruction/*`, `/lead/*` | `/preconstruction/pipeline`, `/lead/new`, `/lead/:id/gonogo` |
-| Operations | `/operations/*` | `/operations/project`, `/operations/buyout-log`, `/operations/monthly-review` |
-| Admin | `/admin`, `/job-request`, `/accounting-queue` | `/admin`, `/job-request/:leadId` |
+| Strategy | Count | Use Case |
+|----------|-------|----------|
+| `lazyRouteComponent` | 46 | Standard pages loaded via fat-barrel phase modules or direct imports |
+| `createLazyRoute` | 7 | Heaviest pages (schedule, buyout, monthly review, constraints/permits, project record, Go/No-Go) |
+| Inline | 5 | Lightweight pages (ComingSoonPage x3, AccessDeniedPage, NotFoundPage) |
+
+**Lazy coverage:** 53/58 = 91.4% (enforced >= 90% in CI)
+
+| Group | Prefix | Routes |
+|-------|--------|--------|
+| Dashboard | `/` | 1 |
+| Marketing | `/marketing` | 1 |
+| Preconstruction | `/preconstruction/*`, `/lead/*` | 19 |
+| Operations | `/operations/*` | 25 |
+| Admin | `/admin`, `/job-request`, `/accounting-queue` | 7 |
+
+**Performance features:**
+- `defaultPendingComponent` (RouteSuspenseFallback) + `defaultErrorComponent` (RouteErrorBoundary) on router
+- `React.startTransition()` on all navigation for concurrent rendering
+- 8 preload hints from `/operations` loader
+- `defaultPreload: 'intent'` with 30s stale time
+
+See [`docs/route-map.md`](docs/route-map.md) for the full route table, chunk map, and performance metrics.
 
 ---
 
@@ -130,21 +148,23 @@ Hash-based routing (`HashRouter`) with 51 routes across 5 groups:
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Framework | SharePoint Framework (SPFx) | 1.21.1 |
+| Framework | SharePoint Framework (SPFx) | 1.22.2 |
 | UI Library | React | 18.2.0 |
 | Language | TypeScript | ~5.3.3 |
 | Components | Fluent UI v9 (`@fluentui/react-components`) | ^9.46.0 |
 | Icons | `@fluentui/react-icons` | 2.0.319 |
-| Routing | react-router-dom | ^6.22.3 |
+| Routing | TanStack Router | ^1.161.1 |
+| Data Fetching | TanStack Query | ^5.90.21 |
+| Tables | TanStack Table + virtualization | ^8.21.3 |
 | SharePoint Data | @pnp/sp, @pnp/graph | ^4.4.1 |
 | Guided Tours | react-joyride | ^2.9.3 |
-| Charts | Recharts | ^2.12.3 |
+| Charts | ECharts + echarts-for-react | ^5.6.0 / ^3.0.6 |
 | PDF Export | jsPDF + html2canvas | ^2.5.2 / ^1.4.1 |
 | Excel Export | SheetJS (xlsx) | ^0.18.5 |
 | Build | gulp (SPFx) + webpack (dev) + Vite (standalone prod) | ^4.0.2 / ^5.90.0 / ^7.1.0 |
-| Tests | Jest + React Testing Library | ^29.7.0 / ^14.0.0 |
+| Tests | Jest + RTL + Playwright + Storybook 8.5 | ^29.7.0 / ^14.0.0 |
 | Styling | Griffel makeStyles (Fluent UI v9 CSS-in-JS) | (bundled) |
-| Code Splitting | React.lazy() + Suspense | 40 lazy-loaded pages |
+| Code Splitting | TanStack Router lazy loading | 53 lazy routes (91.4%) |
 | Monorepo | npm workspaces (`@hbc/sp-services`) | — |
 | Linting | ESLint + SPFx config | ^8.57.0 |
 | Node (Volta) | Node.js | 22.14.0 |
@@ -256,9 +276,9 @@ packages/hbc-sp-services/src/           # Shared data layer library (@hbc/sp-ser
 ├── mock/                                # 43 JSON mock data files
 ├── models/                              # 46 TypeScript model files (enums.ts + I*.ts interfaces)
 ├── services/
-│   ├── IDataService.ts                  # 221-method interface
+│   ├── IDataService.ts                  # 250-method interface
 │   ├── MockDataService.ts              # Full mock implementation
-│   ├── SharePointDataService.ts        # SP implementation (176 impl, 39 stubs, 6 delegation)
+│   ├── SharePointDataService.ts        # SP implementation (250 methods)
 │   ├── GraphService.ts                 # MS Graph: users, photos, calendar, mail, Teams
 │   ├── AuditService.ts                 # Fire-and-forget audit queue
 │   ├── CacheService.ts                 # Two-tier cache (memory + sessionStorage)
@@ -450,7 +470,7 @@ Uses a hybrid CSS pattern — **Griffel `makeStyles()`** (Fluent UI v9 CSS-in-JS
 
 | Priority | Item |
 |----------|------|
-| **P1** | SharePointDataService stub completion (39 remaining methods — monthly review, turnover, scorecards workflow) |
+| **P1** | TanStack Query Wave-2 (operations + precon domains) |
 | **P2** | ERP integrations (Unanet, Sage 300) |
 | **P3** | AI contract review (Document Crunch) |
 | **P4** | Offline support with queue sync |

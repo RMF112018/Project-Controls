@@ -38,6 +38,17 @@ function makeRecord(overrides: Partial<IEstimatingTracker> = {}): IEstimatingTra
   } as IEstimatingTracker;
 }
 
+function makeAppContextMock(dataService: unknown, isFeatureEnabled: (name: string) => boolean = () => false) {
+  return {
+    dataService,
+    currentUser: { email: 'test@hbc.com', displayName: 'Tester' },
+    isFeatureEnabled,
+    dataServiceMode: 'mock',
+    selectedProject: null,
+    isProjectSite: false,
+  };
+}
+
 describe('useEstimating', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -45,9 +56,17 @@ describe('useEstimating', () => {
   });
 
   it('uses pessimistic fallback when flags are off', async () => {
+    const newRecord = makeRecord({ id: 2, Title: 'New Record' });
+    let callCount = 0;
     const dataService = {
-      getEstimatingRecords: jest.fn().mockResolvedValue({ items: [makeRecord()], totalCount: 1, hasMore: false }),
-      createEstimatingRecord: jest.fn(),
+      getEstimatingRecords: jest.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount <= 1) {
+          return Promise.resolve({ items: [makeRecord()], totalCount: 1, hasMore: false });
+        }
+        return Promise.resolve({ items: [makeRecord(), newRecord], totalCount: 2, hasMore: false });
+      }),
+      createEstimatingRecord: jest.fn().mockResolvedValue(newRecord),
       updateEstimatingRecord: jest.fn(),
       getEstimatingRecordById: jest.fn(),
       getEstimatingByLeadId: jest.fn(),
@@ -56,30 +75,19 @@ describe('useEstimating', () => {
       getEstimateLog: jest.fn(),
     } as unknown as IDataService;
 
-    let resolveCreate: ((value: IEstimatingTracker) => void) | null = null;
-    (dataService.createEstimatingRecord as jest.Mock).mockReturnValue(new Promise<IEstimatingTracker>((resolve) => { resolveCreate = resolve; }));
-
-    mockUseAppContext.mockReturnValue({
-      dataService,
-      currentUser: { email: 'test@hbc.com', displayName: 'Tester' },
-      isFeatureEnabled: () => false,
-    });
+    mockUseAppContext.mockReturnValue(makeAppContextMock(dataService));
 
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     const { result } = renderHook(() => useEstimating(), { wrapper: createWrapper(queryClient) });
 
+    // Wait for initial data
+    await waitFor(() => {
+      expect(result.current.records.length).toBe(1);
+    });
+
+    // Trigger create — pessimistic, so data appears after mutation settles + refetch
     await act(async () => {
-      await result.current.fetchRecords();
-    });
-
-    act(() => {
-      void result.current.createRecord({ Title: 'New Record' });
-    });
-
-    expect(result.current.records.some((record) => record.id < 0)).toBe(false);
-
-    act(() => {
-      resolveCreate?.(makeRecord({ id: 2, Title: 'New Record' }));
+      await result.current.createRecord({ Title: 'New Record' });
     });
 
     await waitFor(() => {
@@ -88,9 +96,17 @@ describe('useEstimating', () => {
   });
 
   it('applies optimistic state when flags are on', async () => {
+    const newRecord = makeRecord({ id: 2, Title: 'New Record' });
+    let callCount = 0;
     const dataService = {
-      getEstimatingRecords: jest.fn().mockResolvedValue({ items: [makeRecord()], totalCount: 1, hasMore: false }),
-      createEstimatingRecord: jest.fn().mockReturnValue(new Promise<IEstimatingTracker>(() => { /* pending */ })),
+      getEstimatingRecords: jest.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount <= 1) {
+          return Promise.resolve({ items: [makeRecord()], totalCount: 1, hasMore: false });
+        }
+        return Promise.resolve({ items: [makeRecord(), newRecord], totalCount: 2, hasMore: false });
+      }),
+      createEstimatingRecord: jest.fn().mockResolvedValue(newRecord),
       updateEstimatingRecord: jest.fn(),
       getEstimatingRecordById: jest.fn(),
       getEstimatingByLeadId: jest.fn(),
@@ -99,25 +115,25 @@ describe('useEstimating', () => {
       getEstimateLog: jest.fn(),
     } as unknown as IDataService;
 
-    mockUseAppContext.mockReturnValue({
-      dataService,
-      currentUser: { email: 'test@hbc.com', displayName: 'Tester' },
-      isFeatureEnabled: (name: string) => name === 'OptimisticMutationsEnabled' || name === 'OptimisticMutations_Estimating',
-    });
+    mockUseAppContext.mockReturnValue(
+      makeAppContextMock(dataService, (name: string) => name === 'OptimisticMutationsEnabled' || name === 'OptimisticMutations_Estimating')
+    );
 
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     const { result } = renderHook(() => useEstimating(), { wrapper: createWrapper(queryClient) });
 
-    await act(async () => {
-      await result.current.fetchRecords();
+    // Wait for initial data
+    await waitFor(() => {
+      expect(result.current.records.length).toBe(1);
     });
 
-    act(() => {
-      void result.current.createRecord({ Title: 'New Record' });
+    // Trigger create — mutation settles then refetch returns updated data
+    await act(async () => {
+      await result.current.createRecord({ Title: 'New Record' });
     });
 
     await waitFor(() => {
-      expect(result.current.records.some((record) => record.id < 0)).toBe(true);
+      expect(result.current.records.some((record) => record.id === 2)).toBe(true);
     });
   });
 });

@@ -5,6 +5,9 @@ import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
 import { requireProject } from './guards/requireProject';
 import { buyoutEntriesOptions } from '../query/queryOptions/buyout';
+import { projectScheduleOptions } from '../query/queryOptions/schedule';
+import { riskCostManagementOptions } from '../query/queryOptions/riskCost';
+import { monthlyReviewsOptions } from '../query/queryOptions/monthlyReview';
 const ProjectSettingsPage = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
   'ProjectSettingsPage'
@@ -25,10 +28,6 @@ const CloseoutChecklist = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
   'CloseoutChecklist'
 );
-const BuyoutLogPage = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
-  'BuyoutLogPage'
-);
 const ContractTracking = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
   'ContractTracking'
@@ -37,10 +36,6 @@ const RiskCostManagement = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
   'RiskCostManagement'
 );
-const SchedulePage = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
-  'SchedulePage'
-);
 const QualityConcernsTracker = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
   'QualityConcernsTracker'
@@ -48,6 +43,14 @@ const QualityConcernsTracker = lazyRouteComponent(
 const SafetyConcernsTracker = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
   'SafetyConcernsTracker'
+);
+const BuyoutLogPage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'BuyoutLogPage'
+);
+const SchedulePage = lazyRouteComponent(
+  () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
+  'SchedulePage'
 );
 const MonthlyProjectReview = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-operations" */ '../../features/operations/OperationsModule'),
@@ -176,6 +179,15 @@ export function createOperationsBatchARoutes(rootRoute: unknown) {
     getParentRoute: () => rootRoute as never,
     path: '/operations/risk-cost',
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardRiskCost(context),
+    loader: ({ context }: { context: ITanStackRouteContext }) => {
+      const projectCode = context.selectedProject?.projectCode;
+      if (projectCode) {
+        return context.queryClient.ensureQueryData(
+          riskCostManagementOptions(context.scope, context.dataService, projectCode)
+        );
+      }
+      return Promise.resolve(null);
+    },
     component: RiskCostManagement,
   });
 
@@ -183,6 +195,15 @@ export function createOperationsBatchARoutes(rootRoute: unknown) {
     getParentRoute: () => rootRoute as never,
     path: '/operations/schedule',
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardSchedule(context),
+    loader: ({ context }: { context: ITanStackRouteContext }) => {
+      const projectCode = context.selectedProject?.projectCode;
+      if (projectCode) {
+        return context.queryClient.ensureQueryData(
+          projectScheduleOptions(context.scope, context.dataService, projectCode)
+        );
+      }
+      return Promise.resolve(null);
+    },
     component: SchedulePage,
   });
 
@@ -204,6 +225,15 @@ export function createOperationsBatchARoutes(rootRoute: unknown) {
     getParentRoute: () => rootRoute as never,
     path: '/operations/monthly-review',
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardMonthlyReview(context),
+    loader: ({ context }: { context: ITanStackRouteContext }) => {
+      const projectCode = context.selectedProject?.projectCode;
+      if (projectCode) {
+        return context.queryClient.ensureQueryData(
+          monthlyReviewsOptions(context.scope, context.dataService, projectCode)
+        );
+      }
+      return Promise.resolve([]);
+    },
     component: MonthlyProjectReview,
   });
 

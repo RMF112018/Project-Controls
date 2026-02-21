@@ -143,6 +143,9 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
     this._themeProvider?.themeChangedEvent.remove(this, this._handleThemeChanged);
     this._telemetryService?.flush();
     signalRService.dispose();
+    // Clear query cache on web part disposal to prevent memory leaks
+    const { getQueryClient } = require('./tanstack/query/queryClient');
+    getQueryClient().clear();
     this._root?.unmount();
     this._root = null;
   }

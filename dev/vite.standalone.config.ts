@@ -81,9 +81,30 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
+            // Isolated heavy pages (pre-existing)
             if (id.includes('/components/pages/hub/AdminPanel.tsx')) return 'page-admin-panel';
             if (id.includes('/components/pages/precon/EstimatingDashboard.tsx')) return 'page-estimating-tracker';
             if (id.includes('/components/pages/project/pmp/ProjectManagementPlan.tsx')) return 'page-pmp-16-section';
+
+            // Heavy page chunks (aligned with SPFx webpackChunkName)
+            if (id.includes('/components/pages/project/SchedulePage.tsx')) return 'page-schedule';
+            if (id.includes('/components/pages/project/MonthlyProjectReview.tsx')) return 'page-monthly-review';
+            if (id.includes('/components/pages/project/RiskCostManagement.tsx')) return 'page-risk-cost';
+            if (id.includes('/components/pages/project/BuyoutLogPage.tsx')) return 'page-buyout-contract';
+            if (id.includes('/components/pages/project/ContractTracking.tsx')) return 'page-buyout-contract';
+            if (id.includes('/components/pages/project/ConstraintsLogPage.tsx')) return 'page-constraints-permits';
+            if (id.includes('/components/pages/project/PermitsLogPage.tsx')) return 'page-constraints-permits';
+            if (id.includes('/components/pages/hub/GoNoGoScorecard.tsx')) return 'page-gonogo';
+            if (id.includes('/components/pages/hub/GoNoGoDetail.tsx')) return 'page-gonogo';
+            if (id.includes('/components/pages/hub/LeadDetailPage.tsx')) return 'page-lead-detail';
+            if (id.includes('/components/pages/hub/LeadFormPage.tsx')) return 'page-lead-detail';
+            if (id.includes('/components/pages/precon/PursuitDetail.tsx')) return 'page-pursuit-detail';
+            if (id.includes('/components/pages/precon/EstimatingKickoffPage.tsx')) return 'page-pursuit-detail';
+            if (id.includes('/components/pages/hub/DashboardPage.tsx')) return 'page-dashboard';
+            if (id.includes('/components/pages/hub/MarketingDashboard.tsx')) return 'page-marketing';
+            if (id.includes('/components/pages/project/ProjectRecord.tsx')) return 'page-project-record';
+
+            // Vendor splitting
             if (!id.includes('node_modules')) return undefined;
             if (id.includes('/react/') || id.includes('/react-dom/')) return 'react-vendor';
             if (id.includes('/@fluentui/')) return 'fluent-vendor';

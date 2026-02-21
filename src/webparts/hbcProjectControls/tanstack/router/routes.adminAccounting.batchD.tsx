@@ -3,6 +3,7 @@ import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
+import { permissionTemplatesOptions } from '../query/queryOptions/permissionEngine';
 const AccountingQueuePage = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
   'AccountingQueuePage'
@@ -59,6 +60,11 @@ export function createAdminAccountingBatchDRoutes(rootRoute: unknown) {
     getParentRoute: () => rootRoute as never,
     path: '/admin',
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardAdmin(context),
+    loader: ({ context }: { context: ITanStackRouteContext }) => {
+      return context.queryClient.ensureQueryData(
+        permissionTemplatesOptions(context.scope, context.dataService)
+      );
+    },
     component: AdminPanel,
   });
 

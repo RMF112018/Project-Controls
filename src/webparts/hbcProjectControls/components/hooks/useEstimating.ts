@@ -1,11 +1,14 @@
 import * as React from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
 import { IEstimatingTracker, IListQueryOptions, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
 import { useHbcOptimisticMutation } from '../../tanstack/query/mutations/useHbcOptimisticMutation';
 import { OPTIMISTIC_MUTATION_FLAGS } from '../../tanstack/query/mutations/optimisticMutationFlags';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
+import { estimatingRecordsOptions, currentPursuitsOptions, preconEngagementsOptions, estimateLogOptions } from '../../tanstack/query/queryOptions/estimating';
+import { qk } from '../../tanstack/query/queryKeys';
 
 interface IUseEstimatingResult {
   records: IEstimatingTracker[];
@@ -22,35 +25,66 @@ interface IUseEstimatingResult {
   fetchEstimateLog: () => Promise<void>;
 }
 
+type FetchMode =
+  | { type: 'records'; options?: IListQueryOptions }
+  | { type: 'pursuits' }
+  | { type: 'engagements' }
+  | { type: 'log' };
+
 export function useEstimating(): IUseEstimatingResult {
   const { dataService, currentUser } = useAppContext();
   const { broadcastChange } = useSignalRContext();
   const queryClient = useQueryClient();
-  const [records, setRecords] = React.useState<IEstimatingTracker[]>([]);
-  const [totalCount, setTotalCount] = React.useState(0);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const estimatingCacheKey = React.useMemo(() => ['local', 'estimating'] as const, []);
+  const scope = useQueryScope();
 
-  const fetchRecords = React.useCallback(async (options?: IListQueryOptions) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const result = await dataService.getEstimatingRecords(options);
-      setRecords(result.items);
-      setTotalCount(result.totalCount);
-      queryClient.setQueryData<IEstimatingTracker[]>(estimatingCacheKey, result.items);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch records');
-    } finally {
-      setIsLoading(false);
+  const [fetchMode, setFetchMode] = React.useState<FetchMode>({ type: 'records' });
+
+  const recordsQuery = useQuery({
+    ...estimatingRecordsOptions(scope, dataService, fetchMode.type === 'records' ? fetchMode.options : undefined),
+    enabled: fetchMode.type === 'records',
+  });
+
+  const pursuitsQuery = useQuery({
+    ...currentPursuitsOptions(scope, dataService),
+    enabled: fetchMode.type === 'pursuits',
+  });
+
+  const engagementsQuery = useQuery({
+    ...preconEngagementsOptions(scope, dataService),
+    enabled: fetchMode.type === 'engagements',
+  });
+
+  const logQuery = useQuery({
+    ...estimateLogOptions(scope, dataService),
+    enabled: fetchMode.type === 'log',
+  });
+
+  const { records, totalCount, isLoading, error } = React.useMemo(() => {
+    if (fetchMode.type === 'records') {
+      return {
+        records: recordsQuery.data?.items ?? [],
+        totalCount: recordsQuery.data?.totalCount ?? 0,
+        isLoading: recordsQuery.isLoading,
+        error: recordsQuery.error?.message ?? null,
+      };
     }
-  }, [dataService, estimatingCacheKey, queryClient]);
+    if (fetchMode.type === 'pursuits') {
+      const items = pursuitsQuery.data ?? [];
+      return { records: items, totalCount: items.length, isLoading: pursuitsQuery.isLoading, error: pursuitsQuery.error?.message ?? null };
+    }
+    if (fetchMode.type === 'engagements') {
+      const items = engagementsQuery.data ?? [];
+      return { records: items, totalCount: items.length, isLoading: engagementsQuery.isLoading, error: engagementsQuery.error?.message ?? null };
+    }
+    // log
+    const items = logQuery.data ?? [];
+    return { records: items, totalCount: items.length, isLoading: logQuery.isLoading, error: logQuery.error?.message ?? null };
+  }, [fetchMode, recordsQuery, pursuitsQuery, engagementsQuery, logQuery]);
 
-  // SignalR: refresh on Estimate entity changes
-  useSignalR({
+  // SignalR: invalidate all estimating queries on entity changes
+  useSignalRQueryInvalidation({
     entityType: EntityType.Estimate,
-    onEntityChanged: React.useCallback(() => { fetchRecords(); }, [fetchRecords]),
+    queryKeys: React.useMemo(() => [qk.estimating.base(scope)], [scope]),
   });
 
   const broadcastEstimateChange = React.useCallback((
@@ -82,20 +116,13 @@ export function useEstimating(): IUseEstimatingResult {
     method: 'createEstimatingRecord',
     domainFlag: OPTIMISTIC_MUTATION_FLAGS.estimating,
     mutationFn: async (data) => dataService.createEstimatingRecord(data),
-    getStateKey: () => estimatingCacheKey,
+    getStateKey: () => qk.estimating.base(scope),
     applyOptimistic: (previous, data) => [{ id: -Date.now(), ...data } as IEstimatingTracker, ...(previous ?? [])],
-    onOptimisticStateChange: (state) => {
-      const next = state ?? [];
-      setRecords(next);
-      setTotalCount(next.length);
-    },
     onSuccessEffects: async (record) => {
-      setRecords((prev) => [record, ...prev.filter((item) => item.id > 0)]);
-      setTotalCount((prev) => prev + 1);
       broadcastEstimateChange(record.id, 'created', 'Estimate record created');
     },
     onSettledEffects: async () => {
-      await queryClient.invalidateQueries({ queryKey: estimatingCacheKey });
+      await queryClient.invalidateQueries({ queryKey: qk.estimating.base(scope) });
     },
   });
 
@@ -103,15 +130,13 @@ export function useEstimating(): IUseEstimatingResult {
     method: 'updateEstimatingRecord',
     domainFlag: OPTIMISTIC_MUTATION_FLAGS.estimating,
     mutationFn: async ({ id, data }) => dataService.updateEstimatingRecord(id, data),
-    getStateKey: () => estimatingCacheKey,
+    getStateKey: () => qk.estimating.base(scope),
     applyOptimistic: (previous, vars) => (previous ?? []).map((record) => record.id === vars.id ? { ...record, ...vars.data } : record),
-    onOptimisticStateChange: (state) => setRecords(state ?? []),
-    onSuccessEffects: async (updated, vars) => {
-      setRecords((prev) => prev.map((record) => record.id === vars.id ? updated : record));
+    onSuccessEffects: async (_updated, vars) => {
       broadcastEstimateChange(vars.id, 'updated', 'Estimate record updated');
     },
     onSettledEffects: async () => {
-      await queryClient.invalidateQueries({ queryKey: estimatingCacheKey });
+      await queryClient.invalidateQueries({ queryKey: qk.estimating.base(scope) });
     },
   });
 
@@ -123,50 +148,22 @@ export function useEstimating(): IUseEstimatingResult {
     return updateRecordMutation.mutateAsync({ id, data });
   }, [updateRecordMutation]);
 
+  const fetchRecords = React.useCallback(async (options?: IListQueryOptions) => {
+    setFetchMode({ type: 'records', options });
+    await queryClient.invalidateQueries({ queryKey: qk.estimating.base(scope) });
+  }, [queryClient, scope]);
+
   const fetchCurrentPursuits = React.useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const items = await dataService.getCurrentPursuits();
-      setRecords(items);
-      setTotalCount(items.length);
-      queryClient.setQueryData<IEstimatingTracker[]>(estimatingCacheKey, items);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch pursuits');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService, estimatingCacheKey, queryClient]);
+    setFetchMode({ type: 'pursuits' });
+  }, []);
 
   const fetchPreconEngagements = React.useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const items = await dataService.getPreconEngagements();
-      setRecords(items);
-      setTotalCount(items.length);
-      queryClient.setQueryData<IEstimatingTracker[]>(estimatingCacheKey, items);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch engagements');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService, estimatingCacheKey, queryClient]);
+    setFetchMode({ type: 'engagements' });
+  }, []);
 
   const fetchEstimateLog = React.useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const items = await dataService.getEstimateLog();
-      setRecords(items);
-      setTotalCount(items.length);
-      queryClient.setQueryData<IEstimatingTracker[]>(estimatingCacheKey, items);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch log');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService, estimatingCacheKey, queryClient]);
+    setFetchMode({ type: 'log' });
+  }, []);
 
   return { records, totalCount, isLoading, error, fetchRecords, getRecordById, getRecordByLeadId, createRecord, updateRecord, fetchCurrentPursuits, fetchPreconEngagements, fetchEstimateLog };
 }

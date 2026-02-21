@@ -76,6 +76,7 @@ describe('HbcTanStackTable', () => {
 
     renderTable(manyRows, {
       virtualization: { enabled: true, threshold: 200, containerHeight: 400 },
+      pageSize: 500, // disable effective pagination so all rows hit the virtualizer
     });
 
     expect(screen.getByRole('table').parentElement).toHaveAttribute('data-virtualized', 'true');

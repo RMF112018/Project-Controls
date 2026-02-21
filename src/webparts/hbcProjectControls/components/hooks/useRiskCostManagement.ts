@@ -1,8 +1,12 @@
 import * as React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
 import { IRiskCostManagement, IRiskCostItem, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
+import { riskCostManagementOptions } from '../../tanstack/query/queryOptions/riskCost';
+import { qk } from '../../tanstack/query/queryKeys';
 
 interface IUseRiskCostManagementResult {
   data: IRiskCostManagement | null;
@@ -17,36 +21,22 @@ interface IUseRiskCostManagementResult {
 export function useRiskCostManagement(): IUseRiskCostManagementResult {
   const { dataService, currentUser } = useAppContext();
   const { broadcastChange } = useSignalRContext();
-  const [data, setData] = React.useState<IRiskCostManagement | null>(null);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const lastProjectCodeRef = React.useRef<string | null>(null);
+  const queryClient = useQueryClient();
+  const scope = useQueryScope();
+  const [projectCode, setProjectCode] = React.useState<string>('');
 
-  const fetchData = React.useCallback(async (projectCode: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      lastProjectCodeRef.current = projectCode;
-      const result = await dataService.getRiskCostManagement(projectCode);
-      setData(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch risk/cost data');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService]);
+  const riskCostQuery = useQuery(riskCostManagementOptions(scope, dataService, projectCode));
 
-  // SignalR: refresh on RiskCost entity changes from other users
-  useSignalR({
+  const data = riskCostQuery.data ?? null;
+  const isLoading = riskCostQuery.isLoading;
+  const error = riskCostQuery.error?.message ?? null;
+
+  useSignalRQueryInvalidation({
     entityType: EntityType.RiskCost,
-    onEntityChanged: React.useCallback(() => {
-      if (lastProjectCodeRef.current) {
-        fetchData(lastProjectCodeRef.current);
-      }
-    }, [fetchData]),
+    queryKeys: React.useMemo(() => projectCode ? [qk.riskCost.byProject(scope, projectCode)] : [], [scope, projectCode]),
+    projectCode,
   });
 
-  // Helper to broadcast risk/cost changes
   const broadcastRiskCostChange = React.useCallback((
     entityId: number | string,
     action: IEntityChangedMessage['action'],
@@ -61,35 +51,35 @@ export function useRiskCostManagement(): IUseRiskCostManagementResult {
       changedByName: currentUser?.displayName,
       timestamp: new Date().toISOString(),
       summary,
-      projectCode: lastProjectCodeRef.current || undefined,
+      projectCode: projectCode || undefined,
     });
-  }, [broadcastChange, currentUser]);
+  }, [broadcastChange, currentUser, projectCode]);
 
-  const updateContractInfo = React.useCallback(async (projectCode: string, contractType: string, contractAmount: number) => {
-    const updated = await dataService.updateRiskCostManagement(projectCode, { contractType, contractAmount });
-    setData(updated);
+  const fetchData = React.useCallback(async (code: string) => {
+    setProjectCode(code);
+  }, []);
+
+  const updateContractInfo = React.useCallback(async (code: string, contractType: string, contractAmount: number) => {
+    await dataService.updateRiskCostManagement(code, { contractType, contractAmount });
     broadcastRiskCostChange('contract', 'updated', 'Contract info updated');
-  }, [dataService, broadcastRiskCostChange]);
+    await queryClient.invalidateQueries({ queryKey: qk.riskCost.byProject(scope, code) });
+  }, [dataService, broadcastRiskCostChange, queryClient, scope]);
 
-  const addItem = React.useCallback(async (projectCode: string, item: Partial<IRiskCostItem>) => {
-    const created = await dataService.addRiskCostItem(projectCode, item);
-    const refreshed = await dataService.getRiskCostManagement(projectCode);
-    setData(refreshed);
+  const addItem = React.useCallback(async (code: string, item: Partial<IRiskCostItem>) => {
+    const created = await dataService.addRiskCostItem(code, item);
     broadcastRiskCostChange(created.id, 'created', 'Risk/cost item added');
-    // Fire-and-forget — sync Data Mart after risk/cost item added
-    dataService.syncToDataMart(projectCode).catch(() => { /* silent */ });
+    dataService.syncToDataMart(code).catch(() => { /* silent */ });
+    await queryClient.invalidateQueries({ queryKey: qk.riskCost.byProject(scope, code) });
     return created;
-  }, [dataService, broadcastRiskCostChange]);
+  }, [dataService, broadcastRiskCostChange, queryClient, scope]);
 
-  const updateItem = React.useCallback(async (projectCode: string, itemId: number, itemData: Partial<IRiskCostItem>) => {
-    const updated = await dataService.updateRiskCostItem(projectCode, itemId, itemData);
-    const refreshed = await dataService.getRiskCostManagement(projectCode);
-    setData(refreshed);
+  const updateItem = React.useCallback(async (code: string, itemId: number, itemData: Partial<IRiskCostItem>) => {
+    const updated = await dataService.updateRiskCostItem(code, itemId, itemData);
     broadcastRiskCostChange(itemId, 'updated', 'Risk/cost item updated');
-    // Fire-and-forget — sync Data Mart after risk/cost item updated
-    dataService.syncToDataMart(projectCode).catch(() => { /* silent */ });
+    dataService.syncToDataMart(code).catch(() => { /* silent */ });
+    await queryClient.invalidateQueries({ queryKey: qk.riskCost.byProject(scope, code) });
     return updated;
-  }, [dataService, broadcastRiskCostChange]);
+  }, [dataService, broadcastRiskCostChange, queryClient, scope]);
 
   return { data, isLoading, error, fetchData, updateContractInfo, addItem, updateItem };
 }

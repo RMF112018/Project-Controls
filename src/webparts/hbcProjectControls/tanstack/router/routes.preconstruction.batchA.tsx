@@ -3,6 +3,8 @@ import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
 import { requirePermission } from './guards/requirePermission';
+import { leadsListOptions } from '../query/queryOptions/leads';
+import { estimatingRecordsOptions } from '../query/queryOptions/estimating';
 const EstimatingDashboard = lazyRouteComponent(
   () => import(/* webpackChunkName: "page-estimating-tracker" */ '../../components/pages/precon/EstimatingDashboard'),
   'EstimatingDashboard'
@@ -48,6 +50,11 @@ export function createPreconstructionBatchARoutes(rootRoute: unknown) {
     getParentRoute: () => rootRoute as never,
     path: '/preconstruction',
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardEstimatingTracker(context),
+    loader: ({ context }: { context: ITanStackRouteContext }) => {
+      return context.queryClient.ensureQueryData(
+        estimatingRecordsOptions(context.scope, context.dataService)
+      );
+    },
     component: EstimatingDashboard,
   });
 
@@ -55,6 +62,11 @@ export function createPreconstructionBatchARoutes(rootRoute: unknown) {
     getParentRoute: () => rootRoute as never,
     path: '/preconstruction/pipeline',
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardPipelineDashboard(context),
+    loader: ({ context }: { context: ITanStackRouteContext }) => {
+      return context.queryClient.ensureQueryData(
+        leadsListOptions(context.scope, context.dataService)
+      );
+    },
     component: PipelinePage,
   });
 

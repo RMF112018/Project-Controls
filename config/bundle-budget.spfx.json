@@ -1,32 +1,37 @@
 {
-  "baselineCommit": "412fb12",
-  "generatedAt": "2026-02-19T07:38:29.628Z",
+  "baselineCommit": "c76af8d",
+  "generatedAt": "2026-02-21T09:11:42.839Z",
   "entrypoint": {
     "name": "hbc-project-controls-web-part",
-    "rawBytes": 1963674,
-    "gzipBytes": 466180,
-    "brotliBytes": 363590
+    "rawBytes": 2013856,
+    "gzipBytes": 482769,
+    "brotliBytes": 375916
   },
   "chunkBudgets": {
     "phase-preconstruction": {
-      "rawBytes": 155906,
-      "gzipBytes": 34188,
-      "brotliBytes": 28382
+      "rawBytes": 142005,
+      "gzipBytes": 32438,
+      "brotliBytes": 26930
     },
     "phase-operations": {
-      "rawBytes": 372080,
-      "gzipBytes": 75389,
-      "brotliBytes": 57049
+      "rawBytes": 172968,
+      "gzipBytes": 36794,
+      "brotliBytes": 30395
     },
     "phase-admin-hub": {
-      "rawBytes": 237000,
-      "gzipBytes": 51540,
-      "brotliBytes": 42270
+      "rawBytes": 109669,
+      "gzipBytes": 26709,
+      "brotliBytes": 22460
     },
-    "phase-shared": {
-      "rawBytes": 52047,
-      "gzipBytes": 12966,
-      "brotliBytes": 11296
+    "page-dashboard": {
+      "rawBytes": 42167,
+      "gzipBytes": 10665,
+      "brotliBytes": 9338
+    },
+    "page-marketing": {
+      "rawBytes": 14659,
+      "gzipBytes": 5043,
+      "brotliBytes": 4394
     },
     "lib-echarts-runtime": {
       "rawBytes": 3399,
@@ -57,6 +62,11 @@
       "rawBytes": 0,
       "gzipBytes": 0,
       "brotliBytes": 0
+    },
+    "phase-shared": {
+      "rawBytes": 0,
+      "gzipBytes": 0,
+      "brotliBytes": 0
     }
   },
   "thresholds": {
@@ -72,5 +82,12 @@
   "forbiddenModulePatterns": [
     "node_modules/echarts/dist/echarts",
     "node_modules/echarts/echarts.js"
-  ]
+  ],
+  "lazyCoverage": {
+    "minPercent": 90,
+    "totalRoutes": 58,
+    "lazyRoutes": 53,
+    "inlineRoutes": 5,
+    "note": "5 inline routes intentional (ComingSoonPage x3, AccessDeniedPage, NotFoundPage). createLazyRoute: 7, lazyRouteComponent: 46 (39 unique components)."
+  }
 }

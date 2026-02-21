@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useRouterAdapter } from '../../contexts/RouterAdapterContext';
 
 export interface IAppLocation {
@@ -7,5 +8,5 @@ export interface IAppLocation {
 
 export function useAppLocation(): IAppLocation {
   const { pathname, search } = useRouterAdapter();
-  return { pathname, search };
+  return React.useMemo(() => ({ pathname, search }), [pathname, search]);
 }

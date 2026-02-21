@@ -104,7 +104,7 @@ See `PERFORMANCE_OPTIMIZATION_GUIDE.md` §5 for detailed bundle and chunk rules.
 - Griffel `makeStyles` for all styling  
 
 **Router Stability Rule (Critical)**
-The TanStack Router instance MUST be created exactly once (via `useRef` in `router.tsx`). Dynamic values (`selectedProject`, `currentUser`, `scope`, `isFeatureEnabled`) flow through the `RouterProvider context={}` prop, which calls `router.update()` in-place. NEVER add these values to `useMemo`/`useState` dependency arrays that would trigger router recreation. Router recreation destroys the route tree, re-runs all guards/loaders, unmounts all components, and blocks the main thread.
+The TanStack Router instance MUST be created exactly once (via `useRef` in `router.tsx`) with static-only values (`queryClient`, `dataService`). Dynamic values (`currentUser`, `selectedProject`, `isFeatureEnabled`, `scope`) are injected via `React.useEffect` → `router.update()` + `RouterProvider context={}`. Adapter hooks (`useAppNavigate`, `useAppLocation`, `useAppParams`) return memoised/ref-stable values to prevent downstream re-render cascades. `ProjectPicker.handleSelect` MUST close the popover before firing `setSelectedProject` (via `React.startTransition` deferral). NEVER pass dynamic values to `createHbcTanStackRouter`. NEVER add dynamic values to any dependency array that would trigger router recreation.
 
 See `CODE_ARCHITECTURE_GUIDE.md` for full folder and dependency rules.
 
@@ -137,7 +137,7 @@ See `FEATURE_DEVELOPMENT_BLUEPRINT.md` for new domain patterns, `PERFORMANCE_OPT
 
 ## §16 Active Pitfalls & Rules (Lean – Reference Only)
 
-- **Router singleton — NEVER recreate:** `TanStackPilotRouter` uses `useRef` to create the router once. The `RouterProvider context={}` prop handles dynamic updates. Adding `selectedProject`, `scope`, `currentUser`, or `isFeatureEnabled` to a `useMemo` dep array that creates the router will cause full-app freeze on every project change.
+- **Router singleton — NEVER recreate:** `TanStackPilotRouter` uses `useRef` to create the router once. Dynamic values injected via `router.update()` + `RouterProvider context={}`. Adapter hooks (`useAppNavigate`, `useAppLocation`, `useAppParams`) return memoised/ref-stable values. `ProjectPicker.handleSelect` closes popover before `startTransition(() => onSelect(project))`. Adding dynamic values to any dep array that creates the router will cause full-app freeze.
 - Always use `columnMappings.ts` — never hard-code column names.  
 - Call `this.logAudit()` on every mutation.  
 - Use `_getProjectWeb()` for project-site lists.  

@@ -37,6 +37,9 @@ jobs:
       - name: Guard browser bundles against Node core imports
         run: npm run check:browser-node-core
 
+      - name: Verify lazy-coverage
+        run: npm run verify:lazy-coverage:fail
+
       - name: Bundle (production)
         run: npm run bundle:ship:analyze
 

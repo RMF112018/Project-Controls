@@ -1,8 +1,12 @@
 import * as React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
 import { ISafetyConcern, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
+import { safetyConcernsOptions } from '../../tanstack/query/queryOptions/operationsSimple';
+import { qk } from '../../tanstack/query/queryKeys';
 
 interface IUseSafetyConcernsResult {
   concerns: ISafetyConcern[];
@@ -18,36 +22,21 @@ interface IUseSafetyConcernsResult {
 export function useSafetyConcerns(): IUseSafetyConcernsResult {
   const { dataService, currentUser } = useAppContext();
   const { broadcastChange } = useSignalRContext();
-  const [concerns, setConcerns] = React.useState<ISafetyConcern[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const lastProjectCodeRef = React.useRef<string | null>(null);
+  const queryClient = useQueryClient();
+  const scope = useQueryScope();
+  const [projectCode, setProjectCode] = React.useState<string>('');
 
-  const fetchConcerns = React.useCallback(async (projectCode: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      lastProjectCodeRef.current = projectCode;
-      const result = await dataService.getSafetyConcerns(projectCode);
-      setConcerns(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch safety concerns');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService]);
+  const safetyQuery = useQuery(safetyConcernsOptions(scope, dataService, projectCode));
 
-  // SignalR: refresh on Safety entity changes from other users
-  useSignalR({
+  const concerns = safetyQuery.data ?? [];
+  const isLoading = safetyQuery.isLoading;
+  const error = safetyQuery.error?.message ?? null;
+
+  useSignalRQueryInvalidation({
     entityType: EntityType.Safety,
-    onEntityChanged: React.useCallback(() => {
-      if (lastProjectCodeRef.current) {
-        fetchConcerns(lastProjectCodeRef.current);
-      }
-    }, [fetchConcerns]),
+    queryKeys: React.useMemo(() => projectCode ? [qk.safetyConcerns.byProject(scope, projectCode)] : [], [scope, projectCode]),
   });
 
-  // Helper to broadcast safety concern changes
   const broadcastSafetyChange = React.useCallback((
     entityId: number | string,
     action: IEntityChangedMessage['action'],
@@ -62,23 +51,31 @@ export function useSafetyConcerns(): IUseSafetyConcernsResult {
       changedByName: currentUser?.displayName,
       timestamp: new Date().toISOString(),
       summary,
-      projectCode: lastProjectCodeRef.current || undefined,
+      projectCode: projectCode || undefined,
     });
-  }, [broadcastChange, currentUser]);
+  }, [broadcastChange, currentUser, projectCode]);
 
-  const addConcern = React.useCallback(async (projectCode: string, concern: Partial<ISafetyConcern>) => {
-    const created = await dataService.addSafetyConcern(projectCode, concern);
-    setConcerns(prev => [...prev, created]);
+  const invalidate = React.useCallback(async (code: string) => {
+    await queryClient.invalidateQueries({ queryKey: qk.safetyConcerns.byProject(scope, code) });
+  }, [queryClient, scope]);
+
+  const fetchConcerns = React.useCallback(async (code: string) => {
+    setProjectCode(code);
+  }, []);
+
+  const addConcern = React.useCallback(async (code: string, concern: Partial<ISafetyConcern>) => {
+    const created = await dataService.addSafetyConcern(code, concern);
     broadcastSafetyChange(created.id, 'created', 'Safety concern added');
+    await invalidate(code);
     return created;
-  }, [dataService, broadcastSafetyChange]);
+  }, [dataService, broadcastSafetyChange, invalidate]);
 
-  const updateConcern = React.useCallback(async (projectCode: string, concernId: number, data: Partial<ISafetyConcern>) => {
-    const updated = await dataService.updateSafetyConcern(projectCode, concernId, data);
-    setConcerns(prev => prev.map(c => c.id === concernId ? updated : c));
+  const updateConcern = React.useCallback(async (code: string, concernId: number, data: Partial<ISafetyConcern>) => {
+    const updated = await dataService.updateSafetyConcern(code, concernId, data);
     broadcastSafetyChange(concernId, 'updated', 'Safety concern updated');
+    await invalidate(code);
     return updated;
-  }, [dataService, broadcastSafetyChange]);
+  }, [dataService, broadcastSafetyChange, invalidate]);
 
   const safetyOfficer = React.useMemo(() => {
     const first = concerns.find(c => c.safetyOfficerName);

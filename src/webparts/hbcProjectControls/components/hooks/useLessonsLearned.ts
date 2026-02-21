@@ -1,8 +1,12 @@
 import * as React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
 import { ILessonLearned, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
+import { lessonsLearnedOptions } from '../../tanstack/query/queryOptions/operationsSimple';
+import { qk } from '../../tanstack/query/queryKeys';
 
 interface IUseLessonsLearnedResult {
   lessons: ILessonLearned[];
@@ -18,36 +22,21 @@ interface IUseLessonsLearnedResult {
 export function useLessonsLearned(): IUseLessonsLearnedResult {
   const { dataService, currentUser } = useAppContext();
   const { broadcastChange } = useSignalRContext();
-  const [lessons, setLessons] = React.useState<ILessonLearned[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const lastProjectCodeRef = React.useRef<string | null>(null);
+  const queryClient = useQueryClient();
+  const scope = useQueryScope();
+  const [projectCode, setProjectCode] = React.useState<string>('');
 
-  const fetchLessons = React.useCallback(async (projectCode: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      lastProjectCodeRef.current = projectCode;
-      const result = await dataService.getLessonsLearned(projectCode);
-      setLessons(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch lessons learned');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService]);
+  const lessonsQuery = useQuery(lessonsLearnedOptions(scope, dataService, projectCode));
 
-  // SignalR: refresh on LessonLearned entity changes from other users
-  useSignalR({
+  const lessons = lessonsQuery.data ?? [];
+  const isLoading = lessonsQuery.isLoading;
+  const error = lessonsQuery.error?.message ?? null;
+
+  useSignalRQueryInvalidation({
     entityType: EntityType.LessonLearned,
-    onEntityChanged: React.useCallback(() => {
-      if (lastProjectCodeRef.current) {
-        fetchLessons(lastProjectCodeRef.current);
-      }
-    }, [fetchLessons]),
+    queryKeys: React.useMemo(() => projectCode ? [qk.lessonsLearned.byProject(scope, projectCode)] : [], [scope, projectCode]),
   });
 
-  // Helper to broadcast lesson learned changes
   const broadcastLessonChange = React.useCallback((
     entityId: number | string,
     action: IEntityChangedMessage['action'],
@@ -62,23 +51,31 @@ export function useLessonsLearned(): IUseLessonsLearnedResult {
       changedByName: currentUser?.displayName,
       timestamp: new Date().toISOString(),
       summary,
-      projectCode: lastProjectCodeRef.current || undefined,
+      projectCode: projectCode || undefined,
     });
-  }, [broadcastChange, currentUser]);
+  }, [broadcastChange, currentUser, projectCode]);
 
-  const addLesson = React.useCallback(async (projectCode: string, lesson: Partial<ILessonLearned>) => {
-    const created = await dataService.addLessonLearned(projectCode, lesson);
-    setLessons(prev => [...prev, created]);
+  const invalidate = React.useCallback(async (code: string) => {
+    await queryClient.invalidateQueries({ queryKey: qk.lessonsLearned.byProject(scope, code) });
+  }, [queryClient, scope]);
+
+  const fetchLessons = React.useCallback(async (code: string) => {
+    setProjectCode(code);
+  }, []);
+
+  const addLesson = React.useCallback(async (code: string, lesson: Partial<ILessonLearned>) => {
+    const created = await dataService.addLessonLearned(code, lesson);
     broadcastLessonChange(created.id, 'created', 'Lesson learned added');
+    await invalidate(code);
     return created;
-  }, [dataService, broadcastLessonChange]);
+  }, [dataService, broadcastLessonChange, invalidate]);
 
-  const updateLesson = React.useCallback(async (projectCode: string, lessonId: number, data: Partial<ILessonLearned>) => {
-    const updated = await dataService.updateLessonLearned(projectCode, lessonId, data);
-    setLessons(prev => prev.map(l => l.id === lessonId ? updated : l));
+  const updateLesson = React.useCallback(async (code: string, lessonId: number, data: Partial<ILessonLearned>) => {
+    const updated = await dataService.updateLessonLearned(code, lessonId, data);
     broadcastLessonChange(lessonId, 'updated', 'Lesson learned updated');
+    await invalidate(code);
     return updated;
-  }, [dataService, broadcastLessonChange]);
+  }, [dataService, broadcastLessonChange, invalidate]);
 
   const byCategory = React.useMemo(() => {
     const grouped: Record<string, ILessonLearned[]> = {};

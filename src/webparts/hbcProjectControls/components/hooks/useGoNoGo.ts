@@ -11,9 +11,13 @@ import {
   IEntityChangedMessage,
 } from '@hbc/sp-services';
 import * as React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
+import { scorecardsListOptions } from '../../tanstack/query/queryOptions/gonogo';
+import { qk } from '../../tanstack/query/queryKeys';
 
 interface IRecommendation {
   decision: GoNoGoDecision;
@@ -66,29 +70,24 @@ interface IUseGoNoGoResult {
 export function useGoNoGo(): IUseGoNoGoResult {
   const { dataService, currentUser, hasPermission } = useAppContext();
   const { broadcastChange } = useSignalRContext();
-  const [scorecards, setScorecards] = React.useState<IGoNoGoScorecard[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [versions, setVersions] = React.useState<IScorecardVersion[]>([]);
+  const queryClient = useQueryClient();
+  const scope = useQueryScope();
+
+  // Active scorecard for computed status (set when user navigates to a specific scorecard)
   const [activeScorecard, setActiveScorecard] = React.useState<IGoNoGoScorecard | null>(null);
+  const [versions, setVersions] = React.useState<IScorecardVersion[]>([]);
 
-  const fetchScorecards = React.useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const items = await dataService.getScorecards();
-      setScorecards(items);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch scorecards');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService]);
+  // TanStack Query: list of all scorecards
+  const scorecardsQuery = useQuery(scorecardsListOptions(scope, dataService));
 
-  // SignalR: refresh on Scorecard entity changes from other users
-  useSignalR({
+  const scorecards = scorecardsQuery.data ?? [];
+  const isLoading = scorecardsQuery.isLoading;
+  const error = scorecardsQuery.error?.message ?? null;
+
+  // SignalR: invalidate all gonogo queries on entity changes
+  useSignalRQueryInvalidation({
     entityType: EntityType.Scorecard,
-    onEntityChanged: React.useCallback(() => { fetchScorecards(); }, [fetchScorecards]),
+    queryKeys: React.useMemo(() => [qk.gonogo.base(scope)], [scope]),
   });
 
   // Helper to broadcast scorecard changes
@@ -109,173 +108,118 @@ export function useGoNoGo(): IUseGoNoGoResult {
     });
   }, [broadcastChange, currentUser]);
 
+  // Helper: invalidate and refetch all gonogo queries
+  const invalidateAll = React.useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: qk.gonogo.base(scope) });
+  }, [queryClient, scope]);
+
+  const fetchScorecards = React.useCallback(async () => {
+    await invalidateAll();
+  }, [invalidateAll]);
+
   const getScorecardByLeadId = React.useCallback(async (leadId: number) => {
     try {
       const sc = await dataService.getScorecardByLeadId(leadId);
       if (sc) setActiveScorecard(sc);
       return sc;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch scorecard');
+    } catch {
       return null;
     }
   }, [dataService]);
 
   const createScorecard = React.useCallback(async (data: Partial<IGoNoGoScorecard>) => {
-    try {
-      const scorecard = await dataService.createScorecard(data);
-      setScorecards(prev => [...prev, scorecard]);
-      setActiveScorecard(scorecard);
-      broadcastScorecardChange(scorecard.id, 'created', 'Scorecard created');
-      return scorecard;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create scorecard');
-      throw err;
-    }
-  }, [dataService, broadcastScorecardChange]);
+    const scorecard = await dataService.createScorecard(data);
+    setActiveScorecard(scorecard);
+    broadcastScorecardChange(scorecard.id, 'created', 'Scorecard created');
+    void invalidateAll();
+    return scorecard;
+  }, [dataService, broadcastScorecardChange, invalidateAll]);
 
   const updateScorecard = React.useCallback(async (id: number, data: Partial<IGoNoGoScorecard>) => {
-    try {
-      const updated = await dataService.updateScorecard(id, data);
-      setScorecards(prev => prev.map(s => s.id === id ? updated : s));
-      setActiveScorecard(updated);
-      broadcastScorecardChange(id, 'updated', 'Scorecard updated');
-      return updated;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update scorecard');
-      throw err;
-    }
-  }, [dataService, broadcastScorecardChange]);
+    const updated = await dataService.updateScorecard(id, data);
+    setActiveScorecard(updated);
+    broadcastScorecardChange(id, 'updated', 'Scorecard updated');
+    void invalidateAll();
+    return updated;
+  }, [dataService, broadcastScorecardChange, invalidateAll]);
 
   const submitDecision = React.useCallback(async (scorecardId: number, decision: GoNoGoDecision, projectCode?: string) => {
-    try {
-      await dataService.submitGoNoGoDecision(scorecardId, decision, projectCode);
-      await fetchScorecards();
-      broadcastScorecardChange(scorecardId, 'updated', `Decision: ${decision}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit decision');
-      throw err;
-    }
-  }, [dataService, fetchScorecards, broadcastScorecardChange]);
-
-  // --- Phase 16: Workflow methods ---
+    await dataService.submitGoNoGoDecision(scorecardId, decision, projectCode);
+    broadcastScorecardChange(scorecardId, 'updated', `Decision: ${decision}`);
+    void invalidateAll();
+  }, [dataService, broadcastScorecardChange, invalidateAll]);
 
   const submitScorecard = React.useCallback(async (scorecardId: number, approverOverride?: IPersonAssignment) => {
-    try {
-      const updated = await dataService.submitScorecard(scorecardId, currentUser?.email ?? 'unknown', approverOverride);
-      setScorecards(prev => prev.map(s => s.id === scorecardId ? updated : s));
-      setActiveScorecard(updated);
-      broadcastScorecardChange(scorecardId, 'updated', 'Submitted for review');
-      return updated;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit scorecard');
-      throw err;
-    }
-  }, [dataService, currentUser, broadcastScorecardChange]);
+    const updated = await dataService.submitScorecard(scorecardId, currentUser?.email ?? 'unknown', approverOverride);
+    setActiveScorecard(updated);
+    broadcastScorecardChange(scorecardId, 'updated', 'Submitted for review');
+    void invalidateAll();
+    return updated;
+  }, [dataService, currentUser, broadcastScorecardChange, invalidateAll]);
 
   const respondToSubmission = React.useCallback(async (scorecardId: number, approved: boolean, comment: string) => {
-    try {
-      const updated = await dataService.respondToScorecardSubmission(scorecardId, approved, comment);
-      setScorecards(prev => prev.map(s => s.id === scorecardId ? updated : s));
-      setActiveScorecard(updated);
-      broadcastScorecardChange(scorecardId, 'updated', approved ? 'Approved' : 'Returned for revision');
-      return updated;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to respond to submission');
-      throw err;
-    }
-  }, [dataService, broadcastScorecardChange]);
+    const updated = await dataService.respondToScorecardSubmission(scorecardId, approved, comment);
+    setActiveScorecard(updated);
+    broadcastScorecardChange(scorecardId, 'updated', approved ? 'Approved' : 'Returned for revision');
+    void invalidateAll();
+    return updated;
+  }, [dataService, broadcastScorecardChange, invalidateAll]);
 
   const enterCommitteeScores = React.useCallback(async (scorecardId: number, scores: Record<string, number>) => {
-    try {
-      const updated = await dataService.enterCommitteeScores(scorecardId, scores, currentUser?.email ?? 'unknown');
-      setScorecards(prev => prev.map(s => s.id === scorecardId ? updated : s));
-      setActiveScorecard(updated);
-      broadcastScorecardChange(scorecardId, 'updated', 'Committee scores entered');
-      return updated;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to enter committee scores');
-      throw err;
-    }
-  }, [dataService, currentUser, broadcastScorecardChange]);
+    const updated = await dataService.enterCommitteeScores(scorecardId, scores, currentUser?.email ?? 'unknown');
+    setActiveScorecard(updated);
+    broadcastScorecardChange(scorecardId, 'updated', 'Committee scores entered');
+    void invalidateAll();
+    return updated;
+  }, [dataService, currentUser, broadcastScorecardChange, invalidateAll]);
 
   const computeRecommendation = React.useCallback((committeeTotal: number): IRecommendation => {
     return getRecommendedDecision(committeeTotal);
   }, []);
 
   const recordDecision = React.useCallback(async (scorecardId: number, decision: GoNoGoDecision, conditions?: string) => {
-    try {
-      const updated = await dataService.recordFinalDecision(scorecardId, decision, conditions, currentUser?.email);
-      setScorecards(prev => prev.map(s => s.id === scorecardId ? updated : s));
-      setActiveScorecard(updated);
-      broadcastScorecardChange(scorecardId, 'updated', `Final decision: ${decision}`);
-      return updated;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to record decision');
-      throw err;
-    }
-  }, [dataService, currentUser, broadcastScorecardChange]);
-
-  // --- Phase 22: Reject / Archive ---
+    const updated = await dataService.recordFinalDecision(scorecardId, decision, conditions, currentUser?.email);
+    setActiveScorecard(updated);
+    broadcastScorecardChange(scorecardId, 'updated', `Final decision: ${decision}`);
+    void invalidateAll();
+    return updated;
+  }, [dataService, currentUser, broadcastScorecardChange, invalidateAll]);
 
   const rejectScorecard = React.useCallback(async (scorecardId: number, reason: string) => {
-    try {
-      const updated = await dataService.rejectScorecard(scorecardId, reason);
-      setScorecards(prev => prev.map(s => s.id === scorecardId ? updated : s));
-      setActiveScorecard(updated);
-      broadcastScorecardChange(scorecardId, 'updated', 'Scorecard rejected');
-      return updated;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to reject scorecard');
-      throw err;
-    }
-  }, [dataService, broadcastScorecardChange]);
+    const updated = await dataService.rejectScorecard(scorecardId, reason);
+    setActiveScorecard(updated);
+    broadcastScorecardChange(scorecardId, 'updated', 'Scorecard rejected');
+    void invalidateAll();
+    return updated;
+  }, [dataService, broadcastScorecardChange, invalidateAll]);
 
   const archiveScorecard = React.useCallback(async (scorecardId: number) => {
-    try {
-      const updated = await dataService.archiveScorecard(scorecardId, currentUser?.displayName ?? 'Unknown');
-      setScorecards(prev => prev.map(s => s.id === scorecardId ? updated : s));
-      setActiveScorecard(updated);
-      broadcastScorecardChange(scorecardId, 'updated', 'Scorecard archived');
-      return updated;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to archive scorecard');
-      throw err;
-    }
-  }, [dataService, currentUser, broadcastScorecardChange]);
+    const updated = await dataService.archiveScorecard(scorecardId, currentUser?.displayName ?? 'Unknown');
+    setActiveScorecard(updated);
+    broadcastScorecardChange(scorecardId, 'updated', 'Scorecard archived');
+    void invalidateAll();
+    return updated;
+  }, [dataService, currentUser, broadcastScorecardChange, invalidateAll]);
 
   const unlockScorecard = React.useCallback(async (scorecardId: number, reason: string) => {
-    try {
-      const updated = await dataService.unlockScorecard(scorecardId, reason);
-      setScorecards(prev => prev.map(s => s.id === scorecardId ? updated : s));
-      setActiveScorecard(updated);
-      broadcastScorecardChange(scorecardId, 'updated', 'Scorecard unlocked');
-      return updated;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to unlock scorecard');
-      throw err;
-    }
-  }, [dataService, broadcastScorecardChange]);
+    const updated = await dataService.unlockScorecard(scorecardId, reason);
+    setActiveScorecard(updated);
+    broadcastScorecardChange(scorecardId, 'updated', 'Scorecard unlocked');
+    void invalidateAll();
+    return updated;
+  }, [dataService, broadcastScorecardChange, invalidateAll]);
 
   const relockScorecard = React.useCallback(async (scorecardId: number, startNewCycle: boolean) => {
-    try {
-      const updated = await dataService.relockScorecard(scorecardId, startNewCycle);
-      setScorecards(prev => prev.map(s => s.id === scorecardId ? updated : s));
-      setActiveScorecard(updated);
-      broadcastScorecardChange(scorecardId, 'updated', 'Scorecard relocked');
-      return updated;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to relock scorecard');
-      throw err;
-    }
-  }, [dataService, broadcastScorecardChange]);
+    const updated = await dataService.relockScorecard(scorecardId, startNewCycle);
+    setActiveScorecard(updated);
+    broadcastScorecardChange(scorecardId, 'updated', 'Scorecard relocked');
+    void invalidateAll();
+    return updated;
+  }, [dataService, broadcastScorecardChange, invalidateAll]);
 
   const loadVersions = React.useCallback(async (scorecardId: number) => {
-    try {
-      const v = await dataService.getScorecardVersions(scorecardId);
-      setVersions(v);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load versions');
-    }
+    const v = await dataService.getScorecardVersions(scorecardId);
+    setVersions(v);
   }, [dataService]);
 
   // --- Computed status ---
@@ -285,7 +229,7 @@ export function useGoNoGo(): IUseGoNoGoResult {
   const currentVersion = activeScorecard?.currentVersion ?? 1;
 
   const canEdit = React.useMemo(() => {
-    if (!activeScorecard) return true; // New scorecard
+    if (!activeScorecard) return true;
     const status = activeScorecard.scorecardStatus;
     return (
       status === ScorecardStatus.BDDraft ||
@@ -297,7 +241,6 @@ export function useGoNoGo(): IUseGoNoGoResult {
 
   const canSubmit = React.useMemo(() => {
     if (!activeScorecard) {
-      // Allow submit on new (unsaved) scorecards — handleSubmitForReview calls handleSave first
       return hasPermission(PERMISSIONS.GONOGO_SUBMIT);
     }
     const status = activeScorecard.scorecardStatus;
@@ -327,7 +270,6 @@ export function useGoNoGo(): IUseGoNoGoResult {
     return pendingStep.assigneeEmail?.toLowerCase() === userEmail;
   }, [activeScorecard, currentUser, hasPermission, isDirectorOrExec]);
 
-  // Alias for backward compatibility
   const canReview = canReviewDirector;
 
   const canReviewCommittee = React.useMemo(() => {

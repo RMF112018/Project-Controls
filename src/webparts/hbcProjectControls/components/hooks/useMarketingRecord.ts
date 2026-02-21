@@ -1,8 +1,12 @@
 import * as React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
 import { IMarketingProjectRecord, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
+import { marketingAllRecordsOptions, marketingRecordOptions } from '../../tanstack/query/queryOptions/operationsSimple';
+import { qk } from '../../tanstack/query/queryKeys';
 
 interface IUseMarketingRecordResult {
   record: IMarketingProjectRecord | null;
@@ -18,28 +22,29 @@ interface IUseMarketingRecordResult {
 export function useMarketingRecord(): IUseMarketingRecordResult {
   const { dataService, currentUser } = useAppContext();
   const { broadcastChange } = useSignalRContext();
-  const [record, setRecord] = React.useState<IMarketingProjectRecord | null>(null);
-  const [allRecords, setAllRecords] = React.useState<IMarketingProjectRecord[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const scope = useQueryScope();
+  const [projectCode, setProjectCode] = React.useState<string>('');
+  const [fetchAll, setFetchAll] = React.useState(false);
 
-  const fetchAllRecords = React.useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const result = await dataService.getAllMarketingProjectRecords();
-      setAllRecords(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch records');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService]);
+  const recordQuery = useQuery({
+    ...marketingRecordOptions(scope, dataService, projectCode),
+    enabled: !!projectCode,
+  });
 
-  // SignalR: refresh on ProjectRecord entity changes
-  useSignalR({
+  const allRecordsQuery = useQuery({
+    ...marketingAllRecordsOptions(scope, dataService),
+    enabled: fetchAll,
+  });
+
+  const record = recordQuery.data ?? null;
+  const allRecords = allRecordsQuery.data ?? [];
+  const isLoading = recordQuery.isLoading || allRecordsQuery.isLoading;
+  const error = recordQuery.error?.message ?? allRecordsQuery.error?.message ?? null;
+
+  useSignalRQueryInvalidation({
     entityType: EntityType.ProjectRecord,
-    onEntityChanged: React.useCallback(() => { fetchAllRecords(); }, [fetchAllRecords]),
+    queryKeys: React.useMemo(() => [qk.marketing.base(scope)], [scope]),
   });
 
   const broadcastRecordChange = React.useCallback((
@@ -59,34 +64,28 @@ export function useMarketingRecord(): IUseMarketingRecordResult {
     });
   }, [broadcastChange, currentUser]);
 
-  const fetchRecord = React.useCallback(async (projectCode: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const result = await dataService.getMarketingProjectRecord(projectCode);
-      setRecord(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch record');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService]);
+  const fetchRecord = React.useCallback(async (code: string) => {
+    setProjectCode(code);
+  }, []);
 
-  const updateRecord = React.useCallback(async (projectCode: string, data: Partial<IMarketingProjectRecord>) => {
-    const updated = await dataService.updateMarketingProjectRecord(projectCode, data);
-    setRecord(updated);
-    setAllRecords(prev => prev.map(r => r.projectCode === projectCode ? updated : r));
-    broadcastRecordChange(projectCode, 'updated', 'Marketing record updated');
+  const fetchAllRecords = React.useCallback(async () => {
+    setFetchAll(true);
+    await queryClient.invalidateQueries({ queryKey: qk.marketing.all(scope) });
+  }, [queryClient, scope]);
+
+  const updateRecord = React.useCallback(async (code: string, data: Partial<IMarketingProjectRecord>) => {
+    const updated = await dataService.updateMarketingProjectRecord(code, data);
+    broadcastRecordChange(code, 'updated', 'Marketing record updated');
+    await queryClient.invalidateQueries({ queryKey: qk.marketing.base(scope) });
     return updated;
-  }, [dataService, broadcastRecordChange]);
+  }, [dataService, broadcastRecordChange, queryClient, scope]);
 
   const createRecord = React.useCallback(async (data: Partial<IMarketingProjectRecord>) => {
     const created = await dataService.createMarketingProjectRecord(data);
-    setRecord(created);
-    setAllRecords(prev => [...prev, created]);
     broadcastRecordChange(created.projectCode, 'created', 'Marketing record created');
+    await queryClient.invalidateQueries({ queryKey: qk.marketing.base(scope) });
     return created;
-  }, [dataService, broadcastRecordChange]);
+  }, [dataService, broadcastRecordChange, queryClient, scope]);
 
   return { record, allRecords, isLoading, error, fetchRecord, fetchAllRecords, updateRecord, createRecord };
 }

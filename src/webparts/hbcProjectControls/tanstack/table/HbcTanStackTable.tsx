@@ -502,7 +502,7 @@ export function HbcTanStackTable<TData>({
                   onClick={() => onRowClick?.(row.original)}
                   className={mergeClasses(
                     onRowClick ? styles.rowClickable : undefined,
-                    row.getIsSelected() ? styles.rowSelected : undefined
+                    enableRowSelection && row.getIsSelected() ? styles.rowSelected : undefined
                   )}
                   tabIndex={onRowClick ? 0 : undefined}
                   onKeyDown={onRowClick ? (event) => {

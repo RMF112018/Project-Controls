@@ -1,11 +1,14 @@
 import * as React from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
 import { ILead, ILeadFormData, Stage, IListQueryOptions, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
 import { useHbcOptimisticMutation } from '../../tanstack/query/mutations/useHbcOptimisticMutation';
 import { OPTIMISTIC_MUTATION_FLAGS } from '../../tanstack/query/mutations/optimisticMutationFlags';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
+import { leadsListOptions, leadsByStageOptions, leadsSearchOptions } from '../../tanstack/query/queryOptions/leads';
+import { qk } from '../../tanstack/query/queryKeys';
 
 interface IUseLeadsResult {
   leads: ILead[];
@@ -21,35 +24,71 @@ interface IUseLeadsResult {
   getLeadById: (id: number) => Promise<ILead | null>;
 }
 
+type FetchMode =
+  | { type: 'list'; options?: IListQueryOptions }
+  | { type: 'stage'; stage: Stage }
+  | { type: 'search'; query: string };
+
 export function useLeads(): IUseLeadsResult {
   const { dataService, currentUser } = useAppContext();
   const { broadcastChange } = useSignalRContext();
   const queryClient = useQueryClient();
-  const [leads, setLeads] = React.useState<ILead[]>([]);
-  const [totalCount, setTotalCount] = React.useState(0);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const leadsCacheKey = React.useMemo(() => ['local', 'leads'] as const, []);
+  const scope = useQueryScope();
 
-  const fetchLeads = React.useCallback(async (options?: IListQueryOptions) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const result = await dataService.getLeads(options);
-      setLeads(result.items);
-      setTotalCount(result.totalCount);
-      queryClient.setQueryData<ILead[]>(leadsCacheKey, result.items);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch leads');
-    } finally {
-      setIsLoading(false);
+  // Track which query variant is active so the correct data is surfaced
+  const [fetchMode, setFetchMode] = React.useState<FetchMode>({ type: 'list' });
+
+  // Primary list query — enabled when mode is 'list'
+  const listQuery = useQuery({
+    ...leadsListOptions(scope, dataService, fetchMode.type === 'list' ? fetchMode.options : undefined),
+    enabled: fetchMode.type === 'list',
+  });
+
+  // Stage query
+  const stageQuery = useQuery({
+    ...leadsByStageOptions(scope, dataService, fetchMode.type === 'stage' ? fetchMode.stage : '' as Stage),
+    enabled: fetchMode.type === 'stage',
+  });
+
+  // Search query
+  const searchQuery = useQuery({
+    ...leadsSearchOptions(scope, dataService, fetchMode.type === 'search' ? fetchMode.query : ''),
+    enabled: fetchMode.type === 'search' && (fetchMode.type === 'search' && fetchMode.query.length > 0),
+  });
+
+  // Derive active query data based on mode
+  const { leads, totalCount, isLoading, error } = React.useMemo(() => {
+    if (fetchMode.type === 'list') {
+      return {
+        leads: listQuery.data?.items ?? [],
+        totalCount: listQuery.data?.totalCount ?? 0,
+        isLoading: listQuery.isLoading,
+        error: listQuery.error?.message ?? null,
+      };
     }
-  }, [dataService, leadsCacheKey, queryClient]);
+    if (fetchMode.type === 'stage') {
+      const items = stageQuery.data ?? [];
+      return {
+        leads: items,
+        totalCount: items.length,
+        isLoading: stageQuery.isLoading,
+        error: stageQuery.error?.message ?? null,
+      };
+    }
+    // search
+    const items = searchQuery.data ?? [];
+    return {
+      leads: items,
+      totalCount: items.length,
+      isLoading: searchQuery.isLoading,
+      error: searchQuery.error?.message ?? null,
+    };
+  }, [fetchMode, listQuery, stageQuery, searchQuery]);
 
-  // SignalR: refresh on Lead entity changes from other users
-  useSignalR({
+  // SignalR: invalidate all leads queries on entity changes
+  useSignalRQueryInvalidation({
     entityType: EntityType.Lead,
-    onEntityChanged: React.useCallback(() => { fetchLeads(); }, [fetchLeads]),
+    queryKeys: React.useMemo(() => [qk.leads.base(scope)], [scope]),
   });
 
   // Helper to broadcast lead changes
@@ -70,26 +109,24 @@ export function useLeads(): IUseLeadsResult {
     });
   }, [broadcastChange, currentUser]);
 
+  const fetchLeads = React.useCallback(async (options?: IListQueryOptions) => {
+    setFetchMode({ type: 'list', options });
+    await queryClient.invalidateQueries({ queryKey: qk.leads.base(scope) });
+  }, [queryClient, scope]);
+
   const fetchLeadsByStage = React.useCallback(async (stage: Stage) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const items = await dataService.getLeadsByStage(stage);
-      setLeads(items);
-      setTotalCount(items.length);
-      queryClient.setQueryData<ILead[]>(leadsCacheKey, items);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch leads');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService, leadsCacheKey, queryClient]);
+    setFetchMode({ type: 'stage', stage });
+  }, []);
+
+  const searchLeads = React.useCallback(async (query: string) => {
+    setFetchMode({ type: 'search', query });
+  }, []);
 
   const createLeadMutation = useHbcOptimisticMutation<ILead, ILeadFormData, ILead[]>({
     method: 'createLead',
     domainFlag: OPTIMISTIC_MUTATION_FLAGS.leads,
     mutationFn: async (data) => dataService.createLead(data),
-    getStateKey: () => leadsCacheKey,
+    getStateKey: () => qk.leads.base(scope),
     applyOptimistic: (previous, data) => [{
       ...(data as Partial<ILead>),
       id: -Date.now(),
@@ -102,18 +139,11 @@ export function useLeads(): IUseLeadsResult {
       Originator: currentUser?.displayName ?? 'Pending',
       DateOfEvaluation: new Date().toISOString(),
     } as ILead, ...(previous ?? [])],
-    onOptimisticStateChange: (state) => {
-      const next = state ?? [];
-      setLeads(next);
-      setTotalCount(next.length);
-    },
     onSuccessEffects: async (lead) => {
-      setLeads((prev) => [lead, ...prev.filter((item) => item.id > 0)]);
-      setTotalCount((prev) => prev + 1);
       broadcastLeadChange(lead.id, 'created', 'Lead created');
     },
     onSettledEffects: async () => {
-      await queryClient.invalidateQueries({ queryKey: leadsCacheKey });
+      await queryClient.invalidateQueries({ queryKey: qk.leads.base(scope) });
     },
   });
 
@@ -121,15 +151,13 @@ export function useLeads(): IUseLeadsResult {
     method: 'updateLead',
     domainFlag: OPTIMISTIC_MUTATION_FLAGS.leads,
     mutationFn: async ({ id, data }) => dataService.updateLead(id, data),
-    getStateKey: () => leadsCacheKey,
+    getStateKey: () => qk.leads.base(scope),
     applyOptimistic: (previous, vars) => (previous ?? []).map((lead) => lead.id === vars.id ? { ...lead, ...vars.data } : lead),
-    onOptimisticStateChange: (state) => setLeads(state ?? []),
-    onSuccessEffects: async (updated, vars) => {
-      setLeads((prev) => prev.map((lead) => lead.id === vars.id ? updated : lead));
+    onSuccessEffects: async (_updated, vars) => {
       broadcastLeadChange(vars.id, 'updated', 'Lead updated');
     },
     onSettledEffects: async () => {
-      await queryClient.invalidateQueries({ queryKey: leadsCacheKey });
+      await queryClient.invalidateQueries({ queryKey: qk.leads.base(scope) });
     },
   });
 
@@ -137,20 +165,13 @@ export function useLeads(): IUseLeadsResult {
     method: 'deleteLead',
     domainFlag: OPTIMISTIC_MUTATION_FLAGS.leads,
     mutationFn: async (id) => dataService.deleteLead(id),
-    getStateKey: () => leadsCacheKey,
+    getStateKey: () => qk.leads.base(scope),
     applyOptimistic: (previous, id) => (previous ?? []).filter((lead) => lead.id !== id),
-    onOptimisticStateChange: (state) => {
-      const next = state ?? [];
-      setLeads(next);
-      setTotalCount(next.length);
-    },
     onSuccessEffects: async (_result, id) => {
-      setLeads((prev) => prev.filter((lead) => lead.id !== id));
-      setTotalCount((prev) => Math.max(0, prev - 1));
       broadcastLeadChange(id, 'deleted', 'Lead deleted');
     },
     onSettledEffects: async () => {
-      await queryClient.invalidateQueries({ queryKey: leadsCacheKey });
+      await queryClient.invalidateQueries({ queryKey: qk.leads.base(scope) });
     },
   });
 
@@ -165,21 +186,6 @@ export function useLeads(): IUseLeadsResult {
   const deleteLead = React.useCallback(async (id: number): Promise<void> => {
     await deleteLeadMutation.mutateAsync(id);
   }, [deleteLeadMutation]);
-
-  const searchLeads = React.useCallback(async (query: string): Promise<void> => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const items = await dataService.searchLeads(query);
-      setLeads(items);
-      setTotalCount(items.length);
-      queryClient.setQueryData<ILead[]>(leadsCacheKey, items);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Search failed');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService, leadsCacheKey, queryClient]);
 
   const getLeadById = React.useCallback(async (id: number): Promise<ILead | null> => {
     return dataService.getLeadById(id);

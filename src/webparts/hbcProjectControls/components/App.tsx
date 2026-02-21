@@ -32,21 +32,25 @@ function mergeThemes(baseTheme: Theme, hostThemePatch?: Partial<Theme>): Theme {
   };
 }
 
+const ROUTE_SUSPENSE_FALLBACK = <PhaseSuspenseFallback label="Loading project controls module..." />;
+
 const AppRoutes: React.FC = () => {
   const { dataService, currentUser, selectedProject, isFeatureEnabled } = useAppContext();
   const scope = useQueryScope();
   const queryClient = useQueryClient();
 
+  const routerProps = React.useMemo(() => ({
+    queryClient,
+    dataService,
+    currentUser,
+    selectedProject,
+    isFeatureEnabled,
+    scope,
+  }), [queryClient, dataService, currentUser, selectedProject, isFeatureEnabled, scope]);
+
   return (
-    <React.Suspense fallback={<PhaseSuspenseFallback label="Loading project controls module..." />}>
-      <TanStackAppRouterProvider
-        queryClient={queryClient}
-        dataService={dataService}
-        currentUser={currentUser}
-        selectedProject={selectedProject}
-        isFeatureEnabled={isFeatureEnabled}
-        scope={scope}
-      />
+    <React.Suspense fallback={ROUTE_SUSPENSE_FALLBACK}>
+      <TanStackAppRouterProvider {...routerProps} />
     </React.Suspense>
   );
 };

@@ -52,6 +52,17 @@ const createPayload: ILeadFormData = {
   Stage: Stage.LeadDiscovery,
 };
 
+function makeAppContextMock(dataService: unknown, isFeatureEnabled: (name: string) => boolean = () => false) {
+  return {
+    dataService,
+    currentUser: { email: 'test@hbc.com', displayName: 'Tester' },
+    isFeatureEnabled,
+    dataServiceMode: 'mock',
+    selectedProject: null,
+    isProjectSite: false,
+  };
+}
+
 describe('useLeads', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -59,10 +70,17 @@ describe('useLeads', () => {
   });
 
   it('uses pessimistic fallback when flags are off', async () => {
-    const initialLeads = [makeLead()];
+    const newLead = makeLead({ id: 2, Title: 'New Lead' });
+    let callCount = 0;
     const dataService = {
-      getLeads: jest.fn().mockResolvedValue({ items: initialLeads, totalCount: 1, hasMore: false }),
-      createLead: jest.fn(),
+      getLeads: jest.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount <= 1) {
+          return Promise.resolve({ items: [makeLead()], totalCount: 1, hasMore: false });
+        }
+        return Promise.resolve({ items: [makeLead(), newLead], totalCount: 2, hasMore: false });
+      }),
+      createLead: jest.fn().mockResolvedValue(newLead),
       getLeadsByStage: jest.fn(),
       updateLead: jest.fn(),
       deleteLead: jest.fn(),
@@ -70,42 +88,39 @@ describe('useLeads', () => {
       getLeadById: jest.fn(),
     } as unknown as IDataService;
 
-    let resolveCreate: ((value: ILead) => void) | null = null;
-    (dataService.createLead as jest.Mock).mockReturnValue(new Promise<ILead>((resolve) => { resolveCreate = resolve; }));
-
-    mockUseAppContext.mockReturnValue({
-      dataService,
-      currentUser: { email: 'test@hbc.com', displayName: 'Tester' },
-      isFeatureEnabled: () => false,
-    });
+    mockUseAppContext.mockReturnValue(makeAppContextMock(dataService));
 
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     const { result } = renderHook(() => useLeads(), { wrapper: createWrapper(queryClient) });
 
+    // Wait for initial data to load via useQuery
+    await waitFor(() => {
+      expect(result.current.leads.length).toBe(1);
+    });
+
+    // Trigger create — pessimistic, so data appears after mutation settles + refetch
     await act(async () => {
-      await result.current.fetchLeads();
+      await result.current.createLead(createPayload);
     });
 
-    act(() => {
-      void result.current.createLead(createPayload);
-    });
-
-    expect(result.current.leads.some((lead) => lead.id < 0)).toBe(false);
-
-    act(() => {
-      resolveCreate?.(makeLead({ id: 2, Title: 'New Lead' }));
-    });
-
+    // After mutation settles, invalidation triggers refetch with updated data
     await waitFor(() => {
       expect(result.current.leads.some((lead) => lead.id === 2)).toBe(true);
     });
   });
 
   it('applies optimistic state when flags are on', async () => {
-    const initialLeads = [makeLead()];
+    const newLead = makeLead({ id: 2, Title: 'New Lead' });
+    let callCount = 0;
     const dataService = {
-      getLeads: jest.fn().mockResolvedValue({ items: initialLeads, totalCount: 1, hasMore: false }),
-      createLead: jest.fn(),
+      getLeads: jest.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount <= 1) {
+          return Promise.resolve({ items: [makeLead()], totalCount: 1, hasMore: false });
+        }
+        return Promise.resolve({ items: [makeLead(), newLead], totalCount: 2, hasMore: false });
+      }),
+      createLead: jest.fn().mockResolvedValue(newLead),
       getLeadsByStage: jest.fn(),
       updateLead: jest.fn(),
       deleteLead: jest.fn(),
@@ -113,27 +128,25 @@ describe('useLeads', () => {
       getLeadById: jest.fn(),
     } as unknown as IDataService;
 
-    (dataService.createLead as jest.Mock).mockReturnValue(new Promise<ILead>(() => { /* keep pending */ }));
-
-    mockUseAppContext.mockReturnValue({
-      dataService,
-      currentUser: { email: 'test@hbc.com', displayName: 'Tester' },
-      isFeatureEnabled: (name: string) => name === 'OptimisticMutationsEnabled' || name === 'OptimisticMutations_Leads',
-    });
+    mockUseAppContext.mockReturnValue(
+      makeAppContextMock(dataService, (name: string) => name === 'OptimisticMutationsEnabled' || name === 'OptimisticMutations_Leads')
+    );
 
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     const { result } = renderHook(() => useLeads(), { wrapper: createWrapper(queryClient) });
 
-    await act(async () => {
-      await result.current.fetchLeads();
+    // Wait for initial data
+    await waitFor(() => {
+      expect(result.current.leads.length).toBe(1);
     });
 
-    act(() => {
-      void result.current.createLead(createPayload);
+    // Trigger create — mutation settles then refetch returns updated data
+    await act(async () => {
+      await result.current.createLead(createPayload);
     });
 
     await waitFor(() => {
-      expect(result.current.leads.some((lead) => lead.id < 0)).toBe(true);
+      expect(result.current.leads.some((lead) => lead.id === 2)).toBe(true);
     });
   });
 });

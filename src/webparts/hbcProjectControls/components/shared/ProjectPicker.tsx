@@ -98,15 +98,15 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
   ];
 
   const handleSelect = (project: ISelectedProject): void => {
-    onSelect(project);
     setIsOpen(false);
     setQuery('');
+    React.startTransition(() => onSelect(project));
   };
 
   const handleClear = (e: React.MouseEvent): void => {
     e.stopPropagation();
-    onSelect(null);
     setQuery('');
+    React.startTransition(() => onSelect(null));
   };
 
   if (locked && selected) {

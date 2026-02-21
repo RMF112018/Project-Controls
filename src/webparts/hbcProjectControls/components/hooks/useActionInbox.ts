@@ -1,10 +1,11 @@
 import * as React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
-import { useSignalR } from './useSignalR';
 import { IActionInboxItem, ActionPriority } from '@hbc/sp-services';
-
-const POLL_INTERVAL_DEFAULT = 5 * 60 * 1000; // 5 minutes
-const POLL_INTERVAL_SIGNALR = 60 * 1000;     // 60 seconds backup when SignalR connected
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
+import { actionInboxOptions } from '../../tanstack/query/queryOptions/operationsSimple';
+import { qk } from '../../tanstack/query/queryKeys';
 
 interface IUseActionInboxResult {
   items: IActionInboxItem[];
@@ -17,36 +18,29 @@ interface IUseActionInboxResult {
 
 export function useActionInbox(): IUseActionInboxResult {
   const { dataService, currentUser } = useAppContext();
-  const [items, setItems] = React.useState<IActionInboxItem[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const scope = useQueryScope();
+  const userEmail = currentUser?.email ?? '';
 
-  const refresh = React.useCallback(async () => {
-    if (!currentUser?.email) return;
-    try {
-      setLoading(true);
-      const result = await dataService.getActionItems(currentUser.email);
-      setItems(result);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load action items');
-    } finally {
-      setLoading(false);
-    }
-  }, [dataService, currentUser?.email]);
-
-  // SignalR: refresh on any workflow entity change (read-only hook)
-  const { isEnabled: signalRConnected } = useSignalR({
-    onEntityChanged: React.useCallback(() => { refresh(); }, [refresh]),
+  const inboxQuery = useQuery({
+    ...actionInboxOptions(scope, dataService, userEmail),
+    // TanStack Query handles refetchInterval natively — replaces manual polling
+    refetchInterval: 60 * 1000,
   });
 
-  React.useEffect(() => { refresh(); }, [refresh]);
+  const items = inboxQuery.data ?? [];
+  const loading = inboxQuery.isLoading;
+  const error = inboxQuery.error?.message ?? null;
 
-  // Polling: relax interval when SignalR is connected
-  React.useEffect(() => {
-    const interval = setInterval(refresh, signalRConnected ? POLL_INTERVAL_SIGNALR : POLL_INTERVAL_DEFAULT);
-    return () => clearInterval(interval);
-  }, [refresh, signalRConnected]);
+  // SignalR: invalidate inbox on any workflow entity change
+  useSignalRQueryInvalidation({
+    entityType: undefined as never, // listen to all entity types
+    queryKeys: React.useMemo(() => userEmail ? [qk.actionInbox.items(scope, userEmail)] : [], [scope, userEmail]),
+  });
+
+  const refresh = React.useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: qk.actionInbox.items(scope, userEmail) });
+  }, [queryClient, scope, userEmail]);
 
   return {
     items,

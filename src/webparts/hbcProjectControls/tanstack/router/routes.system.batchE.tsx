@@ -6,7 +6,7 @@ import { requirePermission } from './guards/requirePermission';
 import { AccessDeniedPage } from '../../components/pages/shared/AccessDeniedPage';
 
 const MarketingDashboard = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-shared" */ '../../features/shared/SharedModule'),
+  () => import(/* webpackChunkName: "page-marketing" */ '../../components/pages/hub/MarketingDashboard'),
   'MarketingDashboard'
 );
 

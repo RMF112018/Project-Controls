@@ -1,8 +1,12 @@
 import * as React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
 import { ICloseoutItem, IStartupChecklistSummary, ChecklistStatus, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
+import { closeoutItemsOptions } from '../../tanstack/query/queryOptions/operationsSimple';
+import { qk } from '../../tanstack/query/queryKeys';
 
 interface IUseCloseoutChecklistResult {
   items: ICloseoutItem[];
@@ -19,32 +23,19 @@ interface IUseCloseoutChecklistResult {
 export function useCloseoutChecklist(): IUseCloseoutChecklistResult {
   const { dataService, currentUser } = useAppContext();
   const { broadcastChange } = useSignalRContext();
-  const [items, setItems] = React.useState<ICloseoutItem[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const lastProjectCodeRef = React.useRef<string | null>(null);
+  const queryClient = useQueryClient();
+  const scope = useQueryScope();
+  const [projectCode, setProjectCode] = React.useState<string>('');
 
-  const fetchChecklist = React.useCallback(async (projectCode: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      lastProjectCodeRef.current = projectCode;
-      const result = await dataService.getCloseoutItems(projectCode);
-      setItems(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch closeout checklist');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService]);
+  const closeoutQuery = useQuery(closeoutItemsOptions(scope, dataService, projectCode));
 
-  useSignalR({
+  const items = closeoutQuery.data ?? [];
+  const isLoading = closeoutQuery.isLoading;
+  const error = closeoutQuery.error?.message ?? null;
+
+  useSignalRQueryInvalidation({
     entityType: EntityType.Closeout,
-    onEntityChanged: React.useCallback(() => {
-      if (lastProjectCodeRef.current) {
-        fetchChecklist(lastProjectCodeRef.current);
-      }
-    }, [fetchChecklist]),
+    queryKeys: React.useMemo(() => projectCode ? [qk.closeout.byProject(scope, projectCode)] : [], [scope, projectCode]),
   });
 
   const broadcastCloseoutChange = React.useCallback((
@@ -61,29 +52,37 @@ export function useCloseoutChecklist(): IUseCloseoutChecklistResult {
       changedByName: currentUser?.displayName,
       timestamp: new Date().toISOString(),
       summary,
-      projectCode: lastProjectCodeRef.current || undefined,
+      projectCode: projectCode || undefined,
     });
-  }, [broadcastChange, currentUser]);
+  }, [broadcastChange, currentUser, projectCode]);
 
-  const updateItem = React.useCallback(async (projectCode: string, itemId: number, data: Partial<ICloseoutItem>) => {
+  const invalidate = React.useCallback(async (code: string) => {
+    await queryClient.invalidateQueries({ queryKey: qk.closeout.byProject(scope, code) });
+  }, [queryClient, scope]);
+
+  const fetchChecklist = React.useCallback(async (code: string) => {
+    setProjectCode(code);
+  }, []);
+
+  const updateItem = React.useCallback(async (code: string, itemId: number, data: Partial<ICloseoutItem>) => {
     const updated = await dataService.updateCloseoutItem(itemId, data);
-    setItems(prev => prev.map(i => i.id === itemId ? updated : i));
     broadcastCloseoutChange(itemId, 'updated', 'Closeout item updated');
+    await invalidate(code);
     return updated;
-  }, [dataService, broadcastCloseoutChange]);
+  }, [dataService, broadcastCloseoutChange, invalidate]);
 
-  const addItem = React.useCallback(async (projectCode: string, item: Partial<ICloseoutItem>) => {
-    const created = await dataService.addCloseoutItem(projectCode, item);
-    setItems(prev => [...prev, created]);
+  const addItem = React.useCallback(async (code: string, item: Partial<ICloseoutItem>) => {
+    const created = await dataService.addCloseoutItem(code, item);
     broadcastCloseoutChange(created.id, 'created', 'Closeout item added');
+    await invalidate(code);
     return created;
-  }, [dataService, broadcastCloseoutChange]);
+  }, [dataService, broadcastCloseoutChange, invalidate]);
 
-  const removeItem = React.useCallback(async (projectCode: string, itemId: number) => {
-    await dataService.removeCloseoutItem(projectCode, itemId);
-    setItems(prev => prev.filter(i => i.id !== itemId));
+  const removeItem = React.useCallback(async (code: string, itemId: number) => {
+    await dataService.removeCloseoutItem(code, itemId);
     broadcastCloseoutChange(itemId, 'deleted', 'Closeout item removed');
-  }, [dataService, broadcastCloseoutChange]);
+    await invalidate(code);
+  }, [dataService, broadcastCloseoutChange, invalidate]);
 
   const computeSummary = React.useCallback((subset: ICloseoutItem[]): IStartupChecklistSummary => {
     return {
@@ -97,7 +96,6 @@ export function useCloseoutChecklist(): IUseCloseoutChecklistResult {
   }, []);
 
   const getSummary = React.useCallback(() => computeSummary(items), [items, computeSummary]);
-
   const getSectionSummary = React.useCallback((sectionNumber: number) => {
     return computeSummary(items.filter(i => i.sectionNumber === sectionNumber));
   }, [items, computeSummary]);

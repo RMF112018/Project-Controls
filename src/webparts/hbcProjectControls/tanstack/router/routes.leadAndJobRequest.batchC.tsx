@@ -1,6 +1,7 @@
 import { createRoute, lazyRouteComponent } from '@tanstack/react-router';
 import type { ITanStackRouteContext } from './routeContext';
 import { requireFeature } from './guards/requireFeature';
+import { scorecardByLeadOptions } from '../query/queryOptions/gonogo';
 const LeadFormPage = lazyRouteComponent(
   () => import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule'),
   'LeadFormPage'
@@ -55,6 +56,15 @@ export function createLeadAndJobRequestBatchCRoutes(rootRoute: unknown) {
     getParentRoute: () => rootRoute as never,
     path: '/lead/$id/gonogo',
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardGoNoGo(context),
+    loader: ({ context, params }: { context: ITanStackRouteContext; params: { id: string } }) => {
+      const leadId = parseInt(params.id, 10);
+      if (leadId > 0) {
+        return context.queryClient.ensureQueryData(
+          scorecardByLeadOptions(context.scope, context.dataService, leadId)
+        );
+      }
+      return Promise.resolve(null);
+    },
     component: GoNoGoScorecard,
   });
 

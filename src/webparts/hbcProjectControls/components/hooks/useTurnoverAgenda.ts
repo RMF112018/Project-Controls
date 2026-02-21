@@ -7,14 +7,17 @@ import {
   ITurnoverEstimateOverview,
   ITurnoverAttachment,
   IResolvedWorkflowStep,
-  WorkflowKey,
   EntityType,
   IEntityChangedMessage,
 } from '@hbc/sp-services';
 import * as React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
+import { turnoverAgendaOptions, turnoverWorkflowChainOptions } from '../../tanstack/query/queryOptions/turnover';
+import { qk } from '../../tanstack/query/queryKeys';
 
 interface IUseTurnoverAgendaResult {
   agenda: ITurnoverAgenda | null;
@@ -49,41 +52,23 @@ interface IUseTurnoverAgendaResult {
 export function useTurnoverAgenda(): IUseTurnoverAgendaResult {
   const { dataService, currentUser } = useAppContext();
   const { broadcastChange } = useSignalRContext();
-  const [agenda, setAgenda] = React.useState<ITurnoverAgenda | null>(null);
-  const [resolvedChain, setResolvedChain] = React.useState<IResolvedWorkflowStep[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const lastProjectCodeRef = React.useRef<string | null>(null);
+  const queryClient = useQueryClient();
+  const scope = useQueryScope();
+  const [projectCode, setProjectCode] = React.useState<string>('');
 
-  const fetchAgenda = React.useCallback(async (projectCode: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      lastProjectCodeRef.current = projectCode;
-      const [agendaResult, chainResult] = await Promise.all([
-        dataService.getTurnoverAgenda(projectCode),
-        dataService.resolveWorkflowChain(WorkflowKey.TURNOVER_APPROVAL, projectCode),
-      ]);
-      setAgenda(agendaResult);
-      setResolvedChain(chainResult);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch turnover agenda');
-    } finally {
-      setLoading(false);
-    }
-  }, [dataService]);
+  const agendaQuery = useQuery(turnoverAgendaOptions(scope, dataService, projectCode));
+  const chainQuery = useQuery(turnoverWorkflowChainOptions(scope, dataService, projectCode));
 
-  // SignalR: refresh on TurnoverAgenda entity changes from other users
-  useSignalR({
+  const agenda = agendaQuery.data ?? null;
+  const resolvedChain = chainQuery.data ?? [];
+  const loading = agendaQuery.isLoading || chainQuery.isLoading;
+  const error = agendaQuery.error?.message ?? chainQuery.error?.message ?? null;
+
+  useSignalRQueryInvalidation({
     entityType: EntityType.TurnoverAgenda,
-    onEntityChanged: React.useCallback(() => {
-      if (lastProjectCodeRef.current) {
-        fetchAgenda(lastProjectCodeRef.current);
-      }
-    }, [fetchAgenda]),
+    queryKeys: React.useMemo(() => projectCode ? [qk.turnover.byProject(scope, projectCode), qk.turnover.workflowChain(scope, projectCode)] : [], [scope, projectCode]),
   });
 
-  // Helper to broadcast turnover agenda changes
   const broadcastTurnoverChange = React.useCallback((
     entityId: number | string,
     action: IEntityChangedMessage['action'],
@@ -98,28 +83,38 @@ export function useTurnoverAgenda(): IUseTurnoverAgendaResult {
       changedByName: currentUser?.displayName,
       timestamp: new Date().toISOString(),
       summary,
-      projectCode: lastProjectCodeRef.current || undefined,
+      projectCode: projectCode || undefined,
     });
-  }, [broadcastChange, currentUser]);
+  }, [broadcastChange, currentUser, projectCode]);
 
-  const createAgenda = React.useCallback(async (projectCode: string, leadId: number) => {
-    const result = await dataService.createTurnoverAgenda(projectCode, leadId);
-    setAgenda(result);
-    broadcastTurnoverChange(projectCode, 'created', 'Turnover agenda created');
-  }, [dataService, broadcastTurnoverChange]);
+  const invalidate = React.useCallback(async () => {
+    if (projectCode) {
+      await queryClient.invalidateQueries({ queryKey: qk.turnover.byProject(scope, projectCode) });
+    }
+  }, [queryClient, scope, projectCode]);
 
-  const updateAgenda = React.useCallback(async (projectCode: string, data: Partial<ITurnoverAgenda>) => {
-    const result = await dataService.updateTurnoverAgenda(projectCode, data);
-    setAgenda(result);
-    broadcastTurnoverChange(projectCode, 'updated', 'Turnover agenda updated');
-  }, [dataService, broadcastTurnoverChange]);
+  const fetchAgenda = React.useCallback(async (code: string) => {
+    setProjectCode(code);
+  }, []);
 
-  const updateEstimateOverview = React.useCallback(async (projectCode: string, data: Partial<ITurnoverEstimateOverview>) => {
-    await dataService.updateTurnoverEstimateOverview(projectCode, data);
-    const refreshed = await dataService.getTurnoverAgenda(projectCode);
-    setAgenda(refreshed);
-    broadcastTurnoverChange(projectCode, 'updated', 'Estimate overview updated');
-  }, [dataService, broadcastTurnoverChange]);
+  const createAgenda = React.useCallback(async (code: string, leadId: number) => {
+    await dataService.createTurnoverAgenda(code, leadId);
+    broadcastTurnoverChange(code, 'created', 'Turnover agenda created');
+    setProjectCode(code);
+    await invalidate();
+  }, [dataService, broadcastTurnoverChange, invalidate]);
+
+  const updateAgenda = React.useCallback(async (code: string, data: Partial<ITurnoverAgenda>) => {
+    await dataService.updateTurnoverAgenda(code, data);
+    broadcastTurnoverChange(code, 'updated', 'Turnover agenda updated');
+    await invalidate();
+  }, [dataService, broadcastTurnoverChange, invalidate]);
+
+  const updateEstimateOverview = React.useCallback(async (code: string, data: Partial<ITurnoverEstimateOverview>) => {
+    await dataService.updateTurnoverEstimateOverview(code, data);
+    broadcastTurnoverChange(code, 'updated', 'Estimate overview updated');
+    await invalidate();
+  }, [dataService, broadcastTurnoverChange, invalidate]);
 
   const togglePrerequisite = React.useCallback(async (prerequisiteId: number, completed: boolean) => {
     const updates: Partial<ITurnoverPrerequisite> = {
@@ -128,113 +123,78 @@ export function useTurnoverAgenda(): IUseTurnoverAgendaResult {
       completedDate: completed ? new Date().toISOString() : undefined,
     };
     await dataService.updateTurnoverPrerequisite(prerequisiteId, updates);
-    if (agenda) {
-      const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
-      setAgenda(refreshed);
-      broadcastTurnoverChange(prerequisiteId, 'updated', `Prerequisite ${completed ? 'completed' : 'uncompleted'}`);
-    }
-  }, [dataService, agenda, broadcastTurnoverChange]);
+    broadcastTurnoverChange(prerequisiteId, 'updated', `Prerequisite ${completed ? 'completed' : 'uncompleted'}`);
+    await invalidate();
+  }, [dataService, broadcastTurnoverChange, invalidate]);
 
   const updateDiscussionItem = React.useCallback(async (itemId: number, data: Partial<ITurnoverDiscussionItem>) => {
     await dataService.updateTurnoverDiscussionItem(itemId, data);
-    if (agenda) {
-      const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
-      setAgenda(refreshed);
-      broadcastTurnoverChange(itemId, 'updated', 'Discussion item updated');
-    }
-  }, [dataService, agenda, broadcastTurnoverChange]);
+    broadcastTurnoverChange(itemId, 'updated', 'Discussion item updated');
+    await invalidate();
+  }, [dataService, broadcastTurnoverChange, invalidate]);
 
   const addDiscussionAttachment = React.useCallback(async (itemId: number, file: File): Promise<ITurnoverAttachment> => {
     const result = await dataService.addTurnoverDiscussionAttachment(itemId, file);
-    if (agenda) {
-      const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
-      setAgenda(refreshed);
-      broadcastTurnoverChange(itemId, 'updated', 'Discussion attachment added');
-    }
+    broadcastTurnoverChange(itemId, 'updated', 'Discussion attachment added');
+    await invalidate();
     return result;
-  }, [dataService, agenda, broadcastTurnoverChange]);
+  }, [dataService, broadcastTurnoverChange, invalidate]);
 
   const removeDiscussionAttachment = React.useCallback(async (attachmentId: number) => {
     await dataService.removeTurnoverDiscussionAttachment(attachmentId);
-    if (agenda) {
-      const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
-      setAgenda(refreshed);
-      broadcastTurnoverChange(attachmentId, 'deleted', 'Discussion attachment removed');
-    }
-  }, [dataService, agenda, broadcastTurnoverChange]);
+    broadcastTurnoverChange(attachmentId, 'deleted', 'Discussion attachment removed');
+    await invalidate();
+  }, [dataService, broadcastTurnoverChange, invalidate]);
 
   const addSubcontractor = React.useCallback(async (turnoverAgendaId: number, data: Partial<ITurnoverSubcontractor>) => {
     await dataService.addTurnoverSubcontractor(turnoverAgendaId, data);
-    if (agenda) {
-      const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
-      setAgenda(refreshed);
-      broadcastTurnoverChange(turnoverAgendaId, 'created', 'Subcontractor added');
-    }
-  }, [dataService, agenda, broadcastTurnoverChange]);
+    broadcastTurnoverChange(turnoverAgendaId, 'created', 'Subcontractor added');
+    await invalidate();
+  }, [dataService, broadcastTurnoverChange, invalidate]);
 
   const updateSubcontractor = React.useCallback(async (subId: number, data: Partial<ITurnoverSubcontractor>) => {
     await dataService.updateTurnoverSubcontractor(subId, data);
-    if (agenda) {
-      const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
-      setAgenda(refreshed);
-      broadcastTurnoverChange(subId, 'updated', 'Subcontractor updated');
-    }
-  }, [dataService, agenda, broadcastTurnoverChange]);
+    broadcastTurnoverChange(subId, 'updated', 'Subcontractor updated');
+    await invalidate();
+  }, [dataService, broadcastTurnoverChange, invalidate]);
 
   const removeSubcontractor = React.useCallback(async (subId: number) => {
     await dataService.removeTurnoverSubcontractor(subId);
-    if (agenda) {
-      const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
-      setAgenda(refreshed);
-      broadcastTurnoverChange(subId, 'deleted', 'Subcontractor removed');
-    }
-  }, [dataService, agenda, broadcastTurnoverChange]);
+    broadcastTurnoverChange(subId, 'deleted', 'Subcontractor removed');
+    await invalidate();
+  }, [dataService, broadcastTurnoverChange, invalidate]);
 
   const updateExhibit = React.useCallback(async (exhibitId: number, data: Partial<ITurnoverExhibit>) => {
     await dataService.updateTurnoverExhibit(exhibitId, data);
-    if (agenda) {
-      const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
-      setAgenda(refreshed);
-      broadcastTurnoverChange(exhibitId, 'updated', 'Exhibit updated');
-    }
-  }, [dataService, agenda, broadcastTurnoverChange]);
+    broadcastTurnoverChange(exhibitId, 'updated', 'Exhibit updated');
+    await invalidate();
+  }, [dataService, broadcastTurnoverChange, invalidate]);
 
   const addExhibit = React.useCallback(async (turnoverAgendaId: number, data: Partial<ITurnoverExhibit>) => {
     await dataService.addTurnoverExhibit(turnoverAgendaId, data);
-    if (agenda) {
-      const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
-      setAgenda(refreshed);
-      broadcastTurnoverChange(turnoverAgendaId, 'created', 'Exhibit added');
-    }
-  }, [dataService, agenda, broadcastTurnoverChange]);
+    broadcastTurnoverChange(turnoverAgendaId, 'created', 'Exhibit added');
+    await invalidate();
+  }, [dataService, broadcastTurnoverChange, invalidate]);
 
   const removeExhibit = React.useCallback(async (exhibitId: number) => {
     await dataService.removeTurnoverExhibit(exhibitId);
-    if (agenda) {
-      const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
-      setAgenda(refreshed);
-      broadcastTurnoverChange(exhibitId, 'deleted', 'Exhibit removed');
-    }
-  }, [dataService, agenda, broadcastTurnoverChange]);
+    broadcastTurnoverChange(exhibitId, 'deleted', 'Exhibit removed');
+    await invalidate();
+  }, [dataService, broadcastTurnoverChange, invalidate]);
 
   const uploadExhibitFile = React.useCallback(async (exhibitId: number, file: File) => {
     await dataService.uploadTurnoverExhibitFile(exhibitId, file);
-    if (agenda) {
-      const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
-      setAgenda(refreshed);
-    }
-  }, [dataService, agenda]);
+    await invalidate();
+  }, [dataService, invalidate]);
 
   const sign = React.useCallback(async (signatureId: number, comment?: string) => {
     await dataService.signTurnoverAgenda(signatureId, comment);
-    if (agenda) {
-      const refreshed = await dataService.getTurnoverAgenda(agenda.projectCode);
-      setAgenda(refreshed);
-      broadcastTurnoverChange(signatureId, 'updated', 'Turnover agenda signed');
-      // Fire-and-forget — sync Data Mart after turnover signature
-      dataService.syncToDataMart(agenda.projectCode).catch(() => { /* silent */ });
+    broadcastTurnoverChange(signatureId, 'updated', 'Turnover agenda signed');
+    if (projectCode) {
+      dataService.syncToDataMart(projectCode).catch(() => { /* silent */ });
     }
-  }, [dataService, agenda, broadcastTurnoverChange]);
+    await invalidate();
+  }, [dataService, broadcastTurnoverChange, invalidate, projectCode]);
 
   // Computed values
   const prerequisitesComplete = React.useMemo(() => {

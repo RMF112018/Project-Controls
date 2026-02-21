@@ -1,8 +1,12 @@
 import * as React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
 import { IQualityConcern, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
+import { qualityConcernsOptions } from '../../tanstack/query/queryOptions/operationsSimple';
+import { qk } from '../../tanstack/query/queryKeys';
 
 interface IUseQualityConcernsResult {
   concerns: IQualityConcern[];
@@ -18,36 +22,21 @@ interface IUseQualityConcernsResult {
 export function useQualityConcerns(): IUseQualityConcernsResult {
   const { dataService, currentUser } = useAppContext();
   const { broadcastChange } = useSignalRContext();
-  const [concerns, setConcerns] = React.useState<IQualityConcern[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const lastProjectCodeRef = React.useRef<string | null>(null);
+  const queryClient = useQueryClient();
+  const scope = useQueryScope();
+  const [projectCode, setProjectCode] = React.useState<string>('');
 
-  const fetchConcerns = React.useCallback(async (projectCode: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      lastProjectCodeRef.current = projectCode;
-      const result = await dataService.getQualityConcerns(projectCode);
-      setConcerns(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch quality concerns');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService]);
+  const qualityQuery = useQuery(qualityConcernsOptions(scope, dataService, projectCode));
 
-  // SignalR: refresh on Quality entity changes from other users
-  useSignalR({
+  const concerns = qualityQuery.data ?? [];
+  const isLoading = qualityQuery.isLoading;
+  const error = qualityQuery.error?.message ?? null;
+
+  useSignalRQueryInvalidation({
     entityType: EntityType.Quality,
-    onEntityChanged: React.useCallback(() => {
-      if (lastProjectCodeRef.current) {
-        fetchConcerns(lastProjectCodeRef.current);
-      }
-    }, [fetchConcerns]),
+    queryKeys: React.useMemo(() => projectCode ? [qk.qualityConcerns.byProject(scope, projectCode)] : [], [scope, projectCode]),
   });
 
-  // Helper to broadcast quality concern changes
   const broadcastQualityChange = React.useCallback((
     entityId: number | string,
     action: IEntityChangedMessage['action'],
@@ -62,23 +51,31 @@ export function useQualityConcerns(): IUseQualityConcernsResult {
       changedByName: currentUser?.displayName,
       timestamp: new Date().toISOString(),
       summary,
-      projectCode: lastProjectCodeRef.current || undefined,
+      projectCode: projectCode || undefined,
     });
-  }, [broadcastChange, currentUser]);
+  }, [broadcastChange, currentUser, projectCode]);
 
-  const addConcern = React.useCallback(async (projectCode: string, concern: Partial<IQualityConcern>) => {
-    const created = await dataService.addQualityConcern(projectCode, concern);
-    setConcerns(prev => [...prev, created]);
+  const invalidate = React.useCallback(async (code: string) => {
+    await queryClient.invalidateQueries({ queryKey: qk.qualityConcerns.byProject(scope, code) });
+  }, [queryClient, scope]);
+
+  const fetchConcerns = React.useCallback(async (code: string) => {
+    setProjectCode(code);
+  }, []);
+
+  const addConcern = React.useCallback(async (code: string, concern: Partial<IQualityConcern>) => {
+    const created = await dataService.addQualityConcern(code, concern);
     broadcastQualityChange(created.id, 'created', 'Quality concern added');
+    await invalidate(code);
     return created;
-  }, [dataService, broadcastQualityChange]);
+  }, [dataService, broadcastQualityChange, invalidate]);
 
-  const updateConcern = React.useCallback(async (projectCode: string, concernId: number, data: Partial<IQualityConcern>) => {
-    const updated = await dataService.updateQualityConcern(projectCode, concernId, data);
-    setConcerns(prev => prev.map(c => c.id === concernId ? updated : c));
+  const updateConcern = React.useCallback(async (code: string, concernId: number, data: Partial<IQualityConcern>) => {
+    const updated = await dataService.updateQualityConcern(code, concernId, data);
     broadcastQualityChange(concernId, 'updated', 'Quality concern updated');
+    await invalidate(code);
     return updated;
-  }, [dataService, broadcastQualityChange]);
+  }, [dataService, broadcastQualityChange, invalidate]);
 
   const openCount = React.useMemo(() => concerns.filter(c => c.status === 'Open' || c.status === 'Monitoring').length, [concerns]);
   const resolvedCount = React.useMemo(() => concerns.filter(c => c.status === 'Resolved' || c.status === 'Closed').length, [concerns]);

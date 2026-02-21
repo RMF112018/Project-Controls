@@ -1,8 +1,12 @@
 import * as React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
 import { IProjectScheduleCriticalPath, ICriticalPathItem, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
+import { projectScheduleOptions } from '../../tanstack/query/queryOptions/schedule';
+import { qk } from '../../tanstack/query/queryKeys';
 
 interface IUseProjectScheduleResult {
   schedule: IProjectScheduleCriticalPath | null;
@@ -17,36 +21,23 @@ interface IUseProjectScheduleResult {
 export function useProjectSchedule(): IUseProjectScheduleResult {
   const { dataService, currentUser } = useAppContext();
   const { broadcastChange } = useSignalRContext();
-  const [schedule, setSchedule] = React.useState<IProjectScheduleCriticalPath | null>(null);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const lastProjectCodeRef = React.useRef<string | null>(null);
+  const queryClient = useQueryClient();
+  const scope = useQueryScope();
+  const [projectCode, setProjectCode] = React.useState<string>('');
 
-  const fetchSchedule = React.useCallback(async (projectCode: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      lastProjectCodeRef.current = projectCode;
-      const result = await dataService.getProjectSchedule(projectCode);
-      setSchedule(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch schedule');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService]);
+  const scheduleQuery = useQuery(projectScheduleOptions(scope, dataService, projectCode));
 
-  // SignalR: refresh on Schedule entity changes from other users
-  useSignalR({
+  const schedule = scheduleQuery.data ?? null;
+  const isLoading = scheduleQuery.isLoading;
+  const error = scheduleQuery.error?.message ?? null;
+
+  // SignalR: invalidate schedule queries on entity changes
+  useSignalRQueryInvalidation({
     entityType: EntityType.Schedule,
-    onEntityChanged: React.useCallback(() => {
-      if (lastProjectCodeRef.current) {
-        fetchSchedule(lastProjectCodeRef.current);
-      }
-    }, [fetchSchedule]),
+    queryKeys: React.useMemo(() => projectCode ? [qk.schedule.byProject(scope, projectCode)] : [], [scope, projectCode]),
+    projectCode,
   });
 
-  // Helper to broadcast schedule changes
   const broadcastScheduleChange = React.useCallback((
     entityId: number | string,
     action: IEntityChangedMessage['action'],
@@ -61,27 +52,28 @@ export function useProjectSchedule(): IUseProjectScheduleResult {
       changedByName: currentUser?.displayName,
       timestamp: new Date().toISOString(),
       summary,
-      projectCode: lastProjectCodeRef.current || undefined,
+      projectCode: projectCode || undefined,
     });
-  }, [broadcastChange, currentUser]);
+  }, [broadcastChange, currentUser, projectCode]);
 
-  const updateSchedule = React.useCallback(async (projectCode: string, data: Partial<IProjectScheduleCriticalPath>) => {
-    const updated = await dataService.updateProjectSchedule(projectCode, data);
-    setSchedule(updated);
+  const fetchSchedule = React.useCallback(async (code: string) => {
+    setProjectCode(code);
+  }, []);
+
+  const updateSchedule = React.useCallback(async (code: string, data: Partial<IProjectScheduleCriticalPath>) => {
+    await dataService.updateProjectSchedule(code, data);
     broadcastScheduleChange('schedule', 'updated', 'Schedule updated');
-    // Fire-and-forget — sync Data Mart after schedule update
-    dataService.syncToDataMart(projectCode).catch(() => { /* silent */ });
-  }, [dataService, broadcastScheduleChange]);
+    dataService.syncToDataMart(code).catch(() => { /* silent */ });
+    await queryClient.invalidateQueries({ queryKey: qk.schedule.byProject(scope, code) });
+  }, [dataService, broadcastScheduleChange, queryClient, scope]);
 
-  const addCriticalPathItem = React.useCallback(async (projectCode: string, item: Partial<ICriticalPathItem>) => {
-    const created = await dataService.addCriticalPathItem(projectCode, item);
-    const refreshed = await dataService.getProjectSchedule(projectCode);
-    setSchedule(refreshed);
+  const addCriticalPathItem = React.useCallback(async (code: string, item: Partial<ICriticalPathItem>) => {
+    const created = await dataService.addCriticalPathItem(code, item);
     broadcastScheduleChange(created.id, 'created', 'Critical path item added');
-    // Fire-and-forget — sync Data Mart after critical path change
-    dataService.syncToDataMart(projectCode).catch(() => { /* silent */ });
+    dataService.syncToDataMart(code).catch(() => { /* silent */ });
+    await queryClient.invalidateQueries({ queryKey: qk.schedule.byProject(scope, code) });
     return created;
-  }, [dataService, broadcastScheduleChange]);
+  }, [dataService, broadcastScheduleChange, queryClient, scope]);
 
   const daysToCompletion = React.useMemo(() => {
     if (!schedule?.substantialCompletionDate) return null;

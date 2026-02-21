@@ -1,8 +1,12 @@
 import * as React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../contexts/AppContext';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { useSignalR } from './useSignalR';
 import { ISuperintendentPlan, ISuperintendentPlanSection, EntityType, IEntityChangedMessage } from '@hbc/sp-services';
+import { useQueryScope } from '../../tanstack/query/useQueryScope';
+import { useSignalRQueryInvalidation } from '../../tanstack/query/useSignalRQueryInvalidation';
+import { superintendentPlanOptions } from '../../tanstack/query/queryOptions/operationsSimple';
+import { qk } from '../../tanstack/query/queryKeys';
 
 interface IUseSuperintendentPlanResult {
   plan: ISuperintendentPlan | null;
@@ -17,36 +21,21 @@ interface IUseSuperintendentPlanResult {
 export function useSuperintendentPlan(): IUseSuperintendentPlanResult {
   const { dataService, currentUser } = useAppContext();
   const { broadcastChange } = useSignalRContext();
-  const [plan, setPlan] = React.useState<ISuperintendentPlan | null>(null);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const lastProjectCodeRef = React.useRef<string | null>(null);
+  const queryClient = useQueryClient();
+  const scope = useQueryScope();
+  const [projectCode, setProjectCode] = React.useState<string>('');
 
-  const fetchPlan = React.useCallback(async (projectCode: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      lastProjectCodeRef.current = projectCode;
-      const result = await dataService.getSuperintendentPlan(projectCode);
-      setPlan(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch superintendent plan');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataService]);
+  const planQuery = useQuery(superintendentPlanOptions(scope, dataService, projectCode));
 
-  // SignalR: refresh on SuperintendentPlan entity changes from other users
-  useSignalR({
+  const plan = planQuery.data ?? null;
+  const isLoading = planQuery.isLoading;
+  const error = planQuery.error?.message ?? null;
+
+  useSignalRQueryInvalidation({
     entityType: EntityType.SuperintendentPlan,
-    onEntityChanged: React.useCallback(() => {
-      if (lastProjectCodeRef.current) {
-        fetchPlan(lastProjectCodeRef.current);
-      }
-    }, [fetchPlan]),
+    queryKeys: React.useMemo(() => projectCode ? [qk.superintendent.byProject(scope, projectCode)] : [], [scope, projectCode]),
   });
 
-  // Helper to broadcast superintendent plan changes
   const broadcastPlanChange = React.useCallback((
     entityId: number | string,
     action: IEntityChangedMessage['action'],
@@ -61,18 +50,19 @@ export function useSuperintendentPlan(): IUseSuperintendentPlanResult {
       changedByName: currentUser?.displayName,
       timestamp: new Date().toISOString(),
       summary,
-      projectCode: lastProjectCodeRef.current || undefined,
+      projectCode: projectCode || undefined,
     });
-  }, [broadcastChange, currentUser]);
+  }, [broadcastChange, currentUser, projectCode]);
 
-  const updateSection = React.useCallback(async (projectCode: string, sectionId: number, data: Partial<ISuperintendentPlanSection>) => {
-    const updated = await dataService.updateSuperintendentPlanSection(projectCode, sectionId, data);
-    setPlan(prev => {
-      if (!prev) return prev;
-      return { ...prev, sections: prev.sections.map(s => s.id === sectionId ? { ...s, ...updated } : s) };
-    });
+  const fetchPlan = React.useCallback(async (code: string) => {
+    setProjectCode(code);
+  }, []);
+
+  const updateSection = React.useCallback(async (code: string, sectionId: number, data: Partial<ISuperintendentPlanSection>) => {
+    await dataService.updateSuperintendentPlanSection(code, sectionId, data);
     broadcastPlanChange(sectionId, 'updated', 'Superintendent plan section updated');
-  }, [dataService, broadcastPlanChange]);
+    await queryClient.invalidateQueries({ queryKey: qk.superintendent.byProject(scope, code) });
+  }, [dataService, broadcastPlanChange, queryClient, scope]);
 
   const completionPercentage = React.useMemo(() => {
     if (!plan || plan.sections.length === 0) return 0;

@@ -4,9 +4,12 @@ import { TanStackRouterDevtools } from '@tanstack/router-devtools';
 import { PERMISSIONS } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from './routeContext';
 import { activeProjectsListOptions } from '../query/queryOptions/activeProjects';
+import { complianceSummaryOptions } from '../query/queryOptions/compliance';
 import { requirePermission } from './guards/requirePermission';
 import { requireProject } from './guards/requireProject';
 import { AppShell } from '../../components/layouts/AppShell';
+import { ErrorBoundary } from '../../components/shared/ErrorBoundary';
+import { RouteSuspenseFallback } from '../../components/boundaries/RouteSuspenseFallback';
 import { RouterAdapterProvider } from '../../components/contexts/RouterAdapterContext';
 import { createOperationsBatchARoutes } from './routes.operations.batchA';
 import { createOperationsBatchBRoutes } from './routes.operations.batchB';
@@ -29,7 +32,7 @@ const ComplianceLog = lazyRouteComponent(
   'ComplianceLog'
 );
 const DashboardPage = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-shared" */ '../../features/shared/SharedModule'),
+  () => import(/* webpackChunkName: "page-dashboard" */ '../../components/pages/hub/DashboardPage'),
   'DashboardPage'
 );
 
@@ -51,7 +54,9 @@ const TanStackAdapterBridge: React.FC<{ children: React.ReactNode }> = ({ childr
         window.history.go(to);
         return;
       }
-      void navigate({ to, replace: options?.replace });
+      React.startTransition(() => {
+        void navigate({ to, replace: options?.replace });
+      });
     },
     pathname,
     search: searchStr,
@@ -70,7 +75,11 @@ const RootLayout: React.FC = () => (
   <TanStackAdapterBridge>
     <TelemetryPageTracker />
     <AppShell>
-      <Outlet />
+      <ErrorBoundary>
+        <React.Suspense fallback={<RouteSuspenseFallback />}>
+          <Outlet />
+        </React.Suspense>
+      </ErrorBoundary>
     </AppShell>
     {(typeof window !== 'undefined'
       && window.location.hostname === 'localhost'
@@ -96,9 +105,20 @@ const operationsRoute = createRoute({
   beforeLoad: ({ context }) => {
     requirePermission(context, PERMISSIONS.ACTIVE_PROJECTS_VIEW);
   },
-  loader: ({ context }) => context.queryClient.ensureQueryData(
-    activeProjectsListOptions(context.scope, context.dataService, {})
-  ),
+  loader: ({ context }) => {
+    // Preload heavy sub-pages on dashboard load (fire-and-forget)
+    import(/* webpackChunkName: "page-schedule" */ '../../components/pages/project/SchedulePage').catch(() => {});
+    import(/* webpackChunkName: "page-buyout-contract" */ '../../components/pages/project/BuyoutLogPage').catch(() => {});
+    import(/* webpackChunkName: "phase-preconstruction" */ '../../features/preconstruction/PreconstructionModule').catch(() => {});
+    import(/* webpackChunkName: "page-estimating-tracker" */ '../../components/pages/precon/EstimatingDashboard').catch(() => {});
+    import(/* webpackChunkName: "page-gonogo" */ '../../components/pages/hub/GoNoGoScorecard').catch(() => {});
+    import(/* webpackChunkName: "phase-admin-hub" */ '../../features/adminHub/AdminHubModule').catch(() => {});
+    import(/* webpackChunkName: "page-pmp-16-section" */ '../../components/pages/project/pmp/ProjectManagementPlan').catch(() => {});
+    import(/* webpackChunkName: "page-monthly-review" */ '../../components/pages/project/MonthlyProjectReview').catch(() => {});
+    return context.queryClient.ensureQueryData(
+      activeProjectsListOptions(context.scope, context.dataService, {})
+    );
+  },
   component: ActiveProjectsDashboard,
 });
 
@@ -116,6 +136,11 @@ const operationsComplianceLogRoute = createRoute({
   path: '/operations/compliance-log',
   beforeLoad: ({ context }) => {
     requirePermission(context, PERMISSIONS.COMPLIANCE_LOG_VIEW);
+  },
+  loader: ({ context }: { context: ITanStackRouteContext }) => {
+    return context.queryClient.ensureQueryData(
+      complianceSummaryOptions(context.scope, context.dataService)
+    );
   },
   component: ComplianceLog,
 });
