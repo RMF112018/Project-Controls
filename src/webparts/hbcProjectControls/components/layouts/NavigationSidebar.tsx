@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useRouter } from '@tanstack/react-router';
 import { useAppLocation } from '../hooks/router/useAppLocation';
 import { useTransitionNavigate } from '../hooks/router/useTransitionNavigate';
 import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
@@ -200,20 +201,25 @@ const NAV_STRUCTURE: INavGroupDef[] = [
   },
 ];
 
-// NavItem component
-const NavItemComponent: React.FC<{
+// NavItem component — React.memo with stable onNavigate/onPreload props
+// to prevent re-render cascade on unrelated context changes.
+const NavItemComponent = React.memo<{
   label: string;
   path: string;
   isActive: boolean;
   indent?: number;
   disabled?: boolean;
-  onClick: () => void;
-}> = ({ label, isActive, indent = 0, disabled, onClick }) => {
+  onNavigate: (path: string) => void;
+  onPreload: (path: string) => void;
+}>(({ label, path, isActive, indent = 0, disabled, onNavigate, onPreload }) => {
   const styles = useStyles();
+  const handleClick = disabled ? undefined : () => onNavigate(path);
+  const handleMouseEnter = disabled ? undefined : () => onPreload(path);
 
   return (
     <div
-      onClick={disabled ? undefined : onClick}
+      onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
       className={mergeClasses(
         styles.navItem,
         isActive ? styles.navItemActive : disabled ? styles.navItemDisabled : styles.navItemInactive,
@@ -223,7 +229,8 @@ const NavItemComponent: React.FC<{
       {label}
     </div>
   );
-};
+});
+NavItemComponent.displayName = 'NavItemComponent';
 
 // NavGroup component
 const NavGroup: React.FC<{
@@ -272,7 +279,13 @@ export const NavigationSidebar: React.FC = () => {
   const styles = useStyles();
   const navigate = useTransitionNavigate();
   const location = useAppLocation();
+  const router = useRouter();
   const { currentUser, selectedProject, setSelectedProject, hasPermission, isFeatureEnabled, isProjectSite } = useAppContext();
+
+  // Stable preload callback — router instance is a singleton (useRef-backed).
+  const handlePreload = React.useCallback((path: string) => {
+    router.preloadRoute({ to: path });
+  }, [router]);
 
   const userRoles = currentUser?.roles ?? [];
 
@@ -305,7 +318,8 @@ export const NavigationSidebar: React.FC = () => {
           label="Dashboard"
           path="/"
           isActive={isActivePath('/')}
-          onClick={() => navigate('/')}
+          onNavigate={navigate}
+          onPreload={handlePreload}
         />
       </div>
 
@@ -328,7 +342,8 @@ export const NavigationSidebar: React.FC = () => {
                 path={item.path}
                 isActive={isActivePath(item.path)}
                 disabled={item.requiresProject && !selectedProject}
-                onClick={() => navigate(item.path)}
+                onNavigate={navigate}
+                onPreload={handlePreload}
               />
             ))}
 
@@ -339,13 +354,15 @@ export const NavigationSidebar: React.FC = () => {
                   label="Lead Detail"
                   path={`/lead/${selectedProject.leadId}`}
                   isActive={isActivePath(`/lead/${selectedProject.leadId}`)}
-                  onClick={() => navigate(`/lead/${selectedProject.leadId}`)}
+                  onNavigate={navigate}
+                  onPreload={handlePreload}
                 />
                 <NavItemComponent
                   label="Go/No-Go"
                   path={`/lead/${selectedProject.leadId}/gonogo`}
                   isActive={isActivePath(`/lead/${selectedProject.leadId}/gonogo`)}
-                  onClick={() => navigate(`/lead/${selectedProject.leadId}/gonogo`)}
+                  onNavigate={navigate}
+                  onPreload={handlePreload}
                 />
               </>
             )}
@@ -363,7 +380,8 @@ export const NavigationSidebar: React.FC = () => {
                       isActive={isActivePath(item.path)}
                       indent={1}
                       disabled={item.requiresProject && !selectedProject}
-                      onClick={() => navigate(item.path)}
+                      onNavigate={navigate}
+                      onPreload={handlePreload}
                     />
                   ))}
                 </NavSubGroup>

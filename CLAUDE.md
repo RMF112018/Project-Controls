@@ -106,6 +106,8 @@ See `PERFORMANCE_OPTIMIZATION_GUIDE.md` §5 for detailed bundle and chunk rules.
 **Router Stability Rule (Critical)**
 The TanStack Router instance MUST be created exactly once (via `useRef` in `router.tsx`) with static-only values (`queryClient`, `dataService`). Dynamic values (`currentUser`, `selectedProject`, `isFeatureEnabled`, `scope`) are injected via `React.useEffect` → `router.update()` + `RouterProvider context={}`. Adapter hooks (`useAppNavigate`, `useAppLocation`, `useAppParams`) return memoised/ref-stable values to prevent downstream re-render cascades. `ProjectPicker.handleSelect` MUST close the popover before firing `setSelectedProject` (via `React.startTransition` deferral). NEVER pass dynamic values to `createHbcTanStackRouter`. NEVER add dynamic values to any dependency array that would trigger router recreation.
 
+- NavigationSidebar: `NavItemComponent` MUST be `React.memo` with stable `onNavigate` prop (never pass `() => navigate(path)` — pass `navigate` directly and let child invoke with its `path` prop). Route preloading via `router.preloadRoute()` on hover.
+
 See `CODE_ARCHITECTURE_GUIDE.md` for full folder and dependency rules.
 
 ---
