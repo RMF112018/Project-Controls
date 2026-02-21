@@ -140,6 +140,7 @@ See `FEATURE_DEVELOPMENT_BLUEPRINT.md` for new domain patterns, `PERFORMANCE_OPT
 ## §16 Active Pitfalls & Rules (Lean – Reference Only)
 
 - **Router singleton — NEVER recreate:** `TanStackPilotRouter` uses `useRef` to create the router once. Dynamic values injected via `router.update()` + `RouterProvider context={}`. Adapter hooks (`useAppNavigate`, `useAppLocation`, `useAppParams`) return memoised/ref-stable values. `ProjectPicker.handleSelect` closes popover before `startTransition(() => onSelect(project))`. Adding dynamic values to any dep array that creates the router will cause full-app freeze.
+- **TanStackAdapterBridge:** `useMemo` for `adapterValue` must depend ONLY on primitive/stable values (`pathname`, `searchStr`, `params`). NEVER depend on `state.matches` — it changes reference on every router state transition and causes full-app re-render cascades via AppShell. The `navigate` function must be ref-backed (`useCallback` + `useRef`) for identity stability.
 - Always use `columnMappings.ts` — never hard-code column names.  
 - Call `this.logAudit()` on every mutation.  
 - Use `_getProjectWeb()` for project-site lists.  

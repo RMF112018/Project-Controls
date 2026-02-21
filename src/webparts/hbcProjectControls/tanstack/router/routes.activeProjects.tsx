@@ -37,31 +37,48 @@ const DashboardPage = lazyRouteComponent(
 );
 
 const TanStackAdapterBridge: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const navigate = useNavigate();
-  const { pathname, searchStr, matches } = useRouterState({
-    select: (state) => ({
-      pathname: state.location.pathname,
-      searchStr: state.location.searchStr ?? '',
-      matches: state.matches,
-    }),
-  });
+  const tanStackNavigate = useNavigate();
+  const navigateRef = React.useRef(tanStackNavigate);
+  navigateRef.current = tanStackNavigate;
 
-  const params = (matches[matches.length - 1]?.params ?? {}) as Record<string, string | undefined>;
-
-  const adapterValue = React.useMemo(() => ({
-    navigate: (to: string | number, options?: { replace?: boolean }) => {
+  const stableNavigate = React.useCallback(
+    (to: string | number, options?: { replace?: boolean }) => {
       if (typeof to === 'number') {
         window.history.go(to);
         return;
       }
       React.startTransition(() => {
-        void navigate({ to, replace: options?.replace });
+        void navigateRef.current({ to, replace: options?.replace });
       });
     },
-    pathname,
-    search: searchStr,
-    params,
-  }), [matches, navigate, pathname, searchStr]);
+    [],
+  );
+
+  const { pathname, searchStr, paramsJson } = useRouterState({
+    select: (state) => {
+      const lastMatch = state.matches[state.matches.length - 1];
+      return {
+        pathname: state.location.pathname,
+        searchStr: state.location.searchStr ?? '',
+        paramsJson: JSON.stringify(lastMatch?.params ?? {}),
+      };
+    },
+  });
+
+  const params = React.useMemo(
+    () => JSON.parse(paramsJson) as Record<string, string | undefined>,
+    [paramsJson],
+  );
+
+  const adapterValue = React.useMemo(
+    () => ({
+      navigate: stableNavigate,
+      pathname,
+      search: searchStr,
+      params,
+    }),
+    [stableNavigate, pathname, searchStr, params],
+  );
 
   return <RouterAdapterProvider value={adapterValue}>{children}</RouterAdapterProvider>;
 };
