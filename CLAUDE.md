@@ -108,8 +108,10 @@ The TanStack Router instance MUST be created exactly once (via `useRef` in `rout
 
 - NavigationSidebar: `NavItemComponent` MUST be `React.memo` with stable `onNavigate` prop (never pass `() => navigate(path)` — pass `navigate` directly and let child invoke with its `path` prop). Route preloading via `router.preloadRoute()` on hover.
 
+- **PillarTabBar must use `useAppNavigate`** — never `useTransitionNavigate`. The `useAppNavigate` hook returns a ref-stable callback (empty deps). `useTransitionNavigate` wraps it in `startTransition`, but TanStack Router's Transitioner already does this — double-wrapping causes concurrent scheduler deadlock. PillarTabBar is `React.memo`; `visibleTabs` memoized via `useMemo`; click handler uses `data-path` attribute for stable identity (no per-button closures).
+
 **Navigation UX Architecture (uxEnhancedNavigationV1)**
-4-pillar tab bar (Hub|Precon|Ops|Admin) in AppShell header, driven by `PillarTabBar` component using `useTransitionNavigate`. Sidebar filters NavGroups to active pillar. `EnhancedProjectPicker` replaces ProjectPicker behind feature flag — Fluent Popover with Recent/Favorites/All sections, fuzzy search, KPI hover preview via `ProjectPreviewPane`. `MacBarStatusPill` in header shows selected project health. `ShellHydrationOverlay` during project switch (max 400ms). `useNavProfile` hook manages localStorage favorites/recent. All gated by FeatureGate. No router creation changes.
+4-pillar tab bar (Hub|Precon|Ops|Admin) in AppShell header, driven by `PillarTabBar` component using `useAppNavigate` (ref-stable adapter). Sidebar filters NavGroups to active pillar. `EnhancedProjectPicker` replaces ProjectPicker behind feature flag — Fluent Popover with Recent/Favorites/All sections, fuzzy search, KPI hover preview via `ProjectPreviewPane`. `MacBarStatusPill` in header shows selected project health. `ShellHydrationOverlay` during project switch (max 400ms). `useNavProfile` hook manages localStorage favorites/recent. All gated by FeatureGate. No router creation changes.
 
 - **useSwitchProject hook**: TanStack Query v5 mutation for project switching. onMutate sets selectedProject optimistically + addRecent. onError rolls back to previousProject. onSuccess enriches with KPI data via ProjectService. Uses useTransitionNavigate for post-switch navigation. Never touches router creation.
 - **No keyed main container**: `<main>` does NOT use `key={selectedProject?.projectCode}` — removed to prevent thundering-herd remount. ShellHydrationOverlay + routeTransition CSS provide visual feedback.
@@ -149,6 +151,7 @@ Last major additions: GitOps Provisioning (Feb 18) + Constraints/Permits/Schedul
 
 - Rollout readiness: MobileBottomNav (4-pillar + project pill), region filter persistence, favorites stagger animation, full a11y pass (ARIA live regions), dev toggle for uxEnhancedNavigationV1 (mock mode only)
 - Storybook coverage: EnhancedProjectPicker WithRegionFilters + SwitchingState, HbcCommandPalette WithProjectCommands
+- PillarTabBar freeze fix: switched to `useAppNavigate` (stable identity), `React.memo`, `useMemo` visibleTabs, `data-path` click pattern — eliminates double-startTransition deadlock
 
 **Next steps:** Full E2E coverage expansion and Sprint 3 gate enforcement.  
 
@@ -173,7 +176,7 @@ See `FEATURE_DEVELOPMENT_BLUEPRINT.md` for new domain patterns, `PERFORMANCE_OPT
 - Full Skills index and triggers → `SKILLS_OVERVIEW.md`  
 - Evolving decisions and session facts → project memory (`MEMORY.md`)  
 
-- **PillarTabBar must use `useTransitionNavigate`** — never `router.navigate()` directly. Tab bar reads `location.pathname` via `useAppLocation()` for active state.
+- **PillarTabBar must use `useAppNavigate`** — never `useTransitionNavigate` or `router.navigate()` directly. `useAppNavigate` returns a ref-stable callback; `useTransitionNavigate` double-wraps in `startTransition` (TanStack Router Transitioner already handles it), causing concurrent scheduler deadlock. PillarTabBar is `React.memo`; `visibleTabs` memoized via `useMemo([isPillarVisible])`; click handler uses `data-path` + single `useCallback` (no per-button closures). Tab bar reads `location.pathname` via `useAppLocation()` for active state.
 - **EnhancedProjectPicker uses Fluent Popover** (portal-based) — never Dialog (would steal focus from sidebar context). Popover `onOpenChange` must close before `startTransition(() => onSelect(project))` to prevent click-outside race.
 - **EnhancedProjectPicker keyboard nav**: Uses `useArrowNavigationGroup({ axis: 'vertical', circular: true })` from Fluent v9 tabster. Home/End jump to first/last. Escape closes popover.
 - **Favorites reorder**: Move-up/move-down buttons (no DnD library). `IUserProfileService.reorderFavorites()` persists order to localStorage. Zero new npm deps.

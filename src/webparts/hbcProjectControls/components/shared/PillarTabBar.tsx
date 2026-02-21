@@ -7,7 +7,7 @@ import {
   Settings24Regular,
 } from '@fluentui/react-icons';
 import { useAppLocation } from '../hooks/router/useAppLocation';
-import { useTransitionNavigate } from '../hooks/router/useTransitionNavigate';
+import { useAppNavigate } from '../hooks/router/useAppNavigate';
 import { useAppContext } from '../contexts/AppContext';
 import { NAV_GROUP_ROLES } from '@hbc/sp-services';
 import { TOUCH_TARGET } from '../../theme/tokens';
@@ -127,10 +127,11 @@ export function getPillarGroupKeys(pillar: PillarId): string[] {
   }
 }
 
-export const PillarTabBar: React.FC = () => {
+// §4: React.memo + stable hooks prevent re-render cascade — see Router Stability Rule
+const PillarTabBarInner: React.FC = () => {
   const styles = useStyles();
   const location = useAppLocation();
-  const navigate = useTransitionNavigate();
+  const navigate = useAppNavigate();
   const { currentUser } = useAppContext();
   const userRoles = currentUser?.roles ?? [];
 
@@ -143,19 +144,27 @@ export const PillarTabBar: React.FC = () => {
     });
   }, [userRoles]);
 
-  const handleClick = React.useCallback((basePath: string) => {
-    navigate(basePath);
-  }, [navigate]);
+  // §4: memoized to prevent re-render cascade — see Router Stability Rule
+  const visibleTabs = React.useMemo(
+    () => PILLARS.filter(isPillarVisible),
+    [isPillarVisible]
+  );
+
+  const handleClick = React.useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    const path = e.currentTarget.dataset.path;
+    if (path) navigate(path);
+  }, [navigate]); // navigate has stable identity (useAppNavigate uses empty deps)
 
   return (
     <div className={styles.container} role="tablist" aria-label="Navigation pillars">
-      {PILLARS.filter(isPillarVisible).map(pillar => (
+      {visibleTabs.map(pillar => (
         <button
           key={pillar.id}
           role="tab"
           aria-selected={pillar.id === activePillar}
           className={mergeClasses(styles.tab, pillar.id === activePillar && styles.tabActive)}
-          onClick={() => handleClick(pillar.basePath)}
+          data-path={pillar.basePath}
+          onClick={handleClick}
         >
           <span className={styles.tabIcon}>{pillar.icon}</span>
           {pillar.label}
@@ -164,3 +173,5 @@ export const PillarTabBar: React.FC = () => {
     </div>
   );
 };
+
+export const PillarTabBar = React.memo(PillarTabBarInner);
