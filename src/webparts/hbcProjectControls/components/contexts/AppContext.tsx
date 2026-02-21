@@ -53,7 +53,7 @@ export interface IAppContextValue {
   isLoading: boolean;
   error: string | null;
   selectedProject: ISelectedProject | null;
-  setSelectedProject: (project: ISelectedProject | null) => void;
+  setSelectedProject: (project: ISelectedProject | null, options?: { skipSwitchingFlag?: boolean }) => void;
   hasPermission: (permission: string) => boolean;
   isFeatureEnabled: (featureName: string) => boolean;
   resolvedPermissions: IResolvedPermissions | null;
@@ -142,10 +142,10 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
 
   // Guard: cannot clear project on project-specific sites
   const switchTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
-  const handleSetSelectedProject = React.useCallback((project: ISelectedProject | null) => {
+  const handleSetSelectedProject = React.useCallback((project: ISelectedProject | null, options?: { skipSwitchingFlag?: boolean }) => {
     if (isProjectSite && project === null) return;
     setSelectedProject(project);
-    if (project) {
+    if (project && !options?.skipSwitchingFlag) {
       setIsProjectSwitching(true);
       clearTimeout(switchTimerRef.current);
       // Auto-dismiss after 400ms max — TanStack Query cache usually resolves faster
@@ -275,38 +275,50 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
   }, [selectedProject, dataService]);
 
   // Re-resolve permissions when selectedProject changes (if engine is enabled)
+  // Debounced to prevent third AppContext cascade during project switch
+  const permResolveTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
   React.useEffect(() => {
     if (!currentUser || !isPermissionEngineEnabled(featureFlags)) return;
 
-    const projectCode = selectedProject?.projectCode || null;
-    dataService.resolveUserPermissions(currentUser.email, projectCode)
-      .then(resolved => {
-        setCurrentUser(prev => {
-          if (!prev) return prev;
-          return { ...prev, permissions: resolved.permissions };
+    // Debounce: wait for project switch to settle before re-resolving
+    clearTimeout(permResolveTimerRef.current);
+    permResolveTimerRef.current = setTimeout(() => {
+      const projectCode = selectedProject?.projectCode || null;
+      dataService.resolveUserPermissions(currentUser.email, projectCode)
+        .then(resolved => {
+          setCurrentUser(prev => {
+            if (!prev) return prev;
+            return { ...prev, permissions: resolved.permissions };
+          });
+          setResolvedPermissions(resolved);
+        })
+        .catch(() => {
+          // Keep existing permissions on failure
+          console.warn('Permission re-resolution failed for project change');
         });
-        setResolvedPermissions(resolved);
-      })
-      .catch(() => {
-        // Keep existing permissions on failure
-        console.warn('Permission re-resolution failed for project change');
-      });
-  }, [selectedProject, currentUser?.email, dataService, featureFlags, isPermissionEngineEnabled]);
+    }, 300);
+
+    return () => clearTimeout(permResolveTimerRef.current);
+  }, [selectedProject?.projectCode, currentUser?.email, dataService, featureFlags, isPermissionEngineEnabled]);
 
   const hasPermission = React.useCallback((permission: string): boolean => {
     if (!currentUser) return false;
     return currentUser.permissions.has(permission);
   }, [currentUser]);
 
+  // Use roles array ref (stable across permission-only updates) instead of
+  // currentUser object ref to prevent identity cascade through routerProps →
+  // RouterProvider → entire route tree on permission re-resolution.
+  const userRoles = currentUser?.roles;
   const isFeatureEnabled = React.useCallback((featureName: string): boolean => {
     const flag = featureFlags.find(f => f.FeatureName === featureName);
     if (!flag) return false;
     if (!flag.Enabled) return false;
-    if (flag.EnabledForRoles && flag.EnabledForRoles.length > 0 && currentUser) {
-      return flag.EnabledForRoles.some(role => currentUser.roles.includes(role));
+    if (flag.EnabledForRoles && flag.EnabledForRoles.length > 0 && userRoles) {
+      return flag.EnabledForRoles.some(role => userRoles.includes(role));
     }
     return true;
-  }, [featureFlags, currentUser]);
+  }, [featureFlags, userRoles]);
 
   const getDashboardPreference = React.useCallback((key: string): IDashboardPreference | undefined => (
     dashboardPreferences[key]

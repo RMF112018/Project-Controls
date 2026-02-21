@@ -111,6 +111,11 @@ The TanStack Router instance MUST be created exactly once (via `useRef` in `rout
 **Navigation UX Architecture (uxEnhancedNavigationV1)**
 4-pillar tab bar (Hub|Precon|Ops|Admin) in AppShell header, driven by `PillarTabBar` component using `useTransitionNavigate`. Sidebar filters NavGroups to active pillar. `EnhancedProjectPicker` replaces ProjectPicker behind feature flag — Fluent Popover with Recent/Favorites/All sections, fuzzy search, KPI hover preview via `ProjectPreviewPane`. `MacBarStatusPill` in header shows selected project health. `ShellHydrationOverlay` during project switch (max 400ms). `useNavProfile` hook manages localStorage favorites/recent. All gated by FeatureGate. No router creation changes.
 
+- **useSwitchProject hook**: TanStack Query v5 mutation for project switching. onMutate sets selectedProject optimistically + addRecent. onError rolls back to previousProject. onSuccess enriches with KPI data via ProjectService. Uses useTransitionNavigate for post-switch navigation. Never touches router creation.
+- **No keyed main container**: `<main>` does NOT use `key={selectedProject?.projectCode}` — removed to prevent thundering-herd remount. ShellHydrationOverlay + routeTransition CSS provide visual feedback.
+- **MobileBottomNav**: Fixed 4-pillar bottom bar for mobile (<768px), reuses PILLARS + getActivePillar from PillarTabBar. env(safe-area-inset-bottom) aware. Renders only when isMobile && uxEnhancedNavigationV1. Uses useTransitionNavigate.
+- **Region filter persistence**: IUserProfileService.setRegionFilter/setDivisionFilter persist to localStorage via INavProfile.preferredRegion/preferredDivision. EnhancedProjectPicker initializes from persisted values on open.
+
 See `CODE_ARCHITECTURE_GUIDE.md` for full folder and dependency rules.
 
 ---
@@ -135,6 +140,15 @@ Last major additions: GitOps Provisioning (Feb 18) + Constraints/Permits/Schedul
 - Consolidated 8 Skills deployed for performance and Schedule v2.0 domains  
 
 - Navigation UX enhancement complete: PillarTabBar, EnhancedProjectPicker, MacBarStatusPill, ContextKPIStrip, HbcCommandPalette unification (Phases 0-6, feature-flagged under `uxEnhancedNavigationV1`)
+- EnhancedProjectPicker polished: keyboard nav (arrow/Home/End/Escape), favorites reorder (up/down buttons), region/division quick-filters, enhanced context menu, Storybook coverage (6 variants)
+- MacBarStatusPill: live health pulse animation (Yellow/Red), click-to-navigate
+- ProjectPreviewPane: extended KPIs (billings, fee%, schedule variance), alert indicators, sync hint
+
+- Optimistic project switch: useSwitchProject hook with KPI enrichment, rollback, "Switching to..." skeleton in MacBarStatusPill + ShellHydrationOverlay label
+- Cmd+K unification: Projects section first in palette, favorites/recent priority ordering (25 commands max)
+
+- Rollout readiness: MobileBottomNav (4-pillar + project pill), region filter persistence, favorites stagger animation, full a11y pass (ARIA live regions), dev toggle for uxEnhancedNavigationV1 (mock mode only)
+- Storybook coverage: EnhancedProjectPicker WithRegionFilters + SwitchingState, HbcCommandPalette WithProjectCommands
 
 **Next steps:** Full E2E coverage expansion and Sprint 3 gate enforcement.  
 
@@ -161,8 +175,27 @@ See `FEATURE_DEVELOPMENT_BLUEPRINT.md` for new domain patterns, `PERFORMANCE_OPT
 
 - **PillarTabBar must use `useTransitionNavigate`** — never `router.navigate()` directly. Tab bar reads `location.pathname` via `useAppLocation()` for active state.
 - **EnhancedProjectPicker uses Fluent Popover** (portal-based) — never Dialog (would steal focus from sidebar context). Popover `onOpenChange` must close before `startTransition(() => onSelect(project))` to prevent click-outside race.
+- **EnhancedProjectPicker keyboard nav**: Uses `useArrowNavigationGroup({ axis: 'vertical', circular: true })` from Fluent v9 tabster. Home/End jump to first/last. Escape closes popover.
+- **Favorites reorder**: Move-up/move-down buttons (no DnD library). `IUserProfileService.reorderFavorites()` persists order to localStorage. Zero new npm deps.
+- **EnhancedProjectPicker region/division filters**: Only shown when projects have >1 unique region. Filters apply BEFORE fuzzy search to avoid empty-state confusion. Filters persist via INavProfile (not reset on close).
+- **MacBarStatusPill pulse**: Uses Griffel keyframe animation with `@media (prefers-reduced-motion: reduce)` guard. Never pulse on Green health.
 - **useNavProfile localStorage key**: `hbc:nav-profile:{email}` — always scope to user email. Max 5 recent (FIFO), unlimited favorites.
 - **ShellHydrationOverlay**: dismiss via `useIsFetching` (never global). Minimum 200ms display to prevent flash.
+- **useSwitchProject must NOT touch router creation**: Uses useTransitionNavigate only. Never passes dynamic values to createHbcTanStackRouter. The mutation is local state + KPI enrichment, not a server mutation.
+- **MacBarStatusPill skeleton with name**: Shows selectedProject.projectName (already set optimistically by onMutate) truncated to 16 chars. Falls back to generic skeleton if selectedProject is null during switch.
+- **MobileBottomNav safe-area**: Must use `paddingBottom: env(safe-area-inset-bottom)` for iOS notch. Height is 56px + safe area. Hidden via CSS >= 768px (not JS breakpoint) for SSR safety.
+- **Region filter persistence**: Persisted in same INavProfile localStorage object. Reset to null means "All Regions" — never remove the key, set to null explicitly.
+- **uxEnhancedNavigationV1 default ON**: MockDataService sets `Enabled: true`. SharePoint/standalone modes read from SP list (admin-controlled). Dev toggle in AppShell allows bidirectional override in mock mode only.
+- **Dev toggle (devNavOverride)**: Only available when `dataServiceMode === 'mock'`. Replaces FeatureGate for nav components in AppShell only — child components like NavigationSidebar still use their own isFeatureEnabled checks.
+- **ARIA live regions on project switch**: MacBarStatusPill uses `aria-live="polite"`, ShellHydrationOverlay uses `aria-live="assertive"`. Never use "assertive" on frequently-changing elements — overlay is transient (200ms-400ms max).
+- **setSelectedProject skipSwitchingFlag**: KPI enrichment in `onSuccess` uses `{ skipSwitchingFlag: true }` to avoid restarting the isProjectSwitching timer. Only the initial optimistic call in `onMutate` sets the switching flag.
+- **Permission re-resolution debounced**: 300ms debounce on `selectedProject?.projectCode` (primitive dep, not object ref). Prevents third AppContext cascade on project switch.
+- **No keyed `<main>`**: Removed `key={selectedProject?.projectCode}` to prevent thundering-herd query refetch on project switch. ShellHydrationOverlay + routeTransition CSS handle the visual transition.
+- **switchProject identity**: Uses `mutation.mutate` (stable) not `mutation` (unstable) in useCallback deps.
+- **No `React.startTransition` in stableNavigate**: TanStack Router's Transitioner already wraps `router.load()` in startTransition. Double-wrapping causes React concurrent scheduler deadlock with useSyncExternalStore. stableNavigate calls navigateRef.current() directly.
+- **isFeatureEnabled uses `userRoles` not `currentUser`**: Deps are `[featureFlags, userRoles]` where `userRoles = currentUser?.roles`. The roles array reference is stable across permission-only updates, preventing identity cascade through routerProps → RouterProvider → entire route tree.
+- **RouterProvider context is memoized**: `useMemo` on the context object prevents RouterProvider from calling `router.update()` on every render. No separate useEffect for router.update() — RouterProvider handles it during render.
+- **envConfig useEffect uses boolean dep**: `permissionEngineEnabled` (primitive) instead of `isFeatureEnabled` (function ref) prevents unnecessary re-fetches.
 
 **Keep CLAUDE.md lean** — archive aggressively to CLAUDE_ARCHIVE.md.
 

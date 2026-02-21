@@ -47,9 +47,10 @@ const TanStackAdapterBridge: React.FC<{ children: React.ReactNode }> = ({ childr
         window.history.go(to);
         return;
       }
-      React.startTransition(() => {
-        void navigateRef.current({ to, replace: options?.replace });
-      });
+      // Let TanStack Router's Transitioner handle startTransition natively.
+      // Double-wrapping in startTransition causes React concurrent scheduler
+      // deadlock with useSyncExternalStore (router.__store).
+      void navigateRef.current({ to, replace: options?.replace });
     },
     [],
   );

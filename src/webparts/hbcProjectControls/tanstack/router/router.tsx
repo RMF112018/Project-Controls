@@ -60,34 +60,23 @@ export const TanStackPilotRouter: React.FC<ITanStackRouterProviderProps> = ({
     });
   }
 
-  // ── 2. Push dynamic context on every change ────────────────────────
-  // router.update() merges context in-place — no route-tree destruction,
-  // no guard/loader re-execution, no component unmount/remount.
-  React.useEffect(() => {
-    routerRef.current!.update({
-      ...routerRef.current!.options,
-      context: {
-        ...routerRef.current!.options.context,
-        currentUser,
-        selectedProject,
-        isFeatureEnabled,
-        scope,
-      },
-    });
-  }, [currentUser, selectedProject, isFeatureEnabled, scope]);
+  // ── 2. Memoize context so RouterProvider only calls router.update()
+  //       when a value actually changes. No separate useEffect needed —
+  //       RouterProvider calls router.update() during render when context
+  //       prop is provided.
+  const routerContext = React.useMemo(() => ({
+    queryClient,
+    dataService,
+    currentUser,
+    selectedProject,
+    isFeatureEnabled,
+    scope,
+  }), [queryClient, dataService, currentUser, selectedProject, isFeatureEnabled, scope]);
 
-  // ── 3. RouterProvider context keeps the React tree in sync ─────────
   return (
     <RouterProvider
       router={routerRef.current!}
-      context={{
-        queryClient,
-        dataService,
-        currentUser,
-        selectedProject,
-        isFeatureEnabled,
-        scope,
-      }}
+      context={routerContext}
     />
   );
 };
