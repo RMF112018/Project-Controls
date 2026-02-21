@@ -39,6 +39,35 @@ import type { IHbcTanStackTableColumn } from '../../../tanstack/table/types';
 const TAB_PATHS = ['/preconstruction/pipeline', '/preconstruction/pipeline/gonogo'];
 const TAB_LABELS = ['Pipeline', 'Go/No-Go Tracker'];
 
+const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
+  [ScorecardStatus.BDDraft]: { color: HBC_COLORS.gray700, bg: HBC_COLORS.gray100 },
+  [ScorecardStatus.AwaitingDirectorReview]: { color: '#92400E', bg: '#FEF3C7' },
+  [ScorecardStatus.DirectorReturnedForRevision]: { color: '#9A3412', bg: '#FFEDD5' },
+  [ScorecardStatus.AwaitingCommitteeScoring]: { color: '#1E40AF', bg: HBC_COLORS.infoLight },
+  [ScorecardStatus.CommitteeReturnedForRevision]: { color: '#9A3412', bg: '#FFEDD5' },
+  [ScorecardStatus.Rejected]: { color: '#991B1B', bg: HBC_COLORS.errorLight },
+  [ScorecardStatus.NoGo]: { color: '#991B1B', bg: HBC_COLORS.errorLight },
+  [ScorecardStatus.Go]: { color: '#065F46', bg: HBC_COLORS.successLight },
+  [ScorecardStatus.Locked]: { color: HBC_COLORS.gray600, bg: HBC_COLORS.gray200 },
+  [ScorecardStatus.Unlocked]: { color: '#92400E', bg: '#FEF3C7' },
+};
+
+const PENDING_STATUSES = [
+  ScorecardStatus.BDDraft,
+  ScorecardStatus.AwaitingDirectorReview,
+  ScorecardStatus.DirectorReturnedForRevision,
+  ScorecardStatus.AwaitingCommitteeScoring,
+  ScorecardStatus.CommitteeReturnedForRevision,
+  ScorecardStatus.Unlocked,
+];
+
+const ARCHIVE_STATUSES = [
+  ScorecardStatus.Go,
+  ScorecardStatus.NoGo,
+  ScorecardStatus.Rejected,
+  ScorecardStatus.Locked,
+];
+
 function pathToTab(pathname: string): number {
   // Support both /preconstruction/pipeline/gonogo and legacy /preconstruction/gonogo
   if (pathname === '/preconstruction/pipeline/gonogo' || pathname === '/preconstruction/gonogo') return 1;
@@ -50,11 +79,11 @@ export const PipelinePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const activeTab = pathToTab(location.pathname);
-  const breadcrumbs = buildBreadcrumbs(location.pathname);
+  const breadcrumbs = React.useMemo(() => buildBreadcrumbs(location.pathname), [location.pathname]);
   const { hasPermission, isFeatureEnabled } = useAppContext();
   const { activeSectors } = useSectorDefinitions();
-  const { leads, totalCount, isLoading, fetchLeads } = useLeads();
-  const { healthDistribution, fetchRecords: fetchDataMart } = useDataMart();
+  const { leads, totalCount, isLoading } = useLeads();
+  const { healthDistribution } = useDataMart();
   const { isMobile } = useResponsive();
 
   // Pipeline tab state
@@ -68,7 +97,7 @@ export const PipelinePage: React.FC = () => {
   const [sortAsc, setSortAsc] = React.useState(false);
 
   // Go/No-Go tab state
-  const { scorecards, fetchScorecards } = useGoNoGo();
+  const { scorecards } = useGoNoGo();
   const [gonogoSubTab, setGonogoSubTab] = React.useState<'pending' | 'archive'>('pending');
   const [gonogoRegionFilter, setGonogoRegionFilter] = React.useState('All');
   const [gonogoSectorFilter, setGonogoSectorFilter] = React.useState('All');
@@ -76,12 +105,6 @@ export const PipelinePage: React.FC = () => {
   const [gonogoStatusFilter, setGonogoStatusFilter] = React.useState<string[]>([]);
   const [gonogoSortField, setGonogoSortField] = React.useState<string>('');
   const [gonogoSortAsc, setGonogoSortAsc] = React.useState(true);
-
-  React.useEffect(() => {
-    fetchLeads().catch(console.error);
-    fetchScorecards().catch(console.error);
-    fetchDataMart().catch(console.error);
-  }, [fetchLeads, fetchScorecards, fetchDataMart]);
 
   const handleSort = (field: string): void => {
     if (sortField === field) {
@@ -231,36 +254,6 @@ export const PipelinePage: React.FC = () => {
   };
 
   // --- Go/No-Go tab data ---
-
-  // Status color mapping for StatusBadge
-  const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
-    [ScorecardStatus.BDDraft]: { color: HBC_COLORS.gray700, bg: HBC_COLORS.gray100 },
-    [ScorecardStatus.AwaitingDirectorReview]: { color: '#92400E', bg: '#FEF3C7' },
-    [ScorecardStatus.DirectorReturnedForRevision]: { color: '#9A3412', bg: '#FFEDD5' },
-    [ScorecardStatus.AwaitingCommitteeScoring]: { color: '#1E40AF', bg: HBC_COLORS.infoLight },
-    [ScorecardStatus.CommitteeReturnedForRevision]: { color: '#9A3412', bg: '#FFEDD5' },
-    [ScorecardStatus.Rejected]: { color: '#991B1B', bg: HBC_COLORS.errorLight },
-    [ScorecardStatus.NoGo]: { color: '#991B1B', bg: HBC_COLORS.errorLight },
-    [ScorecardStatus.Go]: { color: '#065F46', bg: HBC_COLORS.successLight },
-    [ScorecardStatus.Locked]: { color: HBC_COLORS.gray600, bg: HBC_COLORS.gray200 },
-    [ScorecardStatus.Unlocked]: { color: '#92400E', bg: '#FEF3C7' },
-  };
-
-  const PENDING_STATUSES = [
-    ScorecardStatus.BDDraft,
-    ScorecardStatus.AwaitingDirectorReview,
-    ScorecardStatus.DirectorReturnedForRevision,
-    ScorecardStatus.AwaitingCommitteeScoring,
-    ScorecardStatus.CommitteeReturnedForRevision,
-    ScorecardStatus.Unlocked,
-  ];
-
-  const ARCHIVE_STATUSES = [
-    ScorecardStatus.Go,
-    ScorecardStatus.NoGo,
-    ScorecardStatus.Rejected,
-    ScorecardStatus.Locked,
-  ];
 
   // Join scorecards with leads
   interface IScorecardRow {

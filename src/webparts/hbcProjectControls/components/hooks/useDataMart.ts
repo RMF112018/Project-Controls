@@ -93,7 +93,7 @@ export function useDataMart(): IUseDataMartResult {
 
   useSignalRQueryInvalidation({
     entityType: EntityType.DataMart,
-    queryKeys: [qk.dataMart.base(scope)],
+    queryKeys: React.useMemo(() => [qk.dataMart.base(scope)], [scope]),
   });
 
   const records = React.useMemo(() => recordsQuery.data ?? [], [recordsQuery.data]);
@@ -105,11 +105,11 @@ export function useDataMart(): IUseDataMartResult {
     syncAllMutation.isPending;
 
   // Computed values
-  const healthDistribution: Record<DataMartHealthStatus, number> = {
+  const healthDistribution = React.useMemo<Record<DataMartHealthStatus, number>>(() => ({
     Green: records.filter(r => r.overallHealth === 'Green').length,
     Yellow: records.filter(r => r.overallHealth === 'Yellow').length,
     Red: records.filter(r => r.overallHealth === 'Red').length,
-  };
+  }), [records]);
 
   const alertCount = records.filter(
     r => r.hasUnbilledAlert || r.hasScheduleAlert || r.hasFeeErosionAlert
