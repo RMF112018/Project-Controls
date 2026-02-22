@@ -56,3 +56,4 @@ export * from './IProjectKpiSnapshot';
 export * from './ISiteProvisioningDefaults';
 export * from './IEntraGroupSyncResult';
 export * from './IAuditSnapshot';
+export * from './IRoleConfiguration';

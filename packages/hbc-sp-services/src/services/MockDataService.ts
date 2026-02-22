@@ -86,6 +86,7 @@ import {
   IScheduleActivity,
   IScheduleImport,
   IScheduleMetrics,
+  IRoleConfiguration,
 } from '../models';
 
 import { IJobNumberRequest } from '../models/IJobNumberRequest';
@@ -133,6 +134,7 @@ import mockConstraintLogs from '../mock/constraintLogs.json';
 import mockPermits from '../mock/permits.json';
 import templateSiteConfigData from '../mock/templateSiteConfig.json';
 import templateRegistryData from '../mock/templateRegistry.json';
+import roleConfigurationsData from '../mock/roleConfigurations.json';
 import { createEstimatingKickoffTemplate } from '../utils/estimatingKickoffTemplate';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 import { DEFAULT_HUB_SITE_URL } from '../utils/constants';
@@ -348,6 +350,7 @@ export class MockDataService implements IDataService {
   private dataMartRecords: IProjectDataMart[];
   private constraintLogs: IConstraintLog[];
   private permits: IPermit[];
+  private roleConfigurations: IRoleConfiguration[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -511,6 +514,7 @@ export class MockDataService implements IDataService {
     this.scheduleImports = JSON.parse(JSON.stringify(mockScheduleImports)) as IScheduleImport[];
     this.constraintLogs = JSON.parse(JSON.stringify(mockConstraintLogs)) as IConstraintLog[];
     this.permits = JSON.parse(JSON.stringify(mockPermits)) as IPermit[];
+    this.roleConfigurations = JSON.parse(JSON.stringify(roleConfigurationsData)) as IRoleConfiguration[];
     this.activeProjects = this.generateMockActiveProjects();
     this.workflowDefinitions = JSON.parse(JSON.stringify(mockWorkflowDefinitions)) as IWorkflowDefinition[];
     this.workflowStepOverrides = JSON.parse(JSON.stringify(mockWorkflowStepOverrides)) as IWorkflowStepOverride[];
@@ -6806,5 +6810,127 @@ export class MockDataService implements IDataService {
       EntityId: String(permitId),
       Details: `Removed permit ${removed.refNumber}`,
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Role Configuration Engine (Phase 2)
+  // ---------------------------------------------------------------------------
+
+  public async getRoleConfigurations(): Promise<IRoleConfiguration[]> {
+    await delay();
+    return JSON.parse(JSON.stringify(this.roleConfigurations.filter(r => r.isActive)));
+  }
+
+  public async getRoleConfiguration(id: number): Promise<IRoleConfiguration | null> {
+    await delay();
+    const found = this.roleConfigurations.find(r => r.id === id);
+    return found ? JSON.parse(JSON.stringify(found)) : null;
+  }
+
+  public async createRoleConfiguration(data: Partial<IRoleConfiguration>): Promise<IRoleConfiguration> {
+    await delay();
+    const now = new Date().toISOString();
+    const newConfig: IRoleConfiguration = {
+      id: this.roleConfigurations.length > 0 ? Math.max(...this.roleConfigurations.map(r => r.id)) + 1 : 1,
+      roleName: data.roleName || '',
+      displayName: data.displayName || data.roleName || '',
+      description: data.description || '',
+      isGlobal: data.isGlobal ?? false,
+      isSystem: false,
+      isActive: true,
+      defaultPermissions: data.defaultPermissions || [],
+      defaultToolAccess: data.defaultToolAccess || [],
+      navGroupAccess: data.navGroupAccess || [],
+      entraGroupId: data.entraGroupId,
+      createdBy: data.createdBy || 'System',
+      createdDate: now,
+      lastModifiedBy: data.lastModifiedBy || data.createdBy || 'System',
+      lastModifiedDate: now,
+    };
+    this.roleConfigurations.push(newConfig);
+    this.logAudit({
+      Action: AuditAction.RoleConfigurationCreated,
+      EntityType: EntityType.RoleConfiguration,
+      EntityId: String(newConfig.id),
+      User: newConfig.createdBy,
+      Details: JSON.stringify({ after: { roleName: newConfig.roleName, isGlobal: newConfig.isGlobal } }),
+    });
+    return JSON.parse(JSON.stringify(newConfig));
+  }
+
+  public async updateRoleConfiguration(id: number, data: Partial<IRoleConfiguration>): Promise<IRoleConfiguration> {
+    await delay();
+    const idx = this.roleConfigurations.findIndex(r => r.id === id);
+    if (idx === -1) throw new Error(`Role configuration with id ${id} not found`);
+    const before = JSON.parse(JSON.stringify(this.roleConfigurations[idx]));
+    const now = new Date().toISOString();
+    this.roleConfigurations[idx] = {
+      ...this.roleConfigurations[idx],
+      ...data,
+      id, // prevent id override
+      isSystem: this.roleConfigurations[idx].isSystem, // prevent isSystem override
+      lastModifiedDate: now,
+      lastModifiedBy: data.lastModifiedBy || 'System',
+    };
+    this.logAudit({
+      Action: AuditAction.RoleConfigurationUpdated,
+      EntityType: EntityType.RoleConfiguration,
+      EntityId: String(id),
+      User: data.lastModifiedBy || 'System',
+      Details: JSON.stringify({ before: { roleName: before.roleName, isGlobal: before.isGlobal }, after: { roleName: this.roleConfigurations[idx].roleName, isGlobal: this.roleConfigurations[idx].isGlobal } }),
+    });
+    return JSON.parse(JSON.stringify(this.roleConfigurations[idx]));
+  }
+
+  public async deleteRoleConfiguration(id: number): Promise<void> {
+    await delay();
+    const config = this.roleConfigurations.find(r => r.id === id);
+    if (!config) throw new Error(`Role configuration with id ${id} not found`);
+    if (config.isSystem) throw new Error(`Cannot delete system role: ${config.roleName}`);
+    config.isActive = false;
+    this.logAudit({
+      Action: AuditAction.RoleConfigurationDeleted,
+      EntityType: EntityType.RoleConfiguration,
+      EntityId: String(id),
+      User: 'System',
+      Details: JSON.stringify({ before: { roleName: config.roleName, isActive: true }, after: { isActive: false } }),
+    });
+  }
+
+  public async seedDefaultRoleConfigurations(): Promise<IRoleConfiguration[]> {
+    await delay();
+    this.roleConfigurations = JSON.parse(JSON.stringify(roleConfigurationsData)) as IRoleConfiguration[];
+    this.logAudit({
+      Action: AuditAction.RoleConfigurationSeeded,
+      EntityType: EntityType.RoleConfiguration,
+      EntityId: 'all',
+      User: 'System',
+      Details: `Seeded ${this.roleConfigurations.length} default role configurations`,
+    });
+    return JSON.parse(JSON.stringify(this.roleConfigurations));
+  }
+
+  public async resolveRolePermissions(roleName: string, projectCode: string | null): Promise<string[]> {
+    await delay();
+    const config = this.roleConfigurations.find(r => r.roleName === roleName && r.isActive);
+    if (config) {
+      // Global roles get all their permissions regardless of project
+      if (config.isGlobal || !projectCode) {
+        return [...config.defaultPermissions];
+      }
+      // Non-global: check project team assignments for overrides
+      const assignments = this.projectTeamAssignments.filter(
+        a => a.projectCode === projectCode && a.isActive
+      );
+      const hasAssignment = assignments.some(a => a.assignedRole === roleName);
+      if (hasAssignment) {
+        return [...config.defaultPermissions];
+      }
+      // Not assigned to this project — return empty for scoped roles
+      return [];
+    }
+    // Fallback to hard-coded ROLE_PERMISSIONS
+    const hardCoded = ROLE_PERMISSIONS[roleName];
+    return hardCoded ? [...hardCoded] : [];
   }
 }

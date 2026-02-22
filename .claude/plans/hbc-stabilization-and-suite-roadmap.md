@@ -17,6 +17,13 @@ Working branch: `feature/hbc-suite-stabilization` (created 22 Feb 2026). Main br
 - CLAUDE.md: Only 7 of 23 sections populated; no roadmap, no suite strategy, no role matrix
 - .claude/plans/: Directory ready for master plans
 
+## Child-App Structure (Owner-provided 22 Feb 2026, locked for Phase 3):
+- Preconstruction (BD + Estimating + IDS Hubs)
+- Operations (Commercial/Luxury, Operational Excellence, Safety, QC & Warranty)
+- Share Services (Marketing, HR, Accounting, Risk Management)
+- QA/QC & Safety (mobile field app)
+All use top App Launcher + contextual Left Sidebar. Documents via Fluent/Graph.
+
 ## Deliverables (6 major items)
 
 ### 1. Phase 0: Blueprint Lockdown & Documentation
@@ -40,6 +47,7 @@ Working branch: `feature/hbc-suite-stabilization` (created 22 Feb 2026). Main br
 ### 5. Phase 2: New Role & Permission System (by 5 Apr 2026)
 - Configuration-driven role engine (SharePoint list backed).
 - Admin UI for creating/editing roles and granular defaults with global vs. scoped access.
+- **STATUS: COMPLETE** — Committed on `feature/hbc-suite-stabilization`. IRoleConfiguration + LEGACY_ROLE_MAP (14→6 role normalization) + RoleGate bidirectional normalization + RoleConfigurationPanel + resolvePermissionsFromConfig/hasGlobalAccess/resolveNavGroupAccess utilities + 7 new IDataService methods (266 total) + 35 Jest tests.
 
 ### 6. Phase 3: New App Shell + Router & Data Layer Reconstruction (mid-Apr 2026)
 - Complete removal of PillarTabBar and all legacy navigation hooks.

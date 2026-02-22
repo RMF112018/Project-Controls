@@ -11,6 +11,7 @@ import { IProvisioningLog, IProvisioningInput, IFieldDefinition } from '../model
 import { ISiteProvisioningDefaults, IProjectFeatureFlagDefault, IRoleGroupMapping } from '../models/ISiteProvisioningDefaults';
 import { IEntraGroupSyncResult } from '../models/IEntraGroupSyncResult';
 import { IAuditSnapshot } from '../models/IAuditSnapshot';
+import { IRoleConfiguration } from '../models/IRoleConfiguration';
 import { IDeliverable } from '../models/IDeliverable';
 import { ITeamMember } from '../models/ITeamMember';
 import { IInterviewPrep } from '../models/IInterviewPrep';
@@ -218,6 +219,15 @@ export interface IDataService {
   // Provisioning Validation & Summary
   validateProvisioningInput(input: IProvisioningInput): Promise<IProvisioningValidationResult>;
   getProvisioningSummary(): Promise<IProvisioningSummary>;
+
+  // Role Configuration Engine (Phase 2)
+  getRoleConfigurations(): Promise<IRoleConfiguration[]>;
+  getRoleConfiguration(id: number): Promise<IRoleConfiguration | null>;
+  createRoleConfiguration(data: Partial<IRoleConfiguration>): Promise<IRoleConfiguration>;
+  updateRoleConfiguration(id: number, data: Partial<IRoleConfiguration>): Promise<IRoleConfiguration>;
+  deleteRoleConfiguration(id: number): Promise<void>;
+  seedDefaultRoleConfigurations(): Promise<IRoleConfiguration[]>;
+  resolveRolePermissions(roleName: string, projectCode: string | null): Promise<string[]>;
 
   // Phase 6 — Workflow
   getTeamMembers(projectCode: string): Promise<ITeamMember[]>;

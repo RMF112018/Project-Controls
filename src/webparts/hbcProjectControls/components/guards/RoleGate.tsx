@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { RoleName } from '@hbc/sp-services';
+import { RoleName, normalizeRoleName } from '@hbc/sp-services';
 import { useAppContext } from '../contexts/AppContext';
 
 export interface IRoleGateProps {
@@ -13,7 +13,11 @@ export const RoleGate: React.FC<IRoleGateProps> = ({ allowedRoles, children, fal
 
   if (!currentUser) return <>{fallback}</>;
 
-  const hasRole = currentUser.roles.some(role => allowedRoles.includes(role));
+  // Normalize both user roles AND allowed roles for bidirectional compatibility
+  const normalizedUserRoles = currentUser.roles.map(r => normalizeRoleName(r));
+  const normalizedAllowed = allowedRoles.map(r => normalizeRoleName(r));
+
+  const hasRole = normalizedUserRoles.some(role => normalizedAllowed.includes(role));
   if (!hasRole) return <>{fallback}</>;
 
   return <>{children}</>;

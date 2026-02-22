@@ -231,6 +231,10 @@ export enum AuditAction {
   EntraGroupSyncCompleted = 'Entra.GroupSyncCompleted',
   EntraGroupSyncFailed = 'Entra.GroupSyncFailed',
   ProjectFeatureFlagsInitialized = 'Project.FeatureFlagsInitialized',
+  RoleConfigurationCreated = 'Role.ConfigurationCreated',
+  RoleConfigurationUpdated = 'Role.ConfigurationUpdated',
+  RoleConfigurationDeleted = 'Role.ConfigurationDeleted',
+  RoleConfigurationSeeded = 'Role.ConfigurationSeeded',
 }
 
 export enum EntityType {
@@ -272,6 +276,7 @@ export enum EntityType {
   TemplateSiteConfig = 'TemplateSiteConfig',
   SiteDefaults = 'SiteDefaults',
   EntraGroup = 'EntraGroup',
+  RoleConfiguration = 'RoleConfiguration',
 }
 
 export enum DeliverableStatus {

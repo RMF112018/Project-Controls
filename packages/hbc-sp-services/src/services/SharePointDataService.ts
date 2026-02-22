@@ -55,6 +55,7 @@ import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
 import { IScheduleActivity, IScheduleImport, IScheduleMetrics, IScheduleRelationship, ActivityStatus, RelationshipType } from '../models/IScheduleActivity';
 import { IConstraintLog } from '../models/IConstraintLog';
 import { IPermit } from '../models/IPermit';
+import { IRoleConfiguration } from '../models/IRoleConfiguration';
 import { ITemplateRegistry, ITemplateSiteConfig, ITemplateManifestLog } from '../models/ITemplateManifest';
 import { ITemplateFileMetadata } from './IDataService';
 import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField, TurnoverStatus, ScorecardStatus, WorkflowActionType, ActionPriority, AuditAction, EntityType } from '../models/enums';
@@ -9434,5 +9435,35 @@ export class SharePointDataService implements IDataService {
 
   async getProvisioningSummary(): Promise<IProvisioningSummary> {
     throw new Error('SharePointDataService.getProvisioningSummary() not yet implemented — Phase 1 stub');
+  }
+
+  // ── Phase 2: Role Configuration Engine stubs (real SP implementation in later sub-phase) ──
+
+  async getRoleConfigurations(): Promise<IRoleConfiguration[]> {
+    throw new Error('getRoleConfigurations not yet implemented — Phase 2 stub');
+  }
+
+  async getRoleConfiguration(_id: number): Promise<IRoleConfiguration | null> {
+    throw new Error('getRoleConfiguration not yet implemented — Phase 2 stub');
+  }
+
+  async createRoleConfiguration(_data: Partial<IRoleConfiguration>): Promise<IRoleConfiguration> {
+    throw new Error('createRoleConfiguration not yet implemented — Phase 2 stub');
+  }
+
+  async updateRoleConfiguration(_id: number, _data: Partial<IRoleConfiguration>): Promise<IRoleConfiguration> {
+    throw new Error('updateRoleConfiguration not yet implemented — Phase 2 stub');
+  }
+
+  async deleteRoleConfiguration(_id: number): Promise<void> {
+    throw new Error('deleteRoleConfiguration not yet implemented — Phase 2 stub');
+  }
+
+  async seedDefaultRoleConfigurations(): Promise<IRoleConfiguration[]> {
+    throw new Error('seedDefaultRoleConfigurations not yet implemented — Phase 2 stub');
+  }
+
+  async resolveRolePermissions(_roleName: string, _projectCode: string | null): Promise<string[]> {
+    throw new Error('resolveRolePermissions not yet implemented — Phase 2 stub');
   }
 }

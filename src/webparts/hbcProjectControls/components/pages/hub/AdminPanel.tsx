@@ -19,7 +19,7 @@ import {
 } from '@hbc/sp-services';
 import * as React from 'react';
 import { useLocation } from '@router';
-import { Button } from '@fluentui/react-components';
+import { Button, Divider } from '@fluentui/react-components';
 import { useAppContext } from '../../contexts/AppContext';
 import { PageHeader } from '../../shared/PageHeader';
 import { Breadcrumb } from '../../shared/Breadcrumb';
@@ -38,6 +38,7 @@ import { ProvisioningSummaryWidget } from './ProvisioningSummaryWidget';
 import { WorkflowDefinitionsPanel } from './WorkflowDefinitionsPanel';
 import { PermissionTemplateEditor } from './PermissionTemplateEditor';
 import { ProjectAssignmentsPanel } from './ProjectAssignmentsPanel';
+import { RoleConfigurationPanel } from './RoleConfigurationPanel';
 import { useTabFromUrl } from '../../hooks/useTabFromUrl';
 import { useSectorDefinitions } from '../../hooks/useSectorDefinitions';
 import { useAssignmentMappings } from '../../hooks/useAssignmentMappings';
@@ -697,15 +698,21 @@ export const AdminPanel: React.FC = () => {
       {/* Tab 2: Roles Management */}
       {activeTab === 'roles' && (
         hasPermission(PERMISSIONS.ADMIN_ROLES) ? (
-          rolesLoading ? <SkeletonLoader variant="table" rows={5} columns={4} /> : (
-            <HbcTanStackTable<IRole>
-              columns={roleColumns}
-              items={roles}
-              keyExtractor={r => r.id}
-              emptyTitle="No roles configured"
-              ariaLabel="Admin role definitions table"
-            />
-          )
+          <>
+            <FeatureGate featureName="RoleConfigurationEngine">
+              <RoleConfigurationPanel />
+              <Divider style={{ margin: '16px 0' }} />
+            </FeatureGate>
+            {rolesLoading ? <SkeletonLoader variant="table" rows={5} columns={4} /> : (
+              <HbcTanStackTable<IRole>
+                columns={roleColumns}
+                items={roles}
+                keyExtractor={r => r.id}
+                emptyTitle="No roles configured"
+                ariaLabel="Admin role definitions table"
+              />
+            )}
+          </>
         ) : (
           <div style={{ padding: '24px', textAlign: 'center', color: HBC_COLORS.gray400 }}>
             You do not have permission to manage roles.

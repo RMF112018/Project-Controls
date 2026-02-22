@@ -359,3 +359,76 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     ...Object.values(PERMISSIONS),
   ],
 };
+
+// ---------------------------------------------------------------------------
+// Config-driven permission resolution (Phase 2)
+// ---------------------------------------------------------------------------
+
+import { normalizeRoleName } from '../models/IRoleConfiguration';
+import type { IRoleConfiguration } from '../models/IRoleConfiguration';
+
+/**
+ * Resolves permissions from role configurations (config-driven).
+ * Falls back to hard-coded ROLE_PERMISSIONS if no config available.
+ */
+export function resolvePermissionsFromConfig(
+  roleConfigurations: IRoleConfiguration[],
+  userRoles: string[],
+): string[] {
+  const normalizedRoles = userRoles.map(normalizeRoleName);
+  const uniqueRoles = [...new Set(normalizedRoles)];
+  const allPermissions = new Set<string>();
+
+  for (const role of uniqueRoles) {
+    const config = roleConfigurations.find(c => c.roleName === role && c.isActive);
+    if (config) {
+      config.defaultPermissions.forEach(p => allPermissions.add(p));
+    } else {
+      const hardCoded = ROLE_PERMISSIONS[role];
+      if (hardCoded) {
+        hardCoded.forEach(p => allPermissions.add(p));
+      }
+    }
+  }
+
+  return Array.from(allPermissions);
+}
+
+/**
+ * Checks if any of the user's roles (normalized) grant global access.
+ */
+export function hasGlobalAccess(
+  roleConfigurations: IRoleConfiguration[],
+  userRoles: string[],
+): boolean {
+  const normalizedRoles = userRoles.map(normalizeRoleName);
+  return normalizedRoles.some(role => {
+    const config = roleConfigurations.find(c => c.roleName === role && c.isActive);
+    return config?.isGlobal ?? false;
+  });
+}
+
+/**
+ * Resolves nav group access from role configurations.
+ * Falls back to NAV_GROUP_ROLES if no config available.
+ */
+export function resolveNavGroupAccess(
+  roleConfigurations: IRoleConfiguration[],
+  userRoles: string[],
+): string[] {
+  const normalizedRoles = userRoles.map(normalizeRoleName);
+  const groups = new Set<string>();
+
+  for (const role of normalizedRoles) {
+    const config = roleConfigurations.find(c => c.roleName === role && c.isActive);
+    if (config) {
+      config.navGroupAccess.forEach(g => groups.add(g));
+    } else {
+      for (const [group, roles] of Object.entries(NAV_GROUP_ROLES)) {
+        if (roles.includes(role)) groups.add(group);
+      }
+    }
+  }
+
+  return Array.from(groups);
+}

@@ -135,27 +135,27 @@ See `CODE_ARCHITECTURE_GUIDE.md` for full folder and dependency rules.
 
 ## §5 Roles & Permissions Matrix (Locked 22 Feb 2026)
 
-Core roles (6 total – simplified from prior 14):  
-- Admin: Full system control (site provisioning, user management, feature flags, defaults, audit logs).  
-- Business Development Manager: Lead creation, Go/No-Go workflow.  
-- Estimating Coordinator: New Job Number Requests, Estimate Tracking Log, Project Turnover.  
-- Project Manager: Buyout Log & Contract Approvals, Schedule tasks, Constraints Log.  
-- Leadership: Global read/write access to ALL projects and ALL departments.  
-- Project Executive: Scoped access ONLY to assigned projects and assigned departments.  
+Core roles (6 total – config-driven via IRoleConfiguration, Phase 2 COMPLETE):
+- Admin: Full system control (site provisioning, user management, feature flags, defaults, audit logs).
+- Business Development Manager: Lead creation, Go/No-Go workflow.
+- Estimating Coordinator: New Job Number Requests, Estimate Tracking Log, Project Turnover.
+- Project Manager: Buyout Log & Contract Approvals, Schedule tasks, Constraints Log.
+- Leadership: Global read/write access to ALL projects and ALL departments.
+- Project Executive: Scoped access ONLY to assigned projects and assigned departments.
 
-Permission model: Configuration-driven (SharePoint list). Admin screen allows creation of new roles and granular default permissions with zero code changes. Entra ID group sync + full SOC2 audit logging on every change. Global vs. Scoped flag is first-class.  
+Permission model: Configuration-driven via IRoleConfiguration (SP list-backed). RoleConfigurationPanel in AdminPanel provides zero-code CRUD for roles and default permissions. LEGACY_ROLE_MAP normalizes all 14 prior RoleName values to 6 canonical roles. RoleGate enhanced with bidirectional normalization. SOC2 audit snapshots on every mutation.
 
-Cross-reference: §18 Roadmap (Phase 2), §21, §22, `.claude/plans/hbc-stabilization-and-suite-roadmap.md`, `.claude/SKILL-PermissionSystem.md`.
+Cross-reference: §18 Roadmap (Phase 2), §21, §22, `.claude/plans/hbc-stabilization-and-suite-roadmap.md`, `.claude/skills/permission-system/SKILL.md`.
 
 ---
 
 ## §7 Service Methods Status (Live)
 
-**Total methods**: 259
-**Implemented**: 259
-**Remaining stubs**: 0 — **DATA LAYER COMPLETE** (9 Phase 1 provisioning methods added, MockDataService fully implemented)
+**Total methods**: 266
+**Implemented**: 266
+**Remaining stubs**: 0 — **DATA LAYER COMPLETE** (9 Phase 1 provisioning + 7 Phase 2 role configuration methods added)
 
-Last major additions: Phase 1 Site Provisioning Engine (Feb 22) — getSiteProvisioningDefaults, updateSiteProvisioningDefaults, provisionSiteWithDefaults, syncEntraGroupsForProject, getProjectFeatureFlags, initializeProjectFeatureFlags, logAuditWithSnapshot, validateProvisioningInput, getProvisioningSummary.
+Last major additions: Phase 2 Role Configuration Engine (Feb 22) — getRoleConfigurations, getRoleConfiguration, createRoleConfiguration, updateRoleConfiguration, deleteRoleConfiguration, seedDefaultRoleConfigurations, resolveRolePermissions.
 
 ---
 
@@ -165,7 +165,7 @@ Last major additions: Phase 1 Site Provisioning Engine (Feb 22) — getSiteProvi
 - Phase 0: Blueprint Lockdown — **COMPLETE** (22 Feb 2026).
 - Phase 0.5: Pluggable Data Backend Preparation — **COMPLETE** (22 Feb 2026).
 - Phase 1: SharePoint Site Provisioning Engine — **COMPLETE** on `feature/hbc-suite-stabilization`. SiteProvisioningWizard + SiteDefaultsConfigPanel + EntraIdSyncService + SOC2 audit snapshots + 9 new IDataService methods (259 total) + 33 new Jest tests.
-- Phase 2: New Role & Permission System — **NEXT** (target 5 Apr 2026).
+- Phase 2: New Role & Permission System — **COMPLETE** on `feature/hbc-suite-stabilization`. IRoleConfiguration + LEGACY_ROLE_MAP + RoleGate normalization + RoleConfigurationPanel + 7 new IDataService methods (266 total) + 35 new Jest tests.
 - Phase 3: Navigation Overhaul + Router/Data Reconstruction — mid-Apr 2026.
 
 All prior TanStack migration and PillarTabBar content remains for reference; new direction overrides per §§21–22.
@@ -246,6 +246,7 @@ Merge to main only after owner + rollout team approval and full verification gat
 Cross-reference: `.claude/plans/hbc-stabilization-and-suite-roadmap.md`
 Phase 0.5 committed on `feature/hbc-suite-stabilization` — DataProviderFactory, adapter skeletons, 13 Jest tests.
 Phase 1 committed on `feature/hbc-suite-stabilization` — Site Provisioning Engine with EntraIdSyncService, SOC2 audit snapshots, wizard UI, 33 tests.
+Phase 2 committed on `feature/hbc-suite-stabilization` — Role Configuration Engine with IRoleConfiguration, LEGACY_ROLE_MAP, RoleGate normalization, RoleConfigurationPanel, 35 tests.
 
 ---
 
@@ -260,9 +261,13 @@ IDataService abstraction preserved (250 methods). Phase 0.5 **COMPLETE**:
 
 ---
 
-## §20 Application Suite Strategy (Locked 22 Feb 2026)
-
-Central Analytics Hub + Departmental Workspaces (Preconstruction, Operations, Leadership, Admin). Shared `@hbc/sp-services` and pluggable data layer.
+## §20 Application Suite Strategy (Locked 22 Feb 2026, updated with owner child-app outline)
+Central Analytics Hub + 4 departmental workspaces:
+- Preconstruction
+- Operations
+- Share Services
+- QA/QC & Safety (mobile-first)
+Top Fluent UI App Launcher grid + contextual Left Sidebar per workspace. Cross-ref master plan and §21.
 
 ---
 
