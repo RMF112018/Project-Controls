@@ -41,4 +41,12 @@ export { StandaloneSharePointDataService } from './StandaloneSharePointDataServi
 export { createDelegatingService } from './createDelegatingService';
 export type { IBinaryAttachment, IStandaloneRbacContext } from './StandaloneSharePointDataService';
 export type { IStandaloneGraphMembership, IStandaloneUserIdentity } from './standalone/resolveStandaloneRoles';
+export type { IProjectService } from './IProjectService';
+export { ProjectService } from './ProjectService';
+export type { IUserProfileService, INavProfile } from './IUserProfileService';
+export { UserProfileService } from './UserProfileService';
+export { MockProjectService } from './MockProjectService';
+export { MockUserProfileService } from './MockUserProfileService';
 export * from './mutations';
+export { NotImplementedError } from './NotImplementedError';
+export { createNotImplementedService } from './createNotImplementedService';

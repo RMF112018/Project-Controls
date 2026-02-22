@@ -1,5 +1,5 @@
 ---
-name: CLAUDE.md | description: Master blueprint, live status, and central coordinator for HBC Project Controls SPFx application | triggers: all | updated: 2026-02-21
+name: CLAUDE.md | description: Master blueprint, live status, and central coordinator for HBC Project Controls SPFx application | triggers: all | updated: 2026-02-22
 ---
 
 **CLAUDE.md — HBC Project Controls Blueprint (Lean Edition)**
@@ -9,17 +9,15 @@ This file must stay under 40,000 characters. Never allow it to grow large again.
 
 **Update Rules (Mandatory)**  
 - After every completed data service chunk → update §7 and §15  
-- After major architecture/pattern changes → update relevant sections (§4, §16)  
-- After adding, consolidating, or updating .claude/ instruction files or Skills → update §0, §0b, and §16  
-- After any Memory entry is added/updated → verify §0 Memory Usage Rule remains accurate  
-- Every 3–4 major updates or when approaching 35 k characters → prune non-essential history to CLAUDE_ARCHIVE.md  
+- After major architecture/pattern changes → update relevant sections (§4, §16, §21, §22)  
+- After adding, consolidating, or updating .claude/ instruction files, Skills, or Plans → update §0 and §16  
 - Always keep focused on: current status, active rules, verification gates, and live references.
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-21 — Agent Enhancement Package deployed (.claude/ files + 8 consolidated Skills + SKILLS_OVERVIEW.md). TanStack Router + Query + Table migration active. Sprint 3 performance hardening + Schedule v2.0 preparation. Claude Memories integrated as dynamic layer.
+**Last Updated:** 2026-02-22 — Owner-approved blueprint lockdown: 6-role model (Admin, Business Development Manager, Estimating Coordinator, Project Manager, Leadership (global), Project Executive (scoped)), Application Suite architecture (Analytics Hub + Departmental Workspaces), PillarTabBar deprecated and to be fully removed, full clean-slate Router & Data Layer reconstruction, pluggable data strategy (Azure SQL / Dataverse readiness), Stabilization & Multi-Generation Roadmap locked in `.claude/plans/hbc-stabilization-and-suite-roadmap.md`.
 
-**MANDATORY:** After any code change that affects the data layer, architecture, performance, UI/UX, testing, or security, update this file, verify against the current sprint gate, confirm relevant Skills were followed, and check project memory (`MEMORY.md`) before ending the session.
+**MANDATORY:** After any code change that affects the data layer, architecture, performance, UI/UX, testing, or security, update this file, verify against the current sprint gate, confirm relevant Skills and the master plan were followed, and check project memory before ending the session.
 
 ---
 
@@ -37,6 +35,12 @@ Before any analysis, code change, review, or response, consult the following fil
 7. **DATA_LAYER_GUIDE.md** – IDataService, caching, mocks, and PnP integration  
 8. **SECURITY_PERMISSIONS_GUIDE.md** – RBAC, RoleGate/FeatureGate, Feature flags, and audit rules  
 9. **SKILLS_OVERVIEW.md** – Index of all active Skills and triggers  
+10. **.claude/plans/hbc-stabilization-and-suite-roadmap.md** – Master development plan for all code agents
+11. **New Skills (consult most specific first):**  
+   - `.claude/skills/permission-system/SKILL.md`  
+   - `.claude/skills/clean-tanstack-integration/SKILL.md`  
+   - `.claude/skills/enterprise-navigation/SKILL.md`  
+   - `.claude/skills/pluggable-data-backends/SKILL.md`
 
 All files reside in the `.claude/` directory.  
 **Agent Rule:** Quote only the exact rule, checklist item, protocol, or section that applies. Never repeat full sections.
@@ -90,6 +94,7 @@ After consulting the core guides, automatically activate the most specific Skill
 - Charts: HbcEChart (lazy ECharts chunk)  
 - Testing: Jest + Playwright + Storybook 8.5 + Chromatic  
 - Bundle Governance: Hard fail on main via `scripts/verify-bundle-size.js`  
+- Data backends: Pluggable via `DataProviderFactory` (SharePoint default; Azure SQL / Dataverse skeletons in Phase 0.5).
 
 See `PERFORMANCE_OPTIMIZATION_GUIDE.md` §5 for detailed bundle and chunk rules.
 
@@ -103,22 +108,44 @@ See `PERFORMANCE_OPTIMIZATION_GUIDE.md` §5 for detailed bundle and chunk rules.
 - RoleGate + FeatureGate required on every sensitive surface  
 - Griffel `makeStyles` for all styling  
 
-**Router Stability Rule (Critical)**
+**Router Stability Rule (Critical)**  
 The TanStack Router instance MUST be created exactly once (via `useRef` in `router.tsx`) with static-only values (`queryClient`, `dataService`). Dynamic values (`currentUser`, `selectedProject`, `isFeatureEnabled`, `scope`) are injected via `React.useEffect` → `router.update()` + `RouterProvider context={}`. Adapter hooks (`useAppNavigate`, `useAppLocation`, `useAppParams`) return memoised/ref-stable values to prevent downstream re-render cascades. `ProjectPicker.handleSelect` MUST close the popover before firing `setSelectedProject` (via `React.startTransition` deferral). NEVER pass dynamic values to `createHbcTanStackRouter`. NEVER add dynamic values to any dependency array that would trigger router recreation.
 
 - NavigationSidebar: `NavItemComponent` MUST be `React.memo` with stable `onNavigate` prop (never pass `() => navigate(path)` — pass `navigate` directly and let child invoke with its `path` prop). Route preloading via `router.preloadRoute()` on hover.
 
-- **PillarTabBar must use `useAppNavigate`** — never `useTransitionNavigate`. The `useAppNavigate` hook returns a ref-stable callback (empty deps). `useTransitionNavigate` wraps it in `startTransition`, but TanStack Router's Transitioner already does this — double-wrapping causes concurrent scheduler deadlock. PillarTabBar is `React.memo`; `visibleTabs` memoized via `useMemo`; click handler uses `data-path` attribute for stable identity (no per-button closures).
+- **PillarTabBar must use `useAppNavigate`** — never `useTransitionNavigate`. The `useAppNavigate` hook returns a ref-stable callback (empty deps). PillarTabBar is `React.memo`; `visibleTabs` memoized via `useMemo`; click handler uses `data-path` attribute for stable identity (no per-button closures).
 - **Late-Router rendering audit rule**: When adding new providers, contexts, or hooks to AppShell.tsx, the backing files MUST exist and compile before the import is added. Never commit phantom imports. The route tree's RootLayout renders AppShell which wraps `<Outlet />` — any broken provider in AppShell kills the entire route outlet.
-- **useTransitionNavigate eliminated**: All consumers migrated to `useAppNavigate` (ref-stable, empty deps). `useTransitionNavigate.ts` deleted. TanStack Router's Transitioner handles startTransition internally — no component should double-wrap. If new navigation hooks are needed, extend `useAppNavigate`, never wrap it in startTransition.
+- **useTransitionNavigate eliminated**: All consumers migrated to `useAppNavigate` (ref-stable, empty deps). `useTransitionNavigate.ts` deleted. If new navigation hooks are needed, extend `useAppNavigate`, never wrap it in startTransition.
+- **TanStackAdapterBridge.stableNavigate MUST wrap in React.startTransition**: TanStack Router's Transitioner calls `setIsTransitioning(true)` synchronously BEFORE its internal `React.startTransition`. Without an outer `startTransition` from the caller, this forces a synchronous high-priority re-render mid-click-handler, causing `useSyncExternalStore` tearing with pending router `__store` mutations. This is NOT double-wrapping — nested `startTransition` calls are batched by React 18.
+- **useFullScreen.toggleFullScreen must have stable identity**: Uses `isFullScreenRef.current` (ref) instead of `isFullScreen` (state) in its closure, so deps are `[enterFullScreen, exitFullScreen]` only. Without this, every toggle changes `toggleFullScreen` identity → AppContext.value recreated → cascade through all consumers.
 
-**Navigation UX Architecture (uxEnhancedNavigationV1)**
+**Navigation UX Architecture (uxEnhancedNavigationV1)**  
 4-pillar tab bar (Hub|Precon|Ops|Admin) in AppShell header, driven by `PillarTabBar` component using `useAppNavigate` (ref-stable adapter). Sidebar filters NavGroups to active pillar. `EnhancedProjectPicker` replaces ProjectPicker behind feature flag — Fluent Popover with Recent/Favorites/All sections, fuzzy search, KPI hover preview via `ProjectPreviewPane`. `MacBarStatusPill` in header shows selected project health. `ShellHydrationOverlay` during project switch (max 400ms). `useNavProfile` hook manages localStorage favorites/recent. All gated by FeatureGate. No router creation changes.
 
 - **No keyed main container**: `<main>` does NOT use `key={selectedProject?.projectCode}` — removed to prevent thundering-herd remount. ShellHydrationOverlay + routeTransition CSS provide visual feedback.
 - **Region filter persistence**: useNavProfile manages favorites/recent in localStorage. EnhancedProjectPicker initializes from persisted values on open.
 
+- Navigation: PillarTabBar (uxEnhancedNavigationV1) **deprecated and will be fully removed**. Replaced by Option 1 Global App Shell + Top App Launcher + Contextual Left Sidebar (see §21).  
+- Router & Data Layer: Full clean-slate reconstruction per §22 (legacy TanStack migration patterns removed).  
+- New reference: All future work follows `.claude/plans/hbc-stabilization-and-suite-roadmap.md`.
+
 See `CODE_ARCHITECTURE_GUIDE.md` for full folder and dependency rules.
+
+---
+
+## §5 Roles & Permissions Matrix (Locked 22 Feb 2026)
+
+Core roles (6 total – simplified from prior 14):  
+- Admin: Full system control (site provisioning, user management, feature flags, defaults, audit logs).  
+- Business Development Manager: Lead creation, Go/No-Go workflow.  
+- Estimating Coordinator: New Job Number Requests, Estimate Tracking Log, Project Turnover.  
+- Project Manager: Buyout Log & Contract Approvals, Schedule tasks, Constraints Log.  
+- Leadership: Global read/write access to ALL projects and ALL departments.  
+- Project Executive: Scoped access ONLY to assigned projects and assigned departments.  
+
+Permission model: Configuration-driven (SharePoint list). Admin screen allows creation of new roles and granular default permissions with zero code changes. Entra ID group sync + full SOC2 audit logging on every change. Global vs. Scoped flag is first-class.  
+
+Cross-reference: §18 Roadmap (Phase 2), §21, §22, `.claude/plans/hbc-stabilization-and-suite-roadmap.md`, `.claude/SKILL-PermissionSystem.md`.
 
 ---
 
@@ -134,36 +161,20 @@ Last major additions: GitOps Provisioning (Feb 18) + Constraints/Permits/Schedul
 
 ## §15 Current Phase Status (Active)
 
-**Focus (Feb 21, 2026):** TanStack Router + Query + Table migration completion, performance hardening (Top-10 high-ROI optimizations), Schedule v2.0 preparation, integration testing, and deployment readiness.  
+**Focus (22 Feb 2026):** Stabilization & Modular Suite Transition.
+- Phase 0: Blueprint Lockdown — **COMPLETE** (22 Feb 2026).
+- Phase 0.5: Pluggable Data Backend Preparation — **COMPLETE** on `feature/hbc-suite-stabilization`. `DataProviderFactory` + `AzureSqlDataService` / `DataverseDataService` stubs live in `@hbc/sp-services`. 13 new Jest tests passing.
+- Phase 1: SharePoint Site Provisioning — **NEXT** (target 31 Mar 2026).
+- Phase 3: Navigation Overhaul + Router/Data Reconstruction — mid-Apr 2026.
 
-- TanStack Query Wave-1 complete on hub/buyout/compliance domains  
-- TanStack Router runtime full migration (hash history)  
-- TanStack Table Wave-2 complete (legacy DataTable removed for new surfaces)  
-- Consolidated 8 Skills deployed for performance and Schedule v2.0 domains  
-
-- Navigation UX enhancement complete: PillarTabBar, EnhancedProjectPicker, MacBarStatusPill, ContextKPIStrip, HbcCommandPalette unification (Phases 0-6, feature-flagged under `uxEnhancedNavigationV1`)
-- EnhancedProjectPicker polished: keyboard nav (arrow/Home/End/Escape), favorites reorder (up/down buttons), region/division quick-filters, enhanced context menu, Storybook coverage (6 variants)
-- MacBarStatusPill: live health pulse animation (Yellow/Red), click-to-navigate
-- ProjectPreviewPane: extended KPIs (billings, fee%, schedule variance), alert indicators, sync hint
-
-- Optimistic project switch: useSwitchProject hook with KPI enrichment, rollback, "Switching to..." skeleton in MacBarStatusPill + ShellHydrationOverlay label
-- Cmd+K unification: Projects section first in palette, favorites/recent priority ordering (25 commands max)
-
-- Rollout readiness: MobileBottomNav (4-pillar + project pill), region filter persistence, favorites stagger animation, full a11y pass (ARIA live regions), dev toggle for uxEnhancedNavigationV1 (mock mode only)
-- Storybook coverage: HbcCommandPalette WithProjectCommands, HbcInsightsPanel (existing). EnhancedProjectPicker and PillarTabBar stories not yet created.
-- PillarTabBar + AppShell freeze fix: (1) PillarTabBar switched to useAppNavigate + React.memo + useMemo visibleTabs + data-path click pattern. (2) AppShell.tsx phantom imports removed (MobileBottomNav, useSwitchProject, NavigationServicesContext, ProjectService/UserProfileService never created) — flattened to single component, useNavProfile replaces NavigationServicesContext, useAppNavigate replaces useTransitionNavigate.
-- Post-V2 QC & cleanup audit: useTransitionNavigate eliminated (3 consumers migrated to useAppNavigate, hook deleted). NavigationSidebar filter callbacks stabilized with useCallback. insightsItems useMemo switched from isFeatureEnabled function ref to primitive boolean. aria-live added to ShellHydrationOverlay (assertive) and MacBarStatusPill (polite). CLAUDE.md false Storybook claims corrected.
-
-**Next steps:** Full E2E coverage expansion and Sprint 3 gate enforcement.  
-
-See `FEATURE_DEVELOPMENT_BLUEPRINT.md` for new domain patterns, `PERFORMANCE_OPTIMIZATION_GUIDE.md` for optimization framework, and `SKILLS_OVERVIEW.md` for active Skills.
+All prior TanStack migration and PillarTabBar content remains for reference; new direction overrides per §§21–22.
 
 ---
 
 ## §16 Active Pitfalls & Rules (Lean – Reference Only)
 
 - **Router singleton — NEVER recreate:** `TanStackPilotRouter` uses `useRef` to create the router once. Dynamic values injected via `router.update()` + `RouterProvider context={}`. Adapter hooks (`useAppNavigate`, `useAppLocation`, `useAppParams`) return memoised/ref-stable values. `ProjectPicker.handleSelect` closes popover before `startTransition(() => onSelect(project))`. Adding dynamic values to any dep array that creates the router will cause full-app freeze.
-- **TanStackAdapterBridge:** `useMemo` for `adapterValue` must depend ONLY on primitive/stable values (`pathname`, `searchStr`, `params`). NEVER depend on `state.matches` — it changes reference on every router state transition and causes full-app re-render cascades via AppShell. The `navigate` function must be ref-backed (`useCallback` + `useRef`) for identity stability.
+- **TanStackAdapterBridge:** `useMemo` for `adapterValue` must depend ONLY on primitive/stable values (`pathname`, `searchStr`, `params`). NEVER depend on `state.matches` — it changes reference on every router state transition and causes full-app re-render cascades via AppShell. The `navigate` function must be ref-backed (`useCallback` + `useRef`) for identity stability. `stableNavigate` MUST wrap `navigateRef.current()` in `React.startTransition()` — Transitioner's synchronous `setIsTransitioning(true)` causes store tearing without it.
 - Always use `columnMappings.ts` — never hard-code column names.  
 - Call `this.logAudit()` on every mutation.  
 - Use `_getProjectWeb()` for project-site lists.  
@@ -177,7 +188,8 @@ See `FEATURE_DEVELOPMENT_BLUEPRINT.md` for new domain patterns, `PERFORMANCE_OPT
 - Full Skills index and triggers → `SKILLS_OVERVIEW.md`  
 - Evolving decisions and session facts → project memory (`MEMORY.md`)  
 
-- **useTransitionNavigate is DELETED — never recreate**: All navigation must use `useAppNavigate` (ref-stable, empty deps). TanStack Router's Transitioner handles startTransition internally. Double-wrapping causes concurrent scheduler deadlock. If new navigation patterns are needed, extend useAppNavigate or use router.navigate() directly.
+- **useTransitionNavigate is DELETED — never recreate**: All navigation must use `useAppNavigate` (ref-stable, empty deps). The `startTransition` wrapper lives in `TanStackAdapterBridge.stableNavigate` — it is required because Transitioner calls `setIsTransitioning(true)` synchronously before its own `startTransition`. This is NOT double-wrapping; React 18 batches nested transitions. Never remove this wrapper.
+- **useFullScreen.toggleFullScreen — ref-stable pattern**: Uses `isFullScreenRef.current` instead of `isFullScreen` closure. Deps are `[enterFullScreen, exitFullScreen]` only. This prevents `toggleFullScreen` identity change on every toggle, which would cascade through AppContext.value → all consumers.
 - **PillarTabBar stability pattern**: `React.memo`; `visibleTabs` memoized via `useMemo([isPillarVisible])`; click handler uses `data-path` + single `useCallback` (no per-button closures). Tab bar reads `location.pathname` via `useAppLocation()` for active state.
 - **EnhancedProjectPicker uses Fluent Popover** (portal-based) — never Dialog (would steal focus from sidebar context). Popover `onOpenChange` must close before `startTransition(() => onSelect(project))` to prevent click-outside race.
 - **EnhancedProjectPicker keyboard nav**: Uses `useArrowNavigationGroup({ axis: 'vertical', circular: true })` from Fluent v9 tabster. Home/End jump to first/last. Escape closes popover.
@@ -201,8 +213,71 @@ See `FEATURE_DEVELOPMENT_BLUEPRINT.md` for new domain patterns, `PERFORMANCE_OPT
 - **RouterProvider context is memoized**: `useMemo` on the context object prevents RouterProvider from calling `router.update()` on every render. No separate useEffect for router.update() — RouterProvider handles it during render.
 - **envConfig useEffect uses boolean dep**: `permissionEngineEnabled` (primitive) instead of `isFeatureEnabled` (function ref) prevents unnecessary re-fetches.
 
+- PillarTabBar: Fully deprecated — remove all references during Phase 3.  
+- TanStack migration wiring: Legacy adapters and complex patterns declared obsolete per §22. Use clean declarative loaders only.  
+- All changes must reference `.claude/plans/hbc-stabilization-and-suite-roadmap.md`.
+
 **Keep CLAUDE.md lean** — archive aggressively to CLAUDE_ARCHIVE.md.
 
 ---
+
+## §17 Stakeholder Requirements & Vision (Locked 22 Feb 2026)
+
+Core functionality, data/backend, performance, UX/roles, future vision, and constraints as captured in owner interview (22 Feb 2026). SharePoint provisioning highest priority (by 31 Mar 2026). Gen 1–3 path locked. MVP <2 months, full scope + Procore/BambooHR <6 months.
+
+---
+
+## §18 Stabilization & Multi-Generation Roadmap (Locked 22 Feb 2026)
+
+Phase 0: Blueprint Lockdown (complete).  
+Phase 0.5: Pluggable Data Prep (parallel, 3–5 days).  
+Phase 1: SharePoint Site Provisioning (by 31 Mar 2026).  
+Phase 2: New Role & Permission System (by 5 Apr 2026).  
+Phase 3: Navigation Overhaul + Clean Router & Data Layer Reconstruction + MVP (mid-Apr 2026).  
+Phase 4: Full Features + Integrations (end-Aug 2026).  
+
+Master reference: `.claude/plans/hbc-stabilization-and-suite-roadmap.md`
+
+§18.1 Branching Strategy (Locked 22 Feb 2026)
+All Stabilization & Suite Transition work (Phases 0–4) occurs on the dedicated branch `feature/hbc-suite-stabilization`.  
+Main branch remains stable for hotfixes only.  
+Merge to main only after owner + rollout team approval and full verification gates.
+Cross-reference: `.claude/plans/hbc-stabilization-and-suite-roadmap.md`
+Phase 0.5 committed on `feature/hbc-suite-stabilization` — DataProviderFactory, adapter skeletons, 13 Jest tests.
+
+---
+
+## §19 Data Migration & Pluggable Backend Strategy (Locked 22 Feb 2026)
+
+IDataService abstraction preserved (250 methods). Phase 0.5 **COMPLETE**:
+- `DataProviderFactory` (`packages/hbc-sp-services/src/factory/`) reads `VITE_DATA_SERVICE_BACKEND` env var (sharepoint | azuresql | dataverse), defaults to sharepoint.
+- `AzureSqlDataService` + `DataverseDataService` skeletons (`packages/hbc-sp-services/src/adapters/`) use Proxy-based `createNotImplementedService` — throws `NotImplementedError` for all 250 methods.
+- `NotImplementedError` custom error with backend + method metadata.
+- Factory is additive — existing direct instantiation unchanged. Factory wiring into UI deferred to Phase 3.
+- Enables Gen 2 (Azure SQL desktop) and Gen 3 (Dataverse mobile) without UI/business logic refactoring.
+
+---
+
+## §20 Application Suite Strategy (Locked 22 Feb 2026)
+
+Central Analytics Hub + Departmental Workspaces (Preconstruction, Operations, Leadership, Admin). Shared `@hbc/sp-services` and pluggable data layer.
+
+---
+
+## §21 Navigation & Suite UX Architecture (Locked 22 Feb 2026)
+
+PillarTabBar deprecated and will be fully removed. New: Global App Shell + Top Fluent UI App Launcher (grid) + Contextual Left Sidebar (Option 1). Mobile drawer + bottom nav.
+
+---
+
+## §22 Router & Data Layer Reconstruction (Locked 22 Feb 2026 – Critical)
+
+Full clean-slate rebuild of TanStack Router wiring and data consumption. Legacy migration patterns removed. Declarative loaders and stable Context providers only.
+
+---
+
+## §23 Enterprise App Shell Patterns (Locked 22 Feb 2026)
+
+Reference architecture for Hub + Workspaces. All future development follows these patterns. See new Skills and master plan.
 
 **For complete history, full method tables, and detailed past phases → see CLAUDE_ARCHIVE.md**

@@ -25,3 +25,9 @@ export * from './utils/LazyExportUtils';
 
 // Mock data — for dev/test use
 export { default as MOCK_USERS } from './mock/users.json';
+
+// Adapters — pluggable backend skeletons (Phase 0.5)
+export * from './adapters';
+
+// Factory — centralized backend selection
+export * from './factory';
