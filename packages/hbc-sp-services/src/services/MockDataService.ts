@@ -165,6 +165,11 @@ import { IPerformanceLog, IPerformanceQueryOptions, IPerformanceSummary } from '
 import { IHelpGuide, ISupportConfig } from '../models/IHelpGuide';
 import mockHelpGuides from '../mock/helpGuides.json';
 import { DEFAULT_PREREQUISITES, DEFAULT_DISCUSSION_ITEMS, DEFAULT_EXHIBITS, DEFAULT_SIGNATURES, TURNOVER_SIGNATURE_AFFIDAVIT } from '../utils/turnoverAgendaTemplate';
+import { ISiteProvisioningDefaults, IProjectFeatureFlagDefault, IRoleGroupMapping } from '../models/ISiteProvisioningDefaults';
+import { IEntraGroupSyncResult, IEntraGroupInfo, IEntraMembershipAction } from '../models/IEntraGroupSyncResult';
+import { IAuditSnapshot } from '../models/IAuditSnapshot';
+import { IProvisioningInput } from '../models/IProvisioningLog';
+import { IProvisioningValidationResult, IProvisioningSummary } from './IDataService';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
 
@@ -217,7 +222,7 @@ const REQUIRED_PROMPT6_FEATURE_FLAGS: ReadonlyArray<Omit<IFeatureFlag, 'id'>> = 
   {
     FeatureName: 'uxEnhancedNavigationV1',
     DisplayName: 'Enhanced Navigation UX v1',
-    Enabled: false,
+    Enabled: true,
     EnabledForRoles: undefined,
     TargetDate: undefined,
     Notes: 'Pillar tabs, enhanced project picker, Mac bar status pill, command palette unification',
@@ -254,6 +259,32 @@ export class MockDataService implements IDataService {
   private notifications: INotification[];
   private auditLog: IAuditEntry[];
   private provisioningLogs: IProvisioningLog[];
+  private siteProvisioningDefaults: ISiteProvisioningDefaults = {
+    id: 1,
+    hubSiteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/hub',
+    defaultTemplateId: 'standard-project-v1',
+    autoAssignTeamFromMappings: true,
+    defaultProjectFeatureFlags: [
+      { featureName: 'ScheduleModule', enabled: true },
+      { featureName: 'ProjectStartup', enabled: true },
+      { featureName: 'ProjectManagementPlan', enabled: true },
+    ],
+    useGitOpsProvisioning: false,
+    defaultOwnerPermissionLevel: 'Full Control',
+    defaultMemberPermissionLevel: 'Edit',
+    defaultVisitorPermissionLevel: 'Read',
+    roleToGroupMappings: [
+      { roleName: 'Executive Leadership', spGroupType: 'Owners' },
+      { roleName: 'SharePoint Admin', spGroupType: 'Owners' },
+      { roleName: 'Operations Team', spGroupType: 'Members' },
+      { roleName: 'BD Representative', spGroupType: 'Members' },
+      { roleName: 'Estimating Coordinator', spGroupType: 'Members' },
+      { roleName: 'Accounting Manager', spGroupType: 'Visitors' },
+    ],
+    lastModifiedBy: 'System',
+    lastModifiedDate: new Date().toISOString(),
+  };
+  private projectFeatureFlagsMap: Map<string, IFeatureFlag[]> = new Map();
   private teamMembers: ITeamMember[];
   private deliverables: IDeliverable[];
   private interviewPreps: IInterviewPrep[];
@@ -2341,6 +2372,205 @@ export class MockDataService implements IDataService {
     const log: ITemplateManifestLog = { id, ...entry };
     console.log('[Mock] logTemplateSyncPR', log);
     return log;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Site Provisioning Defaults (Phase 1)
+  // ---------------------------------------------------------------------------
+
+  public async getSiteProvisioningDefaults(): Promise<ISiteProvisioningDefaults> {
+    await delay();
+    return JSON.parse(JSON.stringify(this.siteProvisioningDefaults)) as ISiteProvisioningDefaults;
+  }
+
+  public async updateSiteProvisioningDefaults(data: Partial<ISiteProvisioningDefaults>): Promise<ISiteProvisioningDefaults> {
+    await delay();
+    this.siteProvisioningDefaults = { ...this.siteProvisioningDefaults, ...data, lastModifiedDate: new Date().toISOString() };
+    this.logAudit({
+      Action: AuditAction.SiteDefaultsUpdated,
+      EntityType: EntityType.SiteDefaults,
+      EntityId: String(this.siteProvisioningDefaults.id),
+      Details: `Site provisioning defaults updated: ${Object.keys(data).join(', ')}`,
+    });
+    return JSON.parse(JSON.stringify(this.siteProvisioningDefaults)) as ISiteProvisioningDefaults;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Enhanced Provisioning with Defaults
+  // ---------------------------------------------------------------------------
+
+  public async provisionSiteWithDefaults(input: IProvisioningInput, defaults: ISiteProvisioningDefaults): Promise<IProvisioningLog> {
+    await delay();
+    const log = await this.triggerProvisioning(
+      input.leadId,
+      input.projectCode,
+      input.projectName,
+      input.requestedBy,
+      { division: input.division, region: input.region, clientName: input.clientName }
+    );
+    // Initialize project-scoped feature flags from defaults
+    await this.initializeProjectFeatureFlags(input.projectCode, defaults.defaultProjectFeatureFlags);
+    console.log(`[Mock] provisionSiteWithDefaults → projectCode=${input.projectCode}, templateId=${defaults.defaultTemplateId}`);
+    return log;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Entra ID Group Sync
+  // ---------------------------------------------------------------------------
+
+  public async syncEntraGroupsForProject(
+    projectCode: string,
+    siteUrl: string,
+    teamAssignments: IProjectTeamAssignment[],
+    roleGroupMappings: IRoleGroupMapping[]
+  ): Promise<IEntraGroupSyncResult> {
+    await delay();
+
+    // Create mock Entra groups — one per group type
+    const groupTypes: Array<'Owners' | 'Members' | 'Visitors'> = ['Owners', 'Members', 'Visitors'];
+    const groupsCreated: IEntraGroupInfo[] = groupTypes.map((groupType, idx) => ({
+      groupId: `entra-${projectCode}-${groupType.toLowerCase()}-${idx + 1}`,
+      displayName: `${projectCode} ${groupType}`,
+      groupType,
+      mailNickname: `${projectCode.toLowerCase()}-${groupType.toLowerCase()}`,
+    }));
+
+    // Map team assignments to group memberships via role→group mappings
+    const membersAdded: IEntraMembershipAction[] = teamAssignments.map(assignment => {
+      const mapping = roleGroupMappings.find(m => m.roleName === assignment.assignedRole);
+      const targetGroup = groupsCreated.find(g => g.groupType === (mapping?.spGroupType ?? 'Members'));
+      return {
+        groupId: targetGroup?.groupId ?? groupsCreated[1].groupId,
+        userId: `user-${assignment.id}`,
+        userEmail: assignment.userEmail,
+        roleName: assignment.assignedRole,
+        success: true,
+      };
+    });
+
+    const result: IEntraGroupSyncResult = {
+      projectCode,
+      groupsCreated,
+      membersAdded,
+      errors: [],
+      timestamp: new Date().toISOString(),
+    };
+
+    this.logAudit({
+      Action: AuditAction.EntraGroupSyncCompleted,
+      EntityType: EntityType.EntraGroup,
+      EntityId: projectCode,
+      Details: `Entra group sync completed for ${siteUrl}: ${groupsCreated.length} groups, ${membersAdded.length} members`,
+    });
+
+    console.log(`[Mock] syncEntraGroupsForProject → projectCode=${projectCode}, groups=${groupsCreated.length}, members=${membersAdded.length}`);
+    return result;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Project-Scoped Feature Flags
+  // ---------------------------------------------------------------------------
+
+  public async getProjectFeatureFlags(projectCode: string): Promise<IFeatureFlag[]> {
+    await delay();
+    const flags = this.projectFeatureFlagsMap.get(projectCode);
+    return flags ? JSON.parse(JSON.stringify(flags)) as IFeatureFlag[] : [];
+  }
+
+  public async initializeProjectFeatureFlags(projectCode: string, defaults: IProjectFeatureFlagDefault[]): Promise<IFeatureFlag[]> {
+    await delay();
+    const flags: IFeatureFlag[] = defaults.map(d => ({
+      id: this.getNextId(),
+      FeatureName: d.featureName,
+      DisplayName: d.featureName.replace(/([A-Z])/g, ' $1').trim(),
+      Enabled: d.enabled,
+      Notes: `Auto-initialized for project ${projectCode}`,
+      Category: 'Project Execution' as const,
+    }));
+    this.projectFeatureFlagsMap.set(projectCode, flags);
+    this.logAudit({
+      Action: AuditAction.ProjectFeatureFlagsInitialized,
+      EntityType: EntityType.Config,
+      EntityId: projectCode,
+      Details: `Initialized ${flags.length} feature flags for project ${projectCode}: ${flags.map(f => f.FeatureName).join(', ')}`,
+    });
+    return JSON.parse(JSON.stringify(flags)) as IFeatureFlag[];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Enhanced Audit with SOC2 Snapshots
+  // ---------------------------------------------------------------------------
+
+  public async logAuditWithSnapshot(entry: Partial<IAuditEntry>, snapshot: IAuditSnapshot): Promise<void> {
+    await delay();
+    await this.logAudit({
+      ...entry,
+      Details: JSON.stringify(snapshot),
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Provisioning Validation & Summary
+  // ---------------------------------------------------------------------------
+
+  public async validateProvisioningInput(input: IProvisioningInput): Promise<IProvisioningValidationResult> {
+    await delay();
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    if (!input.projectCode) errors.push('Project code is required');
+    if (!input.projectName) errors.push('Project name is required');
+    if (!input.leadId) errors.push('Lead ID is required');
+    if (!input.requestedBy) errors.push('Requested by is required');
+    if (!input.division) errors.push('Division is required');
+    if (!input.region) warnings.push('Region is not specified — will use default');
+
+    // Check for duplicate / already-active provisioning
+    const existing = this.provisioningLogs.find(l => l.projectCode === input.projectCode);
+    if (existing) {
+      if (existing.status === ProvisioningStatus.InProgress || existing.status === ProvisioningStatus.Queued) {
+        errors.push(`Provisioning already in progress for project ${input.projectCode} (status: ${existing.status})`);
+      } else if (existing.status === ProvisioningStatus.Completed) {
+        warnings.push(`Project ${input.projectCode} has already been provisioned — re-provisioning will overwrite`);
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+    };
+  }
+
+  public async getProvisioningSummary(): Promise<IProvisioningSummary> {
+    await delay();
+    const logs = this.provisioningLogs;
+    const completed = logs.filter(l => l.status === ProvisioningStatus.Completed);
+    const inProgress = logs.filter(l => l.status === ProvisioningStatus.InProgress || l.status === ProvisioningStatus.Queued);
+    const failed = logs.filter(l => l.status === ProvisioningStatus.Failed);
+
+    // Calculate average duration for completed entries that have completedAt
+    const completedWithDuration = completed.filter(l => l.completedAt);
+    const avgDuration = completedWithDuration.length > 0
+      ? completedWithDuration.reduce((sum, l) => {
+          const start = new Date(l.requestedAt).getTime();
+          const end = new Date(l.completedAt!).getTime();
+          return sum + (end - start);
+        }, 0) / completedWithDuration.length
+      : 0;
+
+    // Find latest provisioned timestamp
+    const sortedCompleted = completed
+      .filter(l => l.completedAt)
+      .sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime());
+
+    return {
+      totalProvisioned: completed.length,
+      inProgress: inProgress.length,
+      failed: failed.length,
+      averageDurationMs: Math.round(avgDuration),
+      lastProvisionedAt: sortedCompleted.length > 0 ? sortedCompleted[0].completedAt! : null,
+    };
   }
 
   // ---------------------------------------------------------------------------

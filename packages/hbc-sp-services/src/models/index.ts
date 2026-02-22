@@ -52,3 +52,7 @@ export * from './IConstraintLog';
 export * from './IPermit';
 export * from './ITelemetryEvent';
 export * from './ITemplateManifest';
+export * from './IProjectKpiSnapshot';
+export * from './ISiteProvisioningDefaults';
+export * from './IEntraGroupSyncResult';
+export * from './IAuditSnapshot';

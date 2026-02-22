@@ -6,7 +6,9 @@ import {
   ICursorPageResult,
   ICursorToken,
   IActiveProjectsQueryOptions,
-  IActiveProjectsFilter
+  IActiveProjectsFilter,
+  IProvisioningValidationResult,
+  IProvisioningSummary
 } from './IDataService';
 import { ILead, ILeadFormData } from '../models/ILead';
 import { IGoNoGoScorecard, IScorecardApprovalCycle, IScorecardApprovalStep, IScorecardVersion } from '../models/IGoNoGoScorecard';
@@ -16,7 +18,10 @@ import { IFeatureFlag } from '../models/IFeatureFlag';
 import { IMeeting, ICalendarAvailability } from '../models/IMeeting';
 import { INotification } from '../models/INotification';
 import { IAuditEntry } from '../models/IAuditEntry';
-import { IProvisioningLog, IFieldDefinition } from '../models/IProvisioningLog';
+import { IAuditSnapshot } from '../models/IAuditSnapshot';
+import { IProvisioningLog, IFieldDefinition, IProvisioningInput } from '../models/IProvisioningLog';
+import { ISiteProvisioningDefaults, IProjectFeatureFlagDefault, IRoleGroupMapping } from '../models/ISiteProvisioningDefaults';
+import { IEntraGroupSyncResult } from '../models/IEntraGroupSyncResult';
 import { IStartupChecklistItem, IChecklistActivityEntry } from '../models/IStartupChecklist';
 import { IInternalMatrixTask, ITeamRoleAssignment, IOwnerContractArticle, ISubContractClause } from '../models/IResponsibilityMatrix';
 import { IMarketingProjectRecord } from '../models/IMarketingProjectRecord';
@@ -9390,5 +9395,44 @@ export class SharePointDataService implements IDataService {
       ahj: item[col.ahj] as string || '',
       comments: item[col.comments] as string || undefined,
     };
+  }
+
+  // ── Phase 1: Site Provisioning Engine stubs (real SP implementation in later sub-phase) ──
+
+  async getSiteProvisioningDefaults(): Promise<ISiteProvisioningDefaults> {
+    throw new Error('SharePointDataService.getSiteProvisioningDefaults() not yet implemented — Phase 1 stub');
+  }
+
+  async updateSiteProvisioningDefaults(_data: Partial<ISiteProvisioningDefaults>): Promise<ISiteProvisioningDefaults> {
+    throw new Error('SharePointDataService.updateSiteProvisioningDefaults() not yet implemented — Phase 1 stub');
+  }
+
+  async provisionSiteWithDefaults(_input: IProvisioningInput, _defaults: ISiteProvisioningDefaults): Promise<IProvisioningLog> {
+    throw new Error('SharePointDataService.provisionSiteWithDefaults() not yet implemented — Phase 1 stub');
+  }
+
+  async syncEntraGroupsForProject(_projectCode: string, _siteUrl: string, _teamAssignments: IProjectTeamAssignment[], _roleGroupMappings: IRoleGroupMapping[]): Promise<IEntraGroupSyncResult> {
+    throw new Error('SharePointDataService.syncEntraGroupsForProject() not yet implemented — Phase 1 stub');
+  }
+
+  async getProjectFeatureFlags(_projectCode: string): Promise<IFeatureFlag[]> {
+    throw new Error('SharePointDataService.getProjectFeatureFlags() not yet implemented — Phase 1 stub');
+  }
+
+  async initializeProjectFeatureFlags(_projectCode: string, _defaults: IProjectFeatureFlagDefault[]): Promise<IFeatureFlag[]> {
+    throw new Error('SharePointDataService.initializeProjectFeatureFlags() not yet implemented — Phase 1 stub');
+  }
+
+  async logAuditWithSnapshot(entry: Partial<IAuditEntry>, snapshot: IAuditSnapshot): Promise<void> {
+    // Serialize snapshot into Details field and delegate to logAudit
+    await this.logAudit({ ...entry, Details: JSON.stringify(snapshot) } as IAuditEntry);
+  }
+
+  async validateProvisioningInput(_input: IProvisioningInput): Promise<IProvisioningValidationResult> {
+    throw new Error('SharePointDataService.validateProvisioningInput() not yet implemented — Phase 1 stub');
+  }
+
+  async getProvisioningSummary(): Promise<IProvisioningSummary> {
+    throw new Error('SharePointDataService.getProvisioningSummary() not yet implemented — Phase 1 stub');
   }
 }

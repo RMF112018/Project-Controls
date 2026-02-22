@@ -36,6 +36,19 @@ export interface IProvisioningLog {
   clientName?: string;
 }
 
+// --- Provisioning input ---
+
+export interface IProvisioningInput {
+  leadId: number;
+  projectCode: string;
+  projectName: string;
+  clientName: string;
+  division: string;
+  region: string;
+  requestedBy: string;
+  siteNameOverride?: string;
+}
+
 // --- Provisioning schema types ---
 
 export interface IProjectListSchema {

@@ -151,20 +151,21 @@ Cross-reference: §18 Roadmap (Phase 2), §21, §22, `.claude/plans/hbc-stabiliz
 
 ## §7 Service Methods Status (Live)
 
-**Total methods**: 250  
-**Implemented**: 250  
-**Remaining stubs**: 0 — **DATA LAYER COMPLETE**
+**Total methods**: 259
+**Implemented**: 259
+**Remaining stubs**: 0 — **DATA LAYER COMPLETE** (9 Phase 1 provisioning methods added, MockDataService fully implemented)
 
-Last major additions: GitOps Provisioning (Feb 18) + Constraints/Permits/Schedule modules.
+Last major additions: Phase 1 Site Provisioning Engine (Feb 22) — getSiteProvisioningDefaults, updateSiteProvisioningDefaults, provisionSiteWithDefaults, syncEntraGroupsForProject, getProjectFeatureFlags, initializeProjectFeatureFlags, logAuditWithSnapshot, validateProvisioningInput, getProvisioningSummary.
 
 ---
 
 ## §15 Current Phase Status (Active)
 
-**Focus (22 Feb 2026):** Stabilization & Modular Suite Transition.
+**Focus (Feb 2026):** Stabilization & Modular Suite Transition.
 - Phase 0: Blueprint Lockdown — **COMPLETE** (22 Feb 2026).
-- Phase 0.5: Pluggable Data Backend Preparation — **COMPLETE** on `feature/hbc-suite-stabilization`. `DataProviderFactory` + `AzureSqlDataService` / `DataverseDataService` stubs live in `@hbc/sp-services`. 13 new Jest tests passing.
-- Phase 1: SharePoint Site Provisioning — **NEXT** (target 31 Mar 2026).
+- Phase 0.5: Pluggable Data Backend Preparation — **COMPLETE** (22 Feb 2026).
+- Phase 1: SharePoint Site Provisioning Engine — **COMPLETE** on `feature/hbc-suite-stabilization`. SiteProvisioningWizard + SiteDefaultsConfigPanel + EntraIdSyncService + SOC2 audit snapshots + 9 new IDataService methods (259 total) + 33 new Jest tests.
+- Phase 2: New Role & Permission System — **NEXT** (target 5 Apr 2026).
 - Phase 3: Navigation Overhaul + Router/Data Reconstruction — mid-Apr 2026.
 
 All prior TanStack migration and PillarTabBar content remains for reference; new direction overrides per §§21–22.
@@ -244,6 +245,7 @@ Main branch remains stable for hotfixes only.
 Merge to main only after owner + rollout team approval and full verification gates.
 Cross-reference: `.claude/plans/hbc-stabilization-and-suite-roadmap.md`
 Phase 0.5 committed on `feature/hbc-suite-stabilization` — DataProviderFactory, adapter skeletons, 13 Jest tests.
+Phase 1 committed on `feature/hbc-suite-stabilization` — Site Provisioning Engine with EntraIdSyncService, SOC2 audit snapshots, wizard UI, 33 tests.
 
 ---
 

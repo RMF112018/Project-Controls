@@ -50,3 +50,5 @@ export { MockUserProfileService } from './MockUserProfileService';
 export * from './mutations';
 export { NotImplementedError } from './NotImplementedError';
 export { createNotImplementedService } from './createNotImplementedService';
+export { EntraIdSyncService } from './EntraIdSyncService';
+export type { IProvisioningValidationResult, IProvisioningSummary } from './IDataService';

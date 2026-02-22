@@ -225,6 +225,12 @@ export enum AuditAction {
   TemplateSiteConfigUpdated = 'Template.SiteConfigUpdated',
   GitOpsProvisioningEnabled = 'Template.GitOpsEnabled',
   GitOpsProvisioningDisabled= 'Template.GitOpsDisabled',
+  SiteDefaultsUpdated = 'Site.DefaultsUpdated',
+  EntraGroupCreated = 'Entra.GroupCreated',
+  EntraGroupMemberSynced = 'Entra.GroupMemberSynced',
+  EntraGroupSyncCompleted = 'Entra.GroupSyncCompleted',
+  EntraGroupSyncFailed = 'Entra.GroupSyncFailed',
+  ProjectFeatureFlagsInitialized = 'Project.FeatureFlagsInitialized',
 }
 
 export enum EntityType {
@@ -264,6 +270,8 @@ export enum EntityType {
   Dashboard = 'Dashboard',
   TemplateRegistry   = 'TemplateRegistry',
   TemplateSiteConfig = 'TemplateSiteConfig',
+  SiteDefaults = 'SiteDefaults',
+  EntraGroup = 'EntraGroup',
 }
 
 export enum DeliverableStatus {

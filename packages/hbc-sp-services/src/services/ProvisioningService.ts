@@ -4,20 +4,14 @@ import { PowerAutomateService } from './PowerAutomateService';
 import { OfflineQueueService } from './OfflineQueueService';
 import { IHubNavigationService } from './HubNavigationService';
 import { GitOpsProvisioningService } from './GitOpsProvisioningService';
-import { IProvisioningLog, ProvisioningStatus, PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS, NotificationEvent, AuditAction, EntityType } from '../models';
+import { IProvisioningLog, IProvisioningInput, ProvisioningStatus, PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS, NotificationEvent, AuditAction, EntityType } from '../models';
+import type { ISiteProvisioningDefaults } from '../models/ISiteProvisioningDefaults';
 import { HubNavLinkStatus } from '../models/IProvisioningLog';
 import { getBuyoutLogSchema, getActiveProjectsPortfolioSchema } from '../utils/projectListSchemas';
+import type { EntraIdSyncService } from './EntraIdSyncService';
 
-export interface IProvisioningInput {
-  leadId: number;
-  projectCode: string;
-  projectName: string;
-  clientName: string;
-  division: string;
-  region: string;
-  requestedBy: string;
-  siteNameOverride?: string;
-}
+// Re-export for backward compatibility (moved to models/IProvisioningLog.ts)
+export type { IProvisioningInput } from '../models';
 
 const STEP_DELAY_MS = 500;
 const MAX_RETRIES = 3;
@@ -34,6 +28,8 @@ export class ProvisioningService {
   private usePowerAutomate: boolean;
   private useRealOps: boolean;
   private useGitOpsProvisioning: boolean;
+  private entraIdSyncService?: EntraIdSyncService;
+  private siteDefaults?: ISiteProvisioningDefaults;
 
   constructor(
     dataService: IDataService,
@@ -42,7 +38,8 @@ export class ProvisioningService {
     offlineQueueService?: OfflineQueueService,
     usePowerAutomate?: boolean,
     useRealOps?: boolean,
-    useGitOpsProvisioning?: boolean
+    useGitOpsProvisioning?: boolean,
+    entraIdSyncService?: EntraIdSyncService
   ) {
     this.dataService = dataService;
     this.notificationService = new NotificationService(dataService);
@@ -52,6 +49,7 @@ export class ProvisioningService {
     this.usePowerAutomate = usePowerAutomate ?? false;
     this.useRealOps = useRealOps ?? false;
     this.useGitOpsProvisioning = useGitOpsProvisioning ?? false;
+    this.entraIdSyncService = entraIdSyncService;
   }
 
   /**
@@ -158,6 +156,22 @@ export class ProvisioningService {
   }
 
   /**
+   * Provision with site defaults: validates input, stores defaults for use
+   * by Step 4 (Entra sync) and post-completion (feature flag init).
+   */
+  public async provisionSiteWithDefaults(
+    input: IProvisioningInput,
+    defaults: ISiteProvisioningDefaults
+  ): Promise<IProvisioningLog> {
+    const validation = await this.dataService.validateProvisioningInput(input);
+    if (!validation.isValid) {
+      throw new Error(`Provisioning validation failed: ${validation.errors.join('; ')}`);
+    }
+    this.siteDefaults = defaults;
+    return this.provisionSite(input);
+  }
+
+  /**
    * Run through provisioning steps sequentially.
    * Updates the provisioning log at each step.
    */
@@ -219,6 +233,26 @@ export class ProvisioningService {
         User: input.requestedBy,
         Details: `Site provisioning completed for "${input.projectName}" (${projectCode}). Site URL: ${siteUrl}`,
       }).catch(console.error);
+
+      // Initialize project feature flags from defaults (non-blocking)
+      if (this.siteDefaults?.defaultProjectFeatureFlags?.length) {
+        try {
+          await this.dataService.initializeProjectFeatureFlags(
+            projectCode, this.siteDefaults.defaultProjectFeatureFlags
+          );
+          this.dataService.logAudit({
+            Action: AuditAction.ProjectFeatureFlagsInitialized,
+            EntityType: EntityType.Config,
+            EntityId: projectCode,
+            ProjectCode: projectCode,
+            User: input.requestedBy,
+            Details: `Initialized ${this.siteDefaults.defaultProjectFeatureFlags.length} feature flags`,
+          }).catch(console.error);
+        } catch (err) {
+          console.warn(`[Provisioning] Feature flag init failed for ${projectCode}:`, err);
+        }
+      }
+
       this.addHubNavLink(projectCode, input.projectName, siteUrl, input.requestedBy)
         .catch(console.error);
     }
@@ -244,7 +278,21 @@ export class ProvisioningService {
       }
       case 2: await this.dataService.provisionProjectLists(siteUrl, input.projectCode); break;
       case 3: await this.dataService.associateWithHubSite(siteUrl, hubSiteUrl); break;
-      case 4: await this.dataService.createProjectSecurityGroups(siteUrl, input.projectCode, input.division); break;
+      case 4:
+        await this.dataService.createProjectSecurityGroups(siteUrl, input.projectCode, input.division);
+        // Entra ID group sync if service and defaults available
+        if (this.entraIdSyncService && this.siteDefaults) {
+          try {
+            const teamAssignments = await this.dataService.getProjectTeamAssignments(input.projectCode);
+            await this.entraIdSyncService.syncGroupsForProject(
+              input.projectCode, siteUrl, teamAssignments, this.siteDefaults.roleToGroupMappings
+            );
+          } catch (err) {
+            // Non-blocking: log but don't fail the provisioning step
+            console.warn(`[Provisioning] Entra group sync error for ${input.projectCode}:`, err);
+          }
+        }
+        break;
       case 5:
         if (this.useGitOpsProvisioning) {
           await new GitOpsProvisioningService(this.dataService).applyTemplates(siteUrl, input.division);

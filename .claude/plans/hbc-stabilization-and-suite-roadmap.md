@@ -35,6 +35,7 @@ Working branch: `feature/hbc-suite-stabilization` (created 22 Feb 2026). Main br
 
 ### 4. Phase 1: SharePoint Site Provisioning Engine (by 31 Mar 2026)
 - Full Admin tools for site creation, template application, user provisioning, defaults, and Entra ID audit logging (SOC2 foundations).
+- **STATUS: COMPLETE** — Committed on `feature/hbc-suite-stabilization`. SiteProvisioningWizard + SiteDefaultsConfigPanel + EntraIdSyncService + ISiteProvisioningDefaults + IAuditSnapshot + 9 new IDataService methods (259 total) + 33 Jest tests. (22 Feb 2026)
 
 ### 5. Phase 2: New Role & Permission System (by 5 Apr 2026)
 - Configuration-driven role engine (SharePoint list backed).

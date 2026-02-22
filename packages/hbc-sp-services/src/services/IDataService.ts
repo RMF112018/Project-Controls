@@ -7,7 +7,10 @@ import { IFeatureFlag } from '../models/IFeatureFlag';
 import { IMeeting, ICalendarAvailability } from '../models/IMeeting';
 import { INotification } from '../models/INotification';
 import { IAuditEntry } from '../models/IAuditEntry';
-import { IProvisioningLog, IFieldDefinition } from '../models/IProvisioningLog';
+import { IProvisioningLog, IProvisioningInput, IFieldDefinition } from '../models/IProvisioningLog';
+import { ISiteProvisioningDefaults, IProjectFeatureFlagDefault, IRoleGroupMapping } from '../models/ISiteProvisioningDefaults';
+import { IEntraGroupSyncResult } from '../models/IEntraGroupSyncResult';
+import { IAuditSnapshot } from '../models/IAuditSnapshot';
 import { IDeliverable } from '../models/IDeliverable';
 import { ITeamMember } from '../models/ITeamMember';
 import { IInterviewPrep } from '../models/IInterviewPrep';
@@ -96,6 +99,20 @@ export interface IPagedResult<T> {
   hasMore: boolean;
 }
 
+export interface IProvisioningValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface IProvisioningSummary {
+  totalProvisioned: number;
+  inProgress: number;
+  failed: number;
+  averageDurationMs: number;
+  lastProvisionedAt: string | null;
+}
+
 export interface IDataService {
   // Leads
   getLeads(options?: IListQueryOptions): Promise<IPagedResult<ILead>>;
@@ -180,6 +197,27 @@ export interface IDataService {
   getTemplateSiteFiles(): Promise<ITemplateFileMetadata[]>;
   applyGitOpsTemplates(siteUrl: string, division: string, registry: ITemplateRegistry): Promise<{ appliedCount: number }>;
   logTemplateSyncPR(entry: Omit<ITemplateManifestLog, 'id'>): Promise<ITemplateManifestLog>;
+
+  // Site Provisioning Defaults (Phase 1)
+  getSiteProvisioningDefaults(): Promise<ISiteProvisioningDefaults>;
+  updateSiteProvisioningDefaults(data: Partial<ISiteProvisioningDefaults>): Promise<ISiteProvisioningDefaults>;
+
+  // Enhanced Provisioning with Defaults
+  provisionSiteWithDefaults(input: IProvisioningInput, defaults: ISiteProvisioningDefaults): Promise<IProvisioningLog>;
+
+  // Entra ID Group Sync
+  syncEntraGroupsForProject(projectCode: string, siteUrl: string, teamAssignments: IProjectTeamAssignment[], roleGroupMappings: IRoleGroupMapping[]): Promise<IEntraGroupSyncResult>;
+
+  // Project-Scoped Feature Flags
+  getProjectFeatureFlags(projectCode: string): Promise<IFeatureFlag[]>;
+  initializeProjectFeatureFlags(projectCode: string, defaults: IProjectFeatureFlagDefault[]): Promise<IFeatureFlag[]>;
+
+  // Enhanced Audit with SOC2 Snapshots
+  logAuditWithSnapshot(entry: Partial<IAuditEntry>, snapshot: IAuditSnapshot): Promise<void>;
+
+  // Provisioning Validation & Summary
+  validateProvisioningInput(input: IProvisioningInput): Promise<IProvisioningValidationResult>;
+  getProvisioningSummary(): Promise<IProvisioningSummary>;
 
   // Phase 6 — Workflow
   getTeamMembers(projectCode: string): Promise<ITeamMember[]>;

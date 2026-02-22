@@ -32,6 +32,9 @@ import { RoleGate } from '../../guards/RoleGate';
 import { CollapsibleSection } from '../../shared/CollapsibleSection';
 import { FeatureGate } from '../../guards/FeatureGate';
 import { TemplateSiteSyncPanel } from '../../shared/TemplateSiteSyncPanel';
+import { SiteProvisioningWizard } from './SiteProvisioningWizard';
+import { SiteDefaultsConfigPanel } from './SiteDefaultsConfigPanel';
+import { ProvisioningSummaryWidget } from './ProvisioningSummaryWidget';
 import { WorkflowDefinitionsPanel } from './WorkflowDefinitionsPanel';
 import { PermissionTemplateEditor } from './PermissionTemplateEditor';
 import { ProjectAssignmentsPanel } from './ProjectAssignmentsPanel';
@@ -164,6 +167,7 @@ export const AdminPanel: React.FC = () => {
   const [retrying, setRetrying] = React.useState<string | null>(null);
   const [retryingNavLink, setRetryingNavLink] = React.useState<string | null>(null);
   const [expandedCode, setExpandedCode] = React.useState<string | null>(null);
+  const [showWizard, setShowWizard] = React.useState(false);
 
   // -- Audit Log state --
   const [auditEntries, setAuditEntries] = React.useState<IAuditEntry[]>([]);
@@ -196,9 +200,12 @@ export const AdminPanel: React.FC = () => {
   const [editingRoles, setEditingRoles] = React.useState<string[]>([]);
 
   const hubNavService = React.useMemo(() => new MockHubNavigationService(), []);
+  // Evaluate flags outside useMemo — boolean primitives are stable deps
+  const useRealOps = isFeatureEnabled('ProvisioningRealOps');
+  const useGitOps = isFeatureEnabled('GitOpsProvisioning');
   const provisioningService = React.useMemo(
-    () => new ProvisioningService(dataService, hubNavService, undefined, undefined, false, isFeatureEnabled('ProvisioningRealOps'), isFeatureEnabled('GitOpsProvisioning')),
-    [dataService, hubNavService, isFeatureEnabled]
+    () => new ProvisioningService(dataService, hubNavService, undefined, undefined, false, useRealOps, useGitOps),
+    [dataService, hubNavService, useRealOps, useGitOps]
   );
 
   // Load hub site URL on mount
@@ -755,7 +762,18 @@ export const AdminPanel: React.FC = () => {
         hasPermission(PERMISSIONS.ADMIN_PROVISIONING) ? (
           provLoading && logs.length === 0 ? <SkeletonLoader variant="table" rows={5} columns={5} /> : (
             <>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: SPACING.sm }}>
+              {/* Provisioning Summary */}
+              <ProvisioningSummaryWidget />
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: SPACING.sm, marginBottom: SPACING.sm }}>
+                <FeatureGate featureName="SiteProvisioningWizard">
+                  <Button
+                    appearance="primary"
+                    onClick={() => setShowWizard(true)}
+                  >
+                    New Site Provisioning
+                  </Button>
+                </FeatureGate>
                 <span style={{
                   display: 'inline-block', padding: '3px 10px', borderRadius: '10px',
                   fontSize: '11px', fontWeight: 600,
@@ -765,6 +783,14 @@ export const AdminPanel: React.FC = () => {
                   {isFeatureEnabled('ProvisioningRealOps') ? 'Live' : 'Simulation'}
                 </span>
               </div>
+
+              {showWizard && (
+                <SiteProvisioningWizard
+                  onClose={() => setShowWizard(false)}
+                  onProvisioningStarted={(log) => { setLogs(prev => [log, ...prev]); setShowWizard(false); }}
+                />
+              )}
+
               <HbcTanStackTable<IProvisioningLog>
                 columns={provColumns}
                 items={logs}
@@ -790,6 +816,12 @@ export const AdminPanel: React.FC = () => {
                   <ProvisioningStatusView projectCode={expandedCode} pollInterval={1000} />
                 </div>
               )}
+
+              {/* Site Defaults Configuration */}
+              <CollapsibleSection title="Site Defaults Configuration" defaultExpanded={false}>
+                <SiteDefaultsConfigPanel />
+              </CollapsibleSection>
+
               <FeatureGate featureName="TemplateSiteSync">
                 {hasPermission(PERMISSIONS.ADMIN_TEMPLATE_SYNC) && (
                   <TemplateSiteSyncPanel />
