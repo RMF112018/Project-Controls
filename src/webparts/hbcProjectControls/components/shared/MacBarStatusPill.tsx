@@ -87,6 +87,7 @@ export const MacBarStatusPill: React.FC = () => {
     <div
       className={styles.pill}
       role="status"
+      aria-live="polite"
       aria-label={`Current project: ${selectedProject.projectName}`}
       title={`${selectedProject.projectName} (${selectedProject.projectCode}) - ${getStageLabel(selectedProject.stage)}`}
     >

@@ -69,7 +69,7 @@ export const ShellHydrationOverlay: React.FC = () => {
   if (!visible) return null;
 
   return (
-    <div className={styles.overlay} role="progressbar" aria-label="Switching project context...">
+    <div className={styles.overlay} role="progressbar" aria-live="assertive" aria-label="Switching project context...">
       <div className={styles.spinner} />
     </div>
   );
