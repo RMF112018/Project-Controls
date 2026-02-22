@@ -15,7 +15,7 @@ import type { IHbcInsightItem } from '../shared/HbcInsightsPanel';
 import { useHbcMotionStyles } from '../shared/HbcMotion';
 import { HelpMenu, HelpPanel, GuidedTour, ContactSupportDialog } from '../help';
 import { FeatureGate } from '../guards';
-import { PillarTabBar } from '../shared/PillarTabBar';
+import { AppLauncher, ContextualSidebar } from '../navigation';
 import { MacBarStatusPill } from '../shared/MacBarStatusPill';
 import { ShellHydrationOverlay } from '../shared/ShellHydrationOverlay';
 import { useNavProfile } from '../hooks/useNavProfile';
@@ -245,12 +245,12 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
   const { leads } = useLeads();
   const { favorites, recent } = useNavProfile();
 
-  // Computed: enhanced nav enabled via feature flag OR dev toggle (mock only)
-  const isEnhancedNavEnabled = isFeatureEnabled('uxEnhancedNavigationV1') || devNavOverride;
+  // Computed: suite nav enabled via feature flag OR dev toggle (mock only)
+  const isSuiteNavEnabled = isFeatureEnabled('uxSuiteNavigationV1') || devNavOverride;
 
   // Project commands for enhanced command palette — favorites first, then recent, then rest
   const projectCommands = React.useMemo<IHbcCommandPaletteCommand[]>(() => {
-    if (!isEnhancedNavEnabled) return [];
+    if (!isSuiteNavEnabled) return [];
 
     const allProjects = leads
       .filter(l => l.ProjectCode && isActiveStage(l.Stage))
@@ -289,22 +289,22 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
         setSelectedProject(project);
       },
     }));
-  }, [leads, isEnhancedNavEnabled, setSelectedProject, favorites, recent]);
+  }, [leads, isSuiteNavEnabled, setSelectedProject, favorites, recent]);
 
   // Navigation commands for enhanced command palette
   const navCommands = React.useMemo<IHbcCommandPaletteCommand[]>(() => {
-    if (!isEnhancedNavEnabled) return [];
+    if (!isSuiteNavEnabled) return [];
     return [
       { id: 'nav-dashboard', label: 'Go to Dashboard', keywords: ['home'], section: 'Navigation', run: () => appNavigate('/') },
       { id: 'nav-pipeline', label: 'Go to Pipeline', keywords: ['pipeline', 'leads'], section: 'Navigation', run: () => appNavigate('/preconstruction/pipeline') },
       { id: 'nav-precon', label: 'Go to Estimating Dashboard', keywords: ['estimating', 'preconstruction'], section: 'Navigation', run: () => appNavigate('/preconstruction') },
-      { id: 'nav-marketing', label: 'Go to Marketing', keywords: ['marketing'], section: 'Navigation', run: () => appNavigate('/marketing') },
+      { id: 'nav-marketing', label: 'Go to Marketing', keywords: ['marketing'], section: 'Navigation', run: () => appNavigate('/shared-services/marketing') },
       { id: 'nav-project', label: 'Go to Project Dashboard', keywords: ['project', 'operations'], section: 'Navigation', run: () => appNavigate('/operations/project') },
       { id: 'nav-buyout', label: 'Go to Buyout Log', keywords: ['buyout', 'log'], section: 'Navigation', run: () => appNavigate('/operations/buyout-log') },
       { id: 'nav-schedule', label: 'Go to Schedule', keywords: ['schedule', 'gantt'], section: 'Navigation', run: () => appNavigate('/operations/schedule') },
       { id: 'nav-admin', label: 'Go to Admin Panel', keywords: ['admin', 'settings'], section: 'Navigation', run: () => appNavigate('/admin') },
     ];
-  }, [isEnhancedNavEnabled, appNavigate]);
+  }, [isSuiteNavEnabled, appNavigate]);
 
   const commandPaletteCommands = React.useMemo<IHbcCommandPaletteCommand[]>(() => [
     {
@@ -484,7 +484,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
       {/* Header */}
       <header data-print-hide role="banner" className={mergeClasses(styles.header, isFullScreen && styles.headerFullScreen)}>
         <div className={styles.headerLeft}>
-          {isMobile && !(isEnhancedNavEnabled) && (
+          {isMobile && !(isSuiteNavEnabled) && (
             <button onClick={() => setMobileNavOpen(!mobileNavOpen)} className={styles.hamburger}>
               {mobileNavOpen ? '\u2715' : '\u2630'}
             </button>
@@ -502,21 +502,21 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
               {ENV_BADGE_LABELS[envConfig.currentTier] || envConfig.currentTier.toUpperCase()}
             </span>
           )}
-          {!isMobile && isEnhancedNavEnabled && <PillarTabBar />}
+          {!isMobile && isSuiteNavEnabled && <AppLauncher />}
         </div>
 
         {!isMobile && <SearchBar />}
 
         <div className={styles.headerRight}>
-          {isEnhancedNavEnabled && <MacBarStatusPill />}
+          {isSuiteNavEnabled && <MacBarStatusPill />}
           {dataServiceMode === 'mock' && (
             <button
               onClick={() => setDevNavOverride(prev => !prev)}
               className={mergeClasses(styles.devToggle, devNavOverride && styles.devToggleActive)}
-              title={devNavOverride ? 'Disable Enhanced Navigation (Dev Only)' : 'Enable Enhanced Navigation (Dev Only)'}
-              aria-label={devNavOverride ? 'Disable Enhanced Navigation' : 'Enable Enhanced Navigation'}
+              title={devNavOverride ? 'Disable Suite Navigation (Dev Only)' : 'Enable Suite Navigation (Dev Only)'}
+              aria-label={devNavOverride ? 'Disable Suite Navigation' : 'Enable Suite Navigation'}
             >
-              Nav V2 {devNavOverride ? 'ON' : 'OFF'}
+              Suite Nav {devNavOverride ? 'ON' : 'OFF'}
             </button>
           )}
           <button
@@ -549,7 +549,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           <>
             <div className={styles.mobileOverlay} onClick={() => setMobileNavOpen(false)} />
             <div className={styles.mobileNav}>
-              <NavigationSidebar />
+              {isSuiteNavEnabled ? <ContextualSidebar /> : <NavigationSidebar />}
             </div>
           </>
         )}
@@ -562,7 +562,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
             className={styles.desktopNav}
             style={{ width: `${sidebarWidth}px`, overflow: isTablet ? 'hidden' : 'auto' }}
           >
-            <NavigationSidebar />
+            {isSuiteNavEnabled ? <ContextualSidebar /> : <NavigationSidebar />}
           </nav>
         )}
 
@@ -576,7 +576,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           )}
           style={{ position: 'relative' }}
         >
-          {isEnhancedNavEnabled && <ShellHydrationOverlay />}
+          {isSuiteNavEnabled && <ShellHydrationOverlay />}
           {children}
         </main>
       </div>

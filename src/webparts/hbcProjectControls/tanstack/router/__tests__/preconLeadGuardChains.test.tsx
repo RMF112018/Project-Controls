@@ -11,11 +11,7 @@ if (typeof globalThis.TextEncoder === 'undefined') {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const preconA = require('../routes.preconstruction.batchA') as typeof import('../routes.preconstruction.batchA');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const preconB = require('../routes.preconstruction.batchB') as typeof import('../routes.preconstruction.batchB');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const leadC = require('../routes.leadAndJobRequest.batchC') as typeof import('../routes.leadAndJobRequest.batchC');
+const preconRoutes = require('../workspaces/routes.preconstruction') as typeof import('../workspaces/routes.preconstruction');
 
 function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRouteContext {
   const enabledFeatures = new Set([
@@ -63,7 +59,7 @@ describe('preconstruction and lead guard chains', () => {
     const context = buildContext({
       isFeatureEnabled: (featureName: string) => featureName !== 'EstimatingTracker',
     });
-    expect(() => preconA.guardEstimatingTracker(context)).toThrow();
+    expect(() => preconRoutes.guardEstimatingTracker(context)).toThrow();
   });
 
   it('autopsy list guard throws without autopsy permission', () => {
@@ -73,7 +69,7 @@ describe('preconstruction and lead guard chains', () => {
         permissions: new Set(['precon:kickoff:view']),
       },
     });
-    expect(() => preconA.guardAutopsyList(context)).toThrow();
+    expect(() => preconRoutes.guardAutopsyList(context)).toThrow();
   });
 
   it('kickoff pursuit guard throws without kickoff permission', () => {
@@ -83,7 +79,7 @@ describe('preconstruction and lead guard chains', () => {
         permissions: new Set(['precon:autopsy:view']),
       },
     });
-    expect(() => preconB.guardKickoffPage(context)).toThrow();
+    expect(() => preconRoutes.guardKickoffPage(context)).toThrow();
   });
 
   it('turnover guard throws when feature is disabled', () => {
@@ -91,7 +87,7 @@ describe('preconstruction and lead guard chains', () => {
       isFeatureEnabled: (featureName: string) =>
         featureName !== 'TurnoverWorkflow',
     });
-    expect(() => preconB.guardTurnover(context)).toThrow();
+    expect(() => preconRoutes.guardTurnover(context)).toThrow();
   });
 
   it('lead intake guard throws when LeadIntake feature is disabled', () => {
@@ -99,7 +95,7 @@ describe('preconstruction and lead guard chains', () => {
       isFeatureEnabled: (featureName: string) =>
         featureName !== 'LeadIntake',
     });
-    expect(() => leadC.guardLeadIntake(context)).toThrow();
+    expect(() => preconRoutes.guardLeadIntake(context)).toThrow();
   });
 
   it('go/no-go guard throws when scorecard feature is disabled', () => {
@@ -107,11 +103,11 @@ describe('preconstruction and lead guard chains', () => {
       isFeatureEnabled: (featureName: string) =>
         featureName !== 'GoNoGoScorecard',
     });
-    expect(() => leadC.guardGoNoGo(context)).toThrow();
+    expect(() => preconRoutes.guardGoNoGo(context)).toThrow();
   });
 
   it('pilot-only guard passes without pilot feature gate', () => {
     const context = buildContext();
-    expect(() => leadC.guardPilotOnly(context)).not.toThrow();
+    expect(() => preconRoutes.guardPilotOnly(context)).not.toThrow();
   });
 });

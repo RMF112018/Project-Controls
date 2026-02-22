@@ -12,7 +12,7 @@ if (typeof globalThis.TextEncoder === 'undefined') {
 
 // Import after TextEncoder polyfill to avoid TanStack runtime issues in jsdom.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const batchE = require('../routes.system.batchE') as typeof import('../routes.system.batchE');
+const sharedServicesRoutes = require('../workspaces/routes.sharedservices') as typeof import('../workspaces/routes.sharedservices');
 
 function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRouteContext {
   const enabledFeatures = new Set<string>([]);
@@ -55,11 +55,11 @@ describe('system route guard chains', () => {
         permissions: new Set(),
       },
     });
-    expect(() => batchE.guardMarketing(context)).toThrow();
+    expect(() => sharedServicesRoutes.guardMarketing(context)).toThrow();
   });
 
   it('marketing guard passes when permission is present', () => {
     const context = buildContext();
-    expect(() => batchE.guardMarketing(context)).not.toThrow();
+    expect(() => sharedServicesRoutes.guardMarketing(context)).not.toThrow();
   });
 });

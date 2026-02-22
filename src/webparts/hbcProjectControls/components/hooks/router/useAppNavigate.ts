@@ -1,16 +1,33 @@
 import * as React from 'react';
-import { useRouterAdapter } from '../../contexts/RouterAdapterContext';
-import type { IAppNavigateOptions } from '../../contexts/RouterAdapterContext';
+import { useNavigate } from '@tanstack/react-router';
+
+export interface IAppNavigateOptions {
+  replace?: boolean;
+}
 
 export type AppNavigate = (to: string | number, options?: IAppNavigateOptions) => void;
 
+/**
+ * Ref-stable navigate function. Consumer-facing API unchanged from pre-Phase 3.
+ * Now consumes TanStack Router's useNavigate directly — no RouterAdapterContext.
+ *
+ * NOTE: No startTransition wrapper — TanStack Router's Transitioner handles transitions
+ * natively. Double-wrapping causes React concurrent scheduler deadlock with
+ * useSyncExternalStore (router.__store).
+ */
 export function useAppNavigate(): AppNavigate {
-  const { navigate } = useRouterAdapter();
-  // Ref always holds latest adapter navigate; callback identity never changes.
-  const ref = React.useRef(navigate);
-  ref.current = navigate;
+  const tanStackNavigate = useNavigate();
+  const ref = React.useRef(tanStackNavigate);
+  ref.current = tanStackNavigate;
+
   return React.useCallback<AppNavigate>(
-    (to, options) => ref.current(to, options),
+    (to, options) => {
+      if (typeof to === 'number') {
+        window.history.go(to);
+        return;
+      }
+      void ref.current({ to, replace: options?.replace });
+    },
     [],
   );
 }

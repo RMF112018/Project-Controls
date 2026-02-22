@@ -12,9 +12,7 @@ if (typeof globalThis.TextEncoder === 'undefined') {
 
 // Import after TextEncoder polyfill to avoid TanStack runtime issues in jsdom.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const batchA = require('../routes.operations.batchA') as typeof import('../routes.operations.batchA');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const batchB = require('../routes.operations.batchB') as typeof import('../routes.operations.batchB');
+const opsRoutes = require('../workspaces/routes.operations') as typeof import('../workspaces/routes.operations');
 
 function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRouteContext {
   const enabledFeatures = new Set([
@@ -65,12 +63,12 @@ describe('operations route guard chains', () => {
     const context = buildContext({
       isFeatureEnabled: (featureName: string) => featureName !== 'ContractTracking',
     });
-    expect(() => batchA.guardProjectSettings(context)).toThrow();
+    expect(() => opsRoutes.guardProjectSettings(context)).toThrow();
   });
 
   it('project settings redirects to operations when project is missing', () => {
     const context = buildContext({ selectedProject: null });
-    expect(() => batchA.guardProjectSettings(context)).toThrow();
+    expect(() => opsRoutes.guardProjectSettings(context)).toThrow();
   });
 
   it('management plan redirects to access denied when PMP permission is missing', () => {
@@ -80,14 +78,14 @@ describe('operations route guard chains', () => {
         permissions: new Set(['project:buyout:view']),
       },
     });
-    expect(() => batchA.guardManagementPlan(context)).toThrow();
+    expect(() => opsRoutes.guardManagementPlan(context)).toThrow();
   });
 
   it('constraints redirects to access denied when feature is disabled', () => {
     const context = buildContext({
       isFeatureEnabled: () => false,
     });
-    expect(() => batchA.guardConstraints(context)).toThrow();
+    expect(() => opsRoutes.guardConstraints(context)).toThrow();
   });
 
   it('permits redirects to access denied when permission is missing', () => {
@@ -97,7 +95,7 @@ describe('operations route guard chains', () => {
         permissions: new Set(['project:buyout:view']),
       },
     });
-    expect(() => batchA.guardPermits(context)).toThrow();
+    expect(() => opsRoutes.guardPermits(context)).toThrow();
   });
 
   it('responsibility route redirects to access denied when ProjectStartup feature is off', () => {
@@ -105,16 +103,16 @@ describe('operations route guard chains', () => {
       isFeatureEnabled: (featureName: string) =>
         featureName === 'ProjectManagementPlan',
     });
-    expect(() => batchB.guardResponsibility(context)).toThrow();
+    expect(() => opsRoutes.guardResponsibility(context)).toThrow();
   });
 
   it('go/no-go route redirects to operations when project is missing', () => {
     const context = buildContext({ selectedProject: null });
-    expect(() => batchB.guardProjectOnly(context)).toThrow();
+    expect(() => opsRoutes.guardProjectOnly(context)).toThrow();
   });
 
   it('project-only guard chain passes when project is selected', () => {
     const context = buildContext();
-    expect(() => batchA.guardProjectOnly(context)).not.toThrow();
+    expect(() => opsRoutes.guardProjectOnly(context)).not.toThrow();
   });
 });

@@ -12,7 +12,9 @@ if (typeof globalThis.TextEncoder === 'undefined') {
 
 // Import after TextEncoder polyfill to avoid TanStack runtime issues in jsdom.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const batchD = require('../routes.adminAccounting.batchD') as typeof import('../routes.adminAccounting.batchD');
+const adminRoutes = require('../workspaces/routes.admin') as typeof import('../workspaces/routes.admin');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const sharedServicesRoutes = require('../workspaces/routes.sharedservices') as typeof import('../workspaces/routes.sharedservices');
 
 function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRouteContext {
   const enabledFeatures = new Set([
@@ -60,7 +62,7 @@ describe('admin and accounting route guard chains', () => {
         permissions: new Set([PERMISSIONS.ADMIN_CONFIG]),
       },
     });
-    expect(() => batchD.guardAccountingQueue(context)).toThrow();
+    expect(() => sharedServicesRoutes.guardAccountingQueue(context)).toThrow();
   });
 
   it('admin guard throws when ADMIN_CONFIG permission is missing', () => {
@@ -70,7 +72,7 @@ describe('admin and accounting route guard chains', () => {
         permissions: new Set([PERMISSIONS.ACCOUNTING_QUEUE_VIEW]),
       },
     });
-    expect(() => batchD.guardAdmin(context)).toThrow();
+    expect(() => adminRoutes.guardAdmin(context)).toThrow();
   });
 
   it('admin performance guard throws when PerformanceMonitoring feature is disabled', () => {
@@ -78,7 +80,7 @@ describe('admin and accounting route guard chains', () => {
       isFeatureEnabled: (featureName: string) =>
         featureName !== 'PerformanceMonitoring',
     });
-    expect(() => batchD.guardAdminPerformance(context)).toThrow();
+    expect(() => adminRoutes.guardAdminPerformance(context)).toThrow();
   });
 
   it('admin support guard throws when EnableHelpSystem feature is disabled', () => {
@@ -86,7 +88,7 @@ describe('admin and accounting route guard chains', () => {
       isFeatureEnabled: (featureName: string) =>
         featureName !== 'EnableHelpSystem',
     });
-    expect(() => batchD.guardAdminSupport(context)).toThrow();
+    expect(() => adminRoutes.guardAdminSupport(context)).toThrow();
   });
 
   it('admin telemetry guard throws when TelemetryDashboard feature is disabled', () => {
@@ -94,15 +96,15 @@ describe('admin and accounting route guard chains', () => {
       isFeatureEnabled: (featureName: string) =>
         featureName !== 'TelemetryDashboard',
     });
-    expect(() => batchD.guardAdminTelemetry(context)).toThrow();
+    expect(() => adminRoutes.guardAdminTelemetry(context)).toThrow();
   });
 
   it('all admin/accounting guard chains pass when features and permission are present', () => {
     const context = buildContext();
-    expect(() => batchD.guardAccountingQueue(context)).not.toThrow();
-    expect(() => batchD.guardAdmin(context)).not.toThrow();
-    expect(() => batchD.guardAdminPerformance(context)).not.toThrow();
-    expect(() => batchD.guardAdminSupport(context)).not.toThrow();
-    expect(() => batchD.guardAdminTelemetry(context)).not.toThrow();
+    expect(() => sharedServicesRoutes.guardAccountingQueue(context)).not.toThrow();
+    expect(() => adminRoutes.guardAdmin(context)).not.toThrow();
+    expect(() => adminRoutes.guardAdminPerformance(context)).not.toThrow();
+    expect(() => adminRoutes.guardAdminSupport(context)).not.toThrow();
+    expect(() => adminRoutes.guardAdminTelemetry(context)).not.toThrow();
   });
 });

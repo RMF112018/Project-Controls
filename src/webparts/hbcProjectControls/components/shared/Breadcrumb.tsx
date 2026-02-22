@@ -8,15 +8,17 @@ import {
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
 import { useAppLocation } from '../hooks/router/useAppLocation';
 import { useAppContext } from '../contexts/AppContext';
-import { getActivePillar, type PillarId } from './PillarTabBar';
+import { getWorkspaceFromPath, type WorkspaceId } from '../navigation/workspaceConfig';
 import { HBC_COLORS } from '../../theme/tokens';
 import { IBreadcrumbItem } from '@hbc/sp-services';
 
-const PILLAR_ICONS: Record<PillarId, React.ReactNode> = {
+const WORKSPACE_ICONS: Record<WorkspaceId, React.ReactNode> = {
   hub: <Home20Regular />,
-  precon: <Notepad20Regular />,
-  ops: <BuildingFactory20Regular />,
+  preconstruction: <Notepad20Regular />,
+  operations: <BuildingFactory20Regular />,
+  'shared-services': <Home20Regular />,
   admin: <Settings20Regular />,
+  'qaqc-safety': <BuildingFactory20Regular />,
 };
 
 interface IBreadcrumbProps {
@@ -27,8 +29,8 @@ export const Breadcrumb: React.FC<IBreadcrumbProps> = ({ items }) => {
   const navigate = useAppNavigate();
   const location = useAppLocation();
   const { isFeatureEnabled } = useAppContext();
-  const enhancedNav = isFeatureEnabled('uxEnhancedNavigationV1');
-  const activePillar = getActivePillar(location.pathname);
+  const suiteNav = isFeatureEnabled('uxSuiteNavigationV1');
+  const activeWorkspace = getWorkspaceFromPath(location.pathname);
 
   if (items.length <= 1) return null;
 
@@ -37,9 +39,9 @@ export const Breadcrumb: React.FC<IBreadcrumbProps> = ({ items }) => {
       aria-label="Breadcrumb"
       style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', flexWrap: 'wrap' }}
     >
-      {enhancedNav && (
+      {suiteNav && (
         <span style={{ display: 'flex', alignItems: 'center', color: HBC_COLORS.gray400, marginRight: '2px' }} aria-hidden="true">
-          {PILLAR_ICONS[activePillar]}
+          {WORKSPACE_ICONS[activeWorkspace]}
         </span>
       )}
       {items.map((item, index) => {

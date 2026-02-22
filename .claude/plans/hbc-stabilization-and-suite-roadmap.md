@@ -54,6 +54,7 @@ All use top App Launcher + contextual Left Sidebar. Documents via Fluent/Graph.
 - Implement Option 1: Global App Shell + Top Fluent UI App Launcher + Contextual Left Sidebar.
 - Clean-slate reconstruction of TanStack Router wiring and data consumption (declarative loaders, proper Context providers, no adapters or router.update() hacks).
 - Central Analytics Hub + Preconstruction / Operations / Leadership / Admin workspaces with preliminary dashboards and critical daily tasks for all 6 roles.
+- **STATUS: COMPLETE** — Committed on `feature/hbc-suite-stabilization` (22 Feb 2026). Deliverables: AppLauncher + ContextualSidebar + workspaceConfig.ts + WorkspaceContext + NavPrimitives (Phase 3A). 5 workspace route files replacing 7 batch files, 62 routes total (Phase 3B). Adapter hooks rewritten to use TanStack Router directly, TanStackAdapterBridge + RouterAdapterContext deleted (Phase 3C). PillarTabBar deleted, uxEnhancedNavigationV1 flag removed, uxSuiteNavigationV1 is sole nav flag (Phase 3D). 752 tests passing, TypeScript clean (Phase 3E).
 
 ## Files Changed
 

@@ -11,7 +11,7 @@ import {
 import { useAppLocation } from '../hooks/router/useAppLocation';
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
 import { useAppContext, type ISelectedProject } from '../contexts/AppContext';
-import { PILLARS, getActivePillar, type IPillarDef } from './PillarTabBar';
+import { LAUNCHER_WORKSPACES, getWorkspaceFromPath, type IWorkspaceDefinition } from '../navigation/workspaceConfig';
 import { NAV_GROUP_ROLES } from '@hbc/sp-services';
 import { EnhancedProjectPicker } from './EnhancedProjectPicker';
 import { HBC_COLORS } from '../../theme/tokens';
@@ -133,10 +133,10 @@ export const MobileBottomNav: React.FC<IMobileBottomNavProps> = ({ selectedProje
   const [isPickerSheetOpen, setIsPickerSheetOpen] = React.useState(false);
   const userRoles = currentUser?.roles ?? [];
 
-  const activePillar = getActivePillar(location.pathname);
+  const activeWorkspaceId = getWorkspaceFromPath(location.pathname);
 
-  const isPillarVisible = React.useCallback((pillar: IPillarDef): boolean => {
-    return pillar.roleKeys.some(key => {
+  const isWorkspaceVisible = React.useCallback((ws: IWorkspaceDefinition): boolean => {
+    return ws.requiredGroupKeys.some((key: string) => {
       const allowed = NAV_GROUP_ROLES[key];
       return allowed && userRoles.some(r => allowed.includes(r));
     });
@@ -154,17 +154,17 @@ export const MobileBottomNav: React.FC<IMobileBottomNavProps> = ({ selectedProje
   return (
     <>
       <div className={styles.bar} role="navigation" aria-label="Quick navigation">
-        <div role="tablist" aria-label="Navigation pillars" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', width: '100%' }}>
-          {PILLARS.filter(isPillarVisible).map(pillar => (
+        <div role="tablist" aria-label="Workspace navigation" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', width: '100%' }}>
+          {LAUNCHER_WORKSPACES.filter(isWorkspaceVisible).map(ws => (
             <button
-              key={pillar.id}
+              key={ws.id}
               role="tab"
-              aria-selected={pillar.id === activePillar}
-              className={mergeClasses(styles.tab, pillar.id === activePillar && styles.tabActive)}
-              onClick={() => handleTabClick(pillar.basePath)}
+              aria-selected={ws.id === activeWorkspaceId}
+              className={mergeClasses(styles.tab, ws.id === activeWorkspaceId && styles.tabActive)}
+              onClick={() => handleTabClick(ws.basePath)}
             >
-              <span className={styles.tabIcon}>{pillar.icon}</span>
-              {pillar.label}
+              <span className={styles.tabIcon}>{ws.iconName === 'hub' ? '\u2302' : ws.label.charAt(0)}</span>
+              {ws.label}
             </button>
           ))}
           <button

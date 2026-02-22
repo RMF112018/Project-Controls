@@ -222,12 +222,12 @@ const REQUIRED_PROMPT6_FEATURE_FLAGS: ReadonlyArray<Omit<IFeatureFlag, 'id'>> = 
     Category: 'Infrastructure',
   },
   {
-    FeatureName: 'uxEnhancedNavigationV1',
-    DisplayName: 'Enhanced Navigation UX v1',
+    FeatureName: 'uxSuiteNavigationV1',
+    DisplayName: 'Suite Navigation v1 (App Launcher + Contextual Sidebar)',
     Enabled: true,
     EnabledForRoles: undefined,
-    TargetDate: undefined,
-    Notes: 'Pillar tabs, enhanced project picker, Mac bar status pill, command palette unification',
+    TargetDate: '2026-02-22',
+    Notes: 'Global App Shell with top App Launcher grid and contextual left sidebar per workspace',
     Category: 'Infrastructure',
   },
 ];
