@@ -221,13 +221,20 @@ const NavItemComponent = React.memo<{
 
   return (
     <div
+      role="link"
+      tabIndex={disabled ? -1 : 0}
       onClick={handleClick}
+      onKeyDown={disabled ? undefined : (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate(path); }
+      }}
       onMouseEnter={handleMouseEnter}
       className={mergeClasses(
         styles.navItem,
         isActive ? styles.navItemActive : disabled ? styles.navItemDisabled : styles.navItemInactive,
       )}
       style={{ padding: `7px 16px 7px ${16 + indent * 12}px` }}
+      aria-current={isActive ? 'page' : undefined}
+      aria-disabled={disabled || undefined}
     >
       {label}
     </div>
@@ -246,7 +253,15 @@ const NavGroup: React.FC<{
 
   return (
     <div className={styles.groupContainer}>
-      <div onClick={() => setExpanded(!expanded)} className={styles.groupHeader}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setExpanded(!expanded)}
+        onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(!expanded); } }}
+        aria-expanded={expanded}
+        aria-label={`${label} navigation group`}
+        className={styles.groupHeader}
+      >
         <span>{label}</span>
         <span className={mergeClasses(styles.groupChevron, expanded ? styles.groupChevronExpanded : undefined)}>
           &#9654;
@@ -267,7 +282,15 @@ const NavSubGroup: React.FC<{
 
   return (
     <div>
-      <div onClick={() => setExpanded(!expanded)} className={styles.subGroupHeader}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setExpanded(!expanded)}
+        onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(!expanded); } }}
+        aria-expanded={expanded}
+        aria-label={`${label} sub-group`}
+        className={styles.subGroupHeader}
+      >
         <span className={mergeClasses(styles.subGroupChevron, expanded ? styles.groupChevronExpanded : undefined)}>
           &#9654;
         </span>

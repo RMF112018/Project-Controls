@@ -102,7 +102,8 @@ See `PERFORMANCE_OPTIMIZATION_GUIDE.md` §5 for detailed bundle and chunk rules.
 - All data access through `IDataService` abstraction  
 - TanStack Query + Router loaders preferred over useEffect fetches  
 - RoleGate + FeatureGate required on every sensitive surface  
-- Griffel `makeStyles` for all styling  
+- Griffel `makeStyles` for all styling
+- NavigationSidebar items, group headers, and sub-group headers MUST be keyboard-accessible: `tabIndex={0}`, `role="link"` or `role="button"`, `onKeyDown` for Enter+Space, `aria-expanded` on collapsibles, `aria-current="page"` on active item. Click-only `<div>` is a WCAG 2.2 Level A violation.
 
 **Router Stability Rule (Critical)**
 The TanStack Router instance MUST be created exactly once (via `useRef` in `router.tsx`) with static-only values (`queryClient`, `dataService`). Dynamic values (`currentUser`, `selectedProject`, `isFeatureEnabled`, `scope`) are injected via `React.useEffect` → `router.update()` + `RouterProvider context={}`. Adapter hooks (`useAppNavigate`, `useAppLocation`, `useAppParams`) return memoised/ref-stable values to prevent downstream re-render cascades. `ProjectPicker.handleSelect` MUST close the popover before firing `setSelectedProject` (via `React.startTransition` deferral). NEVER pass dynamic values to `createHbcTanStackRouter`. NEVER add dynamic values to any dependency array that would trigger router recreation.
@@ -165,6 +166,11 @@ Last major additions: GitOps Provisioning (Feb 18) + Constraints/Permits/Schedul
 - Top-20 prioritized test suites documented in `.claude/plans/dreamy-wiggling-cookie.md`.
 - Target: Phase 2 (Sprint 4) sp 65%/comp 35%, Phase 3 (Sprint 5) sp 80%/comp 60%, 95% on new files via per-file overrides.
 - SharePointDataService PnP mock infrastructure deferred to Sprint 5.
+- Phase 5 QC audit complete (Feb 22): A11y 6/10, Security 9/10, Testing 6/10, Documentation 8/10.
+- Critical a11y fixes applied: NavigationSidebar nav items + group headers now keyboard-accessible (WCAG 2.2 A).
+- Security: 17+ route guards, 67 audit log calls, zero XSS vectors, all 4 nav components permission-filtered.
+- Missing Storybook stories: EnhancedProjectPicker, PillarTabBar (acknowledged, not yet created).
+- Top-10 largest untested page components identified (GoNoGoScorecard 1,547 lines through TurnoverToOps 789 lines).
 
 **Next steps:** High-risk gap closure (SignalR, queryKeys, permissionEngine, PillarTabBar, useNavProfile), then presentation layer foundation tests.
 
@@ -191,7 +197,7 @@ See `FEATURE_DEVELOPMENT_BLUEPRINT.md` for new domain patterns, `PERFORMANCE_OPT
 | **4 (final)** | 6+ | 95 / 90 / 95 / 95 | 95 / 90 / 95 / 95 | After excluded files brought in |
 
 **Per-File Override for New Code (effective immediately)**
-Every new `.ts`/`.tsx` file must ship with ≥95% coverage. Add per-file thresholds in the relevant `jest.config`:
+Every new `.ts`/`.tsx` file must ship with ≥95% coverage. When creating a new file, add a per-file threshold entry in the relevant `jest.config`:
 ```js
 coverageThreshold: {
   global: { /* phase thresholds */ },
@@ -271,6 +277,8 @@ Full prioritized gap report with top-20 test suites, high-risk paths, and effort
 - **isFeatureEnabled uses `userRoles` not `currentUser`**: Deps are `[featureFlags, userRoles]` where `userRoles = currentUser?.roles`. The roles array reference is stable across permission-only updates, preventing identity cascade through routerProps → RouterProvider → entire route tree.
 - **RouterProvider context is memoized**: `useMemo` on the context object prevents RouterProvider from calling `router.update()` on every render. No separate useEffect for router.update() — RouterProvider handles it during render.
 - **envConfig useEffect uses boolean dep**: `permissionEngineEnabled` (primitive) instead of `isFeatureEnabled` (function ref) prevents unnecessary re-fetches.
+- **NavigationSidebar keyboard a11y (WCAG 2.2 A)**: NavItemComponent, NavGroup, and NavSubGroup headers MUST have `tabIndex={0}`, `role`, `onKeyDown` (Enter+Space), and `aria-expanded` (collapsibles). Click-only `<div>` without these attributes is a Level A violation. Active nav item must have `aria-current="page"`.
+- **Breadcrumb Space key**: `role="link"` elements must handle both Enter AND Space key in `onKeyDown`. Missing Space key is a WCAG deviation.
 
 **Keep CLAUDE.md lean** — archive aggressively to CLAUDE_ARCHIVE.md.
 

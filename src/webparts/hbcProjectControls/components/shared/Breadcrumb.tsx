@@ -58,7 +58,7 @@ export const Breadcrumb: React.FC<IBreadcrumbProps> = ({ items }) => {
                 role="link"
                 tabIndex={0}
                 onClick={() => navigate(item.path!)}
-                onKeyDown={e => { if (e.key === 'Enter') navigate(item.path!); }}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(item.path!); } }}
                 style={{
                   color: HBC_COLORS.info,
                   cursor: 'pointer',
