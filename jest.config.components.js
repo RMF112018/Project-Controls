@@ -29,4 +29,23 @@ module.exports = {
     '^echarts$': '<rootDir>/src/__mocks__/echarts__core.ts',
   },
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
+  collectCoverageFrom: [
+    'src/webparts/hbcProjectControls/**/*.{ts,tsx}',
+    '!src/**/index.ts',
+    '!src/**/*.stories.tsx',
+    '!src/**/__tests__/**',
+    '!src/**/*.d.ts',
+    // Exclude lazy route wrappers (thin re-exports, tested via E2E)
+    '!src/webparts/hbcProjectControls/tanstack/router/lazy/**',
+  ],
+  coverageThreshold: {
+    global: {
+      statements: 9,
+      branches: 5,
+      functions: 6,
+      lines: 10,
+    },
+  },
+  coverageReporters: ['text', 'text-summary', 'html', 'lcov'],
+  coverageDirectory: 'coverage',
 };

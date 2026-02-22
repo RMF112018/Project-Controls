@@ -23,11 +23,24 @@ jobs:
 
       - run: npm ci
 
-      - name: Test
-        run: npm run test --workspace=packages/hbc-sp-services
-
       - name: Type check
         run: npx tsc --noEmit
 
       - name: Lint
         run: npx eslint src/ --ext .ts,.tsx
+
+      - name: Test sp-services (with coverage)
+        run: npx jest --config packages/hbc-sp-services/jest.config.js --coverage --ci
+
+      - name: Test components (with coverage)
+        run: npx jest --config jest.config.components.js --coverage --ci
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            packages/hbc-sp-services/coverage/lcov.info
+            coverage/lcov.info
+          retention-days: 14
