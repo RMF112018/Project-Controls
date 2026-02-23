@@ -12,6 +12,7 @@ import { createHubWorkspaceRoutes } from './workspaces/routes.hub';
 import { createPreconstructionWorkspaceRoutes } from './workspaces/routes.preconstruction';
 import { createAdminWorkspaceRoutes } from './workspaces/routes.admin';
 import { createOperationsWorkspaceRoutes } from './workspaces/routes.operations';
+import { createSharedServicesWorkspaceRoutes } from './workspaces/routes.sharedservices';
 
 const TelemetryPageTracker: React.FC = () => {
   useTelemetryPageView();
@@ -54,4 +55,6 @@ export const tanStackPilotRouteTree = rootRoute.addChildren([
   ...(createAdminWorkspaceRoutes(rootRoute) as AnyRoute[]),
   // Operations workspace: Commercial Ops, Project Hub, OpEx, Safety, QC & Warranty
   ...(createOperationsWorkspaceRoutes(rootRoute) as AnyRoute[]),
+  // Shared Services workspace: Marketing, HR, Accounting, Risk Management
+  ...(createSharedServicesWorkspaceRoutes(rootRoute) as AnyRoute[]),
 ]);

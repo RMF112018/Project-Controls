@@ -331,6 +331,46 @@ export const TOOL_DEFINITIONS: IToolDefinition[] = [
     },
     granularFlags: [],
   },
+  // Shared Services group
+  {
+    toolKey: 'shared_services_hub',
+    toolGroup: 'shared_services',
+    label: 'Shared Services Hub',
+    description: 'Shared Services workspace hub and cross-department access',
+    levels: {
+      NONE: [],
+      READ_ONLY: ['shared_services:hub:view'],
+      STANDARD: ['shared_services:hub:view'],
+      ADMIN: ['shared_services:hub:view'],
+    },
+    granularFlags: [],
+  },
+  {
+    toolKey: 'hr',
+    toolGroup: 'shared_services',
+    label: 'Human Resources',
+    description: 'Human Resources module — people & culture, openings, announcements',
+    levels: {
+      NONE: [],
+      READ_ONLY: ['hr:view'],
+      STANDARD: ['hr:view', 'hr:edit'],
+      ADMIN: ['hr:view', 'hr:edit'],
+    },
+    granularFlags: [],
+  },
+  {
+    toolKey: 'risk_management',
+    toolGroup: 'shared_services',
+    label: 'Risk Management',
+    description: 'Risk Management module — knowledge center, requests, enrollment',
+    levels: {
+      NONE: [],
+      READ_ONLY: ['risk_management:view'],
+      STANDARD: ['risk_management:view', 'risk_management:edit'],
+      ADMIN: ['risk_management:view', 'risk_management:edit'],
+    },
+    granularFlags: [],
+  },
   // Admin group
   {
     toolKey: 'admin_panel',
@@ -416,5 +456,5 @@ export function getToolsByGroup(group: string): IToolDefinition[] {
 /**
  * Get all available tool group names
  */
-export const TOOL_GROUPS = ['marketing', 'preconstruction', 'operations', 'admin'] as const;
+export const TOOL_GROUPS = ['marketing', 'preconstruction', 'operations', 'shared_services', 'admin'] as const;
 export type ToolGroup = typeof TOOL_GROUPS[number];

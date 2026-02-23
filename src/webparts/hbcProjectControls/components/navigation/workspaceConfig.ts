@@ -190,6 +190,65 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
       },
     ],
   },
+  {
+    id: 'shared-services',
+    label: 'Shared Services',
+    icon: 'PeopleCommunity24Regular',
+    basePath: '/shared-services',
+    roles: [
+      RoleName.SharePointAdmin,
+      RoleName.ExecutiveLeadership,
+      RoleName.DepartmentDirector,
+      RoleName.Marketing,
+      RoleName.BDRepresentative,
+      RoleName.AccountingManager,
+      RoleName.RiskManagement,
+      RoleName.OperationsTeam,
+      RoleName.IDS,
+    ],
+    featureFlag: 'SharedServicesWorkspace',
+    sidebarGroups: [
+      {
+        label: 'Marketing',
+        items: [
+          { label: 'Marketing Dashboard', path: '/shared-services/marketing', permission: PERMISSIONS.MARKETING_DASHBOARD_VIEW },
+          { label: 'Resources', path: '/shared-services/marketing/resources', permission: PERMISSIONS.MARKETING_DASHBOARD_VIEW },
+          { label: 'Requests', path: '/shared-services/marketing/requests', permission: PERMISSIONS.MARKETING_EDIT },
+          { label: 'Tracking', path: '/shared-services/marketing/tracking', permission: PERMISSIONS.MARKETING_DASHBOARD_VIEW },
+          { label: 'Documents', path: '/shared-services/marketing/documents', permission: PERMISSIONS.MARKETING_DASHBOARD_VIEW },
+        ],
+      },
+      {
+        label: 'Human Resources',
+        items: [
+          { label: 'People & Culture Dashboard', path: '/shared-services/hr', permission: PERMISSIONS.HR_VIEW },
+          { label: 'Openings', path: '/shared-services/hr/openings', permission: PERMISSIONS.HR_VIEW },
+          { label: 'Announcements', path: '/shared-services/hr/announcements', permission: PERMISSIONS.SHARED_SERVICES_HUB_VIEW },
+          { label: 'Initiatives', path: '/shared-services/hr/initiatives', permission: PERMISSIONS.HR_VIEW },
+          { label: 'Documents', path: '/shared-services/hr/documents', permission: PERMISSIONS.HR_VIEW },
+        ],
+      },
+      {
+        label: 'Accounting',
+        items: [
+          { label: 'Accounting Dashboard', path: '/shared-services/accounting', permission: PERMISSIONS.ACCOUNTING_QUEUE_VIEW },
+          { label: 'New Project Setup', path: '/shared-services/accounting/new-project', permission: PERMISSIONS.ACCOUNTING_QUEUE_VIEW },
+          { label: 'Accounts Receivable Report', path: '/shared-services/accounting/receivables', permission: PERMISSIONS.ACCOUNTING_QUEUE_VIEW },
+          { label: 'Documents', path: '/shared-services/accounting/documents', permission: PERMISSIONS.ACCOUNTING_QUEUE_VIEW },
+        ],
+      },
+      {
+        label: 'Risk Management',
+        items: [
+          { label: 'Risk Management Dashboard', path: '/shared-services/risk', permission: PERMISSIONS.RISK_MANAGEMENT_VIEW },
+          { label: 'Knowledge Center', path: '/shared-services/risk/knowledge-center', permission: PERMISSIONS.RISK_MANAGEMENT_VIEW },
+          { label: 'Requests', path: '/shared-services/risk/requests', permission: PERMISSIONS.RISK_MANAGEMENT_EDIT },
+          { label: 'Enrollment Tracking', path: '/shared-services/risk/enrollment', permission: PERMISSIONS.RISK_MANAGEMENT_VIEW },
+          { label: 'Documents', path: '/shared-services/risk/documents', permission: PERMISSIONS.RISK_MANAGEMENT_VIEW },
+        ],
+      },
+    ],
+  },
 ];
 
 /** Workspaces shown in the App Launcher grid */

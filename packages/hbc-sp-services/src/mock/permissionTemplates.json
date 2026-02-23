@@ -31,6 +31,9 @@
       { "toolKey": "schedule", "level": "ADMIN" },
       { "toolKey": "monthly_review", "level": "ADMIN", "granularFlags": ["can_create_reviews"] },
       { "toolKey": "lessons_learned", "level": "ADMIN" },
+      { "toolKey": "shared_services_hub", "level": "ADMIN" },
+      { "toolKey": "hr", "level": "ADMIN" },
+      { "toolKey": "risk_management", "level": "ADMIN" },
       { "toolKey": "admin_panel", "level": "ADMIN", "granularFlags": ["can_manage_provisioning"] },
       { "toolKey": "workflow_definitions", "level": "ADMIN" }
     ],
@@ -74,6 +77,9 @@
       { "toolKey": "schedule", "level": "ADMIN" },
       { "toolKey": "monthly_review", "level": "ADMIN", "granularFlags": ["can_create_reviews"] },
       { "toolKey": "lessons_learned", "level": "ADMIN" },
+      { "toolKey": "shared_services_hub", "level": "ADMIN" },
+      { "toolKey": "hr", "level": "ADMIN" },
+      { "toolKey": "risk_management", "level": "ADMIN" },
       { "toolKey": "admin_panel", "level": "ADMIN", "granularFlags": ["can_manage_provisioning"] },
       { "toolKey": "workflow_definitions", "level": "ADMIN" }
     ],
@@ -117,6 +123,9 @@
       { "toolKey": "schedule", "level": "STANDARD" },
       { "toolKey": "monthly_review", "level": "ADMIN", "granularFlags": ["can_create_reviews"] },
       { "toolKey": "lessons_learned", "level": "STANDARD" },
+      { "toolKey": "shared_services_hub", "level": "READ_ONLY" },
+      { "toolKey": "hr", "level": "READ_ONLY" },
+      { "toolKey": "risk_management", "level": "READ_ONLY" },
       { "toolKey": "admin_panel", "level": "NONE" },
       { "toolKey": "workflow_definitions", "level": "NONE" }
     ],
@@ -160,6 +169,9 @@
       { "toolKey": "schedule", "level": "STANDARD" },
       { "toolKey": "monthly_review", "level": "STANDARD" },
       { "toolKey": "lessons_learned", "level": "STANDARD" },
+      { "toolKey": "shared_services_hub", "level": "NONE" },
+      { "toolKey": "hr", "level": "NONE" },
+      { "toolKey": "risk_management", "level": "NONE" },
       { "toolKey": "admin_panel", "level": "NONE" },
       { "toolKey": "workflow_definitions", "level": "NONE" }
     ],
@@ -203,6 +215,9 @@
       { "toolKey": "schedule", "level": "NONE" },
       { "toolKey": "monthly_review", "level": "NONE" },
       { "toolKey": "lessons_learned", "level": "NONE" },
+      { "toolKey": "shared_services_hub", "level": "NONE" },
+      { "toolKey": "hr", "level": "NONE" },
+      { "toolKey": "risk_management", "level": "NONE" },
       { "toolKey": "admin_panel", "level": "NONE" },
       { "toolKey": "workflow_definitions", "level": "NONE" }
     ],
@@ -243,6 +258,9 @@
       { "toolKey": "schedule", "level": "NONE" },
       { "toolKey": "monthly_review", "level": "NONE" },
       { "toolKey": "lessons_learned", "level": "NONE" },
+      { "toolKey": "shared_services_hub", "level": "READ_ONLY" },
+      { "toolKey": "hr", "level": "NONE" },
+      { "toolKey": "risk_management", "level": "NONE" },
       { "toolKey": "admin_panel", "level": "NONE" },
       { "toolKey": "workflow_definitions", "level": "NONE" }
     ],
@@ -283,6 +301,9 @@
       { "toolKey": "schedule", "level": "NONE" },
       { "toolKey": "monthly_review", "level": "NONE" },
       { "toolKey": "lessons_learned", "level": "NONE" },
+      { "toolKey": "shared_services_hub", "level": "READ_ONLY" },
+      { "toolKey": "hr", "level": "NONE" },
+      { "toolKey": "risk_management", "level": "NONE" },
       { "toolKey": "admin_panel", "level": "NONE" },
       { "toolKey": "workflow_definitions", "level": "NONE" }
     ],
@@ -323,6 +344,9 @@
       { "toolKey": "schedule", "level": "READ_ONLY" },
       { "toolKey": "monthly_review", "level": "READ_ONLY" },
       { "toolKey": "lessons_learned", "level": "READ_ONLY" },
+      { "toolKey": "shared_services_hub", "level": "READ_ONLY" },
+      { "toolKey": "hr", "level": "READ_ONLY" },
+      { "toolKey": "risk_management", "level": "READ_ONLY" },
       { "toolKey": "admin_panel", "level": "NONE" },
       { "toolKey": "workflow_definitions", "level": "NONE" }
     ],
@@ -363,6 +387,9 @@
       { "toolKey": "schedule", "level": "ADMIN" },
       { "toolKey": "monthly_review", "level": "ADMIN", "granularFlags": ["can_create_reviews"] },
       { "toolKey": "lessons_learned", "level": "ADMIN" },
+      { "toolKey": "shared_services_hub", "level": "ADMIN" },
+      { "toolKey": "hr", "level": "ADMIN" },
+      { "toolKey": "risk_management", "level": "ADMIN" },
       { "toolKey": "admin_panel", "level": "ADMIN", "granularFlags": ["can_manage_provisioning"] },
       { "toolKey": "workflow_definitions", "level": "ADMIN" }
     ],

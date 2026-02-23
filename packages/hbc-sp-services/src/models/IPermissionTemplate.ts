@@ -53,7 +53,7 @@ export interface IGranularFlagOverride {
 
 export interface IToolDefinition {
   toolKey: string;
-  toolGroup: 'marketing' | 'preconstruction' | 'operations' | 'admin';
+  toolGroup: 'marketing' | 'preconstruction' | 'operations' | 'shared_services' | 'admin';
   label: string;
   description: string;
   levels: Record<PermissionLevel, string[]>;

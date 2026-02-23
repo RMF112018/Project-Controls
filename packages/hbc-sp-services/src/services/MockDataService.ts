@@ -289,6 +289,14 @@ const REQUIRED_PROMPT6_FEATURE_FLAGS: ReadonlyArray<Omit<IFeatureFlag, 'id'>> = 
     Notes: 'Operations workspace with Commercial Ops, OpEx, Safety, QC & Warranty',
     Category: 'Infrastructure',
   },
+  {
+    FeatureName: 'SharedServicesWorkspace',
+    DisplayName: 'Shared Services Workspace',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    Notes: 'Shared Services workspace with Marketing, HR, Accounting, Risk Management hubs',
+    Category: 'Infrastructure',
+  },
 ];
 
 function ensurePrompt6FeatureFlags(flags: IFeatureFlag[]): IFeatureFlag[] {
