@@ -21,8 +21,13 @@ export function useSectorDefinitions(): IUseSectorDefinitions {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
+  // Ref-back isFeatureEnabled to prevent fetchSectors identity churn
+  // when currentUser changes (e.g. PermissionEngine resolution)
+  const isFeatureEnabledRef = React.useRef(isFeatureEnabled);
+  isFeatureEnabledRef.current = isFeatureEnabled;
+
   const fetchSectors = React.useCallback(async () => {
-    if (!isFeatureEnabled('PermissionEngine')) return;
+    if (!isFeatureEnabledRef.current('PermissionEngine')) return;
     setLoading(true);
     setError(null);
     try {
@@ -33,7 +38,7 @@ export function useSectorDefinitions(): IUseSectorDefinitions {
     } finally {
       setLoading(false);
     }
-  }, [dataService, isFeatureEnabled]);
+  }, [dataService]);
 
   React.useEffect(() => {
     fetchSectors();

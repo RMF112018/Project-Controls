@@ -1,16 +1,18 @@
 /**
  * Hub (Root) Workspace Routes
  *
- * Dashboard, access-denied, not-found, and redirect routes for old URLs.
- * 5 routes total (dashboard + access-denied + not-found + 2 redirects).
+ * Placeholder landing page, access-denied, and not-found.
+ * 3 routes total.
  */
 import * as React from 'react';
-import { createRoute, lazyRouteComponent, redirect } from '@tanstack/react-router';
+import { createRoute } from '@tanstack/react-router';
 import { AccessDeniedPage } from '../../../components/pages/shared/AccessDeniedPage';
 
-const DashboardPage = lazyRouteComponent(
-  () => import(/* webpackChunkName: "page-dashboard" */ '../../../components/pages/hub/DashboardPage'),
-  'DashboardPage'
+const PlaceholderHome: React.FC = () => (
+  <div style={{ padding: 48, textAlign: 'center' }}>
+    <h2>HBC Project Controls</h2>
+    <p>Modules coming soon.</p>
+  </div>
 );
 
 const NotFoundPage: React.FC = () => (
@@ -24,7 +26,7 @@ export function createHubWorkspaceRoutes(rootRoute: unknown) {
   const dashboardRoute = createRoute({
     getParentRoute: () => rootRoute as never,
     path: '/',
-    component: DashboardPage,
+    component: PlaceholderHome,
   });
 
   const accessDeniedRoute = createRoute({
@@ -39,28 +41,9 @@ export function createHubWorkspaceRoutes(rootRoute: unknown) {
     component: NotFoundPage,
   });
 
-  // --- Redirect routes for old URLs (backward compatibility) ---
-  const marketingRedirectRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/marketing',
-    beforeLoad: () => {
-      throw redirect({ to: '/shared-services/marketing' });
-    },
-  });
-
-  const accountingRedirectRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/accounting-queue',
-    beforeLoad: () => {
-      throw redirect({ to: '/shared-services/accounting' });
-    },
-  });
-
   return [
     dashboardRoute,
     accessDeniedRoute,
     notFoundRoute,
-    marketingRedirectRoute,
-    accountingRedirectRoute,
   ] as unknown[];
 }

@@ -1,439 +1,628 @@
 /**
  * Operations Workspace Routes
  *
- * Consolidates all /operations/* routes from the former batchA, batchB, and base route files.
- * 26 routes total — flat children of rootRoute (no nested layout routes).
+ * 5 sidebar groups: Operations Dashboard, Commercial Operations,
+ * Operational Excellence, Safety, Quality Control & Warranty.
+ * 42 child routes + 1 layout route = 43 routes total.
  */
 import * as React from 'react';
-import { createRoute, lazyRouteComponent } from '@tanstack/react-router';
+import { createRoute } from '@tanstack/react-router';
 import { PERMISSIONS } from '@hbc/sp-services';
-import type { ITanStackRouteContext } from '../routeContext';
 import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
 import { requireProject } from '../guards/requireProject';
-import { activeProjectsListOptions } from '../../query/queryOptions/activeProjects';
-import { complianceSummaryOptions } from '../../query/queryOptions/compliance';
-import { buyoutEntriesOptions } from '../../query/queryOptions/buyout';
-import { projectScheduleOptions } from '../../query/queryOptions/schedule';
-import { riskCostManagementOptions } from '../../query/queryOptions/riskCost';
-import { monthlyReviewsOptions } from '../../query/queryOptions/monthlyReview';
-import { ComingSoonPage } from '../../../components/shared/ComingSoonPage';
+import type { ITanStackRouteContext } from '../routeContext';
 
-// --- Lazy components (operations chunk) ---
-const ActiveProjectsDashboard = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'ActiveProjectsDashboard'
-);
-const ProjectDashboard = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'ProjectDashboard'
-);
-const ComplianceLog = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'ComplianceLog'
-);
-const ProjectSettingsPage = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'ProjectSettingsPage'
-);
-const ProjectStartupChecklist = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'ProjectStartupChecklist'
-);
-const ProjectManagementPlan = lazyRouteComponent(
-  () => import(/* webpackChunkName: "page-pmp-16-section" */ '../../../components/pages/project/pmp/ProjectManagementPlan'),
-  'ProjectManagementPlan'
-);
-const SuperintendentPlanPage = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'SuperintendentPlanPage'
-);
-const CloseoutChecklist = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'CloseoutChecklist'
-);
-const ContractTracking = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'ContractTracking'
-);
-const RiskCostManagement = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'RiskCostManagement'
-);
-const QualityConcernsTracker = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'QualityConcernsTracker'
-);
-const SafetyConcernsTracker = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'SafetyConcernsTracker'
-);
-const BuyoutLogPage = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'BuyoutLogPage'
-);
-const SchedulePage = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'SchedulePage'
-);
-const MonthlyProjectReview = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'MonthlyProjectReview'
-);
-const ConstraintsLogPage = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'ConstraintsLogPage'
-);
-const PermitsLogPage = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'PermitsLogPage'
-);
-const ResponsibilityMatrices = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'ResponsibilityMatrices'
-);
-const ProjectRecord = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'ProjectRecord'
-);
-const LessonsLearnedPage = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-operations" */ '../../../features/operations/OperationsModule'),
-  'LessonsLearnedPage'
-);
-const GoNoGoScorecard = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../../features/adminHub/AdminHubModule'),
-  'GoNoGoScorecard'
+// Layout
+const OperationsLayout = React.lazy(() =>
+  import('../../../components/layouts/OperationsLayout').then(m => ({ default: m.OperationsLayout }))
 );
 
-// --- Guards ---
-export function guardProjectSettings(context: ITanStackRouteContext): void {
-  requireFeature(context, 'ContractTracking');
-  requireProject(context);
-}
+// ── Dashboards ────────────────────────────────────────────────────────
+const OperationsDashboardPage = React.lazy(() =>
+  import('../../../components/pages/operations/OperationsDashboardPage').then(m => ({ default: m.OperationsDashboardPage }))
+);
+const CommercialDashboardPage = React.lazy(() =>
+  import('../../../components/pages/operations/CommercialDashboardPage').then(m => ({ default: m.CommercialDashboardPage }))
+);
+const LuxuryResidentialPage = React.lazy(() =>
+  import('../../../components/pages/operations/LuxuryResidentialPage').then(m => ({ default: m.LuxuryResidentialPage }))
+);
 
-export function guardStartupChecklist(context: ITanStackRouteContext): void {
-  requireFeature(context, 'ProjectStartup');
-  requireProject(context);
-}
+// ── Project Hub ───────────────────────────────────────────────────────
+const ProjectDashboardPage = React.lazy(() =>
+  import('../../../components/pages/operations/ProjectDashboardPage').then(m => ({ default: m.ProjectDashboardPage }))
+);
+const ProjectSettingsPage = React.lazy(() =>
+  import('../../../components/pages/operations/ProjectSettingsPage').then(m => ({ default: m.ProjectSettingsPage }))
+);
+const ProjectManualPage = React.lazy(() =>
+  import('../../../components/pages/operations/ProjectManualPage').then(m => ({ default: m.ProjectManualPage }))
+);
 
-export function guardManagementPlan(context: ITanStackRouteContext): void {
-  requireFeature(context, 'ProjectManagementPlan');
-  requireProject(context);
-  requirePermission(context, PERMISSIONS.PMP_EDIT);
-}
+// ── Project Manual Sub-pages ──────────────────────────────────────────
+const PMPPage = React.lazy(() =>
+  import('../../../components/pages/operations/PMPPage').then(m => ({ default: m.PMPPage }))
+);
+const SuperintendentPlanPage = React.lazy(() =>
+  import('../../../components/pages/operations/SuperintendentPlanPage').then(m => ({ default: m.SuperintendentPlanPage }))
+);
+const ResponsibilityMatrixPage = React.lazy(() =>
+  import('../../../components/pages/operations/ResponsibilityMatrixPage').then(m => ({ default: m.ResponsibilityMatrixPage }))
+);
+const StartupCloseoutPage = React.lazy(() =>
+  import('../../../components/pages/operations/StartupCloseoutPage').then(m => ({ default: m.StartupCloseoutPage }))
+);
+const MeetingTemplatesPage = React.lazy(() =>
+  import('../../../components/pages/operations/MeetingTemplatesPage').then(m => ({ default: m.MeetingTemplatesPage }))
+);
+const PayAppProcessPage = React.lazy(() =>
+  import('../../../components/pages/operations/PayAppProcessPage').then(m => ({ default: m.PayAppProcessPage }))
+);
+const SafetyPlanPage = React.lazy(() =>
+  import('../../../components/pages/operations/SafetyPlanPage').then(m => ({ default: m.SafetyPlanPage }))
+);
+const OSHAGuidePage = React.lazy(() =>
+  import('../../../components/pages/operations/OSHAGuidePage').then(m => ({ default: m.OSHAGuidePage }))
+);
+const TropicalWeatherPage = React.lazy(() =>
+  import('../../../components/pages/operations/TropicalWeatherPage').then(m => ({ default: m.TropicalWeatherPage }))
+);
+const CrisisManagementPage = React.lazy(() =>
+  import('../../../components/pages/operations/CrisisManagementPage').then(m => ({ default: m.CrisisManagementPage }))
+);
+const QAQCProgramPage = React.lazy(() =>
+  import('../../../components/pages/operations/QAQCProgramPage').then(m => ({ default: m.QAQCProgramPage }))
+);
+const IDSRequirementsPage = React.lazy(() =>
+  import('../../../components/pages/operations/IDSRequirementsPage').then(m => ({ default: m.IDSRequirementsPage }))
+);
 
-export function guardProjectOnly(context: ITanStackRouteContext): void {
-  requireProject(context);
-}
+// ── Cost & Time ───────────────────────────────────────────────────────
+const FinancialForecastingPage = React.lazy(() =>
+  import('../../../components/pages/operations/FinancialForecastingPage').then(m => ({ default: m.FinancialForecastingPage }))
+);
+const SchedulePlaceholderPage = React.lazy(() =>
+  import('../../../components/pages/operations/SchedulePlaceholderPage').then(m => ({ default: m.SchedulePlaceholderPage }))
+);
 
-export function guardBuyoutLog(context: ITanStackRouteContext): void {
-  requireProject(context);
-  requirePermission(context, PERMISSIONS.BUYOUT_VIEW);
-}
+// ── Logs & Reports ────────────────────────────────────────────────────
+const BuyoutLogPage = React.lazy(() =>
+  import('../../../components/pages/operations/BuyoutLogPage').then(m => ({ default: m.BuyoutLogPage }))
+);
+const PermitLogPage = React.lazy(() =>
+  import('../../../components/pages/operations/PermitLogPage').then(m => ({ default: m.PermitLogPage }))
+);
+const ConstraintsLogPage = React.lazy(() =>
+  import('../../../components/pages/operations/ConstraintsLogPage').then(m => ({ default: m.ConstraintsLogPage }))
+);
+const MonthlyReportsPage = React.lazy(() =>
+  import('../../../components/pages/operations/MonthlyReportsPage').then(m => ({ default: m.MonthlyReportsPage }))
+);
+const SubcontractorScorecardPage = React.lazy(() =>
+  import('../../../components/pages/operations/SubcontractorScorecardPage').then(m => ({ default: m.SubcontractorScorecardPage }))
+);
 
-export function guardRiskCost(context: ITanStackRouteContext): void {
-  requireProject(context);
-  requirePermission(context, PERMISSIONS.RISK_EDIT);
-}
+// ── Documents ─────────────────────────────────────────────────────────
+const CommercialDocumentsPage = React.lazy(() =>
+  import('../../../components/pages/operations/CommercialDocumentsPage').then(m => ({ default: m.CommercialDocumentsPage }))
+);
 
-export function guardSchedule(context: ITanStackRouteContext): void {
-  requireFeature(context, 'ScheduleModule');
-  requireProject(context);
-}
+// ── Operational Excellence ────────────────────────────────────────────
+const OpExDashboardPage = React.lazy(() =>
+  import('../../../components/pages/operations/OpExDashboardPage').then(m => ({ default: m.OpExDashboardPage }))
+);
+const OnboardingPage = React.lazy(() =>
+  import('../../../components/pages/operations/OnboardingPage').then(m => ({ default: m.OnboardingPage }))
+);
+const OpExTrainingPage = React.lazy(() =>
+  import('../../../components/pages/operations/OpExTrainingPage').then(m => ({ default: m.OpExTrainingPage }))
+);
+const OpExDocumentsPage = React.lazy(() =>
+  import('../../../components/pages/operations/OpExDocumentsPage').then(m => ({ default: m.OpExDocumentsPage }))
+);
 
-export function guardMonthlyReview(context: ITanStackRouteContext): void {
-  requireFeature(context, 'MonthlyProjectReview');
-  requireProject(context);
-}
+// ── Safety ────────────────────────────────────────────────────────────
+const SafetyDashboardPage = React.lazy(() =>
+  import('../../../components/pages/operations/SafetyDashboardPage').then(m => ({ default: m.SafetyDashboardPage }))
+);
+const SafetyTrainingPage = React.lazy(() =>
+  import('../../../components/pages/operations/SafetyTrainingPage').then(m => ({ default: m.SafetyTrainingPage }))
+);
+const SafetyScorecardPage = React.lazy(() =>
+  import('../../../components/pages/operations/SafetyScorecardPage').then(m => ({ default: m.SafetyScorecardPage }))
+);
+const SafetyResourcesPage = React.lazy(() =>
+  import('../../../components/pages/operations/SafetyResourcesPage').then(m => ({ default: m.SafetyResourcesPage }))
+);
+const SafetyDocumentsPage = React.lazy(() =>
+  import('../../../components/pages/operations/SafetyDocumentsPage').then(m => ({ default: m.SafetyDocumentsPage }))
+);
 
-export function guardConstraints(context: ITanStackRouteContext): void {
-  requireFeature(context, 'ConstraintsLog');
-  requireProject(context);
-  requirePermission(context, PERMISSIONS.CONSTRAINTS_VIEW);
-}
-
-export function guardPermits(context: ITanStackRouteContext): void {
-  requireProject(context);
-  requirePermission(context, PERMISSIONS.PERMITS_VIEW);
-}
-
-export function guardResponsibility(context: ITanStackRouteContext): void {
-  requireFeature(context, 'ProjectStartup');
-  requireProject(context);
-}
+// ── Quality Control & Warranty ────────────────────────────────────────
+const QCWarrantyDashboardPage = React.lazy(() =>
+  import('../../../components/pages/operations/QCWarrantyDashboardPage').then(m => ({ default: m.QCWarrantyDashboardPage }))
+);
+const BestPracticesPage = React.lazy(() =>
+  import('../../../components/pages/operations/BestPracticesPage').then(m => ({ default: m.BestPracticesPage }))
+);
+const QATrackingPage = React.lazy(() =>
+  import('../../../components/pages/operations/QATrackingPage').then(m => ({ default: m.QATrackingPage }))
+);
+const QCChecklistsPage = React.lazy(() =>
+  import('../../../components/pages/operations/QCChecklistsPage').then(m => ({ default: m.QCChecklistsPage }))
+);
+const WarrantyPage = React.lazy(() =>
+  import('../../../components/pages/operations/WarrantyPage').then(m => ({ default: m.WarrantyPage }))
+);
+const QCDocumentsPage = React.lazy(() =>
+  import('../../../components/pages/operations/QCDocumentsPage').then(m => ({ default: m.QCDocumentsPage }))
+);
 
 export function createOperationsWorkspaceRoutes(rootRoute: unknown) {
-  // --- Hub-level operations routes (from base) ---
-  const operationsRoute = createRoute({
+  // Layout route — feature-gated
+  const opsLayout = createRoute({
     getParentRoute: () => rootRoute as never,
-    path: '/operations',
+    id: 'operations-layout',
+    component: OperationsLayout,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
-      requirePermission(context, PERMISSIONS.ACTIVE_PROJECTS_VIEW);
+      requireFeature(context, 'OperationsWorkspace');
     },
-    loader: ({ context }: { context: ITanStackRouteContext }) => {
-      import(/* webpackChunkName: "page-schedule" */ '../../../components/pages/project/SchedulePage').catch(() => {});
-      import(/* webpackChunkName: "page-buyout-contract" */ '../../../components/pages/project/BuyoutLogPage').catch(() => {});
-      import(/* webpackChunkName: "phase-preconstruction" */ '../../../features/preconstruction/PreconstructionModule').catch(() => {});
-      import(/* webpackChunkName: "page-estimating-tracker" */ '../../../components/pages/precon/EstimatingDashboard').catch(() => {});
-      import(/* webpackChunkName: "page-gonogo" */ '../../../components/pages/hub/GoNoGoScorecard').catch(() => {});
-      import(/* webpackChunkName: "phase-admin-hub" */ '../../../features/adminHub/AdminHubModule').catch(() => {});
-      import(/* webpackChunkName: "page-pmp-16-section" */ '../../../components/pages/project/pmp/ProjectManagementPlan').catch(() => {});
-      import(/* webpackChunkName: "page-monthly-review" */ '../../../components/pages/project/MonthlyProjectReview').catch(() => {});
-      return context.queryClient.ensureQueryData(
-        activeProjectsListOptions(context.scope, context.dataService, {})
-      );
-    },
-    component: ActiveProjectsDashboard,
   });
 
-  const operationsProjectRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/project',
+  // ── Operations Dashboard ──────────────────────────────────────────
+  const opsDashboard = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations',
+    component: OperationsDashboardPage,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
+    },
+  });
+
+  // ── Commercial Operations ─────────────────────────────────────────
+  const commercialDashboard = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/commercial',
+    component: CommercialDashboardPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
+    },
+  });
+
+  const luxuryResidential = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/commercial/luxury',
+    component: LuxuryResidentialPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
+    },
+  });
+
+  // ── Project Hub (requireProject) ──────────────────────────────────
+  const projectDashboard = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/project/dashboard',
+    component: ProjectDashboardPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
       requireProject(context);
     },
-    component: ProjectDashboard,
   });
 
-  const operationsComplianceLogRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/compliance-log',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
-      requirePermission(context, PERMISSIONS.COMPLIANCE_LOG_VIEW);
-    },
-    loader: ({ context }: { context: ITanStackRouteContext }) => {
-      return context.queryClient.ensureQueryData(
-        complianceSummaryOptions(context.scope, context.dataService)
-      );
-    },
-    component: ComplianceLog,
-  });
-
-  // --- Former batchA routes ---
-  const projectSettingsRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/project-settings',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardProjectSettings(context),
+  const projectSettings = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/project/settings',
     component: ProjectSettingsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_RECORD_OPS_EDIT);
+      requireProject(context);
+    },
   });
 
-  const startupChecklistRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/startup-checklist',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardStartupChecklist(context),
-    component: ProjectStartupChecklist,
+  const projectManual = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/project/manual',
+    component: ProjectManualPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
+      requireProject(context);
+    },
   });
 
-  const managementPlanRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/management-plan',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardManagementPlan(context),
-    component: ProjectManagementPlan,
+  // ── Project Manual Sub-pages ──────────────────────────────────────
+  const manualPMP = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/project/manual/pmp',
+    component: PMPPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PMP_EDIT);
+      requireProject(context);
+    },
   });
 
-  const superintendentPlanRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/superintendent-plan',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardProjectOnly(context),
+  const manualSuperintendent = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/project/manual/superintendent',
     component: SuperintendentPlanPage,
-  });
-
-  const closeoutChecklistRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/closeout-checklist',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardProjectOnly(context),
-    component: CloseoutChecklist,
-  });
-
-  const buyoutLogRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/buyout-log',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardBuyoutLog(context),
-    loader: ({ context }: { context: ITanStackRouteContext }) => {
-      const projectCode = context.selectedProject?.projectCode;
-      if (projectCode) {
-        return context.queryClient.ensureQueryData(
-          buyoutEntriesOptions(context.scope, context.dataService, projectCode)
-        );
-      }
-      return Promise.resolve([]);
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.SUPERINTENDENT_PLAN_EDIT);
+      requireProject(context);
     },
+  });
+
+  const manualResponsibility = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/project/manual/responsibility',
+    component: ResponsibilityMatrixPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.MATRIX_EDIT);
+      requireProject(context);
+    },
+  });
+
+  const manualStartup = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/project/manual/startup',
+    component: StartupCloseoutPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.STARTUP_CHECKLIST_EDIT);
+      requireProject(context);
+    },
+  });
+
+  const manualMeetings = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/project/manual/meetings',
+    component: MeetingTemplatesPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.MEETING_READ);
+      requireProject(context);
+    },
+  });
+
+  const manualPayApp = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/project/manual/pay-app',
+    component: PayAppProcessPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
+      requireProject(context);
+    },
+  });
+
+  const manualSafetyPlan = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/project/manual/safety-plan',
+    component: SafetyPlanPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.SAFETY_EDIT);
+      requireProject(context);
+    },
+  });
+
+  const manualOSHA = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/project/manual/osha',
+    component: OSHAGuidePage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
+      requireProject(context);
+    },
+  });
+
+  const manualWeather = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/project/manual/weather',
+    component: TropicalWeatherPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
+      requireProject(context);
+    },
+  });
+
+  const manualCrisis = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/project/manual/crisis',
+    component: CrisisManagementPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
+      requireProject(context);
+    },
+  });
+
+  const manualQAQC = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/project/manual/qaqc',
+    component: QAQCProgramPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.QUALITY_EDIT);
+      requireProject(context);
+    },
+  });
+
+  const manualIDS = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/project/manual/ids',
+    component: IDSRequirementsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
+      requireProject(context);
+    },
+  });
+
+  // ── Cost & Time (requireProject) ──────────────────────────────────
+  const costForecasting = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/cost-time/forecasting',
+    component: FinancialForecastingPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.RISK_EDIT);
+      requireProject(context);
+    },
+  });
+
+  const costSchedule = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/cost-time/schedule',
+    component: SchedulePlaceholderPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.SCHEDULE_VIEW);
+      requireProject(context);
+    },
+  });
+
+  // ── Logs & Reports (requireProject) ───────────────────────────────
+  const logsBuyout = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/logs/buyout',
     component: BuyoutLogPage,
-  });
-
-  const contractTrackingRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/contract-tracking',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardProjectOnly(context),
-    component: ContractTracking,
-  });
-
-  const riskCostRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/risk-cost',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardRiskCost(context),
-    loader: ({ context }: { context: ITanStackRouteContext }) => {
-      const projectCode = context.selectedProject?.projectCode;
-      if (projectCode) {
-        return context.queryClient.ensureQueryData(
-          riskCostManagementOptions(context.scope, context.dataService, projectCode)
-        );
-      }
-      return Promise.resolve(null);
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.BUYOUT_VIEW);
+      requireProject(context);
     },
-    component: RiskCostManagement,
   });
 
-  const scheduleRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/schedule',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardSchedule(context),
-    loader: ({ context }: { context: ITanStackRouteContext }) => {
-      const projectCode = context.selectedProject?.projectCode;
-      if (projectCode) {
-        return context.queryClient.ensureQueryData(
-          projectScheduleOptions(context.scope, context.dataService, projectCode)
-        );
-      }
-      return Promise.resolve(null);
+  const logsPermits = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/logs/permits',
+    component: PermitLogPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PERMITS_VIEW);
+      requireProject(context);
     },
-    component: SchedulePage,
   });
 
-  const qualityConcernsRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/quality-concerns',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardProjectOnly(context),
-    component: QualityConcernsTracker,
-  });
-
-  const safetyConcernsRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/safety-concerns',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardProjectOnly(context),
-    component: SafetyConcernsTracker,
-  });
-
-  const monthlyReviewRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/monthly-review',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardMonthlyReview(context),
-    loader: ({ context }: { context: ITanStackRouteContext }) => {
-      const projectCode = context.selectedProject?.projectCode;
-      if (projectCode) {
-        return context.queryClient.ensureQueryData(
-          monthlyReviewsOptions(context.scope, context.dataService, projectCode)
-        );
-      }
-      return Promise.resolve([]);
-    },
-    component: MonthlyProjectReview,
-  });
-
-  const constraintsRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/constraints-log',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardConstraints(context),
+  const logsConstraints = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/logs/constraints',
     component: ConstraintsLogPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.CONSTRAINTS_VIEW);
+      requireProject(context);
+    },
   });
 
-  const permitsRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/permits-log',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardPermits(context),
-    component: PermitsLogPage,
+  const logsMonthly = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/logs/monthly-reports',
+    component: MonthlyReportsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.MONTHLY_REVIEW_PM);
+      requireProject(context);
+    },
   });
 
-  // --- Former batchB routes ---
-  const responsibilityRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/responsibility',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardResponsibility(context),
-    component: ResponsibilityMatrices,
+  const logsSubScorecard = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/logs/sub-scorecard',
+    component: SubcontractorScorecardPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
+      requireProject(context);
+    },
   });
 
-  const responsibilityOwnerContractRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/responsibility/owner-contract',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardResponsibility(context),
-    component: ResponsibilityMatrices,
+  // ── Documents ─────────────────────────────────────────────────────
+  const commercialDocuments = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/commercial/documents',
+    component: CommercialDocumentsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
+    },
   });
 
-  const responsibilitySubContractRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/responsibility/sub-contract',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardResponsibility(context),
-    component: ResponsibilityMatrices,
+  // ── Operational Excellence ────────────────────────────────────────
+  const opexDashboard = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/opex',
+    component: OpExDashboardPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
+    },
   });
 
-  const projectRecordRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/project-record',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardProjectOnly(context),
-    component: ProjectRecord,
+  const opexOnboarding = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/opex/onboarding',
+    component: OnboardingPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
+    },
   });
 
-  const lessonsLearnedRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/lessons-learned',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardProjectOnly(context),
-    component: LessonsLearnedPage,
+  const opexTraining = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/opex/training',
+    component: OpExTrainingPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
+    },
   });
 
-  const readiCheckRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/readicheck',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardProjectOnly(context),
-    component: () => <ComingSoonPage title="ReadiCheck" />,
+  const opexDocuments = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/opex/documents',
+    component: OpExDocumentsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
+    },
   });
 
-  const bestPracticesRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/best-practices',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardProjectOnly(context),
-    component: () => <ComingSoonPage title="Best Practices" />,
+  // ── Safety ────────────────────────────────────────────────────────
+  const safetyDashboard = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/safety',
+    component: SafetyDashboardPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.SAFETY_EDIT);
+    },
   });
 
-  const subScorecardRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/sub-scorecard',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardProjectOnly(context),
-    component: () => <ComingSoonPage title="Sub Scorecard" />,
+  const safetyTraining = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/safety/training',
+    component: SafetyTrainingPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.SAFETY_EDIT);
+    },
   });
 
-  const goNoGoRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/operations/gonogo',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardProjectOnly(context),
-    component: GoNoGoScorecard,
+  const safetyScorecard = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/safety/scorecard',
+    component: SafetyScorecardPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.SAFETY_EDIT);
+    },
+  });
+
+  const safetyResources = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/safety/resources',
+    component: SafetyResourcesPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.SAFETY_EDIT);
+    },
+  });
+
+  const safetyDocuments = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/safety/documents',
+    component: SafetyDocumentsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.SAFETY_EDIT);
+    },
+  });
+
+  // ── Quality Control & Warranty ────────────────────────────────────
+  const qcDashboard = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/qc',
+    component: QCWarrantyDashboardPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.QUALITY_EDIT);
+    },
+  });
+
+  const qcBestPractices = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/qc/best-practices',
+    component: BestPracticesPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.QUALITY_EDIT);
+    },
+  });
+
+  const qcTracking = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/qc/tracking',
+    component: QATrackingPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.QUALITY_EDIT);
+    },
+  });
+
+  const qcChecklists = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/qc/checklists',
+    component: QCChecklistsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.QUALITY_EDIT);
+    },
+  });
+
+  const qcWarranty = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/qc/warranty',
+    component: WarrantyPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.QUALITY_EDIT);
+    },
+  });
+
+  const qcDocuments = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/qc/documents',
+    component: QCDocumentsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.QUALITY_EDIT);
+    },
   });
 
   return [
-    operationsRoute,
-    operationsProjectRoute,
-    operationsComplianceLogRoute,
-    projectSettingsRoute,
-    startupChecklistRoute,
-    managementPlanRoute,
-    superintendentPlanRoute,
-    closeoutChecklistRoute,
-    buyoutLogRoute,
-    contractTrackingRoute,
-    riskCostRoute,
-    scheduleRoute,
-    qualityConcernsRoute,
-    safetyConcernsRoute,
-    monthlyReviewRoute,
-    constraintsRoute,
-    permitsRoute,
-    responsibilityRoute,
-    responsibilityOwnerContractRoute,
-    responsibilitySubContractRoute,
-    projectRecordRoute,
-    lessonsLearnedRoute,
-    readiCheckRoute,
-    bestPracticesRoute,
-    subScorecardRoute,
-    goNoGoRoute,
+    opsLayout.addChildren([
+      opsDashboard,
+      // Commercial Operations
+      commercialDashboard,
+      luxuryResidential,
+      // Project Hub
+      projectDashboard,
+      projectSettings,
+      projectManual,
+      // Project Manual Sub-pages
+      manualPMP,
+      manualSuperintendent,
+      manualResponsibility,
+      manualStartup,
+      manualMeetings,
+      manualPayApp,
+      manualSafetyPlan,
+      manualOSHA,
+      manualWeather,
+      manualCrisis,
+      manualQAQC,
+      manualIDS,
+      // Cost & Time
+      costForecasting,
+      costSchedule,
+      // Logs & Reports
+      logsBuyout,
+      logsPermits,
+      logsConstraints,
+      logsMonthly,
+      logsSubScorecard,
+      // Documents
+      commercialDocuments,
+      // Operational Excellence
+      opexDashboard,
+      opexOnboarding,
+      opexTraining,
+      opexDocuments,
+      // Safety
+      safetyDashboard,
+      safetyTraining,
+      safetyScorecard,
+      safetyResources,
+      safetyDocuments,
+      // Quality Control & Warranty
+      qcDashboard,
+      qcBestPractices,
+      qcTracking,
+      qcChecklists,
+      qcWarranty,
+      qcDocuments,
+    ] as never),
   ] as unknown[];
 }

@@ -56,6 +56,9 @@ import { IScheduleActivity, IScheduleImport, IScheduleMetrics, IScheduleRelation
 import { IConstraintLog } from '../models/IConstraintLog';
 import { IPermit } from '../models/IPermit';
 import { IRoleConfiguration } from '../models/IRoleConfiguration';
+import { IExternalConnector, ISyncStatus, ISyncHistoryEntry, SyncDirection } from '../models/IExternalConnector';
+import { IBambooHREmployee, IBambooHRTimeOff, IBambooHRDirectory, IBambooHREmployeeMapping } from '../models/IBambooHR';
+import { IProcoreProject, IProcoreRFI, IProcoreSubmittal, IProcoreBudgetLineItem, IProcoreChangeOrder, IProcoreDailyLog, IProcorePhoto, IProcoreSyncSummary, IProcoreConflict } from '../models/IProcore';
 import { ITemplateRegistry, ITemplateSiteConfig, ITemplateManifestLog } from '../models/ITemplateManifest';
 import { ITemplateFileMetadata } from './IDataService';
 import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField, TurnoverStatus, ScorecardStatus, WorkflowActionType, ActionPriority, AuditAction, EntityType } from '../models/enums';
@@ -7082,6 +7085,56 @@ export class SharePointDataService implements IDataService {
     performanceService.endMark('sp:archiveScorecard');
     return result;
   }
+
+  // ---------------------------------------------------------------------------
+  // External Connectors (Phase 4A) — stubs
+  // ---------------------------------------------------------------------------
+
+  public async getConnectors(): Promise<IExternalConnector[]> { throw new Error('Not implemented'); }
+  public async getConnector(_id: number): Promise<IExternalConnector | null> { throw new Error('Not implemented'); }
+  public async createConnector(_connector: Omit<IExternalConnector, 'id'>): Promise<IExternalConnector> { throw new Error('Not implemented'); }
+  public async updateConnector(_id: number, _updates: Partial<IExternalConnector>): Promise<IExternalConnector> { throw new Error('Not implemented'); }
+  public async deleteConnector(_id: number): Promise<void> { throw new Error('Not implemented'); }
+  public async getConnectorSyncStatus(_connectorId: number): Promise<ISyncStatus> { throw new Error('Not implemented'); }
+  public async triggerConnectorSync(_connectorId: number, _direction?: SyncDirection): Promise<ISyncHistoryEntry> { throw new Error('Not implemented'); }
+  public async getConnectorSyncHistory(_connectorId: number): Promise<ISyncHistoryEntry[]> { throw new Error('Not implemented'); }
+  public async testConnectorConnection(_connectorId: number): Promise<{ success: boolean; message: string }> { throw new Error('Not implemented'); }
+
+  // ---------------------------------------------------------------------------
+  // Procore Integration (Phase 4B)
+  // ---------------------------------------------------------------------------
+
+  public async getProcoreProjects(): Promise<IProcoreProject[]> { throw new Error('Not implemented'); }
+  public async getProcoreProject(_id: number): Promise<IProcoreProject | null> { throw new Error('Not implemented'); }
+  public async syncProcoreProject(_projectCode: string): Promise<IProcoreSyncSummary> { throw new Error('Not implemented'); }
+  public async getProcoreRFIs(_projectCode: string): Promise<IProcoreRFI[]> { throw new Error('Not implemented'); }
+  public async syncProcoreRFIs(_projectCode: string): Promise<IProcoreSyncSummary> { throw new Error('Not implemented'); }
+  public async getProcoreSubmittals(_projectCode: string): Promise<IProcoreSubmittal[]> { throw new Error('Not implemented'); }
+  public async syncProcoreSubmittals(_projectCode: string): Promise<IProcoreSyncSummary> { throw new Error('Not implemented'); }
+  public async getProcoreBudget(_projectCode: string): Promise<IProcoreBudgetLineItem[]> { throw new Error('Not implemented'); }
+  public async syncProcoreBudget(_projectCode: string): Promise<IProcoreSyncSummary> { throw new Error('Not implemented'); }
+  public async getProcoreChangeOrders(_projectCode: string): Promise<IProcoreChangeOrder[]> { throw new Error('Not implemented'); }
+  public async syncProcoreChangeOrders(_projectCode: string): Promise<IProcoreSyncSummary> { throw new Error('Not implemented'); }
+  public async getProcoreDailyLogs(_projectCode: string): Promise<IProcoreDailyLog[]> { throw new Error('Not implemented'); }
+  public async syncProcoreDailyLogs(_projectCode: string): Promise<IProcoreSyncSummary> { throw new Error('Not implemented'); }
+  public async getProcorePhotos(_projectCode: string): Promise<IProcorePhoto[]> { throw new Error('Not implemented'); }
+  public async getProcoreConflicts(_projectCode: string): Promise<IProcoreConflict[]> { throw new Error('Not implemented'); }
+  public async resolveProcoreConflict(_conflictId: number, _resolution: 'hbc' | 'procore'): Promise<IProcoreConflict> { throw new Error('Not implemented'); }
+
+  // ---------------------------------------------------------------------------
+  // BambooHR Integration (Phase 4C) — stubs
+  // ---------------------------------------------------------------------------
+
+  public async getBambooEmployees(): Promise<IBambooHREmployee[]> { throw new Error('Not implemented'); }
+  public async getBambooEmployee(_id: number): Promise<IBambooHREmployee | null> { throw new Error('Not implemented'); }
+  public async syncBambooEmployees(): Promise<{ synced: number; errors: number }> { throw new Error('Not implemented'); }
+  public async getBambooDirectory(): Promise<IBambooHRDirectory> { throw new Error('Not implemented'); }
+  public async getBambooTimeOff(_employeeId?: number, _startDate?: string, _endDate?: string): Promise<IBambooHRTimeOff[]> { throw new Error('Not implemented'); }
+  public async syncBambooTimeOff(): Promise<{ synced: number; errors: number }> { throw new Error('Not implemented'); }
+  public async getBambooEmployeeMappings(): Promise<IBambooHREmployeeMapping[]> { throw new Error('Not implemented'); }
+  public async createBambooEmployeeMapping(_data: Omit<IBambooHREmployeeMapping, 'id'>): Promise<IBambooHREmployeeMapping> { throw new Error('Not implemented'); }
+  public async deleteBambooEmployeeMapping(_id: number): Promise<void> { throw new Error('Not implemented'); }
+  public async autoMapBambooEmployees(): Promise<{ mapped: number; unmatched: number }> { throw new Error('Not implemented'); }
 
   // ═══════════════════════════════════════════════════════════════════
   // ──── Project Site URL Targeting & Web Factory ────

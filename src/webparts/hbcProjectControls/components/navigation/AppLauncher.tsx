@@ -1,9 +1,3 @@
-/**
- * AppLauncher.tsx — Fluent UI workspace grid launcher.
- * Opens from a button in the AppShell header. Displays workspace tiles
- * filtered by user roles via NAV_GROUP_ROLES. Clicking a tile navigates
- * to the workspace basePath.
- */
 import * as React from 'react';
 import {
   Menu,
@@ -15,39 +9,15 @@ import {
   shorthands,
   tokens,
 } from '@fluentui/react-components';
-import {
-  Grid24Regular,
-  Notepad24Regular,
-  BuildingFactory24Regular,
-  People24Regular,
-  ShieldCheckmark24Regular,
-  Settings24Regular,
-} from '@fluentui/react-icons';
-import { NAV_GROUP_ROLES } from '@hbc/sp-services';
-import { useAppContext } from '../contexts/AppContext';
+import { Grid24Regular } from '@fluentui/react-icons';
+import { RoleGate } from '../guards/RoleGate';
+import { FeatureGate } from '../guards/FeatureGate';
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
-import { LAUNCHER_WORKSPACES, type IWorkspaceDefinition, type WorkspaceId } from './workspaceConfig';
-import { useWorkspace } from './WorkspaceContext';
-import { TOUCH_TARGET } from '../../theme/tokens';
-
-// ─── Icon Resolution ─────────────────────────────────────────────────────────
-
-const ICON_MAP: Record<string, React.ReactElement> = {
-  Notepad24Regular: <Notepad24Regular />,
-  BuildingFactory24Regular: <BuildingFactory24Regular />,
-  People24Regular: <People24Regular />,
-  ShieldCheckmark24Regular: <ShieldCheckmark24Regular />,
-  Settings24Regular: <Settings24Regular />,
-};
-
-function resolveIcon(iconName: string): React.ReactElement {
-  return ICON_MAP[iconName] ?? <Grid24Regular />;
-}
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
+import { LAUNCHER_WORKSPACES } from './workspaceConfig';
+import { HBC_COLORS, TRANSITION } from '../../theme/tokens';
 
 const useStyles = makeStyles({
-  triggerButton: {
+  trigger: {
     ...shorthands.border('0'),
     backgroundColor: 'transparent',
     color: '#fff',
@@ -56,99 +26,82 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: TOUCH_TARGET.min,
-    minHeight: TOUCH_TARGET.min,
     ...shorthands.borderRadius('4px'),
     ':hover': {
       backgroundColor: 'rgba(255,255,255,0.15)',
     },
-    ':focus-visible': {
-      ...shorthands.outline('2px', 'solid', tokens.colorStrokeFocus2),
-      outlineOffset: '2px',
-    },
   },
-  menuPopover: {
-    minWidth: '220px',
+  popover: {
+    ...shorthands.padding('8px'),
+    minWidth: '200px',
   },
   menuItem: {
     display: 'flex',
     alignItems: 'center',
-    ...shorthands.gap('10px'),
-    fontSize: '14px',
+    ...shorthands.gap('8px'),
   },
-  menuItemActive: {
-    fontWeight: '600',
+  label: {
+    fontWeight: 500,
+    color: HBC_COLORS.navy,
   },
-  menuItemIcon: {
-    display: 'flex',
-    alignItems: 'center',
-    fontSize: '20px',
-    color: tokens.colorBrandForeground1,
+  description: {
+    fontSize: tokens.fontSizeBase100,
+    color: tokens.colorNeutralForeground3,
+  },
+  workspaceTile: {
+    transitionProperty: 'transform',
+    transitionDuration: TRANSITION.fast,
+    ':hover': {
+      transform: 'scale(1.01)',
+    },
   },
 });
 
-// ─── Component ───────────────────────────────────────────────────────────────
-
-export const AppLauncher: React.FC = React.memo(() => {
+export const AppLauncher: React.FC = () => {
   const styles = useStyles();
   const navigate = useAppNavigate();
-  const { currentUser, isFeatureEnabled } = useAppContext();
-  const { activeWorkspaceId } = useWorkspace();
-  const userRoles = currentUser?.roles ?? [];
-
-  // Filter workspaces by role access
-  const visibleWorkspaces = React.useMemo(() => {
-    return LAUNCHER_WORKSPACES.filter((ws: IWorkspaceDefinition) => {
-      // Feature flag gating
-      if (ws.featureFlag && !isFeatureEnabled(ws.featureFlag)) return false;
-      // If no requiredGroupKeys, always visible
-      if (ws.requiredGroupKeys.length === 0) return true;
-      // Check if user has any role that grants access to any required group
-      return ws.requiredGroupKeys.some(groupKey => {
-        const allowedRoles = NAV_GROUP_ROLES[groupKey];
-        return allowedRoles && userRoles.some(r => allowedRoles.includes(r));
-      });
-    });
-  }, [userRoles, isFeatureEnabled]);
-
-  // Stable click handler — uses workspace basePath
-  const handleSelect = React.useCallback(
-    (_e: unknown, data: { name: string }) => {
-      navigate(data.name);
-    },
-    [navigate],
-  );
-
-  if (visibleWorkspaces.length === 0) return null;
 
   return (
-    <Menu onCheckedValueChange={undefined}>
+    <Menu>
       <MenuTrigger disableButtonEnhancement>
         <button
-          className={styles.triggerButton}
+          className={styles.trigger}
           aria-label="Open workspace launcher"
-          title="Workspaces"
+          title="Switch workspace"
         >
           <Grid24Regular />
         </button>
       </MenuTrigger>
-      <MenuPopover className={styles.menuPopover}>
+
+      <MenuPopover className={styles.popover}>
         <MenuList>
-          {visibleWorkspaces.map((ws: IWorkspaceDefinition) => (
-            <MenuItem
-              key={ws.id}
-              onClick={() => handleSelect(null, { name: ws.basePath })}
-              className={styles.menuItem}
-            >
-              <span className={styles.menuItemIcon}>{resolveIcon(ws.iconName)}</span>
-              <span className={ws.id === (activeWorkspaceId as WorkspaceId) ? styles.menuItemActive : undefined}>
-                {ws.label}
-              </span>
-            </MenuItem>
-          ))}
+          {LAUNCHER_WORKSPACES.map(workspace => {
+            const item = (
+              <MenuItem
+                key={workspace.id}
+                className={styles.workspaceTile}
+                onClick={() => navigate(workspace.basePath)}
+              >
+                <div className={styles.menuItem}>
+                  <span className={styles.label}>{workspace.label}</span>
+                </div>
+              </MenuItem>
+            );
+
+            // Wrap with FeatureGate if workspace has a feature flag
+            const featureGated = workspace.featureFlag
+              ? <FeatureGate key={workspace.id} featureName={workspace.featureFlag}>{item}</FeatureGate>
+              : item;
+
+            // Wrap with RoleGate
+            return (
+              <RoleGate key={workspace.id} allowedRoles={workspace.roles}>
+                {featureGated}
+              </RoleGate>
+            );
+          })}
         </MenuList>
       </MenuPopover>
     </Menu>
   );
-});
-AppLauncher.displayName = 'AppLauncher';
+};

@@ -15,7 +15,7 @@ This file must stay under 40,000 characters. Never allow it to grow large again.
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-22 — Phase 3 COMPLETE: Navigation Overhaul + Router Reconstruction. PillarTabBar deleted. App Launcher + ContextualSidebar active behind `uxSuiteNavigationV1`. Adapter hooks rewritten to use TanStack Router directly (no bridge). 5 workspace route files replace 7 batch files. 62 routes (58 original + 2 redirects + 2 placeholders). 752 tests passing.
+**Last Updated:** 2026-02-22 — Phase 4 IN PROGRESS. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (17 routes). Operations workspace BUILT (43 routes, 41 pages). Shared Services planned. 693 tests passing.
 
 **MANDATORY:** After any code change that affects the data layer, architecture, performance, UI/UX, testing, or security, update this file, verify against the current sprint gate, confirm relevant Skills and the master plan were followed, and check project memory before ending the session.
 
@@ -41,6 +41,7 @@ Before any analysis, code change, review, or response, consult the following fil
    - `.claude/skills/clean-tanstack-integration/SKILL.md`  
    - `.claude/skills/enterprise-navigation/SKILL.md`  
    - `.claude/skills/pluggable-data-backends/SKILL.md`
+   - `.claude/skills/elevated-ux-ui-design/SKILL.md` ← **HBC Elevated UI/UX Design Skill** (Mandatory for ALL UI/UX tasks. Enforces elevation from 2/10 enterprise baseline to refined 4.75/10 premium construction-tech experience. Always cross-reference `UX_UI_PATTERNS.md`.)
 
 All files reside in the `.claude/` directory.  
 **Agent Rule:** Quote only the exact rule, checklist item, protocol, or section that applies. Never repeat full sections.
@@ -109,7 +110,7 @@ See `PERFORMANCE_OPTIMIZATION_GUIDE.md` §5 for detailed bundle and chunk rules.
 - Griffel `makeStyles` for all styling  
 
 **Router Stability Rule (Critical)**
-The TanStack Router instance MUST be created exactly once (via `useRef` in `router.tsx`) with static-only values (`queryClient`, `dataService`). Dynamic values injected via `router.update()` + `RouterProvider context={}`. NEVER pass dynamic values to `createHbcTanStackRouter`. NEVER add dynamic values to any dep array that triggers router recreation.
+The TanStack Router instance MUST be created exactly once (via `useRef` in `router.tsx`) with real initial prop values. Dynamic value changes injected via `router.update()` in a `useEffect` — NEVER via `RouterProvider context={}` prop. The `context` prop causes `RouterContextProvider` to call `router.update()` synchronously during render, creating infinite re-render loops when routes have async loaders (`ensureQueryData`). NEVER pass dynamic values to any dep array that triggers router recreation.
 
 **Adapter Hooks (Phase 3 — Clean TanStack Direct)**
 - `useAppNavigate`: Imports `useNavigate` from `@tanstack/react-router`, ref-backs it, returns stable `useCallback` (empty deps). No `startTransition` wrapper — TanStack Router's Transitioner handles transitions natively.
@@ -174,6 +175,7 @@ Last major additions: Phase 2 Role Configuration Engine (Feb 22) — getRoleConf
 - Phase 1: SharePoint Site Provisioning Engine — **COMPLETE** on `feature/hbc-suite-stabilization`. SiteProvisioningWizard + SiteDefaultsConfigPanel + EntraIdSyncService + SOC2 audit snapshots + 9 new IDataService methods (259 total) + 33 new Jest tests.
 - Phase 2: New Role & Permission System — **COMPLETE** on `feature/hbc-suite-stabilization`. IRoleConfiguration + LEGACY_ROLE_MAP + RoleGate normalization + RoleConfigurationPanel + 7 new IDataService methods (266 total) + 35 new Jest tests.
 - Phase 3: Navigation Overhaul + Router/Data Reconstruction — **COMPLETE** on `feature/hbc-suite-stabilization` (22 Feb 2026). AppLauncher + ContextualSidebar + 5 workspace route files + adapter hooks rewritten + PillarTabBar deleted + TanStackAdapterBridge removed. 752 tests passing.
+- Phase 4: Full Features — **IN PROGRESS**. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (17 routes). Operations workspace BUILT (43 routes, 41 pages, 5 sidebar groups). Permission Engine gap fixed (added `project_hub`, `constraints_log`, `permits_log` tool definitions + updated 5 permission templates). 693 tests passing.
 
 ---
 
@@ -195,7 +197,7 @@ Last major additions: Phase 2 Role Configuration Engine (Feb 22) — getRoleConf
 - **NavigationSidebar filter callbacks must be useCallback**: Prevents re-render cascade through NAV_STRUCTURE.map().
 - **insightsItems useMemo must use primitive deps**: Extract boolean flag before useMemo.
 - **isFeatureEnabled** uses `[featureFlags, userRoles]` deps — stable across permission-only updates.
-- **RouterProvider context is memoized**: `useMemo` prevents unnecessary `router.update()` calls.
+- **RouterProvider context prop causes infinite render loop**: NEVER pass `context` to `RouterProvider`. Use `useEffect` + `router.update()`. The render-phase `router.update()` in `RouterContextProvider` creates new `options` objects on every render, which when combined with async loader pending state triggers infinite re-render via `useSyncExternalStore`. See `router.tsx`.
 - **workspaceConfig.ts is single source of truth**: New workspaces/sidebar items added via config only, never hard-coded.
 - **Workspace route files**: `routes.{hub,preconstruction,operations,sharedservices,admin}.tsx` — each exports a factory that takes rootRoute. All routes use absolute paths.
 - **uxSuiteNavigationV1** is the sole nav feature flag. `uxEnhancedNavigationV1` REMOVED.
@@ -203,6 +205,7 @@ Last major additions: Phase 2 Role Configuration Engine (Feb 22) — getRoleConf
 - **TanStackAdapterBridge DELETED** — adapter hooks use TanStack Router directly. Never recreate.
 - **RouterAdapterContext DELETED** — never recreate.
 - All changes must reference `.claude/plans/hbc-stabilization-and-suite-roadmap.md`.
+- **UI/UX Elevation Rule (Critical – Mandatory):** For every UI component, page layout, dashboard, data table, form, navigation element, motion treatment, or visual design task, **immediately activate and strictly follow** `.claude/skills/elevated-ux-ui-design/SKILL.md`. Default exclusively to the 4.75/10 elevated patterns (Fluent UI v9 + Griffel). Pure 2/10 baseline Fluent designs are disallowed without explicit user approval and `uiElevatedExperienceV1` feature-flag gating. Always synchronize with `UX_UI_PATTERNS.md`.
 
 **Keep CLAUDE.md lean** — archive aggressively to CLAUDE_ARCHIVE.md.
 
@@ -210,18 +213,25 @@ Last major additions: Phase 2 Role Configuration Engine (Feb 22) — getRoleConf
 
 ## §17 Stakeholder Requirements & Vision (Locked 22 Feb 2026)
 
+Gen 2 clarification (22 Feb 2026): Standalone desktop app swapped to hosted PWA web app. Single codebase for Gen 1 (SPFx) + Gen 2 (PWA). Gen 3 remains native mobile.
+
 Core functionality, data/backend, performance, UX/roles, future vision, and constraints as captured in owner interview (22 Feb 2026). SharePoint provisioning highest priority (by 31 Mar 2026). Gen 1–3 path locked. MVP <2 months, full scope + Procore/BambooHR <6 months.
 
 ---
 
 ## §18 Stabilization & Multi-Generation Roadmap (Locked 22 Feb 2026)
 
-Phase 0: Blueprint Lockdown (complete).  
-Phase 0.5: Pluggable Data Prep (parallel, 3–5 days).  
-Phase 1: SharePoint Site Provisioning (by 31 Mar 2026).  
-Phase 2: New Role & Permission System (by 5 Apr 2026).  
-Phase 3: Navigation Overhaul + Clean Router & Data Layer Reconstruction + MVP (mid-Apr 2026).  
-Phase 4: Full Features + Integrations (end-Aug 2026).  
+Phase 0: Blueprint Lockdown (complete). **COMPLETE**
+Phase 0.5: Pluggable Data Prep (parallel, 3–5 days). **COMPLETE** 
+Phase 1: SharePoint Site Provisioning (by 31 Mar 2026).  **COMPLETE**
+Phase 2: New Role & Permission System (by 5 Apr 2026). **COMPLETE** 
+Phase 3: Navigation Overhaul + Clean Router & Data Layer Reconstruction + MVP (mid-Apr 2026).  **COMPLETE**
+Phase 4: Full Features + Integrations + Schedule v2 Prep + Gen 2/3 Readiness — **IN PROGRESS** (end-Aug 2026).
+Phase 5: Gen 1 Production Release & Handover (Sep–Oct 2026).
+Phase 6: Gen 2 – Hosted PWA Web App (Q4 2026).
+Phase 7: Gen 3 – Native Mobile Application (Q1 2027).
+Phase 8: Post-Launch Expansion (ongoing).
+Cross-reference: `.claude/plans/hbc-stabilization-and-suite-roadmap.md`.
 
 Master reference: `.claude/plans/hbc-stabilization-and-suite-roadmap.md`
 
@@ -248,12 +258,12 @@ IDataService abstraction preserved (250 methods). Phase 0.5 **COMPLETE**:
 
 ---
 
-## §20 Application Suite Strategy (Phase 3 COMPLETE — 22 Feb 2026)
-Central Analytics Hub + 4 departmental workspaces (IMPLEMENTED):
-- **Preconstruction** (`/preconstruction/*`, `/lead/*`, `/job-request/*`) — BD, Estimating, IDS hubs
-- **Operations** (`/operations/*`) — Project Hub, Commercial Ops, Safety, QC & Warranty sub-groups
-- **Shared Services** (`/shared-services/*`) — Marketing, Accounting, HR (placeholder), Risk Management (placeholder)
-- **Admin** (`/admin/*`) — Admin Panel, Performance, Application Support, Telemetry
+## §20 Application Suite Strategy (Phase 4 — 22 Feb 2026)
+Central Analytics Hub + 4 departmental workspaces:
+- **Preconstruction** (`/preconstruction/*`) — **BUILT**: BD (Dashboard, Leads, Go/No-Go, Pipeline, Project Hub, Documents), Estimating (Dashboard, Tracking, Job Requests, Post-Bid, Project Hub, Documents), IDS (Dashboard, Tracking, Documents). 17 routes.
+- **Admin** (`/admin/*`) — **BUILT**: System Config (Connections, Hub Site URL, Workflows), Security & Access (Roles, Permissions, Assignments, Sectors), Provisioning, Dev Tools (Dev Users, Feature Flags, Audit Log). 12 routes.
+- **Operations** (`/operations/*`) — **BUILT**: Operations Dashboard, Commercial Ops (Dashboard, Luxury Residential, Project Hub, Project Settings, Project Manual + 12 sub-pages, Financial Forecasting, Schedule), Logs & Reports (Buyout, Permits, Constraints, Monthly Reports, Sub Scorecard), Documents, Operational Excellence (Dashboard, Onboarding, Training, Documents), Safety (Dashboard, Training, Scorecard, Resources, Documents), QC & Warranty (Dashboard, Best Practices, QA Tracking, Checklists, Warranty, Documents). 43 routes, 41 pages.
+- **Shared Services** (`/shared-services/*`) — Planned: Marketing, Accounting, HR, Risk Management
 - **QA/QC & Safety** — workspace defined in config, mobile-first treatment deferred to Phase 4
 All driven by `workspaceConfig.ts` — single source of truth. Cross-ref §4 and §21.
 

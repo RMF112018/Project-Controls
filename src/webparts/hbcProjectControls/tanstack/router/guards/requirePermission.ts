@@ -7,4 +7,3 @@ export function requirePermission(context: ITanStackRouteContext, permission: st
     throw redirect({ to: '/access-denied', replace: true });
   }
 }
-

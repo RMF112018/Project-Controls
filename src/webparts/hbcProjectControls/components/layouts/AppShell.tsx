@@ -3,6 +3,8 @@ import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-co
 import { useAppContext } from '../contexts/AppContext';
 import { useHelp } from '../contexts/HelpContext';
 import { NavigationSidebar } from './NavigationSidebar';
+import { AppLauncher } from '../navigation/AppLauncher';
+import { ContextualSidebar } from '../navigation/ContextualSidebar';
 import { SkeletonLoader } from '../shared/SkeletonLoader';
 import { SearchBar } from '../shared/SearchBar';
 import { SyncStatusIndicator } from '../shared/SyncStatusIndicator';
@@ -15,17 +17,9 @@ import type { IHbcInsightItem } from '../shared/HbcInsightsPanel';
 import { useHbcMotionStyles } from '../shared/HbcMotion';
 import { HelpMenu, HelpPanel, GuidedTour, ContactSupportDialog } from '../help';
 import { FeatureGate } from '../guards';
-import { AppLauncher, ContextualSidebar } from '../navigation';
-import { MacBarStatusPill } from '../shared/MacBarStatusPill';
-import { ShellHydrationOverlay } from '../shared/ShellHydrationOverlay';
-import { useNavProfile } from '../hooks/useNavProfile';
 import { useResponsive } from '../hooks/useResponsive';
-import { useCurrentModule } from '../hooks/useCurrentModule';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
-import { useLeads } from '../hooks/useLeads';
-import { isActiveStage } from '@hbc/sp-services';
-import type { ISelectedProject } from '../contexts/AppContext';
 import { IEnvironmentConfig, APP_VERSION } from '@hbc/sp-services';
 import { ArrowMaximize24Regular, ArrowMinimize24Regular } from '@fluentui/react-icons';
 import { HBC_COLORS, SPACING, ELEVATION, TRANSITION } from '../../theme/tokens';
@@ -191,25 +185,6 @@ const useStyles = makeStyles({
       backgroundColor: 'rgba(255,255,255,0.15)',
     },
   },
-  devToggle: {
-    ...shorthands.border('1px', 'solid', 'rgba(255,255,255,0.3)'),
-    ...shorthands.borderRadius('4px'),
-    ...shorthands.padding('2px', '8px'),
-    backgroundColor: 'transparent',
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: '10px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    ':hover': {
-      backgroundColor: 'rgba(255,255,255,0.15)',
-      color: '#fff',
-    },
-  },
-  devToggleActive: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    color: '#fff',
-    ...shorthands.borderColor('rgba(255,255,255,0.5)'),
-  },
 });
 
 const ENV_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -231,80 +206,14 @@ interface IAppShellProps {
 export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
   const styles = useStyles();
   const motionStyles = useHbcMotionStyles();
-  const { currentUser, dataService, isFeatureEnabled, isFullScreen, toggleFullScreen, exitFullScreen, isOnline, setSelectedProject, dataServiceMode, isLoading, error } = useAppContext();
+  const { currentUser, dataService, isFeatureEnabled, isFullScreen, toggleFullScreen, exitFullScreen, isOnline, isLoading, error } = useAppContext();
   const { isMobile, isTablet } = useResponsive();
-  const { setCurrentModuleKey, isHelpPanelOpen, helpPanelMode, startTour: startHelpTour, isTourActive } = useHelp();
-  const currentModuleKey = useCurrentModule();
+  const navigate = useAppNavigate();
+  const { isHelpPanelOpen, helpPanelMode, isTourActive } = useHelp();
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
   const [whatsNewOpen, setWhatsNewOpen] = React.useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = React.useState(false);
   const [isInsightsPanelOpen, setIsInsightsPanelOpen] = React.useState(false);
-  const [devNavOverride, setDevNavOverride] = React.useState(false);
-  // §4: useAppNavigate returns ref-stable callback (empty deps) — see Router Stability Rule
-  const appNavigate = useAppNavigate();
-  const { leads } = useLeads();
-  const { favorites, recent } = useNavProfile();
-
-  // Computed: suite nav enabled via feature flag OR dev toggle (mock only)
-  const isSuiteNavEnabled = isFeatureEnabled('uxSuiteNavigationV1') || devNavOverride;
-
-  // Project commands for enhanced command palette — favorites first, then recent, then rest
-  const projectCommands = React.useMemo<IHbcCommandPaletteCommand[]>(() => {
-    if (!isSuiteNavEnabled) return [];
-
-    const allProjects = leads
-      .filter(l => l.ProjectCode && isActiveStage(l.Stage))
-      .map(l => ({
-        projectCode: l.ProjectCode!,
-        projectName: l.Title,
-        stage: l.Stage,
-        region: l.Region,
-        division: l.Division,
-        leadId: l.id,
-      }));
-
-    // Order: favorites first, then recent, then rest
-    const favSet = new Set(favorites);
-    const recentSet = new Set(recent);
-    const scored = allProjects.map(p => ({
-      ...p,
-      priority: favSet.has(p.projectCode) ? 0 : recentSet.has(p.projectCode) ? 1 : 2,
-    }));
-    scored.sort((a, b) => a.priority - b.priority);
-
-    return scored.slice(0, 25).map(p => ({
-      id: `project-${p.projectCode}`,
-      label: `Switch to ${p.projectName}`,
-      keywords: [p.projectCode, p.projectName, p.region || '', p.division || ''].filter(Boolean),
-      section: 'Projects',
-      run: () => {
-        const project: ISelectedProject = {
-          projectCode: p.projectCode,
-          projectName: p.projectName,
-          stage: p.stage,
-          region: p.region,
-          division: p.division,
-          leadId: p.leadId,
-        };
-        setSelectedProject(project);
-      },
-    }));
-  }, [leads, isSuiteNavEnabled, setSelectedProject, favorites, recent]);
-
-  // Navigation commands for enhanced command palette
-  const navCommands = React.useMemo<IHbcCommandPaletteCommand[]>(() => {
-    if (!isSuiteNavEnabled) return [];
-    return [
-      { id: 'nav-dashboard', label: 'Go to Dashboard', keywords: ['home'], section: 'Navigation', run: () => appNavigate('/') },
-      { id: 'nav-pipeline', label: 'Go to Pipeline', keywords: ['pipeline', 'leads'], section: 'Navigation', run: () => appNavigate('/preconstruction/pipeline') },
-      { id: 'nav-precon', label: 'Go to Estimating Dashboard', keywords: ['estimating', 'preconstruction'], section: 'Navigation', run: () => appNavigate('/preconstruction') },
-      { id: 'nav-marketing', label: 'Go to Marketing', keywords: ['marketing'], section: 'Navigation', run: () => appNavigate('/shared-services/marketing') },
-      { id: 'nav-project', label: 'Go to Project Dashboard', keywords: ['project', 'operations'], section: 'Navigation', run: () => appNavigate('/operations/project') },
-      { id: 'nav-buyout', label: 'Go to Buyout Log', keywords: ['buyout', 'log'], section: 'Navigation', run: () => appNavigate('/operations/buyout-log') },
-      { id: 'nav-schedule', label: 'Go to Schedule', keywords: ['schedule', 'gantt'], section: 'Navigation', run: () => appNavigate('/operations/schedule') },
-      { id: 'nav-admin', label: 'Go to Admin Panel', keywords: ['admin', 'settings'], section: 'Navigation', run: () => appNavigate('/admin') },
-    ];
-  }, [isSuiteNavEnabled, appNavigate]);
 
   const commandPaletteCommands = React.useMemo<IHbcCommandPaletteCommand[]>(() => [
     {
@@ -329,19 +238,6 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
       run: () => setMobileNavOpen((current) => !current),
     },
     {
-      id: 'start-guided-tour',
-      label: 'Start Guided Tour',
-      keywords: ['tour', 'help', 'guide'],
-      section: 'Help',
-      requiredFeatureFlags: ['EnableHelpSystem'],
-      isVisible: () => Boolean(currentModuleKey),
-      run: () => {
-        if (currentModuleKey) {
-          startHelpTour(currentModuleKey);
-        }
-      },
-    },
-    {
       id: 'open-insights',
       label: 'Open Insights Panel',
       keywords: ['insights', 'guidance', 'context'],
@@ -349,21 +245,42 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
       requiredFeatureFlags: ['uxInsightsPanelV1'],
       run: () => setIsInsightsPanelOpen(true),
     },
-    ...projectCommands,
-    ...navCommands,
-  ], [currentModuleKey, isFullScreen, mobileNavOpen, startHelpTour, toggleFullScreen, navCommands, projectCommands]);
+    {
+      id: 'nav-preconstruction',
+      label: 'Go to Preconstruction',
+      keywords: ['preconstruction', 'precon', 'bd', 'estimating'],
+      section: 'Navigation',
+      requiredFeatureFlags: ['PreconstructionWorkspace'],
+      run: () => navigate('/preconstruction'),
+    },
+    {
+      id: 'nav-precon-bd',
+      label: 'Go to Business Development',
+      keywords: ['bd', 'leads', 'pipeline', 'go-no-go'],
+      section: 'Navigation',
+      requiredFeatureFlags: ['PreconstructionWorkspace'],
+      run: () => navigate('/preconstruction/bd'),
+    },
+    {
+      id: 'nav-precon-estimating',
+      label: 'Go to Estimating',
+      keywords: ['estimating', 'estimates', 'job requests'],
+      section: 'Navigation',
+      requiredFeatureFlags: ['PreconstructionWorkspace'],
+      run: () => navigate('/preconstruction/estimating'),
+    },
+    {
+      id: 'nav-precon-ids',
+      label: 'Go to Innovation & Digital Services',
+      keywords: ['ids', 'innovation', 'digital'],
+      section: 'Navigation',
+      requiredFeatureFlags: ['PreconstructionWorkspace'],
+      run: () => navigate('/preconstruction/ids'),
+    },
+  ], [isFullScreen, mobileNavOpen, toggleFullScreen, navigate]);
 
   // Keyboard shortcuts
   useKeyboardShortcut([
-    {
-      key: '?',
-      shiftKey: true,
-      handler: () => {
-        if (isFeatureEnabled('EnableHelpSystem') && currentModuleKey && !isTourActive) {
-          startHelpTour(currentModuleKey);
-        }
-      },
-    },
     {
       key: 'f',
       ctrlKey: true,
@@ -396,14 +313,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
   ]);
   const [envConfig, setEnvConfig] = React.useState<IEnvironmentConfig | null>(null);
 
-  // Sync current module key into HelpContext whenever route changes
-  React.useEffect(() => {
-    setCurrentModuleKey(currentModuleKey);
-  }, [currentModuleKey, setCurrentModuleKey]);
-
   // Load environment config if PermissionEngine is enabled.
-  // Use boolean dep instead of isFeatureEnabled function ref to prevent
-  // unnecessary re-fetches when only callback identity changes.
   const permissionEngineEnabled = isFeatureEnabled('PermissionEngine');
   React.useEffect(() => {
     if (permissionEngineEnabled) {
@@ -420,7 +330,6 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
     }
   }, []);
 
-  // §4: Extract primitive flag for stable useMemo deps — see Router Stability Rule
   const isHelpSystemEnabled = isFeatureEnabled('EnableHelpSystem');
 
   const insightsItems = React.useMemo<IHbcInsightItem[]>(() => [
@@ -484,13 +393,16 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
       {/* Header */}
       <header data-print-hide role="banner" className={mergeClasses(styles.header, isFullScreen && styles.headerFullScreen)}>
         <div className={styles.headerLeft}>
-          {isMobile && !(isSuiteNavEnabled) && (
+          {isMobile && (
             <button onClick={() => setMobileNavOpen(!mobileNavOpen)} className={styles.hamburger}>
               {mobileNavOpen ? '\u2715' : '\u2630'}
             </button>
           )}
           <span className={styles.brandName}>HBC</span>
           {!isMobile && <span className={styles.appTitle}>Project Controls</span>}
+          <FeatureGate featureName="uxSuiteNavigationV1">
+            <AppLauncher />
+          </FeatureGate>
           {envConfig && envConfig.currentTier !== 'prod' && (
             <span
               className={styles.envBadge}
@@ -502,23 +414,11 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
               {ENV_BADGE_LABELS[envConfig.currentTier] || envConfig.currentTier.toUpperCase()}
             </span>
           )}
-          {!isMobile && isSuiteNavEnabled && <AppLauncher />}
         </div>
 
         {!isMobile && <SearchBar />}
 
         <div className={styles.headerRight}>
-          {isSuiteNavEnabled && <MacBarStatusPill />}
-          {dataServiceMode === 'mock' && (
-            <button
-              onClick={() => setDevNavOverride(prev => !prev)}
-              className={mergeClasses(styles.devToggle, devNavOverride && styles.devToggleActive)}
-              title={devNavOverride ? 'Disable Suite Navigation (Dev Only)' : 'Enable Suite Navigation (Dev Only)'}
-              aria-label={devNavOverride ? 'Disable Suite Navigation' : 'Enable Suite Navigation'}
-            >
-              Suite Nav {devNavOverride ? 'ON' : 'OFF'}
-            </button>
-          )}
           <button
             onClick={toggleFullScreen}
             className={styles.fullScreenBtn}
@@ -549,7 +449,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           <>
             <div className={styles.mobileOverlay} onClick={() => setMobileNavOpen(false)} />
             <div className={styles.mobileNav}>
-              {isSuiteNavEnabled ? <ContextualSidebar /> : <NavigationSidebar />}
+              {isFeatureEnabled('uxSuiteNavigationV1') ? <ContextualSidebar /> : <NavigationSidebar />}
             </div>
           </>
         )}
@@ -562,7 +462,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
             className={styles.desktopNav}
             style={{ width: `${sidebarWidth}px`, overflow: isTablet ? 'hidden' : 'auto' }}
           >
-            {isSuiteNavEnabled ? <ContextualSidebar /> : <NavigationSidebar />}
+            {isFeatureEnabled('uxSuiteNavigationV1') ? <ContextualSidebar /> : <NavigationSidebar />}
           </nav>
         )}
 
@@ -576,7 +476,6 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           )}
           style={{ position: 'relative' }}
         >
-          {isSuiteNavEnabled && <ShellHydrationOverlay />}
           {children}
         </main>
       </div>
@@ -592,7 +491,6 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           open={isInsightsPanelOpen}
           onOpenChange={setIsInsightsPanelOpen}
           title="Contextual Insights"
-          contextKey={currentModuleKey ?? undefined}
           items={insightsItems}
         />
       ) : null}

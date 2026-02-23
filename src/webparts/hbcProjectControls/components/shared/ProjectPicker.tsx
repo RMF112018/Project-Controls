@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { useLeads } from '../hooks/useLeads';
 import { useAppContext, ISelectedProject } from '../contexts/AppContext';
 import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
-import { Stage, getStageLabel, isActiveStage } from '@hbc/sp-services';
+import { Stage, getStageLabel, isActiveStage, ILead } from '@hbc/sp-services';
 
 interface IProjectPickerProps {
   selected: ISelectedProject | null;
@@ -11,14 +10,19 @@ interface IProjectPickerProps {
 }
 
 export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelect, locked }) => {
-  const { leads, fetchLeads } = useLeads();
   const { dataService, currentUser, resolvedPermissions } = useAppContext();
+  const [leads, setLeads] = React.useState<ILead[]>([]);
   const [query, setQuery] = React.useState('');
   const [isOpen, setIsOpen] = React.useState(false);
   const [accessibleCodes, setAccessibleCodes] = React.useState<string[] | null>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => { fetchLeads().catch(console.error); }, [fetchLeads]);
+  // Fetch leads directly from data service
+  React.useEffect(() => {
+    dataService.getLeads()
+      .then(result => setLeads(result.items))
+      .catch(() => setLeads([]));
+  }, [dataService]);
 
   // Load accessible project codes when permission engine is active
   React.useEffect(() => {
@@ -26,12 +30,10 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
       setAccessibleCodes(null);
       return;
     }
-    // If user has globalAccess, show all projects
     if (resolvedPermissions.globalAccess) {
       setAccessibleCodes(null);
       return;
     }
-    // Otherwise fetch the user's accessible projects
     dataService.getAccessibleProjects(currentUser.email)
       .then(codes => setAccessibleCodes(codes))
       .catch(() => setAccessibleCodes(null));
@@ -48,18 +50,16 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Map leads to selectable projects (only those with project codes)
   const projects: ISelectedProject[] = React.useMemo(() => {
     let filteredLeads = leads
-      .filter(l => l.ProjectCode && isActiveStage(l.Stage));
+      .filter((l: ILead) => l.ProjectCode && isActiveStage(l.Stage));
 
-    // If accessibleCodes is set, filter to only those project codes
     if (accessibleCodes !== null) {
       const codeSet = new Set(accessibleCodes.map(c => c.toLowerCase()));
-      filteredLeads = filteredLeads.filter(l => l.ProjectCode && codeSet.has(l.ProjectCode.toLowerCase()));
+      filteredLeads = filteredLeads.filter((l: ILead) => l.ProjectCode && codeSet.has(l.ProjectCode.toLowerCase()));
     }
 
-    return filteredLeads.map(l => ({
+    return filteredLeads.map((l: ILead) => ({
       projectCode: l.ProjectCode!,
       projectName: l.Title,
       stage: l.Stage,
@@ -78,7 +78,6 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
     );
   }, [projects, query]);
 
-  // Group by stage
   const grouped = React.useMemo(() => {
     const groups: Record<string, ISelectedProject[]> = {};
     filtered.forEach(p => {

@@ -57,3 +57,6 @@ export * from './ISiteProvisioningDefaults';
 export * from './IEntraGroupSyncResult';
 export * from './IAuditSnapshot';
 export * from './IRoleConfiguration';
+export * from './IExternalConnector';
+export * from './IProcore';
+export * from './IBambooHR';

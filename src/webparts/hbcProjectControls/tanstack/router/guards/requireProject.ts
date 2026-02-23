@@ -3,7 +3,7 @@ import type { ITanStackRouteContext } from '../routeContext';
 
 export function requireProject(context: ITanStackRouteContext): void {
   if (!context.selectedProject?.projectCode) {
-    throw redirect({ to: '/operations', replace: true });
+    throw redirect({ to: '/', replace: true });
   }
 }
 

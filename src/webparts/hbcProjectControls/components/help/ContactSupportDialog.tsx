@@ -18,7 +18,33 @@ import {
 import { DismissRegular } from '@fluentui/react-icons';
 import { useHelp } from '../contexts/HelpContext';
 import { useAppContext } from '../contexts/AppContext';
-import { useAppStateSummary, IAppStateSummary } from '../hooks/useAppStateSummary';
+// App state summary — inline stub (original hook deleted during teardown, will be rebuilt)
+interface IAppStateSummary {
+  user: { displayName: string; email: string; roles: string[] };
+  currentModule: string | null;
+  currentUrl: string;
+  selectedProject: { projectName: string; projectCode: string } | null;
+  enabledFlagCount: number;
+  totalFlagCount: number;
+  browserInfo: { userAgent: string; screenSize: string; timestamp: string };
+  appVersion: string;
+}
+const useAppStateSummary = (): { getStateSummary: () => IAppStateSummary } => ({
+  getStateSummary: (): IAppStateSummary => ({
+    user: { displayName: 'Unknown', email: 'unknown', roles: [] },
+    currentModule: null,
+    currentUrl: typeof window !== 'undefined' ? window.location.href : '',
+    selectedProject: null,
+    enabledFlagCount: 0,
+    totalFlagCount: 0,
+    browserInfo: {
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+      screenSize: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : '',
+      timestamp: new Date().toISOString(),
+    },
+    appVersion: '0.0.0',
+  }),
+});
 import { useToast } from '../shared/ToastContainer';
 import { AuditAction, EntityType } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../theme/tokens';

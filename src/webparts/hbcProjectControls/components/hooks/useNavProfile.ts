@@ -50,6 +50,7 @@ export interface IUseNavProfileResult {
 /**
  * Manages user navigation profile (favorites/recent projects) in localStorage.
  * Scoped to user email. Max 5 recent items (FIFO).
+ * @deprecated Use useProjectProfile from hooks/useProjectProfile.ts instead.
  */
 export function useNavProfile(): IUseNavProfileResult {
   const { currentUser } = useAppContext();

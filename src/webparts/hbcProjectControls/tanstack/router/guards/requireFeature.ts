@@ -6,4 +6,3 @@ export function requireFeature(context: ITanStackRouteContext, featureName: stri
     throw redirect({ to: '/access-denied', replace: true });
   }
 }
-

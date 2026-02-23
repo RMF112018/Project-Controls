@@ -53,6 +53,9 @@ import { IScheduleActivity, IScheduleImport, IScheduleMetrics } from '../models/
 import { IConstraintLog } from '../models/IConstraintLog';
 import { IPermit } from '../models/IPermit';
 import { ITemplateRegistry, ITemplateSiteConfig, ITemplateManifestLog } from '../models/ITemplateManifest';
+import { IExternalConnector, ISyncStatus, ISyncHistoryEntry, SyncDirection } from '../models/IExternalConnector';
+import { IProcoreProject, IProcoreRFI, IProcoreSubmittal, IProcoreBudgetLineItem, IProcoreChangeOrder, IProcoreDailyLog, IProcorePhoto, IProcoreSyncSummary, IProcoreConflict } from '../models/IProcore';
+import { IBambooHREmployee, IBambooHRTimeOff, IBambooHRDirectory, IBambooHREmployeeMapping } from '../models/IBambooHR';
 import { GoNoGoDecision, Stage, WorkflowKey } from '../models/enums';
 
 export interface IListQueryOptions {
@@ -542,6 +545,47 @@ export interface IDataService {
   addPermit(projectCode: string, permit: Partial<IPermit>): Promise<IPermit>;
   updatePermit(projectCode: string, permitId: number, data: Partial<IPermit>): Promise<IPermit>;
   removePermit(projectCode: string, permitId: number): Promise<void>;
+
+  // Procore Integration (Phase 4B)
+  getProcoreProjects(): Promise<IProcoreProject[]>;
+  getProcoreProject(id: number): Promise<IProcoreProject | null>;
+  syncProcoreProject(projectCode: string): Promise<IProcoreSyncSummary>;
+  getProcoreRFIs(projectCode: string): Promise<IProcoreRFI[]>;
+  syncProcoreRFIs(projectCode: string): Promise<IProcoreSyncSummary>;
+  getProcoreSubmittals(projectCode: string): Promise<IProcoreSubmittal[]>;
+  syncProcoreSubmittals(projectCode: string): Promise<IProcoreSyncSummary>;
+  getProcoreBudget(projectCode: string): Promise<IProcoreBudgetLineItem[]>;
+  syncProcoreBudget(projectCode: string): Promise<IProcoreSyncSummary>;
+  getProcoreChangeOrders(projectCode: string): Promise<IProcoreChangeOrder[]>;
+  syncProcoreChangeOrders(projectCode: string): Promise<IProcoreSyncSummary>;
+  getProcoreDailyLogs(projectCode: string): Promise<IProcoreDailyLog[]>;
+  syncProcoreDailyLogs(projectCode: string): Promise<IProcoreSyncSummary>;
+  getProcorePhotos(projectCode: string): Promise<IProcorePhoto[]>;
+  getProcoreConflicts(projectCode: string): Promise<IProcoreConflict[]>;
+  resolveProcoreConflict(conflictId: number, resolution: 'hbc' | 'procore'): Promise<IProcoreConflict>;
+
+  // BambooHR Integration (Phase 4C)
+  getBambooEmployees(): Promise<IBambooHREmployee[]>;
+  getBambooEmployee(id: number): Promise<IBambooHREmployee | null>;
+  syncBambooEmployees(): Promise<{ synced: number; errors: number }>;
+  getBambooDirectory(): Promise<IBambooHRDirectory>;
+  getBambooTimeOff(employeeId?: number, startDate?: string, endDate?: string): Promise<IBambooHRTimeOff[]>;
+  syncBambooTimeOff(): Promise<{ synced: number; errors: number }>;
+  getBambooEmployeeMappings(): Promise<IBambooHREmployeeMapping[]>;
+  createBambooEmployeeMapping(data: Omit<IBambooHREmployeeMapping, 'id'>): Promise<IBambooHREmployeeMapping>;
+  deleteBambooEmployeeMapping(id: number): Promise<void>;
+  autoMapBambooEmployees(): Promise<{ mapped: number; unmatched: number }>;
+
+  // External Connectors (Phase 4A)
+  getConnectors(): Promise<IExternalConnector[]>;
+  getConnector(id: number): Promise<IExternalConnector | null>;
+  createConnector(connector: Omit<IExternalConnector, 'id'>): Promise<IExternalConnector>;
+  updateConnector(id: number, updates: Partial<IExternalConnector>): Promise<IExternalConnector>;
+  deleteConnector(id: number): Promise<void>;
+  getConnectorSyncStatus(connectorId: number): Promise<ISyncStatus>;
+  triggerConnectorSync(connectorId: number, direction?: SyncDirection): Promise<ISyncHistoryEntry>;
+  getConnectorSyncHistory(connectorId: number): Promise<ISyncHistoryEntry[]>;
+  testConnectorConnection(connectorId: number): Promise<{ success: boolean; message: string }>;
 
   // Project site URL targeting (Phase 26)
   setProjectSiteUrl(siteUrl: string | null): void;

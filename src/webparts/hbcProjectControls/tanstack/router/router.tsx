@@ -44,26 +44,23 @@ export const TanStackPilotRouter: React.FC<ITanStackRouterProviderProps> = ({
   isFeatureEnabled,
   scope,
 }) => {
-  // ── 1. Create router exactly ONCE with static-only values ──────────
-  // Route tree, hash history, preload config, and fallback components
-  // are immutable for the router's lifetime. Dynamic values are injected
-  // via useEffect (step 2) and RouterProvider context (step 3).
+  // ── 1. Create router exactly ONCE with REAL initial values ──────────
+  // useRef lazy-init captures the first render's props so guards and
+  // loaders see correct context on the very first route evaluation.
+  // Dynamic value changes are handled by useEffect (step 3).
   const routerRef = React.useRef<ReturnType<typeof createHbcTanStackRouter> | null>(null);
   if (routerRef.current === null) {
     routerRef.current = createHbcTanStackRouter({
       queryClient,
       dataService,
-      currentUser: null,
-      selectedProject: null,
-      isFeatureEnabled: () => false,
-      scope: { mode: 'mock', siteContext: 'hub', siteUrl: '', projectCode: null },
+      currentUser,
+      selectedProject,
+      isFeatureEnabled,
+      scope,
     });
   }
 
-  // ── 2. Memoize context so RouterProvider only calls router.update()
-  //       when a value actually changes. No separate useEffect needed —
-  //       RouterProvider calls router.update() during render when context
-  //       prop is provided.
+  // ── 2. Memoize context — only changes when a value actually changes ──
   const routerContext = React.useMemo(() => ({
     queryClient,
     dataService,
@@ -73,10 +70,25 @@ export const TanStackPilotRouter: React.FC<ITanStackRouterProviderProps> = ({
     scope,
   }), [queryClient, dataService, currentUser, selectedProject, isFeatureEnabled, scope]);
 
+  // ── 3. Deferred context update via useEffect ──────────────────────────
+  // CRITICAL: router.update() must NOT run during render.
+  // RouterProvider with a context prop calls router.update() synchronously
+  // during render. When async loaders keep the router in "pending" state,
+  // this creates an infinite synchronous re-render loop:
+  //   render → router.update() → store notify → re-render → ...
+  // Moving to useEffect breaks this cycle — updates happen after commit.
+  React.useEffect(() => {
+    routerRef.current!.update({
+      ...routerRef.current!.options,
+      context: routerContext,
+    });
+  }, [routerContext]);
+
+  // ── 4. NO context prop — prevents RouterContextProvider from calling
+  //       router.update() synchronously during render ──────────────────
   return (
     <RouterProvider
       router={routerRef.current!}
-      context={routerContext}
     />
   );
 };

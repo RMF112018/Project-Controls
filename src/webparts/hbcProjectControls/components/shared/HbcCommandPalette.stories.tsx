@@ -122,3 +122,49 @@ export const FeatureFlagGatedCommands: Story = {
     initiallyOpen: true,
   }),
 };
+
+const projectCommands: IHbcCommandPaletteCommand[] = [
+  {
+    id: 'project-HBC-2024-001',
+    label: 'Switch to Oceanview Tower',
+    keywords: ['HBC-2024-001', 'Oceanview Tower', 'Southeast'],
+    section: 'Projects',
+    run: () => undefined,
+  },
+  {
+    id: 'project-HBC-2024-002',
+    label: 'Switch to Metro Center Renovation',
+    keywords: ['HBC-2024-002', 'Metro Center', 'Northeast'],
+    section: 'Projects',
+    run: () => undefined,
+  },
+  {
+    id: 'project-HBC-2024-003',
+    label: 'Switch to Harbor Bridge Repair',
+    keywords: ['HBC-2024-003', 'Harbor Bridge', 'Southeast'],
+    section: 'Projects',
+    run: () => undefined,
+  },
+  {
+    id: 'nav-dashboard',
+    label: 'Go to Dashboard',
+    keywords: ['home'],
+    section: 'Navigation',
+    run: () => undefined,
+  },
+  {
+    id: 'nav-pipeline',
+    label: 'Go to Pipeline',
+    keywords: ['pipeline', 'leads'],
+    section: 'Navigation',
+    run: () => undefined,
+  },
+  ...baseCommands,
+];
+
+export const WithProjectCommands: Story = {
+  render: () => React.createElement(Launcher, {
+    commands: projectCommands,
+    initiallyOpen: true,
+  }),
+};

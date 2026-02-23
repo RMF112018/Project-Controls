@@ -56,24 +56,37 @@ All use top App Launcher + contextual Left Sidebar. Documents via Fluent/Graph.
 - Central Analytics Hub + Preconstruction / Operations / Leadership / Admin workspaces with preliminary dashboards and critical daily tasks for all 6 roles.
 - **STATUS: COMPLETE** — Committed on `feature/hbc-suite-stabilization` (22 Feb 2026). Deliverables: AppLauncher + ContextualSidebar + workspaceConfig.ts + WorkspaceContext + NavPrimitives (Phase 3A). 5 workspace route files replacing 7 batch files, 62 routes total (Phase 3B). Adapter hooks rewritten to use TanStack Router directly, TanStackAdapterBridge + RouterAdapterContext deleted (Phase 3C). PillarTabBar deleted, uxEnhancedNavigationV1 flag removed, uxSuiteNavigationV1 is sole nav flag (Phase 3D). 752 tests passing, TypeScript clean (Phase 3E).
 
-## Files Changed
+### 4. Phase 2: New Role & Permission System (by 5 Apr 2026)
+- Configuration-driven role engine (SharePoint list) with Admin CRUD panel, global vs scoped access, Entra ID sync, SOC2 audit.
+- **STATUS: COMPLETE** (22 Feb 2026)
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `CLAUDE.md` | Major edit | Populate §§5, 17–23 and update cross-referenced sections |
-| `.claude/plans/hbc-stabilization-and-suite-roadmap.md` | Create | This master reference for all code agents |
-| `.claude/SKILL-*.md` (4 files) | Create | Capture patterns for 40–60 % faster future work |
-| `packages/hbc-sp-services/src/` | Add/edit | DataProviderFactory + adapter skeletons |
-| `src/webparts/hbcProjectControls/` | Major refactor | New AppShell, router tree, hooks (Phase 3) |
+### 5. Phase 3: New App Shell + Router & Data Layer Reconstruction (mid-Apr 2026)
+- Removed PillarTabBar entirely. Implemented Global App Shell + Top App Launcher + Contextual Left Sidebar.
+- Clean-slate TanStack Router reconstruction (declarative loaders, no adapters/bridge).
+- **STATUS: COMPLETE** (22 Feb 2026)
+
+### 6. Phase 4: Full Features + Integrations + Schedule v2 Prep + Gen 2/3 Readiness (end-Aug 2026)
+- Procore & BambooHR connectors (mock-first, bidirectional/one-way), QA/QC & Safety mobile-first workspace, Schedule v2 enhancements (virtualization, Gantt, drag-drop, What-If), DataProviderFactory UI wiring, Azure SQL/Dataverse core methods, PWA polish.
+- **STATUS: IN PROGRESS** (executing on `feature/hbc-suite-stabilization`)
+
+### 7. Phase 5: Gen 1 Production Release & Handover (Sep–Oct 2026)
+- End-to-end testing with rollout team, SOC2 final audit, production SPFx deployment, training, documentation, monitoring/hotfix process.
+
+### 8. Phase 6: Gen 2 – Hosted PWA Web App (Q4 2026)
+- Hosted PWA (Azure Static Web Apps recommended) as the full-screen installable version. Full reuse of existing codebase + DataProviderFactory (Azure SQL focus) + enhanced offline capabilities. (Standalone desktop swapped per owner decision 22 Feb 2026.)
+
+### 9. Phase 7: Gen 3 – Native Mobile Application (Q1 2027)
+- Dedicated native mobile app (React Native) with QA/QC & Safety as flagship workspace. Full offline sync, photo/GPS, push notifications.
+
+### 10. Phase 8: Post-Launch Expansion (Ongoing)
+- SAGE Intact integration, advanced analytics/AI, new modules, continuous enhancements.
 
 ## Verification
 
-1. CLAUDE.md contains all new sections (§5, §§17–23) with locked dates of 22 Feb 2026 and correct cross-references to this plan file.
-2. This plan file exists in `.claude/plans/` and is referenced in §18.
-3. All 4 new SKILL files exist with proper structure, examples, and CLAUDE.md cross-references.
-4. Phase 1 (SharePoint provisioning) is delivered and approved by owner + rollout team by 31 Mar 2026.
-5. PillarTabBar and all legacy TanStack migration adapters are fully removed; new App Shell runs with Option 1 navigation and shows measurable performance improvement on 100+ projects.
-6. Router & data layer reconstruction follows `.claude/SKILL-CleanTanStackIntegration.md` patterns with zero re-render cascades or navigation freezes.
-7. Every subsequent code change updates CLAUDE.md and references this plan file (governance enforced).
+1. CLAUDE.md contains all sections with correct cross-references and phase statuses.
+2. This plan file is the single source of truth and is referenced in CLAUDE.md §18.
+3. All SKILL files exist and are followed.
+4. Every phase update includes git commit on `feature/hbc-suite-stabilization` and CLAUDE.md synchronization.
+5. Full sprint gate (`npm run verify:sprint3`) passes after each phase.
 
-**Governance Note**: This plan is the single source of truth for the stabilization effort. Any deviation requires owner approval and immediate update to CLAUDE.md §18.
+**Governance Note**: This plan is the single source of truth for the entire effort. Any deviation requires owner approval and immediate update to CLAUDE.md §18. Phase 4 must complete before marking overall stabilization done.

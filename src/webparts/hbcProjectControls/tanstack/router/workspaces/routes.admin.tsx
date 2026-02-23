@@ -1,93 +1,212 @@
 /**
  * Admin Workspace Routes
  *
- * All /admin/* routes from the former adminAccounting batchD file.
- * Accounting moved to Shared Services workspace.
- * 4 routes total.
+ * 4 sidebar groups: System Configuration, Security & Access, Provisioning, Dev Tools.
+ * 12 routes total (1 layout + 11 children).
  */
-import { createRoute, lazyRouteComponent } from '@tanstack/react-router';
+import * as React from 'react';
+import { createRoute } from '@tanstack/react-router';
 import { PERMISSIONS } from '@hbc/sp-services';
-import type { ITanStackRouteContext } from '../routeContext';
 import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
-import { permissionTemplatesOptions } from '../../query/queryOptions/permissionEngine';
+import type { ITanStackRouteContext } from '../routeContext';
 
-// --- Lazy components ---
-const AdminPanel = lazyRouteComponent(
-  () => import(/* webpackChunkName: "page-admin-panel" */ '../../../components/pages/hub/AdminPanel'),
-  'AdminPanel'
+// Lazy page imports for code-splitting
+const AdminLayout = React.lazy(() =>
+  import('../../../components/layouts/AdminLayout').then(m => ({ default: m.AdminLayout }))
 );
-const PerformanceDashboard = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../../features/adminHub/AdminHubModule'),
-  'PerformanceDashboard'
-);
-const ApplicationSupportPage = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../../features/adminHub/AdminHubModule'),
-  'ApplicationSupportPage'
-);
-const TelemetryDashboard = lazyRouteComponent(
-  () => import(/* webpackChunkName: "phase-admin-hub" */ '../../../features/adminHub/AdminHubModule'),
-  'TelemetryDashboard'
+const AdminDashboardPage = React.lazy(() =>
+  import('../../../components/pages/admin/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage }))
 );
 
-// --- Guards ---
-export function guardAdmin(context: ITanStackRouteContext): void {
-  requirePermission(context, PERMISSIONS.ADMIN_CONFIG);
-}
+// System Configuration
+const ConnectionsPage = React.lazy(() =>
+  import('../../../components/pages/admin/ConnectionsPage').then(m => ({ default: m.ConnectionsPage }))
+);
+const HubSiteUrlPage = React.lazy(() =>
+  import('../../../components/pages/admin/HubSiteUrlPage').then(m => ({ default: m.HubSiteUrlPage }))
+);
+const WorkflowsPage = React.lazy(() =>
+  import('../../../components/pages/admin/WorkflowsPage').then(m => ({ default: m.WorkflowsPage }))
+);
 
-export function guardAdminPerformance(context: ITanStackRouteContext): void {
-  requireFeature(context, 'PerformanceMonitoring');
-  requirePermission(context, PERMISSIONS.ADMIN_CONFIG);
-}
+// Security & Access
+const RolesPage = React.lazy(() =>
+  import('../../../components/pages/admin/RolesPage').then(m => ({ default: m.RolesPage }))
+);
+const PermissionsPage = React.lazy(() =>
+  import('../../../components/pages/admin/PermissionsPage').then(m => ({ default: m.PermissionsPage }))
+);
+const AssignmentsPage = React.lazy(() =>
+  import('../../../components/pages/admin/AssignmentsPage').then(m => ({ default: m.AssignmentsPage }))
+);
+const SectorsPage = React.lazy(() =>
+  import('../../../components/pages/admin/SectorsPage').then(m => ({ default: m.SectorsPage }))
+);
 
-export function guardAdminSupport(context: ITanStackRouteContext): void {
-  requireFeature(context, 'EnableHelpSystem');
-  requirePermission(context, PERMISSIONS.ADMIN_CONFIG);
-}
+// Provisioning
+const ProvisioningPage = React.lazy(() =>
+  import('../../../components/pages/admin/ProvisioningPage').then(m => ({ default: m.ProvisioningPage }))
+);
 
-export function guardAdminTelemetry(context: ITanStackRouteContext): void {
-  requireFeature(context, 'TelemetryDashboard');
-  requirePermission(context, PERMISSIONS.ADMIN_CONFIG);
-}
+// Dev Tools
+const DevUsersPage = React.lazy(() =>
+  import('../../../components/pages/admin/DevUsersPage').then(m => ({ default: m.DevUsersPage }))
+);
+const FeatureFlagsPage = React.lazy(() =>
+  import('../../../components/pages/admin/FeatureFlagsPage').then(m => ({ default: m.FeatureFlagsPage }))
+);
+const AuditLogPage = React.lazy(() =>
+  import('../../../components/pages/admin/AuditLogPage').then(m => ({ default: m.AuditLogPage }))
+);
 
 export function createAdminWorkspaceRoutes(rootRoute: unknown) {
-  const adminRoute = createRoute({
+  // Layout route — feature-gated
+  const adminLayout = createRoute({
     getParentRoute: () => rootRoute as never,
-    path: '/admin',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardAdmin(context),
-    loader: ({ context }: { context: ITanStackRouteContext }) => {
-      return context.queryClient.ensureQueryData(
-        permissionTemplatesOptions(context.scope, context.dataService)
-      );
+    id: 'admin-layout',
+    component: AdminLayout,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'AdminWorkspace');
     },
-    component: AdminPanel,
   });
 
-  const adminPerformanceRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/admin/performance',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardAdminPerformance(context),
-    component: PerformanceDashboard,
+  // Dashboard landing
+  const adminDashboard = createRoute({
+    getParentRoute: () => adminLayout as never,
+    path: '/admin',
+    component: AdminDashboardPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.ADMIN_CONFIG);
+    },
   });
 
-  const adminSupportRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/admin/application-support',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardAdminSupport(context),
-    component: ApplicationSupportPage,
+  // ── System Configuration ─────────────────────────────────────────
+  const connections = createRoute({
+    getParentRoute: () => adminLayout as never,
+    path: '/admin/connections',
+    component: ConnectionsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.ADMIN_CONNECTIONS);
+    },
   });
 
-  const adminTelemetryRoute = createRoute({
-    getParentRoute: () => rootRoute as never,
-    path: '/admin/telemetry',
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => guardAdminTelemetry(context),
-    component: TelemetryDashboard,
+  const hubSiteUrl = createRoute({
+    getParentRoute: () => adminLayout as never,
+    path: '/admin/hub-site',
+    component: HubSiteUrlPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.ADMIN_CONFIG);
+    },
+  });
+
+  const workflows = createRoute({
+    getParentRoute: () => adminLayout as never,
+    path: '/admin/workflows',
+    component: WorkflowsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'WorkflowDefinitions');
+      requirePermission(context, PERMISSIONS.WORKFLOW_MANAGE);
+    },
+  });
+
+  // ── Security & Access ────────────────────────────────────────────
+  const roles = createRoute({
+    getParentRoute: () => adminLayout as never,
+    path: '/admin/roles',
+    component: RolesPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.ADMIN_ROLES);
+    },
+  });
+
+  const permissions = createRoute({
+    getParentRoute: () => adminLayout as never,
+    path: '/admin/permissions',
+    component: PermissionsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'PermissionEngine');
+      requirePermission(context, PERMISSIONS.PERMISSION_TEMPLATES_MANAGE);
+    },
+  });
+
+  const assignments = createRoute({
+    getParentRoute: () => adminLayout as never,
+    path: '/admin/assignments',
+    component: AssignmentsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.PERMISSION_PROJECT_TEAM_MANAGE);
+    },
+  });
+
+  const sectors = createRoute({
+    getParentRoute: () => adminLayout as never,
+    path: '/admin/sectors',
+    component: SectorsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.ADMIN_CONFIG);
+    },
+  });
+
+  // ── Provisioning ─────────────────────────────────────────────────
+  const provisioning = createRoute({
+    getParentRoute: () => adminLayout as never,
+    path: '/admin/provisioning',
+    component: ProvisioningPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.ADMIN_PROVISIONING);
+    },
+  });
+
+  // ── Dev Tools ────────────────────────────────────────────────────
+  const devUsers = createRoute({
+    getParentRoute: () => adminLayout as never,
+    path: '/admin/dev-users',
+    component: DevUsersPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'DevUserManagement');
+      requirePermission(context, PERMISSIONS.ADMIN_FLAGS);
+    },
+  });
+
+  const featureFlags = createRoute({
+    getParentRoute: () => adminLayout as never,
+    path: '/admin/feature-flags',
+    component: FeatureFlagsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'DevUserManagement');
+      requirePermission(context, PERMISSIONS.ADMIN_FLAGS);
+    },
+  });
+
+  const auditLog = createRoute({
+    getParentRoute: () => adminLayout as never,
+    path: '/admin/audit-log',
+    component: AuditLogPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'DevUserManagement');
+      requirePermission(context, PERMISSIONS.ADMIN_FLAGS);
+    },
   });
 
   return [
-    adminRoute,
-    adminPerformanceRoute,
-    adminSupportRoute,
-    adminTelemetryRoute,
+    adminLayout.addChildren([
+      adminDashboard,
+      // System Configuration
+      connections,
+      hubSiteUrl,
+      workflows,
+      // Security & Access
+      roles,
+      permissions,
+      assignments,
+      sectors,
+      // Provisioning
+      provisioning,
+      // Dev Tools
+      devUsers,
+      featureFlags,
+      auditLog,
+    ] as never),
   ] as unknown[];
 }

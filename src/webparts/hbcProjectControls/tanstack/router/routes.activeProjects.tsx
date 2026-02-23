@@ -7,12 +7,11 @@ import { ErrorBoundary } from '../../components/shared/ErrorBoundary';
 import { RouteSuspenseFallback } from '../../components/boundaries/RouteSuspenseFallback';
 import { useTelemetryPageView } from '../../hooks/useTelemetryPageView';
 
-// Workspace route factories (consolidated from 7 batch files)
+// Workspace route factories
 import { createHubWorkspaceRoutes } from './workspaces/routes.hub';
-import { createOperationsWorkspaceRoutes } from './workspaces/routes.operations';
 import { createPreconstructionWorkspaceRoutes } from './workspaces/routes.preconstruction';
-import { createSharedServicesWorkspaceRoutes } from './workspaces/routes.sharedservices';
 import { createAdminWorkspaceRoutes } from './workspaces/routes.admin';
+import { createOperationsWorkspaceRoutes } from './workspaces/routes.operations';
 
 const TelemetryPageTracker: React.FC = () => {
   useTelemetryPageView();
@@ -47,14 +46,12 @@ const rootRoute = createRootRouteWithContext<ITanStackRouteContext>()({
 });
 
 export const tanStackPilotRouteTree = rootRoute.addChildren([
-  // Hub workspace: dashboard, access-denied, not-found, redirects
+  // Hub workspace: placeholder home, access-denied, not-found
   ...(createHubWorkspaceRoutes(rootRoute) as AnyRoute[]),
-  // Operations workspace: 26 routes
-  ...(createOperationsWorkspaceRoutes(rootRoute) as AnyRoute[]),
-  // Preconstruction workspace: 23 routes (precon + lead + job-request)
+  // Preconstruction workspace: BD, Estimating, IDS
   ...(createPreconstructionWorkspaceRoutes(rootRoute) as AnyRoute[]),
-  // Shared Services workspace: 4 routes (marketing, accounting, HR, risk)
-  ...(createSharedServicesWorkspaceRoutes(rootRoute) as AnyRoute[]),
-  // Admin workspace: 4 routes
+  // Admin workspace: System Config, Security, Provisioning, Dev Tools
   ...(createAdminWorkspaceRoutes(rootRoute) as AnyRoute[]),
+  // Operations workspace: Commercial Ops, Project Hub, OpEx, Safety, QC & Warranty
+  ...(createOperationsWorkspaceRoutes(rootRoute) as AnyRoute[]),
 ]);

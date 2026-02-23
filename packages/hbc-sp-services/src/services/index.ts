@@ -52,3 +52,8 @@ export { NotImplementedError } from './NotImplementedError';
 export { createNotImplementedService } from './createNotImplementedService';
 export { EntraIdSyncService } from './EntraIdSyncService';
 export type { IProvisioningValidationResult, IProvisioningSummary } from './IDataService';
+export type { IConnectorAdapter, IConnectorTestResult, ISyncResult } from './IConnectorAdapter';
+export { connectorRegistry } from './ConnectorRegistry';
+export type { ConnectorRegistry, ConnectorAdapterFactory } from './ConnectorRegistry';
+export { BambooHRAdapter } from './BambooHRAdapter';
+export { ProcoreAdapter } from './ProcoreAdapter';

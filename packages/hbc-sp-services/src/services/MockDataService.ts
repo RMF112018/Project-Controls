@@ -172,6 +172,9 @@ import { IEntraGroupSyncResult, IEntraGroupInfo, IEntraMembershipAction } from '
 import { IAuditSnapshot } from '../models/IAuditSnapshot';
 import { IProvisioningInput } from '../models/IProvisioningLog';
 import { IProvisioningValidationResult, IProvisioningSummary } from './IDataService';
+import { IExternalConnector, ISyncStatus, ISyncHistoryEntry, SyncDirection, SyncRunStatus } from '../models/IExternalConnector';
+import { IProcoreProject, IProcoreRFI, IProcoreSubmittal, IProcoreBudgetLineItem, IProcoreChangeOrder, IProcoreDailyLog, IProcorePhoto, IProcoreSyncSummary, IProcoreConflict } from '../models/IProcore';
+import { IBambooHREmployee, IBambooHRTimeOff, IBambooHRDirectory, IBambooHREmployeeMapping } from '../models/IBambooHR';
 
 const delay = (): Promise<void> => new Promise(r => setTimeout(r, 50));
 
@@ -228,6 +231,62 @@ const REQUIRED_PROMPT6_FEATURE_FLAGS: ReadonlyArray<Omit<IFeatureFlag, 'id'>> = 
     EnabledForRoles: undefined,
     TargetDate: '2026-02-22',
     Notes: 'Global App Shell with top App Launcher grid and contextual left sidebar per workspace',
+    Category: 'Infrastructure',
+  },
+  {
+    FeatureName: 'ExternalConnectors',
+    DisplayName: 'External Connectors Framework',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    Notes: 'External system integration framework (Procore, BambooHR)',
+    Category: 'Integrations',
+  },
+  {
+    FeatureName: 'ProcoreIntegration',
+    DisplayName: 'Procore Integration',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    Notes: 'Procore bidirectional sync for projects, RFIs, submittals, budget',
+    Category: 'Integrations',
+  },
+  {
+    FeatureName: 'BambooHRIntegration',
+    DisplayName: 'BambooHR Integration',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    Notes: 'BambooHR one-way sync for employee directory and time-off',
+    Category: 'Integrations',
+  },
+  {
+    FeatureName: 'QaqcSafetyWorkspace',
+    DisplayName: 'QA/QC & Safety Mobile Workspace',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    Notes: 'Mobile-first QA/QC & Safety workspace for field operations',
+    Category: 'Infrastructure',
+  },
+  {
+    FeatureName: 'PreconstructionWorkspace',
+    DisplayName: 'Preconstruction Workspace',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    Notes: 'Preconstruction workspace with BD, Estimating, and IDS sub-hubs',
+    Category: 'Infrastructure',
+  },
+  {
+    FeatureName: 'AdminWorkspace',
+    DisplayName: 'Admin Workspace',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    Notes: 'Admin workspace with System Config, Security, Provisioning, Dev Tools',
+    Category: 'Infrastructure',
+  },
+  {
+    FeatureName: 'OperationsWorkspace',
+    DisplayName: 'Operations Workspace',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    Notes: 'Operations workspace with Commercial Ops, OpEx, Safety, QC & Warranty',
     Category: 'Infrastructure',
   },
 ];
@@ -351,6 +410,19 @@ export class MockDataService implements IDataService {
   private constraintLogs: IConstraintLog[];
   private permits: IPermit[];
   private roleConfigurations: IRoleConfiguration[];
+  private connectors: IExternalConnector[];
+  private syncHistory: ISyncHistoryEntry[];
+  private procoreProjects: IProcoreProject[];
+  private procoreRFIs: IProcoreRFI[];
+  private procoreSubmittals: IProcoreSubmittal[];
+  private procoreBudget: IProcoreBudgetLineItem[];
+  private procoreChangeOrders: IProcoreChangeOrder[];
+  private procoreDailyLogs: IProcoreDailyLog[];
+  private procorePhotos: IProcorePhoto[];
+  private procoreConflicts: IProcoreConflict[];
+  private bambooEmployees: IBambooHREmployee[];
+  private bambooTimeOff: IBambooHRTimeOff[];
+  private bambooMappings: IBambooHREmployeeMapping[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -537,6 +609,174 @@ export class MockDataService implements IDataService {
     this.performanceLogs = [];
     this.helpGuides = JSON.parse(JSON.stringify(mockHelpGuides)) as IHelpGuide[];
     this.dataMartRecords = [];
+
+    this.connectors = [
+      {
+        id: 1,
+        name: 'Procore Production',
+        connectorType: 'Procore',
+        status: 'Active',
+        config: { apiUrl: 'https://api.procore.com', companyId: '12345' },
+        lastSyncAt: '2026-02-20T14:30:00Z',
+        syncDirection: 'Bidirectional',
+        createdBy: 'admin@hedrickbrothers.com',
+        createdAt: '2026-01-15T10:00:00Z',
+        modifiedAt: '2026-02-20T14:30:00Z',
+      },
+      {
+        id: 2,
+        name: 'BambooHR',
+        connectorType: 'BambooHR',
+        status: 'Active',
+        config: { apiUrl: 'https://api.bamboohr.com/api/gateway.php/hedrickbrothers', subdomain: 'hedrickbrothers' },
+        lastSyncAt: '2026-02-21T08:00:00Z',
+        syncDirection: 'Inbound',
+        createdBy: 'admin@hedrickbrothers.com',
+        createdAt: '2026-01-20T09:00:00Z',
+        modifiedAt: '2026-02-21T08:00:00Z',
+      },
+    ];
+    this.syncHistory = [
+      {
+        id: 1,
+        connectorId: 1,
+        startedAt: '2026-02-20T14:25:00Z',
+        completedAt: '2026-02-20T14:30:00Z',
+        direction: 'Bidirectional',
+        recordsSynced: 47,
+        errors: 0,
+        status: 'Completed',
+      },
+      {
+        id: 2,
+        connectorId: 2,
+        startedAt: '2026-02-21T07:55:00Z',
+        completedAt: '2026-02-21T08:00:00Z',
+        direction: 'Inbound',
+        recordsSynced: 25,
+        errors: 0,
+        status: 'Completed',
+      },
+    ];
+
+    // BambooHR mock data (Phase 4C)
+    this.bambooEmployees = [
+      { id: 1, bambooId: 'BHR-001', firstName: 'Marcus', lastName: 'Hedrick', email: 'marcus.hedrick@hedrickbrothers.com', jobTitle: 'President', department: 'Operations', division: 'Executive', supervisor: '', hireDate: '2001-03-15', photoUrl: '', workPhone: '561-555-0100', mobilePhone: '561-555-0101', status: 'Active' },
+      { id: 2, bambooId: 'BHR-002', firstName: 'James', lastName: 'Patterson', email: 'james.patterson@hedrickbrothers.com', jobTitle: 'VP of Operations', department: 'Operations', division: 'Executive', supervisor: 'Marcus Hedrick', hireDate: '2005-06-20', photoUrl: '', workPhone: '561-555-0102', mobilePhone: '561-555-0103', status: 'Active' },
+      { id: 3, bambooId: 'BHR-003', firstName: 'Sarah', lastName: 'Mitchell', email: 'sarah.mitchell@hedrickbrothers.com', jobTitle: 'Director of Preconstruction', department: 'Preconstruction', division: 'Business Development', supervisor: 'James Patterson', hireDate: '2010-01-10', photoUrl: '', workPhone: '561-555-0104', mobilePhone: '561-555-0105', status: 'Active' },
+      { id: 4, bambooId: 'BHR-004', firstName: 'David', lastName: 'Chen', email: 'david.chen@hedrickbrothers.com', jobTitle: 'Senior Estimator', department: 'Preconstruction', division: 'Estimating', supervisor: 'Sarah Mitchell', hireDate: '2012-08-15', photoUrl: '', workPhone: '561-555-0106', mobilePhone: '561-555-0107', status: 'Active' },
+      { id: 5, bambooId: 'BHR-005', firstName: 'Maria', lastName: 'Rodriguez', email: 'maria.rodriguez@hedrickbrothers.com', jobTitle: 'Estimating Coordinator', department: 'Preconstruction', division: 'Estimating', supervisor: 'Sarah Mitchell', hireDate: '2015-03-22', photoUrl: '', workPhone: '561-555-0108', mobilePhone: '561-555-0109', status: 'Active' },
+      { id: 6, bambooId: 'BHR-006', firstName: 'Robert', lastName: 'Thompson', email: 'robert.thompson@hedrickbrothers.com', jobTitle: 'Project Executive', department: 'Operations', division: 'Project Management', supervisor: 'James Patterson', hireDate: '2008-11-01', photoUrl: '', workPhone: '561-555-0110', mobilePhone: '561-555-0111', status: 'Active' },
+      { id: 7, bambooId: 'BHR-007', firstName: 'Jennifer', lastName: 'Walsh', email: 'jennifer.walsh@hedrickbrothers.com', jobTitle: 'Project Manager', department: 'Operations', division: 'Project Management', supervisor: 'Robert Thompson', hireDate: '2014-07-08', photoUrl: '', workPhone: '561-555-0112', mobilePhone: '561-555-0113', status: 'Active' },
+      { id: 8, bambooId: 'BHR-008', firstName: 'Michael', lastName: 'Garcia', email: 'michael.garcia@hedrickbrothers.com', jobTitle: 'Superintendent', department: 'Operations', division: 'Field Operations', supervisor: 'Robert Thompson', hireDate: '2011-02-28', photoUrl: '', workPhone: '561-555-0114', mobilePhone: '561-555-0115', status: 'Active' },
+      { id: 9, bambooId: 'BHR-009', firstName: 'Emily', lastName: 'Brooks', email: 'emily.brooks@hedrickbrothers.com', jobTitle: 'Safety Director', department: 'Operations', division: 'Safety', supervisor: 'James Patterson', hireDate: '2013-09-17', photoUrl: '', workPhone: '561-555-0116', mobilePhone: '561-555-0117', status: 'Active' },
+      { id: 10, bambooId: 'BHR-010', firstName: 'Daniel', lastName: 'Kim', email: 'daniel.kim@hedrickbrothers.com', jobTitle: 'QA/QC Manager', department: 'Operations', division: 'Quality', supervisor: 'James Patterson', hireDate: '2016-04-11', photoUrl: '', workPhone: '561-555-0118', mobilePhone: '561-555-0119', status: 'Active' },
+      { id: 11, bambooId: 'BHR-011', firstName: 'Lisa', lastName: 'Anderson', email: 'lisa.anderson@hedrickbrothers.com', jobTitle: 'Marketing Director', department: 'Shared Services', division: 'Marketing', supervisor: 'Marcus Hedrick', hireDate: '2009-05-30', photoUrl: '', workPhone: '561-555-0120', mobilePhone: '561-555-0121', status: 'Active' },
+      { id: 12, bambooId: 'BHR-012', firstName: 'Kevin', lastName: 'Murphy', email: 'kevin.murphy@hedrickbrothers.com', jobTitle: 'Accounting Manager', department: 'Shared Services', division: 'Accounting', supervisor: 'Marcus Hedrick', hireDate: '2010-10-05', photoUrl: '', workPhone: '561-555-0122', mobilePhone: '561-555-0123', status: 'Active' },
+      { id: 13, bambooId: 'BHR-013', firstName: 'Amanda', lastName: 'Phillips', email: 'amanda.phillips@hedrickbrothers.com', jobTitle: 'HR Manager', department: 'Shared Services', division: 'Human Resources', supervisor: 'Marcus Hedrick', hireDate: '2017-01-09', photoUrl: '', workPhone: '561-555-0124', mobilePhone: '561-555-0125', status: 'Active' },
+      { id: 14, bambooId: 'BHR-014', firstName: 'Brian', lastName: 'Foster', email: 'brian.foster@hedrickbrothers.com', jobTitle: 'Assistant Superintendent', department: 'Operations', division: 'Field Operations', supervisor: 'Michael Garcia', hireDate: '2018-06-18', photoUrl: '', workPhone: '561-555-0126', mobilePhone: '561-555-0127', status: 'Active' },
+      { id: 15, bambooId: 'BHR-015', firstName: 'Rachel', lastName: 'Torres', email: 'rachel.torres@hedrickbrothers.com', jobTitle: 'BD Representative', department: 'Preconstruction', division: 'Business Development', supervisor: 'Sarah Mitchell', hireDate: '2019-02-14', photoUrl: '', workPhone: '561-555-0128', mobilePhone: '561-555-0129', status: 'Active' },
+      { id: 16, bambooId: 'BHR-016', firstName: 'Christopher', lastName: 'Novak', email: 'christopher.novak@hedrickbrothers.com', jobTitle: 'Project Engineer', department: 'Operations', division: 'Project Management', supervisor: 'Jennifer Walsh', hireDate: '2020-08-03', photoUrl: '', workPhone: '561-555-0130', mobilePhone: '561-555-0131', status: 'Active' },
+      { id: 17, bambooId: 'BHR-017', firstName: 'Nicole', lastName: 'Bennett', email: 'nicole.bennett@hedrickbrothers.com', jobTitle: 'Payroll Specialist', department: 'Shared Services', division: 'Accounting', supervisor: 'Kevin Murphy', hireDate: '2021-03-22', photoUrl: '', workPhone: '561-555-0132', mobilePhone: '561-555-0133', status: 'Active' },
+      { id: 18, bambooId: 'BHR-018', firstName: 'Thomas', lastName: 'Clarke', email: 'thomas.clarke@hedrickbrothers.com', jobTitle: 'Senior Estimator', department: 'Preconstruction', division: 'Estimating', supervisor: 'Sarah Mitchell', hireDate: '2016-11-07', photoUrl: '', workPhone: '561-555-0134', mobilePhone: '561-555-0135', status: 'Active' },
+      { id: 19, bambooId: 'BHR-019', firstName: 'Stephanie', lastName: 'Reed', email: 'stephanie.reed@hedrickbrothers.com', jobTitle: 'Marketing Coordinator', department: 'Shared Services', division: 'Marketing', supervisor: 'Lisa Anderson', hireDate: '2022-01-17', photoUrl: '', workPhone: '561-555-0136', mobilePhone: '561-555-0137', status: 'Active' },
+      { id: 20, bambooId: 'BHR-020', firstName: 'Andrew', lastName: 'Sullivan', email: 'andrew.sullivan@hedrickbrothers.com', jobTitle: 'Field Engineer', department: 'Operations', division: 'Field Operations', supervisor: 'Michael Garcia', hireDate: '2021-09-28', photoUrl: '', workPhone: '561-555-0138', mobilePhone: '561-555-0139', status: 'Active' },
+      { id: 21, bambooId: 'BHR-021', firstName: 'Laura', lastName: 'Price', email: 'laura.price@hedrickbrothers.com', jobTitle: 'Accounts Payable Clerk', department: 'Shared Services', division: 'Accounting', supervisor: 'Kevin Murphy', hireDate: '2023-04-10', photoUrl: '', workPhone: '561-555-0140', mobilePhone: '561-555-0141', status: 'Active' },
+      { id: 22, bambooId: 'BHR-022', firstName: 'Jason', lastName: 'Wright', email: 'jason.wright@hedrickbrothers.com', jobTitle: 'Safety Coordinator', department: 'Operations', division: 'Safety', supervisor: 'Emily Brooks', hireDate: '2020-02-03', photoUrl: '', workPhone: '561-555-0142', mobilePhone: '561-555-0143', status: 'Active' },
+      { id: 23, bambooId: 'BHR-023', firstName: 'Patricia', lastName: 'Gomez', email: 'patricia.gomez@hedrickbrothers.com', jobTitle: 'Project Coordinator', department: 'Operations', division: 'Project Management', supervisor: 'Jennifer Walsh', hireDate: '2022-07-25', photoUrl: '', workPhone: '561-555-0144', mobilePhone: '561-555-0145', status: 'Active' },
+      { id: 24, bambooId: 'BHR-024', firstName: 'William', lastName: 'Hayes', email: 'william.hayes@hedrickbrothers.com', jobTitle: 'Preconstruction Manager', department: 'Preconstruction', division: 'Business Development', supervisor: 'Sarah Mitchell', hireDate: '2017-10-16', photoUrl: '', workPhone: '561-555-0146', mobilePhone: '561-555-0147', status: 'Active' },
+      { id: 25, bambooId: 'BHR-025', firstName: 'Gregory', lastName: 'Simmons', email: 'gregory.simmons@hedrickbrothers.com', jobTitle: 'IT Administrator', department: 'Shared Services', division: 'IT', supervisor: 'Marcus Hedrick', hireDate: '2019-08-12', photoUrl: '', workPhone: '561-555-0148', mobilePhone: '561-555-0149', status: 'Inactive' },
+    ];
+    this.bambooTimeOff = [
+      { id: 1, employeeId: 3, type: 'Vacation', startDate: '2026-03-10', endDate: '2026-03-14', status: 'Approved', hours: 40 },
+      { id: 2, employeeId: 7, type: 'Sick', startDate: '2026-02-25', endDate: '2026-02-25', status: 'Approved', hours: 8 },
+      { id: 3, employeeId: 11, type: 'Vacation', startDate: '2026-03-17', endDate: '2026-03-21', status: 'Pending', hours: 40 },
+      { id: 4, employeeId: 8, type: 'Personal', startDate: '2026-03-05', endDate: '2026-03-05', status: 'Approved', hours: 8 },
+      { id: 5, employeeId: 15, type: 'Vacation', startDate: '2026-04-07', endDate: '2026-04-11', status: 'Pending', hours: 40 },
+      { id: 6, employeeId: 4, type: 'Sick', startDate: '2026-02-27', endDate: '2026-02-28', status: 'Approved', hours: 16 },
+      { id: 7, employeeId: 12, type: 'Jury Duty', startDate: '2026-03-03', endDate: '2026-03-07', status: 'Approved', hours: 40 },
+      { id: 8, employeeId: 20, type: 'Vacation', startDate: '2026-03-24', endDate: '2026-03-28', status: 'Denied', hours: 40 },
+      { id: 9, employeeId: 9, type: 'Training', startDate: '2026-03-12', endDate: '2026-03-13', status: 'Approved', hours: 16 },
+      { id: 10, employeeId: 16, type: 'Bereavement', startDate: '2026-02-24', endDate: '2026-02-26', status: 'Approved', hours: 24 },
+    ];
+    this.bambooMappings = this.bambooEmployees
+      .filter(e => e.status === 'Active')
+      .slice(0, 20)
+      .map((emp, idx) => ({
+        id: idx + 1,
+        bambooId: emp.bambooId,
+        hbcUserId: `user-${emp.bambooId}`,
+        email: emp.email,
+        autoMapped: true,
+        confirmedBy: null,
+        confirmedAt: null,
+      }));
+
+    // Procore Integration fixture data (Phase 4B)
+    this.procoreProjects = [
+      { id: 1, procoreId: 50001, name: 'Caretta Ocean Resort', status: 'Active', address: '100 S Ocean Blvd, West Palm Beach, FL 33480', startDate: '2025-06-15', completionDate: '2027-01-31', projectManager: 'Mike Thompson', client: 'Caretta Hospitality Group' },
+      { id: 2, procoreId: 50002, name: 'Marina Village Phase II', status: 'Active', address: '2200 Marina Blvd, Fort Lauderdale, FL 33316', startDate: '2025-09-01', completionDate: '2027-06-30', projectManager: 'Sarah Chen', client: 'Marina Village LLC' },
+      { id: 3, procoreId: 50003, name: 'Bayfront Tower', status: 'Active', address: '500 Bayfront Pkwy, Sarasota, FL 34236', startDate: '2025-11-01', completionDate: '2027-09-15', projectManager: 'James Rodriguez', client: 'Bayfront Development Corp' },
+      { id: 4, procoreId: 50004, name: 'Palm Gardens Senior Living', status: 'Bidding', address: '750 Palm Garden Dr, Boca Raton, FL 33432', startDate: '2026-03-01', completionDate: '2027-12-31', projectManager: 'Lisa Park', client: 'SunCare Communities' },
+      { id: 5, procoreId: 50005, name: 'Hedrick Corporate HQ Renovation', status: 'Active', address: '1600 Corporate Way, West Palm Beach, FL 33401', startDate: '2026-01-15', completionDate: '2026-08-31', projectManager: 'Mike Thompson', client: 'Hedrick Brothers Construction' },
+    ];
+    this.procoreRFIs = [
+      { id: 1, procoreId: 60001, number: 1, subject: 'Foundation waterproofing detail at grid A-3', status: 'Open', assignee: 'John Martinez', dueDate: '2026-03-01', createdAt: '2026-02-10T09:00:00Z', updatedAt: '2026-02-15T14:30:00Z', hbcProjectCode: '22-140-01' },
+      { id: 2, procoreId: 60002, number: 2, subject: 'Elevator shaft structural steel connection', status: 'Closed', assignee: 'Sarah Chen', dueDate: '2026-02-20', createdAt: '2026-02-05T11:00:00Z', updatedAt: '2026-02-18T10:00:00Z', hbcProjectCode: '22-140-01' },
+      { id: 3, procoreId: 60003, number: 3, subject: 'HVAC ductwork routing conflict at Level 5', status: 'Open', assignee: 'Robert Lee', dueDate: '2026-03-05', createdAt: '2026-02-12T08:30:00Z', updatedAt: '2026-02-20T16:00:00Z', hbcProjectCode: '22-140-01' },
+      { id: 4, procoreId: 60004, number: 4, subject: 'Fire alarm pull station placement per AHJ', status: 'Draft', assignee: 'Emily Davis', dueDate: '2026-03-10', createdAt: '2026-02-18T13:00:00Z', updatedAt: '2026-02-18T13:00:00Z', hbcProjectCode: '22-140-01' },
+      { id: 5, procoreId: 60005, number: 1, subject: 'Parking garage expansion joint detail', status: 'Open', assignee: 'James Rodriguez', dueDate: '2026-03-15', createdAt: '2026-02-14T10:00:00Z', updatedAt: '2026-02-21T09:00:00Z', hbcProjectCode: '24-200-01' },
+      { id: 6, procoreId: 60006, number: 2, subject: 'Pool deck finish material substitution', status: 'Closed', assignee: 'Mike Thompson', dueDate: '2026-02-25', createdAt: '2026-02-08T15:00:00Z', updatedAt: '2026-02-22T11:00:00Z', hbcProjectCode: '24-200-01' },
+      { id: 7, procoreId: 60007, number: 3, subject: 'Window curtain wall flashing at podium', status: 'Open', assignee: 'Lisa Park', dueDate: '2026-03-20', createdAt: '2026-02-19T09:00:00Z', updatedAt: '2026-02-19T09:00:00Z', hbcProjectCode: '24-200-01' },
+      { id: 8, procoreId: 60008, number: 1, subject: 'MEP coordination at main corridor Level 2', status: 'Open', assignee: 'John Martinez', dueDate: '2026-03-25', createdAt: '2026-02-20T14:00:00Z', updatedAt: '2026-02-20T14:00:00Z', hbcProjectCode: '25-300-01' },
+    ];
+    this.procoreSubmittals = [
+      { id: 1, procoreId: 70001, number: 1, title: 'Concrete mix design — 5000 psi', status: 'Approved', specSection: '03 30 00', dueDate: '2026-02-28', responsibleContractor: 'Southeast Concrete Inc.', hbcProjectCode: '22-140-01' },
+      { id: 2, procoreId: 70002, number: 2, title: 'Structural steel shop drawings', status: 'Under Review', specSection: '05 12 00', dueDate: '2026-03-05', responsibleContractor: 'Atlantic Steel Fabricators', hbcProjectCode: '22-140-01' },
+      { id: 3, procoreId: 70003, number: 3, title: 'Waterproofing membrane — below grade', status: 'Approved', specSection: '07 10 00', dueDate: '2026-02-20', responsibleContractor: 'ProSeal Waterproofing', hbcProjectCode: '22-140-01' },
+      { id: 4, procoreId: 70004, number: 4, title: 'Elevator cab finish selections', status: 'Submitted', specSection: '14 20 00', dueDate: '2026-03-15', responsibleContractor: 'Otis Elevator Co.', hbcProjectCode: '22-140-01' },
+      { id: 5, procoreId: 70005, number: 1, title: 'Impact windows and doors — hurricane rated', status: 'Approved', specSection: '08 50 00', dueDate: '2026-02-25', responsibleContractor: 'PGT Innovations', hbcProjectCode: '24-200-01' },
+      { id: 6, procoreId: 70006, number: 2, title: 'Standing seam metal roof — 24 ga', status: 'Under Review', specSection: '07 41 00', dueDate: '2026-03-10', responsibleContractor: 'Southeastern Roofing', hbcProjectCode: '24-200-01' },
+    ];
+    this.procoreBudget = [
+      { id: 1, costCode: '03-300', description: 'Cast-in-Place Concrete', originalBudget: 2450000, revisedBudget: 2520000, commitments: 2380000, pendingChanges: 45000, projectedCost: 2525000, hbcProjectCode: '22-140-01' },
+      { id: 2, costCode: '05-120', description: 'Structural Steel Framing', originalBudget: 3100000, revisedBudget: 3100000, commitments: 3050000, pendingChanges: 0, projectedCost: 3100000, hbcProjectCode: '22-140-01' },
+      { id: 3, costCode: '07-100', description: 'Waterproofing', originalBudget: 890000, revisedBudget: 920000, commitments: 875000, pendingChanges: 15000, projectedCost: 935000, hbcProjectCode: '22-140-01' },
+      { id: 4, costCode: '08-500', description: 'Windows and Glazing', originalBudget: 1750000, revisedBudget: 1750000, commitments: 1680000, pendingChanges: 0, projectedCost: 1750000, hbcProjectCode: '22-140-01' },
+      { id: 5, costCode: '14-200', description: 'Elevators', originalBudget: 1200000, revisedBudget: 1200000, commitments: 1200000, pendingChanges: 0, projectedCost: 1200000, hbcProjectCode: '22-140-01' },
+      { id: 6, costCode: '23-000', description: 'HVAC Systems', originalBudget: 2800000, revisedBudget: 2850000, commitments: 2700000, pendingChanges: 85000, projectedCost: 2870000, hbcProjectCode: '22-140-01' },
+      { id: 7, costCode: '26-000', description: 'Electrical', originalBudget: 1950000, revisedBudget: 1980000, commitments: 1900000, pendingChanges: 30000, projectedCost: 1990000, hbcProjectCode: '22-140-01' },
+      { id: 8, costCode: '31-000', description: 'Earthwork and Site Preparation', originalBudget: 650000, revisedBudget: 650000, commitments: 640000, pendingChanges: 0, projectedCost: 650000, hbcProjectCode: '22-140-01' },
+      { id: 9, costCode: '03-300', description: 'Cast-in-Place Concrete', originalBudget: 1800000, revisedBudget: 1800000, commitments: 1750000, pendingChanges: 20000, projectedCost: 1820000, hbcProjectCode: '24-200-01' },
+      { id: 10, costCode: '07-410', description: 'Metal Roofing', originalBudget: 560000, revisedBudget: 580000, commitments: 540000, pendingChanges: 12000, projectedCost: 585000, hbcProjectCode: '24-200-01' },
+    ];
+    this.procoreChangeOrders = [
+      { id: 1, number: 1, title: 'Added waterproofing at garage level', status: 'Approved', amount: 70000, approvedDate: '2026-02-10', requestedBy: 'Mike Thompson', hbcProjectCode: '22-140-01' },
+      { id: 2, number: 2, title: 'HVAC duct rerouting — Level 5 conflict', status: 'Pending', amount: 35000, approvedDate: '', requestedBy: 'Robert Lee', hbcProjectCode: '22-140-01' },
+      { id: 3, number: 3, title: 'Owner-requested lobby finish upgrade', status: 'Approved', amount: 125000, approvedDate: '2026-02-18', requestedBy: 'Caretta Hospitality Group', hbcProjectCode: '22-140-01' },
+      { id: 4, number: 1, title: 'Revised pool deck drainage design', status: 'Approved', amount: 22000, approvedDate: '2026-02-15', requestedBy: 'James Rodriguez', hbcProjectCode: '24-200-01' },
+    ];
+    this.procoreDailyLogs = [
+      { id: 1, date: '2026-02-22', weather: 'Sunny, 78F', crewCount: 145, notes: 'Continued 3rd floor slab pour. Elevator pit waterproofing complete.', createdBy: 'Mike Thompson', hbcProjectCode: '22-140-01' },
+      { id: 2, date: '2026-02-21', weather: 'Partly Cloudy, 75F', crewCount: 138, notes: 'Structural steel erection at Level 4. MEP rough-in progressing.', createdBy: 'Mike Thompson', hbcProjectCode: '22-140-01' },
+      { id: 3, date: '2026-02-20', weather: 'Sunny, 80F', crewCount: 142, notes: 'Formwork setup for Level 3 slab. Safety meeting held — zero incidents.', createdBy: 'Mike Thompson', hbcProjectCode: '22-140-01' },
+      { id: 4, date: '2026-02-22', weather: 'Sunny, 76F', crewCount: 85, notes: 'Foundation excavation complete. Starting pile cap forming.', createdBy: 'James Rodriguez', hbcProjectCode: '24-200-01' },
+      { id: 5, date: '2026-02-21', weather: 'Rain, 72F', crewCount: 30, notes: 'Rain delay — limited interior work only. Dewatering pumps operational.', createdBy: 'James Rodriguez', hbcProjectCode: '24-200-01' },
+    ];
+    this.procorePhotos = [
+      { id: 1, albumName: 'Foundation Work', filename: 'foundation-pour-grid-A.jpg', url: 'https://cdn.procore.com/photos/50001/foundation-pour-grid-A.jpg', takenAt: '2026-02-20T10:30:00Z', uploadedBy: 'Mike Thompson', hbcProjectCode: '22-140-01' },
+      { id: 2, albumName: 'Foundation Work', filename: 'waterproofing-membrane.jpg', url: 'https://cdn.procore.com/photos/50001/waterproofing-membrane.jpg', takenAt: '2026-02-19T14:00:00Z', uploadedBy: 'John Martinez', hbcProjectCode: '22-140-01' },
+      { id: 3, albumName: 'Structural Steel', filename: 'steel-erection-L4.jpg', url: 'https://cdn.procore.com/photos/50001/steel-erection-L4.jpg', takenAt: '2026-02-21T11:00:00Z', uploadedBy: 'Mike Thompson', hbcProjectCode: '22-140-01' },
+      { id: 4, albumName: 'MEP Rough-in', filename: 'hvac-duct-L5-conflict.jpg', url: 'https://cdn.procore.com/photos/50001/hvac-duct-L5-conflict.jpg', takenAt: '2026-02-18T09:15:00Z', uploadedBy: 'Robert Lee', hbcProjectCode: '22-140-01' },
+      { id: 5, albumName: 'Safety', filename: 'safety-meeting-20260220.jpg', url: 'https://cdn.procore.com/photos/50001/safety-meeting-20260220.jpg', takenAt: '2026-02-20T07:00:00Z', uploadedBy: 'Emily Davis', hbcProjectCode: '22-140-01' },
+      { id: 6, albumName: 'Earthwork', filename: 'excavation-complete.jpg', url: 'https://cdn.procore.com/photos/50002/excavation-complete.jpg', takenAt: '2026-02-22T08:00:00Z', uploadedBy: 'James Rodriguez', hbcProjectCode: '24-200-01' },
+      { id: 7, albumName: 'Earthwork', filename: 'pile-caps-forming.jpg', url: 'https://cdn.procore.com/photos/50002/pile-caps-forming.jpg', takenAt: '2026-02-22T10:30:00Z', uploadedBy: 'James Rodriguez', hbcProjectCode: '24-200-01' },
+      { id: 8, albumName: 'Weather Delays', filename: 'rain-delay-20260221.jpg', url: 'https://cdn.procore.com/photos/50002/rain-delay-20260221.jpg', takenAt: '2026-02-21T09:00:00Z', uploadedBy: 'James Rodriguez', hbcProjectCode: '24-200-01' },
+    ];
+    this.procoreConflicts = [
+      { id: 1, field: 'projectManager', hbcValue: 'Michael Thompson', procoreValue: 'Mike Thompson', entityType: 'Project', entityId: 50001, resolvedBy: null, resolution: 'pending', detectedAt: '2026-02-20T14:30:00Z' },
+      { id: 2, field: 'completionDate', hbcValue: '2027-02-28', procoreValue: '2027-01-31', entityType: 'Project', entityId: 50001, resolvedBy: null, resolution: 'pending', detectedAt: '2026-02-20T14:30:00Z' },
+    ];
 
     this.nextId = 1000;
   }
@@ -6168,6 +6408,406 @@ export class MockDataService implements IDataService {
     this.createVersionSnapshot(scorecard, `Rejected: ${reason}`, scorecard.finalDecisionBy || 'system');
     this.scorecards[index] = scorecard;
     return { ...scorecard };
+  }
+
+  // ---------------------------------------------------------------------------
+  // External Connectors (Phase 4A)
+  // ---------------------------------------------------------------------------
+
+  public async getConnectors(): Promise<IExternalConnector[]> {
+    await delay();
+    return [...this.connectors];
+  }
+
+  public async getConnector(id: number): Promise<IExternalConnector | null> {
+    await delay();
+    return this.connectors.find(c => c.id === id) ?? null;
+  }
+
+  public async createConnector(connector: Omit<IExternalConnector, 'id'>): Promise<IExternalConnector> {
+    await delay();
+    const newConnector: IExternalConnector = {
+      ...connector,
+      id: this.connectors.reduce((max, c) => Math.max(max, c.id), 0) + 1,
+    };
+    this.connectors.push(newConnector);
+    await this.logAudit({
+      Action: 'Create' as unknown as AuditAction,
+      EntityType: 'ExternalConnector' as unknown as EntityType,
+      EntityId: String(newConnector.id),
+      User: connector.createdBy,
+      Details: `Created ${connector.connectorType} connector: ${connector.name}`,
+    });
+    return { ...newConnector };
+  }
+
+  public async updateConnector(id: number, updates: Partial<IExternalConnector>): Promise<IExternalConnector> {
+    await delay();
+    const index = this.connectors.findIndex(c => c.id === id);
+    if (index === -1) throw new Error(`Connector with id ${id} not found`);
+    this.connectors[index] = { ...this.connectors[index], ...updates, modifiedAt: new Date().toISOString() };
+    return { ...this.connectors[index] };
+  }
+
+  public async deleteConnector(id: number): Promise<void> {
+    await delay();
+    const index = this.connectors.findIndex(c => c.id === id);
+    if (index === -1) throw new Error(`Connector with id ${id} not found`);
+    this.connectors.splice(index, 1);
+    this.syncHistory = this.syncHistory.filter(h => h.connectorId !== id);
+  }
+
+  public async getConnectorSyncStatus(connectorId: number): Promise<ISyncStatus> {
+    await delay();
+    const connector = this.connectors.find(c => c.id === connectorId);
+    if (!connector) throw new Error(`Connector with id ${connectorId} not found`);
+    const lastEntry = this.syncHistory
+      .filter(h => h.connectorId === connectorId)
+      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())[0];
+    return {
+      lastRun: lastEntry?.completedAt ?? null,
+      nextRun: null,
+      recordsSynced: lastEntry?.recordsSynced ?? 0,
+      errors: lastEntry?.errors ?? 0,
+      status: 'Idle',
+    };
+  }
+
+  public async triggerConnectorSync(connectorId: number, direction?: SyncDirection): Promise<ISyncHistoryEntry> {
+    await delay();
+    const connector = this.connectors.find(c => c.id === connectorId);
+    if (!connector) throw new Error(`Connector with id ${connectorId} not found`);
+    const now = new Date().toISOString();
+    const entry: ISyncHistoryEntry = {
+      id: this.syncHistory.reduce((max, h) => Math.max(max, h.id), 0) + 1,
+      connectorId,
+      startedAt: now,
+      completedAt: now,
+      direction: direction ?? connector.syncDirection,
+      recordsSynced: Math.floor(Math.random() * 50) + 5,
+      errors: 0,
+      status: 'Completed' as SyncRunStatus,
+    };
+    this.syncHistory.push(entry);
+    connector.lastSyncAt = now;
+    connector.modifiedAt = now;
+    return { ...entry };
+  }
+
+  public async getConnectorSyncHistory(connectorId: number): Promise<ISyncHistoryEntry[]> {
+    await delay();
+    return this.syncHistory
+      .filter(h => h.connectorId === connectorId)
+      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+  }
+
+  public async testConnectorConnection(connectorId: number): Promise<{ success: boolean; message: string }> {
+    await delay();
+    const connector = this.connectors.find(c => c.id === connectorId);
+    if (!connector) throw new Error(`Connector with id ${connectorId} not found`);
+    return { success: true, message: `Successfully connected to ${connector.connectorType} at ${connector.config.apiUrl ?? 'configured endpoint'}` };
+  }
+
+  // ---------------------------------------------------------------------------
+  // BambooHR Integration (Phase 4C)
+  // ---------------------------------------------------------------------------
+
+  public async getBambooEmployees(): Promise<IBambooHREmployee[]> {
+    await delay();
+    return [...this.bambooEmployees];
+  }
+
+  public async getBambooEmployee(id: number): Promise<IBambooHREmployee | null> {
+    await delay();
+    return this.bambooEmployees.find(e => e.id === id) ?? null;
+  }
+
+  public async syncBambooEmployees(): Promise<{ synced: number; errors: number }> {
+    await delay();
+    await this.logAudit({
+      Action: 'Sync' as unknown as AuditAction,
+      EntityType: 'BambooHREmployee' as unknown as EntityType,
+      EntityId: 'all',
+      User: 'system',
+      Details: `Synced ${this.bambooEmployees.length} employees from BambooHR`,
+    });
+    return { synced: this.bambooEmployees.length, errors: 0 };
+  }
+
+  public async getBambooDirectory(): Promise<IBambooHRDirectory> {
+    await delay();
+    const deptMap = new Map<string, { count: number; divisions: Set<string> }>();
+    for (const emp of this.bambooEmployees.filter(e => e.status === 'Active')) {
+      const entry = deptMap.get(emp.department) ?? { count: 0, divisions: new Set<string>() };
+      entry.count += 1;
+      entry.divisions.add(emp.division);
+      deptMap.set(emp.department, entry);
+    }
+    return {
+      departments: Array.from(deptMap.entries()).map(([name, data]) => ({
+        name,
+        employeeCount: data.count,
+        divisions: Array.from(data.divisions),
+      })),
+    };
+  }
+
+  public async getBambooTimeOff(employeeId?: number, startDate?: string, endDate?: string): Promise<IBambooHRTimeOff[]> {
+    await delay();
+    let results = [...this.bambooTimeOff];
+    if (employeeId !== undefined) {
+      results = results.filter(t => t.employeeId === employeeId);
+    }
+    if (startDate) {
+      results = results.filter(t => t.endDate >= startDate);
+    }
+    if (endDate) {
+      results = results.filter(t => t.startDate <= endDate);
+    }
+    return results;
+  }
+
+  public async syncBambooTimeOff(): Promise<{ synced: number; errors: number }> {
+    await delay();
+    await this.logAudit({
+      Action: 'Sync' as unknown as AuditAction,
+      EntityType: 'BambooHRTimeOff' as unknown as EntityType,
+      EntityId: 'all',
+      User: 'system',
+      Details: `Synced ${this.bambooTimeOff.length} time-off records from BambooHR`,
+    });
+    return { synced: this.bambooTimeOff.length, errors: 0 };
+  }
+
+  public async getBambooEmployeeMappings(): Promise<IBambooHREmployeeMapping[]> {
+    await delay();
+    return [...this.bambooMappings];
+  }
+
+  public async createBambooEmployeeMapping(data: Omit<IBambooHREmployeeMapping, 'id'>): Promise<IBambooHREmployeeMapping> {
+    await delay();
+    const newMapping: IBambooHREmployeeMapping = {
+      ...data,
+      id: this.bambooMappings.reduce((max, m) => Math.max(max, m.id), 0) + 1,
+    };
+    this.bambooMappings.push(newMapping);
+    await this.logAudit({
+      Action: 'Create' as unknown as AuditAction,
+      EntityType: 'BambooHRMapping' as unknown as EntityType,
+      EntityId: String(newMapping.id),
+      User: data.confirmedBy ?? 'system',
+      Details: `Mapped BambooHR employee ${data.bambooId} to HBC user ${data.hbcUserId}`,
+    });
+    return { ...newMapping };
+  }
+
+  public async deleteBambooEmployeeMapping(id: number): Promise<void> {
+    await delay();
+    const index = this.bambooMappings.findIndex(m => m.id === id);
+    if (index === -1) throw new Error(`BambooHR mapping with id ${id} not found`);
+    this.bambooMappings.splice(index, 1);
+  }
+
+  public async autoMapBambooEmployees(): Promise<{ mapped: number; unmatched: number }> {
+    await delay();
+    const existingEmails = new Set(this.bambooMappings.map(m => m.email.toLowerCase()));
+    const unmappedEmployees = this.bambooEmployees.filter(
+      e => e.status === 'Active' && !existingEmails.has(e.email.toLowerCase())
+    );
+    let mappedCount = 0;
+    for (const emp of unmappedEmployees) {
+      const newMapping: IBambooHREmployeeMapping = {
+        id: this.bambooMappings.reduce((max, m) => Math.max(max, m.id), 0) + 1,
+        bambooId: emp.bambooId,
+        hbcUserId: `user-${emp.bambooId}`,
+        email: emp.email,
+        autoMapped: true,
+        confirmedBy: null,
+        confirmedAt: null,
+      };
+      this.bambooMappings.push(newMapping);
+      mappedCount++;
+    }
+    await this.logAudit({
+      Action: 'AutoMap' as unknown as AuditAction,
+      EntityType: 'BambooHRMapping' as unknown as EntityType,
+      EntityId: 'batch',
+      User: 'system',
+      Details: `Auto-mapped ${mappedCount} employees, ${this.bambooEmployees.filter(e => e.status === 'Active').length - this.bambooMappings.length} remain unmatched`,
+    });
+    return { mapped: mappedCount, unmatched: unmappedEmployees.length - mappedCount };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Procore Integration (Phase 4B)
+  // ---------------------------------------------------------------------------
+
+  public async getProcoreProjects(): Promise<IProcoreProject[]> {
+    await delay();
+    return [...this.procoreProjects];
+  }
+
+  public async getProcoreProject(id: number): Promise<IProcoreProject | null> {
+    await delay();
+    return this.procoreProjects.find(p => p.id === id) ?? null;
+  }
+
+  public async syncProcoreProject(projectCode: string): Promise<IProcoreSyncSummary> {
+    await delay();
+    const rfis = this.procoreRFIs.filter(r => r.hbcProjectCode === projectCode).length;
+    const submittals = this.procoreSubmittals.filter(s => s.hbcProjectCode === projectCode).length;
+    const budget = this.procoreBudget.filter(b => b.hbcProjectCode === projectCode).length;
+    await this.logAudit({
+      Action: 'Sync' as unknown as AuditAction,
+      EntityType: 'ProcoreProject' as unknown as EntityType,
+      EntityId: projectCode,
+      User: 'system',
+      Details: `Synced Procore project data for ${projectCode}`,
+    });
+    return {
+      lastSync: new Date().toISOString(),
+      conflicts: this.procoreConflicts.filter(c => c.resolution === 'pending').length,
+      stats: { projects: 1, rfis, submittals, budget },
+    };
+  }
+
+  public async getProcoreRFIs(projectCode: string): Promise<IProcoreRFI[]> {
+    await delay();
+    return this.procoreRFIs.filter(r => r.hbcProjectCode === projectCode).map(r => ({ ...r }));
+  }
+
+  public async syncProcoreRFIs(projectCode: string): Promise<IProcoreSyncSummary> {
+    await delay();
+    const rfis = this.procoreRFIs.filter(r => r.hbcProjectCode === projectCode).length;
+    await this.logAudit({
+      Action: 'Sync' as unknown as AuditAction,
+      EntityType: 'ProcoreRFI' as unknown as EntityType,
+      EntityId: projectCode,
+      User: 'system',
+      Details: `Synced ${rfis} Procore RFIs for ${projectCode}`,
+    });
+    return {
+      lastSync: new Date().toISOString(),
+      conflicts: 0,
+      stats: { projects: 0, rfis, submittals: 0, budget: 0 },
+    };
+  }
+
+  public async getProcoreSubmittals(projectCode: string): Promise<IProcoreSubmittal[]> {
+    await delay();
+    return this.procoreSubmittals.filter(s => s.hbcProjectCode === projectCode).map(s => ({ ...s }));
+  }
+
+  public async syncProcoreSubmittals(projectCode: string): Promise<IProcoreSyncSummary> {
+    await delay();
+    const submittals = this.procoreSubmittals.filter(s => s.hbcProjectCode === projectCode).length;
+    await this.logAudit({
+      Action: 'Sync' as unknown as AuditAction,
+      EntityType: 'ProcoreSubmittal' as unknown as EntityType,
+      EntityId: projectCode,
+      User: 'system',
+      Details: `Synced ${submittals} Procore submittals for ${projectCode}`,
+    });
+    return {
+      lastSync: new Date().toISOString(),
+      conflicts: 0,
+      stats: { projects: 0, rfis: 0, submittals, budget: 0 },
+    };
+  }
+
+  public async getProcoreBudget(projectCode: string): Promise<IProcoreBudgetLineItem[]> {
+    await delay();
+    return this.procoreBudget.filter(b => b.hbcProjectCode === projectCode).map(b => ({ ...b }));
+  }
+
+  public async syncProcoreBudget(projectCode: string): Promise<IProcoreSyncSummary> {
+    await delay();
+    const budget = this.procoreBudget.filter(b => b.hbcProjectCode === projectCode).length;
+    await this.logAudit({
+      Action: 'Sync' as unknown as AuditAction,
+      EntityType: 'ProcoreBudget' as unknown as EntityType,
+      EntityId: projectCode,
+      User: 'system',
+      Details: `Synced ${budget} Procore budget line items for ${projectCode}`,
+    });
+    return {
+      lastSync: new Date().toISOString(),
+      conflicts: 0,
+      stats: { projects: 0, rfis: 0, submittals: 0, budget },
+    };
+  }
+
+  public async getProcoreChangeOrders(projectCode: string): Promise<IProcoreChangeOrder[]> {
+    await delay();
+    return this.procoreChangeOrders.filter(co => co.hbcProjectCode === projectCode).map(co => ({ ...co }));
+  }
+
+  public async syncProcoreChangeOrders(projectCode: string): Promise<IProcoreSyncSummary> {
+    await delay();
+    await this.logAudit({
+      Action: 'Sync' as unknown as AuditAction,
+      EntityType: 'ProcoreChangeOrder' as unknown as EntityType,
+      EntityId: projectCode,
+      User: 'system',
+      Details: `Synced Procore change orders for ${projectCode}`,
+    });
+    return {
+      lastSync: new Date().toISOString(),
+      conflicts: 0,
+      stats: { projects: 0, rfis: 0, submittals: 0, budget: 0 },
+    };
+  }
+
+  public async getProcoreDailyLogs(projectCode: string): Promise<IProcoreDailyLog[]> {
+    await delay();
+    return this.procoreDailyLogs.filter(dl => dl.hbcProjectCode === projectCode).map(dl => ({ ...dl }));
+  }
+
+  public async syncProcoreDailyLogs(projectCode: string): Promise<IProcoreSyncSummary> {
+    await delay();
+    await this.logAudit({
+      Action: 'Sync' as unknown as AuditAction,
+      EntityType: 'ProcoreDailyLog' as unknown as EntityType,
+      EntityId: projectCode,
+      User: 'system',
+      Details: `Synced Procore daily logs for ${projectCode}`,
+    });
+    return {
+      lastSync: new Date().toISOString(),
+      conflicts: 0,
+      stats: { projects: 0, rfis: 0, submittals: 0, budget: 0 },
+    };
+  }
+
+  public async getProcorePhotos(projectCode: string): Promise<IProcorePhoto[]> {
+    await delay();
+    return this.procorePhotos.filter(p => p.hbcProjectCode === projectCode).map(p => ({ ...p }));
+  }
+
+  public async getProcoreConflicts(projectCode: string): Promise<IProcoreConflict[]> {
+    await delay();
+    // Filter conflicts by matching entityId to procoreId of projects linked to the given projectCode
+    // For simplicity in mock, return all pending conflicts (they're small)
+    return this.procoreConflicts.filter(c => c.resolution === 'pending').map(c => ({ ...c }));
+  }
+
+  public async resolveProcoreConflict(conflictId: number, resolution: 'hbc' | 'procore'): Promise<IProcoreConflict> {
+    await delay();
+    const index = this.procoreConflicts.findIndex(c => c.id === conflictId);
+    if (index === -1) throw new Error(`Procore conflict with id ${conflictId} not found`);
+    this.procoreConflicts[index] = {
+      ...this.procoreConflicts[index],
+      resolution,
+      resolvedBy: 'current-user@hedrickbrothers.com',
+    };
+    await this.logAudit({
+      Action: 'Resolve' as unknown as AuditAction,
+      EntityType: 'ProcoreConflict' as unknown as EntityType,
+      EntityId: String(conflictId),
+      User: 'current-user@hedrickbrothers.com',
+      Details: `Resolved Procore conflict ${conflictId} with '${resolution}' strategy`,
+    });
+    return { ...this.procoreConflicts[index] };
   }
 
   public setProjectSiteUrl(_siteUrl: string | null): void {

@@ -1,20 +1,10 @@
-// Navigation module barrel export
 export { AppLauncher } from './AppLauncher';
 export { ContextualSidebar } from './ContextualSidebar';
+export { NavGroup, NavItem } from './NavPrimitives';
 export { useWorkspace } from './WorkspaceContext';
-export { NavItemComponent, NavGroup, NavSubGroup } from './NavPrimitives';
-export type { INavItemProps, INavGroupProps, INavSubGroupProps } from './NavPrimitives';
-export type { IWorkspaceState } from './WorkspaceContext';
 export {
-  WORKSPACES,
-  WORKSPACE_MAP,
+  WORKSPACE_CONFIGS,
   LAUNCHER_WORKSPACES,
   getWorkspaceFromPath,
 } from './workspaceConfig';
-export type {
-  WorkspaceId,
-  IWorkspaceDefinition,
-  ISidebarItem,
-  ISidebarSubGroup,
-  ISidebarGroup,
-} from './workspaceConfig';
+export type { IWorkspaceConfig, ISidebarGroup, ISidebarItem } from './workspaceConfig';
