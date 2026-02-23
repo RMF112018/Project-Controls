@@ -15,18 +15,15 @@
       "Bash(npm install:*)",
       "Bash(npm ls:*)",
       "Bash(npm view:*)",
-
       "Bash(npx tsc:*)",
       "Bash(npx jest:*)",
       "Bash(npx webpack:*)",
       "Bash(npx gulp:*)",
-
       "Bash(volta run:*)",
       "Bash(volta list:*)",
       "Bash(volta pin:*)",
       "Bash(node --version:*)",
       "Bash(node -e:*)",
-
       "Bash(git status:*)",
       "Bash(git log:*)",
       "Bash(git diff:*)",
@@ -40,19 +37,32 @@
       "Bash(git rebase:*)",
       "Bash(git mv:*)",
       "Bash(git -C:*)",
-
       "Bash(gh pr:*)",
       "Bash(gh run:*)",
       "Bash(gh issue:*)",
       "Bash(gh api:*)",
-
       "Bash(ls:*)",
       "Bash(cat:*)",
       "Bash(grep:*)",
       "Bash(wc:*)",
       "Bash(echo:*)",
-
       "WebSearch"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/gsd-check-update.js"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node .claude/hooks/gsd-statusline.js"
   }
 }

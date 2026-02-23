@@ -1,7 +1,4 @@
 {
-  "env": {
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "Claude-sonnet-4-6-1m"
-  },
   "permissions": {
     "allow": [
       "Bash(git -C /Users/bobbyfetting/Project-Controls log --oneline)",
@@ -94,7 +91,36 @@
       "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/packages/hbc-sp-services/src/mock/featureFlags.json:*)",
       "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/packages/hbc-sp-services/src/mock/templateRegistry.json:*)",
       "Bash(/Users/bobbyfetting/Project-Controls/.worktrees/feature/gitops-provisioning/packages/hbc-sp-services/src/mock/templateSiteConfig.json:*)",
-      "Bash(/tmp/validate_phase_e.js:*)"
+      "Bash(/tmp/validate_phase_e.js:*)",
+      "Bash(git show)",
+      "Bash(tail:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(xargs:*)",
+      "Bash(kill:*)",
+      "Bash(git rm:*)",
+      "Bash(git reset:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/src/webparts/hbcProjectControls/components/pages/sitecontrol/SiteControlDashboardPage.tsx:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/src/webparts/hbcProjectControls/components/pages/sitecontrol/SignInDashboardPage.tsx:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/src/webparts/hbcProjectControls/components/pages/sitecontrol/PersonnelLogPage.tsx:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/src/webparts/hbcProjectControls/components/pages/sitecontrol/SignInDocumentsPage.tsx:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/src/webparts/hbcProjectControls/components/pages/sitecontrol/SafetyHubPage.tsx:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/src/webparts/hbcProjectControls/components/pages/sitecontrol/SafetyInspectionsPage.tsx:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/src/webparts/hbcProjectControls/components/pages/sitecontrol/SafetyWarningsPage.tsx:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/src/webparts/hbcProjectControls/components/pages/sitecontrol/ToolBoxTalksPage.tsx:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/src/webparts/hbcProjectControls/components/pages/sitecontrol/SafetyScorecardHubPage.tsx:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/src/webparts/hbcProjectControls/components/pages/sitecontrol/SafetyHubDocumentsPage.tsx:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/src/webparts/hbcProjectControls/components/pages/sitecontrol/QCHubPage.tsx:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/src/webparts/hbcProjectControls/components/pages/sitecontrol/QCInspectionsPage.tsx:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/src/webparts/hbcProjectControls/components/pages/sitecontrol/IssueResolutionPage.tsx:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/src/webparts/hbcProjectControls/components/pages/sitecontrol/QCMetricsPage.tsx:*)",
+      "Bash(/Users/bobbyfetting/Project-Controls/src/webparts/hbcProjectControls/components/pages/sitecontrol/QCHubDocumentsPage.tsx:*)",
+      "Bash(npm run verify:sprint3:*)",
+      "Bash(npm run test:e2e:router-parity:*)",
+      "Bash(npm run test:e2e:teams-core-smoke:*)",
+      "Bash(npm run test:e2e:virtualized-infinite:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npm run verify:bundle-size:fail:*)",
+      "Bash(npm test:*)"
     ]
   },
   "enabledPlugins": {

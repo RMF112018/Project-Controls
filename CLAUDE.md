@@ -227,6 +227,10 @@ Last major additions: Phase 4G Department Tracking (Feb 23) — No new IDataServ
 - **`.claude/skills/resilient-data-operations/SKILL.md`** – Batching, retry/backoff, saga compensation, SignalR status patterns.  
   Cross-ref: §7 (GraphBatchService, ProvisioningSaga), §12 (ConnectorMutationResilience, ProvisioningSaga), `.claude/skills/provisioning-engine/SKILL.md`, Elevated UI/UX Design Skill.  
   Impact: ~40 % faster extension of resilient connectors and workflows.
+### New Skill Documentation (added 23 Feb 2026 at commit 58c3dff)
+- **`.claude/skills/workflow-state-machines/SKILL.md`** — xstate v5 machine protocol, dual-path flag strategy, guard rules, and optimistic integration.  
+  Cross-ref: §1, §16, §21, `.claude/skills/resilient-data-operations/SKILL.md`.  
+  Impact: ~40 % reduction in workflow extension time.
 
 **Keep CLAUDE.md lean** — archive aggressively to CLAUDE_ARCHIVE.md.
 
