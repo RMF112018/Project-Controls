@@ -131,7 +131,7 @@
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
     "@vitejs/plugin-react": "^4.4.0",
-    "ajv": "^8.17.1",
+    "ajv": "^8.18.0",
     "axe-playwright": "^2.2.2",
     "copy-webpack-plugin": "^13.0.1",
     "dotenv": "^17.3.1",
