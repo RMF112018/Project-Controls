@@ -448,6 +448,23 @@ export const JOB_NUMBER_REQUESTS_COLUMNS = {
   SiteProvisioningHeld: 'SiteProvisioningHeld', // SP: Yes/No
   TempProjectCode: 'TempProjectCode',          // SP: Single Line of Text
   Notes: 'Notes',                              // SP: Multiple Lines of Text
+  // Phase 4E: Project Number Request Form Fields
+  Email: 'Email',                              // SP: Single Line of Text
+  ProjectName: 'ProjectName',                  // SP: Single Line of Text
+  StreetAddress: 'StreetAddress',              // SP: Single Line of Text
+  CityState: 'CityState',                     // SP: Single Line of Text
+  ZipCode: 'ZipCode',                         // SP: Single Line of Text
+  County: 'County',                            // SP: Single Line of Text
+  OfficeDivision: 'OfficeDivision',            // SP: Single Line of Text (code)
+  OfficeDivisionLabel: 'OfficeDivisionLabel',  // SP: Single Line of Text
+  ManagedInProcore: 'ManagedInProcore',        // SP: Yes/No
+  AdditionalSageAccess: 'AdditionalSageAccess', // SP: Single Line of Text
+  TimberscanApprover: 'TimberscanApprover',    // SP: Single Line of Text
+  WorkflowType: 'WorkflowType',               // SP: Choice (typical | alternate)
+  BallInCourt: 'BallInCourt',                 // SP: Single Line of Text
+  SubmittedBy: 'SubmittedBy',                  // SP: Single Line of Text
+  ProvisioningTriggeredAt: 'ProvisioningTriggeredAt', // SP: DateTime
+  SiteUrl: 'SiteUrl',                         // SP: Single Line of Text (URL)
 } as const;
 
 /**

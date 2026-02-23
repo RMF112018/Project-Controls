@@ -69,6 +69,7 @@ All use top App Launcher + contextual Left Sidebar. Documents via Fluent/Graph.
 - Procore & BambooHR connectors (mock-first, bidirectional/one-way), QA/QC & Safety mobile-first workspace, Schedule v2 enhancements (virtualization, Gantt, drag-drop, What-If), DataProviderFactory UI wiring, Azure SQL/Dataverse core methods, PWA polish.
 - **STATUS: IN PROGRESS** (executing on `feature/hbc-suite-stabilization`)
 - **Phase 4D (23 Feb 2026)**: Procore/BambooHR connector UI complete — 8 pages (4 Procore + 4 BambooHR), ConnectorManagementPanel with sync-history drawer, routes + sidebar config, 8 Storybook stories, PermissionEngine tool definitions + templates for procore/bamboo permissions, Drawer import fix. 47 Operations routes, 25 Shared Services routes.
+- **Phase 4E (23 Feb 2026)**: Project Number Requests module BUILT — ProjectNumberRequestsPage (7-column tracking table with KPI cards) + ProjectNumberRequestForm (9 required + 4 optional fields, dual-workflow). 3 new routes + 1 redirect (old `/estimating/job-requests`). 4 new IDataService methods (270 total). TYPICAL workflow (PendingController → number assignment → provisioning → Completed) + ALTERNATE workflow (immediate placeholder + provisioning). Feature flag: ProjectNumberRequestsModule. Permission: PROJECT_NUMBER_REQUEST_VIEW. 13 new Jest tests (674 total). 20 Preconstruction routes.
 
 ### 7. Phase 5: Gen 1 Production Release & Handover (Sep–Oct 2026)
 - End-to-end testing with rollout team, SOC2 final audit, production SPFx deployment, training, documentation, monitoring/hotfix process.

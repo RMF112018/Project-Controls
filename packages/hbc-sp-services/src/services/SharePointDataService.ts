@@ -3265,6 +3265,103 @@ export class SharePointDataService implements IDataService {
     return this.mapToJobNumberRequest(updated);
   }
 
+  // --- Project Number Requests — Extended Workflow (Phase 4E) ---
+
+  async getJobNumberRequestById(requestId: number): Promise<IJobNumberRequest | null> {
+    performanceService.startMark('sp:getJobNumberRequestById');
+    try {
+      const item = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(requestId)();
+      performanceService.endMark('sp:getJobNumberRequestById');
+      return this.mapToJobNumberRequest(item as Record<string, unknown>);
+    } catch (err) {
+      performanceService.endMark('sp:getJobNumberRequestById');
+      if (String(err).includes('404') || String(err).includes('does not exist')) return null;
+      throw this.handleError('getJobNumberRequestById', err, { entityType: 'JobNumberRequest' });
+    }
+  }
+
+  async updateJobNumberRequest(requestId: number, data: Partial<IJobNumberRequest>): Promise<IJobNumberRequest> {
+    performanceService.startMark('sp:updateJobNumberRequest');
+    const col = JOB_NUMBER_REQUESTS_COLUMNS;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {};
+    if (data.RequestStatus !== undefined) updateData[col.RequestStatus] = data.RequestStatus;
+    if (data.AssignedJobNumber !== undefined) updateData[col.AssignedJobNumber] = data.AssignedJobNumber;
+    if (data.AssignedBy !== undefined) updateData[col.AssignedBy] = data.AssignedBy;
+    if (data.AssignedDate !== undefined) updateData[col.AssignedDate] = data.AssignedDate;
+    if (data.BallInCourt !== undefined) updateData[col.BallInCourt] = data.BallInCourt;
+    if (data.Notes !== undefined) updateData[col.Notes] = data.Notes;
+
+    await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(requestId).update(updateData);
+    const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(requestId)();
+    performanceService.endMark('sp:updateJobNumberRequest');
+    return this.mapToJobNumberRequest(updated as Record<string, unknown>);
+  }
+
+  async submitProjectNumberRequest(data: Partial<IJobNumberRequest>, workflowType: 'typical' | 'alternate'): Promise<IJobNumberRequest> {
+    performanceService.startMark('sp:submitProjectNumberRequest');
+    const col = JOB_NUMBER_REQUESTS_COLUMNS;
+    const status = workflowType === 'typical' ? JobNumberRequestStatus.PendingController : JobNumberRequestStatus.PendingProvisioning;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const addData: Record<string, any> = {
+      [col.RequestDate]: data.RequestDate ?? new Date().toISOString().split('T')[0],
+      [col.Originator]: data.Originator ?? '',
+      [col.RequiredByDate]: data.RequiredByDate ?? '',
+      [col.ProjectExecutive]: data.ProjectExecutive ?? '',
+      [col.RequestStatus]: status,
+      [col.SiteProvisioningHeld]: workflowType === 'typical',
+      [col.Email]: data.Email ?? '',
+      [col.ProjectName]: data.ProjectName ?? '',
+      [col.StreetAddress]: data.StreetAddress ?? '',
+      [col.CityState]: data.CityState ?? '',
+      [col.ZipCode]: data.ZipCode ?? '',
+      [col.County]: data.County ?? '',
+      [col.OfficeDivision]: data.OfficeDivision ?? '',
+      [col.OfficeDivisionLabel]: data.OfficeDivisionLabel ?? '',
+      [col.WorkflowType]: workflowType,
+      [col.SubmittedBy]: data.SubmittedBy ?? '',
+      [col.BallInCourt]: workflowType === 'typical' ? 'Heather Thomas' : 'System',
+    };
+    if (data.ProjectManager) addData[col.ProjectManager] = data.ProjectManager;
+    if (data.ManagedInProcore !== undefined) addData[col.ManagedInProcore] = data.ManagedInProcore;
+    if (data.AdditionalSageAccess) addData[col.AdditionalSageAccess] = data.AdditionalSageAccess;
+    if (data.TimberscanApprover) addData[col.TimberscanApprover] = data.TimberscanApprover;
+
+    if (workflowType === 'alternate') {
+      const year = new Date().getFullYear().toString().slice(-2);
+      addData[col.TempProjectCode] = `${year}-999-01`;
+      addData[col.ProvisioningTriggeredAt] = new Date().toISOString();
+    }
+
+    const result = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.add(addData);
+    const newId = (result as Record<string, unknown>).Id as number || (result as Record<string, unknown>).id as number;
+    const created = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(newId)();
+    performanceService.endMark('sp:submitProjectNumberRequest');
+    return this.mapToJobNumberRequest(created as Record<string, unknown>);
+  }
+
+  async triggerProjectNumberProvisioning(requestId: number): Promise<IJobNumberRequest> {
+    performanceService.startMark('sp:triggerProjectNumberProvisioning');
+    const col = JOB_NUMBER_REQUESTS_COLUMNS;
+    const now = new Date().toISOString();
+    const existing = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(requestId)();
+    const jobNum = (existing as Record<string, unknown>)[col.AssignedJobNumber] as string ||
+                   (existing as Record<string, unknown>)[col.TempProjectCode] as string || String(requestId);
+    const siteUrl = `https://hedrickbrothers.sharepoint.com/sites/${jobNum}`;
+
+    await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(requestId).update({
+      [col.RequestStatus]: JobNumberRequestStatus.Completed,
+      [col.ProvisioningTriggeredAt]: now,
+      [col.SiteUrl]: siteUrl,
+      [col.BallInCourt]: '',
+    });
+
+    const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(requestId)();
+    performanceService.endMark('sp:triggerProjectNumberProvisioning');
+    return this.mapToJobNumberRequest(updated as Record<string, unknown>);
+  }
+
   // --- Reference Data ---
 
   async getProjectTypes(): Promise<IProjectType[]> {
@@ -7730,6 +7827,23 @@ export class SharePointDataService implements IDataService {
       SiteProvisioningHeld: !!(item[col.SiteProvisioningHeld]),
       TempProjectCode: (item[col.TempProjectCode] as string) || undefined,
       Notes: (item[col.Notes] as string) || undefined,
+      // Phase 4E fields
+      Email: (item[col.Email] as string) || undefined,
+      ProjectName: (item[col.ProjectName] as string) || undefined,
+      StreetAddress: (item[col.StreetAddress] as string) || undefined,
+      CityState: (item[col.CityState] as string) || undefined,
+      ZipCode: (item[col.ZipCode] as string) || undefined,
+      County: (item[col.County] as string) || undefined,
+      OfficeDivision: (item[col.OfficeDivision] as string) || undefined,
+      OfficeDivisionLabel: (item[col.OfficeDivisionLabel] as string) || undefined,
+      ManagedInProcore: item[col.ManagedInProcore] !== undefined ? !!(item[col.ManagedInProcore]) : undefined,
+      AdditionalSageAccess: (item[col.AdditionalSageAccess] as string) || undefined,
+      TimberscanApprover: (item[col.TimberscanApprover] as string) || undefined,
+      WorkflowType: (item[col.WorkflowType] as 'typical' | 'alternate') || undefined,
+      BallInCourt: (item[col.BallInCourt] as string) || undefined,
+      SubmittedBy: (item[col.SubmittedBy] as string) || undefined,
+      ProvisioningTriggeredAt: (item[col.ProvisioningTriggeredAt] as string) || undefined,
+      SiteUrl: (item[col.SiteUrl] as string) || undefined,
     };
   }
 

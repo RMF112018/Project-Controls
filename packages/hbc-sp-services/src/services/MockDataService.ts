@@ -266,6 +266,14 @@ const REQUIRED_PROMPT6_FEATURE_FLAGS: ReadonlyArray<Omit<IFeatureFlag, 'id'>> = 
     Category: 'Infrastructure',
   },
   {
+    FeatureName: 'ProjectNumberRequestsModule',
+    DisplayName: 'Project Number Requests',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    Notes: 'Enhanced Project Number Request form and workflow engine (TYPICAL + ALTERNATE)',
+    Category: 'Preconstruction',
+  },
+  {
     FeatureName: 'PreconstructionWorkspace',
     DisplayName: 'Preconstruction Workspace',
     Enabled: true,
@@ -4068,6 +4076,23 @@ export class MockDataService implements IDataService {
       SiteProvisioningHeld: data.SiteProvisioningHeld ?? true,
       TempProjectCode: data.TempProjectCode,
       Notes: data.Notes,
+      // Phase 4E fields
+      Email: data.Email,
+      ProjectName: data.ProjectName,
+      StreetAddress: data.StreetAddress,
+      CityState: data.CityState,
+      ZipCode: data.ZipCode,
+      County: data.County,
+      OfficeDivision: data.OfficeDivision,
+      OfficeDivisionLabel: data.OfficeDivisionLabel,
+      ManagedInProcore: data.ManagedInProcore,
+      AdditionalSageAccess: data.AdditionalSageAccess,
+      TimberscanApprover: data.TimberscanApprover,
+      WorkflowType: data.WorkflowType,
+      BallInCourt: data.BallInCourt,
+      SubmittedBy: data.SubmittedBy,
+      ProvisioningTriggeredAt: data.ProvisioningTriggeredAt,
+      SiteUrl: data.SiteUrl,
     };
     this.jobNumberRequests.push(request);
 
@@ -4098,6 +4123,169 @@ export class MockDataService implements IDataService {
       this.leads[leadIndex].ProjectExecutive = request.ProjectExecutive;
       this.leads[leadIndex].ProjectManager = request.ProjectManager;
     }
+
+    return { ...request };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Project Number Requests — Extended Workflow (Phase 4E)
+  // ---------------------------------------------------------------------------
+
+  public async getJobNumberRequestById(requestId: number): Promise<IJobNumberRequest | null> {
+    await delay();
+    const request = this.jobNumberRequests.find(r => r.id === requestId);
+    return request ? { ...request } : null;
+  }
+
+  public async updateJobNumberRequest(requestId: number, data: Partial<IJobNumberRequest>): Promise<IJobNumberRequest> {
+    await delay();
+    const index = this.jobNumberRequests.findIndex(r => r.id === requestId);
+    if (index === -1) throw new Error(`Job number request ${requestId} not found`);
+
+    const existing = this.jobNumberRequests[index];
+
+    // Detect number assignment → status transition
+    if (data.AssignedJobNumber && !existing.AssignedJobNumber) {
+      data.RequestStatus = JobNumberRequestStatus.PendingProvisioning;
+      data.AssignedDate = data.AssignedDate ?? new Date().toISOString().split('T')[0];
+      data.BallInCourt = 'System';
+    }
+
+    Object.assign(existing, data);
+
+    await this.logAudit({
+      Action: AuditAction.ProjectNumberRequestUpdated,
+      EntityType: EntityType.ProjectNumberRequest,
+      EntityId: String(requestId),
+      User: data.AssignedBy ?? existing.Originator ?? 'unknown',
+      Details: data.AssignedJobNumber
+        ? `Project number ${data.AssignedJobNumber} assigned to request ${requestId}`
+        : `Request ${requestId} updated`,
+    });
+
+    return { ...existing };
+  }
+
+  public async submitProjectNumberRequest(
+    data: Partial<IJobNumberRequest>,
+    workflowType: 'typical' | 'alternate'
+  ): Promise<IJobNumberRequest> {
+    await delay();
+
+    const request: IJobNumberRequest = {
+      id: this.getNextId(),
+      LeadID: data.LeadID ?? 0,
+      RequestDate: data.RequestDate ?? new Date().toISOString().split('T')[0],
+      Originator: data.Originator ?? '',
+      RequiredByDate: data.RequiredByDate ?? '',
+      ProjectAddress: data.ProjectAddress ?? data.StreetAddress ?? '',
+      ProjectExecutive: data.ProjectExecutive ?? '',
+      ProjectManager: data.ProjectManager,
+      ProjectType: data.OfficeDivision ?? data.ProjectType ?? '',
+      ProjectTypeLabel: data.OfficeDivisionLabel ?? data.ProjectTypeLabel ?? '',
+      IsEstimatingOnly: data.IsEstimatingOnly ?? false,
+      RequestedCostCodes: data.RequestedCostCodes ?? [],
+      RequestStatus: JobNumberRequestStatus.Submitted,
+      SiteProvisioningHeld: true,
+      Notes: data.Notes,
+      // Phase 4E form fields
+      Email: data.Email,
+      ProjectName: data.ProjectName,
+      StreetAddress: data.StreetAddress,
+      CityState: data.CityState,
+      ZipCode: data.ZipCode,
+      County: data.County,
+      OfficeDivision: data.OfficeDivision,
+      OfficeDivisionLabel: data.OfficeDivisionLabel,
+      ManagedInProcore: data.ManagedInProcore,
+      AdditionalSageAccess: data.AdditionalSageAccess,
+      TimberscanApprover: data.TimberscanApprover,
+      WorkflowType: workflowType,
+      SubmittedBy: data.SubmittedBy,
+    };
+
+    if (workflowType === 'typical') {
+      // TYPICAL: Submit → notification to Controller → awaiting number
+      request.RequestStatus = JobNumberRequestStatus.PendingController;
+      request.BallInCourt = 'Heather Thomas';
+      request.SiteProvisioningHeld = true;
+    } else {
+      // ALTERNATE: Submit → placeholder number → immediate provisioning
+      const year = new Date().getFullYear().toString().slice(-2);
+      request.TempProjectCode = `${year}-999-01`;
+      request.RequestStatus = JobNumberRequestStatus.PendingProvisioning;
+      request.BallInCourt = 'System';
+      request.SiteProvisioningHeld = false;
+      request.ProvisioningTriggeredAt = new Date().toISOString();
+      request.SiteUrl = `https://hedrickbrothers.sharepoint.com/sites/${request.TempProjectCode}`;
+    }
+
+    this.jobNumberRequests.push(request);
+
+    // Send notification to Controller
+    await this.sendNotification({
+      type: NotificationType.Both,
+      subject: workflowType === 'typical'
+        ? `New Project Number Request: ${request.ProjectName ?? 'Untitled'}`
+        : `Project Number Request (Immediate Provisioning): ${request.ProjectName ?? 'Untitled'}`,
+      body: workflowType === 'typical'
+        ? `A new project number request has been submitted by ${request.SubmittedBy ?? request.Originator} for ${request.ProjectName ?? 'Untitled'}.`
+        : `A project number request with immediate site provisioning has been submitted. Placeholder: ${request.TempProjectCode}. Please assign the official number.`,
+      recipients: ['hthomas@hedrickbrothers.com'],
+      sentBy: request.Originator ?? '',
+      relatedEntityType: 'ProjectNumberRequest',
+      relatedEntityId: String(request.id),
+      projectCode: request.TempProjectCode ?? '',
+    });
+
+    // Log audit
+    await this.logAudit({
+      Action: AuditAction.ProjectNumberRequestSubmitted,
+      EntityType: EntityType.ProjectNumberRequest,
+      EntityId: String(request.id),
+      User: request.Originator ?? 'unknown',
+      Details: workflowType === 'typical'
+        ? `Typical workflow: Request submitted for ${request.ProjectName ?? 'Untitled'}. Awaiting Controller.`
+        : `Alternate workflow: Request submitted with placeholder ${request.TempProjectCode}. Immediate provisioning.`,
+    });
+
+    return { ...request };
+  }
+
+  public async triggerProjectNumberProvisioning(requestId: number): Promise<IJobNumberRequest> {
+    await delay();
+    const index = this.jobNumberRequests.findIndex(r => r.id === requestId);
+    if (index === -1) throw new Error(`Request ${requestId} not found`);
+
+    const request = this.jobNumberRequests[index];
+    request.ProvisioningTriggeredAt = new Date().toISOString();
+    request.SiteUrl = `https://hedrickbrothers.sharepoint.com/sites/${request.AssignedJobNumber || request.TempProjectCode || requestId}`;
+    request.RequestStatus = JobNumberRequestStatus.Completed;
+    request.BallInCourt = undefined;
+
+    // Completion notifications to originator + PX + PM
+    const recipients = [request.Originator ?? ''];
+    if (request.ProjectExecutive) recipients.push(request.Email ?? request.ProjectExecutive);
+    if (request.ProjectManager) recipients.push(request.ProjectManager);
+
+    await this.sendNotification({
+      type: NotificationType.Both,
+      subject: `Project Site Ready: ${request.ProjectName ?? 'Untitled'}`,
+      body: `The SharePoint site for ${request.ProjectName ?? 'Untitled'} (${request.AssignedJobNumber || request.TempProjectCode}) has been provisioned at ${request.SiteUrl}.`,
+      recipients: recipients.filter(Boolean),
+      sentBy: 'system',
+      relatedEntityType: 'ProjectNumberRequest',
+      relatedEntityId: String(request.id),
+      projectCode: request.AssignedJobNumber || request.TempProjectCode || '',
+    });
+
+    await this.logAudit({
+      Action: AuditAction.ProjectNumberProvisioningCompleted,
+      EntityType: EntityType.ProjectNumberRequest,
+      EntityId: String(request.id),
+      User: 'system',
+      Details: `Site provisioned at ${request.SiteUrl}`,
+    });
 
     return { ...request };
   }

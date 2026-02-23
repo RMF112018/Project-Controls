@@ -101,7 +101,7 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
         items: [
           { label: 'Estimating Dashboard', path: '/preconstruction/estimating', permission: PERMISSIONS.ESTIMATING_READ },
           { label: 'Department Tracking', path: '/preconstruction/estimating/tracking', permission: PERMISSIONS.ESTIMATING_READ },
-          { label: 'New Job Requests', path: '/preconstruction/estimating/job-requests', permission: PERMISSIONS.JOB_NUMBER_REQUEST_CREATE },
+          { label: 'Project Number Requests', path: '/preconstruction/project-number-requests', permission: PERMISSIONS.PROJECT_NUMBER_REQUEST_VIEW, featureFlag: 'ProjectNumberRequestsModule' },
           { label: 'Post-Bid Autopsies', path: '/preconstruction/estimating/post-bid', permission: PERMISSIONS.ESTIMATING_READ },
           { label: 'Project Hub', path: '/preconstruction/estimating/project-hub', permission: PERMISSIONS.PROJECT_HUB_VIEW },
           { label: 'Documents', path: '/preconstruction/estimating/documents', permission: PERMISSIONS.ESTIMATING_READ },

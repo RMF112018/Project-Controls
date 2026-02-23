@@ -15,7 +15,7 @@ This file must stay under 40,000 characters. Never allow it to grow large again.
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-23 — Phase 4 IN PROGRESS. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (17 routes). Operations workspace BUILT (43 routes, 41 pages). Shared Services workspace BUILT (21 routes, 20 pages). HB Site Control workspace BUILT (16 routes, 15 pages). 693 tests passing.
+**Last Updated:** 2026-02-23 — Phase 4 IN PROGRESS. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (20 routes, Phase 4E Project Number Requests module). Operations workspace BUILT (47 routes, 45 pages). Shared Services workspace BUILT (25 routes, 24 pages). HB Site Control workspace BUILT (16 routes, 15 pages). 674 tests passing.
 
 **MANDATORY:** After any code change that affects the data layer, architecture, performance, UI/UX, testing, or security, update this file, verify against the current sprint gate, confirm relevant Skills and the master plan were followed, and check project memory before ending the session.
 
@@ -159,11 +159,11 @@ Cross-reference: §18 Roadmap (Phase 2), §21, §22, `.claude/plans/hbc-stabiliz
 
 ## §7 Service Methods Status (Live)
 
-**Total methods**: 266
-**Implemented**: 266
-**Remaining stubs**: 0 — **DATA LAYER COMPLETE** (9 Phase 1 provisioning + 7 Phase 2 role configuration + 34 Phase 4A/B/C connector/Procore/BambooHR methods added)
+**Total methods**: 270
+**Implemented**: 270
+**Remaining stubs**: 0 — **DATA LAYER COMPLETE** (9 Phase 1 provisioning + 7 Phase 2 role configuration + 34 Phase 4A/B/C connector/Procore/BambooHR + 4 Phase 4E project number request methods added)
 
-Last major additions: Phase 4D Connector UI (Feb 23) — ConnectorManagementPanel with sync-history drawer, 4 Procore pages, 4 BambooHR pages. All data layer methods (9 connector + 16 Procore + 10 BambooHR) already complete with rich mock fixture data. New permissions: PROCORE_VIEW, PROCORE_SYNC, BAMBOO_VIEW, BAMBOO_SYNC.
+Last major additions: Phase 4E Project Number Requests (Feb 23) — 4 new IDataService methods (getJobNumberRequestById, updateJobNumberRequest, submitProjectNumberRequest, triggerProjectNumberProvisioning). ProjectNumberRequestsPage (tracking table) + ProjectNumberRequestForm (dual-workflow form). Feature flag: ProjectNumberRequestsModule. Permission: PROJECT_NUMBER_REQUEST_VIEW. 13 new Jest tests (674 total).
 
 ---
 
@@ -175,7 +175,7 @@ Last major additions: Phase 4D Connector UI (Feb 23) — ConnectorManagementPane
 - Phase 1: SharePoint Site Provisioning Engine — **COMPLETE** on `feature/hbc-suite-stabilization`. SiteProvisioningWizard + SiteDefaultsConfigPanel + EntraIdSyncService + SOC2 audit snapshots + 9 new IDataService methods (259 total) + 33 new Jest tests.
 - Phase 2: New Role & Permission System — **COMPLETE** on `feature/hbc-suite-stabilization`. IRoleConfiguration + LEGACY_ROLE_MAP + RoleGate normalization + RoleConfigurationPanel + 7 new IDataService methods (266 total) + 35 new Jest tests.
 - Phase 3: Navigation Overhaul + Router/Data Reconstruction — **COMPLETE** on `feature/hbc-suite-stabilization` (22 Feb 2026). AppLauncher + ContextualSidebar + 5 workspace route files + adapter hooks rewritten + PillarTabBar deleted + TanStackAdapterBridge removed. 752 tests passing.
-- Phase 4: Full Features — **IN PROGRESS**. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (17 routes). Operations workspace BUILT (47 routes, 45 pages, 6 sidebar groups — includes Procore Integration: Dashboard, RFIs, Budget, Conflicts). Shared Services workspace BUILT (25 routes, 24 pages, 5 sidebar groups — includes BambooHR: Directory, Org Chart, Time Off, Mappings). HB Site Control workspace BUILT (16 routes, 15 pages, 3 sidebar groups). ConnectorManagementPanel BUILT with sync-history drawer (Admin > Connections). 10 new permission keys (SHARED_SERVICES_HUB_VIEW, HR_VIEW, HR_EDIT, RISK_MANAGEMENT_VIEW, RISK_MANAGEMENT_EDIT, SITE_CONTROL_HUB_VIEW, PROCORE_VIEW, PROCORE_SYNC, BAMBOO_VIEW, BAMBOO_SYNC). Feature flags: ProcoreIntegration, BambooHRIntegration. 8 Storybook stories added. 661 tests passing.
+- Phase 4: Full Features — **IN PROGRESS**. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (20 routes — Phase 4E: Project Number Requests module with tracking table + dual-workflow form, 3 new routes + 1 redirect). Operations workspace BUILT (47 routes, 45 pages, 6 sidebar groups — includes Procore Integration: Dashboard, RFIs, Budget, Conflicts). Shared Services workspace BUILT (25 routes, 24 pages, 5 sidebar groups — includes BambooHR: Directory, Org Chart, Time Off, Mappings). HB Site Control workspace BUILT (16 routes, 15 pages, 3 sidebar groups). ConnectorManagementPanel BUILT with sync-history drawer (Admin > Connections). 11 new permission keys (+PROJECT_NUMBER_REQUEST_VIEW). Feature flags: ProcoreIntegration, BambooHRIntegration, ProjectNumberRequestsModule. 674 tests passing.
 
 ---
 
@@ -263,7 +263,7 @@ IDataService abstraction preserved (266 methods). Phase 0.5 **COMPLETE**:
 
 ## §20 Application Suite Strategy (Phase 4 — 22 Feb 2026)
 Central Analytics Hub + 5 departmental workspaces:
-- **Preconstruction** (`/preconstruction/*`) — **BUILT**: BD (Dashboard, Leads, Go/No-Go, Pipeline, Project Hub, Documents), Estimating (Dashboard, Tracking, Job Requests, Post-Bid, Project Hub, Documents), IDS (Dashboard, Tracking, Documents). 17 routes.
+- **Preconstruction** (`/preconstruction/*`) — **BUILT**: BD (Dashboard, Leads, Go/No-Go, Pipeline, Project Hub, Documents), Estimating (Dashboard, Tracking, Post-Bid, Project Hub, Documents), Project Number Requests (Tracking Log, Request Form — TYPICAL + ALTERNATE workflow), IDS (Dashboard, Tracking, Documents). 20 routes (19 + 1 redirect from old `/estimating/job-requests` path).
 - **Admin** (`/admin/*`) — **BUILT**: System Config (Connections, Hub Site URL, Workflows), Security & Access (Roles, Permissions, Assignments, Sectors), Provisioning, Dev Tools (Dev Users, Feature Flags, Audit Log). 12 routes.
 - **Operations** (`/operations/*`) — **BUILT**: Operations Dashboard, Commercial Ops (Dashboard, Luxury Residential, Project Hub, Project Settings, Project Manual + 12 sub-pages, Financial Forecasting, Schedule), Logs & Reports (Buyout, Permits, Constraints, Monthly Reports, Sub Scorecard), Documents, Operational Excellence (Dashboard, Onboarding, Training, Documents), Safety (Dashboard, Training, Scorecard, Resources, Documents), QC & Warranty (Dashboard, Best Practices, QA Tracking, Checklists, Warranty, Documents), Procore Integration (Dashboard, RFIs, Budget, Sync Conflicts). 47 routes, 45 pages, 6 sidebar groups. Permissions: PROCORE_VIEW, PROCORE_SYNC. Feature flag: ProcoreIntegration.
 - **Shared Services** (`/shared-services/*`) — **BUILT**: Marketing (Dashboard, Resources, Requests, Tracking, Documents), Human Resources (People & Culture Dashboard, Openings, Announcements, Initiatives, Documents), Accounting (Dashboard, New Project Setup, Accounts Receivable Report, Documents), Risk Management (Dashboard, Knowledge Center, Requests, Enrollment Tracking, Documents), BambooHR (Employee Directory, Org Chart, Time Off, Employee Mappings). 25 routes, 24 pages, 5 sidebar groups. Permissions: BAMBOO_VIEW, BAMBOO_SYNC. Feature flag: BambooHRIntegration.

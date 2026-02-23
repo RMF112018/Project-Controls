@@ -235,6 +235,12 @@ export enum AuditAction {
   RoleConfigurationUpdated = 'Role.ConfigurationUpdated',
   RoleConfigurationDeleted = 'Role.ConfigurationDeleted',
   RoleConfigurationSeeded = 'Role.ConfigurationSeeded',
+  // Phase 4E: Project Number Requests
+  ProjectNumberRequestSubmitted = 'ProjectNumberRequest.Submitted',
+  ProjectNumberRequestUpdated = 'ProjectNumberRequest.Updated',
+  ProjectNumberAssigned = 'ProjectNumberRequest.NumberAssigned',
+  ProjectNumberProvisioningTriggered = 'ProjectNumberRequest.ProvisioningTriggered',
+  ProjectNumberProvisioningCompleted = 'ProjectNumberRequest.ProvisioningCompleted',
 }
 
 export enum EntityType {
@@ -277,6 +283,7 @@ export enum EntityType {
   SiteDefaults = 'SiteDefaults',
   EntraGroup = 'EntraGroup',
   RoleConfiguration = 'RoleConfiguration',
+  ProjectNumberRequest = 'ProjectNumberRequest',
 }
 
 export enum DeliverableStatus {
@@ -404,6 +411,10 @@ export enum NotificationEvent {
   ContractTrackingStepAdvanced = 'ContractTrackingStepAdvanced',
   ContractTrackingCompleted = 'ContractTrackingCompleted',
   ContractTrackingRejected = 'ContractTrackingRejected',
+  // Phase 4E: Project Number Requests
+  ProjectNumberRequestSubmittedToController = 'ProjectNumberRequestSubmittedToController',
+  ProjectNumberProvisioned = 'ProjectNumberProvisioned',
+  ProjectNumberAssignedNotification = 'ProjectNumberAssignedNotification',
 }
 
 export enum TurnoverStatus {

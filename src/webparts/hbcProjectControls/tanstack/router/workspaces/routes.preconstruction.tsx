@@ -2,10 +2,10 @@
  * Preconstruction Workspace Routes
  *
  * 3 sub-hubs: Business Development, Estimating, Innovation & Digital Services.
- * 16 routes total + layout route.
+ * 19 routes + 1 redirect + layout route (Phase 4E: Project Number Requests module).
  */
 import * as React from 'react';
-import { createRoute } from '@tanstack/react-router';
+import { createRoute, redirect } from '@tanstack/react-router';
 import { PERMISSIONS } from '@hbc/sp-services';
 import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
@@ -47,9 +47,6 @@ const EstimatingDashboardPage = React.lazy(() =>
 const DepartmentTrackingPage = React.lazy(() =>
   import('../../../components/pages/preconstruction/DepartmentTrackingPage').then(m => ({ default: m.DepartmentTrackingPage }))
 );
-const NewJobRequestsPage = React.lazy(() =>
-  import('../../../components/pages/preconstruction/NewJobRequestsPage').then(m => ({ default: m.NewJobRequestsPage }))
-);
 const PostBidAutopsiesPage = React.lazy(() =>
   import('../../../components/pages/preconstruction/PostBidAutopsiesPage').then(m => ({ default: m.PostBidAutopsiesPage }))
 );
@@ -58,6 +55,14 @@ const EstimatingProjectHubPage = React.lazy(() =>
 );
 const EstimatingDocumentsPage = React.lazy(() =>
   import('../../../components/pages/preconstruction/EstimatingDocumentsPage').then(m => ({ default: m.EstimatingDocumentsPage }))
+);
+
+// Project Number Requests (Phase 4E)
+const ProjectNumberRequestsPage = React.lazy(() =>
+  import('../../../components/pages/preconstruction/ProjectNumberRequestsPage').then(m => ({ default: m.ProjectNumberRequestsPage }))
+);
+const ProjectNumberRequestForm = React.lazy(() =>
+  import('../../../components/pages/preconstruction/ProjectNumberRequestForm').then(m => ({ default: m.ProjectNumberRequestForm }))
 );
 
 // IDS sub-hub
@@ -167,15 +172,6 @@ export function createPreconstructionWorkspaceRoutes(rootRoute: unknown) {
     },
   });
 
-  const estimatingJobRequests = createRoute({
-    getParentRoute: () => preconLayout as never,
-    path: '/preconstruction/estimating/job-requests',
-    component: NewJobRequestsPage,
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
-      requirePermission(context, PERMISSIONS.JOB_NUMBER_REQUEST_CREATE);
-    },
-  });
-
   const estimatingPostBid = createRoute({
     getParentRoute: () => preconLayout as never,
     path: '/preconstruction/estimating/post-bid',
@@ -201,6 +197,46 @@ export function createPreconstructionWorkspaceRoutes(rootRoute: unknown) {
     component: EstimatingDocumentsPage,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
       requirePermission(context, PERMISSIONS.ESTIMATING_READ);
+    },
+  });
+
+  // ── Project Number Requests (Phase 4E) ────────────────────────────
+  const projectNumberRequests = createRoute({
+    getParentRoute: () => preconLayout as never,
+    path: '/preconstruction/project-number-requests',
+    component: ProjectNumberRequestsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'ProjectNumberRequestsModule');
+      requirePermission(context, PERMISSIONS.PROJECT_NUMBER_REQUEST_VIEW);
+    },
+  });
+
+  const projectNumberRequestNew = createRoute({
+    getParentRoute: () => preconLayout as never,
+    path: '/preconstruction/project-number-requests/new',
+    component: ProjectNumberRequestForm,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'ProjectNumberRequestsModule');
+      requirePermission(context, PERMISSIONS.JOB_NUMBER_REQUEST_CREATE);
+    },
+  });
+
+  const projectNumberRequestEdit = createRoute({
+    getParentRoute: () => preconLayout as never,
+    path: '/preconstruction/project-number-requests/$requestId',
+    component: ProjectNumberRequestForm,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'ProjectNumberRequestsModule');
+      requirePermission(context, PERMISSIONS.PROJECT_NUMBER_REQUEST_VIEW);
+    },
+  });
+
+  // Redirect from old path
+  const jobRequestsRedirect = createRoute({
+    getParentRoute: () => preconLayout as never,
+    path: '/preconstruction/estimating/job-requests',
+    beforeLoad: () => {
+      throw redirect({ to: '/preconstruction/project-number-requests', replace: true });
     },
   });
 
@@ -245,10 +281,14 @@ export function createPreconstructionWorkspaceRoutes(rootRoute: unknown) {
       // Estimating
       estimatingDashboard,
       estimatingTracking,
-      estimatingJobRequests,
       estimatingPostBid,
       estimatingProjectHub,
       estimatingDocuments,
+      // Project Number Requests (Phase 4E)
+      projectNumberRequests,
+      projectNumberRequestNew,
+      projectNumberRequestEdit,
+      jobRequestsRedirect,
       // IDS
       idsDashboard,
       idsTracking,

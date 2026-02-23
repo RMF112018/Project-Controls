@@ -352,6 +352,12 @@ export interface IDataService {
   createJobNumberRequest(data: Partial<IJobNumberRequest>): Promise<IJobNumberRequest>;
   finalizeJobNumber(requestId: number, jobNumber: string, assignedBy: string): Promise<IJobNumberRequest>;
 
+  // Project Number Requests — Extended Workflow (Phase 4E)
+  getJobNumberRequestById(requestId: number): Promise<IJobNumberRequest | null>;
+  updateJobNumberRequest(requestId: number, data: Partial<IJobNumberRequest>): Promise<IJobNumberRequest>;
+  submitProjectNumberRequest(data: Partial<IJobNumberRequest>, workflowType: 'typical' | 'alternate'): Promise<IJobNumberRequest>;
+  triggerProjectNumberProvisioning(requestId: number): Promise<IJobNumberRequest>;
+
   // Reference Data
   getProjectTypes(): Promise<IProjectType[]>;
   getStandardCostCodes(): Promise<IStandardCostCode[]>;
