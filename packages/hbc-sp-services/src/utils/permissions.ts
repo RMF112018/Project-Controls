@@ -171,6 +171,14 @@ export const PERMISSIONS = {
   CONNECTOR_MANAGE: 'connector:manage',
   CONNECTOR_SYNC: 'connector:sync',
 
+  // Procore Integration (Phase 4D)
+  PROCORE_VIEW: 'procore:view',
+  PROCORE_SYNC: 'procore:sync',
+
+  // BambooHR Integration (Phase 4D)
+  BAMBOO_VIEW: 'bamboo:view',
+  BAMBOO_SYNC: 'bamboo:sync',
+
   // Shared Services (Phase 4)
   SHARED_SERVICES_HUB_VIEW: 'shared_services:hub:view',
   HR_VIEW: 'hr:view',
@@ -194,6 +202,8 @@ export const NAV_GROUP_ROLES: Record<string, string[]> = {
   'Human Resources': ['Executive Leadership', 'Department Director', 'SharePoint Admin'],
   'Shared Services': ['Marketing', 'BD Representative', 'Accounting Manager', 'Risk Management', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
   'HB Site Control': ['Quality Control', 'Safety', 'Operations Team', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
+  'Procore Integration': ['Operations Team', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
+  'BambooHR': ['Executive Leadership', 'Department Director', 'SharePoint Admin'],
 };
 
 // Role to permissions mapping
@@ -268,6 +278,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.CONSTRAINTS_VIEW, PERMISSIONS.CONSTRAINTS_EDIT, PERMISSIONS.CONSTRAINTS_MANAGE,
     PERMISSIONS.PERMITS_VIEW, PERMISSIONS.PERMITS_EDIT, PERMISSIONS.PERMITS_MANAGE,
     PERMISSIONS.SITE_CONTROL_HUB_VIEW,
+    PERMISSIONS.PROCORE_VIEW, PERMISSIONS.PROCORE_SYNC,
   ],
   'Executive Leadership': [
     PERMISSIONS.LEAD_READ,
@@ -301,6 +312,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.SHARED_SERVICES_HUB_VIEW, PERMISSIONS.HR_VIEW, PERMISSIONS.HR_EDIT,
     PERMISSIONS.RISK_MANAGEMENT_VIEW, PERMISSIONS.RISK_MANAGEMENT_EDIT,
     PERMISSIONS.SITE_CONTROL_HUB_VIEW,
+    PERMISSIONS.PROCORE_VIEW, PERMISSIONS.PROCORE_SYNC,
+    PERMISSIONS.BAMBOO_VIEW, PERMISSIONS.BAMBOO_SYNC,
   ],
   'Department Director': [
     PERMISSIONS.LEAD_READ, PERMISSIONS.SCHEDULE_VIEW,
@@ -329,6 +342,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.SHARED_SERVICES_HUB_VIEW, PERMISSIONS.HR_VIEW, PERMISSIONS.HR_EDIT,
     PERMISSIONS.RISK_MANAGEMENT_VIEW, PERMISSIONS.RISK_MANAGEMENT_EDIT,
     PERMISSIONS.SITE_CONTROL_HUB_VIEW,
+    PERMISSIONS.PROCORE_VIEW,
+    PERMISSIONS.BAMBOO_VIEW, PERMISSIONS.BAMBOO_SYNC,
   ],
   'Legal': [
     PERMISSIONS.LEAD_READ, PERMISSIONS.GONOGO_READ,

@@ -1,9 +1,9 @@
 /**
  * Operations Workspace Routes
  *
- * 5 sidebar groups: Operations Dashboard, Commercial Operations,
- * Operational Excellence, Safety, Quality Control & Warranty.
- * 42 child routes + 1 layout route = 43 routes total.
+ * 6 sidebar groups: Operations Dashboard, Commercial Operations,
+ * Operational Excellence, Safety, Quality Control & Warranty, Procore Integration.
+ * 46 child routes + 1 layout route = 47 routes total.
  */
 import * as React from 'react';
 import { createRoute } from '@tanstack/react-router';
@@ -137,6 +137,20 @@ const SafetyResourcesPage = React.lazy(() =>
 );
 const SafetyDocumentsPage = React.lazy(() =>
   import('../../../components/pages/operations/SafetyDocumentsPage').then(m => ({ default: m.SafetyDocumentsPage }))
+);
+
+// ── Procore Integration ──────────────────────────────────────────────
+const ProcoreDashboardPage = React.lazy(() =>
+  import('../../../components/pages/operations/ProcoreDashboardPage').then(m => ({ default: m.ProcoreDashboardPage }))
+);
+const ProcoreRFIsPage = React.lazy(() =>
+  import('../../../components/pages/operations/ProcoreRFIsPage').then(m => ({ default: m.ProcoreRFIsPage }))
+);
+const ProcoreBudgetPage = React.lazy(() =>
+  import('../../../components/pages/operations/ProcoreBudgetPage').then(m => ({ default: m.ProcoreBudgetPage }))
+);
+const ProcoreConflictsPage = React.lazy(() =>
+  import('../../../components/pages/operations/ProcoreConflictsPage').then(m => ({ default: m.ProcoreConflictsPage }))
 );
 
 // ── Quality Control & Warranty ────────────────────────────────────────
@@ -571,6 +585,47 @@ export function createOperationsWorkspaceRoutes(rootRoute: unknown) {
     },
   });
 
+  // ── Procore Integration ──────────────────────────────────────────
+  const procoreDashboard = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/procore',
+    component: ProcoreDashboardPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'ProcoreIntegration');
+      requirePermission(context, PERMISSIONS.PROCORE_VIEW);
+    },
+  });
+
+  const procoreRfis = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/procore/rfis',
+    component: ProcoreRFIsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'ProcoreIntegration');
+      requirePermission(context, PERMISSIONS.PROCORE_VIEW);
+    },
+  });
+
+  const procoreBudget = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/procore/budget',
+    component: ProcoreBudgetPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'ProcoreIntegration');
+      requirePermission(context, PERMISSIONS.PROCORE_VIEW);
+    },
+  });
+
+  const procoreConflicts = createRoute({
+    getParentRoute: () => opsLayout as never,
+    path: '/operations/procore/conflicts',
+    component: ProcoreConflictsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'ProcoreIntegration');
+      requirePermission(context, PERMISSIONS.CONNECTOR_MANAGE);
+    },
+  });
+
   return [
     opsLayout.addChildren([
       opsDashboard,
@@ -623,6 +678,11 @@ export function createOperationsWorkspaceRoutes(rootRoute: unknown) {
       qcChecklists,
       qcWarranty,
       qcDocuments,
+      // Procore Integration
+      procoreDashboard,
+      procoreRfis,
+      procoreBudget,
+      procoreConflicts,
     ] as never),
   ] as unknown[];
 }

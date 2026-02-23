@@ -1,8 +1,8 @@
 /**
  * Shared Services Workspace Routes
  *
- * 4 sidebar groups: Marketing, Human Resources, Accounting, Risk Management.
- * 20 child routes + 1 layout route = 21 routes total.
+ * 5 sidebar groups: Marketing, Human Resources, Accounting, Risk Management, BambooHR.
+ * 24 child routes + 1 layout route = 25 routes total.
  */
 import * as React from 'react';
 import { createRoute } from '@tanstack/react-router';
@@ -84,6 +84,20 @@ const RiskEnrollmentTrackingPage = React.lazy(() =>
 );
 const RiskDocumentsPage = React.lazy(() =>
   import('../../../components/pages/sharedservices/RiskDocumentsPage').then(m => ({ default: m.RiskDocumentsPage }))
+);
+
+// ── BambooHR Integration ────────────────────────────────────────────
+const BambooDirectoryPage = React.lazy(() =>
+  import('../../../components/pages/sharedservices/BambooDirectoryPage').then(m => ({ default: m.BambooDirectoryPage }))
+);
+const BambooOrgChartPage = React.lazy(() =>
+  import('../../../components/pages/sharedservices/BambooOrgChartPage').then(m => ({ default: m.BambooOrgChartPage }))
+);
+const BambooTimeOffPage = React.lazy(() =>
+  import('../../../components/pages/sharedservices/BambooTimeOffPage').then(m => ({ default: m.BambooTimeOffPage }))
+);
+const BambooMappingsPage = React.lazy(() =>
+  import('../../../components/pages/sharedservices/BambooMappingsPage').then(m => ({ default: m.BambooMappingsPage }))
 );
 
 // ── Route Factory ────────────────────────────────────────────────────
@@ -283,6 +297,47 @@ export function createSharedServicesWorkspaceRoutes(rootRoute: unknown): unknown
     },
   });
 
+  // ── BambooHR Integration ──
+  const bambooDirectoryRoute = createRoute({
+    getParentRoute: () => sharedServicesLayout as never,
+    path: '/shared-services/hr/bamboo/directory',
+    component: BambooDirectoryPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'BambooHRIntegration');
+      requirePermission(context, PERMISSIONS.BAMBOO_VIEW);
+    },
+  });
+
+  const bambooOrgChartRoute = createRoute({
+    getParentRoute: () => sharedServicesLayout as never,
+    path: '/shared-services/hr/bamboo/org-chart',
+    component: BambooOrgChartPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'BambooHRIntegration');
+      requirePermission(context, PERMISSIONS.BAMBOO_VIEW);
+    },
+  });
+
+  const bambooTimeOffRoute = createRoute({
+    getParentRoute: () => sharedServicesLayout as never,
+    path: '/shared-services/hr/bamboo/time-off',
+    component: BambooTimeOffPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'BambooHRIntegration');
+      requirePermission(context, PERMISSIONS.BAMBOO_VIEW);
+    },
+  });
+
+  const bambooMappingsRoute = createRoute({
+    getParentRoute: () => sharedServicesLayout as never,
+    path: '/shared-services/hr/bamboo/mappings',
+    component: BambooMappingsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'BambooHRIntegration');
+      requirePermission(context, PERMISSIONS.BAMBOO_SYNC);
+    },
+  });
+
   return [
     sharedServicesLayout.addChildren([
       dashboardRoute,
@@ -309,6 +364,11 @@ export function createSharedServicesWorkspaceRoutes(rootRoute: unknown): unknown
       riskRequestsRoute,
       riskEnrollmentRoute,
       riskDocumentsRoute,
+      // BambooHR Integration
+      bambooDirectoryRoute,
+      bambooOrgChartRoute,
+      bambooTimeOffRoute,
+      bambooMappingsRoute,
     ] as never),
   ] as unknown[];
 }

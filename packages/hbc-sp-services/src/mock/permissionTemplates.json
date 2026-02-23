@@ -36,7 +36,9 @@
       { "toolKey": "risk_management", "level": "ADMIN" },
       { "toolKey": "site_control_hub", "level": "ADMIN" },
       { "toolKey": "admin_panel", "level": "ADMIN", "granularFlags": ["can_manage_provisioning"] },
-      { "toolKey": "workflow_definitions", "level": "ADMIN" }
+      { "toolKey": "workflow_definitions", "level": "ADMIN" },
+      { "toolKey": "procore_integration", "level": "ADMIN", "granularFlags": ["can_sync_procore"] },
+      { "toolKey": "bamboohr_integration", "level": "ADMIN", "granularFlags": ["can_sync_bamboo"] }
     ],
     "isDefault": false,
     "isActive": true,
@@ -83,7 +85,9 @@
       { "toolKey": "risk_management", "level": "ADMIN" },
       { "toolKey": "site_control_hub", "level": "ADMIN" },
       { "toolKey": "admin_panel", "level": "ADMIN", "granularFlags": ["can_manage_provisioning"] },
-      { "toolKey": "workflow_definitions", "level": "ADMIN" }
+      { "toolKey": "workflow_definitions", "level": "ADMIN" },
+      { "toolKey": "procore_integration", "level": "ADMIN", "granularFlags": ["can_sync_procore"] },
+      { "toolKey": "bamboohr_integration", "level": "ADMIN", "granularFlags": ["can_sync_bamboo"] }
     ],
     "isDefault": false,
     "isActive": true,
@@ -130,7 +134,9 @@
       { "toolKey": "risk_management", "level": "READ_ONLY" },
       { "toolKey": "site_control_hub", "level": "READ_ONLY" },
       { "toolKey": "admin_panel", "level": "NONE" },
-      { "toolKey": "workflow_definitions", "level": "NONE" }
+      { "toolKey": "workflow_definitions", "level": "NONE" },
+      { "toolKey": "procore_integration", "level": "STANDARD" },
+      { "toolKey": "bamboohr_integration", "level": "READ_ONLY" }
     ],
     "isDefault": false,
     "isActive": true,
@@ -177,7 +183,9 @@
       { "toolKey": "risk_management", "level": "NONE" },
       { "toolKey": "site_control_hub", "level": "STANDARD" },
       { "toolKey": "admin_panel", "level": "NONE" },
-      { "toolKey": "workflow_definitions", "level": "NONE" }
+      { "toolKey": "workflow_definitions", "level": "NONE" },
+      { "toolKey": "procore_integration", "level": "STANDARD" },
+      { "toolKey": "bamboohr_integration", "level": "NONE" }
     ],
     "isDefault": false,
     "isActive": true,
@@ -224,7 +232,9 @@
       { "toolKey": "risk_management", "level": "NONE" },
       { "toolKey": "site_control_hub", "level": "NONE" },
       { "toolKey": "admin_panel", "level": "NONE" },
-      { "toolKey": "workflow_definitions", "level": "NONE" }
+      { "toolKey": "workflow_definitions", "level": "NONE" },
+      { "toolKey": "procore_integration", "level": "NONE" },
+      { "toolKey": "bamboohr_integration", "level": "NONE" }
     ],
     "isDefault": false,
     "isActive": true,
@@ -268,7 +278,9 @@
       { "toolKey": "risk_management", "level": "NONE" },
       { "toolKey": "site_control_hub", "level": "NONE" },
       { "toolKey": "admin_panel", "level": "NONE" },
-      { "toolKey": "workflow_definitions", "level": "NONE" }
+      { "toolKey": "workflow_definitions", "level": "NONE" },
+      { "toolKey": "procore_integration", "level": "NONE" },
+      { "toolKey": "bamboohr_integration", "level": "NONE" }
     ],
     "isDefault": false,
     "isActive": true,
@@ -312,7 +324,9 @@
       { "toolKey": "risk_management", "level": "NONE" },
       { "toolKey": "site_control_hub", "level": "NONE" },
       { "toolKey": "admin_panel", "level": "NONE" },
-      { "toolKey": "workflow_definitions", "level": "NONE" }
+      { "toolKey": "workflow_definitions", "level": "NONE" },
+      { "toolKey": "procore_integration", "level": "NONE" },
+      { "toolKey": "bamboohr_integration", "level": "NONE" }
     ],
     "isDefault": false,
     "isActive": true,
@@ -356,7 +370,9 @@
       { "toolKey": "risk_management", "level": "READ_ONLY" },
       { "toolKey": "site_control_hub", "level": "READ_ONLY" },
       { "toolKey": "admin_panel", "level": "NONE" },
-      { "toolKey": "workflow_definitions", "level": "NONE" }
+      { "toolKey": "workflow_definitions", "level": "NONE" },
+      { "toolKey": "procore_integration", "level": "READ_ONLY" },
+      { "toolKey": "bamboohr_integration", "level": "READ_ONLY" }
     ],
     "isDefault": true,
     "isActive": true,
@@ -400,7 +416,9 @@
       { "toolKey": "risk_management", "level": "ADMIN" },
       { "toolKey": "site_control_hub", "level": "ADMIN" },
       { "toolKey": "admin_panel", "level": "ADMIN", "granularFlags": ["can_manage_provisioning"] },
-      { "toolKey": "workflow_definitions", "level": "ADMIN" }
+      { "toolKey": "workflow_definitions", "level": "ADMIN" },
+      { "toolKey": "procore_integration", "level": "ADMIN", "granularFlags": ["can_sync_procore"] },
+      { "toolKey": "bamboohr_integration", "level": "ADMIN", "granularFlags": ["can_sync_bamboo"] }
     ],
     "isDefault": false,
     "isActive": true,

@@ -5,6 +5,7 @@ import { HbcCard } from '../../shared/HbcCard';
 import { HbcButton } from '../../shared/HbcButton';
 import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { StatusBadge } from '../../shared/StatusBadge';
+import { ConnectorManagementPanel } from './ConnectorManagementPanel';
 
 type ConnectionStatus = 'Connected' | 'Disconnected' | 'Unknown';
 
@@ -162,6 +163,7 @@ export const ConnectionsPage: React.FC = () => {
             );
           })}
         </div>
+        <ConnectorManagementPanel />
       </div>
     </div>
   );

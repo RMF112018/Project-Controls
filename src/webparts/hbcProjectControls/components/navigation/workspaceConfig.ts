@@ -188,6 +188,15 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
           { label: 'Documents', path: '/operations/qc/documents', permission: PERMISSIONS.QUALITY_EDIT },
         ],
       },
+      {
+        label: 'Procore Integration',
+        items: [
+          { label: 'Procore Dashboard', path: '/operations/procore', permission: PERMISSIONS.PROCORE_VIEW, featureFlag: 'ProcoreIntegration' },
+          { label: 'RFIs', path: '/operations/procore/rfis', permission: PERMISSIONS.PROCORE_VIEW, featureFlag: 'ProcoreIntegration' },
+          { label: 'Budget', path: '/operations/procore/budget', permission: PERMISSIONS.PROCORE_VIEW, featureFlag: 'ProcoreIntegration' },
+          { label: 'Sync Conflicts', path: '/operations/procore/conflicts', permission: PERMISSIONS.CONNECTOR_MANAGE, featureFlag: 'ProcoreIntegration' },
+        ],
+      },
     ],
   },
   {
@@ -245,6 +254,15 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
           { label: 'Requests', path: '/shared-services/risk/requests', permission: PERMISSIONS.RISK_MANAGEMENT_EDIT },
           { label: 'Enrollment Tracking', path: '/shared-services/risk/enrollment', permission: PERMISSIONS.RISK_MANAGEMENT_VIEW },
           { label: 'Documents', path: '/shared-services/risk/documents', permission: PERMISSIONS.RISK_MANAGEMENT_VIEW },
+        ],
+      },
+      {
+        label: 'BambooHR',
+        items: [
+          { label: 'Employee Directory', path: '/shared-services/hr/bamboo/directory', permission: PERMISSIONS.BAMBOO_VIEW, featureFlag: 'BambooHRIntegration' },
+          { label: 'Org Chart', path: '/shared-services/hr/bamboo/org-chart', permission: PERMISSIONS.BAMBOO_VIEW, featureFlag: 'BambooHRIntegration' },
+          { label: 'Time Off', path: '/shared-services/hr/bamboo/time-off', permission: PERMISSIONS.BAMBOO_VIEW, featureFlag: 'BambooHRIntegration' },
+          { label: 'Employee Mappings', path: '/shared-services/hr/bamboo/mappings', permission: PERMISSIONS.BAMBOO_SYNC, featureFlag: 'BambooHRIntegration' },
         ],
       },
     ],

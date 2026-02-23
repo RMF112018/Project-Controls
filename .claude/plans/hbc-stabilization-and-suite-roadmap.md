@@ -68,6 +68,7 @@ All use top App Launcher + contextual Left Sidebar. Documents via Fluent/Graph.
 ### 6. Phase 4: Full Features + Integrations + Schedule v2 Prep + Gen 2/3 Readiness (end-Aug 2026)
 - Procore & BambooHR connectors (mock-first, bidirectional/one-way), QA/QC & Safety mobile-first workspace, Schedule v2 enhancements (virtualization, Gantt, drag-drop, What-If), DataProviderFactory UI wiring, Azure SQL/Dataverse core methods, PWA polish.
 - **STATUS: IN PROGRESS** (executing on `feature/hbc-suite-stabilization`)
+- **Phase 4D (23 Feb 2026)**: Procore/BambooHR connector UI complete — 8 pages (4 Procore + 4 BambooHR), ConnectorManagementPanel with sync-history drawer, routes + sidebar config, 8 Storybook stories, PermissionEngine tool definitions + templates for procore/bamboo permissions, Drawer import fix. 47 Operations routes, 25 Shared Services routes.
 
 ### 7. Phase 5: Gen 1 Production Release & Handover (Sep–Oct 2026)
 - End-to-end testing with rollout team, SOC2 final audit, production SPFx deployment, training, documentation, monitoring/hotfix process.

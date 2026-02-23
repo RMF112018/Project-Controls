@@ -414,6 +414,37 @@ export const TOOL_DEFINITIONS: IToolDefinition[] = [
     },
     granularFlags: [],
   },
+  // ── External Integrations ───────────────────────────────────────────
+  {
+    toolKey: 'procore_integration',
+    toolGroup: 'operations',
+    label: 'Procore Integration',
+    description: 'Procore bidirectional sync for projects, RFIs, budget, and conflicts',
+    levels: {
+      NONE: [],
+      READ_ONLY: ['procore:view'],
+      STANDARD: ['procore:view'],
+      ADMIN: ['procore:view', 'procore:sync'],
+    },
+    granularFlags: [
+      { key: 'can_sync_procore', label: 'Procore Sync', description: 'Allow bidirectional sync with Procore', permissions: ['procore:sync'] },
+    ],
+  },
+  {
+    toolKey: 'bamboohr_integration',
+    toolGroup: 'shared_services',
+    label: 'BambooHR Integration',
+    description: 'BambooHR inbound sync for employee directory, org chart, and time-off',
+    levels: {
+      NONE: [],
+      READ_ONLY: ['bamboo:view'],
+      STANDARD: ['bamboo:view'],
+      ADMIN: ['bamboo:view', 'bamboo:sync'],
+    },
+    granularFlags: [
+      { key: 'can_sync_bamboo', label: 'BambooHR Sync', description: 'Allow one-way sync from BambooHR', permissions: ['bamboo:sync'] },
+    ],
+  },
 ];
 
 /**

@@ -161,9 +161,9 @@ Cross-reference: §18 Roadmap (Phase 2), §21, §22, `.claude/plans/hbc-stabiliz
 
 **Total methods**: 266
 **Implemented**: 266
-**Remaining stubs**: 0 — **DATA LAYER COMPLETE** (9 Phase 1 provisioning + 7 Phase 2 role configuration methods added)
+**Remaining stubs**: 0 — **DATA LAYER COMPLETE** (9 Phase 1 provisioning + 7 Phase 2 role configuration + 34 Phase 4A/B/C connector/Procore/BambooHR methods added)
 
-Last major additions: Phase 2 Role Configuration Engine (Feb 22) — getRoleConfigurations, getRoleConfiguration, createRoleConfiguration, updateRoleConfiguration, deleteRoleConfiguration, seedDefaultRoleConfigurations, resolveRolePermissions.
+Last major additions: Phase 4D Connector UI (Feb 23) — ConnectorManagementPanel with sync-history drawer, 4 Procore pages, 4 BambooHR pages. All data layer methods (9 connector + 16 Procore + 10 BambooHR) already complete with rich mock fixture data. New permissions: PROCORE_VIEW, PROCORE_SYNC, BAMBOO_VIEW, BAMBOO_SYNC.
 
 ---
 
@@ -175,7 +175,7 @@ Last major additions: Phase 2 Role Configuration Engine (Feb 22) — getRoleConf
 - Phase 1: SharePoint Site Provisioning Engine — **COMPLETE** on `feature/hbc-suite-stabilization`. SiteProvisioningWizard + SiteDefaultsConfigPanel + EntraIdSyncService + SOC2 audit snapshots + 9 new IDataService methods (259 total) + 33 new Jest tests.
 - Phase 2: New Role & Permission System — **COMPLETE** on `feature/hbc-suite-stabilization`. IRoleConfiguration + LEGACY_ROLE_MAP + RoleGate normalization + RoleConfigurationPanel + 7 new IDataService methods (266 total) + 35 new Jest tests.
 - Phase 3: Navigation Overhaul + Router/Data Reconstruction — **COMPLETE** on `feature/hbc-suite-stabilization` (22 Feb 2026). AppLauncher + ContextualSidebar + 5 workspace route files + adapter hooks rewritten + PillarTabBar deleted + TanStackAdapterBridge removed. 752 tests passing.
-- Phase 4: Full Features — **IN PROGRESS**. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (17 routes). Operations workspace BUILT (43 routes, 41 pages, 5 sidebar groups). Shared Services workspace BUILT (21 routes, 20 pages, 4 sidebar groups). HB Site Control workspace BUILT (16 routes, 15 pages, 3 sidebar groups: Jobsite Management/Safety/Quality Control). 6 new permission keys (SHARED_SERVICES_HUB_VIEW, HR_VIEW, HR_EDIT, RISK_MANAGEMENT_VIEW, RISK_MANAGEMENT_EDIT, SITE_CONTROL_HUB_VIEW). `site_control` tool group + `site_control_hub` tool definition added. Feature flag `SiteControlWorkspace` (replaces `QaqcSafetyWorkspace`). 693 tests passing.
+- Phase 4: Full Features — **IN PROGRESS**. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (17 routes). Operations workspace BUILT (47 routes, 45 pages, 6 sidebar groups — includes Procore Integration: Dashboard, RFIs, Budget, Conflicts). Shared Services workspace BUILT (25 routes, 24 pages, 5 sidebar groups — includes BambooHR: Directory, Org Chart, Time Off, Mappings). HB Site Control workspace BUILT (16 routes, 15 pages, 3 sidebar groups). ConnectorManagementPanel BUILT with sync-history drawer (Admin > Connections). 10 new permission keys (SHARED_SERVICES_HUB_VIEW, HR_VIEW, HR_EDIT, RISK_MANAGEMENT_VIEW, RISK_MANAGEMENT_EDIT, SITE_CONTROL_HUB_VIEW, PROCORE_VIEW, PROCORE_SYNC, BAMBOO_VIEW, BAMBOO_SYNC). Feature flags: ProcoreIntegration, BambooHRIntegration. 8 Storybook stories added. 661 tests passing.
 
 ---
 
@@ -205,6 +205,8 @@ Last major additions: Phase 2 Role Configuration Engine (Feb 22) — getRoleConf
 - **TanStackAdapterBridge DELETED** — adapter hooks use TanStack Router directly. Never recreate.
 - **RouterAdapterContext DELETED** — never recreate.
 - All changes must reference `.claude/plans/hbc-stabilization-and-suite-roadmap.md`.
+- **PermissionEngine + TOOL_DEFINITIONS dual-path**: When PermissionEngine flag is enabled, `resolveUserPermissions()` resolves permissions from `TOOL_DEFINITIONS` + permission templates — NOT `ROLE_PERMISSIONS`. New permission strings MUST be added to BOTH `ROLE_PERMISSIONS` (fallback) AND `TOOL_DEFINITIONS` + `permissionTemplates.json` (engine path). Missing either causes "Access Denied".
+- **Fluent UI v9 Drawer**: Import from `@fluentui/react-drawer`, NOT `@fluentui/react-components` (v9.46 doesn't re-export Drawer components).
 - **UI/UX Elevation Rule (Critical – Mandatory):** For every UI component, page layout, dashboard, data table, form, navigation element, motion treatment, or visual design task, **immediately activate and strictly follow** `.claude/skills/elevated-ux-ui-design/SKILL.md`. Default exclusively to the 4.75/10 elevated patterns (Fluent UI v9 + Griffel). Pure 2/10 baseline Fluent designs are disallowed without explicit user approval and `uiElevatedExperienceV1` feature-flag gating. Always synchronize with `UX_UI_PATTERNS.md`.
 
 **Keep CLAUDE.md lean** — archive aggressively to CLAUDE_ARCHIVE.md.
@@ -249,12 +251,13 @@ Phase 3 committed on `feature/hbc-suite-stabilization` — Navigation Overhaul +
 
 ## §19 Data Migration & Pluggable Backend Strategy (Locked 22 Feb 2026)
 
-IDataService abstraction preserved (250 methods). Phase 0.5 **COMPLETE**:
+IDataService abstraction preserved (266 methods). Phase 0.5 **COMPLETE**:
 - `DataProviderFactory` (`packages/hbc-sp-services/src/factory/`) reads `VITE_DATA_SERVICE_BACKEND` env var (sharepoint | azuresql | dataverse), defaults to sharepoint.
-- `AzureSqlDataService` + `DataverseDataService` skeletons (`packages/hbc-sp-services/src/adapters/`) use Proxy-based `createNotImplementedService` — throws `NotImplementedError` for all 250 methods.
+- `AzureSqlDataService` + `DataverseDataService` skeletons (`packages/hbc-sp-services/src/adapters/`) use Proxy-based `createNotImplementedService` — throws `NotImplementedError` for all methods.
 - `NotImplementedError` custom error with backend + method metadata.
 - Factory is additive — existing direct instantiation unchanged. Factory wiring into UI deferred to Phase 3.
 - Enables Gen 2 (Azure SQL desktop) and Gen 3 (Dataverse mobile) without UI/business logic refactoring.
+- **Connector Adapters (Phase 4D):** `IConnectorAdapter` + `ConnectorRegistry` + `ProcoreAdapter` (bidirectional) + `BambooHRAdapter` (inbound-only). 34 connector methods in IDataService (9 base + 15 Procore + 10 BambooHR). All mock-implemented with rich fixture data. Procore + BambooHR mock adapters fully wired to UI. ConnectorManagementPanel provides admin sync/test/history.
 
 ---
 
@@ -262,8 +265,8 @@ IDataService abstraction preserved (250 methods). Phase 0.5 **COMPLETE**:
 Central Analytics Hub + 5 departmental workspaces:
 - **Preconstruction** (`/preconstruction/*`) — **BUILT**: BD (Dashboard, Leads, Go/No-Go, Pipeline, Project Hub, Documents), Estimating (Dashboard, Tracking, Job Requests, Post-Bid, Project Hub, Documents), IDS (Dashboard, Tracking, Documents). 17 routes.
 - **Admin** (`/admin/*`) — **BUILT**: System Config (Connections, Hub Site URL, Workflows), Security & Access (Roles, Permissions, Assignments, Sectors), Provisioning, Dev Tools (Dev Users, Feature Flags, Audit Log). 12 routes.
-- **Operations** (`/operations/*`) — **BUILT**: Operations Dashboard, Commercial Ops (Dashboard, Luxury Residential, Project Hub, Project Settings, Project Manual + 12 sub-pages, Financial Forecasting, Schedule), Logs & Reports (Buyout, Permits, Constraints, Monthly Reports, Sub Scorecard), Documents, Operational Excellence (Dashboard, Onboarding, Training, Documents), Safety (Dashboard, Training, Scorecard, Resources, Documents), QC & Warranty (Dashboard, Best Practices, QA Tracking, Checklists, Warranty, Documents). 43 routes, 41 pages.
-- **Shared Services** (`/shared-services/*`) — **BUILT**: Marketing (Dashboard, Resources, Requests, Tracking, Documents), Human Resources (People & Culture Dashboard, Openings, Announcements, Initiatives, Documents), Accounting (Dashboard, New Project Setup, Accounts Receivable Report, Documents), Risk Management (Dashboard, Knowledge Center, Requests, Enrollment Tracking, Documents). 21 routes, 20 pages.
+- **Operations** (`/operations/*`) — **BUILT**: Operations Dashboard, Commercial Ops (Dashboard, Luxury Residential, Project Hub, Project Settings, Project Manual + 12 sub-pages, Financial Forecasting, Schedule), Logs & Reports (Buyout, Permits, Constraints, Monthly Reports, Sub Scorecard), Documents, Operational Excellence (Dashboard, Onboarding, Training, Documents), Safety (Dashboard, Training, Scorecard, Resources, Documents), QC & Warranty (Dashboard, Best Practices, QA Tracking, Checklists, Warranty, Documents), Procore Integration (Dashboard, RFIs, Budget, Sync Conflicts). 47 routes, 45 pages, 6 sidebar groups. Permissions: PROCORE_VIEW, PROCORE_SYNC. Feature flag: ProcoreIntegration.
+- **Shared Services** (`/shared-services/*`) — **BUILT**: Marketing (Dashboard, Resources, Requests, Tracking, Documents), Human Resources (People & Culture Dashboard, Openings, Announcements, Initiatives, Documents), Accounting (Dashboard, New Project Setup, Accounts Receivable Report, Documents), Risk Management (Dashboard, Knowledge Center, Requests, Enrollment Tracking, Documents), BambooHR (Employee Directory, Org Chart, Time Off, Employee Mappings). 25 routes, 24 pages, 5 sidebar groups. Permissions: BAMBOO_VIEW, BAMBOO_SYNC. Feature flag: BambooHRIntegration.
 - **HB Site Control** (`/site-control/*`) — **BUILT**: Jobsite Management (Sign-In/Out Dashboard, Personnel Log, Documents), Safety (Dashboard, Inspections, Warnings & Notices, Tool-Box Talks, Scorecard, Documents), Quality Control (Dashboard, Inspections, Issue Resolution, Metrics, Documents). 16 routes, 15 pages.
 All driven by `workspaceConfig.ts` — single source of truth. Cross-ref §4 and §21.
 
