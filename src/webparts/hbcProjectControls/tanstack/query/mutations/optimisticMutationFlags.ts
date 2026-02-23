@@ -10,6 +10,7 @@ export const OPTIMISTIC_MUTATION_FLAGS = {
   riskCost: 'OptimisticMutations_RiskCost',
   monthlyReview: 'OptimisticMutations_MonthlyReview',
   connectors: 'ConnectorMutationResilience',
+  workflows: 'WorkflowStateMachine',
 } as const;
 
 export type OptimisticMutationFlagDomain = keyof typeof OPTIMISTIC_MUTATION_FLAGS;

@@ -21,6 +21,12 @@ const WAVE_A_METHODS = new Set<string>([
   'submitPMPForApproval',
   'respondToPMPApproval',
   'signPMP',
+  'submitGoNoGoDecision',
+  'submitScorecard',
+  'respondToScorecardSubmission',
+  'recordFinalDecision',
+  'submitContractTracking',
+  'respondToContractTracking',
 ]);
 
 export interface IUseHbcOptimisticMutationOptions<TData, TVariables, TState>

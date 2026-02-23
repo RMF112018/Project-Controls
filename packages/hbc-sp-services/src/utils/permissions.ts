@@ -412,6 +412,10 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 };
 
+export type PermissionValue = typeof PERMISSIONS[keyof typeof PERMISSIONS];
+export type RolePermissionMap = typeof ROLE_PERMISSIONS;
+export type RolePermissionKey = keyof typeof ROLE_PERMISSIONS;
+
 // ---------------------------------------------------------------------------
 // Config-driven permission resolution (Phase 2)
 // ---------------------------------------------------------------------------

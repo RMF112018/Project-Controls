@@ -91,6 +91,8 @@ After consulting the core guides, automatically activate the most specific Skill
 - Data Layer: `@hbc/sp-services` (250/250 methods – complete)  
 - Routing: TanStack Router v1 (hash history – sole runtime router)  
 - Data Fetching: TanStack Query v5 (Wave-1 complete on core domains)  
+- Workflow Orchestration: xstate v5 + @xstate/react (lazy-loaded via `lib-xstate-workflow` chunk)  
+- Workflow Rollout Flag: `WorkflowStateMachine` (default OFF; dual-path UI during Phase 5B stabilization)  
 - Tables: HbcTanStackTable + virtualisation (threshold ≥ 200 rows)  
 - Charts: HbcEChart (lazy ECharts chunk)  
 - Testing: Jest + Playwright + Storybook 8.5 + Chromatic  
@@ -176,6 +178,7 @@ Last major additions: Phase 4G Department Tracking (Feb 23) — No new IDataServ
 - Phase 2: New Role & Permission System — **COMPLETE** on `feature/hbc-suite-stabilization`. IRoleConfiguration + LEGACY_ROLE_MAP + RoleGate normalization + RoleConfigurationPanel + 7 new IDataService methods (266 total) + 35 new Jest tests.
 - Phase 3: Navigation Overhaul + Router/Data Reconstruction — **COMPLETE** on `feature/hbc-suite-stabilization` (22 Feb 2026). AppLauncher + ContextualSidebar + 5 workspace route files + adapter hooks rewritten + PillarTabBar deleted + TanStackAdapterBridge removed. 752 tests passing.
 - Phase 4: Full Features — **IN PROGRESS**. Phase 4F: Analytics Hub Dashboard BUILT — AnalyticsHubDashboardPage at `/` with 5 KPI cards, 6 interactive ECharts (pipeline funnel, status treemap, win rate trend, resource heatmap, labor rate benchmark, material cost index), recent activity feed, role-gated workspace quick links, PowerBI embed placeholder. Feature flag: PowerBIIntegration (disabled). FunnelChart + TreemapChart registered in ECharts theme. Phase 4F-precon: Preconstruction + Estimating Dashboards BUILT — PreconDashboardPage rebuilt (4 KPIs + 3 charts: lead funnel, win rate by PE, autopsy trend). EstimatingDashboardPage rebuilt (5 KPIs + 3 charts: award status donut, source distribution, estimator workload). Both elevated to 4.75/10 with data hooks (`usePreconDashboardData`, `useEstimatingDashboardData`). PowerBI placeholder behind FeatureGate. Phase 4G: Department Tracking BUILT — DepartmentTrackingPage at `/preconstruction/estimating/tracking` with 3 tabs (Estimate Tracking Log, Current Pursuits, Current Preconstruction), all fields inline-editable (text/number/date/checkbox/dropdown), 8 Estimating/BIM Checklist items as individual checkbox columns in Current Pursuits, SlideDrawer for new entry creation, RoleGate on edit controls. Feature flag: EstimatingDepartmentTracking. 14 new Jest tests. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (20 routes — Phase 4E: Project Number Requests, Phase 4G: Department Tracking). Operations workspace BUILT (47 routes, 45 pages, 6 sidebar groups). Shared Services workspace BUILT (25 routes, 24 pages, 5 sidebar groups). HB Site Control workspace BUILT (16 routes, 15 pages, 3 sidebar groups). Project Hub workspace BUILT (37 routes, 36 pages, 10 sidebar groups — requireProject: true, feature flag: ProjectHubWorkspace). ConnectorManagementPanel BUILT. 688 tests passing.
+- Phase 5B: Workflow State Machines + E2E Coverage — **PLANNED (next execution block)** on `feature/hbc-suite-stabilization`. Scope locked: xstate v5 machines (`goNoGoMachine`, `pmpApprovalMachine`, `commitmentApprovalMachine`), `WorkflowMachineFactory` lazy-loading, `useWorkflowMachine`/`useWorkflowTransition`, optimistic mutation integration, and Playwright workflow E2E. Explicit constraint: TanStack Router v1 actions remain SKIPPED; transitions run through TanStack Query mutation orchestration.
 
 ---
 
@@ -206,9 +209,24 @@ Last major additions: Phase 4G Department Tracking (Feb 23) — No new IDataServ
 - **RouterAdapterContext DELETED** — never recreate.
 - All changes must reference `.claude/plans/hbc-stabilization-and-suite-roadmap.md`.
 - **PermissionEngine + TOOL_DEFINITIONS dual-path**: When PermissionEngine flag is enabled, `resolveUserPermissions()` resolves permissions from `TOOL_DEFINITIONS` + permission templates — NOT `ROLE_PERMISSIONS`. New permission strings MUST be added to BOTH `ROLE_PERMISSIONS` (fallback) AND `TOOL_DEFINITIONS` + `permissionTemplates.json` (engine path). Missing either causes "Access Denied".
+- **Workflow machine guards must check permission keys, not role labels**: guard logic must use `context.userPermissions` + `PERMISSIONS` constants; role-name checks alone are invalid.
+- **Workflow transitions are mutation-coupled**: never call machine `send()` before `mutateAsync()` success; on mutation error, retain prior machine state and rollback optimistic cache.
+- **WorkflowStateMachine flag discipline**: keep legacy imperative behavior intact when flag is OFF; no hidden behavior drift in OFF mode.
+- **xstate import policy**: UI components may consume `useWorkflowMachine` hooks only; direct machine imports from page components are disallowed to avoid bundle regression.
+- **Router actions exclusion**: TanStack Router actions are intentionally skipped for workflow state transitions in Phase 5B.
 - **Fluent UI v9 Drawer**: Import from `@fluentui/react-drawer`, NOT `@fluentui/react-components` (v9.46 doesn't re-export Drawer components).
 - **ContextualSidebar accordion useEffect deps**: `[workspace?.id]` only — intentionally excludes `filteredGroups` and `isActivePath` to avoid re-running on every pathname change. `eslint-disable-line react-hooks/exhaustive-deps` on that line.
 - **UI/UX Elevation Rule (Critical – Mandatory):** For every UI component, page layout, dashboard, data table, form, navigation element, motion treatment, or visual design task, **immediately activate and strictly follow** `.claude/skills/elevated-ux-ui-design/SKILL.md`. Default exclusively to the 4.75/10 elevated patterns (Fluent UI v9 + Griffel). Pure 2/10 baseline Fluent designs are disallowed without explicit user approval and `uiElevatedExperienceV1` feature-flag gating. Always synchronize with `UX_UI_PATTERNS.md`.
+
+### New Skill Documentation (added 23 Feb 2026 at commit 55027ece)
+- **Provisioning Engine Skill Creation** `.claude/skills/provisioning-engine/SKILL.md` – 7-step engine protocol, guaranteed stable flows, manual test steps, and cross-references.  
+  Cross-ref: §7 (ProvisioningService), §12 (Feature Flags: provisioningEngineV2), DATA_ARCHITECTURE.md, SECURITY_ANALYSIS.md.  
+  Impact: ~40 % faster onboarding/extension of site-creation features.
+
+  ### New Skill Documentation (added 23 Feb 2026 at commit fb4d8793)
+- **`.claude/skills/resilient-data-operations/SKILL.md`** – Batching, retry/backoff, saga compensation, SignalR status patterns.  
+  Cross-ref: §7 (GraphBatchService, ProvisioningSaga), §12 (ConnectorMutationResilience, ProvisioningSaga), `.claude/skills/provisioning-engine/SKILL.md`, Elevated UI/UX Design Skill.  
+  Impact: ~40 % faster extension of resilient connectors and workflows.
 
 **Keep CLAUDE.md lean** — archive aggressively to CLAUDE_ARCHIVE.md.
 
@@ -283,6 +301,7 @@ All driven by `workspaceConfig.ts` — single source of truth. Cross-ref §4 and
 - **NavigationSidebar**: Legacy fallback (basic ProjectPicker, role-based groups, no pillar filtering).
 - **MobileBottomNav**: Workspace tabs + project pill bottom sheet. Uses `LAUNCHER_WORKSPACES` from workspaceConfig.
 - Feature flag: `uxSuiteNavigationV1` gates AppLauncher + ContextualSidebar. `uxEnhancedNavigationV1` REMOVED.
+- Workflow note: `WorkflowStateMachine` is non-navigation infrastructure; it must not introduce route-action coupling or alter AppLauncher/ContextualSidebar routing behavior.
 
 ---
 

@@ -12,6 +12,7 @@ export const QUERY_STALE_TIMES = {
   schedule: 2 * 60 * 1000,
   riskCost: 60 * 1000,
   monthlyReview: 2 * 60 * 1000,
+  workflows: 30 * 1000,
   turnover: 5 * 60 * 1000,
   closeout: 2 * 60 * 1000,
   actionInbox: 60 * 1000,

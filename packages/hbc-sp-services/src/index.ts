@@ -31,3 +31,4 @@ export * from './adapters';
 
 // Factory — centralized backend selection
 export * from './factory';
+export * from './machines';

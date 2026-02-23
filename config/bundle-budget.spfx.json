@@ -53,6 +53,11 @@
       "gzipBytes": 0,
       "brotliBytes": 0
     },
+    "lib-xstate-workflow": {
+      "rawBytes": 0,
+      "gzipBytes": 0,
+      "brotliBytes": 0
+    },
     "vendors": {
       "rawBytes": 0,
       "gzipBytes": 0,

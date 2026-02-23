@@ -82,6 +82,11 @@ export const qk = {
     byLeadId: (scope: IQueryScope, leadId: number) => [...qk.scope(scope), 'gonogo', 'byLeadId', leadId] as const,
     versions: (scope: IQueryScope, scorecardId: number) => [...qk.scope(scope), 'gonogo', 'versions', scorecardId] as const,
   },
+  scorecards: {
+    base: (scope: IQueryScope) => [...qk.scope(scope), 'gonogo', 'scorecards'] as const,
+    byLead: (scope: IQueryScope, leadId: number) => [...qk.scope(scope), 'gonogo', 'byLeadId', leadId] as const,
+    versions: (scope: IQueryScope, scorecardId: number) => [...qk.scope(scope), 'gonogo', 'versions', scorecardId] as const,
+  },
   kickoff: {
     base: (scope: IQueryScope) => [...qk.scope(scope), 'kickoff'] as const,
     byProject: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'kickoff', 'byProject', projectCode] as const,

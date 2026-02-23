@@ -137,6 +137,12 @@ module.exports = {
           priority: 20,
           chunks: 'async',
         },
+        xstateWorkflow: {
+          test: /[\\/]node_modules[\\/](xstate|@xstate)[\\/]/,
+          name: 'lib-xstate-workflow',
+          priority: 20,
+          chunks: 'async',
+        },
       },
     },
   },

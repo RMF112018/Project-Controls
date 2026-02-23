@@ -16,3 +16,7 @@ export type { IPresenceUser } from './usePresence';
 export { useFullScreen } from './useFullScreen';
 export type { IUseFullScreenResult } from './useFullScreen';
 export { useNavProfile } from './useNavProfile';
+export { useWorkflowMachine } from './useWorkflowMachine';
+export type { UseWorkflowMachineOptions, UseWorkflowMachineResult } from './useWorkflowMachine';
+export { useWorkflowTransition } from './useWorkflowTransition';
+export type { IUseWorkflowTransitionOptions, IUseWorkflowTransitionResult } from './useWorkflowTransition';
