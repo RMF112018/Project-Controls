@@ -15,7 +15,7 @@ This file must stay under 40,000 characters. Never allow it to grow large again.
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-23 — Phase 4 IN PROGRESS. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (17 routes). Operations workspace BUILT (43 routes, 41 pages). Shared Services workspace BUILT (21 routes, 20 pages). 693 tests passing.
+**Last Updated:** 2026-02-23 — Phase 4 IN PROGRESS. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (17 routes). Operations workspace BUILT (43 routes, 41 pages). Shared Services workspace BUILT (21 routes, 20 pages). HB Site Control workspace BUILT (16 routes, 15 pages). 693 tests passing.
 
 **MANDATORY:** After any code change that affects the data layer, architecture, performance, UI/UX, testing, or security, update this file, verify against the current sprint gate, confirm relevant Skills and the master plan were followed, and check project memory before ending the session.
 
@@ -175,7 +175,7 @@ Last major additions: Phase 2 Role Configuration Engine (Feb 22) — getRoleConf
 - Phase 1: SharePoint Site Provisioning Engine — **COMPLETE** on `feature/hbc-suite-stabilization`. SiteProvisioningWizard + SiteDefaultsConfigPanel + EntraIdSyncService + SOC2 audit snapshots + 9 new IDataService methods (259 total) + 33 new Jest tests.
 - Phase 2: New Role & Permission System — **COMPLETE** on `feature/hbc-suite-stabilization`. IRoleConfiguration + LEGACY_ROLE_MAP + RoleGate normalization + RoleConfigurationPanel + 7 new IDataService methods (266 total) + 35 new Jest tests.
 - Phase 3: Navigation Overhaul + Router/Data Reconstruction — **COMPLETE** on `feature/hbc-suite-stabilization` (22 Feb 2026). AppLauncher + ContextualSidebar + 5 workspace route files + adapter hooks rewritten + PillarTabBar deleted + TanStackAdapterBridge removed. 752 tests passing.
-- Phase 4: Full Features — **IN PROGRESS**. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (17 routes). Operations workspace BUILT (43 routes, 41 pages, 5 sidebar groups). Shared Services workspace BUILT (21 routes, 20 pages, 4 sidebar groups: Marketing/HR/Accounting/Risk Management). Permission Engine gap fixed (added `project_hub`, `constraints_log`, `permits_log` tool definitions + updated 5 permission templates). 5 new permission keys (SHARED_SERVICES_HUB_VIEW, HR_VIEW, HR_EDIT, RISK_MANAGEMENT_VIEW, RISK_MANAGEMENT_EDIT). 693 tests passing.
+- Phase 4: Full Features — **IN PROGRESS**. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (17 routes). Operations workspace BUILT (43 routes, 41 pages, 5 sidebar groups). Shared Services workspace BUILT (21 routes, 20 pages, 4 sidebar groups). HB Site Control workspace BUILT (16 routes, 15 pages, 3 sidebar groups: Jobsite Management/Safety/Quality Control). 6 new permission keys (SHARED_SERVICES_HUB_VIEW, HR_VIEW, HR_EDIT, RISK_MANAGEMENT_VIEW, RISK_MANAGEMENT_EDIT, SITE_CONTROL_HUB_VIEW). `site_control` tool group + `site_control_hub` tool definition added. Feature flag `SiteControlWorkspace` (replaces `QaqcSafetyWorkspace`). 693 tests passing.
 
 ---
 
@@ -259,12 +259,12 @@ IDataService abstraction preserved (250 methods). Phase 0.5 **COMPLETE**:
 ---
 
 ## §20 Application Suite Strategy (Phase 4 — 22 Feb 2026)
-Central Analytics Hub + 4 departmental workspaces:
+Central Analytics Hub + 5 departmental workspaces:
 - **Preconstruction** (`/preconstruction/*`) — **BUILT**: BD (Dashboard, Leads, Go/No-Go, Pipeline, Project Hub, Documents), Estimating (Dashboard, Tracking, Job Requests, Post-Bid, Project Hub, Documents), IDS (Dashboard, Tracking, Documents). 17 routes.
 - **Admin** (`/admin/*`) — **BUILT**: System Config (Connections, Hub Site URL, Workflows), Security & Access (Roles, Permissions, Assignments, Sectors), Provisioning, Dev Tools (Dev Users, Feature Flags, Audit Log). 12 routes.
 - **Operations** (`/operations/*`) — **BUILT**: Operations Dashboard, Commercial Ops (Dashboard, Luxury Residential, Project Hub, Project Settings, Project Manual + 12 sub-pages, Financial Forecasting, Schedule), Logs & Reports (Buyout, Permits, Constraints, Monthly Reports, Sub Scorecard), Documents, Operational Excellence (Dashboard, Onboarding, Training, Documents), Safety (Dashboard, Training, Scorecard, Resources, Documents), QC & Warranty (Dashboard, Best Practices, QA Tracking, Checklists, Warranty, Documents). 43 routes, 41 pages.
 - **Shared Services** (`/shared-services/*`) — **BUILT**: Marketing (Dashboard, Resources, Requests, Tracking, Documents), Human Resources (People & Culture Dashboard, Openings, Announcements, Initiatives, Documents), Accounting (Dashboard, New Project Setup, Accounts Receivable Report, Documents), Risk Management (Dashboard, Knowledge Center, Requests, Enrollment Tracking, Documents). 21 routes, 20 pages.
-- **QA/QC & Safety** — workspace defined in config, mobile-first treatment deferred to Phase 4
+- **HB Site Control** (`/site-control/*`) — **BUILT**: Jobsite Management (Sign-In/Out Dashboard, Personnel Log, Documents), Safety (Dashboard, Inspections, Warnings & Notices, Tool-Box Talks, Scorecard, Documents), Quality Control (Dashboard, Inspections, Issue Resolution, Metrics, Documents). 16 routes, 15 pages.
 All driven by `workspaceConfig.ts` — single source of truth. Cross-ref §4 and §21.
 
 ---
@@ -285,10 +285,10 @@ All driven by `workspaceConfig.ts` — single source of truth. Cross-ref §4 and
 Clean-slate rebuild DONE:
 - **Adapter hooks** (`useAppNavigate`, `useAppLocation`, `useAppParams`) use TanStack Router hooks directly. Ref-stable, memoised. No bridge, no adapter context.
 - **TanStackAdapterBridge** DELETED. **RouterAdapterContext** DELETED.
-- **Route tree**: 5 workspace files (`workspaces/routes.{hub,preconstruction,operations,sharedservices,admin}.tsx`). 7 old batch files deleted. Factory pattern: each exports `create*WorkspaceRoutes(rootRoute)`.
+- **Route tree**: 6 workspace files (`workspaces/routes.{hub,preconstruction,operations,sharedservices,admin,sitecontrol}.tsx`). 7 old batch files deleted. Factory pattern: each exports `create*WorkspaceRoutes(rootRoute)`.
 - **URL redirects**: `/marketing` → `/shared-services/marketing`, `/accounting-queue` → `/shared-services/accounting`.
 - **MemoryRouter** (test utility): Uses real TanStack Router with `createMemoryHistory` + `TestChildrenContext` pattern.
-- **83 total routes**: 58 original + 2 redirects + 2 placeholders + 21 Shared Services workspace routes.
+- **99 total routes**: 58 original + 2 redirects + 2 placeholders + 21 Shared Services + 16 HB Site Control workspace routes.
 
 ---
 

@@ -249,6 +249,52 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
       },
     ],
   },
+  {
+    id: 'site-control',
+    label: 'HB Site Control',
+    icon: 'Toolbox24Regular',
+    basePath: '/site-control',
+    roles: [
+      RoleName.SharePointAdmin,
+      RoleName.ExecutiveLeadership,
+      RoleName.DepartmentDirector,
+      RoleName.OperationsTeam,
+      RoleName.QualityControl,
+      RoleName.Safety,
+    ],
+    featureFlag: 'SiteControlWorkspace',
+    sidebarGroups: [
+      {
+        label: 'Jobsite Management',
+        items: [
+          { label: 'Sign-In / Sign-Out', path: '/site-control/signin', icon: 'PersonAvailable24Regular', permission: PERMISSIONS.SITE_CONTROL_HUB_VIEW },
+          { label: 'Personnel Log', path: '/site-control/signin/log', icon: 'PeopleList24Regular', permission: PERMISSIONS.SITE_CONTROL_HUB_VIEW },
+          { label: 'Documents', path: '/site-control/signin/documents', icon: 'DocumentFolder24Regular', permission: PERMISSIONS.SITE_CONTROL_HUB_VIEW },
+        ],
+      },
+      {
+        label: 'Safety',
+        items: [
+          { label: 'Safety Dashboard', path: '/site-control/safety', icon: 'ShieldCheckmark24Regular', permission: PERMISSIONS.SAFETY_EDIT },
+          { label: 'Inspections', path: '/site-control/safety/inspections', icon: 'ClipboardTask24Regular', permission: PERMISSIONS.SAFETY_EDIT },
+          { label: 'Warnings & Notices', path: '/site-control/safety/warnings', icon: 'Warning24Regular', permission: PERMISSIONS.SAFETY_EDIT },
+          { label: 'Tool-Box Talks', path: '/site-control/safety/toolbox-talks', icon: 'ChatMultiple24Regular', permission: PERMISSIONS.SAFETY_EDIT },
+          { label: 'Scorecard', path: '/site-control/safety/scorecard', icon: 'DataBarVertical24Regular', permission: PERMISSIONS.SAFETY_EDIT },
+          { label: 'Documents', path: '/site-control/safety/documents', icon: 'DocumentFolder24Regular', permission: PERMISSIONS.SAFETY_EDIT },
+        ],
+      },
+      {
+        label: 'Quality Control',
+        items: [
+          { label: 'QC Dashboard', path: '/site-control/qc', icon: 'Checkmark24Regular', permission: PERMISSIONS.QUALITY_EDIT },
+          { label: 'Inspections', path: '/site-control/qc/inspections', icon: 'ClipboardSearch24Regular', permission: PERMISSIONS.QUALITY_EDIT },
+          { label: 'Issue Resolution', path: '/site-control/qc/issues', icon: 'ArrowRouting24Regular', permission: PERMISSIONS.QUALITY_EDIT },
+          { label: 'Metrics', path: '/site-control/qc/metrics', icon: 'DataTrending24Regular', permission: PERMISSIONS.QUALITY_EDIT },
+          { label: 'Documents', path: '/site-control/qc/documents', icon: 'DocumentFolder24Regular', permission: PERMISSIONS.QUALITY_EDIT },
+        ],
+      },
+    ],
+  },
 ];
 
 /** Workspaces shown in the App Launcher grid */

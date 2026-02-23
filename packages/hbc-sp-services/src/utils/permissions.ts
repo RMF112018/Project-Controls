@@ -177,6 +177,9 @@ export const PERMISSIONS = {
   HR_EDIT: 'hr:edit',
   RISK_MANAGEMENT_VIEW: 'risk_management:view',
   RISK_MANAGEMENT_EDIT: 'risk_management:edit',
+
+  // HB Site Control (Phase 4)
+  SITE_CONTROL_HUB_VIEW: 'site_control:hub:view',
 } as const;
 
 export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS];
@@ -190,6 +193,7 @@ export const NAV_GROUP_ROLES: Record<string, string[]> = {
   Admin: ['Executive Leadership', 'SharePoint Admin'],
   'Human Resources': ['Executive Leadership', 'Department Director', 'SharePoint Admin'],
   'Shared Services': ['Marketing', 'BD Representative', 'Accounting Manager', 'Risk Management', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
+  'HB Site Control': ['Quality Control', 'Safety', 'Operations Team', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
 };
 
 // Role to permissions mapping
@@ -263,6 +267,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.TURNOVER_AGENDA_EDIT, PERMISSIONS.TURNOVER_SIGN,
     PERMISSIONS.CONSTRAINTS_VIEW, PERMISSIONS.CONSTRAINTS_EDIT, PERMISSIONS.CONSTRAINTS_MANAGE,
     PERMISSIONS.PERMITS_VIEW, PERMISSIONS.PERMITS_EDIT, PERMISSIONS.PERMITS_MANAGE,
+    PERMISSIONS.SITE_CONTROL_HUB_VIEW,
   ],
   'Executive Leadership': [
     PERMISSIONS.LEAD_READ,
@@ -295,6 +300,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.CONNECTOR_VIEW, PERMISSIONS.CONNECTOR_MANAGE, PERMISSIONS.CONNECTOR_SYNC,
     PERMISSIONS.SHARED_SERVICES_HUB_VIEW, PERMISSIONS.HR_VIEW, PERMISSIONS.HR_EDIT,
     PERMISSIONS.RISK_MANAGEMENT_VIEW, PERMISSIONS.RISK_MANAGEMENT_EDIT,
+    PERMISSIONS.SITE_CONTROL_HUB_VIEW,
   ],
   'Department Director': [
     PERMISSIONS.LEAD_READ, PERMISSIONS.SCHEDULE_VIEW,
@@ -322,6 +328,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.PERMITS_VIEW, PERMISSIONS.PERMITS_EDIT,
     PERMISSIONS.SHARED_SERVICES_HUB_VIEW, PERMISSIONS.HR_VIEW, PERMISSIONS.HR_EDIT,
     PERMISSIONS.RISK_MANAGEMENT_VIEW, PERMISSIONS.RISK_MANAGEMENT_EDIT,
+    PERMISSIONS.SITE_CONTROL_HUB_VIEW,
   ],
   'Legal': [
     PERMISSIONS.LEAD_READ, PERMISSIONS.GONOGO_READ,
@@ -361,6 +368,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.CONTRACT_READ, PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
     PERMISSIONS.MEETING_READ,
     PERMISSIONS.QUALITY_EDIT,
+    PERMISSIONS.SITE_CONTROL_HUB_VIEW,
   ],
   'Safety': [
     PERMISSIONS.PRECON_READ,
@@ -368,6 +376,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.WINLOSS_READ,
     PERMISSIONS.CONTRACT_READ, PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
     PERMISSIONS.MEETING_READ,
+    PERMISSIONS.SAFETY_EDIT,
+    PERMISSIONS.SITE_CONTROL_HUB_VIEW,
   ],
   'IDS': [
     PERMISSIONS.PRECON_READ,

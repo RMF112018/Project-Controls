@@ -371,6 +371,20 @@ export const TOOL_DEFINITIONS: IToolDefinition[] = [
     },
     granularFlags: [],
   },
+  // Site Control group
+  {
+    toolKey: 'site_control_hub',
+    toolGroup: 'site_control',
+    label: 'HB Site Control Hub',
+    description: 'HB Site Control mobile workspace hub access',
+    levels: {
+      NONE: [],
+      READ_ONLY: ['site_control:hub:view'],
+      STANDARD: ['site_control:hub:view'],
+      ADMIN: ['site_control:hub:view'],
+    },
+    granularFlags: [],
+  },
   // Admin group
   {
     toolKey: 'admin_panel',
@@ -456,5 +470,5 @@ export function getToolsByGroup(group: string): IToolDefinition[] {
 /**
  * Get all available tool group names
  */
-export const TOOL_GROUPS = ['marketing', 'preconstruction', 'operations', 'shared_services', 'admin'] as const;
+export const TOOL_GROUPS = ['marketing', 'preconstruction', 'operations', 'shared_services', 'site_control', 'admin'] as const;
 export type ToolGroup = typeof TOOL_GROUPS[number];

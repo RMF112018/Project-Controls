@@ -258,11 +258,11 @@ const REQUIRED_PROMPT6_FEATURE_FLAGS: ReadonlyArray<Omit<IFeatureFlag, 'id'>> = 
     Category: 'Integrations',
   },
   {
-    FeatureName: 'QaqcSafetyWorkspace',
-    DisplayName: 'QA/QC & Safety Mobile Workspace',
+    FeatureName: 'SiteControlWorkspace',
+    DisplayName: 'HB Site Control Workspace',
     Enabled: true,
     EnabledForRoles: undefined,
-    Notes: 'Mobile-first QA/QC & Safety workspace for field operations',
+    Notes: 'Mobile-first field management workspace for safety, QC, and jobsite sign-in/out',
     Category: 'Infrastructure',
   },
   {

@@ -34,6 +34,7 @@
       { "toolKey": "shared_services_hub", "level": "ADMIN" },
       { "toolKey": "hr", "level": "ADMIN" },
       { "toolKey": "risk_management", "level": "ADMIN" },
+      { "toolKey": "site_control_hub", "level": "ADMIN" },
       { "toolKey": "admin_panel", "level": "ADMIN", "granularFlags": ["can_manage_provisioning"] },
       { "toolKey": "workflow_definitions", "level": "ADMIN" }
     ],
@@ -80,6 +81,7 @@
       { "toolKey": "shared_services_hub", "level": "ADMIN" },
       { "toolKey": "hr", "level": "ADMIN" },
       { "toolKey": "risk_management", "level": "ADMIN" },
+      { "toolKey": "site_control_hub", "level": "ADMIN" },
       { "toolKey": "admin_panel", "level": "ADMIN", "granularFlags": ["can_manage_provisioning"] },
       { "toolKey": "workflow_definitions", "level": "ADMIN" }
     ],
@@ -126,6 +128,7 @@
       { "toolKey": "shared_services_hub", "level": "READ_ONLY" },
       { "toolKey": "hr", "level": "READ_ONLY" },
       { "toolKey": "risk_management", "level": "READ_ONLY" },
+      { "toolKey": "site_control_hub", "level": "READ_ONLY" },
       { "toolKey": "admin_panel", "level": "NONE" },
       { "toolKey": "workflow_definitions", "level": "NONE" }
     ],
@@ -172,6 +175,7 @@
       { "toolKey": "shared_services_hub", "level": "NONE" },
       { "toolKey": "hr", "level": "NONE" },
       { "toolKey": "risk_management", "level": "NONE" },
+      { "toolKey": "site_control_hub", "level": "STANDARD" },
       { "toolKey": "admin_panel", "level": "NONE" },
       { "toolKey": "workflow_definitions", "level": "NONE" }
     ],
@@ -218,6 +222,7 @@
       { "toolKey": "shared_services_hub", "level": "NONE" },
       { "toolKey": "hr", "level": "NONE" },
       { "toolKey": "risk_management", "level": "NONE" },
+      { "toolKey": "site_control_hub", "level": "NONE" },
       { "toolKey": "admin_panel", "level": "NONE" },
       { "toolKey": "workflow_definitions", "level": "NONE" }
     ],
@@ -261,6 +266,7 @@
       { "toolKey": "shared_services_hub", "level": "READ_ONLY" },
       { "toolKey": "hr", "level": "NONE" },
       { "toolKey": "risk_management", "level": "NONE" },
+      { "toolKey": "site_control_hub", "level": "NONE" },
       { "toolKey": "admin_panel", "level": "NONE" },
       { "toolKey": "workflow_definitions", "level": "NONE" }
     ],
@@ -304,6 +310,7 @@
       { "toolKey": "shared_services_hub", "level": "READ_ONLY" },
       { "toolKey": "hr", "level": "NONE" },
       { "toolKey": "risk_management", "level": "NONE" },
+      { "toolKey": "site_control_hub", "level": "NONE" },
       { "toolKey": "admin_panel", "level": "NONE" },
       { "toolKey": "workflow_definitions", "level": "NONE" }
     ],
@@ -347,6 +354,7 @@
       { "toolKey": "shared_services_hub", "level": "READ_ONLY" },
       { "toolKey": "hr", "level": "READ_ONLY" },
       { "toolKey": "risk_management", "level": "READ_ONLY" },
+      { "toolKey": "site_control_hub", "level": "READ_ONLY" },
       { "toolKey": "admin_panel", "level": "NONE" },
       { "toolKey": "workflow_definitions", "level": "NONE" }
     ],
@@ -390,6 +398,7 @@
       { "toolKey": "shared_services_hub", "level": "ADMIN" },
       { "toolKey": "hr", "level": "ADMIN" },
       { "toolKey": "risk_management", "level": "ADMIN" },
+      { "toolKey": "site_control_hub", "level": "ADMIN" },
       { "toolKey": "admin_panel", "level": "ADMIN", "granularFlags": ["can_manage_provisioning"] },
       { "toolKey": "workflow_definitions", "level": "ADMIN" }
     ],
