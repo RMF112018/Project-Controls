@@ -3,10 +3,18 @@
  * Procore is bidirectional: project, RFI, budget, and submittal data flows both ways.
  */
 import type { ConnectorType, SyncDirection, ISyncStatus } from '../models/IExternalConnector';
-import type { IConnectorAdapter, IConnectorTestResult, ISyncResult } from './IConnectorAdapter';
+import type { IConnectorAdapter, IConnectorTestResult, ISyncResult, IConnectorRetryPolicy } from './IConnectorAdapter';
 
 export class ProcoreAdapter implements IConnectorAdapter {
   public readonly connectorType: ConnectorType = 'Procore';
+
+  /** 429-aware retry: Procore rate-limits aggressively */
+  public readonly retryPolicy: IConnectorRetryPolicy = {
+    retryableStatuses: [429, 500, 502, 503, 504],
+    maxRetries: 3,
+    baseDelayMs: 1000,
+    maxDelayMs: 30000,
+  };
 
   public async testConnection(config: Record<string, string>): Promise<IConnectorTestResult> {
     // Mock: always succeeds

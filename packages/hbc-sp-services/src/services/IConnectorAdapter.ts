@@ -15,8 +15,28 @@ export interface ISyncResult {
   errorDetails?: string;
 }
 
+/** Retry policy for connector operations — classifies errors and configures backoff */
+export interface IConnectorRetryPolicy {
+  /** HTTP status codes that should trigger a retry */
+  retryableStatuses: number[];
+  /** Maximum number of retry attempts */
+  maxRetries: number;
+  /** Base delay in ms for exponential backoff (delay = baseDelayMs * 2^attempt) */
+  baseDelayMs: number;
+  /** Maximum delay in ms (caps exponential growth) */
+  maxDelayMs: number;
+}
+
+/** Classifies an HTTP status code as transient (retryable) or permanent */
+export function isTransientError(status: number, policy: IConnectorRetryPolicy): boolean {
+  return policy.retryableStatuses.includes(status);
+}
+
 export interface IConnectorAdapter {
   readonly connectorType: ConnectorType;
+
+  /** Retry policy for this adapter's operations */
+  readonly retryPolicy: IConnectorRetryPolicy;
 
   /** Test the connection to the external system */
   testConnection(config: Record<string, string>): Promise<IConnectorTestResult>;

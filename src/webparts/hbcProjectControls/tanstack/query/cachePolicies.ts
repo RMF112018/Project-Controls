@@ -15,6 +15,7 @@ export const QUERY_STALE_TIMES = {
   turnover: 5 * 60 * 1000,
   closeout: 2 * 60 * 1000,
   actionInbox: 60 * 1000,
+  connectors: 60 * 1000,
 } as const;
 
 export const QUERY_GC_TIME = 20 * 60 * 1000;

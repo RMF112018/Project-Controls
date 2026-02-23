@@ -1,6 +1,7 @@
 import { ICalendarAvailability, IMeeting } from '../models/IMeeting';
 import { IAuditEntry } from '../models/IAuditEntry';
 import { AuditAction, EntityType } from '../models/enums';
+import { graphBatchService, type IBatchResult } from './GraphBatchService';
 
 /** Callback type for audit logging — injected from WebPart or DataService */
 export type GraphAuditLogger = (entry: Partial<IAuditEntry>) => Promise<void>;
@@ -10,6 +11,8 @@ export interface IGraphService {
   getUserPhoto(email: string): Promise<string | null>;
   getGroupMembers(groupId: string): Promise<Array<{ displayName: string; email: string }>>;
   addGroupMember(groupId: string, userId: string): Promise<void>;
+  batchAddGroupMembers(groupId: string, userIds: string[]): Promise<IBatchResult>;
+  batchGetUserPhotos(emails: string[]): Promise<Map<string, string | null>>;
   getCalendarAvailability(emails: string[], start: string, end: string): Promise<ICalendarAvailability[]>;
   createCalendarEvent(meeting: Partial<IMeeting>): Promise<IMeeting>;
   sendEmail(to: string[], subject: string, body: string): Promise<void>;
@@ -113,6 +116,82 @@ export class GraphService implements IGraphService {
       );
       throw err;
     }
+  }
+
+  /**
+   * Batch-add multiple members to a group via $batch API.
+   * Auto-chunks at MAX_BATCH_SIZE=20 (Graph API hard limit).
+   */
+  async batchAddGroupMembers(groupId: string, userIds: string[]): Promise<IBatchResult> {
+    if (!this.graphClient) throw new Error('Graph client not initialized');
+    if (userIds.length === 0) {
+      return { responses: [], succeeded: [], permanentFailures: [], transientFailures: [] };
+    }
+
+    graphBatchService.initialize(this.graphClient);
+    graphBatchService.setAuditLogger(this.auditLogger!);
+
+    const requests = userIds.map((userId, i) => ({
+      id: String(i + 1),
+      method: 'POST' as const,
+      url: `/groups/${groupId}/members/$ref`,
+      body: {
+        '@odata.id': `https://graph.microsoft.com/v1.0/directoryObjects/${userId}`,
+      },
+    }));
+
+    const result = await graphBatchService.executeBatch(requests);
+
+    this.logGraphCall(
+      result.permanentFailures.length === 0 && result.transientFailures.length === 0
+        ? AuditAction.GraphApiCallSucceeded
+        : AuditAction.GraphApiCallFailed,
+      `BATCH POST /groups/${groupId}/members/$ref`,
+      `Batch add ${userIds.length} members: ${result.succeeded.length} ok, ${result.permanentFailures.length} permanent, ${result.transientFailures.length} transient`
+    );
+
+    return result;
+  }
+
+  /**
+   * Batch-fetch user photos via $batch API.
+   * Returns a Map<email, dataUrl | null>.
+   */
+  async batchGetUserPhotos(emails: string[]): Promise<Map<string, string | null>> {
+    const photoMap = new Map<string, string | null>();
+    if (!this.graphClient || emails.length === 0) return photoMap;
+
+    graphBatchService.initialize(this.graphClient);
+    graphBatchService.setAuditLogger(this.auditLogger!);
+
+    const requests = emails.map((email, i) => ({
+      id: String(i + 1),
+      method: 'GET' as const,
+      url: `/users/${email}/photo/$value`,
+    }));
+
+    const result = await graphBatchService.executeBatch(requests);
+
+    // Map responses back to emails by correlating sequential IDs
+    for (const resp of result.responses) {
+      const idx = parseInt(resp.id, 10) - 1;
+      if (idx >= 0 && idx < emails.length) {
+        if (resp.status >= 200 && resp.status < 300 && resp.body) {
+          // Photo data returned — in real Graph $batch the body is base64
+          photoMap.set(emails[idx], resp.body as string);
+        } else {
+          photoMap.set(emails[idx], null);
+        }
+      }
+    }
+
+    this.logGraphCall(
+      AuditAction.GraphApiCallSucceeded,
+      `BATCH GET /users/*/photo/$value`,
+      `Batch photo fetch for ${emails.length} users: ${result.succeeded.length} found`
+    );
+
+    return photoMap;
   }
 
   async getCalendarAvailability(emails: string[], start: string, end: string): Promise<ICalendarAvailability[]> {

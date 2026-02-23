@@ -9,6 +9,7 @@ export const OPTIMISTIC_MUTATION_FLAGS = {
   schedule: 'OptimisticMutations_Schedule',
   riskCost: 'OptimisticMutations_RiskCost',
   monthlyReview: 'OptimisticMutations_MonthlyReview',
+  connectors: 'ConnectorMutationResilience',
 } as const;
 
 export type OptimisticMutationFlagDomain = keyof typeof OPTIMISTIC_MUTATION_FLAGS;
