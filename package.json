@@ -93,7 +93,7 @@
     "@tanstack/react-router": "^1.161.1",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.18",
-    "@tanstack/router-devtools": "^1.161.1",
+    "@tanstack/router-devtools": "^1.162.6",
     "echarts": "^5.6.0",
     "echarts-for-react": "^3.0.6",
     "html2canvas": "^1.4.1",
