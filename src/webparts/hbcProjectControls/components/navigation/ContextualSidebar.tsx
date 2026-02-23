@@ -20,6 +20,13 @@ const useStyles = makeStyles({
   divider: {
     borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
   },
+  persistentSection: {
+    ...shorthands.padding('4px', '0'),
+  },
+  persistentDivider: {
+    ...shorthands.margin('4px', '0'),
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+  },
   noWorkspace: {
     ...shorthands.padding('16px'),
     fontSize: '13px',
@@ -40,6 +47,18 @@ export const ContextualSidebar: React.FC = () => {
     return location.pathname === path || location.pathname.startsWith(path + '/');
   }, [location.pathname]);
 
+  // For non-hub workspaces, filter out items whose path matches the workspace basePath
+  // to avoid duplication with the persistent "{Workspace} Dashboard" link.
+  // Also remove groups that become empty after filtering.
+  const filteredGroups = React.useMemo(() => {
+    if (!workspace || workspace.id === 'hub') return workspace?.sidebarGroups ?? [];
+    return workspace.sidebarGroups
+      .map(g => ({ ...g, items: g.items.filter(i => i.path !== workspace.basePath) }))
+      .filter(g => g.items.length > 0);
+  }, [workspace]);
+
+  const isNonHubWorkspace = workspace && workspace.id !== 'hub';
+
   return (
     <nav className={styles.sidebar} aria-label="Workspace navigation">
       <ProjectPicker selected={selectedProject} onSelect={setSelectedProject} locked={isProjectSite} />
@@ -47,18 +66,40 @@ export const ContextualSidebar: React.FC = () => {
       <div className={styles.divider} />
 
       {workspace ? (
-        workspace.sidebarGroups.map(group => (
-          <NavGroup key={group.label} label={group.label}>
-            {group.items.map(item => (
-              <NavItem
-                key={item.path}
-                label={item.label}
-                active={isActivePath(item.path)}
-                onClick={() => navigate(item.path)}
-              />
-            ))}
-          </NavGroup>
-        ))
+        <>
+          {/* Persistent "Home" + "{Workspace} Dashboard" links for non-hub workspaces */}
+          {isNonHubWorkspace && (
+            <>
+              <div className={styles.persistentSection}>
+                <NavItem
+                  label="Home"
+                  active={location.pathname === '/'}
+                  onClick={() => navigate('/')}
+                />
+                <NavItem
+                  label={`${workspace.label} Dashboard`}
+                  active={location.pathname === workspace.basePath}
+                  onClick={() => navigate(workspace.basePath)}
+                />
+              </div>
+              <div className={styles.persistentDivider} />
+            </>
+          )}
+
+          {/* Workspace sidebar groups */}
+          {filteredGroups.map(group => (
+            <NavGroup key={group.label} label={group.label}>
+              {group.items.map(item => (
+                <NavItem
+                  key={item.path}
+                  label={item.label}
+                  active={isActivePath(item.path)}
+                  onClick={() => navigate(item.path)}
+                />
+              ))}
+            </NavGroup>
+          ))}
+        </>
       ) : (
         <div className={styles.noWorkspace}>
           Select a workspace from the launcher above.

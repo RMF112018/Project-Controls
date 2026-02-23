@@ -313,10 +313,30 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
       },
     ],
   },
+  // Hub workspace — MUST be last so getWorkspaceFromPath matches other basePaths first
+  {
+    id: 'hub',
+    label: 'Analytics Hub',
+    icon: 'Home24Regular',
+    basePath: '/',
+    roles: [],  // accessible to all roles
+    sidebarGroups: [
+      {
+        label: 'Workspaces',
+        items: [
+          { label: 'Preconstruction', path: '/preconstruction' },
+          { label: 'Operations', path: '/operations' },
+          { label: 'Shared Services', path: '/shared-services' },
+          { label: 'HB Site Control', path: '/site-control' },
+          { label: 'Admin', path: '/admin' },
+        ],
+      },
+    ],
+  },
 ];
 
-/** Workspaces shown in the App Launcher grid */
-export const LAUNCHER_WORKSPACES = WORKSPACE_CONFIGS;
+/** Workspaces shown in the App Launcher grid (excludes hub — hub is the home page) */
+export const LAUNCHER_WORKSPACES = WORKSPACE_CONFIGS.filter(w => w.id !== 'hub');
 
 /** Look up a workspace config by pathname prefix */
 export function getWorkspaceFromPath(pathname: string): IWorkspaceConfig | undefined {

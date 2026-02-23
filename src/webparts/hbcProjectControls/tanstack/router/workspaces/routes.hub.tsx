@@ -1,18 +1,15 @@
 /**
  * Hub (Root) Workspace Routes
  *
- * Placeholder landing page, access-denied, and not-found.
+ * Analytics Hub Dashboard, access-denied, and not-found.
  * 3 routes total.
  */
 import * as React from 'react';
 import { createRoute } from '@tanstack/react-router';
 import { AccessDeniedPage } from '../../../components/pages/shared/AccessDeniedPage';
 
-const PlaceholderHome: React.FC = () => (
-  <div style={{ padding: 48, textAlign: 'center' }}>
-    <h2>HBC Project Controls</h2>
-    <p>Modules coming soon.</p>
-  </div>
+const AnalyticsHubDashboardPage = React.lazy(() =>
+  import('../../../components/pages/hub/AnalyticsHubDashboardPage').then(m => ({ default: m.AnalyticsHubDashboardPage }))
 );
 
 const NotFoundPage: React.FC = () => (
@@ -26,7 +23,7 @@ export function createHubWorkspaceRoutes(rootRoute: unknown) {
   const dashboardRoute = createRoute({
     getParentRoute: () => rootRoute as never,
     path: '/',
-    component: PlaceholderHome,
+    component: AnalyticsHubDashboardPage,
   });
 
   const accessDeniedRoute = createRoute({

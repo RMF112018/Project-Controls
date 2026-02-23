@@ -274,6 +274,14 @@ const REQUIRED_PROMPT6_FEATURE_FLAGS: ReadonlyArray<Omit<IFeatureFlag, 'id'>> = 
     Category: 'Preconstruction',
   },
   {
+    FeatureName: 'PowerBIIntegration',
+    DisplayName: 'Power BI Integration',
+    Enabled: false,
+    EnabledForRoles: undefined,
+    Notes: 'Power BI embedded reports placeholder on Analytics Hub Dashboard',
+    Category: 'Integrations',
+  },
+  {
     FeatureName: 'PreconstructionWorkspace',
     DisplayName: 'Preconstruction Workspace',
     Enabled: true,

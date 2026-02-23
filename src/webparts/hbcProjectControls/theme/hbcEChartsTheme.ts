@@ -13,6 +13,8 @@ import {
   RadarChart,
   GaugeChart,
   HeatmapChart,
+  FunnelChart,
+  TreemapChart,
 } from 'echarts/charts';
 import {
   GridComponent,
@@ -38,6 +40,8 @@ echarts.use([
   RadarChart,
   GaugeChart,
   HeatmapChart,
+  FunnelChart,
+  TreemapChart,
   GridComponent,
   TooltipComponent,
   LegendComponent,
