@@ -14,6 +14,7 @@ import { createAdminWorkspaceRoutes } from './workspaces/routes.admin';
 import { createOperationsWorkspaceRoutes } from './workspaces/routes.operations';
 import { createSharedServicesWorkspaceRoutes } from './workspaces/routes.sharedservices';
 import { createSiteControlWorkspaceRoutes } from './workspaces/routes.sitecontrol';
+import { createProjectHubWorkspaceRoutes } from './workspaces/routes.projecthub';
 
 const TelemetryPageTracker: React.FC = () => {
   useTelemetryPageView();
@@ -60,4 +61,6 @@ export const tanStackPilotRouteTree = rootRoute.addChildren([
   ...(createSharedServicesWorkspaceRoutes(rootRoute) as AnyRoute[]),
   // HB Site Control workspace: Jobsite Management, Safety, Quality Control
   ...(createSiteControlWorkspaceRoutes(rootRoute) as AnyRoute[]),
+  // Project Hub workspace: project-scoped cross-cutting module
+  ...(createProjectHubWorkspaceRoutes(rootRoute) as AnyRoute[]),
 ]);

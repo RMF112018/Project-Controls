@@ -13,6 +13,7 @@ import { Grid24Regular } from '@fluentui/react-icons';
 import { RoleGate } from '../guards/RoleGate';
 import { FeatureGate } from '../guards/FeatureGate';
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
+import { useAppContext } from '../contexts/AppContext';
 import { LAUNCHER_WORKSPACES } from './workspaceConfig';
 import { HBC_COLORS, TRANSITION } from '../../theme/tokens';
 
@@ -60,6 +61,13 @@ const useStyles = makeStyles({
 export const AppLauncher: React.FC = () => {
   const styles = useStyles();
   const navigate = useAppNavigate();
+  const { selectedProject } = useAppContext();
+
+  // Filter out workspaces that require a project when none is selected
+  const visibleWorkspaces = React.useMemo(
+    () => LAUNCHER_WORKSPACES.filter(w => !w.requireProject || selectedProject),
+    [selectedProject],
+  );
 
   return (
     <Menu>
@@ -75,7 +83,7 @@ export const AppLauncher: React.FC = () => {
 
       <MenuPopover className={styles.popover}>
         <MenuList>
-          {LAUNCHER_WORKSPACES.map(workspace => {
+          {visibleWorkspaces.map(workspace => {
             const item = (
               <MenuItem
                 key={workspace.id}

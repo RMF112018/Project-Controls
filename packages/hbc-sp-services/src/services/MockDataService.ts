@@ -321,6 +321,14 @@ const REQUIRED_PROMPT6_FEATURE_FLAGS: ReadonlyArray<Omit<IFeatureFlag, 'id'>> = 
     Notes: 'Three-tab department tracking module with inline editing (Estimate Log, Current Pursuits, Current Preconstruction)',
     Category: 'Preconstruction',
   },
+  {
+    FeatureName: 'ProjectHubWorkspace',
+    DisplayName: 'Project Hub Workspace',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    Notes: 'Cross-cutting project workspace with 10 sidebar groups. Hidden unless project selected.',
+    Category: 'Infrastructure',
+  },
 ];
 
 function ensurePrompt6FeatureFlags(flags: IFeatureFlag[]): IFeatureFlag[] {

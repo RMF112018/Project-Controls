@@ -20,6 +20,7 @@ export interface IWorkspaceConfig {
   basePath: string;
   roles: RoleName[];
   featureFlag?: string;
+  requireProject?: boolean;
   sidebarGroups: ISidebarGroup[];
 }
 
@@ -309,6 +310,104 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
           { label: 'Issue Resolution', path: '/site-control/qc/issues', icon: 'ArrowRouting24Regular', permission: PERMISSIONS.QUALITY_EDIT },
           { label: 'Metrics', path: '/site-control/qc/metrics', icon: 'DataTrending24Regular', permission: PERMISSIONS.QUALITY_EDIT },
           { label: 'Documents', path: '/site-control/qc/documents', icon: 'DocumentFolder24Regular', permission: PERMISSIONS.QUALITY_EDIT },
+        ],
+      },
+    ],
+  },
+  // ── Project Hub workspace — visible only when a project is selected ────────────
+  {
+    id: 'project-hub',
+    label: 'Project Hub',
+    icon: 'Briefcase24Regular',
+    basePath: '/project-hub',
+    roles: [],  // accessible to all authenticated roles
+    featureFlag: 'ProjectHubWorkspace',
+    requireProject: true,
+    sidebarGroups: [
+      {
+        label: 'Project Hub',
+        items: [
+          { label: 'Project Dashboard', path: '/project-hub/dashboard', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+          { label: 'Project Settings', path: '/project-hub/settings', permission: PERMISSIONS.PROJECT_RECORD_OPS_EDIT },
+        ],
+      },
+      {
+        label: 'Preconstruction',
+        items: [
+          { label: 'Go / No-Go', path: '/project-hub/precon/go-no-go', permission: PERMISSIONS.GONOGO_READ },
+          { label: 'Estimating Kick-Off', path: '/project-hub/precon/estimating-kickoff', permission: PERMISSIONS.ESTIMATING_READ },
+          { label: 'Estimate', path: '/project-hub/precon/estimate', permission: PERMISSIONS.ESTIMATING_READ },
+          { label: 'Project Turnover', path: '/project-hub/precon/turnover', permission: PERMISSIONS.TURNOVER_READ },
+          { label: 'Post-Bid Autopsy', path: '/project-hub/precon/post-bid', permission: PERMISSIONS.ESTIMATING_READ },
+        ],
+      },
+      {
+        label: 'Project Manual',
+        items: [
+          { label: 'Project Management Plan', path: '/project-hub/manual/pmp', permission: PERMISSIONS.PMP_EDIT },
+          { label: "Superintendent's Plan", path: '/project-hub/manual/superintendent', permission: PERMISSIONS.SUPERINTENDENT_PLAN_EDIT },
+          { label: 'Responsibility Matrix', path: '/project-hub/manual/responsibility', permission: PERMISSIONS.MATRIX_EDIT },
+          { label: 'Meeting Agenda Templates', path: '/project-hub/manual/meetings', permission: PERMISSIONS.MEETING_READ },
+          { label: 'Pay Application Process', path: '/project-hub/manual/pay-app', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+          { label: 'Safety Plan', path: '/project-hub/manual/safety-plan', permission: PERMISSIONS.SAFETY_EDIT },
+          { label: 'OSHA Site Visit Guide', path: '/project-hub/manual/osha', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+          { label: 'Tropical Weather Guide', path: '/project-hub/manual/weather', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+          { label: 'Crisis Management & ICE', path: '/project-hub/manual/crisis', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+          { label: 'IDS Requirements', path: '/project-hub/manual/ids', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+        ],
+      },
+      {
+        label: 'Startup & Closeout',
+        items: [
+          { label: 'Project Startup Guide', path: '/project-hub/manual/startup/guide', permission: PERMISSIONS.STARTUP_CHECKLIST_EDIT },
+          { label: 'Startup Checklist', path: '/project-hub/manual/startup/checklist', permission: PERMISSIONS.STARTUP_CHECKLIST_EDIT },
+          { label: 'Project Closeout Guide', path: '/project-hub/manual/startup/closeout-guide', permission: PERMISSIONS.CLOSEOUT_EDIT },
+          { label: 'Completion & Acceptance', path: '/project-hub/manual/startup/completion', permission: PERMISSIONS.CLOSEOUT_EDIT },
+          { label: 'Closeout Checklist', path: '/project-hub/manual/startup/closeout-checklist', permission: PERMISSIONS.CLOSEOUT_EDIT },
+        ],
+      },
+      {
+        label: 'QA / QC Program',
+        items: [
+          { label: 'QC Checklists', path: '/project-hub/manual/qaqc/checklists', permission: PERMISSIONS.QUALITY_EDIT },
+          { label: 'Best Practices', path: '/project-hub/manual/qaqc/best-practices', permission: PERMISSIONS.QUALITY_EDIT },
+        ],
+      },
+      {
+        label: 'Financial Forecasting',
+        items: [
+          { label: 'Review Checklist', path: '/project-hub/cost-time/forecast/checklist', permission: PERMISSIONS.RISK_EDIT },
+          { label: 'Forecast Summary', path: '/project-hub/cost-time/forecast/summary', permission: PERMISSIONS.RISK_EDIT },
+          { label: 'GC/GR Forecast', path: '/project-hub/cost-time/forecast/gcgr', permission: PERMISSIONS.RISK_EDIT },
+          { label: 'Cash Flow Forecast', path: '/project-hub/cost-time/forecast/cashflow', permission: PERMISSIONS.RISK_EDIT },
+        ],
+      },
+      {
+        label: 'Schedule',
+        items: [
+          { label: 'Schedule', path: '/project-hub/cost-time/schedule', permission: PERMISSIONS.SCHEDULE_VIEW },
+        ],
+      },
+      {
+        label: 'Logs & Reports',
+        items: [
+          { label: 'Buyout Log', path: '/project-hub/logs/buyout', permission: PERMISSIONS.BUYOUT_VIEW },
+          { label: 'Permit Log', path: '/project-hub/logs/permits', permission: PERMISSIONS.PERMITS_VIEW },
+          { label: 'Constraints Log', path: '/project-hub/logs/constraints', permission: PERMISSIONS.CONSTRAINTS_VIEW },
+          { label: 'Subcontractor Scorecard', path: '/project-hub/logs/sub-scorecard', permission: PERMISSIONS.PROJECT_HUB_VIEW },
+        ],
+      },
+      {
+        label: 'Monthly Reports',
+        items: [
+          { label: 'PX Review', path: '/project-hub/logs/monthly/px-review', permission: PERMISSIONS.MONTHLY_REVIEW_PM },
+          { label: 'Owner Report', path: '/project-hub/logs/monthly/owner-report', permission: PERMISSIONS.MONTHLY_REVIEW_PM },
+        ],
+      },
+      {
+        label: 'Documents',
+        items: [
+          { label: 'Project Documents', path: '/project-hub/documents', permission: PERMISSIONS.PROJECT_HUB_VIEW },
         ],
       },
     ],
