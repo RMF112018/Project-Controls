@@ -313,6 +313,14 @@ const REQUIRED_PROMPT6_FEATURE_FLAGS: ReadonlyArray<Omit<IFeatureFlag, 'id'>> = 
     Notes: 'Shared Services workspace with Marketing, HR, Accounting, Risk Management hubs',
     Category: 'Infrastructure',
   },
+  {
+    FeatureName: 'EstimatingDepartmentTracking',
+    DisplayName: 'Estimating Department Tracking',
+    Enabled: true,
+    EnabledForRoles: undefined,
+    Notes: 'Three-tab department tracking module with inline editing (Estimate Log, Current Pursuits, Current Preconstruction)',
+    Category: 'Preconstruction',
+  },
 ];
 
 function ensurePrompt6FeatureFlags(flags: IFeatureFlag[]): IFeatureFlag[] {

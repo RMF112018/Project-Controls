@@ -168,6 +168,7 @@ export function createPreconstructionWorkspaceRoutes(rootRoute: unknown) {
     path: '/preconstruction/estimating/tracking',
     component: DepartmentTrackingPage,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'EstimatingDepartmentTracking');
       requirePermission(context, PERMISSIONS.ESTIMATING_READ);
     },
   });
