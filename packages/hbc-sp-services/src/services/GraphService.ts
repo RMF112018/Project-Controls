@@ -2,6 +2,7 @@ import { ICalendarAvailability, IMeeting } from '../models/IMeeting';
 import { IAuditEntry } from '../models/IAuditEntry';
 import { AuditAction, EntityType } from '../models/enums';
 import { graphBatchService, type IBatchResult } from './GraphBatchService';
+import { initializeEnforcerFeatureCheck } from './GraphBatchEnforcer';
 
 /** Callback type for audit logging — injected from WebPart or DataService */
 export type GraphAuditLogger = (entry: Partial<IAuditEntry>) => Promise<void>;
@@ -25,8 +26,12 @@ export class GraphService implements IGraphService {
   private auditLogger: GraphAuditLogger | null = null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialize(graphClient: any): void {
+  initialize(graphClient: any, isFeatureEnabled?: (flag: string) => boolean): void {
     this.graphClient = graphClient;
+    // Phase 5D: bind the real feature flag accessor for the enforcer
+    if (isFeatureEnabled) {
+      initializeEnforcerFeatureCheck(isFeatureEnabled);
+    }
   }
 
   /** Set the audit logger callback — called from WebPart after dataService is created */

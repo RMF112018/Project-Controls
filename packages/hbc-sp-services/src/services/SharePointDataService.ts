@@ -65,6 +65,7 @@ import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssi
 import { DataServiceError } from './DataServiceError';
 import { performanceService } from './PerformanceService';
 import { LIST_NAMES, CACHE_KEYS, CACHE_TTL_MS, HUB_LISTS } from '../utils/constants';
+import { listThresholdGuard, ThresholdLevel } from '../utils/ListThresholdGuard';
 import { ROLE_PERMISSIONS } from '../utils/permissions';
 import { resolveToolPermissions, TOOL_DEFINITIONS } from '../utils/toolPermissionMap';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
@@ -686,6 +687,16 @@ export class SharePointDataService implements IDataService {
     const startDate = typeof filters.startDate === 'string' ? filters.startDate : undefined;
     const endDate = typeof filters.endDate === 'string' ? filters.endDate : undefined;
     const rows = await this.getAuditLog(entityType, entityId, startDate, endDate);
+    // Phase 5D: threshold telemetry (non-blocking)
+    const thresholdResult = listThresholdGuard.checkThreshold(LIST_NAMES.AUDIT_LOG, rows.length);
+    if (thresholdResult.level !== ThresholdLevel.Safe) {
+      this.logAudit({
+        Action: AuditAction.ListThresholdWarning,
+        EntityType: EntityType.ListThreshold,
+        EntityId: LIST_NAMES.AUDIT_LOG,
+        Details: thresholdResult.message,
+      }).catch(() => {}); // fire-and-forget
+    }
     return this.paginateArray(rows, request);
   }
 

@@ -1,5 +1,5 @@
 ---
-name: CLAUDE.md | description: Master blueprint, live status, and central coordinator for HBC Project Controls SPFx application | triggers: all | updated: 2026-02-23
+name: CLAUDE.md | description: Master blueprint, live status, and central coordinator for HBC Project Controls SPFx application | triggers: all | updated: 2026-02-24
 ---
 
 **CLAUDE.md — HBC Project Controls Blueprint (Lean Edition)**
@@ -11,13 +11,14 @@ This file must stay under 40,000 characters. Never allow it to grow large again.
 - After every completed data service chunk → update §7 and §15  
 - After major architecture/pattern changes → update relevant sections (§4, §16, §21, §22)  
 - After adding, consolidating, or updating .claude/ instruction files, Skills, or Plans → update §0 and §16  
+- After every code change, evaluation, or session that touches the codebase → update this file AND maintain CHANGELOG.md in the root directory with a dated entry (format: ## [YYYY-MM-DD] - [Phase] - [Commit HASH] - [Summary]). **Explicit instruction: Maintain CHANGELOG.md in the root directory at all times**; it is the canonical human-readable change history companion to CLAUDE.md. Never commit without syncing CHANGELOG.md.  
 - Always keep focused on: current status, active rules, verification gates, and live references.
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-24 — Phase 5C COMPLETE. ProvisioningSaga orchestrator (7-step reverse compensation, 6 new IDataService methods). SignalR ProvisioningStatus channel + useProvisioningStatus hook. ProvisioningStatusStepper (Fluent UI v9, motionTokens 150-250ms). lib-signalr-realtime webpack chunk. Feature flag: ProvisioningSaga (default OFF). 276 IDataService methods. 837 tests passing.
+**Last Updated:** 2026-02-24 — Phase 5D COMPLETE. GraphBatchEnforcer (10ms coalescence, threshold 3, composition wrapper, constructor-injected isFeatureEnabled, GraphBatchingEnabled default OFF). ListThresholdGuard CLASS (ThresholdLevel enum, warn 3000/force 4500, dual-gate). Coverage raised to 80/60/70/80. 276 IDataService methods. ~857 tests. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md. SKILL.md v1.2.
 
-**MANDATORY:** After any code change that affects the data layer, architecture, performance, UI/UX, testing, or security, update this file, verify against the current sprint gate, confirm relevant Skills and the master plan were followed, and check project memory before ending the session.
+**MANDATORY:** After any code change that affects the data layer, architecture, performance, UI/UX, testing, or security, update this file, verify against the current sprint gate, confirm relevant Skills and the master plan were followed, update CHANGELOG.md (root), and check project memory before ending the session.
 
 ---
 
@@ -88,7 +89,7 @@ After consulting the core guides, automatically activate the most specific Skill
 ## §1 Tech Stack & Build (Current)
 
 - Framework: SPFx 1.22.2 + React 18.2 + Fluent UI v9 (Griffel + tokens)  
-- Data Layer: `@hbc/sp-services` (250/250 methods – complete)  
+- Data Layer: `@hbc/sp-services` (276/276 methods – complete)  
 - Routing: TanStack Router v1 (hash history – sole runtime router)  
 - Data Fetching: TanStack Query v5 (Wave-1 complete on core domains)  
 - Workflow Orchestration: xstate v5 + @xstate/react (lazy-loaded via `lib-xstate-workflow` chunk)  
@@ -111,32 +112,32 @@ See `PERFORMANCE_OPTIMIZATION_GUIDE.md` §5 for detailed bundle and chunk rules.
 - RoleGate + FeatureGate required on every sensitive surface  
 - Griffel `makeStyles` for all styling  
 
-**Router Stability Rule (Critical)**
+**Router Stability Rule (Critical)**  
 The TanStack Router instance MUST be created exactly once (via `useRef` in `router.tsx`) with real initial prop values. Dynamic value changes injected via `router.update()` in a `useEffect` — NEVER via `RouterProvider context={}` prop. The `context` prop causes `RouterContextProvider` to call `router.update()` synchronously during render, creating infinite re-render loops when routes have async loaders (`ensureQueryData`). NEVER pass dynamic values to any dep array that triggers router recreation.
 
-**Adapter Hooks (Phase 3 — Clean TanStack Direct)**
-- `useAppNavigate`: Imports `useNavigate` from `@tanstack/react-router`, ref-backs it, returns stable `useCallback` (empty deps). No `startTransition` wrapper — TanStack Router's Transitioner handles transitions natively.
-- `useAppLocation`: Uses `useRouterState` with selector for `pathname` + `searchStr`. Returns memoised object.
-- `useAppParams`: Uses `useRouterState` with selector + `JSON.stringify` for stable params identity.
-- Consumer-facing API unchanged — zero migration cost for consuming files.
-- **TanStackAdapterBridge REMOVED** — adapter hooks consume TanStack primitives directly.
+**Adapter Hooks (Phase 3 — Clean TanStack Direct)**  
+- `useAppNavigate`: Imports `useNavigate` from `@tanstack/react-router`, ref-backs it, returns stable `useCallback` (empty deps). No `startTransition` wrapper — TanStack Router's Transitioner handles transitions natively.  
+- `useAppLocation`: Uses `useRouterState` with selector for `pathname` + `searchStr`. Returns memoised object.  
+- `useAppParams`: Uses `useRouterState` with selector + `JSON.stringify` for stable params identity.  
+- Consumer-facing API unchanged — zero migration cost for consuming files.  
+- **TanStackAdapterBridge REMOVED** — adapter hooks consume TanStack primitives directly.  
 - **RouterAdapterContext DELETED** — no longer needed.
 
-**Navigation Architecture (Phase 3 — uxSuiteNavigationV1)**
-- **AppLauncher**: Fluent UI `Menu`/`MenuPopover` in AppShell header. Grid of workspace tiles (Preconstruction, Operations, Shared Services, Admin). RoleGate per tile.
-- **ContextualSidebar**: Replaces NavigationSidebar. Reads `useWorkspace()` to derive active workspace from pathname. Renders workspace-specific sidebar groups from `workspaceConfig.ts`.
-- **NavigationSidebar**: Retained as legacy fallback (no pillar filtering, pure role-based visibility).
-- **workspaceConfig.ts**: Single source of truth for all workspaces, sidebar items, roles. Configuration-driven per §23.
-- **WorkspaceContext** (`useWorkspace()`): Pure pathname-based derivation. No state, no context overhead.
-- **Feature flag**: `uxSuiteNavigationV1` (enabled in MockDataService). `uxEnhancedNavigationV1` REMOVED.
+**Navigation Architecture (Phase 3 — uxSuiteNavigationV1)**  
+- **AppLauncher**: Fluent UI `Menu`/`MenuPopover` in AppShell header. Grid of workspace tiles (Preconstruction, Operations, Shared Services, Admin). RoleGate per tile.  
+- **ContextualSidebar**: Replaces NavigationSidebar. Reads `useWorkspace()` to derive active workspace from pathname. Renders workspace-specific sidebar groups from `workspaceConfig.ts`.  
+- **NavigationSidebar**: Retained as legacy fallback (no pillar filtering, pure role-based visibility).  
+- **workspaceConfig.ts**: Single source of truth for all workspaces, sidebar items, roles. Configuration-driven per §23.  
+- **WorkspaceContext** (`useWorkspace()`): Pure pathname-based derivation. No state, no context overhead.  
+- **Feature flag**: `uxSuiteNavigationV1` (enabled in MockDataService). `uxEnhancedNavigationV1` REMOVED.  
 - **PillarTabBar DELETED** — fully replaced by AppLauncher.
 
-**Route Structure (Phase 3)**
+**Route Structure (Phase 3)**  
 5 workspace route files under `tanstack/router/workspaces/`: `routes.hub.tsx`, `routes.preconstruction.tsx`, `routes.operations.tsx`, `routes.sharedservices.tsx`, `routes.admin.tsx`. 7 old batch files deleted. URL redirects: `/marketing` → `/shared-services/marketing`, `/accounting-queue` → `/shared-services/accounting`.
 
-- **Late-Router rendering audit rule**: Backing files MUST exist and compile before import is added to AppShell. Any broken provider kills the route outlet.
-- **useFullScreen.toggleFullScreen must have stable identity**: Uses `isFullScreenRef.current` (ref) instead of state closure.
-- **No keyed `<main>`**: ShellHydrationOverlay + routeTransition CSS handle visual transition.
+- **Late-Router rendering audit rule**: Backing files MUST exist and compile before import is added to AppShell. Any broken provider kills the route outlet.  
+- **useFullScreen.toggleFullScreen must have stable identity**: Uses `isFullScreenRef.current` (ref) instead of state closure.  
+- **No keyed `<main>`**: ShellHydrationOverlay + routeTransition CSS handle visual transition.  
 - All future work follows `.claude/plans/hbc-stabilization-and-suite-roadmap.md`.
 
 See `CODE_ARCHITECTURE_GUIDE.md` for full folder and dependency rules.
@@ -145,12 +146,12 @@ See `CODE_ARCHITECTURE_GUIDE.md` for full folder and dependency rules.
 
 ## §5 Roles & Permissions Matrix (Locked 22 Feb 2026)
 
-Core roles (6 total – config-driven via IRoleConfiguration, Phase 2 COMPLETE):
-- Admin: Full system control (site provisioning, user management, feature flags, defaults, audit logs).
-- Business Development Manager: Lead creation, Go/No-Go workflow.
-- Estimating Coordinator: New Job Number Requests, Estimate Tracking Log, Project Turnover.
-- Project Manager: Buyout Log & Contract Approvals, Schedule tasks, Constraints Log.
-- Leadership: Global read/write access to ALL projects and ALL departments.
+Core roles (6 total – config-driven via IRoleConfiguration, Phase 2 COMPLETE):  
+- Admin: Full system control (site provisioning, user management, feature flags, defaults, audit logs).  
+- Business Development Manager: Lead creation, Go/No-Go workflow.  
+- Estimating Coordinator: New Job Number Requests, Estimate Tracking Log, Project Turnover.  
+- Project Manager: Buyout Log & Contract Approvals, Schedule tasks, Constraints Log.  
+- Leadership: Global read/write access to ALL projects and ALL departments.  
 - Project Executive: Scoped access ONLY to assigned projects and assigned departments.
 
 Permission model: Configuration-driven via IRoleConfiguration (SP list-backed). RoleConfigurationPanel in AdminPanel provides zero-code CRUD for roles and default permissions. LEGACY_ROLE_MAP normalizes all 14 prior RoleName values to 6 canonical roles. RoleGate enhanced with bidirectional normalization. SOC2 audit snapshots on every mutation.
@@ -163,69 +164,81 @@ Cross-reference: §18 Roadmap (Phase 2), §21, §22, `.claude/plans/hbc-stabiliz
 
 **Total methods**: 276
 **Implemented**: 276
-**Remaining stubs**: 0 — **DATA LAYER COMPLETE** (9 Phase 1 provisioning + 7 Phase 2 role configuration + 34 Phase 4A/B/C connector/Procore/BambooHR + 4 Phase 4E project number request + 6 Phase 5C saga compensation methods added)
+**Remaining stubs**: 0 — **DATA LAYER COMPLETE**
 
-Last major additions: Phase 5C Provisioning Saga (Feb 2026) — 6 new IDataService compensation methods: deleteProjectSite, removeProvisionedLists, disassociateFromHubSite, deleteProjectSecurityGroups, removeTemplateFiles, removeLeadDataFromProjectSite. ProvisioningSaga orchestrator with reverse-order compensation and idempotency tokens. SignalR ProvisioningStatus channel + useProvisioningStatus hook. ProvisioningStatusStepper Fluent UI v9 component. Feature flag: ProvisioningSaga (default OFF). 149 new Jest tests (837 total).
+Last major additions: Phase 5D Cross-cutting Governance (Feb 2026) — GraphBatchEnforcer (10ms auto-coalescence wrapper, direct constructor-injected isFeatureEnabled callback, feature flag GraphBatchingEnabled default OFF). ListThresholdGuard CLASS (ThresholdLevel enum Safe/Warning/Critical, warn at 3,000 telemetry-only, force cursor paging at 4,500, dual-gate with InfinitePagingEnabled at 4500). No new IDataService methods (276 unchanged). ~20 new Jest tests (~857 total). 5 Playwright connector E2E + 2 saga E2E expansion. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md created.
 
 ---
 
 ## §15 Current Phase Status (Active)
 
-**Focus (Feb 2026):** Stabilization & Modular Suite Transition.
-- Phase 0: Blueprint Lockdown — **COMPLETE** (22 Feb 2026).
-- Phase 0.5: Pluggable Data Backend Preparation — **COMPLETE** (22 Feb 2026).
-- Phase 1: SharePoint Site Provisioning Engine — **COMPLETE** on `feature/hbc-suite-stabilization`. SiteProvisioningWizard + SiteDefaultsConfigPanel + EntraIdSyncService + SOC2 audit snapshots + 9 new IDataService methods (259 total) + 33 new Jest tests.
-- Phase 2: New Role & Permission System — **COMPLETE** on `feature/hbc-suite-stabilization`. IRoleConfiguration + LEGACY_ROLE_MAP + RoleGate normalization + RoleConfigurationPanel + 7 new IDataService methods (266 total) + 35 new Jest tests.
-- Phase 3: Navigation Overhaul + Router/Data Reconstruction — **COMPLETE** on `feature/hbc-suite-stabilization` (22 Feb 2026). AppLauncher + ContextualSidebar + 5 workspace route files + adapter hooks rewritten + PillarTabBar deleted + TanStackAdapterBridge removed. 752 tests passing.
-- Phase 4: Full Features — **IN PROGRESS**. Phase 4F: Analytics Hub Dashboard BUILT — AnalyticsHubDashboardPage at `/` with 5 KPI cards, 6 interactive ECharts (pipeline funnel, status treemap, win rate trend, resource heatmap, labor rate benchmark, material cost index), recent activity feed, role-gated workspace quick links, PowerBI embed placeholder. Feature flag: PowerBIIntegration (disabled). FunnelChart + TreemapChart registered in ECharts theme. Phase 4F-precon: Preconstruction + Estimating Dashboards BUILT — PreconDashboardPage rebuilt (4 KPIs + 3 charts: lead funnel, win rate by PE, autopsy trend). EstimatingDashboardPage rebuilt (5 KPIs + 3 charts: award status donut, source distribution, estimator workload). Both elevated to 4.75/10 with data hooks (`usePreconDashboardData`, `useEstimatingDashboardData`). PowerBI placeholder behind FeatureGate. Phase 4G: Department Tracking BUILT — DepartmentTrackingPage at `/preconstruction/estimating/tracking` with 3 tabs (Estimate Tracking Log, Current Pursuits, Current Preconstruction), all fields inline-editable (text/number/date/checkbox/dropdown), 8 Estimating/BIM Checklist items as individual checkbox columns in Current Pursuits, SlideDrawer for new entry creation, RoleGate on edit controls. Feature flag: EstimatingDepartmentTracking. 14 new Jest tests. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (20 routes — Phase 4E: Project Number Requests, Phase 4G: Department Tracking). Operations workspace BUILT (47 routes, 45 pages, 6 sidebar groups). Shared Services workspace BUILT (25 routes, 24 pages, 5 sidebar groups). HB Site Control workspace BUILT (16 routes, 15 pages, 3 sidebar groups). Project Hub workspace BUILT (37 routes, 36 pages, 10 sidebar groups — requireProject: true, feature flag: ProjectHubWorkspace). ConnectorManagementPanel BUILT. 688 tests passing.
-- Phase 5B: Workflow State Machines + E2E Coverage — **PLANNED (next execution block)** on `feature/hbc-suite-stabilization`. Scope locked: xstate v5 machines (`goNoGoMachine`, `pmpApprovalMachine`, `commitmentApprovalMachine`), `WorkflowMachineFactory` lazy-loading, `useWorkflowMachine`/`useWorkflowTransition`, optimistic mutation integration, and Playwright workflow E2E. Explicit constraint: TanStack Router v1 actions remain SKIPPED; transitions run through TanStack Query mutation orchestration.
-- Phase 5C: Provisioning Saga + SignalR Status Hub — **COMPLETE** on `feature/hbc-suite-stabilization`. ProvisioningSaga orchestrator (7-step reverse-order compensation, 6 new IDataService methods: deleteProjectSite, removeProvisionedLists, disassociateFromHubSite, deleteProjectSecurityGroups, removeTemplateFiles, removeLeadDataFromProjectSite). Idempotency tokens (projectCode::timestamp::hex4). IProvisioningStatusMessage SignalR channel + useProvisioningStatus hook. ProvisioningStatusStepper (Fluent UI v9, motionToken animations 150-250ms, prefers-reduced-motion, role-aware contrast). ProvisioningPage expandable stepper behind FeatureGate. lib-signalr-realtime webpack chunk. ProvisioningStatus.Compensating + 3 saga AuditActions. Feature flag: ProvisioningSaga (default OFF). 149 new Jest tests + 1 Playwright E2E (837 total).
+**Focus (Feb 2026):** Stabilization & Modular Suite Transition.  
+- Phase 0: Blueprint Lockdown — **COMPLETE** (22 Feb 2026).  
+- Phase 0.5: Pluggable Data Backend Preparation — **COMPLETE** (22 Feb 2026).  
+- Phase 1: SharePoint Site Provisioning Engine — **COMPLETE** on `feature/hbc-suite-stabilization`. SiteProvisioningWizard + SiteDefaultsConfigPanel + EntraIdSyncService + SOC2 audit snapshots + 9 new IDataService methods (259 total) + 33 new Jest tests.  
+- Phase 2: New Role & Permission System — **COMPLETE** on `feature/hbc-suite-stabilization`. IRoleConfiguration + LEGACY_ROLE_MAP + RoleGate normalization + RoleConfigurationPanel + 7 new IDataService methods (266 total) + 35 new Jest tests.  
+- Phase 3: Navigation Overhaul + Router/Data Reconstruction — **COMPLETE** on `feature/hbc-suite-stabilization` (22 Feb 2026). AppLauncher + ContextualSidebar + 5 workspace route files + adapter hooks rewritten + PillarTabBar deleted + TanStackAdapterBridge removed. 752 tests passing.  
+- Phase 4: Full Features — **IN PROGRESS**. Phase 4F: Analytics Hub Dashboard BUILT — AnalyticsHubDashboardPage at `/` with 5 KPI cards, 6 interactive ECharts (pipeline funnel, status treemap, win rate trend, resource heatmap, labor rate benchmark, material cost index), recent activity feed, role-gated workspace quick links, PowerBI embed placeholder. Feature flag: PowerBIIntegration (disabled). FunnelChart + TreemapChart registered in ECharts theme. Phase 4F-precon: Preconstruction + Estimating Dashboards BUILT — PreconDashboardPage rebuilt (4 KPIs + 3 charts: lead funnel, win rate by PE, autopsy trend). EstimatingDashboardPage rebuilt (5 KPIs + 3 charts: award status donut, source distribution, estimator workload). Both elevated to 4.75/10 with data hooks (`usePreconDashboardData`, `useEstimatingDashboardData`). PowerBI placeholder behind FeatureGate. Phase 4G: Department Tracking BUILT — DepartmentTrackingPage at `/preconstruction/estimating/tracking` with 3 tabs (Estimate Tracking Log, Current Pursuits, Current Preconstruction), all fields inline-editable (text/number/date/checkbox/dropdown), 8 Estimating/BIM Checklist items as individual checkbox columns in Current Pursuits, SlideDrawer for new entry creation, RoleGate on edit controls. Feature flag: EstimatingDepartmentTracking. 14 new Jest tests. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (20 routes — Phase 4E: Project Number Requests, Phase 4G: Department Tracking). Operations workspace BUILT (47 routes, 45 pages, 6 sidebar groups). Shared Services workspace BUILT (25 routes, 24 pages, 5 sidebar groups). HB Site Control workspace BUILT (16 routes, 15 pages, 3 sidebar groups). Project Hub workspace BUILT (37 routes, 36 pages, 10 sidebar groups — requireProject: true, feature flag: ProjectHubWorkspace). ConnectorManagementPanel BUILT. 688 tests passing.  
+- Phase 5B: Workflow State Machines + E2E Coverage — **PLANNED (next execution block)** on `feature/hbc-suite-stabilization`. Scope locked: xstate v5 machines (`goNoGoMachine`, `pmpApprovalMachine`, `commitmentApprovalMachine`), `WorkflowMachineFactory` lazy-loading, `useWorkflowMachine`/`useWorkflowTransition`, optimistic mutation integration, and Playwright workflow E2E. Explicit constraint: TanStack Router v1 actions remain SKIPPED; transitions run through TanStack Query mutation orchestration.  
+- Phase 5C: Provisioning Saga + SignalR Status Hub — **COMPLETE** on `feature/hbc-suite-stabilization`. ProvisioningSaga orchestrator (7-step reverse-order compensation, 6 new IDataService methods: deleteProjectSite, removeProvisionedLists, disassociateFromHubSite, deleteProjectSecurityGroups, removeTemplateFiles, removeLeadDataFromProjectSite). Idempotency tokens (projectCode::timestamp::hex4). IProvisioningStatusMessage SignalR channel + useProvisioningStatus hook. ProvisioningStatusStepper (Fluent UI v9, motionToken animations 150-250ms, prefers-reduced-motion, role-aware contrast). ProvisioningPage expandable stepper behind FeatureGate. lib-signalr-realtime webpack chunk. ProvisioningStatus.Compensating + 3 saga AuditActions. Feature flag: ProvisioningSaga (default OFF). 149 new Jest tests + 1 Playwright E2E (837 total).  
+**Evaluation note (2026-02-24):** 9.1/10 at commit 001966664060b89aeb16046b29363669ca5487d3. Gating item resolved: full CHANGELOG.md + CLAUDE.md sync enforced.
+- Phase 5D: Cross-cutting Quality & Governance — **COMPLETE** on `feature/hbc-suite-stabilization`. GraphBatchEnforcer (10ms coalescence, threshold 3, composition wrapper, constructor-injected isFeatureEnabled, feature flag GraphBatchingEnabled default OFF). ListThresholdGuard CLASS (ThresholdLevel enum, warn 3,000 telemetry-only / force-paging 4,500, dual-gate shouldUseCursorPaging at 4500 + InfinitePagingEnabled, Audit_Log telemetry via singleton). Coverage raised to 80/60/70/80. ~20 new Jest tests (~857 total). 5 Playwright connector E2E + 2 saga E2E expansion. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md. resilient-data-operations SKILL.md v1.2.
 
 ---
 
 ## §16 Active Pitfalls & Rules (Lean – Reference Only)
 
-- **Router singleton — NEVER recreate:** `useRef` in `router.tsx`. Dynamic values via `router.update()` + `RouterProvider context={}`. Adding dynamic values to creation deps causes full-app freeze.
-- Always use `columnMappings.ts` — never hard-code column names.
-- Call `this.logAudit()` on every mutation.
-- Use `_getProjectWeb()` for project-site lists.
-- Cross-reference guides: `PERFORMANCE_OPTIMIZATION_GUIDE.md`, `UX_UI_PATTERNS.md`, `FEATURE_DEVELOPMENT_BLUEPRINT.md`, `CODE_ARCHITECTURE_GUIDE.md`, `TESTING_STRATEGY.md`, `DATA_LAYER_GUIDE.md`, `SECURITY_PERMISSIONS_GUIDE.md`, `SKILLS_OVERVIEW.md`, project memory (`MEMORY.md`).
-- **useAppNavigate** — ref-stable callback (empty deps). No `startTransition` wrapper. TanStack Router handles transitions natively. Double-wrapping `startTransition` causes React concurrent scheduler deadlock with `useSyncExternalStore`.
-- **useFullScreen.toggleFullScreen — ref-stable**: Uses `isFullScreenRef.current` (ref) instead of state closure.
-- **EnhancedProjectPicker uses Fluent Popover** (portal-based) — never Dialog. Popover `onOpenChange` closes before `startTransition(() => onSelect(project))`.
-- **useNavProfile localStorage key**: `hbc:nav-profile:{email}` — scope to user email. Max 5 recent (FIFO), unlimited favorites.
-- **ShellHydrationOverlay**: dismiss via `useIsFetching`. Minimum 200ms display.
-- **ARIA live regions**: MacBarStatusPill `aria-live="polite"`, ShellHydrationOverlay `aria-live="assertive"`.
-- **Dev toggle (devNavOverride)**: Only when `dataServiceMode === 'mock'`. Toggles `uxSuiteNavigationV1` behavior.
-- **AppShell must not import non-existent modules**: Always create files FIRST, then import.
-- **NavigationSidebar filter callbacks must be useCallback**: Prevents re-render cascade through NAV_STRUCTURE.map().
-- **insightsItems useMemo must use primitive deps**: Extract boolean flag before useMemo.
-- **isFeatureEnabled** uses `[featureFlags, userRoles]` deps — stable across permission-only updates.
-- **RouterProvider context prop causes infinite render loop**: NEVER pass `context` to `RouterProvider`. Use `useEffect` + `router.update()`. The render-phase `router.update()` in `RouterContextProvider` creates new `options` objects on every render, which when combined with async loader pending state triggers infinite re-render via `useSyncExternalStore`. See `router.tsx`.
-- **workspaceConfig.ts is single source of truth**: New workspaces/sidebar items added via config only, never hard-coded.
-- **Workspace route files**: `routes.{hub,preconstruction,operations,sharedservices,admin,sitecontrol,projecthub}.tsx` — each exports a factory that takes rootRoute. All routes use absolute paths.
-- **uxSuiteNavigationV1** is the sole nav feature flag. `uxEnhancedNavigationV1` REMOVED.
-- **PillarTabBar DELETED** — zero references remain. Never recreate.
-- **TanStackAdapterBridge DELETED** — adapter hooks use TanStack Router directly. Never recreate.
-- **RouterAdapterContext DELETED** — never recreate.
-- All changes must reference `.claude/plans/hbc-stabilization-and-suite-roadmap.md`.
-- **PermissionEngine + TOOL_DEFINITIONS dual-path**: When PermissionEngine flag is enabled, `resolveUserPermissions()` resolves permissions from `TOOL_DEFINITIONS` + permission templates — NOT `ROLE_PERMISSIONS`. New permission strings MUST be added to BOTH `ROLE_PERMISSIONS` (fallback) AND `TOOL_DEFINITIONS` + `permissionTemplates.json` (engine path). Missing either causes "Access Denied".
-- **Workflow machine guards must check permission keys, not role labels**: guard logic must use `context.userPermissions` + `PERMISSIONS` constants; role-name checks alone are invalid.
-- **Workflow transitions are mutation-coupled**: never call machine `send()` before `mutateAsync()` success; on mutation error, retain prior machine state and rollback optimistic cache.
-- **WorkflowStateMachine flag discipline**: keep legacy imperative behavior intact when flag is OFF; no hidden behavior drift in OFF mode.
-- **xstate import policy**: UI components may consume `useWorkflowMachine` hooks only; direct machine imports from page components are disallowed to avoid bundle regression.
-- **Router actions exclusion**: TanStack Router actions are intentionally skipped for workflow state transitions in Phase 5B.
-- **Fluent UI v9 Drawer**: Import from `@fluentui/react-drawer`, NOT `@fluentui/react-components` (v9.46 doesn't re-export Drawer components).
-- **ContextualSidebar accordion useEffect deps**: `[workspace?.id]` only — intentionally excludes `filteredGroups` and `isActivePath` to avoid re-running on every pathname change. `eslint-disable-line react-hooks/exhaustive-deps` on that line.
-- **UI/UX Elevation Rule (Critical – Mandatory):** For every UI component, page layout, dashboard, data table, form, navigation element, motion treatment, or visual design task, **immediately activate and strictly follow** `.claude/skills/elevated-ux-ui-design/SKILL.md`. Default exclusively to the 4.75/10 elevated patterns (Fluent UI v9 + Griffel). Pure 2/10 baseline Fluent designs are disallowed without explicit user approval and `uiElevatedExperienceV1` feature-flag gating. Always synchronize with `UX_UI_PATTERNS.md`.
-- **ProvisioningSaga compensation order is strict reverse**: compensate() iterates completedSteps sorted descending. Step 1 (site deletion) always runs LAST. Never reorder.
-- **Compensation failures are logged but NEVER thrown**: Every catch in compensate() logs to audit + pushes to compensationResults. No re-throw. Manual intervention alert for critical step failures.
-- **ProvisioningSaga feature flag discipline**: When flag OFF, legacy runSteps() unchanged. No hidden behavior drift. Same pattern as WorkflowStateMachine.
-- **IProvisioningStatusMessage is a separate SignalR type**: Do NOT reuse IEntityChangedMessage. Provisioning has step-level granularity (stepStatus, progress %).
-- **useProvisioningStatus filters by projectCode client-side**: Server-side group filtering deferred to Phase 6.
-- **lib-signalr-realtime chunk**: @microsoft/signalr dynamically imported in SignalRService.ts. Never import statically. cacheGroup at priority 20.
-- **Idempotency token format**: `${projectCode}::${ISO}::${4-byte-hex}`. Stored on IProvisioningLog.idempotencyToken.
-- **getStepState() check order**: compensating MUST be checked BEFORE completedSteps.includes — during rollback, a step can be in completedSteps array but actively compensating.
+- **Router singleton — NEVER recreate:** `useRef` in `router.tsx`. Dynamic values via `router.update()` + `RouterProvider context={}`. Adding dynamic values to creation deps causes full-app freeze.  
+- Always use `columnMappings.ts` — never hard-code column names.  
+- Call `this.logAudit()` on every mutation.  
+- Use `_getProjectWeb()` for project-site lists.  
+- Cross-reference guides: `PERFORMANCE_OPTIMIZATION_GUIDE.md`, `UX_UI_PATTERNS.md`, `FEATURE_DEVELOPMENT_BLUEPRINT.md`, `CODE_ARCHITECTURE_GUIDE.md`, `TESTING_STRATEGY.md`, `DATA_LAYER_GUIDE.md`, `SECURITY_PERMISSIONS_GUIDE.md`, `SKILLS_OVERVIEW.md`, project memory (`MEMORY.md`).  
+- **useAppNavigate** — ref-stable callback (empty deps). No `startTransition` wrapper. TanStack Router handles transitions natively. Double-wrapping `startTransition` causes React concurrent scheduler deadlock with `useSyncExternalStore`.  
+- **useFullScreen.toggleFullScreen — ref-stable**: Uses `isFullScreenRef.current` (ref) instead of state closure.  
+- **EnhancedProjectPicker uses Fluent Popover** (portal-based) — never Dialog. Popover `onOpenChange` closes before `startTransition(() => onSelect(project))`.  
+- **useNavProfile localStorage key**: `hbc:nav-profile:{email}` — scope to user email. Max 5 recent (FIFO), unlimited favorites.  
+- **ShellHydrationOverlay**: dismiss via `useIsFetching`. Minimum 200ms display.  
+- **ARIA live regions**: MacBarStatusPill `aria-live="polite"`, ShellHydrationOverlay `aria-live="assertive"`.  
+- **Dev toggle (devNavOverride)**: Only when `dataServiceMode === 'mock'`. Toggles `uxSuiteNavigationV1` behavior.  
+- **AppShell must not import non-existent modules**: Always create files FIRST, then import.  
+- **NavigationSidebar filter callbacks must be useCallback**: Prevents re-render cascade through NAV_STRUCTURE.map().  
+- **insightsItems useMemo must use primitive deps**: Extract boolean flag before useMemo.  
+- **isFeatureEnabled** uses `[featureFlags, userRoles]` deps — stable across permission-only updates.  
+- **RouterProvider context prop causes infinite render loop**: NEVER pass `context` to `RouterProvider`. Use `useEffect` + `router.update()`. The render-phase `router.update()` in `RouterContextProvider` creates new `options` objects on every render, which when combined with async loader pending state triggers infinite re-render via `useSyncExternalStore`. See `router.tsx`.  
+- **workspaceConfig.ts is single source of truth**: New workspaces/sidebar items added via config only, never hard-coded.  
+- **Workspace route files**: `routes.{hub,preconstruction,operations,sharedservices,admin,sitecontrol,projecthub}.tsx` — each exports a factory that takes rootRoute. All routes use absolute paths.  
+- **uxSuiteNavigationV1** is the sole nav feature flag. `uxEnhancedNavigationV1` REMOVED.  
+- **PillarTabBar DELETED** — zero references remain. Never recreate.  
+- **TanStackAdapterBridge DELETED** — adapter hooks use TanStack Router directly. Never recreate.  
+- **RouterAdapterContext DELETED** — never recreate.  
+- All changes must reference `.claude/plans/hbc-stabilization-and-suite-roadmap.md`.  
+- **PermissionEngine + TOOL_DEFINITIONS dual-path**: When PermissionEngine flag is enabled, `resolveUserPermissions()` resolves permissions from `TOOL_DEFINITIONS` + permission templates — NOT `ROLE_PERMISSIONS`. New permission strings MUST be added to BOTH `ROLE_PERMISSIONS` (fallback) AND `TOOL_DEFINITIONS` + `permissionTemplates.json` (engine path). Missing either causes "Access Denied".  
+- **Workflow machine guards must check permission keys, not role labels**: guard logic must use `context.userPermissions` + `PERMISSIONS` constants; role-name checks alone are invalid.  
+- **Workflow transitions are mutation-coupled**: never call machine `send()` before `mutateAsync()` success; on mutation error, retain prior machine state and rollback optimistic cache.  
+- **WorkflowStateMachine flag discipline**: keep legacy imperative behavior intact when flag is OFF; no hidden behavior drift in OFF mode.  
+- **xstate import policy**: UI components may consume `useWorkflowMachine` hooks only; direct machine imports from page components are disallowed to avoid bundle regression.  
+- **Router actions exclusion**: TanStack Router actions are intentionally skipped for workflow state transitions in Phase 5B.  
+- **Fluent UI v9 Drawer**: Import from `@fluentui/react-drawer`, NOT `@fluentui/react-components` (v9.46 doesn't re-export Drawer components).  
+- **ContextualSidebar accordion useEffect deps**: `[workspace?.id]` only — intentionally excludes `filteredGroups` and `isActivePath` to avoid re-running on every pathname change. `eslint-disable-line react-hooks/exhaustive-deps` on that line.  
+- **UI/UX Elevation Rule (Critical – Mandatory):** For every UI component, page layout, dashboard, data table, form, navigation element, motion treatment, or visual design task, **immediately activate and strictly follow** `.claude/skills/elevated-ux-ui-design/SKILL.md`. Default exclusively to the 4.75/10 elevated patterns (Fluent UI v9 + Griffel). Pure 2/10 baseline Fluent designs are disallowed without explicit user approval and `uiElevatedExperienceV1` feature-flag gating. Always synchronize with `UX_UI_PATTERNS.md`.  
+- **ProvisioningSaga compensation order is strict reverse**: compensate() iterates completedSteps sorted descending. Step 1 (site deletion) always runs LAST. Never reorder.  
+- **Compensation failures are logged but NEVER thrown**: Every catch in compensate() logs to audit + pushes to compensationResults. No re-throw. Manual intervention alert for critical step failures.  
+- **ProvisioningSaga feature flag discipline**: When flag OFF, legacy runSteps() unchanged. No hidden behavior drift. Same pattern as WorkflowStateMachine.  
+- **IProvisioningStatusMessage is a separate SignalR type**: Do NOT reuse IEntityChangedMessage. Provisioning has step-level granularity (stepStatus, progress %).  
+- **useProvisioningStatus filters by projectCode client-side**: Server-side group filtering deferred to Phase 6.  
+- **lib-signalr-realtime chunk**: @microsoft/signalr dynamically imported in SignalRService.ts. Never import statically. cacheGroup at priority 20.  
+- **Idempotency token format**: `${projectCode}::${ISO}::${4-byte-hex}`. Stored on IProvisioningLog.idempotencyToken.  
+- **getStepState() check order**: compensating MUST be checked BEFORE completedSteps.includes — during rollback, a step can be in completedSteps array but actively compensating.  
+- **CHANGELOG.md Maintenance (Critical)**: Root CHANGELOG.md must be updated on every commit or evaluation. Format: `## [YYYY-MM-DD] - [Phase] - [Commit] - [Summary]`. Failure violates governance and blocks merge.
+- **GraphBatchEnforcer is composition-based (not Proxy)**: Deferred promise queue with timer/threshold flush. `flush()` exposed for test determinism. Singleton `graphBatchEnforcer` exported. No setter methods on class.
+- **GraphBatchEnforcer uses direct constructor injection**: Constructor takes required `isFeatureEnabled: () => boolean`. Module-level `initializeEnforcerFeatureCheck()` binds the real flag accessor once in `GraphService.initialize()`. Closure evaluates dynamically on every `enqueue()`. When false, zero-overhead passthrough.
+- **ListThresholdGuard is a CLASS with ThresholdLevel enum and exported singleton**: `ThresholdLevel.Safe/Warning/Critical`. `checkThreshold()` is an instance method on the `listThresholdGuard` singleton. `shouldUseCursorPaging()` is static. Constructor accepts custom thresholds (defaults 3000/4500).
+- **ListThresholdGuard: 3000 = warning telemetry only, 4500 = force paging**: `shouldForceCursorPaging` is `false` at Warning (3000-4499), `true` only at Critical (4500+). Intentional — telemetry-first at warning, enforcement at critical.
+- **ListThresholdGuard dual-gate**: `static shouldUseCursorPaging()` returns true ONLY when BOTH `itemCount >= 4500` AND `isInfinitePagingEnabled === true`.
+- **getAuditLogPage() uses singleton `listThresholdGuard`**: Import from `../utils/ListThresholdGuard`. Never `new ListThresholdGuard()` in service methods.
+- **Coverage thresholds are 80/60/70/80**: CI-hard gate in jest.config.js. Never lower. Excluded files (22) remain excluded — their coverage comes in Phase 6-7.
+- **ConnectorManagementPanel data-testid convention**: `connector-card-{id}`, `connector-status-{id}`, `connector-test-{id}`, `connector-sync-{id}`, `connector-history-{id}`, `sync-history-drawer`.
+- **AuditAction enum values use PascalCase string literals**: `BatchEnforcerCoalesced = 'BatchEnforcerCoalesced'`, `ListThresholdWarning = 'ListThresholdWarning'`. EntityType: `ListThreshold = 'ListThreshold'`.
 
 ### New Skill Documentation (added 23 Feb 2026 at commit 55027ece)
 - **Provisioning Engine Skill Creation** `.claude/skills/provisioning-engine/SKILL.md` – 7-step engine protocol, guaranteed stable flows, manual test steps, and cross-references.  
@@ -255,77 +268,81 @@ Core functionality, data/backend, performance, UX/roles, future vision, and cons
 
 ## §18 Stabilization & Multi-Generation Roadmap (Locked 22 Feb 2026)
 
-Phase 0: Blueprint Lockdown (complete). **COMPLETE**
-Phase 0.5: Pluggable Data Prep (parallel, 3–5 days). **COMPLETE** 
-Phase 1: SharePoint Site Provisioning (by 31 Mar 2026).  **COMPLETE**
-Phase 2: New Role & Permission System (by 5 Apr 2026). **COMPLETE** 
-Phase 3: Navigation Overhaul + Clean Router & Data Layer Reconstruction + MVP (mid-Apr 2026).  **COMPLETE**
-Phase 4: Full Features + Integrations + Schedule v2 Prep + Gen 2/3 Readiness — **IN PROGRESS** (end-Aug 2026).
-Phase 5: Gen 1 Production Release & Handover (Sep–Oct 2026).
-Phase 6: Gen 2 – Hosted PWA Web App (Q4 2026).
-Phase 7: Gen 3 – Native Mobile Application (Q1 2027).
-Phase 8: Post-Launch Expansion (ongoing).
+Phase 0: Blueprint Lockdown (complete). **COMPLETE**  
+Phase 0.5: Pluggable Data Prep (parallel, 3–5 days). **COMPLETE**   
+Phase 1: SharePoint Site Provisioning (by 31 Mar 2026).  **COMPLETE**  
+Phase 2: New Role & Permission System (by 5 Apr 2026). **COMPLETE**   
+Phase 3: Navigation Overhaul + Clean Router & Data Layer Reconstruction + MVP (mid-Apr 2026).  **COMPLETE**  
+Phase 4: Full Features + Integrations + Schedule v2 Prep + Gen 2/3 Readiness — **IN PROGRESS** (end-Aug 2026).  
+Phase 5: Gen 1 Production Hardening (Feb–Mar 2026).
+  - Phase 5A: Connector Resilience — **COMPLETE**.
+  - Phase 5B: Workflow State Machines + E2E Coverage — **PLANNED**.
+  - Phase 5C: Provisioning Infrastructure — **COMPLETE**.
+  - Phase 5D: Cross-cutting Quality & Governance — **COMPLETE** (GraphBatchEnforcer, ListThresholdGuard, coverage 80/60/70/80, connector E2E, governance docs).  
+Phase 6: Gen 2 – Hosted PWA Web App (Q4 2026).  
+Phase 7: Gen 3 – Native Mobile Application (Q1 2027).  
+Phase 8: Post-Launch Expansion (ongoing).  
 Cross-reference: `.claude/plans/hbc-stabilization-and-suite-roadmap.md`.
 
 Master reference: `.claude/plans/hbc-stabilization-and-suite-roadmap.md`
 
-§18.1 Branching Strategy (Locked 22 Feb 2026)
-All Stabilization & Suite Transition work (Phases 0–4) occurs on the dedicated branch `feature/hbc-suite-stabilization`.  
-Main branch remains stable for hotfixes only.  
-Merge to main only after owner + rollout team approval and full verification gates.
-Cross-reference: `.claude/plans/hbc-stabilization-and-suite-roadmap.md`
-Phase 0.5 committed on `feature/hbc-suite-stabilization` — DataProviderFactory, adapter skeletons, 13 Jest tests.
-Phase 1 committed on `feature/hbc-suite-stabilization` — Site Provisioning Engine with EntraIdSyncService, SOC2 audit snapshots, wizard UI, 33 tests.
-Phase 2 committed on `feature/hbc-suite-stabilization` — Role Configuration Engine with IRoleConfiguration, LEGACY_ROLE_MAP, RoleGate normalization, RoleConfigurationPanel, 35 tests.
+§18.1 Branching Strategy (Locked 22 Feb 2026)  
+All Stabilization & Suite Transition work (Phases 0–4) occurs on the dedicated branch `feature/hbc-suite-stabilization`.    
+Main branch remains stable for hotfixes only.    
+Merge to main only after owner + rollout team approval and full verification gates.  
+Cross-reference: `.claude/plans/hbc-stabilization-and-suite-roadmap.md`  
+Phase 0.5 committed on `feature/hbc-suite-stabilization` — DataProviderFactory, adapter skeletons, 13 Jest tests.  
+Phase 1 committed on `feature/hbc-suite-stabilization` — Site Provisioning Engine with EntraIdSyncService, SOC2 audit snapshots, wizard UI, 33 tests.  
+Phase 2 committed on `feature/hbc-suite-stabilization` — Role Configuration Engine with IRoleConfiguration, LEGACY_ROLE_MAP, RoleGate normalization, RoleConfigurationPanel, 35 tests.  
 Phase 3 committed on `feature/hbc-suite-stabilization` — Navigation Overhaul + Router Reconstruction. AppLauncher, ContextualSidebar, 5 workspace route files, adapter hooks rewritten, PillarTabBar deleted, TanStackAdapterBridge removed, 752 tests.
 
 ---
 
 ## §19 Data Migration & Pluggable Backend Strategy (Locked 22 Feb 2026)
 
-IDataService abstraction preserved (266 methods). Phase 0.5 **COMPLETE**:
-- `DataProviderFactory` (`packages/hbc-sp-services/src/factory/`) reads `VITE_DATA_SERVICE_BACKEND` env var (sharepoint | azuresql | dataverse), defaults to sharepoint.
-- `AzureSqlDataService` + `DataverseDataService` skeletons (`packages/hbc-sp-services/src/adapters/`) use Proxy-based `createNotImplementedService` — throws `NotImplementedError` for all methods.
-- `NotImplementedError` custom error with backend + method metadata.
-- Factory is additive — existing direct instantiation unchanged. Factory wiring into UI deferred to Phase 3.
-- Enables Gen 2 (Azure SQL desktop) and Gen 3 (Dataverse mobile) without UI/business logic refactoring.
+IDataService abstraction preserved (266 methods). Phase 0.5 **COMPLETE**:  
+- `DataProviderFactory` (`packages/hbc-sp-services/src/factory/`) reads `VITE_DATA_SERVICE_BACKEND` env var (sharepoint | azuresql | dataverse), defaults to sharepoint.  
+- `AzureSqlDataService` + `DataverseDataService` skeletons (`packages/hbc-sp-services/src/adapters/`) use Proxy-based `createNotImplementedService` — throws `NotImplementedError` for all methods.  
+- `NotImplementedError` custom error with backend + method metadata.  
+- Factory is additive — existing direct instantiation unchanged. Factory wiring into UI deferred to Phase 3.  
+- Enables Gen 2 (Azure SQL desktop) and Gen 3 (Dataverse mobile) without UI/business logic refactoring.  
 - **Connector Adapters (Phase 4D):** `IConnectorAdapter` + `ConnectorRegistry` + `ProcoreAdapter` (bidirectional) + `BambooHRAdapter` (inbound-only). 34 connector methods in IDataService (9 base + 15 Procore + 10 BambooHR). All mock-implemented with rich fixture data. Procore + BambooHR mock adapters fully wired to UI. ConnectorManagementPanel provides admin sync/test/history.
 
 ---
 
 ## §20 Application Suite Strategy (Phase 4 — 22 Feb 2026)
-Central Analytics Hub + 5 departmental workspaces:
-- **Hub** (`/`) — **BUILT**: Analytics Hub Dashboard (KPI strip: Active Projects, Pipeline Value, Win Rate, Safety Score, On-Time %; 6 ECharts: pipeline funnel, status treemap, win rate trend, resource heatmap, labor rate benchmark, material cost index; recent activity feed; workspace quick links; PowerBI placeholder). 3 routes.
-- **Preconstruction** (`/preconstruction/*`) — **BUILT**: Landing Dashboard (4 KPIs: Active Leads, Go/No-Go In Progress, Pipeline Value, Est. Win Rate; 3 ECharts: lead funnel by stage, win rate by PE with FL GC benchmark, post-bid autopsy trend; sub-hub quick links; PowerBI placeholder). BD (Dashboard, Leads, Go/No-Go, Pipeline, Project Hub, Documents). Estimating (Dashboard [5 KPIs: Total Estimates, Active Pursuits, Submitted, Pursuit Pipeline, Precon Engagements; 3 ECharts: award status donut, estimates by source, estimator workload], Department Tracking [3 tabs: Estimate Log / Current Pursuits / Current Preconstruction — all inline-editable, 8 checklist columns, SlideDrawer new-entry forms], Post-Bid, Project Hub, Documents). Project Number Requests (Tracking Log, Request Form — TYPICAL + ALTERNATE workflow). IDS (Dashboard, Tracking, Documents). 20 routes (19 + 1 redirect from old `/estimating/job-requests` path). Feature flags: EstimatingDepartmentTracking, PowerBIIntegration.
-- **Admin** (`/admin/*`) — **BUILT**: System Config (Connections, Hub Site URL, Workflows), Security & Access (Roles, Permissions, Assignments, Sectors), Provisioning, Dev Tools (Dev Users, Feature Flags, Audit Log). 12 routes.
-- **Operations** (`/operations/*`) — **BUILT**: Operations Dashboard, Commercial Ops (Dashboard, Luxury Residential, Project Hub, Project Settings, Project Manual + 12 sub-pages, Financial Forecasting, Schedule), Logs & Reports (Buyout, Permits, Constraints, Monthly Reports, Sub Scorecard), Documents, Operational Excellence (Dashboard, Onboarding, Training, Documents), Safety (Dashboard, Training, Scorecard, Resources, Documents), QC & Warranty (Dashboard, Best Practices, QA Tracking, Checklists, Warranty, Documents), Procore Integration (Dashboard, RFIs, Budget, Sync Conflicts). 47 routes, 45 pages, 6 sidebar groups. Permissions: PROCORE_VIEW, PROCORE_SYNC. Feature flag: ProcoreIntegration.
-- **Shared Services** (`/shared-services/*`) — **BUILT**: Marketing (Dashboard, Resources, Requests, Tracking, Documents), Human Resources (People & Culture Dashboard, Openings, Announcements, Initiatives, Documents), Accounting (Dashboard, New Project Setup, Accounts Receivable Report, Documents), Risk Management (Dashboard, Knowledge Center, Requests, Enrollment Tracking, Documents), BambooHR (Employee Directory, Org Chart, Time Off, Employee Mappings). 25 routes, 24 pages, 5 sidebar groups. Permissions: BAMBOO_VIEW, BAMBOO_SYNC. Feature flag: BambooHRIntegration.
-- **HB Site Control** (`/site-control/*`) — **BUILT**: Jobsite Management (Sign-In/Out Dashboard, Personnel Log, Documents), Safety (Dashboard, Inspections, Warnings & Notices, Tool-Box Talks, Scorecard, Documents), Quality Control (Dashboard, Inspections, Issue Resolution, Metrics, Documents). 16 routes, 15 pages.
-- **Project Hub** (`/project-hub/*`) — **BUILT**: Cross-cutting project workspace. Hidden unless project selected (`requireProject: true`). 10 accordion sidebar groups: Project Hub (Dashboard, Settings), Preconstruction (Go/No-Go, Estimating Kick-Off, Estimate, Project Turnover, Post-Bid Autopsy), Project Manual (PMP, Superintendent's Plan, Responsibility Matrix, Meeting Templates, Pay App Process, Safety Plan, OSHA Guide, Tropical Weather, Crisis Management, IDS Requirements), Startup & Closeout (Startup Guide, Startup Checklist, Closeout Guide, Completion & Acceptance, Closeout Checklist), QA/QC Program (QC Checklists, Best Practices), Financial Forecasting (Review Checklist, Forecast Summary, GC/GR Forecast, Cash Flow Forecast), Schedule, Logs & Reports (Buyout Log, Permit Log, Constraints Log, Subcontractor Scorecard), Monthly Reports (PX Review, Owner Report), Documents. 37 routes (1 layout + 36 pages). Feature flag: ProjectHubWorkspace. Permission-gated groups. ProjectHubLayout with "No Project Selected" MessageBar banner.
+Central Analytics Hub + 5 departmental workspaces:  
+- **Hub** (`/`) — **BUILT**: Analytics Hub Dashboard (KPI strip: Active Projects, Pipeline Value, Win Rate, Safety Score, On-Time %; 6 ECharts: pipeline funnel, status treemap, win rate trend, resource heatmap, labor rate benchmark, material cost index; recent activity feed; workspace quick links; PowerBI placeholder). 3 routes.  
+- **Preconstruction** (`/preconstruction/*`) — **BUILT**: Landing Dashboard (4 KPIs: Active Leads, Go/No-Go In Progress, Pipeline Value, Est. Win Rate; 3 ECharts: lead funnel by stage, win rate by PE with FL GC benchmark, post-bid autopsy trend; sub-hub quick links; PowerBI placeholder). BD (Dashboard, Leads, Go/No-Go, Pipeline, Project Hub, Documents). Estimating (Dashboard [5 KPIs: Total Estimates, Active Pursuits, Submitted, Pursuit Pipeline, Precon Engagements; 3 ECharts: award status donut, estimates by source, estimator workload], Department Tracking [3 tabs: Estimate Log / Current Pursuits / Current Preconstruction — all inline-editable, 8 checklist columns, SlideDrawer new-entry forms], Post-Bid, Project Hub, Documents). Project Number Requests (Tracking Log, Request Form — TYPICAL + ALTERNATE workflow). IDS (Dashboard, Tracking, Documents). 20 routes (19 + 1 redirect from old `/estimating/job-requests` path). Feature flags: EstimatingDepartmentTracking, PowerBIIntegration.  
+- **Admin** (`/admin/*`) — **BUILT**: System Config (Connections, Hub Site URL, Workflows), Security & Access (Roles, Permissions, Assignments, Sectors), Provisioning, Dev Tools (Dev Users, Feature Flags, Audit Log). 12 routes.  
+- **Operations** (`/operations/*`) — **BUILT**: Operations Dashboard, Commercial Ops (Dashboard, Luxury Residential, Project Hub, Project Settings, Project Manual + 12 sub-pages, Financial Forecasting, Schedule), Logs & Reports (Buyout, Permits, Constraints, Monthly Reports, Sub Scorecard), Documents, Operational Excellence (Dashboard, Onboarding, Training, Documents), Safety (Dashboard, Training, Scorecard, Resources, Documents), QC & Warranty (Dashboard, Best Practices, QA Tracking, Checklists, Warranty, Documents), Procore Integration (Dashboard, RFIs, Budget, Sync Conflicts). 47 routes, 45 pages, 6 sidebar groups. Permissions: PROCORE_VIEW, PROCORE_SYNC. Feature flag: ProcoreIntegration.  
+- **Shared Services** (`/shared-services/*`) — **BUILT**: Marketing (Dashboard, Resources, Requests, Tracking, Documents), Human Resources (People & Culture Dashboard, Openings, Announcements, Initiatives, Documents), Accounting (Dashboard, New Project Setup, Accounts Receivable Report, Documents), Risk Management (Dashboard, Knowledge Center, Requests, Enrollment Tracking, Documents), BambooHR (Employee Directory, Org Chart, Time Off, Employee Mappings). 25 routes, 24 pages, 5 sidebar groups. Permissions: BAMBOO_VIEW, BAMBOO_SYNC. Feature flag: BambooHRIntegration.  
+- **HB Site Control** (`/site-control/*`) — **BUILT**: Jobsite Management (Sign-In/Out Dashboard, Personnel Log, Documents), Safety (Dashboard, Inspections, Warnings & Notices, Tool-Box Talks, Scorecard, Documents), Quality Control (Dashboard, Inspections, Issue Resolution, Metrics, Documents). 16 routes, 15 pages.  
+- **Project Hub** (`/project-hub/*`) — **BUILT**: Cross-cutting project workspace. Hidden unless project selected (`requireProject: true`). 10 accordion sidebar groups: Project Hub (Dashboard, Settings), Preconstruction (Go/No-Go, Estimating Kick-Off, Estimate, Project Turnover, Post-Bid Autopsy), Project Manual (PMP, Superintendent's Plan, Responsibility Matrix, Meeting Templates, Pay App Process, Safety Plan, OSHA Guide, Tropical Weather, Crisis Management, IDS Requirements), Startup & Closeout (Startup Guide, Startup Checklist, Closeout Guide, Completion & Acceptance, Closeout Checklist), QA/QC Program (QC Checklists, Best Practices), Financial Forecasting (Review Checklist, Forecast Summary, GC/GR Forecast, Cash Flow Forecast), Schedule, Logs & Reports (Buyout Log, Permit Log, Constraints Log, Subcontractor Scorecard), Monthly Reports (PX Review, Owner Report), Documents. 37 routes (1 layout + 36 pages). Feature flag: ProjectHubWorkspace. Permission-gated groups. ProjectHubLayout with "No Project Selected" MessageBar banner.  
 All driven by `workspaceConfig.ts` — single source of truth. Cross-ref §4 and §21.
 
 ---
 
 ## §21 Navigation & Suite UX Architecture (Phase 3 COMPLETE — 22 Feb 2026)
 
-**PillarTabBar DELETED.** Replaced by:
-- **AppLauncher** (`components/navigation/AppLauncher.tsx`): Fluent UI Menu/MenuPopover in header. Grid of workspace tiles. RoleGate per tile. Workspaces with `requireProject: true` hidden when no project selected.
-- **ContextualSidebar** (`components/navigation/ContextualSidebar.tsx`): Workspace-aware accordion sidebar driven by `useWorkspace()` hook. Accordion behavior (v1.1): All sidebar groups start collapsed. Single-group-open — expanding one auto-collapses others. Expanded state persisted per workspace via localStorage (`hbc:sidebar-accordion:{workspaceId}`). Auto-expands group containing active route on direct URL navigation. Fluent UI Accordion component with built-in smooth motion. NavItem unchanged. ProjectPicker always-on. Project Hub quick-link in persistent section when project selected and workspace ≠ project-hub.
-- **NavigationSidebar**: Legacy fallback (basic ProjectPicker, role-based groups, no pillar filtering).
-- **MobileBottomNav**: Workspace tabs + project pill bottom sheet. Uses `LAUNCHER_WORKSPACES` from workspaceConfig.
-- Feature flag: `uxSuiteNavigationV1` gates AppLauncher + ContextualSidebar. `uxEnhancedNavigationV1` REMOVED.
+**PillarTabBar DELETED.** Replaced by:  
+- **AppLauncher** (`components/navigation/AppLauncher.tsx`): Fluent UI Menu/MenuPopover in header. Grid of workspace tiles. RoleGate per tile. Workspaces with `requireProject: true` hidden when no project selected.  
+- **ContextualSidebar** (`components/navigation/ContextualSidebar.tsx`): Workspace-aware accordion sidebar driven by `useWorkspace()` hook. Accordion behavior (v1.1): All sidebar groups start collapsed. Single-group-open — expanding one auto-collapses others. Expanded state persisted per workspace via localStorage (`hbc:sidebar-accordion:{workspaceId}`). Auto-expands group containing active route on direct URL navigation. Fluent UI Accordion component with built-in smooth motion. NavItem unchanged. ProjectPicker always-on. Project Hub quick-link in persistent section when project selected and workspace ≠ project-hub.  
+- **NavigationSidebar**: Legacy fallback (basic ProjectPicker, role-based groups, no pillar filtering).  
+- **MobileBottomNav**: Workspace tabs + project pill bottom sheet. Uses `LAUNCHER_WORKSPACES` from workspaceConfig.  
+- Feature flag: `uxSuiteNavigationV1` gates AppLauncher + ContextualSidebar. `uxEnhancedNavigationV1` REMOVED.  
 - Workflow note: `WorkflowStateMachine` is non-navigation infrastructure; it must not introduce route-action coupling or alter AppLauncher/ContextualSidebar routing behavior.
 
 ---
 
 ## §22 Router & Data Layer Reconstruction (Phase 3 COMPLETE — 22 Feb 2026)
 
-Clean-slate rebuild DONE:
-- **Adapter hooks** (`useAppNavigate`, `useAppLocation`, `useAppParams`) use TanStack Router hooks directly. Ref-stable, memoised. No bridge, no adapter context.
-- **TanStackAdapterBridge** DELETED. **RouterAdapterContext** DELETED.
-- **Route tree**: 6 workspace files (`workspaces/routes.{hub,preconstruction,operations,sharedservices,admin,sitecontrol}.tsx`). 7 old batch files deleted. Factory pattern: each exports `create*WorkspaceRoutes(rootRoute)`.
-- **URL redirects**: `/marketing` → `/shared-services/marketing`, `/accounting-queue` → `/shared-services/accounting`.
-- **MemoryRouter** (test utility): Uses real TanStack Router with `createMemoryHistory` + `TestChildrenContext` pattern.
+Clean-slate rebuild DONE:  
+- **Adapter hooks** (`useAppNavigate`, `useAppLocation`, `useAppParams`) use TanStack Router hooks directly. Ref-stable, memoised. No bridge, no adapter context.  
+- **TanStackAdapterBridge** DELETED. **RouterAdapterContext** DELETED.  
+- **Route tree**: 6 workspace files (`workspaces/routes.{hub,preconstruction,operations,sharedservices,admin,sitecontrol}.tsx`). 7 old batch files deleted. Factory pattern: each exports `create*WorkspaceRoutes(rootRoute)`.  
+- **URL redirects**: `/marketing` → `/shared-services/marketing`, `/accounting-queue` → `/shared-services/accounting`.  
+- **MemoryRouter** (test utility): Uses real TanStack Router with `createMemoryHistory` + `TestChildrenContext` pattern.  
 - **136 total routes**: 99 prior + 37 Project Hub workspace routes (1 layout + 36 pages).
 
 ---

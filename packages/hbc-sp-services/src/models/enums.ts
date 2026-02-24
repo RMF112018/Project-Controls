@@ -246,6 +246,9 @@ export enum AuditAction {
   SagaCompensationStarted = 'Saga.CompensationStarted',
   SagaStepCompensated = 'Saga.StepCompensated',
   SagaCompensationFailed = 'Saga.CompensationFailed',
+  // Phase 5D: Cross-cutting Governance
+  BatchEnforcerCoalesced = 'BatchEnforcerCoalesced',
+  ListThresholdWarning = 'ListThresholdWarning',
 }
 
 export enum EntityType {
@@ -289,6 +292,8 @@ export enum EntityType {
   EntraGroup = 'EntraGroup',
   RoleConfiguration = 'RoleConfiguration',
   ProjectNumberRequest = 'ProjectNumberRequest',
+  // Phase 5D: Cross-cutting Governance
+  ListThreshold = 'ListThreshold',
 }
 
 export enum DeliverableStatus {

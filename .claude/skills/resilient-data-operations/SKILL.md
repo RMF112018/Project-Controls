@@ -1,7 +1,7 @@
 ---
 name: HBC Resilient Data Operations
 description: Production-grade resilient Graph/SharePoint data layer for the HBC Project Controls SPFx suite – enforcing batching (GraphBatchService), TanStack Query mutations with retry/backoff (useConnectorMutation), saga-style compensation (ProvisioningSaga), and real-time SignalR status. Eliminates transient failures, orphaned resources, and silent data corruption while staying under SPFx limits and SOC2 audit requirements.
-version: 1.1
+version: 1.2
 category: core-services
 triggers: connector, graph-batch, retry, backoff, provisioning-saga, compensation, signalr-status, resilient-data-operations, GraphBatchService, useConnectorMutation, ProvisioningSaga, IConnectorRetryPolicy, GraphBatchEnforcer, ProvisioningStatusStepper, useProvisioningStatus
 updated: 2026-02-24
@@ -49,8 +49,8 @@ Compensation order: Reverse (7 -> 1). Step 1 (site deletion) runs LAST.
 2. Connector mutations with per-adapter retry/backoff and automatic query invalidation.
 3. Full 7-step provisioning with saga compensation (reverse-order rollback, idempotency, 6 dedicated compensation IDataService methods).
 4. Real-time ProvisioningStatusHub updates via SignalR (step icons, 150-250 ms motion, role-aware contrast).
-5. GraphBatchEnforcer auto-batching for coalesced calls (>3 in 10 ms window).
-6. Audit_Log paging guard (InfinitePagingEnabled + ListThresholdGuard at 3000/4500 items).
+5. GraphBatchEnforcer auto-batching: 10ms coalescence, threshold 3, direct constructor-injected isFeatureEnabled callback, feature flag GraphBatchingEnabled. File: `packages/hbc-sp-services/src/services/GraphBatchEnforcer.ts`.
+6. Audit_Log paging guard: ListThresholdGuard CLASS at 3000 (warning telemetry) / 4500 (force paging), dual-gate with InfinitePagingEnabled, ThresholdLevel enum, exported singleton. File: `packages/hbc-sp-services/src/utils/ListThresholdGuard.ts`.
 7. Compensation failures logged with SOC2 audit trail — never thrown, never block saga completion.
 
 **Manual Test Steps**
@@ -58,8 +58,8 @@ Compensation order: Reverse (7 -> 1). Step 1 (site deletion) runs LAST.
 2. Run bulk security-group creation -> Verify GraphBatchService chunks at 20 and correlates responses.
 3. Enable `ProvisioningSaga` -> Simulate provisioning failure at step 3 -> Confirm reverse compensation runs steps 2, 1 -> Verify audit logs for SagaCompensationStarted, SagaStepCompensated.
 4. Monitor Admin Provisioning Dashboard -> Expand in-progress row -> Confirm ProvisioningStatusStepper updates live with correct icons and motion (reduced-motion respected).
-5. Toggle `GraphBatchingEnabled` -> Verify auto-batch for 4+ Graph calls in same tick.
-6. Run full E2E (intake-to-provisioning + connector-sync) -> Confirm zero orphaned resources and >= 80% service coverage.
+5. Toggle `GraphBatchingEnabled` ON -> enqueue 4 Graph calls in rapid succession -> confirm single executeBatch call with 4 requests. Verify AuditAction.BatchEnforcerCoalesced logged.
+6. Verify getAuditLogPage with >3000 mock entries -> confirm AuditAction.ListThresholdWarning telemetry with EntityType.ListThreshold. Verify >4500 sets shouldForceCursorPaging=true.
 7. Verify idempotency: trigger provisioning twice rapidly -> confirm different tokens, no duplicates.
 8. Test compensation failure: mock `deleteProjectSite` to throw -> confirm error logged, other compensations still run, no exception thrown.
 
@@ -69,5 +69,9 @@ Compensation order: Reverse (7 -> 1). Step 1 (site deletion) runs LAST.
 - `packages/hbc-sp-services/src/models/IProvisioningSaga.ts`
 - `src/webparts/hbcProjectControls/components/hooks/useProvisioningStatus.ts`
 - `src/webparts/hbcProjectControls/components/shared/ProvisioningStatusStepper.tsx`
+- `packages/hbc-sp-services/src/services/GraphBatchEnforcer.ts`
+- `packages/hbc-sp-services/src/utils/ListThresholdGuard.ts`
+- `.claude/SECURITY_ANALYSIS.md`
+- `.claude/DATA_ARCHITECTURE.md`
 - `.claude/skills/provisioning-engine/SKILL.md`
 - `.claude/skills/elevated-ux-ui-design/SKILL.md`

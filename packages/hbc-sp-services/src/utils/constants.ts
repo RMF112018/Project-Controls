@@ -313,6 +313,10 @@ export const OFFLINE_RETRY_INTERVAL_MS = 30000; // 30 seconds
 export const MAX_OFFLINE_QUEUE_SIZE = 100;
 export const FILE_CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks
 
+// Phase 5D: List Threshold Guard
+export const LIST_THRESHOLD_WARNING = 3000;
+export const LIST_THRESHOLD_CRITICAL = 4500;
+
 export const SCORE_THRESHOLDS = {
   HIGH: 69,
   MID: 55,

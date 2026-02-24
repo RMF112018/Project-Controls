@@ -59,4 +59,48 @@ test.describe('Provisioning Saga', () => {
     // Should show text-based progress "X / 7 steps" (not stepper)
     await expect(page.locator('text=/\\d+ \\/ 7 steps/').first()).toBeVisible({ timeout: 10_000 });
   });
+
+  // Phase 5D: provisioning table has Status and Progress columns (verified via Columns toggle menu)
+  test('provisioning table includes Status and Progress columns', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await dismissWhatsNew(page);
+    await switchRole('SuperAdmin');
+
+    await page.goto('/#/admin/provisioning');
+    await page.waitForLoadState('networkidle');
+
+    // Table exists with HbcDataTable container
+    const tableRegion = page.locator('[aria-label="HBC Data Table container"]');
+    await expect(tableRegion).toBeVisible({ timeout: 10_000 });
+
+    // Click "Columns" button to reveal all column headers in the popup menu
+    const columnsButton = page.locator('button:has-text("Columns")').first();
+    await expect(columnsButton).toBeVisible({ timeout: 5_000 });
+    await columnsButton.click({ force: true });
+
+    // The Columns menu should list Status and Progress columns
+    await expect(page.locator('[role="menuitem"]:has-text("Status")')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('[role="menuitem"]:has-text("Progress")')).toBeVisible({ timeout: 5_000 });
+  });
+
+  // Phase 5D: provisioning page renders with correct page structure and table
+  test('provisioning page renders Site Provisioning heading and data table', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await dismissWhatsNew(page);
+    await switchRole('SuperAdmin');
+
+    await page.goto('/#/admin/provisioning');
+    await page.waitForLoadState('networkidle');
+
+    // Page title should be visible
+    await expect(page.locator('h1:has-text("Site Provisioning")')).toBeVisible({ timeout: 10_000 });
+
+    // Refresh button should be present
+    await expect(page.locator('button:has-text("Refresh")').first()).toBeVisible({ timeout: 5_000 });
+
+    // Table container region exists with row count info
+    await expect(page.locator('text=/\\d+ of \\d+ row/')).toBeVisible({ timeout: 5_000 });
+  });
 });

@@ -191,19 +191,21 @@ export const ConnectorManagementPanel: React.FC = () => {
     <>
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>External Integrations</h3>
-        <div className={styles.grid}>
+        <div className={styles.grid} data-testid="connector-grid">
           {connectors.map(connector => {
             const statusColors = STATUS_COLORS[connector.status];
             return (
+              <div key={connector.id} data-testid={`connector-card-${connector.id}`}>
               <HbcCard
-                key={connector.id}
                 title={connector.name}
                 statusBadge={
-                  <StatusBadge
-                    label={connector.status}
-                    color={statusColors.color}
-                    backgroundColor={statusColors.backgroundColor}
-                  />
+                  <span data-testid={`connector-status-${connector.id}`}>
+                    <StatusBadge
+                      label={connector.status}
+                      color={statusColors.color}
+                      backgroundColor={statusColors.backgroundColor}
+                    />
+                  </span>
                 }
               >
                 <div className={styles.cardBody}>
@@ -227,6 +229,7 @@ export const ConnectorManagementPanel: React.FC = () => {
                     <HbcButton
                       isLoading={testingId === connector.id}
                       onClick={() => handleTestConnection(connector.id)}
+                      data-testid={`connector-test-${connector.id}`}
                     >
                       Test
                     </HbcButton>
@@ -234,13 +237,15 @@ export const ConnectorManagementPanel: React.FC = () => {
                       emphasis="strong"
                       isLoading={syncingId === connector.id}
                       onClick={() => handleTriggerSync(connector.id)}
+                      data-testid={`connector-sync-${connector.id}`}
                     >
                       Sync Now
                     </HbcButton>
-                    <HbcButton onClick={() => handleOpenHistory(connector)}>History</HbcButton>
+                    <HbcButton onClick={() => handleOpenHistory(connector)} data-testid={`connector-history-${connector.id}`}>History</HbcButton>
                   </div>
                 </div>
               </HbcCard>
+              </div>
             );
           })}
         </div>
@@ -252,6 +257,7 @@ export const ConnectorManagementPanel: React.FC = () => {
         open={drawerOpen}
         onOpenChange={(_, data) => setDrawerOpen(data.open)}
         size="medium"
+        data-testid="sync-history-drawer"
       >
         <DrawerHeader>
           <DrawerHeaderNavigation>
