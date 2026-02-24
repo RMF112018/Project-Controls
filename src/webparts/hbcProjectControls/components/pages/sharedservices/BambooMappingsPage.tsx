@@ -5,7 +5,15 @@ import { KPICard } from '../../shared/KPICard';
 import { HbcButton } from '../../shared/HbcButton';
 import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { useAppContext } from '../../contexts/AppContext';
-import type { IBambooHREmployeeMapping } from '@hbc/sp-services';
+import { useConnectorMutation } from '../../../tanstack/query/mutations/useConnectorMutation';
+import type { IBambooHREmployeeMapping, IConnectorRetryPolicy } from '@hbc/sp-services';
+
+const BAMBOO_RETRY_POLICY: IConnectorRetryPolicy = {
+  retryableStatuses: [500, 502, 503],
+  maxRetries: 2,
+  baseDelayMs: 1000,
+  maxDelayMs: 15000,
+};
 
 const useStyles = makeStyles({
   toolbar: {
@@ -63,8 +71,22 @@ export const BambooMappingsPage: React.FC = () => {
   const { dataService } = useAppContext();
   const [mappings, setMappings] = React.useState<IBambooHREmployeeMapping[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [autoMapping, setAutoMapping] = React.useState(false);
   const [autoMapResult, setAutoMapResult] = React.useState<{ mapped: number; unmatched: number } | null>(null);
+
+  // Phase 5A.1: Connector mutation via useConnectorMutation (resilience hook)
+  const autoMapMutation = useConnectorMutation<{ mapped: number; unmatched: number }, void>({
+    operationName: 'bamboo:autoMap',
+    mutationFn: async () => {
+      const result = await dataService.autoMapBambooEmployees();
+      const updated = await dataService.getBambooEmployeeMappings();
+      setMappings(updated);
+      return result;
+    },
+    retryPolicy: BAMBOO_RETRY_POLICY,
+    onSuccess: (result) => {
+      setAutoMapResult(result);
+    },
+  });
 
   React.useEffect(() => {
     dataService
@@ -72,19 +94,6 @@ export const BambooMappingsPage: React.FC = () => {
       .then(result => setMappings(result))
       .catch(() => setMappings([]))
       .finally(() => setLoading(false));
-  }, [dataService]);
-
-  const handleAutoMap = React.useCallback(async () => {
-    setAutoMapping(true);
-    setAutoMapResult(null);
-    try {
-      const result = await dataService.autoMapBambooEmployees();
-      setAutoMapResult(result);
-      const updated = await dataService.getBambooEmployeeMappings();
-      setMappings(updated);
-    } finally {
-      setAutoMapping(false);
-    }
   }, [dataService]);
 
   const autoMappedCount = mappings.filter(m => m.autoMapped).length;
@@ -109,7 +118,7 @@ export const BambooMappingsPage: React.FC = () => {
         <span style={{ fontSize: '14px', color: tokens.colorNeutralForeground3 }}>
           {mappings.length} mappings
         </span>
-        <HbcButton emphasis="strong" isLoading={autoMapping} onClick={handleAutoMap}>
+        <HbcButton emphasis="strong" isLoading={autoMapMutation.isPending} onClick={() => { setAutoMapResult(null); autoMapMutation.mutate(undefined as unknown as void); }}>
           Auto-Map All
         </HbcButton>
       </div>

@@ -249,6 +249,10 @@ export enum AuditAction {
   // Phase 5D: Cross-cutting Governance
   BatchEnforcerCoalesced = 'BatchEnforcerCoalesced',
   ListThresholdWarning = 'ListThresholdWarning',
+  // Phase 5A.1: Connector Resilience
+  RetryAttempt = 'Connector.RetryAttempt',
+  CircuitBreak = 'Connector.CircuitBreak',
+  BatchFallback = 'Connector.BatchFallback',
 }
 
 export enum EntityType {

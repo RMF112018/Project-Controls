@@ -4,7 +4,15 @@ import { PageHeader } from '../../shared/PageHeader';
 import { HbcButton } from '../../shared/HbcButton';
 import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { useAppContext } from '../../contexts/AppContext';
-import type { IProcoreRFI } from '@hbc/sp-services';
+import { useConnectorMutation } from '../../../tanstack/query/mutations/useConnectorMutation';
+import type { IProcoreRFI, IConnectorRetryPolicy } from '@hbc/sp-services';
+
+const PROCORE_RETRY_POLICY: IConnectorRetryPolicy = {
+  retryableStatuses: [429, 500, 502, 503, 504],
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 30000,
+};
 
 const RFI_STATUS_COLOR: Record<string, 'success' | 'warning' | 'danger' | 'informative'> = {
   Open: 'warning',
@@ -57,9 +65,19 @@ export const ProcoreRFIsPage: React.FC = () => {
   const { dataService, selectedProject } = useAppContext();
   const [rfis, setRfis] = React.useState<IProcoreRFI[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [syncing, setSyncing] = React.useState(false);
 
   const projectCode = selectedProject?.projectCode ?? '';
+
+  // Phase 5A.1: Connector mutation via useConnectorMutation (resilience hook)
+  const syncMutation = useConnectorMutation<IProcoreRFI[], string>({
+    operationName: 'procore:syncRFIs',
+    mutationFn: async (code: string) => {
+      await dataService.syncProcoreRFIs(code);
+      return dataService.getProcoreRFIs(code);
+    },
+    retryPolicy: PROCORE_RETRY_POLICY,
+    onSuccess: (updated) => setRfis(updated),
+  });
 
   React.useEffect(() => {
     setLoading(true);
@@ -70,24 +88,12 @@ export const ProcoreRFIsPage: React.FC = () => {
       .finally(() => setLoading(false));
   }, [dataService, projectCode]);
 
-  const handleSync = React.useCallback(async () => {
-    if (!projectCode) return;
-    setSyncing(true);
-    try {
-      await dataService.syncProcoreRFIs(projectCode);
-      const updated = await dataService.getProcoreRFIs(projectCode);
-      setRfis(updated);
-    } finally {
-      setSyncing(false);
-    }
-  }, [dataService, projectCode]);
-
   return (
     <div>
       <PageHeader title="Procore RFIs" subtitle="Requests for Information synced from Procore." />
       <div className={styles.toolbar}>
         <span className={styles.count}>{rfis.length} RFIs</span>
-        <HbcButton emphasis="strong" isLoading={syncing} onClick={handleSync}>
+        <HbcButton emphasis="strong" isLoading={syncMutation.isPending} onClick={() => syncMutation.mutate(projectCode)}>
           Sync RFIs
         </HbcButton>
       </div>

@@ -5,7 +5,15 @@ import { KPICard } from '../../shared/KPICard';
 import { HbcButton } from '../../shared/HbcButton';
 import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { useAppContext } from '../../contexts/AppContext';
-import type { IProcoreBudgetLineItem } from '@hbc/sp-services';
+import { useConnectorMutation } from '../../../tanstack/query/mutations/useConnectorMutation';
+import type { IProcoreBudgetLineItem, IConnectorRetryPolicy } from '@hbc/sp-services';
+
+const PROCORE_RETRY_POLICY: IConnectorRetryPolicy = {
+  retryableStatuses: [429, 500, 502, 503, 504],
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 30000,
+};
 
 const useStyles = makeStyles({
   toolbar: {
@@ -79,9 +87,19 @@ export const ProcoreBudgetPage: React.FC = () => {
   const { dataService, selectedProject } = useAppContext();
   const [items, setItems] = React.useState<IProcoreBudgetLineItem[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [syncing, setSyncing] = React.useState(false);
 
   const projectCode = selectedProject?.projectCode ?? '';
+
+  // Phase 5A.1: Connector mutation via useConnectorMutation (resilience hook)
+  const syncMutation = useConnectorMutation<IProcoreBudgetLineItem[], string>({
+    operationName: 'procore:syncBudget',
+    mutationFn: async (code: string) => {
+      await dataService.syncProcoreBudget(code);
+      return dataService.getProcoreBudget(code);
+    },
+    retryPolicy: PROCORE_RETRY_POLICY,
+    onSuccess: (updated) => setItems(updated),
+  });
 
   React.useEffect(() => {
     setLoading(true);
@@ -90,18 +108,6 @@ export const ProcoreBudgetPage: React.FC = () => {
       .then(result => setItems(result))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, [dataService, projectCode]);
-
-  const handleSync = React.useCallback(async () => {
-    if (!projectCode) return;
-    setSyncing(true);
-    try {
-      await dataService.syncProcoreBudget(projectCode);
-      const updated = await dataService.getProcoreBudget(projectCode);
-      setItems(updated);
-    } finally {
-      setSyncing(false);
-    }
   }, [dataService, projectCode]);
 
   const totalOriginal = items.reduce((sum, i) => sum + i.originalBudget, 0);
@@ -121,7 +127,7 @@ export const ProcoreBudgetPage: React.FC = () => {
       )}
       <div className={styles.toolbar}>
         <span className={styles.count}>{items.length} line items</span>
-        <HbcButton emphasis="strong" isLoading={syncing} onClick={handleSync}>
+        <HbcButton emphasis="strong" isLoading={syncMutation.isPending} onClick={() => syncMutation.mutate(projectCode)}>
           Sync Budget
         </HbcButton>
       </div>

@@ -15,6 +15,13 @@ class ConnectorRegistryImpl {
     if (this.adapters.has(type)) {
       throw new Error(`Connector adapter for '${type}' is already registered`);
     }
+    // Phase 5A.1: Validate retry policy at registration (fail-fast)
+    const probe = factory();
+    if (!probe.retryPolicy || typeof probe.retryPolicy.maxRetries !== 'number' || probe.retryPolicy.maxRetries < 0) {
+      throw new Error(
+        `Connector adapter for '${type}' must provide a valid IConnectorRetryPolicy with non-negative maxRetries`
+      );
+    }
     this.adapters.set(type, factory);
   }
 

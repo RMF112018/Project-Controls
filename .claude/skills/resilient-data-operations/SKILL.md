@@ -1,9 +1,9 @@
 ---
 name: HBC Resilient Data Operations
 description: Production-grade resilient Graph/SharePoint data layer for the HBC Project Controls SPFx suite – enforcing batching (GraphBatchService), TanStack Query mutations with retry/backoff (useConnectorMutation), saga-style compensation (ProvisioningSaga), and real-time SignalR status. Eliminates transient failures, orphaned resources, and silent data corruption while staying under SPFx limits and SOC2 audit requirements.
-version: 1.2
+version: 1.3
 category: core-services
-triggers: connector, graph-batch, retry, backoff, provisioning-saga, compensation, signalr-status, resilient-data-operations, GraphBatchService, useConnectorMutation, ProvisioningSaga, IConnectorRetryPolicy, GraphBatchEnforcer, ProvisioningStatusStepper, useProvisioningStatus
+triggers: connector, graph-batch, retry, backoff, provisioning-saga, compensation, signalr-status, resilient-data-operations, GraphBatchService, useConnectorMutation, ProvisioningSaga, IConnectorRetryPolicy, GraphBatchEnforcer, ProvisioningStatusStepper, useProvisioningStatus, RetryAttempt, CircuitBreak, BatchFallback
 updated: 2026-02-24
 ---
 
@@ -71,6 +71,15 @@ Compensation order: Reverse (7 -> 1). Step 1 (site deletion) runs LAST.
 - Static: `shouldUseCursorPaging(count, flagEnabled)` → boolean
 - Integration: SharePointDataService `getAuditLog()` checks before query
 - Audit: `AuditAction.ListThresholdWarning` logged on warning/critical
+
+**Phase 5A.1 Connector Resilience Adoption**
+
+- All adapters accept optional GraphBatchEnforcer and call enqueue() when provided.
+- Universal useConnectorMutation hook adopted across all 8 connector mutation sites.
+- ConnectorRegistry enforces IConnectorRetryPolicy on registration (fail-fast).
+- 6 new Playwright resilience E2E scenarios.
+- New AuditAction values: RetryAttempt, CircuitBreak, BatchFallback.
+- Files: ProcoreAdapter.ts, BambooHRAdapter.ts, ConnectorRegistry.ts, ConnectorManagementPanel.tsx, ProcoreRFIsPage.tsx, ProcoreBudgetPage.tsx, ProcoreConflictsPage.tsx, BambooDirectoryPage.tsx, BambooTimeOffPage.tsx, BambooMappingsPage.tsx.
 
 **Manual Test Steps**
 1. Enable `ConnectorMutationResilience` -> Trigger Procore sync -> Confirm 429 simulation retries with audit log entries.

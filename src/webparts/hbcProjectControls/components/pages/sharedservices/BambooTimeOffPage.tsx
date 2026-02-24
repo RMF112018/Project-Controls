@@ -5,7 +5,15 @@ import { KPICard } from '../../shared/KPICard';
 import { HbcButton } from '../../shared/HbcButton';
 import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { useAppContext } from '../../contexts/AppContext';
-import type { IBambooHRTimeOff } from '@hbc/sp-services';
+import { useConnectorMutation } from '../../../tanstack/query/mutations/useConnectorMutation';
+import type { IBambooHRTimeOff, IConnectorRetryPolicy } from '@hbc/sp-services';
+
+const BAMBOO_RETRY_POLICY: IConnectorRetryPolicy = {
+  retryableStatuses: [500, 502, 503],
+  maxRetries: 2,
+  baseDelayMs: 1000,
+  maxDelayMs: 15000,
+};
 
 const STATUS_COLOR: Record<string, 'success' | 'warning' | 'danger'> = {
   Approved: 'success',
@@ -81,7 +89,17 @@ export const BambooTimeOffPage: React.FC = () => {
   const { dataService } = useAppContext();
   const [records, setRecords] = React.useState<IBambooHRTimeOff[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [syncing, setSyncing] = React.useState(false);
+
+  // Phase 5A.1: Connector mutation via useConnectorMutation (resilience hook)
+  const syncMutation = useConnectorMutation<IBambooHRTimeOff[], void>({
+    operationName: 'bamboo:syncTimeOff',
+    mutationFn: async () => {
+      await dataService.syncBambooTimeOff();
+      return dataService.getBambooTimeOff();
+    },
+    retryPolicy: BAMBOO_RETRY_POLICY,
+    onSuccess: (updated) => setRecords(updated),
+  });
 
   React.useEffect(() => {
     dataService
@@ -89,17 +107,6 @@ export const BambooTimeOffPage: React.FC = () => {
       .then(result => setRecords(result))
       .catch(() => setRecords([]))
       .finally(() => setLoading(false));
-  }, [dataService]);
-
-  const handleSync = React.useCallback(async () => {
-    setSyncing(true);
-    try {
-      await dataService.syncBambooTimeOff();
-      const updated = await dataService.getBambooTimeOff();
-      setRecords(updated);
-    } finally {
-      setSyncing(false);
-    }
   }, [dataService]);
 
   const approvedCount = records.filter(r => r.status === 'Approved').length;
@@ -119,7 +126,7 @@ export const BambooTimeOffPage: React.FC = () => {
       )}
       <div className={styles.toolbar}>
         <span className={styles.count}>{records.length} time-off requests</span>
-        <HbcButton emphasis="strong" isLoading={syncing} onClick={handleSync}>
+        <HbcButton emphasis="strong" isLoading={syncMutation.isPending} onClick={() => syncMutation.mutate(undefined as unknown as void)}>
           Sync Time Off
         </HbcButton>
       </div>

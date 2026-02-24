@@ -169,6 +169,8 @@ Cross-reference: §18 Roadmap (Phase 2), §21, §22, `.claude/plans/hbc-stabiliz
 
 Last major additions: Phase 5D Cross-cutting Governance (Feb 2026) — No new IDataService methods. GraphBatchEnforcer (10ms coalescence, threshold 3, feature-gated GraphBatchingEnabled). ListThresholdGuard utility (warn at 3000, force cursor paging at 4500 for Audit_Log). Coverage ramp to 80/60/70/80. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md created. Connector + provisioning E2E specs. ~20 new Jest tests (~857 total).
 
+Phase 5A.1 Connector Resilience Adoption (Feb 2026) — No new IDataService methods. Full GraphBatchEnforcer adapter wiring (ProcoreAdapter, BambooHRAdapter accept optional enforcer). Universal useConnectorMutation across all 8 connector mutation sites. ConnectorRegistry policy enforcement at registration (fail-fast). 3 new AuditActions (RetryAttempt, CircuitBreak, BatchFallback). 12 new Jest tests + 6 Playwright E2E. resilient-data-operations SKILL v1.3. ~900+ tests.
+
 ---
 
 ## §15 Current Phase Status (Active)
@@ -185,6 +187,7 @@ Last major additions: Phase 5D Cross-cutting Governance (Feb 2026) — No new ID
 **Evaluation note (2026-02-24):** 9.1/10 at commit 001966664060b89aeb16046b29363669ca5487d3. Gating item resolved: full CHANGELOG.md + CLAUDE.md sync enforced.
 - Phase 5D: Cross-cutting Quality & Governance — **COMPLETE** on `feature/hbc-suite-stabilization`. GraphBatchEnforcer (10ms coalescence, threshold 3, feature flag GraphBatchingEnabled id 58). ListThresholdGuard (3000 warn, 4500 force-page). Coverage ramp 80/60/70/80. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md created. Connector E2E (5 tests) + expanded provisioning E2E (+2 tests). resilient-data-operations SKILL v1.2. ~857 tests passing.
 - Phase 5D.1: Fidelity Cleanup + HeaderUserMenu Consolidation — **COMPLETE** on `feature/hbc-suite-stabilization`. Floating dev/RoleSwitcher.tsx removed. HeaderUserMenu (Fluent UI v9 Menu + Persona) in AppShell header. IDevToolsConfig prop chain. Playwright roleFixture rewritten (select → MenuItemRadio). 8 new Jest tests. 888 tests passing.
+- Phase 5A.1: Connector Resilience Adoption — **COMPLETE** on `feature/hbc-suite-stabilization`. Full GraphBatchEnforcer adapter wiring (optional enforcer constructor), universal useConnectorMutation (8 sites), ConnectorRegistry policy enforcement (fail-fast), 3 new AuditActions (RetryAttempt, CircuitBreak, BatchFallback). resilient-data-operations SKILL v1.3. 12 Jest + 6 Playwright tests. ~900+ tests.
 
 ---
 
@@ -240,6 +243,8 @@ Last major additions: Phase 5D Cross-cutting Governance (Feb 2026) — No new ID
 - **ListThresholdGuard thresholds**: Warning at 3000, critical at 4500. SP hard limit is 5000. Guard is for SharePointDataService only — MockDataService skips threshold checks.
 - **ListThresholdGuard + InfinitePagingEnabled dual-gate**: `shouldUseCursorPaging()` requires BOTH itemCount >= 4500 AND flag ON. Graceful degradation when flag OFF.
 - **No new IDataService methods for Phase 5D**: GraphBatchEnforcer and ListThresholdGuard are infrastructure utilities, not data layer methods. Method count stays at 276.
+- **ConnectorResilience** — All adapters MUST accept optional `graphBatchEnforcer` and route through `enqueue()`. ConnectorRegistry enforces `IConnectorRetryPolicy` at registration.
+- **useConnectorMutation** — Sole mutation path for all connector write operations in UI; raw `dataService` mutation calls disallowed for connectors.
 
 ### New Skill Documentation (added 23 Feb 2026 at commit 55027ece)
 - **Provisioning Engine Skill Creation** `.claude/skills/provisioning-engine/SKILL.md` – 7-step engine protocol, guaranteed stable flows, manual test steps, and cross-references.  

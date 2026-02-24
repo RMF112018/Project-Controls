@@ -6,7 +6,15 @@ import { KPICard } from '../../shared/KPICard';
 import { HbcButton } from '../../shared/HbcButton';
 import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { useAppContext } from '../../contexts/AppContext';
-import type { IBambooHREmployee } from '@hbc/sp-services';
+import { useConnectorMutation } from '../../../tanstack/query/mutations/useConnectorMutation';
+import type { IBambooHREmployee, IConnectorRetryPolicy } from '@hbc/sp-services';
+
+const BAMBOO_RETRY_POLICY: IConnectorRetryPolicy = {
+  retryableStatuses: [500, 502, 503],
+  maxRetries: 2,
+  baseDelayMs: 1000,
+  maxDelayMs: 15000,
+};
 
 const useStyles = makeStyles({
   toolbar: {
@@ -61,8 +69,18 @@ export const BambooDirectoryPage: React.FC = () => {
   const { dataService } = useAppContext();
   const [employees, setEmployees] = React.useState<IBambooHREmployee[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [syncing, setSyncing] = React.useState(false);
   const [search, setSearch] = React.useState('');
+
+  // Phase 5A.1: Connector mutation via useConnectorMutation (resilience hook)
+  const syncMutation = useConnectorMutation<IBambooHREmployee[], void>({
+    operationName: 'bamboo:syncEmployees',
+    mutationFn: async () => {
+      await dataService.syncBambooEmployees();
+      return dataService.getBambooEmployees();
+    },
+    retryPolicy: BAMBOO_RETRY_POLICY,
+    onSuccess: (updated) => setEmployees(updated),
+  });
 
   React.useEffect(() => {
     dataService
@@ -70,17 +88,6 @@ export const BambooDirectoryPage: React.FC = () => {
       .then(result => setEmployees(result))
       .catch(() => setEmployees([]))
       .finally(() => setLoading(false));
-  }, [dataService]);
-
-  const handleSync = React.useCallback(async () => {
-    setSyncing(true);
-    try {
-      await dataService.syncBambooEmployees();
-      const updated = await dataService.getBambooEmployees();
-      setEmployees(updated);
-    } finally {
-      setSyncing(false);
-    }
   }, [dataService]);
 
   const filtered = React.useMemo(() => {
@@ -121,7 +128,7 @@ export const BambooDirectoryPage: React.FC = () => {
             {filtered.length} employees
           </span>
         </div>
-        <HbcButton emphasis="strong" isLoading={syncing} onClick={handleSync}>
+        <HbcButton emphasis="strong" isLoading={syncMutation.isPending} onClick={() => syncMutation.mutate(undefined as unknown as void)}>
           Sync from BambooHR
         </HbcButton>
       </div>

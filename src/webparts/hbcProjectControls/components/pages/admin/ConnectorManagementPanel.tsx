@@ -19,7 +19,15 @@ import { HbcButton } from '../../shared/HbcButton';
 import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
-import type { IExternalConnector, ISyncHistoryEntry, ConnectorStatus } from '@hbc/sp-services';
+import { useConnectorMutation } from '../../../tanstack/query/mutations/useConnectorMutation';
+import type { IExternalConnector, ISyncHistoryEntry, ConnectorStatus, IConnectorRetryPolicy } from '@hbc/sp-services';
+
+const DEFAULT_CONNECTOR_RETRY_POLICY: IConnectorRetryPolicy = {
+  retryableStatuses: [429, 500, 502, 503, 504],
+  maxRetries: 3,
+  baseDelayMs: 500,
+  maxDelayMs: 15000,
+};
 
 const STATUS_COLORS: Record<ConnectorStatus, { color: string; backgroundColor: string }> = {
   Active: { color: tokens.colorStatusSuccessForeground2, backgroundColor: tokens.colorStatusSuccessBackground2 },
@@ -102,12 +110,39 @@ export const ConnectorManagementPanel: React.FC = () => {
   const { dataService } = useAppContext();
   const [connectors, setConnectors] = React.useState<IExternalConnector[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [testingId, setTestingId] = React.useState<number | null>(null);
-  const [syncingId, setSyncingId] = React.useState<number | null>(null);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [drawerConnector, setDrawerConnector] = React.useState<IExternalConnector | null>(null);
   const [syncHistory, setSyncHistory] = React.useState<ISyncHistoryEntry[]>([]);
   const [historyLoading, setHistoryLoading] = React.useState(false);
+
+  // Phase 5A.1: Connector mutations via useConnectorMutation (resilience hook)
+  const testMutation = useConnectorMutation<{ success: boolean; message: string }, number>({
+    operationName: 'connector:testConnection',
+    mutationFn: (connectorId: number) => dataService.testConnectorConnection(connectorId),
+    retryPolicy: DEFAULT_CONNECTOR_RETRY_POLICY,
+    onSuccess: (result, connectorId) => {
+      setConnectors(prev =>
+        prev.map(c =>
+          c.id === connectorId
+            ? { ...c, status: result.success ? ('Active' as const) : ('Error' as const) }
+            : c,
+        ),
+      );
+    },
+  });
+
+  const syncMutation = useConnectorMutation<ISyncHistoryEntry, number>({
+    operationName: 'connector:triggerSync',
+    mutationFn: async (connectorId: number) => {
+      const entry = await dataService.triggerConnectorSync(connectorId);
+      const updated = await dataService.getConnector(connectorId);
+      if (updated) {
+        setConnectors(prev => prev.map(c => (c.id === connectorId ? updated : c)));
+      }
+      return entry;
+    },
+    retryPolicy: DEFAULT_CONNECTOR_RETRY_POLICY,
+  });
 
   React.useEffect(() => {
     dataService
@@ -116,41 +151,6 @@ export const ConnectorManagementPanel: React.FC = () => {
       .catch(() => setConnectors([]))
       .finally(() => setLoading(false));
   }, [dataService]);
-
-  const handleTestConnection = React.useCallback(
-    async (connectorId: number) => {
-      setTestingId(connectorId);
-      try {
-        const result = await dataService.testConnectorConnection(connectorId);
-        setConnectors(prev =>
-          prev.map(c =>
-            c.id === connectorId
-              ? { ...c, status: result.success ? ('Active' as const) : ('Error' as const) }
-              : c,
-          ),
-        );
-      } finally {
-        setTestingId(null);
-      }
-    },
-    [dataService],
-  );
-
-  const handleTriggerSync = React.useCallback(
-    async (connectorId: number) => {
-      setSyncingId(connectorId);
-      try {
-        await dataService.triggerConnectorSync(connectorId);
-        const updated = await dataService.getConnector(connectorId);
-        if (updated) {
-          setConnectors(prev => prev.map(c => (c.id === connectorId ? updated : c)));
-        }
-      } finally {
-        setSyncingId(null);
-      }
-    },
-    [dataService],
-  );
 
   const handleOpenHistory = React.useCallback(
     async (connector: IExternalConnector) => {
@@ -227,16 +227,16 @@ export const ConnectorManagementPanel: React.FC = () => {
                   </div>
                   <div className={styles.actions}>
                     <HbcButton
-                      isLoading={testingId === connector.id}
-                      onClick={() => handleTestConnection(connector.id)}
+                      isLoading={testMutation.isPending && testMutation.variables === connector.id}
+                      onClick={() => testMutation.mutate(connector.id)}
                       data-testid={`connector-test-${connector.id}`}
                     >
                       Test
                     </HbcButton>
                     <HbcButton
                       emphasis="strong"
-                      isLoading={syncingId === connector.id}
-                      onClick={() => handleTriggerSync(connector.id)}
+                      isLoading={syncMutation.isPending && syncMutation.variables === connector.id}
+                      onClick={() => syncMutation.mutate(connector.id)}
                       data-testid={`connector-sync-${connector.id}`}
                     >
                       Sync Now

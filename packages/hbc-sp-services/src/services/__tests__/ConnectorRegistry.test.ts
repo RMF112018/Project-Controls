@@ -77,10 +77,13 @@ describe('ConnectorRegistry', () => {
     const factory = jest.fn(() => createMockAdapter('Procore'));
     connectorRegistry.register('Procore', factory);
 
+    // Phase 5A.1: register() probes factory once for retryPolicy validation (+1 call)
+    expect(factory).toHaveBeenCalledTimes(1);
+
     const first = connectorRegistry.get('Procore');
     const second = connectorRegistry.get('Procore');
 
-    expect(factory).toHaveBeenCalledTimes(2);
+    expect(factory).toHaveBeenCalledTimes(3); // 1 probe + 2 get calls
     expect(first).not.toBe(second);
   });
 });

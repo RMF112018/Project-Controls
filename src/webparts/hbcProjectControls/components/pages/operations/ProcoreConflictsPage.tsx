@@ -4,7 +4,15 @@ import { PageHeader } from '../../shared/PageHeader';
 import { HbcButton } from '../../shared/HbcButton';
 import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { useAppContext } from '../../contexts/AppContext';
-import type { IProcoreConflict } from '@hbc/sp-services';
+import { useConnectorMutation } from '../../../tanstack/query/mutations/useConnectorMutation';
+import type { IProcoreConflict, IConnectorRetryPolicy } from '@hbc/sp-services';
+
+const PROCORE_RETRY_POLICY: IConnectorRetryPolicy = {
+  retryableStatuses: [429, 500, 502, 503, 504],
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 30000,
+};
 
 const useStyles = makeStyles({
   toolbar: {
@@ -54,9 +62,18 @@ export const ProcoreConflictsPage: React.FC = () => {
   const { dataService, selectedProject } = useAppContext();
   const [conflicts, setConflicts] = React.useState<IProcoreConflict[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [resolvingId, setResolvingId] = React.useState<number | null>(null);
 
   const projectCode = selectedProject?.projectCode ?? '';
+
+  // Phase 5A.1: Connector mutation via useConnectorMutation (resilience hook)
+  const resolveMutation = useConnectorMutation<IProcoreConflict, { conflictId: number; resolution: 'hbc' | 'procore' }>({
+    operationName: 'procore:resolveConflict',
+    mutationFn: ({ conflictId, resolution }) => dataService.resolveProcoreConflict(conflictId, resolution),
+    retryPolicy: PROCORE_RETRY_POLICY,
+    onSuccess: (updated, { conflictId }) => {
+      setConflicts(prev => prev.map(c => (c.id === conflictId ? updated : c)));
+    },
+  });
 
   React.useEffect(() => {
     setLoading(true);
@@ -66,19 +83,6 @@ export const ProcoreConflictsPage: React.FC = () => {
       .catch(() => setConflicts([]))
       .finally(() => setLoading(false));
   }, [dataService, projectCode]);
-
-  const handleResolve = React.useCallback(
-    async (conflictId: number, resolution: 'hbc' | 'procore') => {
-      setResolvingId(conflictId);
-      try {
-        const updated = await dataService.resolveProcoreConflict(conflictId, resolution);
-        setConflicts(prev => prev.map(c => (c.id === conflictId ? updated : c)));
-      } finally {
-        setResolvingId(null);
-      }
-    },
-    [dataService],
-  );
 
   const unresolvedCount = conflicts.filter(c => !c.resolution || c.resolution === 'pending').length;
 
@@ -131,14 +135,14 @@ export const ProcoreConflictsPage: React.FC = () => {
                     {!isResolved && (
                       <div className={styles.actions}>
                         <HbcButton
-                          isLoading={resolvingId === conflict.id}
-                          onClick={() => handleResolve(conflict.id, 'hbc')}
+                          isLoading={resolveMutation.isPending && resolveMutation.variables?.conflictId === conflict.id}
+                          onClick={() => resolveMutation.mutate({ conflictId: conflict.id, resolution: 'hbc' })}
                         >
                           Keep HBC
                         </HbcButton>
                         <HbcButton
-                          isLoading={resolvingId === conflict.id}
-                          onClick={() => handleResolve(conflict.id, 'procore')}
+                          isLoading={resolveMutation.isPending && resolveMutation.variables?.conflictId === conflict.id}
+                          onClick={() => resolveMutation.mutate({ conflictId: conflict.id, resolution: 'procore' })}
                         >
                           Use Procore
                         </HbcButton>
