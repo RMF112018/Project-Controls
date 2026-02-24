@@ -101,5 +101,5 @@ Compensation order: Reverse (7 -> 1). Step 1 (site deletion) runs LAST.
 - `packages/hbc-sp-services/src/utils/ListThresholdGuard.ts`
 - `.claude/SECURITY_ANALYSIS.md`
 - `.claude/DATA_ARCHITECTURE.md`
-- `.claude/skills/provisioning-engine/SKILL.md`
+- `.claude/skills/provisioning-engine/SKILL.md` v1.2 (saga resilience integration)
 - `.claude/skills/elevated-ux-ui-design/SKILL.md`

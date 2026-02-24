@@ -10,6 +10,8 @@ import { HubNavLinkStatus } from '../models/IProvisioningLog';
 import { getBuyoutLogSchema, getActiveProjectsPortfolioSchema } from '../utils/projectListSchemas';
 import type { EntraIdSyncService } from './EntraIdSyncService';
 import { ProvisioningSaga } from './ProvisioningSaga';
+import { graphBatchEnforcer } from './GraphBatchEnforcer';
+import { listThresholdGuard } from '../utils/ListThresholdGuard';
 import type { SignalRMessage } from '../models/ISignalRMessage';
 
 // Re-export for backward compatibility (moved to models/IProvisioningLog.ts)
@@ -88,7 +90,7 @@ export class ProvisioningService {
 
     // Phase 5C: Dual-path — saga with compensation when flag ON, legacy runSteps when OFF
     if (this.isFeatureEnabled?.('ProvisioningSaga')) {
-      const saga = new ProvisioningSaga(this.dataService, this.signalRBroadcast);
+      const saga = new ProvisioningSaga(this.dataService, this.signalRBroadcast, graphBatchEnforcer, listThresholdGuard);
       saga.execute(input).then(result => {
         if (result.success && result.siteUrl) {
           this.handlePostCompletion(input, result.siteUrl).catch(console.error);

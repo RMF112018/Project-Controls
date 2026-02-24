@@ -246,6 +246,7 @@ export enum AuditAction {
   SagaCompensationStarted = 'Saga.CompensationStarted',
   SagaStepCompensated = 'Saga.StepCompensated',
   SagaCompensationFailed = 'Saga.CompensationFailed',
+  SagaCompensationFailure = 'Saga.CompensationFailure',
   // Phase 5D: Cross-cutting Governance
   BatchEnforcerCoalesced = 'BatchEnforcerCoalesced',
   ListThresholdWarning = 'ListThresholdWarning',

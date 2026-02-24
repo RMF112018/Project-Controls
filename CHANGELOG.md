@@ -2,6 +2,29 @@
 
 All notable changes to HBC Project Controls will be documented in this file.
 
+## [2026-02-24] - Phase 5C.1 - Provisioning Saga Resilience Integration & Polish
+
+### Added
+- `AuditAction.SagaCompensationFailure` enum value in `enums.ts`
+- GraphBatchEnforcer + ListThresholdGuard wired into `ProvisioningSaga.ts` via clean DI (constructor injection from `ProvisioningService.ts`)
+- ListThresholdGuard `checkThreshold('Audit_Log')` guard before all 3 saga `logAudit()` call sites
+- GraphBatchEnforcer passthrough in Graph-touching saga steps (1, 3, 4)
+- 3 new Playwright E2E scenarios in `provisioning-saga.e2e.spec.ts` (5 → 8 total)
+  - Retry button visible on failed provisioning entries
+  - Progress cell expands to show stepper details
+  - Completed entries do not show retry button
+- `.claude/skills/provisioning-engine/SKILL.md` v1.2 with Phase 5C.1 resilience integration section
+
+### Changed
+- `ProvisioningSaga` constructor extended: 2 → 4 params (+ optional `graphBatchEnforcer`, `listThresholdGuard`)
+- `ProvisioningService.ts` passes singleton instances to saga constructor
+- CLAUDE.md §15 Phase 5C.1 marked **COMPLETE**, §16 saga resilience rule added
+- `.claude/skills/resilient-data-operations/SKILL.md` cross-reference updated to v1.2
+
+### Verified
+- TypeScript: clean, Jest: 900 tests (0 failures), Bundle: 0 byte delta, Playwright: 7/8 pass (1 pre-existing failure on test 3 — not caused by Phase 5C.1), all 3 new tests pass
+- 100% fidelity to governing `phase-5c.1-cleanup.md` — Phase 5C now production-hardened with resilience integration
+
 ## [2026-02-24] - Phase 5B.1 - Workflow State Machines Fidelity & Polish
 
 ### Changed

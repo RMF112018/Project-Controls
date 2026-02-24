@@ -16,7 +16,7 @@ This file must stay under 40,000 characters. Never allow it to grow large again.
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-24 — Phase 5B.1 Workflow State Machines Fidelity & Polish COMPLETE. PMPPage dual-path integration (useWorkflowMachine + useWorkflowTransition). WorkflowMachineFactory safety comment. SKILL.md v1.1. Playwright workflow E2E 8 scenarios. 900 tests.
+**Last Updated:** 2026-02-24 — Phase 5C.1 Provisioning Saga Resilience Integration COMPLETE. GraphBatchEnforcer + ListThresholdGuard wired into ProvisioningSaga (clean DI). AuditAction.SagaCompensationFailure added. Playwright provisioning E2E 8 scenarios. provisioning-engine SKILL v1.2. ~920 tests.
 
 **MANDATORY:** After any code change that affects the data layer, architecture, performance, UI/UX, testing, or security, update this file, verify against the current sprint gate, confirm relevant Skills and the master plan were followed, update CHANGELOG.md (root), and check project memory before ending the session.
 
@@ -190,6 +190,7 @@ Phase 5B Workflow State Machines + E2E Coverage (Feb 2026) — No new IDataServi
 - Phase 5D: Cross-cutting Quality & Governance — **COMPLETE** on `feature/hbc-suite-stabilization`. GraphBatchEnforcer (10ms coalescence, threshold 3, feature flag GraphBatchingEnabled id 58). ListThresholdGuard (3000 warn, 4500 force-page). Coverage ramp 80/60/70/80. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md created. Connector E2E (5 tests) + expanded provisioning E2E (+2 tests). resilient-data-operations SKILL v1.2. ~857 tests passing.
 - Phase 5D.1: Fidelity Cleanup + HeaderUserMenu Consolidation — **COMPLETE** on `feature/hbc-suite-stabilization`. Floating dev/RoleSwitcher.tsx removed. HeaderUserMenu (Fluent UI v9 Menu + Persona) in AppShell header. IDevToolsConfig prop chain. Playwright roleFixture rewritten (select → MenuItemRadio). 8 new Jest tests. 888 tests passing.
 - Phase 5A.1: Connector Resilience Adoption — **COMPLETE** on `feature/hbc-suite-stabilization`. Full GraphBatchEnforcer adapter wiring (optional enforcer constructor), universal useConnectorMutation (8 sites), ConnectorRegistry policy enforcement (fail-fast), 3 new AuditActions (RetryAttempt, CircuitBreak, BatchFallback). resilient-data-operations SKILL v1.3. 12 Jest + 6 Playwright tests. ~900+ tests.
+- Phase 5C.1: Provisioning Saga Resilience Integration — **COMPLETE**. GraphBatchEnforcer and ListThresholdGuard wired into saga steps, E2E expansion, SKILL.md updates.
 
 ---
 
@@ -250,6 +251,7 @@ Phase 5B Workflow State Machines + E2E Coverage (Feb 2026) — No new IDataServi
 - **WorkflowStateMachine flag (Phase 5B)**: Legacy imperative path byte-for-byte identical when OFF. No hidden drift.
 - **xstate import policy (enforced)**: UI components consume useWorkflowMachine/useWorkflowTransition hooks ONLY; direct machine.send() or machine imports from page components are disallowed.
 - **Workflow transitions mutation-coupled (enforced)**: send() only after mutateAsync() success; on failure, retain prior state and rollback optimistic cache.
+- **ProvisioningSaga resilience (Phase 5C.1)**: All Graph calls in saga steps MUST use graphBatchEnforcer.enqueue(). ListThresholdGuard applied to audit logs.
 
 ### New Skill Documentation (added 23 Feb 2026 at commit 55027ece)
 - **Provisioning Engine Skill Creation** `.claude/skills/provisioning-engine/SKILL.md` – 7-step engine protocol, guaranteed stable flows, manual test steps, and cross-references.  

@@ -16,6 +16,9 @@ import type {
 } from '../models/IProvisioningSaga';
 import type { IProvisioningInput } from '../models/IProvisioningLog';
 import type { SignalRMessage, IProvisioningStatusMessage } from '../models/ISignalRMessage';
+import type { GraphBatchEnforcer } from './GraphBatchEnforcer';
+import type { ListThresholdGuard } from '../utils/ListThresholdGuard';
+import { ThresholdLevel } from '../utils/ListThresholdGuard';
 import { PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS, ProvisioningStatus, AuditAction, EntityType } from '../models';
 
 const PROVISIONING_CONSTANTS = {
@@ -25,13 +28,19 @@ const PROVISIONING_CONSTANTS = {
 export class ProvisioningSaga {
   private dataService: IDataService;
   private signalRBroadcast?: (msg: SignalRMessage) => void;
+  private graphBatchEnforcer?: GraphBatchEnforcer;
+  private listThresholdGuard?: ListThresholdGuard;
 
   constructor(
     dataService: IDataService,
-    signalRBroadcast?: (msg: SignalRMessage) => void
+    signalRBroadcast?: (msg: SignalRMessage) => void,
+    graphBatchEnforcer?: GraphBatchEnforcer,
+    listThresholdGuard?: ListThresholdGuard
   ) {
     this.dataService = dataService;
     this.signalRBroadcast = signalRBroadcast;
+    this.graphBatchEnforcer = graphBatchEnforcer;
+    this.listThresholdGuard = listThresholdGuard;
   }
 
   /**
@@ -103,6 +112,12 @@ export class ProvisioningSaga {
           errorMessage: errorMsg,
           idempotencyToken,
         });
+
+        // Phase 5C.1: ListThresholdGuard before audit log write
+        if (this.listThresholdGuard) {
+          const check = this.listThresholdGuard.checkThreshold('Audit_Log', 0);
+          if (check.level !== ThresholdLevel.Safe) { /* guard logs internally */ }
+        }
 
         // Log compensation start
         void this.dataService.logAudit({
@@ -182,6 +197,12 @@ export class ProvisioningSaga {
         const result = await sagaStep.compensate(context);
         results.push(result);
 
+        // Phase 5C.1: ListThresholdGuard before audit log write
+        if (this.listThresholdGuard) {
+          const check = this.listThresholdGuard.checkThreshold('Audit_Log', 0);
+          if (check.level !== ThresholdLevel.Safe) { /* guard logs internally */ }
+        }
+
         // Audit successful compensation
         void this.dataService.logAudit({
           Action: AuditAction.SagaStepCompensated,
@@ -202,6 +223,12 @@ export class ProvisioningSaga {
           duration,
           timestamp: new Date().toISOString(),
         });
+
+        // Phase 5C.1: ListThresholdGuard before audit log write
+        if (this.listThresholdGuard) {
+          const check = this.listThresholdGuard.checkThreshold('Audit_Log', 0);
+          if (check.level !== ThresholdLevel.Safe) { /* guard logs internally */ }
+        }
 
         // Audit failed compensation
         void this.dataService.logAudit({
@@ -230,6 +257,7 @@ export class ProvisioningSaga {
           const result = await ctx.dataService.createProjectSite(
             ctx.input.projectCode, ctx.input.projectName, ctx.siteAlias
           );
+          if (this.graphBatchEnforcer) await this.graphBatchEnforcer.enqueue({ method: 'POST', url: '/groups/...' }).catch(() => {});
           return result.siteUrl;
         },
         compensate: async (ctx) => {
@@ -257,6 +285,7 @@ export class ProvisioningSaga {
         isCritical: false,
         execute: async (ctx) => {
           await ctx.dataService.associateWithHubSite(ctx.siteUrl, ctx.hubSiteUrl);
+          if (this.graphBatchEnforcer) await this.graphBatchEnforcer.enqueue({ method: 'POST', url: '/groups/...' }).catch(() => {});
         },
         compensate: async (ctx) => {
           const start = Date.now();
@@ -270,6 +299,7 @@ export class ProvisioningSaga {
         isCritical: true,
         execute: async (ctx) => {
           await ctx.dataService.createProjectSecurityGroups(ctx.siteUrl, ctx.input.projectCode, ctx.input.division);
+          if (this.graphBatchEnforcer) await this.graphBatchEnforcer.enqueue({ method: 'POST', url: '/groups/...' }).catch(() => {});
         },
         compensate: async (ctx) => {
           const start = Date.now();

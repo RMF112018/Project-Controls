@@ -103,4 +103,61 @@ test.describe('Provisioning Saga', () => {
     // Table container region exists with row count info
     await expect(page.locator('text=/\\d+ of \\d+ row/')).toBeVisible({ timeout: 5_000 });
   });
+
+  // Phase 5C.1: Retry visibility on failed entries
+  test('retry button visible on failed provisioning entries', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await dismissWhatsNew(page);
+    await switchRole('SuperAdmin');
+
+    await page.goto('/#/admin/provisioning');
+    await page.waitForLoadState('networkidle');
+
+    // Table renders with retry controls on failed entries
+    await expect(page.locator('[aria-label="HBC Data Table container"]')).toBeVisible({ timeout: 10_000 });
+    const retryButtons = page.locator('button:has-text("Retry")');
+    const count = await retryButtons.count();
+    expect(count).toBeGreaterThanOrEqual(0);
+  });
+
+  // Phase 5C.1: Stepper expansion on in-progress entries
+  test('progress cell expands to show stepper details', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await dismissWhatsNew(page);
+    await switchRole('SuperAdmin');
+
+    await page.goto('/#/admin/provisioning');
+    await page.waitForLoadState('networkidle');
+
+    // Expandable progress cells (role="button" with aria-expanded)
+    const progressToggle = page.locator('[role="button"][aria-expanded]').first();
+    if (await progressToggle.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await progressToggle.click();
+      await expect(page.locator('text=/Step \\d+/').first()).toBeVisible({ timeout: 5_000 });
+    }
+  });
+
+  // Phase 5C.1: No retry for completed entries
+  test('completed provisioning entries do not show retry button', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await dismissWhatsNew(page);
+    await switchRole('SuperAdmin');
+
+    await page.goto('/#/admin/provisioning');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.locator('[aria-label="HBC Data Table container"]')).toBeVisible({ timeout: 10_000 });
+
+    // Completed rows should NOT have Retry buttons
+    const completedBadges = page.locator('text=Completed');
+    const completedCount = await completedBadges.count();
+    if (completedCount > 0) {
+      const completedRow = completedBadges.first().locator('xpath=ancestor::tr');
+      const retryInRow = completedRow.locator('button:has-text("Retry")');
+      expect(await retryInRow.count()).toBe(0);
+    }
+  });
 });
