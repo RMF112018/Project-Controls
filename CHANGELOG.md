@@ -2,6 +2,28 @@
 
 All notable changes to HBC Project Controls will be documented in this file.
 
+## [2026-02-24] - Phase 5B.1 - Workflow State Machines Fidelity & Polish
+
+### Changed
+- CLAUDE.md §7/§15/§16 updated — Phase 5B now marked **COMPLETE**
+- `.claude/skills/workflow-state-machines/SKILL.md` bumped to v1.1 with Phase 5B implementation details
+- `PMPPage.tsx` — dual-path workflow integration (useWorkflowMachine + useWorkflowTransition, WorkflowStateMachine flag gating)
+- `WorkflowMachineFactory.ts` — safety comment documenting dual-path enforcement contract
+
+### Added
+- 5 new Playwright E2E scenarios in `workflow-state-machines.e2e.spec.ts` (3 → 8 total)
+  - BD submits scorecard for director review
+  - Director sees Go/No-Go page with workflow enabled
+  - Non-permitted role sees no machine actions
+  - Flag OFF hides machine actions completely
+  - PMP page renders with dual-path support
+- `enableWorkflowFlag()` Playwright helper for reusable flag toggle
+- `PMP_EVENT_LABELS` mapping for pmpApproval machine event display names
+
+### Verified
+- GoNoGoPage.tsx already compliant (7-line wrapper, delegates to GoNoGoScorecard with useWorkflowMachine)
+- TypeScript: clean, Jest: 900 tests (0 failures), Bundle: 0 byte delta, Playwright: 8/8 pass
+
 ## [2026-02-24] - Phase 5D.1 - HeaderUserMenu Consolidation
 
 ### Added

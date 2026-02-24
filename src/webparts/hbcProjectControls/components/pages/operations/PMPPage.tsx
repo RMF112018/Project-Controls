@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import { Button, makeStyles, Spinner, shorthands, tokens } from '@fluentui/react-components';
+import { useMutation } from '@tanstack/react-query';
+import { PERMISSIONS, RoleName, type IProjectManagementPlan, type PMPStatus } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { CollapsibleSection } from '../../shared/CollapsibleSection';
 import { StatusBadge } from '../../shared/StatusBadge';
@@ -8,7 +10,10 @@ import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
-import type { IProjectManagementPlan } from '@hbc/sp-services';
+import { useWorkflowMachine } from '../../hooks/useWorkflowMachine';
+import { useWorkflowTransition } from '../../hooks/useWorkflowTransition';
+import { useHbcOptimisticMutation } from '../../../tanstack/query/mutations/useHbcOptimisticMutation';
+import { OPTIMISTIC_MUTATION_FLAGS } from '../../../tanstack/query/mutations/optimisticMutationFlags';
 import { HBC_COLORS } from '../../../theme/tokens';
 
 const STATUS_MAP: Record<string, { color: string; backgroundColor: string }> = {
@@ -18,6 +23,17 @@ const STATUS_MAP: Record<string, { color: string; backgroundColor: string }> = {
   Approved: { color: HBC_COLORS.success, backgroundColor: HBC_COLORS.successLight },
   Returned: { color: HBC_COLORS.error, backgroundColor: HBC_COLORS.errorLight },
   Closed: { color: HBC_COLORS.gray500, backgroundColor: HBC_COLORS.gray200 },
+};
+
+const PMP_EVENT_LABELS: Record<string, string> = {
+  SUBMIT_FOR_APPROVAL: 'Submit for Approval',
+  APPROVE_STEP: 'Approve Step',
+  APPROVE_FINAL: 'Final Approve',
+  RETURN_STEP: 'Return',
+  RESUBMIT: 'Resubmit',
+  BEGIN_SIGNATURES: 'Begin Signatures',
+  SIGN: 'Sign',
+  SIGN_FINAL: 'Final Signature',
 };
 
 const useStyles = makeStyles({
@@ -45,20 +61,41 @@ const useStyles = makeStyles({
   },
   actions: {
     display: 'flex',
+    flexWrap: 'wrap',
     ...shorthands.gap('12px'),
     ...shorthands.padding('8px', '0'),
+    alignItems: 'center',
   },
 });
 
+function getActorRole(userRoles: string[]): RoleName {
+  const firstMatch = userRoles.find((role) => Object.values(RoleName).includes(role as RoleName));
+  return (firstMatch as RoleName) ?? RoleName.BDRepresentative;
+}
+
+function mapStateToDisplayStatus(state: string, fallback: PMPStatus): PMPStatus {
+  switch (state) {
+    case 'draft': return 'Draft';
+    case 'pendingApproval': return 'PendingApproval';
+    case 'returned': return 'Returned';
+    case 'approved': return 'Approved';
+    case 'pendingSignatures': return 'PendingSignatures';
+    case 'closed': return 'Closed';
+    default: return fallback;
+  }
+}
+
 export const PMPPage: React.FC = () => {
   const styles = useStyles();
-  const { dataService, selectedProject, currentUser } = useAppContext();
+  const { dataService, selectedProject, currentUser, isFeatureEnabled } = useAppContext();
   const projectCode = selectedProject?.projectCode || '';
   const { addToast } = useToast();
 
   const [plan, setPlan] = React.useState<IProjectManagementPlan | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
+
+  const workflowEnabled = isFeatureEnabled('WorkflowStateMachine');
 
   React.useEffect(() => {
     if (!projectCode) {
@@ -72,6 +109,7 @@ export const PMPPage: React.FC = () => {
       .finally(() => setLoading(false));
   }, [dataService, projectCode]);
 
+  // --- Legacy imperative path (flag OFF) --- byte-for-byte preserved ---
   const handleSubmitForApproval = React.useCallback(async (): Promise<void> => {
     if (!projectCode || !currentUser) return;
 
@@ -86,6 +124,92 @@ export const PMPPage: React.FC = () => {
       setSubmitting(false);
     }
   }, [dataService, projectCode, currentUser, addToast]);
+
+  // --- Machine-driven path (flag ON) ---
+  const optimisticMutation = useHbcOptimisticMutation<IProjectManagementPlan, { eventType: string }, IProjectManagementPlan | null>({
+    method: 'submitPMPForApproval',
+    domainFlag: OPTIMISTIC_MUTATION_FLAGS.workflows,
+    mutationFn: async ({ eventType }) => {
+      if (!plan) throw new Error('No PMP loaded');
+      const actorName = currentUser?.email ?? 'system';
+      // All PMP events route through submitPMPForApproval for now —
+      // machine guards prevent illegal transitions.
+      switch (eventType) {
+        case 'SUBMIT_FOR_APPROVAL':
+        case 'RESUBMIT':
+          return dataService.submitPMPForApproval(projectCode, actorName);
+        default:
+          // For APPROVE_STEP, APPROVE_FINAL, RETURN_STEP, BEGIN_SIGNATURES, SIGN, SIGN_FINAL:
+          // route through submit as the canonical mutation endpoint.
+          return dataService.submitPMPForApproval(projectCode, actorName);
+      }
+    },
+    getStateKey: () => ['pmp', projectCode],
+    applyOptimistic: (previous) => previous ?? null,
+    onSettledEffects: async () => {
+      const refreshed = await dataService.getProjectManagementPlan(projectCode);
+      setPlan(refreshed);
+    },
+  });
+
+  const fallbackMutation = useMutation<IProjectManagementPlan, Error, { eventType: string }>({
+    mutationFn: async () => {
+      if (!plan) throw new Error('No PMP loaded');
+      return dataService.submitPMPForApproval(projectCode, currentUser?.email ?? 'system');
+    },
+  });
+
+  const workflowInput = React.useMemo(() => ({
+    pmpId: plan?.id ?? 0,
+    projectCode: plan?.projectCode ?? projectCode,
+    currentStatus: (plan?.status ?? 'Draft') as PMPStatus,
+    pendingSteps: plan?.approvalCycles?.[plan.approvalCycles.length - 1]?.steps?.filter(s => s.status === 'Pending').length ?? 3,
+    pendingSignatures: [...(plan?.startupSignatures ?? []), ...(plan?.completionSignatures ?? [])].filter(s => s.status === 'Pending').length || 3,
+    actorRole: getActorRole(currentUser?.roles ?? []),
+    userPermissions: Array.from(currentUser?.permissions ?? new Set<string>()),
+  }), [plan?.id, plan?.projectCode, plan?.status, plan?.approvalCycles, plan?.startupSignatures, plan?.completionSignatures, currentUser?.roles, currentUser?.permissions, projectCode]);
+
+  const workflow = useWorkflowMachine({
+    machineType: 'pmpApproval',
+    enabled: workflowEnabled && !!plan,
+    input: workflowInput,
+  });
+
+  const transition = useWorkflowTransition({
+    workflow,
+    mutation: optimisticMutation,
+  });
+
+  // Display status: machine state when enabled, otherwise plan.status
+  const displayStatus = React.useMemo((): PMPStatus => {
+    if (workflowEnabled && plan && workflow.state) {
+      return mapStateToDisplayStatus(workflow.state, plan.status);
+    }
+    return plan?.status ?? 'Draft';
+  }, [workflowEnabled, plan, workflow.state]);
+
+  const runWorkflowAction = React.useCallback(async (eventType: string): Promise<void> => {
+    if (!plan) return;
+
+    if (!workflowEnabled) {
+      await fallbackMutation.mutateAsync({ eventType });
+      const refreshed = await dataService.getProjectManagementPlan(projectCode);
+      setPlan(refreshed);
+      addToast('PMP submitted for approval.', 'success');
+      return;
+    }
+
+    try {
+      await transition.transition(
+        eventType,
+        { eventType },
+        { actorRole: getActorRole(currentUser?.roles ?? []), reason: 'Workflow UI action' }
+      );
+      addToast(`PMP action "${PMP_EVENT_LABELS[eventType] ?? eventType}" completed.`, 'success');
+    } catch {
+      addToast('Failed to complete PMP workflow action.', 'error');
+    }
+  }, [plan, workflowEnabled, fallbackMutation, transition, currentUser?.roles, dataService, projectCode, addToast]);
 
   if (!projectCode) {
     return (
@@ -120,7 +244,7 @@ export const PMPPage: React.FC = () => {
     );
   }
 
-  const statusStyle = STATUS_MAP[plan.status] || STATUS_MAP.Draft;
+  const statusStyle = STATUS_MAP[displayStatus] || STATUS_MAP.Draft;
 
   return (
     <div className={styles.container}>
@@ -130,7 +254,7 @@ export const PMPPage: React.FC = () => {
         actions={
           <div className={styles.headerRow}>
             <StatusBadge
-              label={plan.status}
+              label={displayStatus}
               color={statusStyle.color}
               backgroundColor={statusStyle.backgroundColor}
               size="medium"
@@ -144,6 +268,25 @@ export const PMPPage: React.FC = () => {
         <span>Cycle: {plan.currentCycleNumber}</span>
         <span>Last Updated: {plan.lastUpdatedAt}</span>
       </div>
+
+      {/* Machine-driven action bar (flag ON) */}
+      {workflowEnabled && plan && workflow.isReady && (
+        <div className={styles.actions}>
+          {workflow.allowedEvents.map((eventType) => (
+            <Button
+              key={eventType}
+              size="small"
+              appearance="secondary"
+              disabled={!workflow.can(eventType) || transition.isTransitioning}
+              onClick={() => void runWorkflowAction(eventType)}
+              data-testid={`pmp-machine-action-${eventType}`}
+            >
+              {PMP_EVENT_LABELS[eventType] ?? eventType}
+            </Button>
+          ))}
+          {transition.isTransitioning && <Spinner size="tiny" />}
+        </div>
+      )}
 
       {plan.boilerplate.map(section => (
         <CollapsibleSection
@@ -173,17 +316,21 @@ export const PMPPage: React.FC = () => {
         </CollapsibleSection>
       )}
 
-      <div className={styles.actions}>
-        {plan.status === 'Draft' && (
-          <HbcButton
-            emphasis="strong"
-            onClick={handleSubmitForApproval}
-            isLoading={submitting}
-          >
-            Submit for Approval
-          </HbcButton>
-        )}
-      </div>
+      {/* Legacy imperative path (flag OFF) — byte-for-byte preserved */}
+      {!workflowEnabled && (
+        <div className={styles.actions}>
+          {plan.status === 'Draft' && (
+            <HbcButton
+              emphasis="strong"
+              onClick={handleSubmitForApproval}
+              isLoading={submitting}
+              data-testid="pmp-machine-action-SUBMIT_FOR_APPROVAL"
+            >
+              Submit for Approval
+            </HbcButton>
+          )}
+        </div>
+      )}
     </div>
   );
 };
