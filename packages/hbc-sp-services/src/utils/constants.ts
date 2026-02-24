@@ -46,6 +46,7 @@ export const CACHE_KEYS = {
   TEMPLATE_REGISTRY: 'hbc_template_registry',
   PROVISIONING: 'hbc_provisioning',
   AUDIT_LOG: 'hbc_audit_log',
+  SITE_TEMPLATES: 'hbc_site_templates',
 } as const;
 
 export const HUB_LISTS = {
@@ -91,6 +92,7 @@ export const HUB_LISTS = {
   PROJECT_DATA_MART: 'Project_Data_Mart',
   TEMPLATE_SITE_CONFIG: 'Template_Site_Config',
   TEMPLATE_MANIFEST_LOG: 'Template_Manifest_Log',
+  SITE_TEMPLATES: 'Site_Templates',
 } as const;
 
 export const PROJECT_LISTS = {

@@ -1,9 +1,9 @@
 ---
 name: HBC Provisioning Engine
 description: Robust, idempotent 7-step SharePoint site provisioning engine for the HBC Project Controls suite – handling new project request workflows from approval to fully provisioned project hub/child sites (41 lists, Entra ID sync, audit logging) using Graph API primary path with PowerAutomate fallback. Ensures construction-grade reliability, auditability, and extensibility for large-scale project lifecycle management.
-version: 1.2
+version: 1.3
 category: core-services
-triggers: provisioning, ProvisioningService, site-provisioning, 7-step-engine, IProvisioningInput, IProvisioningResult, PowerAutomate, GitOps, new-project-request, workspace-creation, GraphBatchEnforcer, ListThresholdGuard
+triggers: provisioning, ProvisioningService, site-provisioning, 7-step-engine, IProvisioningInput, IProvisioningResult, PowerAutomate, GitOps, new-project-request, workspace-creation, GraphBatchEnforcer, ListThresholdGuard, SiteTemplateManagement, applyTemplateToSite
 updated: 2026-02-24
 ---
 
@@ -51,3 +51,11 @@ Implementing, extending, debugging, or optimizing any part of the site provision
 - GraphBatchEnforcer wired in all saga Graph steps.
 - ListThresholdGuard applied to Audit_Log in saga.
 - E2E expanded for compensation rollback.
+
+**Phase 6A Site Template Integration**
+- ProvisioningSaga Step 5 now supports dual-path: `applyTemplateToSite` (Phase 6A) or legacy `copyTemplateFiles`.
+- `IProvisioningInput.templateName?: SiteTemplateType` controls path selection. When absent, legacy path runs.
+- Feature flag `SiteTemplateManagement` (id 60) gates UI; saga itself is flag-agnostic.
+- Default fallback: if requested template type not found, falls back to Default template (SOC2 audit).
+- No Default active → throws → saga Step 5 fails → compensation triggered.
+- See `.claude/skills/site-template-management/SKILL.md` v1.0 for full template protocol.

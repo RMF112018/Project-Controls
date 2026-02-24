@@ -312,7 +312,13 @@ export class ProvisioningSaga {
         label: PROVISIONING_STEPS[4].label,
         isCritical: false,
         execute: async (ctx) => {
-          await ctx.dataService.copyTemplateFiles(ctx.siteUrl, ctx.input.projectCode, ctx.input.division);
+          if (ctx.input.templateName) {
+            // Phase 6A: Use site template management path
+            await ctx.dataService.applyTemplateToSite(ctx.siteUrl, ctx.input.templateName);
+          } else {
+            // Legacy path: copy template files by division
+            await ctx.dataService.copyTemplateFiles(ctx.siteUrl, ctx.input.projectCode, ctx.input.division);
+          }
         },
         compensate: async (ctx) => {
           const start = Date.now();

@@ -1,0 +1,41 @@
+[
+  {
+    "id": 1,
+    "Title": "Default",
+    "TemplateSiteUrl": "https://hedrickbrotherscom.sharepoint.com/sites/HBC-Templates/Default",
+    "ProjectTypeId": null,
+    "GitRepoUrl": "https://github.com/RMF112018/Project-Controls/tree/main/templates/default",
+    "LastSynced": "2026-02-20T14:00:00Z",
+    "SyncStatus": "Success",
+    "IsActive": true,
+    "Description": "Standard project template applied to all new sites unless overridden.",
+    "CreatedBy": "admin@hedrickbrothers.com",
+    "ModifiedAt": "2026-02-20T14:00:00Z"
+  },
+  {
+    "id": 2,
+    "Title": "Commercial",
+    "TemplateSiteUrl": "https://hedrickbrotherscom.sharepoint.com/sites/HBC-Templates/Commercial",
+    "ProjectTypeId": 1,
+    "GitRepoUrl": "https://github.com/RMF112018/Project-Controls/tree/main/templates/commercial",
+    "LastSynced": "2026-02-20T14:30:00Z",
+    "SyncStatus": "Success",
+    "IsActive": true,
+    "Description": "Commercial division template with GMP and hard-bid document structure.",
+    "CreatedBy": "admin@hedrickbrothers.com",
+    "ModifiedAt": "2026-02-20T14:30:00Z"
+  },
+  {
+    "id": 3,
+    "Title": "Luxury Residential",
+    "TemplateSiteUrl": "https://hedrickbrotherscom.sharepoint.com/sites/HBC-Templates/LuxuryResidential",
+    "ProjectTypeId": 2,
+    "GitRepoUrl": "https://github.com/RMF112018/Project-Controls/tree/main/templates/luxury-residential",
+    "LastSynced": null,
+    "SyncStatus": "Idle",
+    "IsActive": true,
+    "Description": "Luxury residential template with finish schedules and client presentation folders.",
+    "CreatedBy": "admin@hedrickbrothers.com",
+    "ModifiedAt": "2026-02-15T09:00:00Z"
+  }
+]

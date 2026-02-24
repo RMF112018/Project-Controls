@@ -1967,3 +1967,21 @@ export const TEMPLATE_MANIFEST_LOG_COLUMNS = {
   PRUrl: 'PRUrl',
   Status: 'Status',
 } as const;
+
+/**
+ * List: Site_Templates (Phase 6A)
+ * Interface: ISiteTemplate
+ */
+export const SITE_TEMPLATES_COLUMNS = {
+  id: 'ID',                                   // SP: Auto-generated
+  Title: 'Title',                              // SP: Choice (Default, Commercial, Luxury Residential)
+  TemplateSiteUrl: 'TemplateSiteUrl',          // SP: Hyperlink
+  ProjectTypeId: 'ProjectTypeId',              // SP: Number (lookup to Project_Types)
+  GitRepoUrl: 'GitRepoUrl',                   // SP: Hyperlink
+  LastSynced: 'LastSynced',                    // SP: DateTime
+  SyncStatus: 'SyncStatus',                    // SP: Choice (Idle, Syncing, Success, Failed)
+  IsActive: 'IsActive',                        // SP: Yes/No
+  Description: 'Description',                  // SP: Note (multiple lines)
+  CreatedBy: 'CreatedBy0',                     // SP: Single Line (avoids SP system CreatedBy)
+  ModifiedAt: 'ModifiedAt0',                   // SP: DateTime (avoids SP system Modified)
+} as const;

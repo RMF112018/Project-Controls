@@ -135,6 +135,7 @@ import mockPermits from '../mock/permits.json';
 import templateSiteConfigData from '../mock/templateSiteConfig.json';
 import templateRegistryData from '../mock/templateRegistry.json';
 import roleConfigurationsData from '../mock/roleConfigurations.json';
+import siteTemplatesData from '../mock/siteTemplates.json';
 import { createEstimatingKickoffTemplate } from '../utils/estimatingKickoffTemplate';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 import { DEFAULT_HUB_SITE_URL } from '../utils/constants';
@@ -149,7 +150,8 @@ import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowSt
 import { ITurnoverAgenda, ITurnoverProjectHeader, ITurnoverPrerequisite, ITurnoverEstimateOverview, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverAttachment } from '../models/ITurnoverAgenda';
 import { IActionInboxItem } from '../models/IActionInbox';
 import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions } from '../models/IPermissionTemplate';
-import { PermissionLevel, WorkflowKey, StepAssignmentType, ConditionField, TurnoverStatus, WorkflowActionType, ActionPriority } from '../models/enums';
+import { PermissionLevel, WorkflowKey, StepAssignmentType, ConditionField, TurnoverStatus, WorkflowActionType, ActionPriority, TemplateSyncStatus } from '../models/enums';
+import { ISiteTemplate, SiteTemplateType } from '../models/ISiteTemplate';
 import { resolveToolPermissions, TOOL_DEFINITIONS } from '../utils/toolPermissionMap';
 import mockWorkflowDefinitions from '../mock/workflowDefinitions.json';
 import mockWorkflowStepOverrides from '../mock/workflowStepOverrides.json';
@@ -463,6 +465,7 @@ export class MockDataService implements IDataService {
   private bambooEmployees: IBambooHREmployee[];
   private bambooTimeOff: IBambooHRTimeOff[];
   private bambooMappings: IBambooHREmployeeMapping[];
+  private siteTemplates: ISiteTemplate[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -818,6 +821,7 @@ export class MockDataService implements IDataService {
       { id: 2, field: 'completionDate', hbcValue: '2027-02-28', procoreValue: '2027-01-31', entityType: 'Project', entityId: 50001, resolvedBy: null, resolution: 'pending', detectedAt: '2026-02-20T14:30:00Z' },
     ];
 
+    this.siteTemplates = JSON.parse(JSON.stringify(siteTemplatesData)) as ISiteTemplate[];
     this.nextId = 1000;
   }
 
@@ -2696,6 +2700,134 @@ export class MockDataService implements IDataService {
     const log: ITemplateManifestLog = { id, ...entry };
     console.log('[Mock] logTemplateSyncPR', log);
     return log;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Site Template Management (Phase 6A)
+  // ---------------------------------------------------------------------------
+
+  async getSiteTemplates(): Promise<ISiteTemplate[]> {
+    await delay();
+    console.log('[Mock] getSiteTemplates');
+    return [...this.siteTemplates];
+  }
+
+  async getSiteTemplateByType(templateType: SiteTemplateType): Promise<ISiteTemplate | null> {
+    await delay();
+    console.log(`[Mock] getSiteTemplateByType: ${templateType}`);
+    return this.siteTemplates.find(t => t.Title === templateType && t.IsActive) ?? null;
+  }
+
+  async createSiteTemplate(data: Omit<ISiteTemplate, 'id'>): Promise<ISiteTemplate> {
+    await delay();
+    const id = this.getNextId();
+    const template: ISiteTemplate = { id, ...data };
+    this.siteTemplates.push(template);
+    void this.logAudit({
+      Action: AuditAction.TemplateSyncStarted,
+      EntityType: EntityType.SiteTemplate,
+      EntityId: String(id),
+      User: 'system',
+      Details: `Created site template: ${data.Title}`,
+    });
+    console.log('[Mock] createSiteTemplate', template);
+    return template;
+  }
+
+  async updateSiteTemplate(id: number, data: Partial<ISiteTemplate>): Promise<ISiteTemplate> {
+    await delay();
+    const idx = this.siteTemplates.findIndex(t => t.id === id);
+    if (idx === -1) throw new Error(`Site template ${id} not found`);
+    this.siteTemplates[idx] = { ...this.siteTemplates[idx], ...data };
+    void this.logAudit({
+      Action: AuditAction.TemplateSyncCompleted,
+      EntityType: EntityType.SiteTemplate,
+      EntityId: String(id),
+      User: 'system',
+      Details: `Updated site template: ${this.siteTemplates[idx].Title}`,
+    });
+    console.log('[Mock] updateSiteTemplate', this.siteTemplates[idx]);
+    return this.siteTemplates[idx];
+  }
+
+  async deleteSiteTemplate(id: number): Promise<void> {
+    await delay();
+    const idx = this.siteTemplates.findIndex(t => t.id === id);
+    if (idx === -1) throw new Error(`Site template ${id} not found`);
+    const removed = this.siteTemplates.splice(idx, 1)[0];
+    void this.logAudit({
+      Action: AuditAction.TemplateSyncFailed,
+      EntityType: EntityType.SiteTemplate,
+      EntityId: String(id),
+      User: 'system',
+      Details: `Deleted site template: ${removed.Title}`,
+    });
+    console.log('[Mock] deleteSiteTemplate', id);
+  }
+
+  async syncTemplateToGitOps(templateId: number): Promise<{ success: boolean; prUrl?: string; error?: string }> {
+    await delay();
+    const template = this.siteTemplates.find(t => t.id === templateId);
+    if (!template) return { success: false, error: `Template ${templateId} not found` };
+
+    template.SyncStatus = TemplateSyncStatus.Syncing;
+    void this.logAudit({
+      Action: AuditAction.TemplateSyncStarted,
+      EntityType: EntityType.SiteTemplate,
+      EntityId: String(templateId),
+      User: 'system',
+      Details: `GitOps sync started for template: ${template.Title}`,
+    });
+
+    await delay();
+    template.SyncStatus = TemplateSyncStatus.Success;
+    template.LastSynced = new Date().toISOString();
+    void this.logAudit({
+      Action: AuditAction.TemplateSyncCompleted,
+      EntityType: EntityType.SiteTemplate,
+      EntityId: String(templateId),
+      User: 'system',
+      Details: `GitOps sync completed for template: ${template.Title}`,
+    });
+
+    const prUrl = `https://github.com/RMF112018/Project-Controls/pull/${Math.floor(Math.random() * 500) + 100}`;
+    console.log(`[Mock] syncTemplateToGitOps: ${template.Title} → ${prUrl}`);
+    return { success: true, prUrl };
+  }
+
+  async applyTemplateToSite(siteUrl: string, templateType: SiteTemplateType): Promise<{ appliedCount: number; templateName: string }> {
+    await delay();
+    const template = this.siteTemplates.find(t => t.Title === templateType && t.IsActive);
+    const fallback = this.siteTemplates.find(t => t.Title === 'Default' && t.IsActive);
+    const chosen = template ?? fallback;
+    if (!chosen) throw new Error('No active template found (not even Default)');
+
+    if (!template) {
+      // Fallback to Default with audit
+      void this.logAudit({
+        Action: AuditAction.TemplateSyncFailed,
+        EntityType: EntityType.SiteTemplate,
+        EntityId: String(chosen.id),
+        User: 'system',
+        Details: `Template '${templateType}' not found; fell back to Default for site ${siteUrl}`,
+      });
+    }
+
+    console.log(`[Mock] applyTemplateToSite: ${siteUrl} with template ${chosen.Title}`);
+    return { appliedCount: 12, templateName: chosen.Title };
+  }
+
+  async syncAllTemplates(): Promise<{ synced: number; failed: number; results: Array<{ id: number; success: boolean; error?: string }> }> {
+    await delay();
+    const results: Array<{ id: number; success: boolean; error?: string }> = [];
+    for (const template of this.siteTemplates.filter(t => t.IsActive)) {
+      const result = await this.syncTemplateToGitOps(template.id);
+      results.push({ id: template.id, success: result.success, error: result.error });
+    }
+    const synced = results.filter(r => r.success).length;
+    const failed = results.filter(r => !r.success).length;
+    console.log(`[Mock] syncAllTemplates: ${synced} synced, ${failed} failed`);
+    return { synced, failed, results };
   }
 
   // ---------------------------------------------------------------------------

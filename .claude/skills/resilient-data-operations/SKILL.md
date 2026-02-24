@@ -1,9 +1,9 @@
 ---
 name: HBC Resilient Data Operations
 description: Production-grade resilient Graph/SharePoint data layer for the HBC Project Controls SPFx suite – enforcing batching (GraphBatchService), TanStack Query mutations with retry/backoff (useConnectorMutation), saga-style compensation (ProvisioningSaga), and real-time SignalR status. Eliminates transient failures, orphaned resources, and silent data corruption while staying under SPFx limits and SOC2 audit requirements.
-version: 1.3
+version: 1.4
 category: core-services
-triggers: connector, graph-batch, retry, backoff, provisioning-saga, compensation, signalr-status, resilient-data-operations, GraphBatchService, useConnectorMutation, ProvisioningSaga, IConnectorRetryPolicy, GraphBatchEnforcer, ProvisioningStatusStepper, useProvisioningStatus, RetryAttempt, CircuitBreak, BatchFallback
+triggers: connector, graph-batch, retry, backoff, provisioning-saga, compensation, signalr-status, resilient-data-operations, GraphBatchService, useConnectorMutation, ProvisioningSaga, IConnectorRetryPolicy, GraphBatchEnforcer, ProvisioningStatusStepper, useProvisioningStatus, RetryAttempt, CircuitBreak, BatchFallback, SiteTemplateManagement, syncTemplateToGitOps, applyTemplateToSite
 updated: 2026-02-24
 ---
 
@@ -28,7 +28,7 @@ Implementing, extending, debugging, or optimizing any Graph/SharePoint connector
 |------|---------------|-------------|-------------------|----------|
 | 7 | updateLead (set ProjectSiteURL) | Clear ProjectSiteURL | existing `updateLead` | No |
 | 6 | copyLeadDataToProjectSite | Remove lead data from site | `removeLeadDataFromProjectSite` | No |
-| 5 | copyTemplateFiles | Remove template files | `removeTemplateFiles` | No |
+| 5 | copyTemplateFiles OR applyTemplateToSite (Phase 6A dual-path) | Remove template files | `removeTemplateFiles` | No |
 | 4 | createProjectSecurityGroups | Delete security groups | `deleteProjectSecurityGroups` | YES |
 | 3 | associateWithHubSite | Disassociate from hub | `disassociateFromHubSite` | No |
 | 2 | provisionProjectLists | Remove provisioned lists | `removeProvisionedLists` | No |
@@ -91,8 +91,16 @@ Compensation order: Reverse (7 -> 1). Step 1 (site deletion) runs LAST.
 7. Verify idempotency: trigger provisioning twice rapidly -> confirm different tokens, no duplicates.
 8. Test compensation failure: mock `deleteProjectSite` to throw -> confirm error logged, other compensations still run, no exception thrown.
 
+**Phase 6A Site Template Sync Resilience**
+
+- Template sync operations (`syncTemplateToGitOps`, `syncAllTemplates`) use GraphBatchEnforcer for Graph calls.
+- ListThresholdGuard applied to audit log writes during template sync operations.
+- `TemplateSyncStatus` lifecycle: `Idle` -> `Syncing` -> `Success`/`Failed`. Audit on each transition.
+- ProvisioningSaga Step 5 dual-path: `applyTemplateToSite` (Phase 6A) or legacy `copyTemplateFiles`. Compensation unchanged.
+- See `.claude/skills/site-template-management/SKILL.md` v1.0 for full template protocol.
+
 **Reference**
-- `CLAUDE.md` §7 (276 methods), §15 (Phase 5C), §16 (saga + SignalR pitfalls)
+- `CLAUDE.md` §7 (284 methods), §15 (Phase 6A), §16 (saga + SignalR + template pitfalls)
 - `packages/hbc-sp-services/src/services/ProvisioningSaga.ts`
 - `packages/hbc-sp-services/src/models/IProvisioningSaga.ts`
 - `src/webparts/hbcProjectControls/components/hooks/useProvisioningStatus.ts`
@@ -101,5 +109,6 @@ Compensation order: Reverse (7 -> 1). Step 1 (site deletion) runs LAST.
 - `packages/hbc-sp-services/src/utils/ListThresholdGuard.ts`
 - `.claude/SECURITY_ANALYSIS.md`
 - `.claude/DATA_ARCHITECTURE.md`
-- `.claude/skills/provisioning-engine/SKILL.md` v1.2 (saga resilience integration)
+- `.claude/skills/provisioning-engine/SKILL.md` v1.3 (template integration)
+- `.claude/skills/site-template-management/SKILL.md` v1.0 (full template protocol)
 - `.claude/skills/elevated-ux-ui-design/SKILL.md`

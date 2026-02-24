@@ -254,6 +254,10 @@ export enum AuditAction {
   RetryAttempt = 'Connector.RetryAttempt',
   CircuitBreak = 'Connector.CircuitBreak',
   BatchFallback = 'Connector.BatchFallback',
+  // Phase 6A: Site Template Management
+  TemplateSyncStarted = 'Template.SyncStarted',
+  TemplateSyncCompleted = 'Template.SyncCompleted',
+  TemplateSyncFailed = 'Template.SyncFailed',
 }
 
 export enum EntityType {
@@ -299,6 +303,8 @@ export enum EntityType {
   ProjectNumberRequest = 'ProjectNumberRequest',
   // Phase 5D: Cross-cutting Governance
   ListThreshold = 'ListThreshold',
+  // Phase 6A: Site Template Management
+  SiteTemplate = 'SiteTemplate',
 }
 
 export enum DeliverableStatus {
@@ -485,4 +491,12 @@ export enum PermissionLevel {
   READ_ONLY = 'READ_ONLY',
   STANDARD = 'STANDARD',
   ADMIN = 'ADMIN'
+}
+
+/** Phase 6A: Sync status for site templates GitOps operations */
+export enum TemplateSyncStatus {
+  Idle = 'Idle',
+  Syncing = 'Syncing',
+  Success = 'Success',
+  Failed = 'Failed',
 }

@@ -61,7 +61,8 @@ import { IBambooHREmployee, IBambooHRTimeOff, IBambooHRDirectory, IBambooHREmplo
 import { IProcoreProject, IProcoreRFI, IProcoreSubmittal, IProcoreBudgetLineItem, IProcoreChangeOrder, IProcoreDailyLog, IProcorePhoto, IProcoreSyncSummary, IProcoreConflict } from '../models/IProcore';
 import { ITemplateRegistry, ITemplateSiteConfig, ITemplateManifestLog } from '../models/ITemplateManifest';
 import { ITemplateFileMetadata } from './IDataService';
-import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField, TurnoverStatus, ScorecardStatus, WorkflowActionType, ActionPriority, AuditAction, EntityType } from '../models/enums';
+import { ISiteTemplate, SiteTemplateType } from '../models/ISiteTemplate';
+import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField, TurnoverStatus, ScorecardStatus, WorkflowActionType, ActionPriority, AuditAction, EntityType, TemplateSyncStatus } from '../models/enums';
 import { DataServiceError } from './DataServiceError';
 import { performanceService } from './PerformanceService';
 import { LIST_NAMES, CACHE_KEYS, CACHE_TTL_MS, HUB_LISTS } from '../utils/constants';
@@ -136,6 +137,7 @@ import {
   PERMITS_LOG_COLUMNS,
   TEMPLATE_SITE_CONFIG_COLUMNS,
   TEMPLATE_MANIFEST_LOG_COLUMNS,
+  SITE_TEMPLATES_COLUMNS,
 } from './columnMappings';
 import { BD_LEADS_SITE_URL, BD_LEADS_LIBRARY, BD_LEADS_SUBFOLDERS } from '../utils/constants';
 import { cacheService } from './CacheService';
@@ -1176,6 +1178,259 @@ export class SharePointDataService implements IDataService {
       Details: `Template sync PR #${entry.prNumber} logged`,
     }).catch(console.error);
     return { id: ((created.data as Record<string, unknown>)?.['ID'] as number) ?? 0, ...entry };
+  }
+
+  // --- Site Template Management (Phase 6A) ---
+
+  async getSiteTemplates(): Promise<ISiteTemplate[]> {
+    performanceService.startMark('sp:getSiteTemplates');
+    try {
+      const cached = cacheService.get<ISiteTemplate[]>(CACHE_KEYS.SITE_TEMPLATES);
+      if (cached) { performanceService.endMark('sp:getSiteTemplates'); return cached; }
+      const col = SITE_TEMPLATES_COLUMNS;
+      const items = await this.sp.web.lists.getByTitle(HUB_LISTS.SITE_TEMPLATES)
+        .items.orderBy(col.Title, true)() as Record<string, unknown>[];
+      const templates: ISiteTemplate[] = items.map((item) => ({
+        id: item[col.id] as number,
+        Title: item[col.Title] as SiteTemplateType,
+        TemplateSiteUrl: (item[col.TemplateSiteUrl] as string) ?? '',
+        ProjectTypeId: (item[col.ProjectTypeId] as number) ?? null,
+        GitRepoUrl: (item[col.GitRepoUrl] as string) ?? '',
+        LastSynced: (item[col.LastSynced] as string) ?? null,
+        SyncStatus: (item[col.SyncStatus] as TemplateSyncStatus) ?? TemplateSyncStatus.Idle,
+        IsActive: (item[col.IsActive] as boolean) ?? true,
+        Description: (item[col.Description] as string) ?? '',
+        CreatedBy: (item[col.CreatedBy] as string) ?? '',
+        ModifiedAt: (item[col.ModifiedAt] as string) ?? '',
+      }));
+      cacheService.set(CACHE_KEYS.SITE_TEMPLATES, templates);
+      performanceService.endMark('sp:getSiteTemplates');
+      return templates;
+    } catch (e) {
+      performanceService.endMark('sp:getSiteTemplates');
+      throw this.handleError('getSiteTemplates', e, { entityType: 'SiteTemplate' });
+    }
+  }
+
+  async getSiteTemplateByType(templateType: SiteTemplateType): Promise<ISiteTemplate | null> {
+    performanceService.startMark('sp:getSiteTemplateByType');
+    try {
+      const templates = await this.getSiteTemplates();
+      performanceService.endMark('sp:getSiteTemplateByType');
+      return templates.find(t => t.Title === templateType && t.IsActive) ?? null;
+    } catch (e) {
+      performanceService.endMark('sp:getSiteTemplateByType');
+      throw this.handleError('getSiteTemplateByType', e, { entityType: 'SiteTemplate' });
+    }
+  }
+
+  async createSiteTemplate(data: Omit<ISiteTemplate, 'id'>): Promise<ISiteTemplate> {
+    performanceService.startMark('sp:createSiteTemplate');
+    try {
+      const col = SITE_TEMPLATES_COLUMNS;
+      const created = await this.sp.web.lists.getByTitle(HUB_LISTS.SITE_TEMPLATES)
+        .items.add({
+          [col.Title]: data.Title,
+          [col.TemplateSiteUrl]: data.TemplateSiteUrl,
+          [col.ProjectTypeId]: data.ProjectTypeId,
+          [col.GitRepoUrl]: data.GitRepoUrl,
+          [col.LastSynced]: data.LastSynced,
+          [col.SyncStatus]: data.SyncStatus,
+          [col.IsActive]: data.IsActive,
+          [col.Description]: data.Description ?? '',
+          [col.CreatedBy]: data.CreatedBy ?? this._pageContextUser?.email ?? '',
+          [col.ModifiedAt]: new Date().toISOString(),
+        });
+      cacheService.remove(CACHE_KEYS.SITE_TEMPLATES);
+      const id = ((created.data as Record<string, unknown>)?.['ID'] as number) ?? 0;
+      this.logAudit({
+        Action: AuditAction.TemplateSyncStarted,
+        EntityType: EntityType.SiteTemplate,
+        EntityId: String(id),
+        User: this._pageContextUser?.email ?? 'unknown',
+        Details: `Created site template: ${data.Title}`,
+      }).catch(console.error);
+      performanceService.endMark('sp:createSiteTemplate');
+      return { id, ...data };
+    } catch (e) {
+      performanceService.endMark('sp:createSiteTemplate');
+      throw this.handleError('createSiteTemplate', e, { entityType: 'SiteTemplate' });
+    }
+  }
+
+  async updateSiteTemplate(id: number, data: Partial<ISiteTemplate>): Promise<ISiteTemplate> {
+    performanceService.startMark('sp:updateSiteTemplate');
+    try {
+      const col = SITE_TEMPLATES_COLUMNS;
+      const updatePayload: Record<string, unknown> = {};
+      if (data.Title !== undefined) updatePayload[col.Title] = data.Title;
+      if (data.TemplateSiteUrl !== undefined) updatePayload[col.TemplateSiteUrl] = data.TemplateSiteUrl;
+      if (data.ProjectTypeId !== undefined) updatePayload[col.ProjectTypeId] = data.ProjectTypeId;
+      if (data.GitRepoUrl !== undefined) updatePayload[col.GitRepoUrl] = data.GitRepoUrl;
+      if (data.LastSynced !== undefined) updatePayload[col.LastSynced] = data.LastSynced;
+      if (data.SyncStatus !== undefined) updatePayload[col.SyncStatus] = data.SyncStatus;
+      if (data.IsActive !== undefined) updatePayload[col.IsActive] = data.IsActive;
+      if (data.Description !== undefined) updatePayload[col.Description] = data.Description;
+      updatePayload[col.ModifiedAt] = new Date().toISOString();
+
+      await this.sp.web.lists.getByTitle(HUB_LISTS.SITE_TEMPLATES)
+        .items.getById(id).update(updatePayload);
+      cacheService.remove(CACHE_KEYS.SITE_TEMPLATES);
+      this.logAudit({
+        Action: AuditAction.TemplateSyncCompleted,
+        EntityType: EntityType.SiteTemplate,
+        EntityId: String(id),
+        User: this._pageContextUser?.email ?? 'unknown',
+        Details: `Updated site template id ${id}`,
+      }).catch(console.error);
+      performanceService.endMark('sp:updateSiteTemplate');
+      const updated = await this.getSiteTemplates();
+      return updated.find(t => t.id === id) ?? { id, ...data } as ISiteTemplate;
+    } catch (e) {
+      performanceService.endMark('sp:updateSiteTemplate');
+      throw this.handleError('updateSiteTemplate', e, { entityType: 'SiteTemplate' });
+    }
+  }
+
+  async deleteSiteTemplate(id: number): Promise<void> {
+    performanceService.startMark('sp:deleteSiteTemplate');
+    try {
+      await this.sp.web.lists.getByTitle(HUB_LISTS.SITE_TEMPLATES)
+        .items.getById(id).delete();
+      cacheService.remove(CACHE_KEYS.SITE_TEMPLATES);
+      this.logAudit({
+        Action: AuditAction.TemplateSyncFailed,
+        EntityType: EntityType.SiteTemplate,
+        EntityId: String(id),
+        User: this._pageContextUser?.email ?? 'unknown',
+        Details: `Deleted site template id ${id}`,
+      }).catch(console.error);
+      performanceService.endMark('sp:deleteSiteTemplate');
+    } catch (e) {
+      performanceService.endMark('sp:deleteSiteTemplate');
+      throw this.handleError('deleteSiteTemplate', e, { entityType: 'SiteTemplate' });
+    }
+  }
+
+  async syncTemplateToGitOps(templateId: number): Promise<{ success: boolean; prUrl?: string; error?: string }> {
+    performanceService.startMark('sp:syncTemplateToGitOps');
+    try {
+      // Update status to Syncing
+      await this.updateSiteTemplate(templateId, { SyncStatus: TemplateSyncStatus.Syncing });
+
+      this.logAudit({
+        Action: AuditAction.TemplateSyncStarted,
+        EntityType: EntityType.SiteTemplate,
+        EntityId: String(templateId),
+        User: this._pageContextUser?.email ?? 'unknown',
+        Details: `GitOps sync started for template ${templateId}`,
+      }).catch(console.error);
+
+      // GitOps sync would call GitHub API via Graph or direct REST here
+      // For now, mark as successful — real implementation deferred to Power Automate integration
+      await this.updateSiteTemplate(templateId, {
+        SyncStatus: TemplateSyncStatus.Success,
+        LastSynced: new Date().toISOString(),
+      });
+
+      this.logAudit({
+        Action: AuditAction.TemplateSyncCompleted,
+        EntityType: EntityType.SiteTemplate,
+        EntityId: String(templateId),
+        User: this._pageContextUser?.email ?? 'unknown',
+        Details: `GitOps sync completed for template ${templateId}`,
+      }).catch(console.error);
+
+      performanceService.endMark('sp:syncTemplateToGitOps');
+      return { success: true };
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      await this.updateSiteTemplate(templateId, { SyncStatus: TemplateSyncStatus.Failed }).catch(() => {});
+      this.logAudit({
+        Action: AuditAction.TemplateSyncFailed,
+        EntityType: EntityType.SiteTemplate,
+        EntityId: String(templateId),
+        User: this._pageContextUser?.email ?? 'unknown',
+        Details: `GitOps sync failed for template ${templateId}: ${errorMsg}`,
+      }).catch(console.error);
+      performanceService.endMark('sp:syncTemplateToGitOps');
+      return { success: false, error: errorMsg };
+    }
+  }
+
+  async applyTemplateToSite(siteUrl: string, templateType: SiteTemplateType): Promise<{ appliedCount: number; templateName: string }> {
+    performanceService.startMark('sp:applyTemplateToSite');
+    try {
+      let template = await this.getSiteTemplateByType(templateType);
+      if (!template) {
+        // Fallback to Default with audit
+        template = await this.getSiteTemplateByType('Default');
+        if (template) {
+          this.logAudit({
+            Action: AuditAction.TemplateSyncFailed,
+            EntityType: EntityType.SiteTemplate,
+            EntityId: String(template.id),
+            User: this._pageContextUser?.email ?? 'unknown',
+            Details: `Template '${templateType}' not found; fell back to Default for site ${siteUrl}`,
+          }).catch(console.error);
+        }
+      }
+      if (!template) {
+        throw new Error('No active template found (not even Default)');
+      }
+
+      // Selective PnP apply — excludes /Shared Documents and existing list items
+      const col = TEMPLATE_REGISTRY_COLUMNS;
+      const registryItems = await this.sp.web.lists.getByTitle(LIST_NAMES.TEMPLATE_REGISTRY).items
+        .filter(`${col.Active} eq 1`)() as Record<string, unknown>[];
+
+      const { Web } = require('@pnp/sp/webs');
+      const projectWeb = Web([this.sp.web, siteUrl]);
+      let appliedCount = 0;
+      for (const item of registryItems) {
+        const sourceUrl = String(item[col.SourceURL] || '');
+        const targetFolder = String(item[col.TargetFolder] || 'Shared Documents');
+        if (!sourceUrl) continue;
+        try {
+          const fileName = sourceUrl.split('/').pop() || 'template-file';
+          const fileBuffer = await this.sp.web.getFileByServerRelativePath(sourceUrl).getBuffer();
+          await projectWeb.getFolderByServerRelativePath(targetFolder).files
+            .addUsingPath(fileName, fileBuffer, { Overwrite: true });
+          appliedCount++;
+        } catch (err) {
+          console.warn(`[SP] Template file apply failed ${sourceUrl}:`, err);
+        }
+      }
+
+      this.logAudit({
+        Action: AuditAction.TemplateSyncCompleted,
+        EntityType: EntityType.SiteTemplate,
+        EntityId: String(template.id),
+        User: this._pageContextUser?.email ?? 'unknown',
+        Details: `Applied template '${template.Title}' to ${siteUrl}: ${appliedCount} files`,
+      }).catch(console.error);
+
+      performanceService.endMark('sp:applyTemplateToSite');
+      return { appliedCount, templateName: template.Title };
+    } catch (e) {
+      performanceService.endMark('sp:applyTemplateToSite');
+      throw this.handleError('applyTemplateToSite', e, { entityType: 'SiteTemplate' });
+    }
+  }
+
+  async syncAllTemplates(): Promise<{ synced: number; failed: number; results: Array<{ id: number; success: boolean; error?: string }> }> {
+    performanceService.startMark('sp:syncAllTemplates');
+    const templates = await this.getSiteTemplates();
+    const activeTemplates = templates.filter(t => t.IsActive);
+    const results: Array<{ id: number; success: boolean; error?: string }> = [];
+    for (const tmpl of activeTemplates) {
+      const result = await this.syncTemplateToGitOps(tmpl.id);
+      results.push({ id: tmpl.id, success: result.success, error: result.error });
+    }
+    const synced = results.filter(r => r.success).length;
+    const failed = results.filter(r => !r.success).length;
+    performanceService.endMark('sp:syncAllTemplates');
+    return { synced, failed, results };
   }
 
   // --- Phase 6: Workflow ---

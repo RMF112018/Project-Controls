@@ -16,7 +16,7 @@ This file must stay under 40,000 characters. Never allow it to grow large again.
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-24 — Phase 5C.1 Provisioning Saga Resilience Integration COMPLETE. GraphBatchEnforcer + ListThresholdGuard wired into ProvisioningSaga (clean DI). AuditAction.SagaCompensationFailure added. Playwright provisioning E2E 8 scenarios. provisioning-engine SKILL v1.2. ~920 tests.
+**Last Updated:** 2026-02-24 — Phase 6A Site Template Management & GitOps Sync COMPLETE. ISiteTemplate model, 8 new IDataService methods (276→284), TemplateSyncStatus enum, ProvisioningSaga Step 5 dual-path, Admin Site Templates tab (HbcTanStackTable + SlideDrawer), feature flag SiteTemplateManagement (id 60). site-template-management SKILL v1.0, provisioning-engine SKILL v1.3, resilient-data-operations SKILL v1.4. 19 new Jest tests + 9 Playwright E2E. ~940+ tests.
 
 **MANDATORY:** After any code change that affects the data layer, architecture, performance, UI/UX, testing, or security, update this file, verify against the current sprint gate, confirm relevant Skills and the master plan were followed, update CHANGELOG.md (root), and check project memory before ending the session.
 
@@ -89,7 +89,7 @@ After consulting the core guides, automatically activate the most specific Skill
 ## §1 Tech Stack & Build (Current)
 
 - Framework: SPFx 1.22.2 + React 18.2 + Fluent UI v9 (Griffel + tokens)  
-- Data Layer: `@hbc/sp-services` (276/276 methods – complete)  
+- Data Layer: `@hbc/sp-services` (284/284 methods – complete)  
 - Routing: TanStack Router v1 (hash history – sole runtime router)  
 - Data Fetching: TanStack Query v5 (Wave-1 complete on core domains)  
 - Workflow Orchestration: xstate v5 + @xstate/react (lazy-loaded via `lib-xstate-workflow` chunk)  
@@ -163,11 +163,13 @@ Cross-reference: §18 Roadmap (Phase 2), §21, §22, `.claude/plans/hbc-stabiliz
 
 ## §7 Service Methods Status (Live)
 
-**Total methods**: 276
-**Implemented**: 276
+**Total methods**: 284
+**Implemented**: 284
 **Remaining stubs**: 0 — **DATA LAYER COMPLETE**
 
-Last major additions: Phase 5D Cross-cutting Governance (Feb 2026) — No new IDataService methods. GraphBatchEnforcer (10ms coalescence, threshold 3, feature-gated GraphBatchingEnabled). ListThresholdGuard utility (warn at 3000, force cursor paging at 4500 for Audit_Log). Coverage ramp to 80/60/70/80. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md created. Connector + provisioning E2E specs. ~20 new Jest tests (~857 total).
+Last major additions: Phase 6A Site Template Management (Feb 2026) — +8 new IDataService methods: getSiteTemplates, getSiteTemplateByType, createSiteTemplate, updateSiteTemplate, deleteSiteTemplate, syncTemplateToGitOps, applyTemplateToSite, syncAllTemplates. Feature flag: SiteTemplateManagement (id 60). TemplateSyncStatus enum + EntityType.SiteTemplate + 3 AuditActions. ProvisioningSaga Step 5 dual-path. Admin UI tab with HbcTanStackTable + SlideDrawer. 19 new Jest tests.
+
+Phase 5D Cross-cutting Governance (Feb 2026) — No new IDataService methods. GraphBatchEnforcer (10ms coalescence, threshold 3, feature-gated GraphBatchingEnabled). ListThresholdGuard utility (warn at 3000, force cursor paging at 4500 for Audit_Log). Coverage ramp to 80/60/70/80. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md created. Connector + provisioning E2E specs. ~20 new Jest tests (~857 total).
 
 Phase 5A.1 Connector Resilience Adoption (Feb 2026) — No new IDataService methods. Full GraphBatchEnforcer adapter wiring (ProcoreAdapter, BambooHRAdapter accept optional enforcer). Universal useConnectorMutation across all 8 connector mutation sites. ConnectorRegistry policy enforcement at registration (fail-fast). 3 new AuditActions (RetryAttempt, CircuitBreak, BatchFallback). 12 new Jest tests + 6 Playwright E2E. resilient-data-operations SKILL v1.3. ~900+ tests.
 
@@ -191,6 +193,7 @@ Phase 5B Workflow State Machines + E2E Coverage (Feb 2026) — No new IDataServi
 - Phase 5D.1: Fidelity Cleanup + HeaderUserMenu Consolidation — **COMPLETE** on `feature/hbc-suite-stabilization`. Floating dev/RoleSwitcher.tsx removed. HeaderUserMenu (Fluent UI v9 Menu + Persona) in AppShell header. IDevToolsConfig prop chain. Playwright roleFixture rewritten (select → MenuItemRadio). 8 new Jest tests. 888 tests passing.
 - Phase 5A.1: Connector Resilience Adoption — **COMPLETE** on `feature/hbc-suite-stabilization`. Full GraphBatchEnforcer adapter wiring (optional enforcer constructor), universal useConnectorMutation (8 sites), ConnectorRegistry policy enforcement (fail-fast), 3 new AuditActions (RetryAttempt, CircuitBreak, BatchFallback). resilient-data-operations SKILL v1.3. 12 Jest + 6 Playwright tests. ~900+ tests.
 - Phase 5C.1: Provisioning Saga Resilience Integration — **COMPLETE**. GraphBatchEnforcer and ListThresholdGuard wired into saga steps, E2E expansion, SKILL.md updates.
+- Phase 6A: Site Template Management & GitOps Sync — **COMPLETE** on `feature/hbc-suite-stabilization`. ISiteTemplate model + SiteTemplateType union. TemplateSyncStatus enum (Idle/Syncing/Success/Failed). 3 new AuditActions (TemplateSyncStarted/Completed/Failed) + EntityType.SiteTemplate. Feature flag SiteTemplateManagement (id 60, default OFF, SuperAdmin-only). 8 new IDataService methods (276→284). SITE_TEMPLATES_COLUMNS + HUB_LISTS.SITE_TEMPLATES + CACHE_KEYS. MockDataService + SharePointDataService implementations. IProvisioningInput.templateName for dual-path saga Step 5. ProvisioningPage TabList with "Provisioning Logs" + "Site Templates" tabs. HbcTanStackTable + SlideDrawer for template CRUD. site-template-management SKILL v1.0. provisioning-engine SKILL v1.3. resilient-data-operations SKILL v1.4. 19 new Jest + 9 Playwright E2E tests. ~940+ tests.
 
 ---
 
@@ -252,6 +255,11 @@ Phase 5B Workflow State Machines + E2E Coverage (Feb 2026) — No new IDataServi
 - **xstate import policy (enforced)**: UI components consume useWorkflowMachine/useWorkflowTransition hooks ONLY; direct machine.send() or machine imports from page components are disallowed.
 - **Workflow transitions mutation-coupled (enforced)**: send() only after mutateAsync() success; on failure, retain prior state and rollback optimistic cache.
 - **ProvisioningSaga resilience (Phase 5C.1)**: All Graph calls in saga steps MUST use graphBatchEnforcer.enqueue(). ListThresholdGuard applied to audit logs.
+- **SiteTemplateManagement flag discipline (Phase 6A)**: Flag id 60, default OFF. Admin tab wrapped in FeatureGate. Saga dual-path: UI passes `templateName` only when flag ON; saga itself is flag-agnostic.
+- **applyTemplateToSite Default fallback**: Falls back to Default when requested type not found (SOC2 audit). No active Default → throws → saga Step 5 fails → compensation triggered.
+- **ProvisioningSaga Step 5 dual-path**: When `IProvisioningInput.templateName` present → `applyTemplateToSite`; absent → legacy `copyTemplateFiles`. Compensation unchanged (`removeTemplateFiles` works for both).
+- **ISiteTemplate.Title is typed**: `SiteTemplateType = 'Default' | 'Commercial' | 'Luxury Residential'` — not a free string.
+- **Site_Templates SP list**: Added to HUB_LISTS. Cache key: `hbc_site_templates`. Column mappings: `SITE_TEMPLATES_COLUMNS`.
 
 ### New Skill Documentation (added 23 Feb 2026 at commit 55027ece)
 - **Provisioning Engine Skill Creation** `.claude/skills/provisioning-engine/SKILL.md` – 7-step engine protocol, guaranteed stable flows, manual test steps, and cross-references.  
@@ -263,9 +271,13 @@ Phase 5B Workflow State Machines + E2E Coverage (Feb 2026) — No new IDataServi
   Cross-ref: §7 (GraphBatchService, ProvisioningSaga), §12 (ConnectorMutationResilience, ProvisioningSaga), `.claude/skills/provisioning-engine/SKILL.md`, Elevated UI/UX Design Skill.  
   Impact: ~40 % faster extension of resilient connectors and workflows.
 ### New Skill Documentation (added 23 Feb 2026 at commit 58c3dff)
-- **`.claude/skills/workflow-state-machines/SKILL.md`** — xstate v5 machine protocol, dual-path flag strategy, guard rules, and optimistic integration.  
-  Cross-ref: §1, §16, §21, `.claude/skills/resilient-data-operations/SKILL.md`.  
+- **`.claude/skills/workflow-state-machines/SKILL.md`** — xstate v5 machine protocol, dual-path flag strategy, guard rules, and optimistic integration.
+  Cross-ref: §1, §16, §21, `.claude/skills/resilient-data-operations/SKILL.md`.
   Impact: ~40 % reduction in workflow extension time.
+### New Skill Documentation (added 24 Feb 2026 — Phase 6A)
+- **`.claude/skills/site-template-management/SKILL.md`** v1.0 — ISiteTemplate model, 8 IDataService methods, TemplateSyncStatus lifecycle, GitOps sync flow, ProvisioningSaga Step 5 dual-path, Default fallback rule, admin UI tab protocol.
+  Cross-ref: §7 (284 methods), §15 (Phase 6A), §16 (template pitfalls), `.claude/skills/provisioning-engine/SKILL.md` v1.3, `.claude/skills/resilient-data-operations/SKILL.md` v1.4.
+  Impact: ~40 % faster onboarding/extension of site template management features.
 
 **Keep CLAUDE.md lean** — archive aggressively to CLAUDE_ARCHIVE.md.
 

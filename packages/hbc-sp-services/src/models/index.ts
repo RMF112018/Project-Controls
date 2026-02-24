@@ -61,3 +61,4 @@ export * from './IExternalConnector';
 export * from './IProcore';
 export * from './IBambooHR';
 export * from './IProvisioningSaga';
+export * from './ISiteTemplate';

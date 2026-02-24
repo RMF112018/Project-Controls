@@ -38,6 +38,7 @@ import { IBuyoutEntry } from '../models/IBuyoutEntry';
 import { ICommitmentApproval } from '../models/ICommitmentApproval';
 import { IContractTrackingApproval } from '../models/IContractTrackingApproval';
 import { IActiveProject, IPortfolioSummary, IPersonnelWorkload, ProjectStatus, SectorType } from '../models/IActiveProject';
+import { ISiteTemplate, SiteTemplateType } from '../models/ISiteTemplate';
 import { IProjectDataMart, IDataMartSyncResult, IDataMartFilter } from '../models/IProjectDataMart';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
@@ -209,6 +210,16 @@ export interface IDataService {
   getTemplateSiteFiles(): Promise<ITemplateFileMetadata[]>;
   applyGitOpsTemplates(siteUrl: string, division: string, registry: ITemplateRegistry): Promise<{ appliedCount: number }>;
   logTemplateSyncPR(entry: Omit<ITemplateManifestLog, 'id'>): Promise<ITemplateManifestLog>;
+
+  // Site Template Management (Phase 6A)
+  getSiteTemplates(): Promise<ISiteTemplate[]>;
+  getSiteTemplateByType(templateType: SiteTemplateType): Promise<ISiteTemplate | null>;
+  createSiteTemplate(data: Omit<ISiteTemplate, 'id'>): Promise<ISiteTemplate>;
+  updateSiteTemplate(id: number, data: Partial<ISiteTemplate>): Promise<ISiteTemplate>;
+  deleteSiteTemplate(id: number): Promise<void>;
+  syncTemplateToGitOps(templateId: number): Promise<{ success: boolean; prUrl?: string; error?: string }>;
+  applyTemplateToSite(siteUrl: string, templateType: SiteTemplateType): Promise<{ appliedCount: number; templateName: string }>;
+  syncAllTemplates(): Promise<{ synced: number; failed: number; results: Array<{ id: number; success: boolean; error?: string }> }>;
 
   // Site Provisioning Defaults (Phase 1)
   getSiteProvisioningDefaults(): Promise<ISiteProvisioningDefaults>;

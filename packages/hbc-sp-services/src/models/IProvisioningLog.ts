@@ -52,6 +52,8 @@ export interface IProvisioningInput {
   region: string;
   requestedBy: string;
   siteNameOverride?: string;
+  /** Phase 6A: Site template to apply during provisioning. Falls back to legacy copyTemplateFiles when absent. */
+  templateName?: 'Default' | 'Commercial' | 'Luxury Residential';
 }
 
 // --- Provisioning schema types ---
