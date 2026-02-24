@@ -44,6 +44,7 @@ export const CACHE_KEYS = {
   PERMITS: 'hbc_permits',
   TEMPLATE_SITE_CONFIG: 'hbc_template_site_config',
   TEMPLATE_REGISTRY: 'hbc_template_registry',
+  PROVISIONING: 'hbc_provisioning',
 } as const;
 
 export const HUB_LISTS = {

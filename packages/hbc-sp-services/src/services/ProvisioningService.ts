@@ -9,6 +9,8 @@ import type { ISiteProvisioningDefaults } from '../models/ISiteProvisioningDefau
 import { HubNavLinkStatus } from '../models/IProvisioningLog';
 import { getBuyoutLogSchema, getActiveProjectsPortfolioSchema } from '../utils/projectListSchemas';
 import type { EntraIdSyncService } from './EntraIdSyncService';
+import { ProvisioningSaga } from './ProvisioningSaga';
+import type { SignalRMessage } from '../models/ISignalRMessage';
 
 // Re-export for backward compatibility (moved to models/IProvisioningLog.ts)
 export type { IProvisioningInput } from '../models';
@@ -30,6 +32,8 @@ export class ProvisioningService {
   private useGitOpsProvisioning: boolean;
   private entraIdSyncService?: EntraIdSyncService;
   private siteDefaults?: ISiteProvisioningDefaults;
+  private isFeatureEnabled?: (flag: string) => boolean;
+  private signalRBroadcast?: (msg: SignalRMessage) => void;
 
   constructor(
     dataService: IDataService,
@@ -39,7 +43,9 @@ export class ProvisioningService {
     usePowerAutomate?: boolean,
     useRealOps?: boolean,
     useGitOpsProvisioning?: boolean,
-    entraIdSyncService?: EntraIdSyncService
+    entraIdSyncService?: EntraIdSyncService,
+    isFeatureEnabled?: (flag: string) => boolean,
+    signalRBroadcast?: (msg: SignalRMessage) => void
   ) {
     this.dataService = dataService;
     this.notificationService = new NotificationService(dataService);
@@ -50,6 +56,8 @@ export class ProvisioningService {
     this.useRealOps = useRealOps ?? false;
     this.useGitOpsProvisioning = useGitOpsProvisioning ?? false;
     this.entraIdSyncService = entraIdSyncService;
+    this.isFeatureEnabled = isFeatureEnabled;
+    this.signalRBroadcast = signalRBroadcast;
   }
 
   /**
@@ -78,8 +86,18 @@ export class ProvisioningService {
       Details: `Site provisioning triggered for "${input.projectName}" (${input.projectCode})`,
     }).catch(console.error);
 
-    // Run steps asynchronously so the caller can poll for status
-    this.runSteps(input).catch(console.error);
+    // Phase 5C: Dual-path — saga with compensation when flag ON, legacy runSteps when OFF
+    if (this.isFeatureEnabled?.('ProvisioningSaga')) {
+      const saga = new ProvisioningSaga(this.dataService, this.signalRBroadcast);
+      saga.execute(input).then(result => {
+        if (result.success && result.siteUrl) {
+          this.handlePostCompletion(input, result.siteUrl).catch(console.error);
+        }
+      }).catch(console.error);
+    } else {
+      // Unchanged legacy path
+      this.runSteps(input).catch(console.error);
+    }
 
     return log;
   }
@@ -256,6 +274,49 @@ export class ProvisioningService {
       this.addHubNavLink(projectCode, input.projectName, siteUrl, input.requestedBy)
         .catch(console.error);
     }
+  }
+
+  /**
+   * Post-completion handler: notifications, audit, feature flags, hub nav.
+   * Called by both legacy runSteps path and saga path.
+   */
+  private async handlePostCompletion(input: IProvisioningInput, siteUrl: string): Promise<void> {
+    const { projectCode } = input;
+    this.notificationService.notify(
+      NotificationEvent.SiteProvisioned,
+      { projectCode, siteUrl, leadTitle: input.projectName },
+      input.requestedBy
+    ).catch(console.error);
+    this.dataService.logAudit({
+      Action: AuditAction.SiteProvisioningCompleted,
+      EntityType: EntityType.Project,
+      EntityId: String(input.leadId),
+      ProjectCode: projectCode,
+      User: input.requestedBy,
+      Details: `Site provisioning completed for "${input.projectName}" (${projectCode}). Site URL: ${siteUrl}`,
+    }).catch(console.error);
+
+    // Initialize project feature flags from defaults (non-blocking)
+    if (this.siteDefaults?.defaultProjectFeatureFlags?.length) {
+      try {
+        await this.dataService.initializeProjectFeatureFlags(
+          projectCode, this.siteDefaults.defaultProjectFeatureFlags
+        );
+        this.dataService.logAudit({
+          Action: AuditAction.ProjectFeatureFlagsInitialized,
+          EntityType: EntityType.Config,
+          EntityId: projectCode,
+          ProjectCode: projectCode,
+          User: input.requestedBy,
+          Details: `Initialized ${this.siteDefaults.defaultProjectFeatureFlags.length} feature flags`,
+        }).catch(console.error);
+      } catch (err) {
+        console.warn(`[Provisioning] Feature flag init failed for ${projectCode}:`, err);
+      }
+    }
+
+    this.addHubNavLink(projectCode, input.projectName, siteUrl, input.requestedBy)
+      .catch(console.error);
   }
 
   /**

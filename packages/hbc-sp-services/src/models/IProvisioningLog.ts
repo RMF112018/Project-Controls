@@ -1,4 +1,5 @@
 import { ProvisioningStatus } from './enums';
+import type { ICompensationResult } from './IProvisioningSaga';
 
 export type HubNavLinkStatus = 'success' | 'failed' | 'not_applicable';
 
@@ -34,6 +35,10 @@ export interface IProvisioningLog {
   division?: string;
   region?: string;
   clientName?: string;
+  /** Phase 5C: Saga idempotency token (format: projectCode::ISO::hex4) */
+  idempotencyToken?: string;
+  /** Phase 5C: Compensation results from saga rollback */
+  compensationLog?: ICompensationResult[];
 }
 
 // --- Provisioning input ---

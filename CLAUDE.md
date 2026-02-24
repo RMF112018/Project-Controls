@@ -15,7 +15,7 @@ This file must stay under 40,000 characters. Never allow it to grow large again.
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-23 — Phase 4 IN PROGRESS. Hub Analytics Dashboard BUILT (/ route, 5 KPIs, 6 ECharts). Preconstruction Landing Dashboard BUILT (4 KPIs, 3 ECharts). Estimating Dashboard BUILT (5 KPIs, 3 ECharts). Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (20 routes, Phase 4E Project Number Requests, Phase 4G Department Tracking). Operations workspace BUILT (47 routes, 45 pages). Shared Services workspace BUILT (25 routes, 24 pages). HB Site Control workspace BUILT (16 routes, 15 pages). **Project Hub workspace BUILT** (37 routes, 36 pages, 10 sidebar groups). 136 total routes. 688 tests passing.
+**Last Updated:** 2026-02-24 — Phase 5C COMPLETE. ProvisioningSaga orchestrator (7-step reverse compensation, 6 new IDataService methods). SignalR ProvisioningStatus channel + useProvisioningStatus hook. ProvisioningStatusStepper (Fluent UI v9, motionTokens 150-250ms). lib-signalr-realtime webpack chunk. Feature flag: ProvisioningSaga (default OFF). 276 IDataService methods. 837 tests passing.
 
 **MANDATORY:** After any code change that affects the data layer, architecture, performance, UI/UX, testing, or security, update this file, verify against the current sprint gate, confirm relevant Skills and the master plan were followed, and check project memory before ending the session.
 
@@ -161,11 +161,11 @@ Cross-reference: §18 Roadmap (Phase 2), §21, §22, `.claude/plans/hbc-stabiliz
 
 ## §7 Service Methods Status (Live)
 
-**Total methods**: 270
-**Implemented**: 270
-**Remaining stubs**: 0 — **DATA LAYER COMPLETE** (9 Phase 1 provisioning + 7 Phase 2 role configuration + 34 Phase 4A/B/C connector/Procore/BambooHR + 4 Phase 4E project number request methods added)
+**Total methods**: 276
+**Implemented**: 276
+**Remaining stubs**: 0 — **DATA LAYER COMPLETE** (9 Phase 1 provisioning + 7 Phase 2 role configuration + 34 Phase 4A/B/C connector/Procore/BambooHR + 4 Phase 4E project number request + 6 Phase 5C saga compensation methods added)
 
-Last major additions: Phase 4G Department Tracking (Feb 23) — No new IDataService methods (uses existing getEstimateLog, getCurrentPursuits, getPreconEngagements, updateEstimatingRecord, createEstimatingRecord). DepartmentTrackingPage rebuilt with 3 tabs, full inline editing, SlideDrawer new-entry forms. Feature flag: EstimatingDepartmentTracking. Permission: ESTIMATING_READ/EDIT + RoleGate. 14 new Jest tests (688 total).
+Last major additions: Phase 5C Provisioning Saga (Feb 2026) — 6 new IDataService compensation methods: deleteProjectSite, removeProvisionedLists, disassociateFromHubSite, deleteProjectSecurityGroups, removeTemplateFiles, removeLeadDataFromProjectSite. ProvisioningSaga orchestrator with reverse-order compensation and idempotency tokens. SignalR ProvisioningStatus channel + useProvisioningStatus hook. ProvisioningStatusStepper Fluent UI v9 component. Feature flag: ProvisioningSaga (default OFF). 149 new Jest tests (837 total).
 
 ---
 
@@ -179,6 +179,7 @@ Last major additions: Phase 4G Department Tracking (Feb 23) — No new IDataServ
 - Phase 3: Navigation Overhaul + Router/Data Reconstruction — **COMPLETE** on `feature/hbc-suite-stabilization` (22 Feb 2026). AppLauncher + ContextualSidebar + 5 workspace route files + adapter hooks rewritten + PillarTabBar deleted + TanStackAdapterBridge removed. 752 tests passing.
 - Phase 4: Full Features — **IN PROGRESS**. Phase 4F: Analytics Hub Dashboard BUILT — AnalyticsHubDashboardPage at `/` with 5 KPI cards, 6 interactive ECharts (pipeline funnel, status treemap, win rate trend, resource heatmap, labor rate benchmark, material cost index), recent activity feed, role-gated workspace quick links, PowerBI embed placeholder. Feature flag: PowerBIIntegration (disabled). FunnelChart + TreemapChart registered in ECharts theme. Phase 4F-precon: Preconstruction + Estimating Dashboards BUILT — PreconDashboardPage rebuilt (4 KPIs + 3 charts: lead funnel, win rate by PE, autopsy trend). EstimatingDashboardPage rebuilt (5 KPIs + 3 charts: award status donut, source distribution, estimator workload). Both elevated to 4.75/10 with data hooks (`usePreconDashboardData`, `useEstimatingDashboardData`). PowerBI placeholder behind FeatureGate. Phase 4G: Department Tracking BUILT — DepartmentTrackingPage at `/preconstruction/estimating/tracking` with 3 tabs (Estimate Tracking Log, Current Pursuits, Current Preconstruction), all fields inline-editable (text/number/date/checkbox/dropdown), 8 Estimating/BIM Checklist items as individual checkbox columns in Current Pursuits, SlideDrawer for new entry creation, RoleGate on edit controls. Feature flag: EstimatingDepartmentTracking. 14 new Jest tests. Admin workspace BUILT (12 routes). Preconstruction workspace BUILT (20 routes — Phase 4E: Project Number Requests, Phase 4G: Department Tracking). Operations workspace BUILT (47 routes, 45 pages, 6 sidebar groups). Shared Services workspace BUILT (25 routes, 24 pages, 5 sidebar groups). HB Site Control workspace BUILT (16 routes, 15 pages, 3 sidebar groups). Project Hub workspace BUILT (37 routes, 36 pages, 10 sidebar groups — requireProject: true, feature flag: ProjectHubWorkspace). ConnectorManagementPanel BUILT. 688 tests passing.
 - Phase 5B: Workflow State Machines + E2E Coverage — **PLANNED (next execution block)** on `feature/hbc-suite-stabilization`. Scope locked: xstate v5 machines (`goNoGoMachine`, `pmpApprovalMachine`, `commitmentApprovalMachine`), `WorkflowMachineFactory` lazy-loading, `useWorkflowMachine`/`useWorkflowTransition`, optimistic mutation integration, and Playwright workflow E2E. Explicit constraint: TanStack Router v1 actions remain SKIPPED; transitions run through TanStack Query mutation orchestration.
+- Phase 5C: Provisioning Saga + SignalR Status Hub — **COMPLETE** on `feature/hbc-suite-stabilization`. ProvisioningSaga orchestrator (7-step reverse-order compensation, 6 new IDataService methods: deleteProjectSite, removeProvisionedLists, disassociateFromHubSite, deleteProjectSecurityGroups, removeTemplateFiles, removeLeadDataFromProjectSite). Idempotency tokens (projectCode::timestamp::hex4). IProvisioningStatusMessage SignalR channel + useProvisioningStatus hook. ProvisioningStatusStepper (Fluent UI v9, motionToken animations 150-250ms, prefers-reduced-motion, role-aware contrast). ProvisioningPage expandable stepper behind FeatureGate. lib-signalr-realtime webpack chunk. ProvisioningStatus.Compensating + 3 saga AuditActions. Feature flag: ProvisioningSaga (default OFF). 149 new Jest tests + 1 Playwright E2E (837 total).
 
 ---
 
@@ -217,6 +218,14 @@ Last major additions: Phase 4G Department Tracking (Feb 23) — No new IDataServ
 - **Fluent UI v9 Drawer**: Import from `@fluentui/react-drawer`, NOT `@fluentui/react-components` (v9.46 doesn't re-export Drawer components).
 - **ContextualSidebar accordion useEffect deps**: `[workspace?.id]` only — intentionally excludes `filteredGroups` and `isActivePath` to avoid re-running on every pathname change. `eslint-disable-line react-hooks/exhaustive-deps` on that line.
 - **UI/UX Elevation Rule (Critical – Mandatory):** For every UI component, page layout, dashboard, data table, form, navigation element, motion treatment, or visual design task, **immediately activate and strictly follow** `.claude/skills/elevated-ux-ui-design/SKILL.md`. Default exclusively to the 4.75/10 elevated patterns (Fluent UI v9 + Griffel). Pure 2/10 baseline Fluent designs are disallowed without explicit user approval and `uiElevatedExperienceV1` feature-flag gating. Always synchronize with `UX_UI_PATTERNS.md`.
+- **ProvisioningSaga compensation order is strict reverse**: compensate() iterates completedSteps sorted descending. Step 1 (site deletion) always runs LAST. Never reorder.
+- **Compensation failures are logged but NEVER thrown**: Every catch in compensate() logs to audit + pushes to compensationResults. No re-throw. Manual intervention alert for critical step failures.
+- **ProvisioningSaga feature flag discipline**: When flag OFF, legacy runSteps() unchanged. No hidden behavior drift. Same pattern as WorkflowStateMachine.
+- **IProvisioningStatusMessage is a separate SignalR type**: Do NOT reuse IEntityChangedMessage. Provisioning has step-level granularity (stepStatus, progress %).
+- **useProvisioningStatus filters by projectCode client-side**: Server-side group filtering deferred to Phase 6.
+- **lib-signalr-realtime chunk**: @microsoft/signalr dynamically imported in SignalRService.ts. Never import statically. cacheGroup at priority 20.
+- **Idempotency token format**: `${projectCode}::${ISO}::${4-byte-hex}`. Stored on IProvisioningLog.idempotencyToken.
+- **getStepState() check order**: compensating MUST be checked BEFORE completedSteps.includes — during rollback, a step can be in completedSteps array but actively compensating.
 
 ### New Skill Documentation (added 23 Feb 2026 at commit 55027ece)
 - **Provisioning Engine Skill Creation** `.claude/skills/provisioning-engine/SKILL.md` – 7-step engine protocol, guaranteed stable flows, manual test steps, and cross-references.  

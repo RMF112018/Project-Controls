@@ -974,6 +974,33 @@ export class SharePointDataService implements IDataService {
     return `<Field Type="${field.fieldType}" DisplayName="${field.displayName}" Name="${field.internalName}"${req}${idx}/>`;
   }
 
+  // --- Phase 5C: Saga Compensation Methods ---
+  // Real implementations deferred — stubs throw NotImplementedError for safety.
+
+  async deleteProjectSite(_siteUrl: string): Promise<void> {
+    throw new Error('NotImplementedError: deleteProjectSite requires admin Graph API calls — deferred to Phase 6');
+  }
+
+  async removeProvisionedLists(_siteUrl: string, _projectCode: string): Promise<void> {
+    throw new Error('NotImplementedError: removeProvisionedLists — deferred to Phase 6');
+  }
+
+  async disassociateFromHubSite(_siteUrl: string, _hubSiteUrl: string): Promise<void> {
+    throw new Error('NotImplementedError: disassociateFromHubSite — deferred to Phase 6');
+  }
+
+  async deleteProjectSecurityGroups(_siteUrl: string, _projectCode: string): Promise<void> {
+    throw new Error('NotImplementedError: deleteProjectSecurityGroups — deferred to Phase 6');
+  }
+
+  async removeTemplateFiles(_siteUrl: string, _projectCode: string): Promise<void> {
+    throw new Error('NotImplementedError: removeTemplateFiles — deferred to Phase 6');
+  }
+
+  async removeLeadDataFromProjectSite(_siteUrl: string, _leadId: number, _projectCode: string): Promise<void> {
+    throw new Error('NotImplementedError: removeLeadDataFromProjectSite — deferred to Phase 6');
+  }
+
   // --- GitOps Template Provisioning ---
 
   async getTemplateSiteConfig(): Promise<ITemplateSiteConfig | null> {

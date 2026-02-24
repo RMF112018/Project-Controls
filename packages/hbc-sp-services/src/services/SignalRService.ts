@@ -96,7 +96,7 @@ export class SignalRService {
     try {
       // Dynamically import @microsoft/signalr to avoid bundling when unused
       const signalRModule = await import(
-        /* webpackChunkName: "signalr" */
+        /* webpackChunkName: "lib-signalr-realtime" */
         '@microsoft/signalr'
       );
 
@@ -139,7 +139,7 @@ export class SignalRService {
       });
 
       // Register message handlers for each message type
-      const messageTypes: SignalRMessageType[] = ['EntityChanged', 'UserPresence', 'WorkflowAdvanced'];
+      const messageTypes: SignalRMessageType[] = ['EntityChanged', 'UserPresence', 'WorkflowAdvanced', 'ProvisioningStatus'];
       for (const msgType of messageTypes) {
         this.connection.on(msgType, (message: SignalRMessage) => {
           this.dispatchMessage(message);

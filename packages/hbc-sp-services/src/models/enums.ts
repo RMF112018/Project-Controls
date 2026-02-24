@@ -111,7 +111,8 @@ export enum ProvisioningStatus {
   InProgress = 'InProgress',
   Completed = 'Completed',
   PartialFailure = 'PartialFailure',
-  Failed = 'Failed'
+  Failed = 'Failed',
+  Compensating = 'Compensating'
 }
 
 export enum AuditAction {
@@ -241,6 +242,10 @@ export enum AuditAction {
   ProjectNumberAssigned = 'ProjectNumberRequest.NumberAssigned',
   ProjectNumberProvisioningTriggered = 'ProjectNumberRequest.ProvisioningTriggered',
   ProjectNumberProvisioningCompleted = 'ProjectNumberRequest.ProvisioningCompleted',
+  // Phase 5C: Provisioning Saga Compensation
+  SagaCompensationStarted = 'Saga.CompensationStarted',
+  SagaStepCompensated = 'Saga.StepCompensated',
+  SagaCompensationFailed = 'Saga.CompensationFailed',
 }
 
 export enum EntityType {

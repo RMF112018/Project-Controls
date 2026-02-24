@@ -143,6 +143,12 @@ module.exports = {
           priority: 20,
           chunks: 'async',
         },
+        signalr: {
+          test: /[\\/]node_modules[\\/]@microsoft[\\/]signalr[\\/]/,
+          name: 'lib-signalr-realtime',
+          priority: 20,
+          chunks: 'async',
+        },
       },
     },
   },

@@ -2577,6 +2577,46 @@ export class MockDataService implements IDataService {
   }
 
   // ---------------------------------------------------------------------------
+  // Phase 5C: Saga Compensation Methods
+  // ---------------------------------------------------------------------------
+
+  public async deleteProjectSite(siteUrl: string): Promise<void> {
+    await delay();
+    console.log(`[Mock] Deleted project site: ${siteUrl}`);
+    void this.logAudit({ Action: AuditAction.SagaStepCompensated, EntityType: EntityType.Project, EntityId: siteUrl, User: 'system', Details: `Compensation: deleted site ${siteUrl}` });
+  }
+
+  public async removeProvisionedLists(siteUrl: string, projectCode: string): Promise<void> {
+    await delay();
+    console.log(`[Mock] Removed provisioned lists from ${siteUrl} for ${projectCode}`);
+    void this.logAudit({ Action: AuditAction.SagaStepCompensated, EntityType: EntityType.Project, EntityId: projectCode, User: 'system', Details: `Compensation: removed lists from ${siteUrl}` });
+  }
+
+  public async disassociateFromHubSite(siteUrl: string, hubSiteUrl: string): Promise<void> {
+    await delay();
+    console.log(`[Mock] Disassociated ${siteUrl} from hub ${hubSiteUrl}`);
+    void this.logAudit({ Action: AuditAction.SagaStepCompensated, EntityType: EntityType.Project, EntityId: siteUrl, User: 'system', Details: `Compensation: disassociated from hub ${hubSiteUrl}` });
+  }
+
+  public async deleteProjectSecurityGroups(siteUrl: string, projectCode: string): Promise<void> {
+    await delay();
+    console.log(`[Mock] Deleted security groups for ${projectCode} on ${siteUrl}`);
+    void this.logAudit({ Action: AuditAction.SagaStepCompensated, EntityType: EntityType.Project, EntityId: projectCode, User: 'system', Details: `Compensation: deleted security groups for ${projectCode}` });
+  }
+
+  public async removeTemplateFiles(siteUrl: string, projectCode: string): Promise<void> {
+    await delay();
+    console.log(`[Mock] Removed template files from ${siteUrl} for ${projectCode}`);
+    void this.logAudit({ Action: AuditAction.SagaStepCompensated, EntityType: EntityType.Project, EntityId: projectCode, User: 'system', Details: `Compensation: removed template files from ${siteUrl}` });
+  }
+
+  public async removeLeadDataFromProjectSite(siteUrl: string, leadId: number, projectCode: string): Promise<void> {
+    await delay();
+    console.log(`[Mock] Removed lead data (ID: ${leadId}) from ${siteUrl} for ${projectCode}`);
+    void this.logAudit({ Action: AuditAction.SagaStepCompensated, EntityType: EntityType.Project, EntityId: String(leadId), User: 'system', Details: `Compensation: removed lead data from ${siteUrl}` });
+  }
+
+  // ---------------------------------------------------------------------------
   // GitOps Template Provisioning
   // ---------------------------------------------------------------------------
 

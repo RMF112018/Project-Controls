@@ -5,6 +5,7 @@ import {
   cacheService,
   SignalRConnectionStatus,
   IEntityChangedMessage,
+  IProvisioningStatusMessage,
   SignalRMessage,
   EntityType,
   CACHE_KEYS,
@@ -138,6 +139,22 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
     });
 
     return unsubscribe;
+  }, [isEnabled]);
+
+  // Phase 5C: Provisioning status cache invalidation
+  React.useEffect(() => {
+    if (!isEnabled) return;
+
+    const unsubscribeProvisioning = signalRService.subscribe('ProvisioningStatus', (msg: SignalRMessage) => {
+      if (msg.type !== 'ProvisioningStatus') return;
+      const statusMsg = msg as IProvisioningStatusMessage;
+      // Invalidate provisioning cache on step completion or failure
+      if (statusMsg.stepStatus === 'completed' || statusMsg.stepStatus === 'failed') {
+        cacheService.removeByPrefix(CACHE_KEYS.PROVISIONING);
+      }
+    });
+
+    return unsubscribeProvisioning;
   }, [isEnabled]);
 
   // Stable subscribe function

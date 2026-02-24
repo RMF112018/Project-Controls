@@ -32,6 +32,7 @@ const MONITORED_CHUNKS = [
   'lib-export-excel',
   'lib-export-canvas',
   'lib-xstate-workflow',
+  'lib-signalr-realtime',
   'vendors',
   'runtime',
 ];

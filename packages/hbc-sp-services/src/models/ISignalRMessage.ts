@@ -34,7 +34,20 @@ export interface IWorkflowAdvancedMessage {
   timestamp: string;
 }
 
-export type SignalRMessage = IEntityChangedMessage | IUserPresenceMessage | IWorkflowAdvancedMessage;
+export interface IProvisioningStatusMessage {
+  type: 'ProvisioningStatus';
+  projectCode: string;
+  currentStep: number;
+  totalSteps: number;
+  stepStatus: 'pending' | 'in_progress' | 'completed' | 'failed' | 'compensating';
+  stepLabel: string;
+  progress: number; // 0-100
+  error?: string;
+  idempotencyToken?: string;
+  timestamp: string;
+}
+
+export type SignalRMessage = IEntityChangedMessage | IUserPresenceMessage | IWorkflowAdvancedMessage | IProvisioningStatusMessage;
 
 export type SignalRConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
 

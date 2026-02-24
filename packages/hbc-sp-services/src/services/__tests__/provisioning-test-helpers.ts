@@ -83,6 +83,13 @@ export function createProvisioningMockDataService(): Record<string, jest.Mock> {
     copyLeadDataToProjectSite: jest.fn().mockResolvedValue(undefined),
     updateSiteProperties: jest.fn().mockResolvedValue(undefined),
     createList: jest.fn().mockResolvedValue(undefined),
+    // Phase 5C: Saga compensation mocks
+    deleteProjectSite: jest.fn().mockResolvedValue(undefined),
+    removeProvisionedLists: jest.fn().mockResolvedValue(undefined),
+    disassociateFromHubSite: jest.fn().mockResolvedValue(undefined),
+    deleteProjectSecurityGroups: jest.fn().mockResolvedValue(undefined),
+    removeTemplateFiles: jest.fn().mockResolvedValue(undefined),
+    removeLeadDataFromProjectSite: jest.fn().mockResolvedValue(undefined),
   };
 }
 

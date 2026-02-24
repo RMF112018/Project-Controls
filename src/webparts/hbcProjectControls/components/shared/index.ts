@@ -51,3 +51,5 @@ export type {
 } from './HbcDataTable';
 export { OfflineMonitor } from './OfflineMonitor';
 export { SwUpdateMonitor } from './SwUpdateMonitor';
+export { ProvisioningStatusStepper } from './ProvisioningStatusStepper';
+export type { IProvisioningStepperProps } from './ProvisioningStatusStepper';

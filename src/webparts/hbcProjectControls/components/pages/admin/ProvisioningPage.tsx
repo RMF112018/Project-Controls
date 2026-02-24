@@ -12,6 +12,9 @@ import { useToast } from '../../shared/ToastContainer';
 import { ProvisioningStatus, AuditAction, EntityType } from '@hbc/sp-services';
 import type { IProvisioningLog } from '@hbc/sp-services';
 import type { IProvisioningSummary } from '@hbc/sp-services';
+import { ProvisioningStatusStepper } from '../../shared/ProvisioningStatusStepper';
+import { FeatureGate } from '../../guards/FeatureGate';
+import { useProvisioningStatus } from '../../hooks/useProvisioningStatus';
 
 const POLL_INTERVAL_MS = 30_000;
 
@@ -21,6 +24,7 @@ const STATUS_COLORS: Record<ProvisioningStatus, { color: string; backgroundColor
   [ProvisioningStatus.Failed]: { color: tokens.colorStatusDangerForeground2, backgroundColor: tokens.colorStatusDangerBackground2 },
   [ProvisioningStatus.PartialFailure]: { color: tokens.colorStatusWarningForeground2, backgroundColor: tokens.colorStatusWarningBackground2 },
   [ProvisioningStatus.Queued]: { color: tokens.colorNeutralForeground3, backgroundColor: tokens.colorNeutralBackground3 },
+  [ProvisioningStatus.Compensating]: { color: tokens.colorPaletteDarkOrangeForeground1, backgroundColor: tokens.colorPaletteDarkOrangeBackground1 },
 };
 
 const useStyles = makeStyles({
@@ -43,6 +47,20 @@ const useStyles = makeStyles({
     fontSize: '12px',
     color: tokens.colorNeutralForeground3,
   },
+  stepperToggle: {
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    ...shorthands.gap('4px'),
+    fontSize: '12px',
+    color: tokens.colorBrandForeground1,
+    ':hover': {
+      textDecorationLine: 'underline',
+    },
+  },
+  stepperContainer: {
+    ...shorthands.padding('8px', '0'),
+  },
 });
 
 function formatDuration(ms: number): string {
@@ -62,6 +80,58 @@ function formatDate(iso: string | null | undefined): string {
     return iso;
   }
 }
+
+/** Expandable cell with ProvisioningStatusStepper — shown when ProvisioningSaga flag is ON */
+const ProvisioningProgressCell: React.FC<{ log: IProvisioningLog }> = ({ log }) => {
+  const styles = useStyles();
+  const [expanded, setExpanded] = React.useState(false);
+  const provisioningStatus = useProvisioningStatus(
+    log.status === ProvisioningStatus.InProgress || log.status === ProvisioningStatus.Compensating
+      ? log.projectCode
+      : undefined
+  );
+
+  const completedSteps = React.useMemo(() => {
+    // Build completed steps array from the log's completedSteps count
+    const steps: number[] = [];
+    for (let i = 1; i <= (provisioningStatus.status !== 'idle' ? provisioningStatus.currentStep : log.completedSteps); i++) {
+      if (i !== log.failedStep) steps.push(i);
+    }
+    return steps;
+  }, [log.completedSteps, log.failedStep, provisioningStatus.status, provisioningStatus.currentStep]);
+
+  const stepStatus = provisioningStatus.status !== 'idle'
+    ? provisioningStatus.stepStatus
+    : log.status === ProvisioningStatus.Completed ? 'completed'
+    : log.status === ProvisioningStatus.Failed ? 'failed'
+    : 'pending';
+
+  return (
+    <div>
+      <span
+        className={styles.stepperToggle}
+        onClick={() => setExpanded(!expanded)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setExpanded(!expanded); }}
+        aria-expanded={expanded}
+      >
+        {log.completedSteps} / 7 steps {expanded ? '\u25B2' : '\u25BC'}
+      </span>
+      {expanded && (
+        <div className={styles.stepperContainer}>
+          <ProvisioningStatusStepper
+            currentStep={provisioningStatus.status !== 'idle' ? provisioningStatus.currentStep : log.currentStep}
+            completedSteps={completedSteps}
+            failedStep={log.failedStep}
+            stepStatus={stepStatus}
+            compensationResults={log.compensationLog}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const ProvisioningPage: React.FC = () => {
   const styles = useStyles();
@@ -158,9 +228,16 @@ export const ProvisioningPage: React.FC = () => {
       key: 'progress',
       header: 'Progress',
       render: (row) => (
-        <span className={styles.progressText}>
-          {row.completedSteps} / 7 steps
-        </span>
+        <FeatureGate
+          featureName="ProvisioningSaga"
+          fallback={
+            <span className={styles.progressText}>
+              {row.completedSteps} / 7 steps
+            </span>
+          }
+        >
+          <ProvisioningProgressCell log={row} />
+        </FeatureGate>
       ),
     },
     {

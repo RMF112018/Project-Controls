@@ -20,3 +20,5 @@ export { useWorkflowMachine } from './useWorkflowMachine';
 export type { UseWorkflowMachineOptions, UseWorkflowMachineResult } from './useWorkflowMachine';
 export { useWorkflowTransition } from './useWorkflowTransition';
 export type { IUseWorkflowTransitionOptions, IUseWorkflowTransitionResult } from './useWorkflowTransition';
+export { useProvisioningStatus } from './useProvisioningStatus';
+export type { IProvisioningStatusState } from './useProvisioningStatus';

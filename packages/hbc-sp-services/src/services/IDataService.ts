@@ -194,6 +194,14 @@ export interface IDataService {
   updateSiteProperties(siteUrl: string, properties: Record<string, string>): Promise<void>;
   createList(siteUrl: string, listName: string, templateType: number, fields: IFieldDefinition[]): Promise<void>;
 
+  // Phase 5C: Saga Compensation Methods
+  deleteProjectSite(siteUrl: string): Promise<void>;
+  removeProvisionedLists(siteUrl: string, projectCode: string): Promise<void>;
+  disassociateFromHubSite(siteUrl: string, hubSiteUrl: string): Promise<void>;
+  deleteProjectSecurityGroups(siteUrl: string, projectCode: string): Promise<void>;
+  removeTemplateFiles(siteUrl: string, projectCode: string): Promise<void>;
+  removeLeadDataFromProjectSite(siteUrl: string, leadId: number, projectCode: string): Promise<void>;
+
   // GitOps Template Provisioning
   getTemplateSiteConfig(): Promise<ITemplateSiteConfig | null>;
   updateTemplateSiteConfig(data: Partial<ITemplateSiteConfig>): Promise<ITemplateSiteConfig>;
