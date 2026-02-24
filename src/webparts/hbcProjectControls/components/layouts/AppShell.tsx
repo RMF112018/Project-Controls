@@ -20,7 +20,8 @@ import { FeatureGate } from '../guards';
 import { useResponsive } from '../hooks/useResponsive';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
-import { IEnvironmentConfig, APP_VERSION } from '@hbc/sp-services';
+import { IEnvironmentConfig } from '@hbc/sp-services';
+import { HeaderUserMenu } from '../shared/HeaderUserMenu';
 import { ArrowMaximize24Regular, ArrowMinimize24Regular } from '@fluentui/react-icons';
 import { HBC_COLORS, SPACING, ELEVATION, TRANSITION } from '../../theme/tokens';
 
@@ -102,15 +103,6 @@ const useStyles = makeStyles({
     fontSize: '10px',
     fontWeight: '700',
     letterSpacing: '0.5px',
-  },
-  userName: {
-    fontSize: '13px',
-    opacity: 0.8,
-  },
-  version: {
-    fontSize: '11px',
-    color: 'rgba(255,255,255,0.85)',
-    cursor: 'pointer',
   },
   // Body layout
   body: {
@@ -434,12 +426,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           <FeatureGate featureName="RealTimeUpdates">
             <PresenceIndicator />
           </FeatureGate>
-          {currentUser && !isMobile && (
-            <span className={styles.userName}>{currentUser.displayName}</span>
-          )}
-          <span onClick={() => setWhatsNewOpen(true)} className={styles.version} title="What's New">
-            v{APP_VERSION}
-          </span>
+          <HeaderUserMenu onWhatsNew={() => setWhatsNewOpen(true)} />
         </div>
       </header>
 

@@ -48,8 +48,7 @@ test.describe('Connector Management Panel', () => {
 
     const testButton = page.locator('[data-testid^="connector-test-"]').first();
     await expect(testButton).toBeVisible({ timeout: 10_000 });
-    // force: true bypasses the dev RoleSwitcher overlay that may intercept pointer events
-    await testButton.click({ force: true });
+    await testButton.click();
 
     // Button should re-enable after test connection completes
     await expect(testButton).toBeEnabled({ timeout: 10_000 });
@@ -67,7 +66,7 @@ test.describe('Connector Management Panel', () => {
 
     const syncButton = page.locator('[data-testid^="connector-sync-"]').first();
     await expect(syncButton).toBeVisible({ timeout: 10_000 });
-    await syncButton.click({ force: true });
+    await syncButton.click();
 
     // Button should re-enable after sync completes
     await expect(syncButton).toBeEnabled({ timeout: 10_000 });
@@ -85,7 +84,7 @@ test.describe('Connector Management Panel', () => {
 
     const historyButton = page.locator('[data-testid^="connector-history-"]').first();
     await expect(historyButton).toBeVisible({ timeout: 10_000 });
-    await historyButton.click({ force: true });
+    await historyButton.click();
 
     // Sync history drawer should become visible
     const drawer = page.locator('[data-testid="sync-history-drawer"]');

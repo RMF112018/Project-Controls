@@ -16,7 +16,7 @@ This file must stay under 40,000 characters. Never allow it to grow large again.
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-24 — Phase 5D.1 Fidelity Cleanup COMPLETE. bindEnforcerFeatureCheck (renamed from initializeEnforcerFeatureCheck). ThresholdLevel lowercase. CACHE_KEYS.AUDIT_LOG. getAuditLog() threshold enforcement. Coverage 80.84/93.26/92.90/94.06. CLAUDE.md §7/§15/§16 synced to governing spec. 814 tests.
+**Last Updated:** 2026-02-24 — HeaderUserMenu consolidation COMPLETE. Floating dev/RoleSwitcher.tsx deleted. IDevToolsConfig flows dev/index.tsx → IAppProps → AppContext → HeaderUserMenu. Playwright roleFixture rewritten for Fluent Menu. 888 tests.
 
 **MANDATORY:** After any code change that affects the data layer, architecture, performance, UI/UX, testing, or security, update this file, verify against the current sprint gate, confirm relevant Skills and the master plan were followed, update CHANGELOG.md (root), and check project memory before ending the session.
 
@@ -110,7 +110,8 @@ See `PERFORMANCE_OPTIMIZATION_GUIDE.md` §5 for detailed bundle and chunk rules.
 - All data access through `IDataService` abstraction  
 - TanStack Query + Router loaders preferred over useEffect fetches  
 - RoleGate + FeatureGate required on every sensitive surface  
-- Griffel `makeStyles` for all styling  
+- Griffel `makeStyles` for all styling
+- **HeaderUserMenu (consolidated 2026-02-24)**: Fluent UI v9 Menu + Persona in header-right. Contains user display, version/What's New link, and gated dev tools (role switcher + mode toggle). Floating MOCK MODE panel removed. Dev tools visible only when `devToolsConfig` provided (dev server only).
 
 **Router Stability Rule (Critical)**  
 The TanStack Router instance MUST be created exactly once (via `useRef` in `router.tsx`) with real initial prop values. Dynamic value changes injected via `router.update()` in a `useEffect` — NEVER via `RouterProvider context={}` prop. The `context` prop causes `RouterContextProvider` to call `router.update()` synchronously during render, creating infinite re-render loops when routes have async loaders (`ensureQueryData`). NEVER pass dynamic values to any dep array that triggers router recreation.
@@ -183,6 +184,7 @@ Last major additions: Phase 5D Cross-cutting Governance (Feb 2026) — No new ID
 - Phase 5C: Provisioning Saga + SignalR Status Hub — **COMPLETE** on `feature/hbc-suite-stabilization`. ProvisioningSaga orchestrator (7-step reverse-order compensation, 6 new IDataService methods: deleteProjectSite, removeProvisionedLists, disassociateFromHubSite, deleteProjectSecurityGroups, removeTemplateFiles, removeLeadDataFromProjectSite). Idempotency tokens (projectCode::timestamp::hex4). IProvisioningStatusMessage SignalR channel + useProvisioningStatus hook. ProvisioningStatusStepper (Fluent UI v9, motionToken animations 150-250ms, prefers-reduced-motion, role-aware contrast). ProvisioningPage expandable stepper behind FeatureGate. lib-signalr-realtime webpack chunk. ProvisioningStatus.Compensating + 3 saga AuditActions. Feature flag: ProvisioningSaga (default OFF). 149 new Jest tests + 1 Playwright E2E (837 total).  
 **Evaluation note (2026-02-24):** 9.1/10 at commit 001966664060b89aeb16046b29363669ca5487d3. Gating item resolved: full CHANGELOG.md + CLAUDE.md sync enforced.
 - Phase 5D: Cross-cutting Quality & Governance — **COMPLETE** on `feature/hbc-suite-stabilization`. GraphBatchEnforcer (10ms coalescence, threshold 3, feature flag GraphBatchingEnabled id 58). ListThresholdGuard (3000 warn, 4500 force-page). Coverage ramp 80/60/70/80. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md created. Connector E2E (5 tests) + expanded provisioning E2E (+2 tests). resilient-data-operations SKILL v1.2. ~857 tests passing.
+- Phase 5D.1: Fidelity Cleanup + HeaderUserMenu Consolidation — **COMPLETE** on `feature/hbc-suite-stabilization`. Floating dev/RoleSwitcher.tsx removed. HeaderUserMenu (Fluent UI v9 Menu + Persona) in AppShell header. IDevToolsConfig prop chain. Playwright roleFixture rewritten (select → MenuItemRadio). 8 new Jest tests. 888 tests passing.
 
 ---
 
@@ -229,6 +231,9 @@ Last major additions: Phase 5D Cross-cutting Governance (Feb 2026) — No new ID
 - **lib-signalr-realtime chunk**: @microsoft/signalr dynamically imported in SignalRService.ts. Never import statically. cacheGroup at priority 20.  
 - **Idempotency token format**: `${projectCode}::${ISO}::${4-byte-hex}`. Stored on IProvisioningLog.idempotencyToken.  
 - **getStepState() check order**: compensating MUST be checked BEFORE completedSteps.includes — during rollback, a step can be in completedSteps array but actively compensating.  
+- **HeaderUserMenu data-testid**: `data-testid="role-switcher"` on wrapper div — preserved for Playwright fixture compat.
+- **Dev tools in header**: Role switcher relocated from floating dev/RoleSwitcher.tsx to HeaderUserMenu. IDevToolsConfig flows: dev/index.tsx → IAppProps → AppContext → HeaderUserMenu. Never import dev/ in src/.
+- **No floating dev panels**: z-index 9999 floating elements are prohibited. All dev tools live in HeaderUserMenu.
 - **CHANGELOG.md Maintenance (Critical)**: Root CHANGELOG.md must be updated on every commit or evaluation. Format: `## [YYYY-MM-DD] - [Phase] - [Commit] - [Summary]`. Failure violates governance and blocks merge.
 - **GraphBatchEnforcer coalescence window is 10ms**: Timer resets on every new enqueue. Threshold of 3 triggers immediate flush. When `GraphBatchingEnabled` OFF, zero overhead pass-through.
 - **GraphBatchEnforcer is composition, not inheritance**: Wraps `GraphBatchService.executeBatch()`. Never extend or modify GraphBatchService for auto-batching.

@@ -11,6 +11,7 @@ import {
 } from '@hbc/sp-services';
 import type { ITelemetryService } from '@hbc/sp-services';
 import { MockTelemetryService } from '@hbc/sp-services';
+import type { IDevToolsConfig } from '../App';
 import { useFullScreen } from '../hooks/useFullScreen';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
@@ -68,6 +69,7 @@ export interface IAppContextValue {
   getDashboardPreference: (key: string) => IDashboardPreference | undefined;
   setDashboardPreference: (key: string, value: IDashboardPreference) => void;
   resetDashboardPreference: (key: string) => void;
+  devToolsConfig?: IDevToolsConfig;
 }
 
 const AppContext = React.createContext<IAppContextValue | undefined>(undefined);
@@ -77,10 +79,11 @@ interface IAppProviderProps {
   telemetryService?: ITelemetryService;
   siteUrl?: string;
   dataServiceMode?: 'mock' | 'standalone' | 'sharepoint';
+  devToolsConfig?: IDevToolsConfig;
   children: React.ReactNode;
 }
 
-export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetryService, siteUrl, dataServiceMode, children }) => {
+export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetryService, siteUrl, dataServiceMode, devToolsConfig, children }) => {
   // Fallback to no-op MockTelemetryService if none provided (dev/test convenience)
   const resolvedTelemetry = React.useMemo<ITelemetryService>(() => {
     if (telemetryService) return telemetryService;
@@ -369,7 +372,8 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     getDashboardPreference,
     setDashboardPreference,
     resetDashboardPreference,
-  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isProjectSwitching, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode, isOnline, dashboardPreferences, getDashboardPreference, setDashboardPreference, resetDashboardPreference]);
+    devToolsConfig,
+  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isProjectSwitching, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode, isOnline, dashboardPreferences, getDashboardPreference, setDashboardPreference, resetDashboardPreference, devToolsConfig]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

@@ -1,17 +1,37 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from '@components/App';
-import { MockDataService, RoleName, StandaloneSharePointDataService } from '@hbc/sp-services';
+import type { IDevToolsConfig } from '@components/App';
+import { MockDataService, RoleName } from '@hbc/sp-services';
 import type { IDataService } from '@hbc/sp-services';
 import type { ISiteContext } from '@hbc/sp-services';
-import { RoleSwitcher } from './RoleSwitcher';
 import { MSALAuthProvider } from './auth/MSALAuthProvider';
 import { MsalBoundary } from './auth/MsalBoundary';
 import { setMockUserRole, getMockUserRole } from './mockContext';
+import { getQueryClient } from '../src/webparts/hbcProjectControls/tanstack/query/queryClient';
 
 const DEV_SUPER_ADMIN = 'DEV_SUPER_ADMIN';
 type RoleValue = RoleName | typeof DEV_SUPER_ADMIN;
 type DataServiceMode = 'mock' | 'standalone';
+
+/** Central role options for the dev role switcher (consolidated from dev/RoleSwitcher.tsx). */
+const ROLE_OPTIONS: ReadonlyArray<{ label: string; value: string }> = [
+  { label: '\u26A1 DEV: Super-Admin', value: DEV_SUPER_ADMIN },
+  { label: 'President / VP Operations', value: RoleName.ExecutiveLeadership },
+  { label: 'OpEx Manager', value: RoleName.IDS },
+  { label: 'Department Director', value: RoleName.DepartmentDirector },
+  { label: 'SharePoint Admin', value: RoleName.SharePointAdmin },
+  { label: 'Project Executive', value: RoleName.OperationsTeam },
+  { label: 'Project Manager', value: RoleName.OperationsTeam },
+  { label: 'Estimating Coordinator', value: RoleName.EstimatingCoordinator },
+  { label: 'BD Representative', value: RoleName.BDRepresentative },
+  { label: 'Accounting Controller', value: RoleName.AccountingManager },
+  { label: 'Legal / Risk Manager', value: RoleName.Legal },
+  { label: 'Marketing', value: RoleName.Marketing },
+  { label: 'Quality Control', value: RoleName.QualityControl },
+  { label: 'Safety', value: RoleName.Safety },
+  { label: 'Read-Only Observer', value: RoleName.RiskManagement },
+];
 
 // Persist mode across refreshes (MSAL already caches tokens in localStorage)
 const STORAGE_KEY = 'hbc-dev-mode';
@@ -33,7 +53,7 @@ const DevRoot: React.FC = () => {
   const [authError, setAuthError] = React.useState<string | null>(null);
 
   const handleRoleChange = React.useCallback(
-    (newRole: RoleValue) => {
+    (newRole: RoleValue | string) => {
       if (newRole === role) return;
       if (newRole === DEV_SUPER_ADMIN) {
         mockDataService.setDevSuperAdminMode(true);
@@ -42,8 +62,15 @@ const DevRoot: React.FC = () => {
         setMockUserRole(newRole as RoleName);
         mockDataService.setCurrentUserRole(newRole as RoleName);
       }
+      // Targeted invalidation of role-dependent query caches
+      getQueryClient().invalidateQueries({
+        predicate: (query) =>
+          ['projects', 'pipeline', 'analytics', 'permissions', 'user'].some((k) =>
+            String(query.queryKey[0]).includes(k)
+          ),
+      });
       window.location.hash = '#/';
-      setRole(newRole);
+      setRole(newRole as RoleValue);
     },
     [role]
   );
@@ -95,41 +122,41 @@ const DevRoot: React.FC = () => {
         </MsalBoundary>
       );
     }
+    const standaloneDevToolsConfig: IDevToolsConfig = {
+      currentRole: String(role),
+      roleOptions: ROLE_OPTIONS,
+      onRoleChange: () => { /* role switching disabled in standalone — real user */ },
+      onSwitchMode: handleReturnToMock,
+      mode: 'standalone',
+    };
     return (
       <MsalBoundary onReset={() => { setAuthError(null); setStandaloneService(null); }}>
-        <RoleSwitcher
-          role={role}
-          onRoleChange={() => { /* role switching disabled in standalone — real user */ }}
-          mode="standalone"
-          standaloneUser={standaloneUser}
-          onSwitchMode={handleReturnToMock}
-          authError={authError}
-        />
         <App
           key="standalone"
           dataService={standaloneService}
           siteUrl={standaloneSiteContext?.siteUrl ?? hubUrl}
           dataServiceMode="standalone"
+          devToolsConfig={standaloneDevToolsConfig}
         />
       </MsalBoundary>
     );
   }
 
   // Default: mock mode
+  const mockDevToolsConfig: IDevToolsConfig = {
+    currentRole: String(role),
+    roleOptions: ROLE_OPTIONS,
+    onRoleChange: handleRoleChange,
+    onSwitchMode: handleEnterStandalone,
+    mode: 'mock',
+  };
   return (
-    <>
-      <RoleSwitcher
-        role={role}
-        onRoleChange={handleRoleChange}
-        mode="mock"
-        onSwitchMode={handleEnterStandalone}
-      />
-      <App
-        key={String(role)}
-        dataService={mockDataService}
-        dataServiceMode="mock"
-      />
-    </>
+    <App
+      key={String(role)}
+      dataService={mockDataService}
+      dataServiceMode="mock"
+      devToolsConfig={mockDevToolsConfig}
+    />
   );
 };
 

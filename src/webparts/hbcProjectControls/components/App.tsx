@@ -17,12 +17,21 @@ import { getQueryClient } from '../tanstack/query/queryClient';
 import { useQueryScope } from '../tanstack/query/useQueryScope';
 import { TanStackAppRouterProvider } from '../tanstack/router/router';
 
+export interface IDevToolsConfig {
+  currentRole: string;
+  roleOptions: ReadonlyArray<{ label: string; value: string }>;
+  onRoleChange: (role: string) => void;
+  onSwitchMode?: () => void;
+  mode: 'mock' | 'standalone';
+}
+
 export interface IAppProps {
   dataService: IDataService;
   telemetryService?: ITelemetryService;
   siteUrl?: string;
   dataServiceMode?: 'mock' | 'standalone' | 'sharepoint';
   hostTheme?: Partial<Theme>;
+  devToolsConfig?: IDevToolsConfig;
 }
 
 function mergeThemes(baseTheme: Theme, hostThemePatch?: Partial<Theme>): Theme {
@@ -55,7 +64,7 @@ const AppRoutes: React.FC = () => {
   );
 };
 
-export const App: React.FC<IAppProps> = ({ dataService, telemetryService, siteUrl, dataServiceMode, hostTheme }) => {
+export const App: React.FC<IAppProps> = ({ dataService, telemetryService, siteUrl, dataServiceMode, hostTheme, devToolsConfig }) => {
   const queryClient = React.useMemo(() => getQueryClient(), []);
   const showQueryDevtools =
     typeof window !== 'undefined'
@@ -71,7 +80,7 @@ export const App: React.FC<IAppProps> = ({ dataService, telemetryService, siteUr
     <FluentProvider theme={mergedTheme}>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <AppProvider dataService={dataService} telemetryService={telemetryService} siteUrl={siteUrl} dataServiceMode={dataServiceMode}>
+          <AppProvider dataService={dataService} telemetryService={telemetryService} siteUrl={siteUrl} dataServiceMode={dataServiceMode} devToolsConfig={devToolsConfig}>
             <SignalRProvider>
               <HelpProvider>
                 <ToastProvider>

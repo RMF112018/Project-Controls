@@ -54,7 +54,7 @@ test.describe('Dashboard — smoke tests', () => {
     expect(realErrors).toHaveLength(0);
   });
 
-  test('RoleSwitcher overlay is visible', async ({ page }) => {
+  test('Header user menu with dev tools is visible', async ({ page }) => {
     await expect(page.locator('[data-testid="role-switcher"]')).toBeVisible({ timeout: 8_000 });
   });
 });

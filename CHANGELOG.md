@@ -2,6 +2,27 @@
 
 All notable changes to HBC Project Controls will be documented in this file.
 
+## [2026-02-24] - Phase 5D.1 - HeaderUserMenu Consolidation
+
+### Added
+- `HeaderUserMenu` component (`shared/HeaderUserMenu.tsx`) — Fluent UI v9 Menu + Persona trigger in AppShell header
+- `IDevToolsConfig` interface in `App.tsx` — typed prop chain for dev tools (role switcher, mode toggle)
+- `devToolsConfig` threaded through `AppContext` for header consumption
+- 8 new Jest tests for HeaderUserMenu (`shared/__tests__/HeaderUserMenu.test.tsx`)
+- Targeted TanStack Query invalidation on role change (`['projects','pipeline','analytics','permissions','user']`)
+
+### Changed
+- Playwright `roleFixture.ts` rewritten: native `<select>` → Fluent `MenuItemRadio` interaction
+- Playwright `mode-switch.spec.ts` updated for header menu-based mode switching
+- Playwright `connectors.e2e.spec.ts` removed `force: true` workarounds (z-index overlay gone)
+- AppShell header: replaced static `<span>` user display with `<HeaderUserMenu>`
+- `dev/index.tsx`: removed `<RoleSwitcher>`, passes `devToolsConfig` to `<App>`
+- ROLE_OPTIONS (15 entries) consolidated from `dev/RoleSwitcher.tsx` into `dev/index.tsx`
+
+### Removed
+- `dev/RoleSwitcher.tsx` — floating fixed-position (z-index 9999) role switcher panel entirely deleted
+- `userName` and `version` Griffel styles from AppShell (replaced by HeaderUserMenu)
+
 ## [Unreleased]
 
 ### Added

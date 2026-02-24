@@ -11,7 +11,7 @@ export function getMockUserRole(): RoleName {
   return currentMockRole;
 }
 
-/** Set the mock role — used by the RoleSwitcher toolbar. */
+/** Set the mock role — used by the header dev tools menu. */
 export function setMockUserRole(role: RoleName): void {
   currentMockRole = role;
 }
