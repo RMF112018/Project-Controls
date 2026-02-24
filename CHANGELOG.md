@@ -2,6 +2,40 @@
 
 All notable changes to HBC Project Controls will be documented in this file.
 
+## [2026-02-24] - Phase 6A - 3c61d6b - Site Template Management & GitOps Sync
+
+### Added
+- `ISiteTemplate` model with `SiteTemplateType` union (`Default` | `Commercial` | `Luxury Residential`)
+- `TemplateSyncStatus` enum (`Idle` / `Syncing` / `Success` / `Failed`)
+- 3 new `AuditAction` values: `TemplateSyncStarted`, `TemplateSyncCompleted`, `TemplateSyncFailed`
+- `EntityType.SiteTemplate` for audit logging
+- 8 new `IDataService` methods (276 → 284 total): `getSiteTemplates`, `getSiteTemplateByType`, `createSiteTemplate`, `updateSiteTemplate`, `deleteSiteTemplate`, `syncTemplateToGitOps`, `applyTemplateToSite`, `syncAllTemplates`
+- `SITE_TEMPLATES_COLUMNS` in `columnMappings.ts`, `HUB_LISTS.SITE_TEMPLATES` + `CACHE_KEYS.SITE_TEMPLATES` in `constants.ts`
+- `IProvisioningInput.templateName` optional field for dual-path saga Step 5
+- ProvisioningSaga Step 5 dual-path: `templateName` present → `applyTemplateToSite`; absent → legacy `copyTemplateFiles`
+- MockDataService + SharePointDataService implementations for all 8 methods
+- Admin ProvisioningPage: TabList with "Provisioning Logs" + "Site Templates" tabs
+- Site Templates tab: KPI strip, `HbcTanStackTable` with sortable columns, `SlideDrawer` for create/edit
+- Feature flag `SiteTemplateManagement` (id 60, default OFF, `SuperAdmin`-only)
+- `site-template-management` SKILL v1.0
+- 19 new Jest tests (`SiteTemplateService.test.ts`)
+- 9 new Playwright E2E tests (`site-templates.e2e.spec.ts`)
+- Mock fixture data: 3 site templates in `siteTemplates.json`
+
+### Changed
+- `provisioning-engine` SKILL → v1.3 (dual-path Step 5 documentation)
+- `resilient-data-operations` SKILL → v1.4 (template sync patterns)
+- CLAUDE.md §1, §7, §15, §16 updated for Phase 6A
+
+### Fixed
+- **Edit button freeze**: Extracted inline `rowActions` arrow function to `renderRowActions` `useCallback` in `ProvisioningPage.tsx` — inline function created new reference every render, causing infinite synchronous re-render loop via `useSyncExternalStore` in `HbcTanStackTable`
+- **Empty Site Templates tab**: Set feature flag `SiteTemplateManagement.Enabled` to `true` (was `false`, which short-circuited `isFeatureEnabled` before checking `EnabledForRoles`). Fixed `EnabledForRoles` role strings from camelCase (`"ExecutiveLeadership"`, `"SharePointAdmin"`) to match `RoleName` enum values with spaces (`"Executive Leadership"`, `"SharePoint Admin"`)
+
+### Verified
+- TypeScript: clean (0 errors), ESLint: 0 errors (15 pre-existing warnings), Jest: 845 tests (0 failures, 92.37% statement coverage)
+- IDataService method count: 284/284 — data layer complete
+- Dev server: Site Templates tab renders 3 templates, Edit opens SlideDrawer without freeze, Sync triggers GitOps mock
+
 ## [2026-02-24] - Phase 5C.1 - Provisioning Saga Resilience Integration & Polish
 
 ### Added
