@@ -65,7 +65,7 @@ import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssi
 import { DataServiceError } from './DataServiceError';
 import { performanceService } from './PerformanceService';
 import { LIST_NAMES, CACHE_KEYS, CACHE_TTL_MS, HUB_LISTS } from '../utils/constants';
-import { listThresholdGuard, ThresholdLevel } from '../utils/ListThresholdGuard';
+import { ListThresholdGuard, listThresholdGuard, ThresholdLevel } from '../utils/ListThresholdGuard';
 import { ROLE_PERMISSIONS } from '../utils/permissions';
 import { resolveToolPermissions, TOOL_DEFINITIONS } from '../utils/toolPermissionMap';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
@@ -677,6 +677,22 @@ export class SharePointDataService implements IDataService {
     if (filters.length > 0) query = query.filter(filters.join(' and '));
     const items = await query.orderBy('Timestamp', false).top(100)();
     performanceService.endMark('sp:getAuditLog');
+    // Phase 5D.1: threshold enforcement (governing §3B — defense-in-depth)
+    // Note: top(100) bounds results well below 3000/4500 thresholds; this guard
+    // protects against future changes that remove the top() constraint.
+    const thresholdResult = listThresholdGuard.checkThreshold(LIST_NAMES.AUDIT_LOG, items.length);
+    if (thresholdResult.level !== ThresholdLevel.Safe) {
+      this.logAudit({
+        Action: AuditAction.ListThresholdWarning,
+        EntityType: EntityType.ListThreshold,
+        EntityId: LIST_NAMES.AUDIT_LOG,
+        Details: thresholdResult.message,
+      }).catch(() => {}); // fire-and-forget
+    }
+    if (ListThresholdGuard.shouldUseCursorPaging(items.length, false)) {
+      const pageResult = await this.getAuditLogPage({ pageSize: 100 });
+      return pageResult.items;
+    }
     return items as IAuditEntry[];
   }
 

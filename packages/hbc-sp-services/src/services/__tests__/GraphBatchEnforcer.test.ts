@@ -3,10 +3,10 @@
  *
  * Coverage: passthrough, coalescence timer, threshold flush, deferred promise
  * correlation, 4xx rejection, timer reset, dispose, flush idempotent, mixed
- * success/failure, toggle via initializeEnforcerFeatureCheck, audit log, getPendingCount.
+ * success/failure, toggle via bindEnforcerFeatureCheck, audit log, getPendingCount.
  */
 
-import { GraphBatchEnforcer, initializeEnforcerFeatureCheck, graphBatchEnforcer } from '../GraphBatchEnforcer';
+import { GraphBatchEnforcer, bindEnforcerFeatureCheck, graphBatchEnforcer } from '../GraphBatchEnforcer';
 import type { GraphBatchService, IBatchRequest, IBatchResult, IBatchResponse } from '../GraphBatchService';
 import type { GraphAuditLogger } from '../GraphService';
 import { AuditAction } from '../../models/enums';
@@ -226,13 +226,13 @@ describe('GraphBatchEnforcer', () => {
     await expect(p3).rejects.toThrow('status 500');
   });
 
-  // 10. Toggle via initializeEnforcerFeatureCheck
-  it('singleton responds to initializeEnforcerFeatureCheck toggle', async () => {
+  // 10. Toggle via bindEnforcerFeatureCheck
+  it('singleton responds to bindEnforcerFeatureCheck toggle', async () => {
     // Default: _isFeatureEnabled returns false → passthrough
     // We can't easily test the real singleton without side effects,
-    // so we test the initializeEnforcerFeatureCheck mechanism
+    // so we test the bindEnforcerFeatureCheck mechanism
     let flagEnabled = false;
-    initializeEnforcerFeatureCheck((flag: string) => {
+    bindEnforcerFeatureCheck((flag: string) => {
       if (flag === 'GraphBatchingEnabled') return flagEnabled;
       return false;
     });
@@ -242,7 +242,7 @@ describe('GraphBatchEnforcer', () => {
     expect(graphBatchEnforcer.getPendingCount()).toBe(0);
 
     // Reset to default
-    initializeEnforcerFeatureCheck(() => false);
+    bindEnforcerFeatureCheck(() => false);
   });
 
   // 11. Audit log BatchEnforcerCoalesced on flush
@@ -266,7 +266,137 @@ describe('GraphBatchEnforcer', () => {
     );
   });
 
-  // 12. getPendingCount() accuracy
+  // 12. Missing response rejects with descriptive error
+  it('rejects when batch response is missing for a request id', async () => {
+    const batchService = createMockBatchService((requests) => ({
+      // Return responses for only the first request, omit the rest
+      responses: [{ id: requests[0].id ?? '0', status: 200, body: { ok: true } }],
+      succeeded: [],
+      permanentFailures: [],
+      transientFailures: [],
+    }));
+    const enforcer = new GraphBatchEnforcer(batchService, () => true);
+
+    const p1 = enforcer.enqueue(makeRequest('A'));
+    const p2 = enforcer.enqueue(makeRequest('B'));
+    const p3 = enforcer.enqueue(makeRequest('C'));
+
+    const r1 = await p1;
+    expect(r1.status).toBe(200);
+
+    await expect(p2).rejects.toThrow('No response for request id: B');
+    await expect(p3).rejects.toThrow('No response for request id: C');
+  });
+
+  // 13. Batch-level error rejects all deferred promises
+  it('rejects all promises when executeBatch itself throws', async () => {
+    const batchService = createMockBatchService();
+    (batchService.executeBatch as jest.Mock).mockRejectedValueOnce(new Error('Network failure'));
+    const enforcer = new GraphBatchEnforcer(batchService, () => true);
+
+    const p1 = enforcer.enqueue(makeRequest('1'));
+    const p2 = enforcer.enqueue(makeRequest('2'));
+    const p3 = enforcer.enqueue(makeRequest('3'));
+
+    await expect(p1).rejects.toThrow('Network failure');
+    await expect(p2).rejects.toThrow('Network failure');
+    await expect(p3).rejects.toThrow('Network failure');
+  });
+
+  // 14. Batch-level non-Error rejection
+  it('wraps non-Error batch failures in Error', async () => {
+    const batchService = createMockBatchService();
+    (batchService.executeBatch as jest.Mock).mockRejectedValueOnce('string error');
+    const enforcer = new GraphBatchEnforcer(batchService, () => true);
+
+    const p1 = enforcer.enqueue(makeRequest('1'));
+    const p2 = enforcer.enqueue(makeRequest('2'));
+    const p3 = enforcer.enqueue(makeRequest('3'));
+
+    await expect(p1).rejects.toThrow('string error');
+    await expect(p2).rejects.toThrow('string error');
+    await expect(p3).rejects.toThrow('string error');
+  });
+
+  // 15. Passthrough 4xx rejects with error details
+  it('rejects with error details in passthrough mode for 4xx responses', async () => {
+    const batchService = createMockBatchService(() => ({
+      responses: [{ id: '1', status: 404, body: { error: { message: 'Not Found' } } }],
+      succeeded: [],
+      permanentFailures: [],
+      transientFailures: [],
+    }));
+    const enforcer = new GraphBatchEnforcer(batchService, () => false);
+
+    await expect(enforcer.enqueue(makeRequest('1'))).rejects.toThrow('status 404');
+  });
+
+  // 16. Passthrough with string body error
+  it('handles string body in passthrough error message', async () => {
+    const batchService = createMockBatchService(() => ({
+      responses: [{ id: '1', status: 500, body: 'Internal Server Error' }],
+      succeeded: [],
+      permanentFailures: [],
+      transientFailures: [],
+    }));
+    const enforcer = new GraphBatchEnforcer(batchService, () => false);
+
+    await expect(enforcer.enqueue(makeRequest('1'))).rejects.toThrow('Internal Server Error');
+  });
+
+  // 17. Passthrough no response throws
+  it('throws when passthrough returns no response', async () => {
+    const batchService = createMockBatchService(() => ({
+      responses: [],
+      succeeded: [],
+      permanentFailures: [],
+      transientFailures: [],
+    }));
+    const enforcer = new GraphBatchEnforcer(batchService, () => false);
+
+    await expect(enforcer.enqueue(makeRequest('1'))).rejects.toThrow('No response from batch service');
+  });
+
+  // 18. 4xx with null body in batched mode
+  it('handles null body in batched 4xx error message', async () => {
+    const batchService = createMockBatchService((requests) => ({
+      responses: requests.map(r => ({
+        id: r.id ?? '0',
+        status: 400,
+        body: null,
+      })),
+      succeeded: [],
+      permanentFailures: [],
+      transientFailures: [],
+    }));
+    const enforcer = new GraphBatchEnforcer(batchService, () => true);
+
+    const p1 = enforcer.enqueue(makeRequest('1'));
+    const p2 = enforcer.enqueue(makeRequest('2'));
+    const p3 = enforcer.enqueue(makeRequest('3'));
+
+    await expect(p1).rejects.toThrow('Unknown error');
+    await expect(p2).rejects.toThrow('Unknown error');
+    await expect(p3).rejects.toThrow('Unknown error');
+  });
+
+  // 19. Audit logger error is swallowed
+  it('swallows audit logger errors silently', async () => {
+    const batchService = createMockBatchService();
+    const auditLogger = jest.fn().mockRejectedValue(new Error('audit fail'));
+    const enforcer = new GraphBatchEnforcer(batchService, () => true, auditLogger);
+
+    const p1 = enforcer.enqueue(makeRequest('1'));
+    const p2 = enforcer.enqueue(makeRequest('2'));
+    const p3 = enforcer.enqueue(makeRequest('3'));
+
+    // Should resolve despite audit logger error
+    const results = await Promise.all([p1, p2, p3]);
+    expect(results).toHaveLength(3);
+    expect(auditLogger).toHaveBeenCalled();
+  });
+
+  // 20. getPendingCount() accuracy
   it('getPendingCount() accurately reflects queue size', async () => {
     const batchService = createMockBatchService();
     const enforcer = new GraphBatchEnforcer(batchService, () => true);

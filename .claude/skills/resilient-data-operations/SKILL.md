@@ -53,6 +53,25 @@ Compensation order: Reverse (7 -> 1). Step 1 (site deletion) runs LAST.
 6. Audit_Log paging guard: ListThresholdGuard CLASS at 3000 (warning telemetry) / 4500 (force paging), dual-gate with InfinitePagingEnabled, ThresholdLevel enum, exported singleton. File: `packages/hbc-sp-services/src/utils/ListThresholdGuard.ts`.
 7. Compensation failures logged with SOC2 audit trail — never thrown, never block saga completion.
 
+**GraphBatchEnforcer (Phase 5D)**
+
+- Class: `GraphBatchEnforcer` at `packages/hbc-sp-services/src/services/GraphBatchEnforcer.ts`
+- Coalescence window: 10ms via setTimeout (reset on each enqueue)
+- Threshold: >3 requests triggers immediate flush
+- Feature flag: `GraphBatchingEnabled` (id 58, default OFF)
+- Pass-through: When flag OFF, zero overhead — no timer, no queue
+- Composition: Wraps `GraphBatchService.executeBatch()`; never extends it
+- Audit: `AuditAction.BatchEnforcerCoalesced` logged on each flush
+
+**ListThresholdGuard (Phase 5D)**
+
+- Utility: `ListThresholdGuard` at `packages/hbc-sp-services/src/utils/ListThresholdGuard.ts`
+- Warning: 3000 items → audit log + console warning
+- Critical: 4500 items → force cursor paging when InfinitePagingEnabled ON
+- Static: `shouldUseCursorPaging(count, flagEnabled)` → boolean
+- Integration: SharePointDataService `getAuditLog()` checks before query
+- Audit: `AuditAction.ListThresholdWarning` logged on warning/critical
+
 **Manual Test Steps**
 1. Enable `ConnectorMutationResilience` -> Trigger Procore sync -> Confirm 429 simulation retries with audit log entries.
 2. Run bulk security-group creation -> Verify GraphBatchService chunks at 20 and correlates responses.

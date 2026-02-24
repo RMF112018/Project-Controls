@@ -61,4 +61,4 @@ export { ProcoreAdapter } from './ProcoreAdapter';
 export { GraphBatchService, graphBatchService } from './GraphBatchService';
 export type { IBatchRequest, IBatchResponse, IBatchResult } from './GraphBatchService';
 export { ProvisioningSaga } from './ProvisioningSaga';
-export { GraphBatchEnforcer, graphBatchEnforcer, initializeEnforcerFeatureCheck } from './GraphBatchEnforcer';
+export { GraphBatchEnforcer, graphBatchEnforcer, bindEnforcerFeatureCheck } from './GraphBatchEnforcer';

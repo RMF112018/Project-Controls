@@ -43,6 +43,12 @@ describe('ProcoreAdapter', () => {
       const result = await adapter.testConnection({ apiUrl: 'https://app.procore.com' });
       expect(result.message).toContain('https://app.procore.com');
     });
+
+    it('falls back to default message when apiUrl is missing', async () => {
+      const result = await adapter.testConnection({});
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('configured endpoint');
+    });
   });
 
   describe('sync', () => {

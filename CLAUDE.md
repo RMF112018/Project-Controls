@@ -16,7 +16,7 @@ This file must stay under 40,000 characters. Never allow it to grow large again.
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-24 — Phase 5D COMPLETE. GraphBatchEnforcer (10ms coalescence, threshold 3, composition wrapper, constructor-injected isFeatureEnabled, GraphBatchingEnabled default OFF). ListThresholdGuard CLASS (ThresholdLevel enum, warn 3000/force 4500, dual-gate). Coverage raised to 80/60/70/80. 276 IDataService methods. ~857 tests. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md. SKILL.md v1.2.
+**Last Updated:** 2026-02-24 — Phase 5D.1 Fidelity Cleanup COMPLETE. bindEnforcerFeatureCheck (renamed from initializeEnforcerFeatureCheck). ThresholdLevel lowercase. CACHE_KEYS.AUDIT_LOG. getAuditLog() threshold enforcement. Coverage 80.84/93.26/92.90/94.06. CLAUDE.md §7/§15/§16 synced to governing spec. 814 tests.
 
 **MANDATORY:** After any code change that affects the data layer, architecture, performance, UI/UX, testing, or security, update this file, verify against the current sprint gate, confirm relevant Skills and the master plan were followed, update CHANGELOG.md (root), and check project memory before ending the session.
 
@@ -166,7 +166,7 @@ Cross-reference: §18 Roadmap (Phase 2), §21, §22, `.claude/plans/hbc-stabiliz
 **Implemented**: 276
 **Remaining stubs**: 0 — **DATA LAYER COMPLETE**
 
-Last major additions: Phase 5D Cross-cutting Governance (Feb 2026) — GraphBatchEnforcer (10ms auto-coalescence wrapper, direct constructor-injected isFeatureEnabled callback, feature flag GraphBatchingEnabled default OFF). ListThresholdGuard CLASS (ThresholdLevel enum Safe/Warning/Critical, warn at 3,000 telemetry-only, force cursor paging at 4,500, dual-gate with InfinitePagingEnabled at 4500). No new IDataService methods (276 unchanged). ~20 new Jest tests (~857 total). 5 Playwright connector E2E + 2 saga E2E expansion. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md created.
+Last major additions: Phase 5D Cross-cutting Governance (Feb 2026) — No new IDataService methods. GraphBatchEnforcer (10ms coalescence, threshold 3, feature-gated GraphBatchingEnabled). ListThresholdGuard utility (warn at 3000, force cursor paging at 4500 for Audit_Log). Coverage ramp to 80/60/70/80. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md created. Connector + provisioning E2E specs. ~20 new Jest tests (~857 total).
 
 ---
 
@@ -182,7 +182,7 @@ Last major additions: Phase 5D Cross-cutting Governance (Feb 2026) — GraphBatc
 - Phase 5B: Workflow State Machines + E2E Coverage — **PLANNED (next execution block)** on `feature/hbc-suite-stabilization`. Scope locked: xstate v5 machines (`goNoGoMachine`, `pmpApprovalMachine`, `commitmentApprovalMachine`), `WorkflowMachineFactory` lazy-loading, `useWorkflowMachine`/`useWorkflowTransition`, optimistic mutation integration, and Playwright workflow E2E. Explicit constraint: TanStack Router v1 actions remain SKIPPED; transitions run through TanStack Query mutation orchestration.  
 - Phase 5C: Provisioning Saga + SignalR Status Hub — **COMPLETE** on `feature/hbc-suite-stabilization`. ProvisioningSaga orchestrator (7-step reverse-order compensation, 6 new IDataService methods: deleteProjectSite, removeProvisionedLists, disassociateFromHubSite, deleteProjectSecurityGroups, removeTemplateFiles, removeLeadDataFromProjectSite). Idempotency tokens (projectCode::timestamp::hex4). IProvisioningStatusMessage SignalR channel + useProvisioningStatus hook. ProvisioningStatusStepper (Fluent UI v9, motionToken animations 150-250ms, prefers-reduced-motion, role-aware contrast). ProvisioningPage expandable stepper behind FeatureGate. lib-signalr-realtime webpack chunk. ProvisioningStatus.Compensating + 3 saga AuditActions. Feature flag: ProvisioningSaga (default OFF). 149 new Jest tests + 1 Playwright E2E (837 total).  
 **Evaluation note (2026-02-24):** 9.1/10 at commit 001966664060b89aeb16046b29363669ca5487d3. Gating item resolved: full CHANGELOG.md + CLAUDE.md sync enforced.
-- Phase 5D: Cross-cutting Quality & Governance — **COMPLETE** on `feature/hbc-suite-stabilization`. GraphBatchEnforcer (10ms coalescence, threshold 3, composition wrapper, constructor-injected isFeatureEnabled, feature flag GraphBatchingEnabled default OFF). ListThresholdGuard CLASS (ThresholdLevel enum, warn 3,000 telemetry-only / force-paging 4,500, dual-gate shouldUseCursorPaging at 4500 + InfinitePagingEnabled, Audit_Log telemetry via singleton). Coverage raised to 80/60/70/80. ~20 new Jest tests (~857 total). 5 Playwright connector E2E + 2 saga E2E expansion. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md. resilient-data-operations SKILL.md v1.2.
+- Phase 5D: Cross-cutting Quality & Governance — **COMPLETE** on `feature/hbc-suite-stabilization`. GraphBatchEnforcer (10ms coalescence, threshold 3, feature flag GraphBatchingEnabled id 58). ListThresholdGuard (3000 warn, 4500 force-page). Coverage ramp 80/60/70/80. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md created. Connector E2E (5 tests) + expanded provisioning E2E (+2 tests). resilient-data-operations SKILL v1.2. ~857 tests passing.
 
 ---
 
@@ -230,15 +230,11 @@ Last major additions: Phase 5D Cross-cutting Governance (Feb 2026) — GraphBatc
 - **Idempotency token format**: `${projectCode}::${ISO}::${4-byte-hex}`. Stored on IProvisioningLog.idempotencyToken.  
 - **getStepState() check order**: compensating MUST be checked BEFORE completedSteps.includes — during rollback, a step can be in completedSteps array but actively compensating.  
 - **CHANGELOG.md Maintenance (Critical)**: Root CHANGELOG.md must be updated on every commit or evaluation. Format: `## [YYYY-MM-DD] - [Phase] - [Commit] - [Summary]`. Failure violates governance and blocks merge.
-- **GraphBatchEnforcer is composition-based (not Proxy)**: Deferred promise queue with timer/threshold flush. `flush()` exposed for test determinism. Singleton `graphBatchEnforcer` exported. No setter methods on class.
-- **GraphBatchEnforcer uses direct constructor injection**: Constructor takes required `isFeatureEnabled: () => boolean`. Module-level `initializeEnforcerFeatureCheck()` binds the real flag accessor once in `GraphService.initialize()`. Closure evaluates dynamically on every `enqueue()`. When false, zero-overhead passthrough.
-- **ListThresholdGuard is a CLASS with ThresholdLevel enum and exported singleton**: `ThresholdLevel.Safe/Warning/Critical`. `checkThreshold()` is an instance method on the `listThresholdGuard` singleton. `shouldUseCursorPaging()` is static. Constructor accepts custom thresholds (defaults 3000/4500).
-- **ListThresholdGuard: 3000 = warning telemetry only, 4500 = force paging**: `shouldForceCursorPaging` is `false` at Warning (3000-4499), `true` only at Critical (4500+). Intentional — telemetry-first at warning, enforcement at critical.
-- **ListThresholdGuard dual-gate**: `static shouldUseCursorPaging()` returns true ONLY when BOTH `itemCount >= 4500` AND `isInfinitePagingEnabled === true`.
-- **getAuditLogPage() uses singleton `listThresholdGuard`**: Import from `../utils/ListThresholdGuard`. Never `new ListThresholdGuard()` in service methods.
-- **Coverage thresholds are 80/60/70/80**: CI-hard gate in jest.config.js. Never lower. Excluded files (22) remain excluded — their coverage comes in Phase 6-7.
-- **ConnectorManagementPanel data-testid convention**: `connector-card-{id}`, `connector-status-{id}`, `connector-test-{id}`, `connector-sync-{id}`, `connector-history-{id}`, `sync-history-drawer`.
-- **AuditAction enum values use PascalCase string literals**: `BatchEnforcerCoalesced = 'BatchEnforcerCoalesced'`, `ListThresholdWarning = 'ListThresholdWarning'`. EntityType: `ListThreshold = 'ListThreshold'`.
+- **GraphBatchEnforcer coalescence window is 10ms**: Timer resets on every new enqueue. Threshold of 3 triggers immediate flush. When `GraphBatchingEnabled` OFF, zero overhead pass-through.
+- **GraphBatchEnforcer is composition, not inheritance**: Wraps `GraphBatchService.executeBatch()`. Never extend or modify GraphBatchService for auto-batching.
+- **ListThresholdGuard thresholds**: Warning at 3000, critical at 4500. SP hard limit is 5000. Guard is for SharePointDataService only — MockDataService skips threshold checks.
+- **ListThresholdGuard + InfinitePagingEnabled dual-gate**: `shouldUseCursorPaging()` requires BOTH itemCount >= 4500 AND flag ON. Graceful degradation when flag OFF.
+- **No new IDataService methods for Phase 5D**: GraphBatchEnforcer and ListThresholdGuard are infrastructure utilities, not data layer methods. Method count stays at 276.
 
 ### New Skill Documentation (added 23 Feb 2026 at commit 55027ece)
 - **Provisioning Engine Skill Creation** `.claude/skills/provisioning-engine/SKILL.md` – 7-step engine protocol, guaranteed stable flows, manual test steps, and cross-references.  

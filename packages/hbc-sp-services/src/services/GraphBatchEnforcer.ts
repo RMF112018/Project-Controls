@@ -191,26 +191,15 @@ export class GraphBatchEnforcer {
 
 // ── Module-level late-binding for feature flag ──────────────────────────────
 
-/**
- * Module-level feature check — resolved lazily at enqueue() time, not at import time.
- * Safe default: () => false (enforcer disabled until real flag accessor is bound).
- */
 let _isFeatureEnabled: (flag: string) => boolean = () => false;
 
-/**
- * Called once during app initialization (in GraphService.initialize()) to bind
- * the real feature flag accessor.
- */
-export function initializeEnforcerFeatureCheck(fn: (flag: string) => boolean): void {
+/** Bind the real feature flag accessor. Called once in GraphService.initialize(). */
+export function bindEnforcerFeatureCheck(fn: (flag: string) => boolean): void {
   _isFeatureEnabled = fn;
 }
 
 // ── Singleton ───────────────────────────────────────────────────────────────
 
-/**
- * Default singleton — closure evaluates dynamically on every enqueue() call.
- * When _isFeatureEnabled hasn't been bound yet, defaults to passthrough (safe).
- */
 export const graphBatchEnforcer = new GraphBatchEnforcer(
   graphBatchService,
   () => _isFeatureEnabled('GraphBatchingEnabled'),

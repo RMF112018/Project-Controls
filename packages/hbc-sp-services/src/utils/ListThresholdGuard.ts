@@ -13,9 +13,9 @@ import { LIST_THRESHOLD_WARNING, LIST_THRESHOLD_CRITICAL } from './constants';
 // ── ThresholdLevel Enum ─────────────────────────────────────────────────────
 
 export enum ThresholdLevel {
-  Safe = 'Safe',
-  Warning = 'Warning',
-  Critical = 'Critical',
+  Safe = 'safe',
+  Warning = 'warning',
+  Critical = 'critical',
 }
 
 // ── Result Interface ────────────────────────────────────────────────────────
