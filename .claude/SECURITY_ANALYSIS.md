@@ -98,3 +98,57 @@ Phase 5D `ListThresholdGuard` prevents performance degradation and potential DoS
 | 6 | Unauthorized role escalation | High | Low | IRoleConfiguration SP list-backed. LEGACY_ROLE_MAP normalization. SOC2 audit on every mutation. RoleGate on all admin surfaces. | Security Team |
 | 7 | Graph API rate limiting (429 errors) | Medium | Medium | GraphBatchEnforcer coalescence (10ms/3). GraphBatchService 20-chunk limit. IConnectorRetryPolicy exponential backoff. | Platform Team |
 | 8 | Audit log tampering | High | Low | No update/delete methods in IDataService. SP list permissions restrict to add-only for service accounts. Archive flow preserves history. | Security Team |
+
+## §10 Phase 7 Stage 3 — Security Hardening Remediation (Feb 2026)
+
+### OData Injection Remediation
+- **Before**: Direct string interpolation in `SharePointDataService.getLeadsByStage()`, `searchLeads()`, and project code filter.
+- **After**: All OData filters use `safeODataEq()` and `safeODataSubstringOf()` from `utils/odataSanitizer.ts`.
+- **Coverage**: `sanitizeODataString` escapes `'` to `''`, strips control chars, enforces max length. `sanitizeODataNumber` rejects NaN/Infinity.
+
+### Feature Flag Enforcement (Server-Side)
+- `assertFeatureFlagEnabled()` guards all template mutations: `createSiteTemplate`, `updateSiteTemplate`, `deleteSiteTemplate`, `applyTemplateToSite`, `syncTemplateToGitOps`, `syncAllTemplates`.
+- Violations throw `FeatureFlagViolationError` with flag name and operation.
+- `AuditAction.FeatureFlagViolation` logged.
+
+### GraphBatchEnforcer Backpressure
+- `MAX_QUEUE_DEPTH = 50` — rejects with `BackpressureError` when queue exceeds limit.
+- `highWaterMark` metric tracks maximum queue depth (observability).
+- `AuditAction.BackpressureRejected` logged on rejection.
+- Passthrough mode (feature OFF) has zero-overhead, no backpressure.
+
+### Permission Escalation Prevention
+- `detectEscalation(currentUser, rolePermissions)` identifies unauthorized permissions.
+- `assertNotSelfEscalation(currentUser, rolePermissions)` — throws `PermissionEscalationError` on self-assignment.
+- Rate limiting: 10 mutations per 60s sliding window per user. `RateLimitError` on breach.
+- Guards wired into `MockDataService.createRoleConfiguration()` and `updateRoleConfiguration()`.
+- `AuditAction.PermissionEscalationBlocked` logged.
+
+### Idempotency Token Lifecycle
+- **Generation**: `generateCryptoHex4()` uses `crypto.getRandomValues()` (fallback: `Math.random()`).
+- **Format**: `projectCode::ISO-timestamp::4-char-hex`.
+- **Validation**: Format regex, project code match, 24h expiry, 5min clock skew tolerance, replay detection against existing provisioning logs.
+- `AuditAction.IdempotencyReplayDetected` logged on replay.
+
+### Template Sync State Machine
+- Valid transitions: Idle to [Syncing], Syncing to [Success,Failed], Success to [Syncing,Idle], Failed to [Syncing,Idle].
+- `acquireSyncLock(templateId)` / `releaseSyncLock(templateId)` — in-memory Set prevents concurrent syncs.
+- `validateTemplateContent()` — URL validation (SharePoint domain, HTTPS), XSS pattern detection (7 patterns).
+- Multi-approver gate: `assertSyncApproved(approvals, requiredCount=2)` with email deduplication.
+
+### Graph Scope Policy (Least-Privilege)
+- `GRAPH_SCOPE_POLICY` maps 11 Graph operations to minimum required scopes.
+- `assertSufficientScope(operation, grantedScopes)` enforces least-privilege.
+
+### ProvisioningSaga Manual Rollback
+- `rollback(projectCode, originalToken)` — looks up log by token, rebuilds context, runs compensation in strict reverse order.
+- `rollbackFromToken` recorded on provisioning log.
+- Template version tracking: `templateVersion` and `templateType` on `IProvisioningLog` and `ISagaExecutionResult`.
+
+### New AuditAction Values (7)
+BackpressureRejected, FeatureFlagViolation, PermissionEscalationBlocked, IdempotencyReplayDetected, TemplateSyncTransitionViolation, ManualRollbackInitiated, ManualRollbackCompleted.
+
+### Test Coverage
+- 6 new utility files, 5 utility test suites (43 tests), 1 integration test suite (6 tests).
+- 8 new tests in ProvisioningSaga.test.ts, 5 in GraphBatchEnforcer.test.ts, 4 in MockDataService.roleConfig.test.ts.
+- Total: ~945 tests across 58 suites.

@@ -160,6 +160,9 @@ import {
   generateLeads,
 } from '../mock/generators';
 import { resolveToolPermissions, TOOL_DEFINITIONS } from '../utils/toolPermissionMap';
+import { assertFeatureFlagEnabled } from '../utils/featureFlagGuard';
+import { validateTemplateContent, TemplateContentValidationError, assertValidSyncTransition, acquireSyncLock, releaseSyncLock } from '../utils/templateSyncGuard';
+import { assertNotSelfEscalation, checkRateLimit } from '../utils/escalationGuard';
 import mockWorkflowDefinitions from '../mock/workflowDefinitions.json';
 import mockWorkflowStepOverrides from '../mock/workflowStepOverrides.json';
 import mockTurnoverAgendas from '../mock/turnoverAgendas.json';
@@ -2531,6 +2534,11 @@ export class MockDataService implements IDataService {
     );
   }
 
+  public async getProvisioningLogByToken(token: string): Promise<IProvisioningLog | undefined> {
+    await delay();
+    return this.provisioningLogs.find(l => l.idempotencyToken === token);
+  }
+
   public async retryProvisioning(projectCode: string, fromStep: number): Promise<IProvisioningLog> {
     await delay();
 
@@ -2735,6 +2743,13 @@ export class MockDataService implements IDataService {
 
   async createSiteTemplate(data: Omit<ISiteTemplate, 'id'>): Promise<ISiteTemplate> {
     await delay();
+    // Phase 7S3: Feature flag enforcement
+    assertFeatureFlagEnabled(this.featureFlags, 'SiteTemplateManagement', 'createSiteTemplate');
+    // Phase 7S3: Content validation
+    const violations = validateTemplateContent(data);
+    if (violations.length > 0) {
+      throw new TemplateContentValidationError(violations);
+    }
     const id = this.getNextId();
     const template: ISiteTemplate = { id, ...data };
     this.siteTemplates.push(template);
@@ -2751,6 +2766,13 @@ export class MockDataService implements IDataService {
 
   async updateSiteTemplate(id: number, data: Partial<ISiteTemplate>): Promise<ISiteTemplate> {
     await delay();
+    // Phase 7S3: Feature flag enforcement
+    assertFeatureFlagEnabled(this.featureFlags, 'SiteTemplateManagement', 'updateSiteTemplate');
+    // Phase 7S3: Content validation
+    const violations = validateTemplateContent(data);
+    if (violations.length > 0) {
+      throw new TemplateContentValidationError(violations);
+    }
     const idx = this.siteTemplates.findIndex(t => t.id === id);
     if (idx === -1) throw new Error(`Site template ${id} not found`);
     this.siteTemplates[idx] = { ...this.siteTemplates[idx], ...data };
@@ -2767,6 +2789,8 @@ export class MockDataService implements IDataService {
 
   async deleteSiteTemplate(id: number): Promise<void> {
     await delay();
+    // Phase 7S3: Feature flag enforcement
+    assertFeatureFlagEnabled(this.featureFlags, 'SiteTemplateManagement', 'deleteSiteTemplate');
     const idx = this.siteTemplates.findIndex(t => t.id === id);
     if (idx === -1) throw new Error(`Site template ${id} not found`);
     const removed = this.siteTemplates.splice(idx, 1)[0];
@@ -2782,36 +2806,48 @@ export class MockDataService implements IDataService {
 
   async syncTemplateToGitOps(templateId: number): Promise<{ success: boolean; prUrl?: string; error?: string }> {
     await delay();
+    // Phase 7S3: Feature flag enforcement
+    assertFeatureFlagEnabled(this.featureFlags, 'SiteTemplateManagement', 'syncTemplateToGitOps');
     const template = this.siteTemplates.find(t => t.id === templateId);
     if (!template) return { success: false, error: `Template ${templateId} not found` };
 
-    template.SyncStatus = TemplateSyncStatus.Syncing;
-    void this.logAudit({
-      Action: AuditAction.TemplateSyncStarted,
-      EntityType: EntityType.SiteTemplate,
-      EntityId: String(templateId),
-      User: 'system',
-      Details: `GitOps sync started for template: ${template.Title}`,
-    });
+    // Phase 7S3: Transition guard + sync lock
+    assertValidSyncTransition(template.SyncStatus, TemplateSyncStatus.Syncing);
+    acquireSyncLock(String(templateId));
 
-    await delay();
-    template.SyncStatus = TemplateSyncStatus.Success;
-    template.LastSynced = new Date().toISOString();
-    void this.logAudit({
-      Action: AuditAction.TemplateSyncCompleted,
-      EntityType: EntityType.SiteTemplate,
-      EntityId: String(templateId),
-      User: 'system',
-      Details: `GitOps sync completed for template: ${template.Title}`,
-    });
+    try {
+      template.SyncStatus = TemplateSyncStatus.Syncing;
+      void this.logAudit({
+        Action: AuditAction.TemplateSyncStarted,
+        EntityType: EntityType.SiteTemplate,
+        EntityId: String(templateId),
+        User: 'system',
+        Details: `GitOps sync started for template: ${template.Title}`,
+      });
 
-    const prUrl = `https://github.com/RMF112018/Project-Controls/pull/${Math.floor(Math.random() * 500) + 100}`;
-    console.log(`[Mock] syncTemplateToGitOps: ${template.Title} → ${prUrl}`);
-    return { success: true, prUrl };
+      await delay();
+      template.SyncStatus = TemplateSyncStatus.Success;
+      template.LastSynced = new Date().toISOString();
+      void this.logAudit({
+        Action: AuditAction.TemplateSyncCompleted,
+        EntityType: EntityType.SiteTemplate,
+        EntityId: String(templateId),
+        User: 'system',
+        Details: `GitOps sync completed for template: ${template.Title}`,
+      });
+
+      const prUrl = `https://github.com/RMF112018/Project-Controls/pull/${Math.floor(Math.random() * 500) + 100}`;
+      console.log(`[Mock] syncTemplateToGitOps: ${template.Title} → ${prUrl}`);
+      return { success: true, prUrl };
+    } finally {
+      releaseSyncLock(String(templateId));
+    }
   }
 
   async applyTemplateToSite(siteUrl: string, templateType: SiteTemplateType): Promise<{ appliedCount: number; templateName: string }> {
     await delay();
+    // Phase 7S3: Feature flag enforcement
+    assertFeatureFlagEnabled(this.featureFlags, 'SiteTemplateManagement', 'applyTemplateToSite');
     const template = this.siteTemplates.find(t => t.Title === templateType && t.IsActive);
     const fallback = this.siteTemplates.find(t => t.Title === 'Default' && t.IsActive);
     const chosen = template ?? fallback;
@@ -2834,6 +2870,8 @@ export class MockDataService implements IDataService {
 
   async syncAllTemplates(): Promise<{ synced: number; failed: number; results: Array<{ id: number; success: boolean; error?: string }> }> {
     await delay();
+    // Phase 7S3: Feature flag enforcement
+    assertFeatureFlagEnabled(this.featureFlags, 'SiteTemplateManagement', 'syncAllTemplates');
     const results: Array<{ id: number; success: boolean; error?: string }> = [];
     for (const template of this.siteTemplates.filter(t => t.IsActive)) {
       const result = await this.syncTemplateToGitOps(template.id);
@@ -2995,6 +3033,20 @@ export class MockDataService implements IDataService {
     if (!input.requestedBy) errors.push('Requested by is required');
     if (!input.division) errors.push('Division is required');
     if (!input.region) warnings.push('Region is not specified — will use default');
+
+    // Phase 7S3: Validate templateName if present
+    const validTemplateNames: string[] = ['Default', 'Commercial', 'Luxury Residential'];
+    if (input.templateName && !validTemplateNames.includes(input.templateName)) {
+      errors.push(`Invalid template name "${input.templateName}". Must be one of: ${validTemplateNames.join(', ')}`);
+    }
+
+    // Phase 7S3: Validate idempotency token format if present
+    if (input.idempotencyToken) {
+      const tokenRegex = /^.+::\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z::[0-9a-f]{4}$/;
+      if (!tokenRegex.test(input.idempotencyToken)) {
+        errors.push(`Invalid idempotency token format: "${input.idempotencyToken}"`);
+      }
+    }
 
     // Check for duplicate / already-active provisioning
     const existing = this.provisioningLogs.find(l => l.projectCode === input.projectCode);
@@ -7876,6 +7928,12 @@ export class MockDataService implements IDataService {
 
   public async createRoleConfiguration(data: Partial<IRoleConfiguration>): Promise<IRoleConfiguration> {
     await delay();
+    // Phase 7S3: Escalation prevention + rate limiting
+    const currentUser = await this.getCurrentUser();
+    if (data.defaultPermissions && data.defaultPermissions.length > 0) {
+      assertNotSelfEscalation(currentUser, data.defaultPermissions);
+    }
+    checkRateLimit(data.createdBy || currentUser.email, 'createRoleConfiguration');
     const now = new Date().toISOString();
     const newConfig: IRoleConfiguration = {
       id: this.roleConfigurations.length > 0 ? Math.max(...this.roleConfigurations.map(r => r.id)) + 1 : 1,
@@ -7907,6 +7965,12 @@ export class MockDataService implements IDataService {
 
   public async updateRoleConfiguration(id: number, data: Partial<IRoleConfiguration>): Promise<IRoleConfiguration> {
     await delay();
+    // Phase 7S3: Escalation prevention + rate limiting
+    const currentUser = await this.getCurrentUser();
+    if (data.defaultPermissions && data.defaultPermissions.length > 0) {
+      assertNotSelfEscalation(currentUser, data.defaultPermissions);
+    }
+    checkRateLimit(data.lastModifiedBy || currentUser.email, 'updateRoleConfiguration');
     const idx = this.roleConfigurations.findIndex(r => r.id === id);
     if (idx === -1) throw new Error(`Role configuration with id ${id} not found`);
     const before = JSON.parse(JSON.stringify(this.roleConfigurations[idx]));

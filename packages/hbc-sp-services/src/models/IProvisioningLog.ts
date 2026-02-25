@@ -1,5 +1,6 @@
 import { ProvisioningStatus } from './enums';
 import type { ICompensationResult } from './IProvisioningSaga';
+import type { SiteTemplateType } from './ISiteTemplate';
 
 export type HubNavLinkStatus = 'success' | 'failed' | 'not_applicable';
 
@@ -39,6 +40,12 @@ export interface IProvisioningLog {
   idempotencyToken?: string;
   /** Phase 5C: Compensation results from saga rollback */
   compensationLog?: ICompensationResult[];
+  /** Phase 7S3: Git SHA or semver of the template applied during provisioning */
+  templateVersion?: string;
+  /** Phase 7S3: Which template type was applied */
+  templateType?: SiteTemplateType;
+  /** Phase 7S3: Links a manual rollback to the original provisioning run token */
+  rollbackFromToken?: string;
 }
 
 // --- Provisioning input ---
@@ -54,6 +61,8 @@ export interface IProvisioningInput {
   siteNameOverride?: string;
   /** Phase 6A: Site template to apply during provisioning. Falls back to legacy copyTemplateFiles when absent. */
   templateName?: 'Default' | 'Commercial' | 'Luxury Residential';
+  /** Phase 7S3: Idempotency token for retry scenarios (format: projectCode::ISO::hex4) */
+  idempotencyToken?: string;
 }
 
 // --- Provisioning schema types ---

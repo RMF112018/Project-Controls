@@ -1,11 +1,13 @@
 import { MockDataService } from '../MockDataService';
 import { AuditAction, EntityType } from '../../models/enums';
+import { resetRateLimiter } from '../../utils/escalationGuard';
 
 describe('MockDataService — Role Configuration Engine', () => {
   let ds: MockDataService;
 
   beforeEach(() => {
     ds = new MockDataService();
+    resetRateLimiter(); // Phase 7S3: Clean rate limit state between tests
   });
 
   // ---------------------------------------------------------------------------
@@ -253,5 +255,69 @@ describe('MockDataService — Role Configuration Engine', () => {
     expect(permsWithoutProject.length).toBeGreaterThan(0);
     // Global roles should get the same permissions regardless of project context
     expect(permsWithProject.sort()).toEqual(permsWithoutProject.sort());
+  });
+
+  // ---------------------------------------------------------------------------
+  // Phase 7S3: Escalation Prevention + Rate Limiting
+  // ---------------------------------------------------------------------------
+
+  it('createRoleConfiguration throws when assigning permissions the user does not hold', async () => {
+    // Default current user is Executive Leadership, which does NOT have 'lead:create'
+    await expect(
+      ds.createRoleConfiguration({
+        roleName: 'Escalated Role',
+        createdBy: 'hacker@hbc.com',
+        defaultPermissions: ['lead:create', 'lead:delete'],
+      })
+    ).rejects.toThrow(/escalation/i);
+  });
+
+  it('updateRoleConfiguration throws when assigning escalated permissions', async () => {
+    // Create a role with no defaultPermissions first (no escalation issue)
+    const created = await ds.createRoleConfiguration({
+      roleName: 'Safe Role',
+      createdBy: 'admin@hbc.com',
+      defaultPermissions: [],
+    });
+
+    // Now try to update it with permissions the current user doesn't have
+    await expect(
+      ds.updateRoleConfiguration(created.id, {
+        defaultPermissions: ['lead:create'],
+        lastModifiedBy: 'hacker@hbc.com',
+      })
+    ).rejects.toThrow(/escalation/i);
+  });
+
+  it('createRoleConfiguration succeeds with permissions the user holds', async () => {
+    // Executive Leadership HAS 'lead:read' — should succeed
+    const created = await ds.createRoleConfiguration({
+      roleName: 'Valid Subset Role',
+      createdBy: 'admin@hbc.com',
+      defaultPermissions: ['lead:read'],
+    });
+    expect(created.roleName).toBe('Valid Subset Role');
+    expect(created.defaultPermissions).toContain('lead:read');
+  });
+
+  it('rate limiter throws after 10 rapid role mutations from same user', async () => {
+    // Each call increments the rate counter for the createdBy email
+    const email = 'ratelimituser@hbc.com';
+    for (let i = 0; i < 10; i++) {
+      await ds.createRoleConfiguration({
+        roleName: `Rate Test ${i}`,
+        createdBy: email,
+        defaultPermissions: [], // Empty — no escalation issue
+      });
+    }
+
+    // 11th call should hit rate limit
+    await expect(
+      ds.createRoleConfiguration({
+        roleName: 'Rate Test 11',
+        createdBy: email,
+        defaultPermissions: [],
+      })
+    ).rejects.toThrow(/rate limit/i);
   });
 });

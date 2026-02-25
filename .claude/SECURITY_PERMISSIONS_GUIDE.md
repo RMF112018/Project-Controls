@@ -23,3 +23,26 @@ Token limit: < 8 kB | Use with FEATURE_DEVELOPMENT_BLUEPRINT.md
 - [ ] SECURITY_ANALYSIS.md in docs/ updated?
 
 Reference files only. Never repeat full sections.
+
+## Phase 7S3 Security Hardening — Agent Checklist
+
+### Escalation Prevention
+- [ ] Before `createRoleConfiguration` or `updateRoleConfiguration` with `defaultPermissions`, verify current user holds all permissions being assigned.
+- [ ] Use `assertNotSelfEscalation(currentUser, rolePermissions)` as guard.
+- [ ] `PermissionEscalationError` is logged as `AuditAction.PermissionEscalationBlocked`.
+
+### Rate Limiting
+- [ ] All role configuration mutations rate-limited to 10 per 60s per user.
+- [ ] `checkRateLimit(userEmail, operation)` called before mutation.
+- [ ] `RateLimitError` includes operation name and window duration.
+- [ ] `resetRateLimiter()` available for test cleanup.
+
+### SOC2 Audit on Role Mutations
+- [ ] `createRoleConfiguration`: logs `RoleConfigurationCreated` with after snapshot.
+- [ ] `updateRoleConfiguration`: logs `RoleConfigurationUpdated` with before/after snapshots.
+- [ ] `deleteRoleConfiguration`: logs `RoleConfigurationDeleted` with before/after isActive change.
+- [ ] All escalation attempts logged with `PermissionEscalationBlocked` action.
+
+### Feature Flag Enforcement
+- [ ] Template mutations guarded by `SiteTemplateManagement` flag via `assertFeatureFlagEnabled`.
+- [ ] Violations logged as `AuditAction.FeatureFlagViolation`.

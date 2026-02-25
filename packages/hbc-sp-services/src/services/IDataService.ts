@@ -614,6 +614,9 @@ export interface IDataService {
 
   // Project site URL targeting (Phase 26)
   setProjectSiteUrl(siteUrl: string | null): void;
+
+  // Phase 7S3: Provisioning log lookup by idempotency token (for manual rollback)
+  getProvisioningLogByToken(token: string): Promise<IProvisioningLog | undefined>;
 }
 
 export interface IActiveProjectsQueryOptions extends IListQueryOptions {

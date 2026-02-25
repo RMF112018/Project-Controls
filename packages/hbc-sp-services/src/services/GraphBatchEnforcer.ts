@@ -24,6 +24,9 @@ import { AuditAction, EntityType } from '../models/enums';
 const COALESCENCE_WINDOW_MS = 10;
 const FLUSH_THRESHOLD = 3;
 
+/** Phase 7S3: Maximum queue depth before backpressure rejection */
+export const MAX_QUEUE_DEPTH = 50;
+
 // ── Queued Request ──────────────────────────────────────────────────────────
 
 interface IQueuedRequest {
@@ -34,9 +37,24 @@ interface IQueuedRequest {
 
 // ── GraphBatchEnforcer Class ────────────────────────────────────────────────
 
+/** Phase 7S3: Backpressure rejection error */
+export class BackpressureError extends Error {
+  public readonly name = 'BackpressureError';
+  public readonly pendingCount: number;
+  public readonly maxDepth: number;
+
+  constructor(pendingCount: number, maxDepth: number) {
+    super(`GraphBatchEnforcer backpressure: queue full (${pendingCount}/${maxDepth})`);
+    this.pendingCount = pendingCount;
+    this.maxDepth = maxDepth;
+  }
+}
+
 export class GraphBatchEnforcer {
   private queue: IQueuedRequest[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
+  /** Phase 7S3: Track highest queue depth seen */
+  private highWaterMark = 0;
 
   constructor(
     private batchService: GraphBatchService,
@@ -56,8 +74,18 @@ export class GraphBatchEnforcer {
       return this.passthrough(request);
     }
 
+    // Phase 7S3: Backpressure — reject when queue is full
+    if (this.queue.length >= MAX_QUEUE_DEPTH) {
+      this.logBackpressure();
+      return Promise.reject(new BackpressureError(this.queue.length, MAX_QUEUE_DEPTH));
+    }
+
     return new Promise<IBatchResponse>((resolve, reject) => {
       this.queue.push({ request, resolve, reject });
+      // Phase 7S3: Track high water mark
+      if (this.queue.length > this.highWaterMark) {
+        this.highWaterMark = this.queue.length;
+      }
 
       // Threshold flush: immediate when queue reaches 3
       if (this.queue.length >= FLUSH_THRESHOLD) {
@@ -149,6 +177,13 @@ export class GraphBatchEnforcer {
     return this.queue.length;
   }
 
+  /**
+   * Phase 7S3: Highest queue depth observed since instantiation.
+   */
+  getHighWaterMark(): number {
+    return this.highWaterMark;
+  }
+
   // ── Private ─────────────────────────────────────────────────────────────
 
   /** Passthrough: single request directly to executeBatch (feature disabled) */
@@ -174,6 +209,18 @@ export class GraphBatchEnforcer {
       clearTimeout(this.timer);
       this.timer = null;
     }
+  }
+
+  /** Phase 7S3: Fire-and-forget audit log for backpressure rejection */
+  private logBackpressure(): void {
+    if (!this.auditLogger) return;
+    this.auditLogger({
+      Action: AuditAction.BackpressureRejected,
+      EntityType: EntityType.GraphApi,
+      EntityId: 'GraphBatchEnforcer',
+      User: 'system',
+      Details: `Backpressure: queue full at ${this.queue.length}/${MAX_QUEUE_DEPTH}. High water mark: ${this.highWaterMark}`,
+    }).catch(() => { /* audit is non-blocking */ });
   }
 
   /** Fire-and-forget audit log for coalescence events */

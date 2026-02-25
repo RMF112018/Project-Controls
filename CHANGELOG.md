@@ -2,6 +2,34 @@
 
 All notable changes to HBC Project Controls will be documented in this file.
 
+## [2026-02-24] - Phase 7 Stage 3 - security(phase7) - Security Hardening (GitOps & Provisioning)
+
+### Added
+- `packages/hbc-sp-services/src/utils/odataSanitizer.ts` — OData injection prevention (sanitizeODataString, sanitizeODataNumber, safeODataEq, safeODataSubstringOf).
+- `packages/hbc-sp-services/src/utils/featureFlagGuard.ts` — Server-side feature flag enforcement (assertFeatureFlagEnabled, FeatureFlagViolationError).
+- `packages/hbc-sp-services/src/utils/idempotencyTokenValidator.ts` — Crypto-safe token generation (generateCryptoHex4), validation with 24h expiry and replay detection.
+- `packages/hbc-sp-services/src/utils/templateSyncGuard.ts` — Template sync state machine (VALID_TRANSITIONS), sync lock (acquireSyncLock/releaseSyncLock), content validation (XSS patterns), multi-approver gates (assertSyncApproved).
+- `packages/hbc-sp-services/src/utils/escalationGuard.ts` — Permission escalation prevention (detectEscalation, assertNotSelfEscalation), rate limiting (checkRateLimit 10/60s).
+- `packages/hbc-sp-services/src/utils/graphScopePolicy.ts` — Least-privilege Graph API scope enforcement (GRAPH_SCOPE_POLICY, assertSufficientScope).
+- `IDataService.getProvisioningLogByToken(token)` — +1 method (284→285) for saga rollback lookup.
+- `ProvisioningSaga.rollback(projectCode, originalToken)` — Manual rollback with compensation tagging.
+- `IProvisioningLog` expansion: templateVersion, templateType, rollbackFromToken fields.
+- `ISagaContext` expansion: templateVersion. `ICompensationResult` expansion: compensationType. `ISagaExecutionResult` expansion: templateVersion, templateType.
+- 7 new AuditAction values: BackpressureRejected, FeatureFlagViolation, PermissionEscalationBlocked, IdempotencyReplayDetected, TemplateSyncTransitionViolation, ManualRollbackInitiated, ManualRollbackCompleted.
+- GraphBatchEnforcer: MAX_QUEUE_DEPTH=50, BackpressureError, highWaterMark tracking, logBackpressure.
+- `.claude/PERMISSION_STRATEGY.md` — Pentest-prep permission strategy document.
+- 5 utility test suites (43 tests) + 1 integration test suite (6 tests) + 8 saga tests + 5 enforcer tests + 4 roleConfig tests = ~66 new tests (945 total).
+
+### Changed
+- `SharePointDataService.getLeadsByStage()` and `searchLeads()` — OData filters now use safeODataEq/safeODataSubstringOf.
+- `ProvisioningSaga.generateIdempotencyToken` — replaced Math.random() with generateCryptoHex4().
+- `MockDataService.createRoleConfiguration` / `updateRoleConfiguration` — escalation prevention + rate limiting guards.
+- `MockDataService` template methods — feature flag enforcement + content validation guards.
+- 4 SKILL.md version bumps: resilient-data-operations v1.5, provisioning-engine v1.4, permission-system v1.1, site-template-management v1.1.
+- CLAUDE.md §5 (escalation prevention), §7 (285 methods), §15 (Phase 7S3), §16 (new pitfalls).
+- SECURITY_ANALYSIS.md §10 (Phase 7S3 remediation summary).
+- SECURITY_PERMISSIONS_GUIDE.md (Phase 7S3 agent checklist).
+
 ## [2026-02-24] - Phase 7 Stage 2 - perf(phase7) - Performance Optimization for Construction-Scale Data
 
 ### Added

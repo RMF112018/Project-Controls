@@ -10,6 +10,7 @@ import {
   IProvisioningValidationResult,
   IProvisioningSummary
 } from './IDataService';
+import { safeODataEq, safeODataSubstringOf } from '../utils/odataSanitizer';
 import { ILead, ILeadFormData } from '../models/ILead';
 import { IGoNoGoScorecard, IScorecardApprovalCycle, IScorecardApprovalStep, IScorecardVersion } from '../models/IGoNoGoScorecard';
 import { IEstimatingTracker } from '../models/IEstimatingTracker';
@@ -286,7 +287,7 @@ export class SharePointDataService implements IDataService {
     performanceService.startMark('sp:getLeadsByStage');
     try {
       const items = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items
-        .filter(`Stage eq '${stage}'`)
+        .filter(safeODataEq('Stage', stage))
         .top(5000)();
       performanceService.endMark('sp:getLeadsByStage');
       return items as ILead[];
@@ -336,7 +337,7 @@ export class SharePointDataService implements IDataService {
     performanceService.startMark('sp:searchLeads');
     try {
       const items = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items
-        .filter(`substringof('${query}', Title) or substringof('${query}', ClientName) or substringof('${query}', ProjectCode)`)
+        .filter(`${safeODataSubstringOf('Title', query)} or ${safeODataSubstringOf('ClientName', query)} or ${safeODataSubstringOf('ProjectCode', query)}`)
         .top(5000)();
       performanceService.endMark('sp:searchLeads');
       return items as ILead[];
@@ -7550,6 +7551,21 @@ export class SharePointDataService implements IDataService {
 
   public setProjectSiteUrl(siteUrl: string | null): void {
     this._projectSiteUrl = siteUrl;
+  }
+
+  // Phase 7S3: Provisioning log lookup by idempotency token
+  public async getProvisioningLogByToken(token: string): Promise<IProvisioningLog | undefined> {
+    performanceService.startMark('sp:getProvisioningLogByToken');
+    try {
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.PROVISIONING_LOG).items
+        .filter(safeODataEq('idempotencyToken', token))
+        .top(1)();
+      performanceService.endMark('sp:getProvisioningLogByToken');
+      return (items as IProvisioningLog[])[0] ?? undefined;
+    } catch (err) {
+      performanceService.endMark('sp:getProvisioningLogByToken');
+      throw this.handleError('getProvisioningLogByToken', err, { entityType: 'Provisioning' });
+    }
   }
 
   /**

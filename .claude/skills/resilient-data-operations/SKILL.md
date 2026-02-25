@@ -1,9 +1,9 @@
 ---
 name: HBC Resilient Data Operations
 description: Production-grade resilient Graph/SharePoint data layer for the HBC Project Controls SPFx suite – enforcing batching (GraphBatchService), TanStack Query mutations with retry/backoff (useConnectorMutation), saga-style compensation (ProvisioningSaga), and real-time SignalR status. Eliminates transient failures, orphaned resources, and silent data corruption while staying under SPFx limits and SOC2 audit requirements.
-version: 1.4
+version: 1.5
 category: core-services
-triggers: connector, graph-batch, retry, backoff, provisioning-saga, compensation, signalr-status, resilient-data-operations, GraphBatchService, useConnectorMutation, ProvisioningSaga, IConnectorRetryPolicy, GraphBatchEnforcer, ProvisioningStatusStepper, useProvisioningStatus, RetryAttempt, CircuitBreak, BatchFallback, SiteTemplateManagement, syncTemplateToGitOps, applyTemplateToSite
+triggers: connector, graph-batch, retry, backoff, provisioning-saga, compensation, signalr-status, resilient-data-operations, GraphBatchService, useConnectorMutation, ProvisioningSaga, IConnectorRetryPolicy, GraphBatchEnforcer, ProvisioningStatusStepper, useProvisioningStatus, RetryAttempt, CircuitBreak, BatchFallback, SiteTemplateManagement, syncTemplateToGitOps, applyTemplateToSite, BackpressureError, MAX_QUEUE_DEPTH, ODataSanitizer, graphScopePolicy
 updated: 2026-02-24
 ---
 
@@ -99,16 +99,25 @@ Compensation order: Reverse (7 -> 1). Step 1 (site deletion) runs LAST.
 - ProvisioningSaga Step 5 dual-path: `applyTemplateToSite` (Phase 6A) or legacy `copyTemplateFiles`. Compensation unchanged.
 - See `.claude/skills/site-template-management/SKILL.md` v1.0 for full template protocol.
 
+**Phase 7S3 Additions (v1.5)**
+- **Backpressure**: `MAX_QUEUE_DEPTH=50` on GraphBatchEnforcer. `BackpressureError(pendingCount, maxDepth)` rejected when queue full. `getHighWaterMark()` metric. `AuditAction.BackpressureRejected`.
+- **OData Sanitization**: `safeODataEq()` / `safeODataSubstringOf()` from `utils/odataSanitizer.ts` replace direct string interpolation in `SharePointDataService`. XSS-safe escaping + length enforcement.
+- **Graph Scope Policy**: `GRAPH_SCOPE_POLICY` in `utils/graphScopePolicy.ts` maps Graph operations to minimum scopes. `assertSufficientScope()` enforces least-privilege.
+
 **Reference**
-- `CLAUDE.md` §7 (284 methods), §15 (Phase 6A), §16 (saga + SignalR + template pitfalls)
+- `CLAUDE.md` §7 (285 methods), §15 (Phase 7S3), §16 (saga + SignalR + template + backpressure pitfalls)
 - `packages/hbc-sp-services/src/services/ProvisioningSaga.ts`
 - `packages/hbc-sp-services/src/models/IProvisioningSaga.ts`
 - `src/webparts/hbcProjectControls/components/hooks/useProvisioningStatus.ts`
 - `src/webparts/hbcProjectControls/components/shared/ProvisioningStatusStepper.tsx`
 - `packages/hbc-sp-services/src/services/GraphBatchEnforcer.ts`
 - `packages/hbc-sp-services/src/utils/ListThresholdGuard.ts`
+- `packages/hbc-sp-services/src/utils/odataSanitizer.ts`
+- `packages/hbc-sp-services/src/utils/graphScopePolicy.ts`
 - `.claude/SECURITY_ANALYSIS.md`
 - `.claude/DATA_ARCHITECTURE.md`
-- `.claude/skills/provisioning-engine/SKILL.md` v1.3 (template integration)
-- `.claude/skills/site-template-management/SKILL.md` v1.0 (full template protocol)
+- `.claude/PERMISSION_STRATEGY.md`
+- `.claude/skills/provisioning-engine/SKILL.md` v1.4 (rollback, template version)
+- `.claude/skills/site-template-management/SKILL.md` v1.1 (sync guards, multi-approver)
+- `.claude/skills/permission-system/SKILL.md` v1.1 (escalation prevention)
 - `.claude/skills/elevated-ux-ui-design/SKILL.md`

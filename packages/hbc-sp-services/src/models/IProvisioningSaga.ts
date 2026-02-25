@@ -25,6 +25,8 @@ export interface ISagaContext {
   idempotencyToken: string;
   completedSteps: number[];
   dataService: IDataService;
+  /** Phase 7S3: Template version resolved at Step 5 */
+  templateVersion?: string;
 }
 
 export interface ICompensationResult {
@@ -34,6 +36,8 @@ export interface ICompensationResult {
   error?: string;
   duration: number;
   timestamp: string;
+  /** Phase 7S3: Distinguishes automatic failure compensation from manual rollback */
+  compensationType?: 'forward_failure' | 'manual_rollback';
 }
 
 export interface ISagaExecutionResult {
@@ -44,6 +48,10 @@ export interface ISagaExecutionResult {
   compensationResults?: ICompensationResult[];
   idempotencyToken: string;
   siteUrl?: string;
+  /** Phase 7S3: Template version applied during provisioning */
+  templateVersion?: string;
+  /** Phase 7S3: Template type applied during provisioning */
+  templateType?: string;
 }
 
 export interface IIdempotencyToken {

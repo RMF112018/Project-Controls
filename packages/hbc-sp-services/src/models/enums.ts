@@ -258,6 +258,14 @@ export enum AuditAction {
   TemplateSyncStarted = 'Template.SyncStarted',
   TemplateSyncCompleted = 'Template.SyncCompleted',
   TemplateSyncFailed = 'Template.SyncFailed',
+  // Phase 7S3: Security Hardening
+  BackpressureRejected = 'Graph.BackpressureRejected',
+  FeatureFlagViolation = 'Security.FeatureFlagViolation',
+  PermissionEscalationBlocked = 'Security.PermissionEscalationBlocked',
+  IdempotencyReplayDetected = 'Security.IdempotencyReplayDetected',
+  TemplateSyncTransitionViolation = 'Template.SyncTransitionViolation',
+  ManualRollbackInitiated = 'Saga.ManualRollbackInitiated',
+  ManualRollbackCompleted = 'Saga.ManualRollbackCompleted',
 }
 
 export enum EntityType {

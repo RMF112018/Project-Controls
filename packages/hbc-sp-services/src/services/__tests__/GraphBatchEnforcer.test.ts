@@ -415,4 +415,126 @@ describe('GraphBatchEnforcer', () => {
 
     expect(enforcer.getPendingCount()).toBe(0);
   });
+
+  // ── Phase 7S3: Backpressure Tests ──
+
+  // 21. Backpressure rejection at MAX_QUEUE_DEPTH
+  it('rejects with BackpressureError at MAX_QUEUE_DEPTH', async () => {
+    const { MAX_QUEUE_DEPTH: maxDepth, BackpressureError: BPError } = require('../GraphBatchEnforcer');
+    const batchService = createMockBatchService();
+    // Make executeBatch never resolve — keeps flush() awaiting,
+    // but flush() clears queue synchronously via snapshot pattern.
+    // To test backpressure, we manipulate the internal queue directly.
+    const enforcer = new GraphBatchEnforcer(batchService, () => true);
+
+    // Access internal queue to simulate it being full
+    // (In production, this would happen if many requests arrive between flush cycles)
+    const internalQueue = (enforcer as unknown as { queue: unknown[] }).queue;
+    for (let i = 0; i < maxDepth; i++) {
+      internalQueue.push({
+        request: makeRequest(`fill-${i}`),
+        resolve: () => {},
+        reject: () => {},
+      });
+    }
+
+    // Next enqueue should trigger backpressure
+    await expect(enforcer.enqueue(makeRequest('overflow'))).rejects.toThrow('backpressure');
+
+    // Verify it's the right error type
+    try {
+      await enforcer.enqueue(makeRequest('overflow2'));
+    } catch (err) {
+      expect(err).toBeInstanceOf(BPError);
+    }
+
+    // Clean up
+    enforcer.dispose();
+  });
+
+  // 22. BackpressureError has correct properties
+  it('BackpressureError has correct pendingCount and maxDepth', async () => {
+    const { MAX_QUEUE_DEPTH: maxDepth, BackpressureError: BPError } = require('../GraphBatchEnforcer');
+    const batchService = createMockBatchService();
+    const enforcer = new GraphBatchEnforcer(batchService, () => true);
+
+    // Fill internal queue to MAX_QUEUE_DEPTH
+    const internalQueue = (enforcer as unknown as { queue: unknown[] }).queue;
+    for (let i = 0; i < maxDepth; i++) {
+      internalQueue.push({
+        request: makeRequest(`fill-${i}`),
+        resolve: () => {},
+        reject: () => {},
+      });
+    }
+
+    try {
+      await enforcer.enqueue(makeRequest('overflow'));
+      fail('Should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(BPError);
+      expect((err as InstanceType<typeof BPError>).maxDepth).toBe(maxDepth);
+      expect((err as InstanceType<typeof BPError>).pendingCount).toBe(maxDepth);
+    }
+
+    enforcer.dispose();
+  });
+
+  // 23. After flush, enqueue succeeds again
+  it('accepts new requests after flush clears the queue', async () => {
+    const batchService = createMockBatchService();
+    const enforcer = new GraphBatchEnforcer(batchService, () => true);
+
+    // Fill with 3 requests (triggers threshold flush)
+    const p1 = enforcer.enqueue(makeRequest('1'));
+    const p2 = enforcer.enqueue(makeRequest('2'));
+    const p3 = enforcer.enqueue(makeRequest('3'));
+    await Promise.all([p1, p2, p3]);
+
+    expect(enforcer.getPendingCount()).toBe(0);
+
+    // Should be able to enqueue again
+    const p4 = enforcer.enqueue(makeRequest('4'));
+    jest.advanceTimersByTime(10);
+    const r4 = await p4;
+    expect(r4.status).toBe(200);
+  });
+
+  // 24. highWaterMark tracks correctly
+  it('getHighWaterMark() tracks maximum queue depth', async () => {
+    const batchService = createMockBatchService();
+    const enforcer = new GraphBatchEnforcer(batchService, () => true);
+
+    expect(enforcer.getHighWaterMark()).toBe(0);
+
+    // Enqueue 2 (below threshold, no flush)
+    enforcer.enqueue(makeRequest('1'));
+    enforcer.enqueue(makeRequest('2'));
+    expect(enforcer.getHighWaterMark()).toBe(2);
+
+    // Third triggers flush
+    const p3 = enforcer.enqueue(makeRequest('3'));
+    await p3;
+
+    // High water mark should remain at 3 even after flush
+    expect(enforcer.getHighWaterMark()).toBe(3);
+    expect(enforcer.getPendingCount()).toBe(0);
+  });
+
+  // 25. Passthrough mode not subject to backpressure
+  it('passthrough mode (feature OFF) is not subject to backpressure', async () => {
+    const batchService = createMockBatchService();
+    const enforcer = new GraphBatchEnforcer(batchService, () => false);
+
+    // In passthrough mode, each request is immediately dispatched
+    // so the queue never fills up
+    const promises: Promise<unknown>[] = [];
+    for (let i = 0; i < 60; i++) {
+      promises.push(enforcer.enqueue(makeRequest(`req-${i}`)));
+    }
+
+    // All should resolve without backpressure error
+    const results = await Promise.all(promises);
+    expect(results).toHaveLength(60);
+  });
 });

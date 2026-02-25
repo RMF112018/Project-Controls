@@ -20,6 +20,7 @@ import type { GraphBatchEnforcer } from './GraphBatchEnforcer';
 import type { ListThresholdGuard } from '../utils/ListThresholdGuard';
 import { ThresholdLevel } from '../utils/ListThresholdGuard';
 import { PROVISIONING_STEPS, TOTAL_PROVISIONING_STEPS, ProvisioningStatus, AuditAction, EntityType } from '../models';
+import { generateCryptoHex4 } from '../utils/idempotencyTokenValidator';
 
 const PROVISIONING_CONSTANTS = {
   DEFAULT_SITE_BASE: 'https://hedrickbrotherscom.sharepoint.com/sites/',
@@ -49,7 +50,7 @@ export class ProvisioningSaga {
    */
   public static generateIdempotencyToken(projectCode: string): string {
     const timestamp = new Date().toISOString();
-    const hex = Math.floor(Math.random() * 0xFFFF).toString(16).padStart(4, '0');
+    const hex = generateCryptoHex4();
     return `${projectCode}::${timestamp}::${hex}`;
   }
 
@@ -156,6 +157,9 @@ export class ProvisioningSaga {
       siteUrl,
       completedAt: new Date().toISOString(),
       idempotencyToken,
+      // Phase 7S3: Template provenance
+      ...(context.templateVersion ? { templateVersion: context.templateVersion } : {}),
+      ...(input.templateName ? { templateType: input.templateName } : {}),
     });
 
     return {
@@ -163,6 +167,9 @@ export class ProvisioningSaga {
       completedSteps: TOTAL_PROVISIONING_STEPS,
       idempotencyToken,
       siteUrl,
+      // Phase 7S3: Template provenance
+      templateVersion: context.templateVersion,
+      templateType: input.templateName,
     };
   }
 
@@ -314,7 +321,11 @@ export class ProvisioningSaga {
         execute: async (ctx) => {
           if (ctx.input.templateName) {
             // Phase 6A: Use site template management path
-            await ctx.dataService.applyTemplateToSite(ctx.siteUrl, ctx.input.templateName);
+            const result = await ctx.dataService.applyTemplateToSite(ctx.siteUrl, ctx.input.templateName);
+            // Phase 7S3: Track template version for provenance
+            if (result && typeof result === 'object' && 'templateName' in result) {
+              ctx.templateVersion = `applied:${result.templateName}`;
+            }
           } else {
             // Legacy path: copy template files by division
             await ctx.dataService.copyTemplateFiles(ctx.siteUrl, ctx.input.projectCode, ctx.input.division);
@@ -323,7 +334,7 @@ export class ProvisioningSaga {
         compensate: async (ctx) => {
           const start = Date.now();
           await ctx.dataService.removeTemplateFiles(ctx.siteUrl, ctx.input.projectCode);
-          return { step: 5, label: PROVISIONING_STEPS[4].label, success: true, duration: Date.now() - start, timestamp: new Date().toISOString() };
+          return { step: 5, label: PROVISIONING_STEPS[4].label, success: true, duration: Date.now() - start, timestamp: new Date().toISOString(), compensationType: 'forward_failure' as const };
         },
       },
       {
@@ -353,6 +364,77 @@ export class ProvisioningSaga {
         },
       },
     ];
+  }
+
+  /**
+   * Phase 7S3: Manual rollback of a previously completed provisioning run.
+   * Looks up the original provisioning log by token, rebuilds context,
+   * and runs compensation in strict reverse order.
+   */
+  public async rollback(
+    projectCode: string,
+    originalToken: string
+  ): Promise<ICompensationResult[]> {
+    // Audit rollback initiation
+    void this.dataService.logAudit({
+      Action: AuditAction.ManualRollbackInitiated,
+      EntityType: EntityType.Project,
+      EntityId: projectCode,
+      User: 'system',
+      Details: `Manual rollback initiated for token: ${originalToken}`,
+    });
+
+    // Look up the original log
+    const log = await this.dataService.getProvisioningLogByToken(originalToken);
+    if (!log) {
+      throw new Error(`No provisioning log found for token: ${originalToken}`);
+    }
+
+    const hubSiteUrl = await this.dataService.getHubSiteUrl();
+
+    // Rebuild saga context from the completed log
+    const context: ISagaContext = {
+      input: {
+        leadId: log.leadId,
+        projectCode: log.projectCode,
+        projectName: log.projectName,
+        clientName: log.clientName || '',
+        division: log.division || '',
+        region: log.region || '',
+        requestedBy: log.requestedBy,
+      },
+      siteUrl: log.siteUrl || '',
+      hubSiteUrl,
+      siteAlias: log.projectCode.replace(/-/g, ''),
+      idempotencyToken: originalToken,
+      completedSteps: Array.from({ length: log.completedSteps }, (_, i) => i + 1),
+      dataService: this.dataService,
+    };
+
+    // Run compensation with manual_rollback type
+    const results = await this.compensate(context, context.completedSteps);
+
+    // Tag results as manual rollback
+    for (const r of results) {
+      r.compensationType = 'manual_rollback';
+    }
+
+    // Update log with rollback reference
+    await this.dataService.updateProvisioningLog(projectCode, {
+      rollbackFromToken: originalToken,
+      compensationLog: results,
+    });
+
+    // Audit rollback completion
+    void this.dataService.logAudit({
+      Action: AuditAction.ManualRollbackCompleted,
+      EntityType: EntityType.Project,
+      EntityId: projectCode,
+      User: 'system',
+      Details: `Manual rollback completed for token: ${originalToken}. ${results.filter(r => r.success).length}/${results.length} steps compensated.`,
+    });
+
+    return results;
   }
 
   /**

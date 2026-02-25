@@ -1,9 +1,9 @@
 ---
 name: HBC Site Template Management
 description: Selectable site templates (Default, Commercial, Luxury Residential) maintained by SharePoint admins, with GitOps sync capability, admin UI tab, and saga integration. Enables HBC to maintain different project-site structures per division while keeping version-controlled templates in Git.
-version: 1.0
+version: 1.1
 category: core-services
-triggers: site-template, template-management, ISiteTemplate, SiteTemplateType, TemplateSyncStatus, GitOps, template-sync, applyTemplateToSite, syncTemplateToGitOps, SiteTemplateManagement, template-crud, template-admin
+triggers: site-template, template-management, ISiteTemplate, SiteTemplateType, TemplateSyncStatus, GitOps, template-sync, applyTemplateToSite, syncTemplateToGitOps, SiteTemplateManagement, template-crud, template-admin, templateSyncGuard, acquireSyncLock, validateTemplateContent, assertSyncApproved, multi-approver
 updated: 2026-02-24
 ---
 

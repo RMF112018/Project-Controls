@@ -16,7 +16,7 @@ This file must stay under 40,000 characters. Never allow it to grow large again.
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-24 — Phase 6A Site Template Management & GitOps Sync COMPLETE. ISiteTemplate model, 8 new IDataService methods (276→284), TemplateSyncStatus enum, ProvisioningSaga Step 5 dual-path, Admin Site Templates tab (HbcTanStackTable + SlideDrawer), feature flag SiteTemplateManagement (id 60). site-template-management SKILL v1.0, provisioning-engine SKILL v1.3, resilient-data-operations SKILL v1.4. 19 new Jest tests + 9 Playwright E2E. ~940+ tests.
+**Last Updated:** 2026-02-24 — Phase 7 Stage 3 Security Hardening COMPLETE. OData sanitization (3 SP filters), server-side feature flag enforcement (6 template mutations), GraphBatchEnforcer backpressure (MAX_QUEUE_DEPTH=50), permission escalation prevention + rate limiting, idempotency token hardening (crypto-safe, 24h expiry, replay detection), template sync state machine + content validation + multi-approver gates, ProvisioningSaga manual rollback + template version tracking. +1 IDataService method (284→285: getProvisioningLogByToken). 7 new AuditActions. 6 new utility files + ~66 new tests. resilient-data-operations v1.5, provisioning-engine v1.4, permission-system v1.1, site-template-management v1.1. ~945 tests.
 
 **MANDATORY:** After any code change that affects the data layer, architecture, performance, UI/UX, testing, or security, update this file, verify against the current sprint gate, confirm relevant Skills and the master plan were followed, update CHANGELOG.md (root), and check project memory before ending the session.
 
@@ -155,7 +155,7 @@ Core roles (6 total – config-driven via IRoleConfiguration, Phase 2 COMPLETE):
 - Leadership: Global read/write access to ALL projects and ALL departments.  
 - Project Executive: Scoped access ONLY to assigned projects and assigned departments.
 
-Permission model: Configuration-driven via IRoleConfiguration (SP list-backed). RoleConfigurationPanel in AdminPanel provides zero-code CRUD for roles and default permissions. LEGACY_ROLE_MAP normalizes all 14 prior RoleName values to 6 canonical roles. RoleGate enhanced with bidirectional normalization. SOC2 audit snapshots on every mutation.
+Permission model: Configuration-driven via IRoleConfiguration (SP list-backed). RoleConfigurationPanel in AdminPanel provides zero-code CRUD for roles and default permissions. LEGACY_ROLE_MAP normalizes all 14 prior RoleName values to 6 canonical roles. RoleGate enhanced with bidirectional normalization. SOC2 audit snapshots on every mutation. **Phase 7S3 hardening**: Escalation prevention (`assertNotSelfEscalation`) blocks assigning permissions the current user doesn't hold. Rate limiting (`checkRateLimit`) caps role mutations to 10/60s per user. See `PERMISSION_STRATEGY.md`.
 
 Cross-reference: §18 Roadmap (Phase 2), §21, §22, `.claude/plans/hbc-stabilization-and-suite-roadmap.md`, `.claude/skills/permission-system/SKILL.md`.
 
@@ -163,11 +163,11 @@ Cross-reference: §18 Roadmap (Phase 2), §21, §22, `.claude/plans/hbc-stabiliz
 
 ## §7 Service Methods Status (Live)
 
-**Total methods**: 284
-**Implemented**: 284
+**Total methods**: 285
+**Implemented**: 285
 **Remaining stubs**: 0 — **DATA LAYER COMPLETE**
 
-Last major additions: Phase 6A Site Template Management (Feb 2026) — +8 new IDataService methods: getSiteTemplates, getSiteTemplateByType, createSiteTemplate, updateSiteTemplate, deleteSiteTemplate, syncTemplateToGitOps, applyTemplateToSite, syncAllTemplates. Feature flag: SiteTemplateManagement (id 60). TemplateSyncStatus enum + EntityType.SiteTemplate + 3 AuditActions. ProvisioningSaga Step 5 dual-path. Admin UI tab with HbcTanStackTable + SlideDrawer. 19 new Jest tests.
+Last major additions: Phase 7 Stage 3 Security Hardening (Feb 2026) — +1 IDataService method: getProvisioningLogByToken (284→285). 7 new AuditAction values. OData sanitization (odataSanitizer.ts), server-side feature flag guard (featureFlagGuard.ts), idempotency token validator (idempotencyTokenValidator.ts), template sync guard (templateSyncGuard.ts), escalation guard (escalationGuard.ts), Graph scope policy (graphScopePolicy.ts). GraphBatchEnforcer backpressure (MAX_QUEUE_DEPTH=50). ProvisioningSaga manual rollback + template version tracking. ~66 new tests (945 total).
 
 Phase 5D Cross-cutting Governance (Feb 2026) — No new IDataService methods. GraphBatchEnforcer (10ms coalescence, threshold 3, feature-gated GraphBatchingEnabled). ListThresholdGuard utility (warn at 3000, force cursor paging at 4500 for Audit_Log). Coverage ramp to 80/60/70/80. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md created. Connector + provisioning E2E specs. ~20 new Jest tests (~857 total).
 
@@ -195,6 +195,7 @@ Phase 5B Workflow State Machines + E2E Coverage (Feb 2026) — No new IDataServi
 - Phase 5C.1: Provisioning Saga Resilience Integration — **COMPLETE**. GraphBatchEnforcer and ListThresholdGuard wired into saga steps, E2E expansion, SKILL.md updates.
 - Phase 6A: Site Template Management & GitOps Sync — **COMPLETE** on `feature/hbc-suite-stabilization`. ISiteTemplate model + SiteTemplateType union. TemplateSyncStatus enum (Idle/Syncing/Success/Failed). 3 new AuditActions (TemplateSyncStarted/Completed/Failed) + EntityType.SiteTemplate. Feature flag SiteTemplateManagement (id 60, default OFF, SuperAdmin-only). 8 new IDataService methods (276→284). SITE_TEMPLATES_COLUMNS + HUB_LISTS.SITE_TEMPLATES + CACHE_KEYS. MockDataService + SharePointDataService implementations. IProvisioningInput.templateName for dual-path saga Step 5. ProvisioningPage TabList with "Provisioning Logs" + "Site Templates" tabs. HbcTanStackTable + SlideDrawer for template CRUD. site-template-management SKILL v1.0. provisioning-engine SKILL v1.3. resilient-data-operations SKILL v1.4. 19 new Jest + 9 Playwright E2E tests. ~940+ tests.
 - Phase 7 Stage 2: Performance Optimization for Construction-Scale Data — **COMPLETE** on `feature/hbc-suite-stabilization`. Construction-scale benchmark generators (Buyout 500, Audit 5000, Estimating 300, Schedule 1000, Leads 200) with seeded PRNG. MockDataService `benchmarkMode`. Per-domain QUERY_GC_TIMES + INFINITE_QUERY_MAX_PAGES. MemoizedTableRow (React.memo + custom equality). React 18 concurrent: useTransition (sort/filter/group), useDeferredValue (globalFilter). Adaptive overscan in useVirtualRows. HbcEChart large/progressiveRender/sampling props. usePerformanceMarker hook. 3 SKILL.md v1.1 updates. 43 new tests (26 generator + 8 cache + 6 table perf + 3 hook) + 4 Playwright E2E. ~980+ tests.
+- Phase 7 Stage 3: Security Hardening (GitOps & Provisioning) — **COMPLETE** on `feature/hbc-suite-stabilization`. OData injection remediation (3 SP filters via safeODataEq/safeODataSubstringOf). Server-side feature flag enforcement (assertFeatureFlagEnabled on 6 template mutations). GraphBatchEnforcer backpressure (MAX_QUEUE_DEPTH=50, BackpressureError, highWaterMark metric). Permission escalation prevention (assertNotSelfEscalation + checkRateLimit 10/60s). Idempotency token hardening (crypto-safe hex, 24h expiry, replay detection). Template sync state machine (4 valid transitions, acquireSyncLock, validateTemplateContent XSS patterns, multi-approver gates). Graph scope policy (11 operations → minimum scopes). ProvisioningSaga manual rollback + template version tracking. +1 IDataService method (getProvisioningLogByToken → 285). IProvisioningLog expansion (templateVersion, templateType, rollbackFromToken). ISagaContext/ICompensationResult/ISagaExecutionResult expansion. 7 new AuditAction values. 6 new utility files. PERMISSION_STRATEGY.md created. resilient-data-operations SKILL v1.5, provisioning-engine SKILL v1.4, permission-system SKILL v1.1, site-template-management SKILL v1.1. ~66 new tests (945 total across 58 suites).
 
 ---
 
@@ -261,6 +262,14 @@ Phase 5B Workflow State Machines + E2E Coverage (Feb 2026) — No new IDataServi
 - **ProvisioningSaga Step 5 dual-path**: When `IProvisioningInput.templateName` present → `applyTemplateToSite`; absent → legacy `copyTemplateFiles`. Compensation unchanged (`removeTemplateFiles` works for both).
 - **ISiteTemplate.Title is typed**: `SiteTemplateType = 'Default' | 'Commercial' | 'Luxury Residential'` — not a free string.
 - **Site_Templates SP list**: Added to HUB_LISTS. Cache key: `hbc_site_templates`. Column mappings: `SITE_TEMPLATES_COLUMNS`.
+- **OData sanitization (Phase 7S3)**: All SP OData filters MUST use `safeODataEq()` / `safeODataSubstringOf()` from `utils/odataSanitizer.ts`. Never interpolate user input directly.
+- **Feature flag guard (Phase 7S3)**: `assertFeatureFlagEnabled(flags, flagName, operation)` must precede all guarded mutations. Throws `FeatureFlagViolationError`.
+- **Backpressure (Phase 7S3)**: `MAX_QUEUE_DEPTH=50` on GraphBatchEnforcer. `BackpressureError` rejected when queue full. `getHighWaterMark()` for observability.
+- **Escalation prevention (Phase 7S3)**: `assertNotSelfEscalation(currentUser, rolePermissions)` on `createRoleConfiguration`/`updateRoleConfiguration`. `checkRateLimit(email, operation)` — 10 mutations/60s per user.
+- **Template sync guards (Phase 7S3)**: `assertValidSyncTransition(from, to)` enforces state machine. `acquireSyncLock(templateId)` prevents concurrent syncs. `validateTemplateContent(template)` rejects XSS patterns.
+- **ProvisioningSaga rollback (Phase 7S3)**: `rollback(projectCode, originalToken)` looks up log by token and runs compensation in strict reverse. Sets `rollbackFromToken` on log.
+- **Idempotency token format (Phase 7S3)**: `generateCryptoHex4()` uses `crypto.getRandomValues()` — never `Math.random()`. Validation: format regex + 24h expiry + replay detection.
+- **IDataService 285 methods (Phase 7S3)**: +1 method `getProvisioningLogByToken(token)` for saga rollback.
 
 ### New Skill Documentation (added 23 Feb 2026 at commit 55027ece)
 - **Provisioning Engine Skill Creation** `.claude/skills/provisioning-engine/SKILL.md` – 7-step engine protocol, guaranteed stable flows, manual test steps, and cross-references.  
@@ -330,6 +339,9 @@ hbc-stabilization-and-suite-roadmap.md updated with the full detailed Phase 7 pl
 
 §18.6 Phase 7 Stage 2 Performance Optimization Complete (commit after update)
 Stage 2 of Phase 7 completed per roadmap: construction-scale benchmarks established, HbcTanStackTable/ECharts/Query optimized, bundle reduced to target, performance telemetry added. All Stage 2 deliverables and success criteria addressed. Ready for Stage 3 (Security Hardening).
+
+§18.7 Phase 7 Stage 3 Security Hardening Complete (commit after update)
+Stage 3 of Phase 7 completed per roadmap: OData injection remediation (3 SP filters), server-side feature flag enforcement (6 template mutations), GraphBatchEnforcer backpressure (MAX_QUEUE_DEPTH=50), permission escalation prevention + rate limiting, idempotency token hardening (crypto-safe, 24h expiry, replay detection), template sync state machine + content validation + multi-approver gates, Graph scope policy (least-privilege), ProvisioningSaga manual rollback + template version tracking. +1 IDataService method (285 total). 7 new AuditActions. 6 new utility files. PERMISSION_STRATEGY.md created. 4 SKILL.md version bumps. ~66 new tests (945 total). All Stage 3 deliverables and success criteria addressed. Ready for Stage 4 (Accessibility).
 
 ---
 

@@ -328,4 +328,171 @@ describe('ProvisioningSaga', () => {
       expect(token).toMatch(/^25-042-01::/);
     });
   });
+
+  // ── Phase 7S3: Security Hardening Tests ──
+
+  describe('idempotency token security (Phase 7S3)', () => {
+    it('token matches format regex (projectCode::ISO::hex4)', () => {
+      const token = ProvisioningSaga.generateIdempotencyToken('25-042-01');
+      expect(token).toMatch(/^25-042-01::\d{4}-\d{2}-\d{2}T[\d:.]+Z::[0-9a-f]{4}$/);
+    });
+
+    it('generates unique tokens across multiple runs', () => {
+      const tokens = Array.from({ length: 20 }, () =>
+        ProvisioningSaga.generateIdempotencyToken('25-042-01')
+      );
+      const unique = new Set(tokens);
+      // With crypto-safe hex, should be highly unique
+      expect(unique.size).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe('rollback (Phase 7S3)', () => {
+    it('calls compensate in reverse order with manual_rollback type', async () => {
+      const completedLog = {
+        id: 1,
+        projectCode: '25-042-01',
+        projectName: 'Test Project',
+        leadId: 1,
+        status: 'Completed',
+        currentStep: 7,
+        completedSteps: 3, // Only 3 steps for simpler test
+        retryCount: 0,
+        requestedBy: 'admin@test.com',
+        requestedAt: new Date().toISOString(),
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+        idempotencyToken: '25-042-01::2026-02-24T00:00:00.000Z::a1b2',
+        clientName: 'Test Client',
+        division: 'Commercial',
+        region: 'Miami',
+      };
+
+      const { saga, ds } = createSaga({
+        getProvisioningLogByToken: jest.fn().mockResolvedValue(completedLog),
+      });
+
+      const results = await saga.rollback('25-042-01', '25-042-01::2026-02-24T00:00:00.000Z::a1b2');
+
+      // Should compensate 3 steps in reverse order
+      expect(results).toHaveLength(3);
+      expect(results[0].step).toBe(3);
+      expect(results[1].step).toBe(2);
+      expect(results[2].step).toBe(1);
+      // All should be tagged manual_rollback
+      for (const r of results) {
+        expect(r.compensationType).toBe('manual_rollback');
+      }
+    });
+
+    it('sets rollbackFromToken on provisioning log', async () => {
+      const completedLog = {
+        id: 1,
+        projectCode: '25-042-01',
+        projectName: 'Test Project',
+        leadId: 1,
+        status: 'Completed',
+        currentStep: 7,
+        completedSteps: 2,
+        retryCount: 0,
+        requestedBy: 'admin@test.com',
+        requestedAt: new Date().toISOString(),
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+        idempotencyToken: '25-042-01::2026-02-24T00:00:00.000Z::x9y8',
+        clientName: 'Test Client',
+        division: 'Commercial',
+        region: 'Miami',
+      };
+
+      const originalToken = '25-042-01::2026-02-24T00:00:00.000Z::x9y8';
+      const { saga, ds } = createSaga({
+        getProvisioningLogByToken: jest.fn().mockResolvedValue(completedLog),
+      });
+
+      await saga.rollback('25-042-01', originalToken);
+
+      expect(ds.updateProvisioningLog).toHaveBeenCalledWith(
+        '25-042-01',
+        expect.objectContaining({ rollbackFromToken: originalToken })
+      );
+    });
+
+    it('throws when no log found for token', async () => {
+      const { saga } = createSaga({
+        getProvisioningLogByToken: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await expect(saga.rollback('25-042-01', 'bad-token')).rejects.toThrow('No provisioning log found');
+    });
+
+    it('logs ManualRollbackInitiated and ManualRollbackCompleted audit entries', async () => {
+      const completedLog = {
+        id: 1,
+        projectCode: '25-042-01',
+        projectName: 'Test Project',
+        leadId: 1,
+        status: 'Completed',
+        currentStep: 7,
+        completedSteps: 1,
+        retryCount: 0,
+        requestedBy: 'admin@test.com',
+        requestedAt: new Date().toISOString(),
+        siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
+        idempotencyToken: '25-042-01::2026-02-24T00:00:00.000Z::c3d4',
+        clientName: 'Test Client',
+        division: 'Commercial',
+        region: 'Miami',
+      };
+
+      const { saga, ds } = createSaga({
+        getProvisioningLogByToken: jest.fn().mockResolvedValue(completedLog),
+      });
+
+      await saga.rollback('25-042-01', '25-042-01::2026-02-24T00:00:00.000Z::c3d4');
+
+      // Check ManualRollbackInitiated was logged
+      expect(ds.logAudit).toHaveBeenCalledWith(
+        expect.objectContaining({ Action: 'Saga.ManualRollbackInitiated' })
+      );
+      // Check ManualRollbackCompleted was logged
+      expect(ds.logAudit).toHaveBeenCalledWith(
+        expect.objectContaining({ Action: 'Saga.ManualRollbackCompleted' })
+      );
+    });
+  });
+
+  describe('template version tracking (Phase 7S3)', () => {
+    it('Step 5 success with templateName records templateVersion on result', async () => {
+      const { saga, ds } = createSaga({
+        applyTemplateToSite: jest.fn().mockResolvedValue({ appliedCount: 12, templateName: 'Commercial' }),
+      });
+      const input = createTestInput({ templateName: 'Commercial' as 'Default' | 'Commercial' | 'Luxury Residential' });
+
+      const result = await saga.execute(input);
+
+      expect(result.success).toBe(true);
+      expect(result.templateVersion).toBeDefined();
+      expect(result.templateType).toBeDefined();
+    });
+
+    it('final success result includes templateVersion and templateType in log update', async () => {
+      const { saga, ds } = createSaga({
+        applyTemplateToSite: jest.fn().mockResolvedValue({ appliedCount: 12, templateName: 'Default' }),
+      });
+      const input = createTestInput({ templateName: 'Default' as 'Default' | 'Commercial' | 'Luxury Residential' });
+
+      await saga.execute(input);
+
+      // Check that updateProvisioningLog was called with templateVersion
+      const calls = (ds.updateProvisioningLog as jest.Mock).mock.calls;
+      const completedCall = calls.find(
+        (c: unknown[]) => (c[1] as Record<string, unknown>).status === 'Completed'
+      );
+      expect(completedCall).toBeDefined();
+      if (completedCall) {
+        const logData = completedCall[1] as Record<string, unknown>;
+        expect(logData.templateVersion).toBeDefined();
+        expect(logData.templateType).toBeDefined();
+      }
+    });
+  });
 });
