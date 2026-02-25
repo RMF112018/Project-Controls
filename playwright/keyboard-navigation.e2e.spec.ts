@@ -5,7 +5,8 @@
  * Covers AppLauncher, ContextualSidebar accordion, NavItem navigation,
  * TanStack table sort/row/pagination, inline-edit cells, SlideDrawer
  * focus trap, WhatsNewModal focus trap, TabList arrow-key switching,
- * and Escape-to-close behavior.
+ * Escape-to-close behavior, Breadcrumb navigation, Command Palette flow,
+ * and AccessDenied page keyboard activation.
  *
  * Run via: npx playwright test keyboard-navigation
  */
@@ -638,5 +639,91 @@ test.describe('Keyboard Navigation Workflows', () => {
         }
       }
     }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Expanded keyboard coverage (Sub-Task 8)
+  // ---------------------------------------------------------------------------
+  test('16. Breadcrumb keyboard — Tab, :focus-visible ring, Enter navigates', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('OperationsTeam');
+    await dismissWhatsNew(page);
+    await ensureProjectSelected(page);
+    await page.goto('/#/operations/schedule');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+
+    const breadcrumbButton = page.locator('nav[aria-label="Breadcrumb"] button').first();
+    if (await breadcrumbButton.isVisible().catch(() => false)) {
+      await breadcrumbButton.focus();
+
+      const outlineStyle = await breadcrumbButton.evaluate((el) => {
+        return window.getComputedStyle(el).outlineStyle;
+      });
+      expect(['solid', 'auto'].some((s) => outlineStyle.includes(s))).toBe(true);
+
+      const beforeUrl = page.url();
+      await page.keyboard.press('Enter');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(500);
+
+      const afterUrl = page.url();
+      expect(afterUrl).not.toBe(beforeUrl);
+    }
+  });
+
+  test('17. Command Palette keyboard flow — Ctrl+K, ArrowDown/Up, Escape closes', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('ExecutiveLeadership');
+    await dismissWhatsNew(page);
+    await page.waitForLoadState('networkidle');
+
+    await page.keyboard.press('Control+k');
+    await page.waitForTimeout(400);
+
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+    const combobox = dialog.locator('[role="combobox"]');
+    await expect(combobox).toBeFocused();
+
+    const initialDescendant = await combobox.getAttribute('aria-activedescendant');
+
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(100);
+    const afterDown = await combobox.getAttribute('aria-activedescendant');
+    expect(afterDown).not.toBe(initialDescendant);
+
+    await page.keyboard.press('ArrowUp');
+    await page.waitForTimeout(100);
+    const afterUp = await combobox.getAttribute('aria-activedescendant');
+    expect(afterUp).toBe(initialDescendant);
+
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    await expect(dialog).not.toBeVisible({ timeout: 3_000 });
+  });
+
+  test('18. AccessDenied page keyboard — Tab to Return button, Enter navigates to root', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('BDRepresentative');
+    await dismissWhatsNew(page);
+
+    await page.goto('/#/admin');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+
+    const returnButton = page.getByRole('button', { name: /Return to Dashboard/i });
+    await expect(returnButton).toBeVisible({ timeout: 5_000 });
+
+    await returnButton.focus();
+    await page.keyboard.press('Enter');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+
+    expect(page.url()).toMatch(/\/#\/$/);
   });
 });

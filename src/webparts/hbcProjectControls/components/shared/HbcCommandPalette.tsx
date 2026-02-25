@@ -248,6 +248,7 @@ export const HbcCommandPalette: React.FC<IHbcCommandPaletteProps> = ({
               aria-controls="hbc-command-list"
               aria-activedescendant={activeCommandId}
               role="combobox"
+              aria-expanded={visibleCommands.length > 0}
             />
             <div id="hbc-command-list" className={styles.list} role="listbox" aria-label="Available commands">
               {visibleCommands.length === 0 ? (
@@ -259,7 +260,7 @@ export const HbcCommandPalette: React.FC<IHbcCommandPaletteProps> = ({
                   return (
                     <React.Fragment key={command.id}>
                       {showSectionHeader && (
-                        <div className={styles.sectionDivider} role="separator">
+                        <div className={styles.sectionDivider} role="presentation">
                           {command.section}
                         </div>
                       )}

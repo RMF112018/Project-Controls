@@ -27,8 +27,8 @@ const flags = featureFlags as IFeatureFlag[];
 
 describe('Feature Flag Registry Integrity', () => {
   describe('total flag count', () => {
-    it('should contain exactly 25 flags (30 post-Batch 5D - 5 Batch 5E Preconstruction + Misc)', () => {
-      expect(flags).toHaveLength(25);
+    it('should contain exactly 16 flags (25 post-Batch 5E - 9 Sub-Task 6 disabled-and-unused)', () => {
+      expect(flags).toHaveLength(16);
     });
   });
 
@@ -191,6 +191,42 @@ describe('Feature Flag Registry Integrity', () => {
 
     it('DevUserManagement should NOT exist (removed Batch 5E)', () => {
       expect(flags.find((f) => f.FeatureName === 'DevUserManagement')).toBeUndefined();
+    });
+
+    it('UnanetIntegration should NOT exist (removed Sub-Task 6)', () => {
+      expect(flags.find((f) => f.FeatureName === 'UnanetIntegration')).toBeUndefined();
+    });
+
+    it('SageIntegration should NOT exist (removed Sub-Task 6)', () => {
+      expect(flags.find((f) => f.FeatureName === 'SageIntegration')).toBeUndefined();
+    });
+
+    it('DocumentCrunchIntegration should NOT exist (removed Sub-Task 6)', () => {
+      expect(flags.find((f) => f.FeatureName === 'DocumentCrunchIntegration')).toBeUndefined();
+    });
+
+    it('EstimatingModule should NOT exist (removed Sub-Task 6)', () => {
+      expect(flags.find((f) => f.FeatureName === 'EstimatingModule')).toBeUndefined();
+    });
+
+    it('BudgetSync should NOT exist (removed Sub-Task 6)', () => {
+      expect(flags.find((f) => f.FeatureName === 'BudgetSync')).toBeUndefined();
+    });
+
+    it('DualNotifications should NOT exist (removed Sub-Task 6)', () => {
+      expect(flags.find((f) => f.FeatureName === 'DualNotifications')).toBeUndefined();
+    });
+
+    it('AuditTrail should NOT exist (removed Sub-Task 6)', () => {
+      expect(flags.find((f) => f.FeatureName === 'AuditTrail')).toBeUndefined();
+    });
+
+    it('OfflineSupport should NOT exist (removed Sub-Task 6)', () => {
+      expect(flags.find((f) => f.FeatureName === 'OfflineSupport')).toBeUndefined();
+    });
+
+    it('ProvisioningRealOps should NOT exist (removed Sub-Task 6)', () => {
+      expect(flags.find((f) => f.FeatureName === 'ProvisioningRealOps')).toBeUndefined();
     });
   });
 

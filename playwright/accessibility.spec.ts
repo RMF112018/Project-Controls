@@ -2,7 +2,7 @@
  * accessibility.spec.ts — WCAG 2.2 Level AA automated axe audits
  *
  * Uses @axe-core/playwright against the mock dev server (npm run dev).
- * Covers 28 critical routes across 4 roles.
+ * Covers 34 critical routes across 4 roles.
  * Run via: npm run test:a11y
  */
 import { test, expect } from './fixtures/roleFixture';
@@ -393,6 +393,76 @@ test.describe('Accessibility — WCAG 2.2 AA', () => {
     await page.waitForLoadState('networkidle');
     await switchRole('EstimatingCoordinator');
     await page.goto('/#/preconstruction/estimating');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+    await checkA11y(page);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Expanded coverage — form-heavy / interactive routes (Sub-Task 7)
+  // ---------------------------------------------------------------------------
+  test('project settings page (OperationsTeam)', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('OperationsTeam');
+    await ensureProjectSelected(page);
+    await page.goto('/#/operations/project/settings');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+    await checkA11y(page);
+  });
+
+  test('marketing dashboard (ExecutiveLeadership)', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('ExecutiveLeadership');
+    await page.goto('/#/shared-services/marketing');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+    await checkA11y(page);
+  });
+
+  test('project startup checklist (OperationsTeam)', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('OperationsTeam');
+    await ensureProjectSelected(page);
+    await page.goto('/#/project-hub/manual/startup/checklist');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+    await checkA11y(page);
+  });
+
+  test('PMP page (OperationsTeam)', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('OperationsTeam');
+    await ensureProjectSelected(page);
+    await page.goto('/#/project-hub/manual/pmp');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+    await checkA11y(page);
+  });
+
+  test('command palette a11y (ExecutiveLeadership)', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('ExecutiveLeadership');
+    await page.waitForLoadState('networkidle');
+    await page.keyboard.press('Control+k');
+    await page.waitForTimeout(400);
+    const dialog = page.locator('[role="dialog"]');
+    if (await dialog.isVisible()) {
+      await checkA11y(page);
+      await page.keyboard.press('Escape');
+    }
+  });
+
+  test('admin connections page (ExecutiveLeadership)', async ({ page, switchRole }) => {
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('ExecutiveLeadership');
+    await page.goto('/#/admin/connections');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     await checkA11y(page);

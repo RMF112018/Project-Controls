@@ -2,6 +2,88 @@
 
 All notable changes to HBC Project Controls will be documented in this file.
 
+## [2026-02-25] - Stage 5 Sub-Task 9 - docs(flags) - Feature Flag Registry Documentation
+
+### Added
+- Feature Flag Registry documenting all 16 remaining flags with lifecycle status, category, purpose, and primary code references.
+
+### Feature Flag Registry (16 flags)
+
+| Flag | ID | Status | Category | Purpose | Primary Code References |
+|---|---|---|---|---|---|
+| PermissionEngine | 23 | Active | Infrastructure | Procore-modeled permission engine with templates and project scoping | `AppShell.tsx`, `AppContext.tsx`, `workspaceConfig.ts`, `routes.admin.tsx`, `useSectorDefinitions.ts` |
+| TelemetryDashboard | 32 | Active (role-gated) | Debug | Application Insights + ECharts telemetry dashboard (Leadership, Administrator) | Route-level gating via admin workspace; `telemetry.spec.ts` |
+| SiteTemplateManagement | 56 | Active (role-gated) | Infrastructure | Phase 6A template CRUD, GitOps sync, provisioning (Leadership, Administrator) | `ProvisioningPage.tsx` (FeatureGate), `MockDataService.ts` (assertFeatureFlagEnabled) |
+| GitOpsProvisioning | 33 | Ready to enable | Infrastructure | Step 5 committed /templates/ instead of Template_Registry SP list | `ProvisioningService.ts`, `GitOpsProvisioningService.ts`, `MockDataService.ts`, `enums.ts` |
+| TemplateSiteSync | 34 | Ready to enable | Infrastructure | Template Site sync UI in AdminPanel Provisioning tab | `TemplateSyncService.ts` |
+| OptimisticMutationsEnabled | 37 | Ready to enable | Infrastructure | Global gate for optimistic mutation lifecycle (onMutate rollback/invalidation) | `optimisticMutationFlags.ts`, `useMutationFeatureGate.ts`, `useConnectorMutation.ts` |
+| OptimisticMutations_Leads | 38 | Ready to enable | Infrastructure | Optimistic mutation flow for Leads domain (Administrator) | `optimisticMutationFlags.ts` via `useMutationFeatureGate` |
+| OptimisticMutations_Estimating | 39 | Ready to enable | Infrastructure | Optimistic mutation flow for Estimating domain (Estimator, Administrator) | `optimisticMutationFlags.ts` via `useMutationFeatureGate` |
+| OptimisticMutations_Buyout | 40 | Ready to enable | Infrastructure | Optimistic mutation flow for Buyout/compliance workflows (Mgr of Operational Excellence, Administrator) | `optimisticMutationFlags.ts` via `useMutationFeatureGate` |
+| OptimisticMutations_PMP | 41 | Ready to enable | Infrastructure | Optimistic mutation flow for PMP updates/approvals (Commercial Operations Mgr, Administrator) | `optimisticMutationFlags.ts` via `useMutationFeatureGate` |
+| InfinitePagingEnabled | 43 | Ready to enable | Infrastructure | Global gate for cursor-based infinite query paging | `ListThresholdGuard.ts` |
+| ConnectorMutationResilience | 51 | Ready to enable | Infrastructure | Phase 5A retry/backoff for connector mutations via useConnectorMutation hook | `useConnectorMutation.ts`, `optimisticMutationFlags.ts` |
+| WorkflowStateMachine | 52 | Dual-path guard | Infrastructure | XState workflow engine; legacy imperative path is active fallback | `GoNoGoScorecard.tsx`, `PMPPage.tsx` (isFeatureEnabled) |
+| ProvisioningSaga | 53 | Dual-path guard | Infrastructure | Saga-based provisioning; legacy provisioning path is active fallback | `ProvisioningPage.tsx` (FeatureGate), `ProvisioningService.ts` (isFeatureEnabled) |
+| PowerBIIntegration | 57 | Not deployed | Integrations | Power BI embedded reports -- not yet deployed | `PreconDashboardPage.tsx`, `EstimatingDashboardPage.tsx`, `AnalyticsHubDashboardPage.tsx` (FeatureGate) |
+| RealTimeUpdates | 58 | Not deployed | Infrastructure | SignalR real-time push -- not yet deployed | `AppShell.tsx` (FeatureGate), `SignalRContext.tsx` (isFeatureEnabled) |
+
+**Status legend:** Active = enabled globally; Active (role-gated) = enabled for specific roles; Ready to enable = disabled, code wired, awaiting deployment; Dual-path guard = intentionally disabled, legacy fallback active; Not deployed = disabled, gating code exists but feature not ready.
+
+## [2026-02-25] - Stage 5 Sub-Task 8 - a11y(keyboard) - Expand Keyboard Navigation Tests
+
+### Added
+- 3 new keyboard navigation E2E tests in `playwright/keyboard-navigation.e2e.spec.ts` (15 -> 18 tests).
+- Breadcrumb keyboard navigation -- Tab to breadcrumb, verify :focus-visible ring, Enter navigates.
+- Command Palette keyboard flow -- Ctrl+K opens, ArrowDown/Up navigates, Escape closes.
+- AccessDenied page keyboard -- Tab to "Return to Dashboard", Enter navigates to root.
+
+### Verified
+- Playwright keyboard suite: 3 new tests pass (7 pre-existing failures unrelated to this change)
+
+## [2026-02-25] - Stage 5 Sub-Task 6 - refactor(flags) - Remove 9 Disabled-and-Unused Feature Flags
+
+### Removed
+- `UnanetIntegration` (id 9) -- Integrations, disabled, zero code references.
+- `SageIntegration` (id 10) -- Integrations, disabled, zero code references.
+- `DocumentCrunchIntegration` (id 11) -- Integrations, disabled, zero code references.
+- `EstimatingModule` (id 12) -- Integrations, disabled, zero code references.
+- `BudgetSync` (id 13) -- Integrations, disabled, zero code references.
+- `DualNotifications` (id 15) -- Infrastructure, disabled, zero code references.
+- `AuditTrail` (id 16) -- Infrastructure, disabled, zero code references.
+- `OfflineSupport` (id 17) -- Infrastructure, disabled, zero code references.
+- `ProvisioningRealOps` (id 26) -- Infrastructure, disabled, zero code references.
+- 9 entries from featureFlags.json (25 -> 16).
+
+### Preserved (13 disabled flags with active code references)
+- GitOpsProvisioning, TemplateSiteSync, OptimisticMutationsEnabled, OptimisticMutations_Leads, OptimisticMutations_Estimating, OptimisticMutations_Buyout, OptimisticMutations_PMP, InfinitePagingEnabled, ConnectorMutationResilience, WorkflowStateMachine, ProvisioningSaga, PowerBIIntegration, RealTimeUpdates.
+
+### Changed
+- `featureFlags.test.ts` -- Updated count assertion (16), added 9 dead-flag guard assertions.
+
+### Verified
+- TypeScript: clean (`npx tsc --noEmit`)
+- Playwright axe suite: 34 tests pass (`npx playwright test accessibility.spec.ts`)
+
+## [2026-02-25] - Stage 5 Sub-Task 7 - a11y(routes) - Expand Axe Test Coverage to Missing Routes
+
+### Added
+- 6 new axe WCAG 2.2 AA accessibility tests in `playwright/accessibility.spec.ts` (28 -> 34 tests).
+- `/operations/project/settings` — project settings form page (OperationsTeam, project required).
+- `/shared-services/marketing` — marketing dashboard (ExecutiveLeadership).
+- `/project-hub/manual/startup/checklist` — startup checklist form (OperationsTeam, project required).
+- `/project-hub/manual/pmp` — PMP workflow form (OperationsTeam, project required).
+- Command Palette overlay (Ctrl+K) — dynamic dialog accessibility (ExecutiveLeadership).
+- `/admin/connections` — admin CRUD management page (ExecutiveLeadership).
+
+### Fixed
+- `HbcCommandPalette.tsx` — Added missing `aria-expanded` on combobox input (WCAG 4.1.2 critical).
+- `HbcCommandPalette.tsx` — Changed section dividers from `role="separator"` to `role="presentation"` inside listbox (WCAG 1.3.1 critical).
+
+### Verified
+- TypeScript: clean (`npx tsc --noEmit`)
+- Playwright axe suite: 34 tests pass (`npx playwright test accessibility.spec.ts`)
+
 ## [2026-02-25] - Stage 5 Sub-Task 4 - a11y(touch-targets) - Tighten Touch Target Enforcement
 
 ### Changed
