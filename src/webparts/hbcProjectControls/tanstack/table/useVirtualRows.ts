@@ -23,7 +23,16 @@ const DEFAULT_VIRTUALIZATION: Required<IHbcVirtualizationConfig> = {
   estimateRowHeight: 44,
   containerHeight: 560,
   overscan: 8,
+  adaptiveOverscan: true,
 };
+
+/** Reduce overscan for large datasets to improve scroll performance. */
+function resolveOverscan(totalRows: number, config: Required<IHbcVirtualizationConfig>): number {
+  if (!config.adaptiveOverscan) return config.overscan;
+  if (totalRows > 1000) return 3;
+  if (totalRows > 500) return 5;
+  return config.overscan;
+}
 
 export function useVirtualRows<TData>({
   rows,
@@ -38,11 +47,13 @@ export function useVirtualRows<TData>({
 
   const isVirtualized = config.enabled && totalItemCount >= config.threshold;
 
+  const effectiveOverscan = resolveOverscan(totalItemCount, config);
+
   const virtualizer = useVirtualizer({
     count: isVirtualized ? rows.length : 0,
     getScrollElement: () => scrollElementRef.current,
     estimateSize: () => config.estimateRowHeight,
-    overscan: config.overscan,
+    overscan: effectiveOverscan,
     initialRect: { height: config.containerHeight, width: 1000 },
   });
 

@@ -19,4 +19,20 @@ export const QUERY_STALE_TIMES = {
   connectors: 60 * 1000,
 } as const;
 
-export const QUERY_GC_TIME = 20 * 60 * 1000;
+/** Per-domain garbage collection times. */
+export const QUERY_GC_TIMES = {
+  /** Default gcTime for standard queries (20 min). */
+  default: 20 * 60 * 1000,
+  /** Reduced gcTime for infinite/cursor-paged queries to prevent page accumulation (5 min). */
+  infinite: 5 * 60 * 1000,
+  /** Shorter gcTime for high-volume audit log queries (3 min). */
+  auditLog: 3 * 60 * 1000,
+  /** Longer gcTime for reference data that rarely changes (30 min). */
+  reference: 30 * 60 * 1000,
+} as const;
+
+/** Backward-compatible alias — use QUERY_GC_TIMES.default for new code. */
+export const QUERY_GC_TIME = QUERY_GC_TIMES.default;
+
+/** Maximum pages to retain in infinite query cache before evicting oldest. */
+export const INFINITE_QUERY_MAX_PAGES = 50;

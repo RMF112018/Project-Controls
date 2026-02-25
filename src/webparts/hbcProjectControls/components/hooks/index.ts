@@ -22,3 +22,5 @@ export { useWorkflowTransition } from './useWorkflowTransition';
 export type { IUseWorkflowTransitionOptions, IUseWorkflowTransitionResult } from './useWorkflowTransition';
 export { useProvisioningStatus } from './useProvisioningStatus';
 export type { IProvisioningStatusState } from './useProvisioningStatus';
+export { usePerformanceMarker } from './usePerformanceMarker';
+export type { IUsePerformanceMarkerResult } from './usePerformanceMarker';

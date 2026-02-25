@@ -152,6 +152,13 @@ import { IActionInboxItem } from '../models/IActionInbox';
 import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions } from '../models/IPermissionTemplate';
 import { PermissionLevel, WorkflowKey, StepAssignmentType, ConditionField, TurnoverStatus, WorkflowActionType, ActionPriority, TemplateSyncStatus } from '../models/enums';
 import { ISiteTemplate, SiteTemplateType } from '../models/ISiteTemplate';
+import {
+  generateBuyoutEntries,
+  generateAuditEntries,
+  generateEstimatingTrackers,
+  generateScheduleActivities,
+  generateLeads,
+} from '../mock/generators';
 import { resolveToolPermissions, TOOL_DEFINITIONS } from '../utils/toolPermissionMap';
 import mockWorkflowDefinitions from '../mock/workflowDefinitions.json';
 import mockWorkflowStepOverrides from '../mock/workflowStepOverrides.json';
@@ -493,8 +500,10 @@ export class MockDataService implements IDataService {
     if (user) user.roles = roles;
   }
 
-  constructor() {
-    this.leads = JSON.parse(JSON.stringify(mockLeads)) as ILead[];
+  constructor(benchmarkMode: boolean = false) {
+    this.leads = benchmarkMode
+      ? generateLeads(200)
+      : JSON.parse(JSON.stringify(mockLeads)) as ILead[];
     // Scorecards — new Phase 16 format with flat child arrays
     const rawScorecardsData = JSON.parse(JSON.stringify(mockScorecards)) as {
       scorecards: IGoNoGoScorecard[];
@@ -507,7 +516,9 @@ export class MockDataService implements IDataService {
     this.scorecardVersions = rawScorecardsData.scorecardVersions || [];
     // Assemble nested objects onto each scorecard
     this.scorecards = rawScorecardsData.scorecards.map(sc => this.assembleScorecard(sc));
-    this.estimatingRecords = JSON.parse(JSON.stringify(mockEstimating)) as IEstimatingTracker[];
+    this.estimatingRecords = benchmarkMode
+      ? generateEstimatingTrackers(300)
+      : JSON.parse(JSON.stringify(mockEstimating)) as IEstimatingTracker[];
     this.users = JSON.parse(JSON.stringify(mockUsers));
     this.featureFlags = ensurePrompt6FeatureFlags(JSON.parse(JSON.stringify(mockFeatureFlags)) as IFeatureFlag[]);
     this.calendarAvailability = JSON.parse(JSON.stringify(mockCalendarAvailability)) as ICalendarAvailability[];
@@ -517,7 +528,7 @@ export class MockDataService implements IDataService {
     this.closeoutItems = JSON.parse(JSON.stringify(mockCloseoutItems)) as ICloseoutItem[];
     this.meetings = [];
     this.notifications = [];
-    this.auditLog = [];
+    this.auditLog = benchmarkMode ? generateAuditEntries(5000) : [];
     this.provisioningLogs = [];
     this.hubSiteUrl = DEFAULT_HUB_SITE_URL;
     this.interviewPreps = [];
@@ -622,10 +633,14 @@ export class MockDataService implements IDataService {
         this.checklistActivityLog.push({ ...entry, id: activityLogId++, checklistItemId: ci.id, projectCode: ci.projectCode });
       }
     }
-    this.buyoutEntries = this.enrichBuyoutEntriesWithEVerify(
-      JSON.parse(JSON.stringify(mockBuyoutEntries)) as IBuyoutEntry[]
-    );
-    this.scheduleActivities = JSON.parse(JSON.stringify(mockScheduleActivities)) as IScheduleActivity[];
+    this.buyoutEntries = benchmarkMode
+      ? generateBuyoutEntries(500)
+      : this.enrichBuyoutEntriesWithEVerify(
+          JSON.parse(JSON.stringify(mockBuyoutEntries)) as IBuyoutEntry[]
+        );
+    this.scheduleActivities = benchmarkMode
+      ? generateScheduleActivities(1000)
+      : JSON.parse(JSON.stringify(mockScheduleActivities)) as IScheduleActivity[];
     this.scheduleImports = JSON.parse(JSON.stringify(mockScheduleImports)) as IScheduleImport[];
     this.constraintLogs = JSON.parse(JSON.stringify(mockConstraintLogs)) as IConstraintLog[];
     this.permits = JSON.parse(JSON.stringify(mockPermits)) as IPermit[];

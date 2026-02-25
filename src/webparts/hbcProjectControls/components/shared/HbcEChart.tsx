@@ -53,6 +53,12 @@ export interface IHbcEChartProps {
   linkedTableId?: string;
   highlightKey?: string | null;
   onDataPointSelect?: (payload: IHbcChartSelection) => void;
+  /** When true, injects `large: true` + `largeThreshold: 200` per series for GPU-accelerated rendering */
+  large?: boolean;
+  /** When true, enables progressive rendering (200 data points per frame) for large datasets */
+  progressiveRender?: boolean;
+  /** Data downsampling strategy — useful for line/scatter charts with 1000+ points */
+  sampling?: 'lttb' | 'average' | 'max' | 'min';
 }
 
 export interface IHbcChartSelection {
@@ -110,6 +116,9 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
   linkedTableId,
   highlightKey,
   onDataPointSelect,
+  large,
+  progressiveRender,
+  sampling,
 }) => {
   const styles = useStyles();
   const chartRef = React.useRef<{ getEchartsInstance?: () => { resize: () => void } } | null>(null);
@@ -158,17 +167,41 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
   // -------------------------------------------------------------------------
   // Merge animation defaults into option
   // -------------------------------------------------------------------------
-  const mergedOption = React.useMemo<EChartsOption>(
-    () => ({
+  const mergedOption = React.useMemo<EChartsOption>(() => {
+    const base: EChartsOption = {
       animation: true,
       animationDuration: runtime?.animation.duration ?? DEFAULT_ANIMATION.duration,
       animationEasing: (runtime?.animation.easing ?? DEFAULT_ANIMATION.easing) as never,
       animationDurationUpdate: runtime?.animation.durationUpdate ?? DEFAULT_ANIMATION.durationUpdate,
       animationEasingUpdate: (runtime?.animation.easingUpdate ?? DEFAULT_ANIMATION.easingUpdate) as never,
       ...option,
-    }),
-    [option, runtime]
-  );
+    };
+
+    // Apply progressive rendering for large datasets
+    if (progressiveRender) {
+      (base as Record<string, unknown>).progressive = 200;
+      (base as Record<string, unknown>).progressiveThreshold = 200;
+    }
+
+    // Apply sampling strategy for data reduction
+    if (sampling && Array.isArray(base.series)) {
+      base.series = (base.series as Record<string, unknown>[]).map((s) => ({
+        ...s,
+        sampling,
+      }));
+    }
+
+    // Apply large mode per series for GPU acceleration
+    if (large && Array.isArray(base.series)) {
+      base.series = (base.series as Record<string, unknown>[]).map((s) => ({
+        ...s,
+        large: true,
+        largeThreshold: 200,
+      }));
+    }
+
+    return base;
+  }, [option, runtime, large, progressiveRender, sampling]);
 
   // -------------------------------------------------------------------------
   // ResizeObserver — triggers chart resize when container dimensions change

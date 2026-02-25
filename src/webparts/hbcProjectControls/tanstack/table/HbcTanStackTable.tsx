@@ -22,6 +22,7 @@ import { useResponsive } from '../../components/hooks/useResponsive';
 import { HbcEmptyState } from '../../components/shared/HbcEmptyState';
 import { SkeletonLoader } from '../../components/shared/SkeletonLoader';
 import { useVirtualRows } from './useVirtualRows';
+import { MemoizedTableRow } from './MemoizedTableRow';
 import type { IHbcTanStackTableProps, IHbcTanStackTableColumn } from './types';
 
 const useStyles = makeStyles({
@@ -230,10 +231,15 @@ export function HbcTanStackTable<TData>({
   pageIndex,
   onPageIndexChange,
   rowActions,
+  disableRowMemoization,
 }: IHbcTanStackTableProps<TData>): React.ReactElement {
   const styles = useStyles();
   const { isMobile } = useResponsive();
   const scrollElementRef = React.useRef<HTMLDivElement>(null);
+
+  // React 18 concurrent features
+  const [isPending, startTransition] = React.useTransition();
+  const deferredGlobalFilter = React.useDeferredValue(globalFilter);
 
   const [internalSorting, setInternalSorting] = React.useState<SortingState>(
     sortField ? [{ id: sortField, desc: !sortAsc }] : []
@@ -249,7 +255,7 @@ export function HbcTanStackTable<TData>({
 
   const controlledSorting: SortingState = sortField ? [{ id: sortField, desc: !sortAsc }] : internalSorting;
   const resolvedPageIndex = pageIndex ?? internalPageIndex;
-  const resolvedGlobalFilter = globalFilter ?? internalGlobalFilter;
+  const resolvedGlobalFilter = deferredGlobalFilter ?? internalGlobalFilter;
   const resolvedGrouping = groupBy ?? internalGrouping;
   const resolvedColumnVisibility: VisibilityState = columnVisibility
     ? toVisibilityState(columns as IHbcTanStackTableColumn<unknown>[], columnVisibility)
@@ -343,7 +349,7 @@ export function HbcTanStackTable<TData>({
         return;
       }
       const next = typeof updater === 'function' ? updater(controlledSorting) : updater;
-      setInternalSorting(next);
+      startTransition(() => setInternalSorting(next));
     },
     onPaginationChange: (updater) => {
       const current: PaginationState = { pageIndex: resolvedPageIndex, pageSize };
@@ -363,7 +369,7 @@ export function HbcTanStackTable<TData>({
     onGroupingChange: (updater) => {
       const next = typeof updater === 'function' ? updater(resolvedGrouping) : updater;
       if (groupBy === undefined) {
-        setInternalGrouping(next);
+        startTransition(() => setInternalGrouping(next));
       }
       onGroupByChange?.(next);
     },
@@ -417,7 +423,7 @@ export function HbcTanStackTable<TData>({
   }
 
   return (
-    <div className={styles.root} data-table-engine="tanstack">
+    <div className={styles.root} data-table-engine="tanstack" data-perf-table-rows={rowModel.rows.length} style={isPending ? { opacity: 0.8 } : undefined}>
       <div className={styles.tableWrapper}>
         <div
           ref={scrollElementRef}
@@ -496,36 +502,50 @@ export function HbcTanStackTable<TData>({
                   <td className={styles.spacerCell} style={{ height: `${paddingTop}px` }} colSpan={table.getVisibleLeafColumns().length} />
                 </tr>
               )}
-              {rowsToRender.map((row) => (
-                <tr
-                  key={row.id}
-                  onClick={() => onRowClick?.(row.original)}
-                  className={mergeClasses(
-                    onRowClick ? styles.rowClickable : undefined,
-                    enableRowSelection && row.getIsSelected() ? styles.rowSelected : undefined
-                  )}
-                  tabIndex={onRowClick ? 0 : undefined}
-                  onKeyDown={onRowClick ? (event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      onRowClick(row.original);
-                    }
-                  } : undefined}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      className={mergeClasses(
-                        styles.td,
-                        cell.column.id === '__select' ? styles.selectCell : undefined,
-                        cell.getIsGrouped() ? styles.tdGrouped : undefined
-                      )}
-                    >
-                      {cell.getIsPlaceholder() ? null : flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+              {rowsToRender.map((row) =>
+                disableRowMemoization ? (
+                  <tr
+                    key={row.id}
+                    onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                    className={mergeClasses(
+                      onRowClick ? styles.rowClickable : undefined,
+                      enableRowSelection && row.getIsSelected() ? styles.rowSelected : undefined
+                    )}
+                    tabIndex={onRowClick ? 0 : undefined}
+                    onKeyDown={onRowClick ? (event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        onRowClick(row.original);
+                      }
+                    } : undefined}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td
+                        key={cell.id}
+                        className={mergeClasses(
+                          styles.td,
+                          cell.column.id === '__select' ? styles.selectCell : undefined,
+                          cell.getIsGrouped() ? styles.tdGrouped : undefined
+                        )}
+                      >
+                        {cell.getIsPlaceholder() ? null : flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                ) : (
+                  <MemoizedTableRow
+                    key={row.id}
+                    row={row}
+                    onRowClick={onRowClick}
+                    enableRowSelection={enableRowSelection}
+                    rowClickableClass={styles.rowClickable}
+                    rowSelectedClass={styles.rowSelected}
+                    tdClass={styles.td}
+                    selectCellClass={styles.selectCell}
+                    tdGroupedClass={styles.tdGrouped}
+                  />
+                )
+              )}
               {paddingBottom > 0 && (
                 <tr>
                   <td className={styles.spacerCell} style={{ height: `${paddingBottom}px` }} colSpan={table.getVisibleLeafColumns().length} />

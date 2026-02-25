@@ -2,6 +2,29 @@
 
 All notable changes to HBC Project Controls will be documented in this file.
 
+## [2026-02-24] - Phase 7 Stage 2 - perf(phase7) - Performance Optimization for Construction-Scale Data
+
+### Added
+- Construction-scale benchmark data generators (`packages/hbc-sp-services/src/mock/generators/`): buyout (500), audit (5000), estimating (300), schedule (1000), leads (200). Seeded PRNG for deterministic output.
+- `MockDataService` `benchmarkMode` constructor param — activates generators instead of JSON fixtures.
+- `QUERY_GC_TIMES` per-domain gc times (default 20min, infinite 5min, auditLog 3min, reference 30min).
+- `INFINITE_QUERY_MAX_PAGES = 50` — prevents infinite query page accumulation.
+- `MemoizedTableRow` component — `React.memo` with custom equality (row.id + selection + data ref).
+- `useTransition` for sort/filter/group, `useDeferredValue` for globalFilter in `HbcTanStackTable`.
+- Adaptive overscan in `useVirtualRows`: <500 rows → 8, 500-1000 → 5, >1000 → 3.
+- `disableRowMemoization` prop on `HbcTanStackTable` for opt-out.
+- `data-perf-table-rows` attribute for Playwright performance queries.
+- `HbcEChart` `large`, `progressiveRender`, `sampling` props for GPU acceleration and data downsampling.
+- `usePerformanceMarker(label, {autoMeasure?})` hook wrapping `performanceService` singleton.
+- Wired `usePerformanceMarker` into `AnalyticsHubDashboardPage` (page load telemetry).
+- 26 generator Jest tests + 8 cache policy tests + 6 table perf tests + 3 hook tests + 4 Playwright E2E tests.
+- `playwright/performance-benchmarks.e2e.spec.ts` — table render, virtualization, ECharts, memory leak detection.
+
+### Changed
+- `useInfiniteSharePointList`: accepts `gcTime` and `maxPages` params with per-domain defaults.
+- `PERFORMANCE_OPTIMIZATION_GUIDE.md` §1 and §3 updated with Phase 7 Stage 2 benchmarks and patterns.
+- 3 SKILL.md files updated to v1.1: spfx-performance-diagnostics, tanstack-query-and-virtualization, schedule-performance-optimization.
+
 ## [2026-02-24] - Phase 7 Roadmap - docs(roadmap) - Full Detailed Phase 7 Remediation Plan
 
 ### Added

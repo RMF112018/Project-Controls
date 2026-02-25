@@ -9,16 +9,22 @@ Last updated: 2026-02-21 | Target: < 40 kB total across all agent files
 - Every optimization must reference one of: TanStack Query v5, TanStack Router v1, @tanstack/react-virtual, React 18 concurrent, SPFx bundle gates, or Fluent Griffel.
 - After any perf change: run `npm run verify:sprint3` (or current sprint gate) + `npm run build:standalone:report` and paste output.
 
-## §1 Current State Snapshot (c76af8d)
+## §1 Current State Snapshot (Phase 7 Stage 2 complete)
 - React 18.2 + StrictMode (dev only)
 - TanStack Router v1.161 (hash history, full migration complete, react-router-dom removed at runtime)
 - TanStack Query v5.90 + DevTools (Wave-1 complete on hub/buyout/compliance)
-- TanStack Table + Virtual (threshold ≥ 200 rows enforced)
+- TanStack Table + Virtual (threshold ≥ 200 rows enforced) + MemoizedTableRow (React.memo with custom equality)
+- React 18 concurrent features active: `useTransition` (sort/filter/group), `useDeferredValue` (globalFilter), `React.memo` (table rows)
 - Fluent UI v9.46 (Griffel makeStyles + tokens)
 - Bundle gates: hard fail on main, warn on PR (scripts/verify-bundle-size.js + config/bundle-budget.spfx.json)
-- Data layer: 250 methods on IDataService; caching via CacheService + buildCacheKeySuffix; PnP batching; performanceService timing
+- Data layer: 284 methods on IDataService; caching via CacheService + buildCacheKeySuffix; PnP batching; performanceService timing
+- Construction-scale benchmarks: MockDataService `benchmarkMode` (Buyout 500, Audit 5000, Estimating 300, Schedule 1000, Leads 200)
+- Per-domain gc times: `QUERY_GC_TIMES` (default 20min, infinite 5min, auditLog 3min, reference 30min); `INFINITE_QUERY_MAX_PAGES = 50`
+- Adaptive overscan in useVirtualRows: <500→8, 500-1000→5, >1000→3
+- HbcEChart: `large` (GPU acceleration), `progressiveRender` (200 points/frame), `sampling` (lttb/average/max/min)
+- `usePerformanceMarker(label, {autoMeasure?})` hook for component-level telemetry (wraps PerformanceService)
 - Strengths: 40+ lazy routes with Suspense, ECharts lazy chunk, SignalR → Query invalidation, PWA + offline mode
-- Known risks (post-schedule-v2 revert): Broad AppContext causes cascade re-renders; potential query-key instability in new domains; non-virtualized legacy tables still present until Wave-3
+- Previous risks resolved: Context split complete (3 contexts); query-key stability established; all tables use HbcTanStackTable with memoization
 
 ## §2 Decision Framework (Always follow this order)
 1. Is the surface data-driven? → Must use TanStack Query (see §3)
@@ -31,7 +37,9 @@ Last updated: 2026-02-21 | Target: < 40 kB total across all agent files
 ## §3 TanStack Query Patterns (Copy-Paste Ready)
 - Always export queryOptions factory (queryOptions/{domain}.ts)
 - Query key template: `["domain", siteId, projectId, filters]` (stable primitives only)
-- Default options: gcTime: 5 * 60 * 1000, staleTime: 30 * 1000 for read-heavy
+- Per-domain stale times: `QUERY_STALE_TIMES` (reference 15min, dashboard 2min, permissions 30s, buyout 20s, leads 1min)
+- Per-domain gc times: `QUERY_GC_TIMES` (default 20min, infinite 5min, auditLog 3min, reference 30min)
+- Infinite queries: `INFINITE_QUERY_MAX_PAGES = 50` prevents page accumulation. Default `gcTime = QUERY_GC_TIMES.infinite`
 - Mutations: optimisticUpdates + rollback on error (Wave A pattern already in Buyout/PMP)
 - Invalidation: useSignalRQueryInvalidation hook for real-time
 - Prefetch: router loader + queryClient.prefetchQuery

@@ -16,6 +16,8 @@ export interface IHbcVirtualizationConfig {
   estimateRowHeight?: number;
   containerHeight?: number;
   overscan?: number;
+  /** When true, overscan is automatically reduced for large datasets (>500 rows) to improve scroll perf. */
+  adaptiveOverscan?: boolean;
 }
 
 export interface IHbcTanStackTableProps<TData> {
@@ -57,6 +59,9 @@ export interface IHbcTanStackTableProps<TData> {
   onPageIndexChange?: (pageIndex: number) => void;
 
   rowActions?: (item: TData) => React.ReactNode;
+
+  /** When true, disables React.memo on table rows. Useful for rows with external mutable state. */
+  disableRowMemoization?: boolean;
 }
 
 export interface IHbcTableState {

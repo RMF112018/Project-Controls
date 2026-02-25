@@ -194,6 +194,7 @@ Phase 5B Workflow State Machines + E2E Coverage (Feb 2026) — No new IDataServi
 - Phase 5A.1: Connector Resilience Adoption — **COMPLETE** on `feature/hbc-suite-stabilization`. Full GraphBatchEnforcer adapter wiring (optional enforcer constructor), universal useConnectorMutation (8 sites), ConnectorRegistry policy enforcement (fail-fast), 3 new AuditActions (RetryAttempt, CircuitBreak, BatchFallback). resilient-data-operations SKILL v1.3. 12 Jest + 6 Playwright tests. ~900+ tests.
 - Phase 5C.1: Provisioning Saga Resilience Integration — **COMPLETE**. GraphBatchEnforcer and ListThresholdGuard wired into saga steps, E2E expansion, SKILL.md updates.
 - Phase 6A: Site Template Management & GitOps Sync — **COMPLETE** on `feature/hbc-suite-stabilization`. ISiteTemplate model + SiteTemplateType union. TemplateSyncStatus enum (Idle/Syncing/Success/Failed). 3 new AuditActions (TemplateSyncStarted/Completed/Failed) + EntityType.SiteTemplate. Feature flag SiteTemplateManagement (id 60, default OFF, SuperAdmin-only). 8 new IDataService methods (276→284). SITE_TEMPLATES_COLUMNS + HUB_LISTS.SITE_TEMPLATES + CACHE_KEYS. MockDataService + SharePointDataService implementations. IProvisioningInput.templateName for dual-path saga Step 5. ProvisioningPage TabList with "Provisioning Logs" + "Site Templates" tabs. HbcTanStackTable + SlideDrawer for template CRUD. site-template-management SKILL v1.0. provisioning-engine SKILL v1.3. resilient-data-operations SKILL v1.4. 19 new Jest + 9 Playwright E2E tests. ~940+ tests.
+- Phase 7 Stage 2: Performance Optimization for Construction-Scale Data — **COMPLETE** on `feature/hbc-suite-stabilization`. Construction-scale benchmark generators (Buyout 500, Audit 5000, Estimating 300, Schedule 1000, Leads 200) with seeded PRNG. MockDataService `benchmarkMode`. Per-domain QUERY_GC_TIMES + INFINITE_QUERY_MAX_PAGES. MemoizedTableRow (React.memo + custom equality). React 18 concurrent: useTransition (sort/filter/group), useDeferredValue (globalFilter). Adaptive overscan in useVirtualRows. HbcEChart large/progressiveRender/sampling props. usePerformanceMarker hook. 3 SKILL.md v1.1 updates. 43 new tests (26 generator + 8 cache + 6 table perf + 3 hook) + 4 Playwright E2E. ~980+ tests.
 
 ---
 
@@ -326,6 +327,9 @@ Phase 3 committed on `feature/hbc-suite-stabilization` — Navigation Overhaul +
 
 §18.4 Phase 7 Detailed To-Do Integration (commit after update)
 hbc-stabilization-and-suite-roadmap.md updated with the full detailed Phase 7 plan (7 stages with sub-tasks, deliverables, success criteria, CLAUDE.md and SKILL.md updates). All shortfalls and opportunities now explicitly actionable. Roadmap is binding single source of truth.
+
+§18.6 Phase 7 Stage 2 Performance Optimization Complete (commit after update)
+Stage 2 of Phase 7 completed per roadmap: construction-scale benchmarks established, HbcTanStackTable/ECharts/Query optimized, bundle reduced to target, performance telemetry added. All Stage 2 deliverables and success criteria addressed. Ready for Stage 3 (Security Hardening).
 
 ---
 

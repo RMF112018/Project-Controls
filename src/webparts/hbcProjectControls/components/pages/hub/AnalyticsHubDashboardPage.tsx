@@ -25,6 +25,7 @@ import { RoleGate } from '../../guards/RoleGate';
 import { useAppNavigate } from '../../hooks/router/useAppNavigate';
 import { LAUNCHER_WORKSPACES } from '../../navigation/workspaceConfig';
 import { useHubDashboardData } from './useHubDashboardData';
+import { usePerformanceMarker } from '../../hooks/usePerformanceMarker';
 import { HBC_COLORS, ELEVATION, TRANSITION } from '../../../theme/tokens';
 import { Stage } from '@hbc/sp-services';
 
@@ -224,6 +225,7 @@ export const AnalyticsHubDashboardPage: React.FC = () => {
   const styles = useStyles();
   const navigate = useAppNavigate();
   const { loading, kpis, leads, activeProjects } = useHubDashboardData();
+  usePerformanceMarker('page:analytics-hub', { autoMeasure: true });
 
   // ── Chart 1: Pipeline Funnel ────────────────────────────────────────────
 
