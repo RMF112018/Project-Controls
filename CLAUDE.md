@@ -321,6 +321,12 @@ Phase 1 committed on `feature/hbc-suite-stabilization` — Site Provisioning Eng
 Phase 2 committed on `feature/hbc-suite-stabilization` — Role Configuration Engine with IRoleConfiguration, LEGACY_ROLE_MAP, RoleGate normalization, RoleConfigurationPanel, 35 tests.  
 Phase 3 committed on `feature/hbc-suite-stabilization` — Navigation Overhaul + Router Reconstruction. AppLauncher, ContextualSidebar, 5 workspace route files, adapter hooks rewritten, PillarTabBar deleted, TanStackAdapterBridge removed, 752 tests.
 
+§18.3 Phase 7 Remediation-First Roadmap Committed (commit 3c61d6b1a4dcd1e9aabdc3f8e10fb7d2b581ec0d)
+.claude/plans/hbc-stabilization-and-suite-roadmap.md created with full remediation-first content. All shortfalls and opportunities locked into Phase 7. .claude/plans/ directory established. ProjectControlsPlan.rtf deprecated. Documentation desynchronization shortfall resolved. This file is now the binding single source of truth.
+
+§18.4 Phase 7 Detailed To-Do Integration (commit after update)
+hbc-stabilization-and-suite-roadmap.md updated with the full detailed Phase 7 plan (7 stages with sub-tasks, deliverables, success criteria, CLAUDE.md and SKILL.md updates). All shortfalls and opportunities now explicitly actionable. Roadmap is binding single source of truth.
+
 ---
 
 ## §19 Data Migration & Pluggable Backend Strategy (Locked 22 Feb 2026)

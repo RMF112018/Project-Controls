@@ -2,6 +2,25 @@
 
 All notable changes to HBC Project Controls will be documented in this file.
 
+## [2026-02-24] - Phase 7 Roadmap - docs(roadmap) - Full Detailed Phase 7 Remediation Plan
+
+### Added
+- `.claude/plans/hbc-stabilization-and-suite-roadmap.md` updated with full detailed Phase 7: Comprehensive Remediation plan (7 stages, 42 sub-tasks, measurable success criteria, 10/10 exit gate)
+- CLAUDE.md §18.3 (roadmap committed) and §18.4 (detailed to-do integration) appended
+- `.claude/archive/` directory created
+
+### Changed
+- `ProjectControlsPlan.rtf` deprecated and moved to `.claude/archive/ProjectControlsPlan.rtf`
+
+### Phase 7 Stages
+1. Documentation Hygiene (6 sub-tasks)
+2. Performance Optimization for Construction-Scale Data (6 sub-tasks)
+3. Security Hardening — GitOps & Provisioning (6 sub-tasks)
+4. Testing & Permission Completeness (6 sub-tasks)
+5. Accessibility & Feature-Flag Debt Cleanup (6 sub-tasks)
+6. Scalability & Reusable Component Library (6 sub-tasks)
+7. CI/CD Quality Gates (7 sub-tasks)
+
 ## [2026-02-24] - Phase 6A - 3c61d6b - Site Template Management & GitOps Sync
 
 ### Added
