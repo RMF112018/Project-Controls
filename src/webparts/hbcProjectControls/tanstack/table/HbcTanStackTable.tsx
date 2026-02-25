@@ -407,6 +407,20 @@ export function HbcTanStackTable<TData>({
   const paginationStart = items.length === 0 ? 0 : resolvedPageIndex * pageSize + 1;
   const paginationEnd = Math.min((resolvedPageIndex + 1) * pageSize, items.length);
 
+  // Announce sort changes to screen readers
+  const [sortAnnouncement, setSortAnnouncement] = React.useState('');
+  const prevSortingRef = React.useRef(controlledSorting);
+  React.useEffect(() => {
+    const prev = prevSortingRef.current;
+    prevSortingRef.current = controlledSorting;
+    if (controlledSorting.length > 0 && JSON.stringify(prev) !== JSON.stringify(controlledSorting)) {
+      const { id, desc } = controlledSorting[0];
+      const col = columns.find(c => c.key === id);
+      const label = col?.header ?? id;
+      setSortAnnouncement(`Sorted by ${label}, ${desc ? 'descending' : 'ascending'}`);
+    }
+  }, [controlledSorting, columns]);
+
   const { isVirtualized, rowsToRender, paddingTop, paddingBottom } = useVirtualRows({
     rows: rowModel.rows,
     totalItemCount: rowModel.rows.length,
@@ -424,6 +438,10 @@ export function HbcTanStackTable<TData>({
 
   return (
     <div className={styles.root} data-table-engine="tanstack" data-perf-table-rows={rowModel.rows.length} style={isPending ? { opacity: 0.8 } : undefined}>
+      {/* Screen reader sort announcement */}
+      <div aria-live="polite" aria-atomic="true" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}>
+        {sortAnnouncement}
+      </div>
       <div className={styles.tableWrapper}>
         <div
           ref={scrollElementRef}

@@ -9,7 +9,7 @@ export const AccessDeniedPage: React.FC = () => {
   const roleLabel = currentUser?.roles?.join(', ') ?? 'Unknown';
 
   return (
-    <div style={{ padding: 48, textAlign: 'center' }}>
+    <div role="alert" style={{ padding: 48, textAlign: 'center' }}>
       <h2 style={{ color: HBC_COLORS.navy, marginBottom: 12 }}>Access Denied</h2>
       <p style={{ color: HBC_COLORS.gray600, marginBottom: 16 }}>
         You do not have permission to view this page.

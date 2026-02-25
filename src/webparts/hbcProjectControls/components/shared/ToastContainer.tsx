@@ -9,7 +9,6 @@ import {
 } from '@fluentui/react-components';
 import { DismissRegular } from '@fluentui/react-icons';
 import { useHbcMotionStyles } from './HbcMotion';
-import { useAppContext } from '../contexts/AppContext';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -119,10 +118,9 @@ function getBadgeClass(
   }
 }
 
-const ToastItem: React.FC<{ toast: IToast; onDismiss: (id: string) => void; enableMotion: boolean }> = ({
+const ToastItem: React.FC<{ toast: IToast; onDismiss: (id: string) => void }> = ({
   toast,
   onDismiss,
-  enableMotion,
 }) => {
   const styles = useStyles();
   const motionStyles = useHbcMotionStyles();
@@ -138,7 +136,7 @@ const ToastItem: React.FC<{ toast: IToast; onDismiss: (id: string) => void; enab
   return (
     <div
       role="alert"
-      className={mergeClasses(styles.toast, enableMotion && motionStyles.dialogEntrance)}
+      className={mergeClasses(styles.toast, motionStyles.dialogEntrance)}
       aria-label={toast.type}
     >
       <div className={styles.row}>
@@ -176,7 +174,6 @@ const ToastItem: React.FC<{ toast: IToast; onDismiss: (id: string) => void; enab
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const styles = useStyles();
-  const { isFeatureEnabled } = useAppContext();
   const [toasts, setToasts] = React.useState<IToast[]>([]);
 
   const addToast = React.useCallback((
@@ -194,9 +191,6 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  const enableEnhancements = isFeatureEnabled('uxToastEnhancementsV1');
-  const enableMotion = isFeatureEnabled('uxDelightMotionV1');
-
   return (
     <ToastContext.Provider value={{ addToast, dismissToast }}>
       {children}
@@ -205,9 +199,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           {toasts.map((toast) => (
             <ToastItem
               key={toast.id}
-              toast={enableEnhancements ? toast : { ...toast, progress: undefined, actionLabel: undefined, onAction: undefined, undoLabel: undefined, onUndo: undefined }}
+              toast={toast}
               onDismiss={dismissToast}
-              enableMotion={enableMotion}
             />
           ))}
         </div>

@@ -13,11 +13,12 @@ export const ProjectRequiredRoute: React.FC<IProjectRequiredRouteProps> = ({ chi
 
   if (!selectedProject) {
     return (
-      <div style={{
+      <main style={{
         padding: '48px',
         textAlign: 'center',
         color: HBC_COLORS.gray500,
       }}>
+        <div role="status">
         <h3 style={{ color: HBC_COLORS.navy, marginBottom: '12px' }}>No Project Selected</h3>
         <p>Select a project from the picker in the sidebar to view this tool.</p>
         <button
@@ -35,7 +36,8 @@ export const ProjectRequiredRoute: React.FC<IProjectRequiredRouteProps> = ({ chi
         >
           View Active Projects
         </button>
-      </div>
+        </div>
+      </main>
     );
   }
 

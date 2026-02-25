@@ -2,7 +2,6 @@ import * as React from 'react';
 import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
 import { useAppContext } from '../contexts/AppContext';
 import { useHelp } from '../contexts/HelpContext';
-import { NavigationSidebar } from './NavigationSidebar';
 import { AppLauncher } from '../navigation/AppLauncher';
 import { ContextualSidebar } from '../navigation/ContextualSidebar';
 import { SkeletonLoader } from '../shared/SkeletonLoader';
@@ -234,7 +233,6 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
       label: 'Open Insights Panel',
       keywords: ['insights', 'guidance', 'context'],
       section: 'View',
-      requiredFeatureFlags: ['uxInsightsPanelV1'],
       run: () => setIsInsightsPanelOpen(true),
     },
     {
@@ -295,11 +293,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
       key: 'i',
       ctrlKey: true,
       shiftKey: true,
-      handler: () => {
-        if (isFeatureEnabled('uxInsightsPanelV1')) {
-          setIsInsightsPanelOpen(true);
-        }
-      },
+      handler: () => { setIsInsightsPanelOpen(true); },
       ignoreInputs: false,
     },
   ]);
@@ -351,7 +345,6 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
       severity: 'info',
     },
   ], [isOnline, isHelpSystemEnabled, isFullScreen]);
-  const enableMotion = isFeatureEnabled('uxDelightMotionV1');
 
   const sidebarWidth = isMobile ? 0 : isTablet ? 48 : 220;
 
@@ -392,9 +385,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           )}
           <span className={styles.brandName}>HBC</span>
           {!isMobile && <span className={styles.appTitle}>Project Controls</span>}
-          <FeatureGate featureName="uxSuiteNavigationV1">
-            <AppLauncher />
-          </FeatureGate>
+          <AppLauncher />
           {envConfig && envConfig.currentTier !== 'prod' && (
             <span
               className={styles.envBadge}
@@ -436,7 +427,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           <>
             <div className={styles.mobileOverlay} onClick={() => setMobileNavOpen(false)} />
             <div className={styles.mobileNav}>
-              {isFeatureEnabled('uxSuiteNavigationV1') ? <ContextualSidebar /> : <NavigationSidebar />}
+              <ContextualSidebar />
             </div>
           </>
         )}
@@ -449,7 +440,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
             className={styles.desktopNav}
             style={{ width: `${sidebarWidth}px`, overflow: isTablet ? 'hidden' : 'auto' }}
           >
-            {isFeatureEnabled('uxSuiteNavigationV1') ? <ContextualSidebar /> : <NavigationSidebar />}
+            <ContextualSidebar />
           </nav>
         )}
 
@@ -459,7 +450,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           className={mergeClasses(
             styles.main,
             isMobile ? styles.mainMobile : styles.mainDesktop,
-            enableMotion ? motionStyles.routeTransition : undefined
+            motionStyles.routeTransition
           )}
           style={{ position: 'relative' }}
         >
@@ -473,14 +464,12 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
         onOpenChange={setIsCommandPaletteOpen}
         commands={commandPaletteCommands}
       />
-      {isFeatureEnabled('uxInsightsPanelV1') ? (
-        <HbcInsightsPanel
-          open={isInsightsPanelOpen}
-          onOpenChange={setIsInsightsPanelOpen}
-          title="Contextual Insights"
-          items={insightsItems}
-        />
-      ) : null}
+      <HbcInsightsPanel
+        open={isInsightsPanelOpen}
+        onOpenChange={setIsInsightsPanelOpen}
+        title="Contextual Insights"
+        items={insightsItems}
+      />
       {isHelpPanelOpen && <HelpPanel mode={helpPanelMode} />}
       <FeatureGate featureName="EnableHelpSystem">
         <GuidedTour />

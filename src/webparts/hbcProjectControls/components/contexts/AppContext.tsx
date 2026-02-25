@@ -15,14 +15,6 @@ import type { IDevToolsConfig } from '../App';
 import { useFullScreen } from '../hooks/useFullScreen';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
-export const PROMPT6_FEATURE_FLAGS = [
-  'uxDelightMotionV1',
-  'uxPersonalizedDashboardsV1',
-  'uxChartTableSyncGlowV1',
-  'uxInsightsPanelV1',
-  'uxToastEnhancementsV1',
-] as const;
-
 export interface IDashboardPreference {
   layout?: string[];
   collapsedWidgets?: string[];
@@ -120,29 +112,6 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     `${dashboardStoragePrefix}:${key}`
   ), [dashboardStoragePrefix]);
 
-  const normalizeFeatureFlags = React.useCallback((flags: IFeatureFlag[]): IFeatureFlag[] => {
-    const normalized = [...flags];
-    let nextId = normalized.reduce((max, flag) => Math.max(max, flag.id), 0) + 1;
-    const existingNames = new Set(normalized.map((flag) => flag.FeatureName));
-
-    for (const featureName of PROMPT6_FEATURE_FLAGS) {
-      if (!existingNames.has(featureName)) {
-        normalized.push({
-          id: nextId++,
-          FeatureName: featureName,
-          DisplayName: featureName,
-          Enabled: false,
-          EnabledForRoles: undefined,
-          TargetDate: undefined,
-          Notes: 'Auto-injected fallback flag for Prompt 6 capability gating',
-          Category: 'Infrastructure',
-        });
-      }
-    }
-
-    return normalized;
-  }, []);
-
   // Guard: cannot clear project on project-specific sites
   const switchTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
   const handleSetSelectedProject = React.useCallback((project: ISelectedProject | null, options?: { skipSwitchingFlag?: boolean }) => {
@@ -172,7 +141,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
           dataService.getCurrentUser(),
           dataService.getFeatureFlags(),
         ]);
-        const flags = normalizeFeatureFlags(rawFlags);
+        const flags = rawFlags;
         performanceService.endMark('app:userFlagsFetch');
 
         // If PermissionEngine flag is enabled, resolve permissions via the engine
@@ -237,7 +206,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
       }
     };
     init().catch(console.error);
-  }, [dataService, isProjectSite, siteContext, normalizeFeatureFlags]);
+  }, [dataService, isProjectSite, siteContext]);
 
   React.useEffect(() => {
     if (!currentUser) {

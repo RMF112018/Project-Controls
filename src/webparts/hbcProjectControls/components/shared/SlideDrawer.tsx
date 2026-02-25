@@ -16,11 +16,52 @@ export const SlideDrawer: React.FC<ISlideDrawerProps> = ({
   width = 420,
   children,
 }) => {
-  // Close on Escape
+  const triggerRef = React.useRef<Element | null>(null);
+  const closeButtonRef = React.useRef<HTMLButtonElement>(null);
+  const drawerRef = React.useRef<HTMLDivElement>(null);
+  const titleId = React.useId();
+
+  // Save trigger element on open; restore focus on close
+  React.useEffect(() => {
+    if (isOpen) {
+      triggerRef.current = document.activeElement;
+      // Focus close button after render
+      requestAnimationFrame(() => {
+        closeButtonRef.current?.focus();
+      });
+    } else if (triggerRef.current) {
+      (triggerRef.current as HTMLElement).focus?.();
+      triggerRef.current = null;
+    }
+  }, [isOpen]);
+
+  // Close on Escape + focus trap
   React.useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab' && drawerRef.current) {
+        const focusableEls = drawerRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableEls.length === 0) return;
+        const first = focusableEls[0];
+        const last = focusableEls[focusableEls.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
@@ -45,9 +86,11 @@ export const SlideDrawer: React.FC<ISlideDrawerProps> = ({
       />
       {/* Drawer panel */}
       <div
+        ref={drawerRef}
         role="dialog"
         aria-modal="true"
-        aria-label={title || 'Details'}
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : 'Details'}
         style={{
           position: 'fixed',
           top: 0,
@@ -75,9 +118,10 @@ export const SlideDrawer: React.FC<ISlideDrawerProps> = ({
           }}
         >
           {title && (
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: HBC_COLORS.navy }}>{title}</h3>
+            <h3 id={titleId} style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: HBC_COLORS.navy }}>{title}</h3>
           )}
           <button
+            ref={closeButtonRef}
             onClick={onClose}
             aria-label="Close"
             style={{

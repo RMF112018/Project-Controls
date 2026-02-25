@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "volta",
+      "runtimeArgs": ["run", "--node", "22.14.0", "npm", "run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "storybook",
+      "runtimeExecutable": "volta",
+      "runtimeArgs": ["run", "--node", "22.14.0", "npx", "storybook", "dev", "-p", "6006"],
+      "port": 6006
+    },
+    {
+      "name": "dev-existing",
+      "runtimeExecutable": "sleep",
+      "runtimeArgs": ["86400"],
+      "port": 3000
+    }
+  ]
+}

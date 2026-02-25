@@ -17,8 +17,9 @@ const useStyles = makeStyles({
   item: {
     display: 'flex',
     alignItems: 'center',
+    width: '100%',
     ...shorthands.gap('8px'),
-    ...shorthands.padding('7px', '16px'),
+    ...shorthands.padding('10px', '16px'),
     fontSize: '13px',
     cursor: 'pointer',
     transitionProperty: 'all',
@@ -27,9 +28,21 @@ const useStyles = makeStyles({
     overflowX: 'hidden',
     textOverflow: 'ellipsis',
     borderLeft: '3px solid transparent',
+    borderRight: 'none',
+    borderTop: 'none',
+    borderBottom: 'none',
+    backgroundColor: 'transparent',
     color: tokens.colorNeutralForeground2,
+    textAlign: 'left',
+    fontFamily: 'inherit',
+    lineHeight: 'inherit',
     ':hover': {
       backgroundColor: tokens.colorNeutralBackground2,
+    },
+    ':focus-visible': {
+      ...shorthands.outline('2px', 'solid', tokens.colorStrokeFocus2),
+      outlineOffset: '-2px',
+      ...shorthands.borderRadius('2px'),
     },
   },
   itemActive: {
@@ -64,14 +77,13 @@ interface INavItemProps {
 export const NavItem: React.FC<INavItemProps> = ({ label, active, onClick }) => {
   const styles = useStyles();
   return (
-    <div
-      role="link"
-      tabIndex={0}
+    <button
+      type="button"
+      aria-current={active ? 'page' : undefined}
       className={mergeClasses(styles.item, active && styles.itemActive)}
       onClick={onClick}
-      onKeyDown={e => { if (e.key === 'Enter') onClick(); }}
     >
       {label}
-    </div>
+    </button>
   );
 };

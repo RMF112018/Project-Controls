@@ -37,16 +37,56 @@ interface IWhatsNewModalProps {
 }
 
 export const WhatsNewModal: React.FC<IWhatsNewModalProps> = ({ isOpen, onClose }) => {
+  const triggerRef = React.useRef<Element | null>(null);
+  const closeButtonRef = React.useRef<HTMLButtonElement>(null);
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+
   React.useEffect(() => {
     if (isOpen) {
       try { localStorage.setItem(STORAGE_KEY, APP_VERSION); } catch { /* ignore */ }
     }
   }, [isOpen]);
 
+  // Save trigger element on open; restore focus on close
+  React.useEffect(() => {
+    if (isOpen) {
+      triggerRef.current = document.activeElement;
+      requestAnimationFrame(() => {
+        closeButtonRef.current?.focus();
+      });
+    } else if (triggerRef.current) {
+      (triggerRef.current as HTMLElement).focus?.();
+      triggerRef.current = null;
+    }
+  }, [isOpen]);
+
+  // Escape + focus trap
   React.useEffect(() => {
     if (!isOpen) return;
     const handleKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusableEls = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableEls.length === 0) return;
+        const first = focusableEls[0];
+        const last = focusableEls[focusableEls.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
@@ -70,15 +110,21 @@ export const WhatsNewModal: React.FC<IWhatsNewModalProps> = ({ isOpen, onClose }
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{
-        backgroundColor: '#fff',
-        borderRadius: '12px',
-        width: '500px',
-        maxWidth: '90vw',
-        maxHeight: '80vh',
-        overflow: 'hidden',
-        boxShadow: ELEVATION.level4,
-      }}>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="whats-new-title"
+        style={{
+          backgroundColor: '#fff',
+          borderRadius: '12px',
+          width: '500px',
+          maxWidth: '90vw',
+          maxHeight: '80vh',
+          overflow: 'hidden',
+          boxShadow: ELEVATION.level4,
+        }}
+      >
         {/* Header */}
         <div style={{
           backgroundColor: HBC_COLORS.navy,
@@ -88,7 +134,7 @@ export const WhatsNewModal: React.FC<IWhatsNewModalProps> = ({ isOpen, onClose }
           justifyContent: 'space-between',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>What&apos;s New</span>
+            <span id="whats-new-title" style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>What&apos;s New</span>
             <span style={{
               padding: '2px 10px',
               borderRadius: '12px',
@@ -101,7 +147,9 @@ export const WhatsNewModal: React.FC<IWhatsNewModalProps> = ({ isOpen, onClose }
             </span>
           </div>
           <button
+            ref={closeButtonRef}
             onClick={onClose}
+            aria-label="Close"
             style={{
               background: 'none',
               border: 'none',

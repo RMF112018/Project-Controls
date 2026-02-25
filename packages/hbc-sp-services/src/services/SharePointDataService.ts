@@ -171,27 +171,6 @@ async function computeSha256Hex(input: ArrayBuffer): Promise<string> {
 const USER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes for user-scoped data
 const DATA_MART_SYNC_BATCH_SIZE = 5; // Concurrent syncToDataMart calls in triggerDataMartSync
 
-const REQUIRED_PROMPT6_FLAGS: ReadonlyArray<Omit<IFeatureFlag, 'id'>> = [
-  { FeatureName: 'uxDelightMotionV1', DisplayName: 'UX Delight Motion v1', Enabled: false, EnabledForRoles: undefined, TargetDate: undefined, Notes: 'Prompt 6 motion polish and transitions', Category: 'Infrastructure' },
-  { FeatureName: 'uxPersonalizedDashboardsV1', DisplayName: 'UX Personalized Dashboards v1', Enabled: false, EnabledForRoles: undefined, TargetDate: undefined, Notes: 'Prompt 6 per-user dashboard preference persistence', Category: 'Infrastructure' },
-  { FeatureName: 'uxChartTableSyncGlowV1', DisplayName: 'UX Chart-Table Sync Glow v1', Enabled: false, EnabledForRoles: undefined, TargetDate: undefined, Notes: 'Prompt 6 synchronized chart/table highlight states', Category: 'Infrastructure' },
-  { FeatureName: 'uxInsightsPanelV1', DisplayName: 'UX Insights Panel v1', Enabled: false, EnabledForRoles: undefined, TargetDate: undefined, Notes: 'Prompt 6 contextual insights panel', Category: 'Infrastructure' },
-  { FeatureName: 'uxToastEnhancementsV1', DisplayName: 'UX Toast Enhancements v1', Enabled: false, EnabledForRoles: undefined, TargetDate: undefined, Notes: 'Prompt 6 undo/progress/action toasts', Category: 'Infrastructure' },
-];
-
-function ensureRequiredPrompt6Flags(flags: IFeatureFlag[]): IFeatureFlag[] {
-  const normalized = [...flags];
-  const names = new Set(normalized.map((flag) => flag.FeatureName));
-  let nextId = normalized.reduce((max, flag) => Math.max(max, flag.id), 0) + 1;
-
-  for (const requiredFlag of REQUIRED_PROMPT6_FLAGS) {
-    if (names.has(requiredFlag.FeatureName)) {
-      continue;
-    }
-    normalized.push({ id: nextId++, ...requiredFlag });
-  }
-  return normalized;
-}
 
 /**
  * SharePoint Data Service — Live implementation using PnP JS.
@@ -590,7 +569,7 @@ export class SharePointDataService implements IDataService {
     performanceService.startMark('sp:getFeatureFlags');
     const items = await this.sp.web.lists.getByTitle(LIST_NAMES.FEATURE_FLAGS).items();
     performanceService.endMark('sp:getFeatureFlags');
-    return ensureRequiredPrompt6Flags(items as IFeatureFlag[]);
+    return items as IFeatureFlag[];
   }
 
   async updateFeatureFlag(id: number, data: Partial<IFeatureFlag>): Promise<IFeatureFlag> {

@@ -2,6 +2,57 @@
 
 All notable changes to HBC Project Controls will be documented in this file.
 
+## [2026-02-25] - Phase 7 Stage 5C Batch 5A - refactor(flags) - Remove 6 Always-On UX Feature Flags
+
+### Removed
+- `uxDelightMotionV1` (id 44) — motion always enabled. Flag checks removed from AppShell, ToastContainer.
+- `uxPersonalizedDashboardsV1` (id 45) — dashboard preferences permanent. Definition-only (no runtime checks).
+- `uxChartTableSyncGlowV1` (id 46) — chart/table sync permanent. Definition-only (no runtime checks).
+- `uxInsightsPanelV1` (id 47) — insights panel always enabled. Flag checks removed from AppShell (command palette, keyboard shortcut, conditional render).
+- `uxToastEnhancementsV1` (id 48) — toast enhancements always enabled. Flag check removed from ToastContainer.
+- `uxSuiteNavigationV1` (id 55) — AppLauncher + ContextualSidebar permanent. FeatureGate unwrapped; legacy NavigationSidebar fallback path removed from AppShell.
+- `PROMPT6_FEATURE_FLAGS` array + `normalizeFeatureFlags()` from AppContext.tsx.
+- `REQUIRED_PROMPT6_FLAGS` array + `ensureRequiredPrompt6Flags()` from SharePointDataService.ts.
+- 6 entries from `REQUIRED_PROMPT6_FEATURE_FLAGS` in MockDataService.ts (array retained for non-UX flags).
+- 6 entries from featureFlags.json (58 → 52).
+- NavigationSidebar barrel export from layouts/index.ts.
+
+### Changed
+- AppShell.tsx — Always render AppLauncher (no FeatureGate), always use ContextualSidebar, always apply motionStyles.routeTransition, always render HbcInsightsPanel.
+- ToastContainer.tsx — Removed useAppContext dependency; removed enableMotion prop from ToastItem; toast enhancements and motion always active.
+- AppContext.tsx — Removed normalizeFeatureFlags from init pipeline; raw flags used directly.
+- playwright/responsive-a11y.e2e.spec.ts — Updated sidebar comment (removed flag reference).
+
+## [2026-02-25] - Phase 7 Stage 5B - a11y(phase7) - Guard Component & Focus Indicator Accessibility
+
+### Changed
+- `guards/FeatureGate.tsx` — Added opt-in `announceDenied?: string` prop with visually-hidden `role="status"` SR announcement on denial. All 37+ existing usages unaffected (prop is optional).
+- `guards/RoleGate.tsx` — Same `announceDenied` pattern on both denial paths (no user + no role match).
+- `guards/PermissionGate.tsx` — Same `announceDenied` pattern for permission denial.
+- `guards/ProtectedRoute.tsx` — Replaced `return null` loading state with visually-hidden `<span role="status" aria-live="polite">Checking permissions…</span>`.
+- `guards/ProjectRequiredRoute.tsx` — Changed `<div>` to `<main>` landmark; added `role="status"` to inner content container.
+- `pages/shared/AccessDeniedPage.tsx` — Added `role="alert"` for immediate SR announcement on redirect.
+- `shared/Breadcrumb.tsx` — Converted button from inline styles to Fluent UI `makeStyles` with `:focus-visible` (2px focus ring) and CSS `:hover` underline. Removed JS `onMouseEnter`/`onMouseLeave` handlers.
+- `navigation/NavPrimitives.tsx` — Added `:focus-visible` rule (2px focus ring). Increased padding from 7px to 10px for 44px WCAG 2.5.8 touch target compliance.
+
+### Verified
+- TypeScript: clean (0 errors via `npx tsc --noEmit`)
+- All existing FeatureGate/RoleGate/PermissionGate usages unchanged (opt-in prop, no default behavior change)
+
+## [2026-02-25] - Phase 7 Stage 5A - fix(phase7) - Fix Critical Feature Flag Bugs
+
+### Added
+- `packages/hbc-sp-services/src/mock/featureFlags.json` — Added `PowerBIIntegration` (id 57, Enabled: false, Category: Integrations) and `RealTimeUpdates` (id 58, Enabled: false, Category: Infrastructure). These flags were referenced by FeatureGate/isFeatureEnabled in PreconDashboardPage, EstimatingDashboardPage, AnalyticsHubDashboardPage (PowerBIIntegration) and AppShell, SignalRContext (RealTimeUpdates) but were absent from the JSON, causing isFeatureEnabled() to silently return false for missing definitions.
+
+### Changed
+- `packages/hbc-sp-services/src/mock/featureFlags.json` — Updated Notes fields for `WorkflowStateMachine` (id 52) and `ProvisioningSaga` (id 53) to document intentional disabled status as dual-path guards with legacy fallback paths.
+
+### Verified
+- TypeScript: clean (0 errors via `npx tsc --noEmit`)
+- Feature flag count: 58 entries (56 → 58)
+- All FeatureGate and isFeatureEnabled() calls in scoped files now reference flags present in featureFlags.json
+- No requireFeature() calls found in scoped page/layout/context files (router workspace guards are outside Phase A scope)
+
 ## [2026-02-25] - Phase 7 Stage 4 - test(phase7) - Testing & Permission Completeness
 
 ### Added

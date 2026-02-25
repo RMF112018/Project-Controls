@@ -214,7 +214,14 @@ const EditableTextCell: React.FC<ITextCellProps> = React.memo(({
   React.useEffect(() => setLocalValue(value), [value]);
   if (!editing) {
     return (
-      <span className={cellClassName} onClick={(e) => { e.stopPropagation(); setEditing(true); }}>
+      <span
+        className={cellClassName}
+        role="button"
+        tabIndex={0}
+        aria-label={`${field}: ${localValue || 'empty'}. Press Enter to edit.`}
+        onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); e.stopPropagation(); setEditing(true); } }}
+      >
         {localValue || '—'}
       </span>
     );
@@ -262,7 +269,14 @@ const EditableNumberCell: React.FC<INumberCellProps> = React.memo(({
   const display = isCurrency ? formatCurrency(localNum) : (localNum != null ? String(localNum) : '—');
   if (!editing) {
     return (
-      <span className={mergeClasses(cellClassName, isCurrency ? currencyClassName : undefined)} onClick={(e) => { e.stopPropagation(); setEditing(true); }}>
+      <span
+        className={mergeClasses(cellClassName, isCurrency ? currencyClassName : undefined)}
+        role="button"
+        tabIndex={0}
+        aria-label={`${field}: ${display}. Press Enter to edit.`}
+        onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); e.stopPropagation(); setEditing(true); } }}
+      >
         {display}
       </span>
     );
@@ -310,7 +324,14 @@ const EditableDateCell: React.FC<IDateCellProps> = React.memo(({
   const dateStr = localIso ? localIso.split('T')[0] : '';
   if (!editing) {
     return (
-      <span className={cellClassName} onClick={(e) => { e.stopPropagation(); setEditing(true); }}>
+      <span
+        className={cellClassName}
+        role="button"
+        tabIndex={0}
+        aria-label={`${field}: ${dateStr || 'empty'}. Press Enter to edit.`}
+        onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); e.stopPropagation(); setEditing(true); } }}
+      >
         {dateStr || '—'}
       </span>
     );
@@ -357,7 +378,14 @@ const EditableSelectCell: React.FC<ISelectCellProps> = React.memo(({
   React.useEffect(() => setLocalValue(value), [value]);
   if (!editing) {
     return (
-      <span className={cellClassName} onClick={(e) => { e.stopPropagation(); setEditing(true); }}>
+      <span
+        className={cellClassName}
+        role="button"
+        tabIndex={0}
+        aria-label={`${field}: ${localValue || 'empty'}. Press Enter to edit.`}
+        onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); e.stopPropagation(); setEditing(true); } }}
+      >
         {localValue || '—'}
       </span>
     );
