@@ -16,7 +16,7 @@ This file must stay under 40,000 characters. Never allow it to grow large again.
 
 For full historical phase logs (SP-1 through SP-7), complete 221-method table, old navigation, and detailed past pitfalls → see **CLAUDE_ARCHIVE.md**.
 
-**Last Updated:** 2026-02-24 — Phase 7 Stage 3 Security Hardening COMPLETE. OData sanitization (3 SP filters), server-side feature flag enforcement (6 template mutations), GraphBatchEnforcer backpressure (MAX_QUEUE_DEPTH=50), permission escalation prevention + rate limiting, idempotency token hardening (crypto-safe, 24h expiry, replay detection), template sync state machine + content validation + multi-approver gates, ProvisioningSaga manual rollback + template version tracking. +1 IDataService method (284→285: getProvisioningLogByToken). 7 new AuditActions. 6 new utility files + ~66 new tests. resilient-data-operations v1.5, provisioning-engine v1.4, permission-system v1.1, site-template-management v1.1. ~945 tests.
+**Last Updated:** 2026-02-25 — Phase 7 Stage 4 Testing & Permission Completeness COMPLETE. Dual-path permission parity (66 tests, 108 known gaps baselined). Permission coverage gap tests (20 edge cases). Per-file Jest thresholds ratcheted on 5 critical files. 5 new Storybook stories (27→32). Playwright permission matrix E2E (70 tests: 6 roles × workspace access/denial). Route coverage audit (136 routes, 10.3% baseline). Stryker mutation testing pilot (ProvisioningSaga + GraphBatchEnforcer). 70 mutation-killing supplement tests. hbc-testing SKILL v1.1, tanstack-jest SKILL v1.1, permission-system SKILL v1.2. ~156 new Jest tests (1101 total). Coverage: 92.24%/80.71%/90.03%/93.03%.
 
 **MANDATORY:** After any code change that affects the data layer, architecture, performance, UI/UX, testing, or security, update this file, verify against the current sprint gate, confirm relevant Skills and the master plan were followed, update CHANGELOG.md (root), and check project memory before ending the session.
 
@@ -47,8 +47,14 @@ Before any analysis, code change, review, or response, consult the following fil
 All files reside in the `.claude/` directory.  
 **Agent Rule:** Quote only the exact rule, checklist item, protocol, or section that applies. Never repeat full sections.
 
-**Skills Activation Rule**  
-After consulting the core guides, automatically activate the most specific Skill(s) from `.claude/skills/` based on task triggers (see SKILLS_OVERVIEW.md). Skills operate via progressive disclosure (frontmatter always available; full content loaded on-demand).
+### Skills Governance (Enforced 2026-02-25)
+- All skills are maintained **exclusively** in `.claude/SKILLS_OVERVIEW.md` (central index) and the individual files under `.claude/skills/<category>/SKILL.md`.
+- CLAUDE.md §16 shall contain **zero** skill listings or history blocks. Only cross-references and activation rules are permitted.
+- New or updated skills MUST be added to the SKILLS_OVERVIEW.md table immediately upon creation (see §0 Skills Activation Rule).
+- Progressive disclosure is mandatory: only frontmatter is referenced in CLAUDE.md; full content loads on-demand via triggers.
+
+**Current Registered Skills**  
+All entries are maintained in SKILLS_OVERVIEW.md (including the new `playwright-e2e-spfx` skill added 2026-02-25 for zero-flake SPFx E2E test generation).
 
 **Memory Usage Rule (Dynamic Layer)**  
 - Static architecture, performance, UX, feature, and security rules → core `.claude/` files + Skills (never duplicate here).  
@@ -167,7 +173,9 @@ Cross-reference: §18 Roadmap (Phase 2), §21, §22, `.claude/plans/hbc-stabiliz
 **Implemented**: 285
 **Remaining stubs**: 0 — **DATA LAYER COMPLETE**
 
-Last major additions: Phase 7 Stage 3 Security Hardening (Feb 2026) — +1 IDataService method: getProvisioningLogByToken (284→285). 7 new AuditAction values. OData sanitization (odataSanitizer.ts), server-side feature flag guard (featureFlagGuard.ts), idempotency token validator (idempotencyTokenValidator.ts), template sync guard (templateSyncGuard.ts), escalation guard (escalationGuard.ts), Graph scope policy (graphScopePolicy.ts). GraphBatchEnforcer backpressure (MAX_QUEUE_DEPTH=50). ProvisioningSaga manual rollback + template version tracking. ~66 new tests (945 total).
+Last major additions: Phase 7 Stage 4 Testing & Permission Completeness (Feb 2026) — No new IDataService methods. Dual-path permission parity tests (66 tests: ROLE_PERMISSIONS vs PermissionEngine consistency, 108 known gaps baselined). Permission coverage gap tests (20 edge cases). Per-file Jest coverage thresholds ratcheted on 5 critical files. 5 new Storybook stories (27→32). Playwright permission matrix E2E (70 tests). Route coverage audit (136 routes, 10.3% baseline). Stryker mutation testing (ProvisioningSaga + GraphBatchEnforcer). 70 mutation-killing tests. 3 SKILL.md bumps. ~156 new Jest tests (1101 total). Coverage: 92.24%/80.71%/90.03%/93.03%.
+
+Phase 7 Stage 3 Security Hardening (Feb 2026) — +1 IDataService method: getProvisioningLogByToken (284→285). 7 new AuditAction values. OData sanitization (odataSanitizer.ts), server-side feature flag guard (featureFlagGuard.ts), idempotency token validator (idempotencyTokenValidator.ts), template sync guard (templateSyncGuard.ts), escalation guard (escalationGuard.ts), Graph scope policy (graphScopePolicy.ts). GraphBatchEnforcer backpressure (MAX_QUEUE_DEPTH=50). ProvisioningSaga manual rollback + template version tracking. ~66 new tests (945 total).
 
 Phase 5D Cross-cutting Governance (Feb 2026) — No new IDataService methods. GraphBatchEnforcer (10ms coalescence, threshold 3, feature-gated GraphBatchingEnabled). ListThresholdGuard utility (warn at 3000, force cursor paging at 4500 for Audit_Log). Coverage ramp to 80/60/70/80. SECURITY_ANALYSIS.md + DATA_ARCHITECTURE.md created. Connector + provisioning E2E specs. ~20 new Jest tests (~857 total).
 
@@ -196,6 +204,7 @@ Phase 5B Workflow State Machines + E2E Coverage (Feb 2026) — No new IDataServi
 - Phase 6A: Site Template Management & GitOps Sync — **COMPLETE** on `feature/hbc-suite-stabilization`. ISiteTemplate model + SiteTemplateType union. TemplateSyncStatus enum (Idle/Syncing/Success/Failed). 3 new AuditActions (TemplateSyncStarted/Completed/Failed) + EntityType.SiteTemplate. Feature flag SiteTemplateManagement (id 60, default OFF, SuperAdmin-only). 8 new IDataService methods (276→284). SITE_TEMPLATES_COLUMNS + HUB_LISTS.SITE_TEMPLATES + CACHE_KEYS. MockDataService + SharePointDataService implementations. IProvisioningInput.templateName for dual-path saga Step 5. ProvisioningPage TabList with "Provisioning Logs" + "Site Templates" tabs. HbcTanStackTable + SlideDrawer for template CRUD. site-template-management SKILL v1.0. provisioning-engine SKILL v1.3. resilient-data-operations SKILL v1.4. 19 new Jest + 9 Playwright E2E tests. ~940+ tests.
 - Phase 7 Stage 2: Performance Optimization for Construction-Scale Data — **COMPLETE** on `feature/hbc-suite-stabilization`. Construction-scale benchmark generators (Buyout 500, Audit 5000, Estimating 300, Schedule 1000, Leads 200) with seeded PRNG. MockDataService `benchmarkMode`. Per-domain QUERY_GC_TIMES + INFINITE_QUERY_MAX_PAGES. MemoizedTableRow (React.memo + custom equality). React 18 concurrent: useTransition (sort/filter/group), useDeferredValue (globalFilter). Adaptive overscan in useVirtualRows. HbcEChart large/progressiveRender/sampling props. usePerformanceMarker hook. 3 SKILL.md v1.1 updates. 43 new tests (26 generator + 8 cache + 6 table perf + 3 hook) + 4 Playwright E2E. ~980+ tests.
 - Phase 7 Stage 3: Security Hardening (GitOps & Provisioning) — **COMPLETE** on `feature/hbc-suite-stabilization`. OData injection remediation (3 SP filters via safeODataEq/safeODataSubstringOf). Server-side feature flag enforcement (assertFeatureFlagEnabled on 6 template mutations). GraphBatchEnforcer backpressure (MAX_QUEUE_DEPTH=50, BackpressureError, highWaterMark metric). Permission escalation prevention (assertNotSelfEscalation + checkRateLimit 10/60s). Idempotency token hardening (crypto-safe hex, 24h expiry, replay detection). Template sync state machine (4 valid transitions, acquireSyncLock, validateTemplateContent XSS patterns, multi-approver gates). Graph scope policy (11 operations → minimum scopes). ProvisioningSaga manual rollback + template version tracking. +1 IDataService method (getProvisioningLogByToken → 285). IProvisioningLog expansion (templateVersion, templateType, rollbackFromToken). ISagaContext/ICompensationResult/ISagaExecutionResult expansion. 7 new AuditAction values. 6 new utility files. PERMISSION_STRATEGY.md created. resilient-data-operations SKILL v1.5, provisioning-engine SKILL v1.4, permission-system SKILL v1.1, site-template-management SKILL v1.1. ~66 new tests (945 total across 58 suites).
+- Phase 7 Stage 4: Testing & Permission Completeness — **COMPLETE** on `feature/hbc-suite-stabilization`. Dual-path permission parity (66 tests: ROLE_PERMISSIONS vs PermissionEngine, 108 known gaps baselined as regression guards). Permission coverage gap tests (20 edge cases). Per-file Jest coverage thresholds ratcheted on 5 critical files. 5 new Storybook stories (27→32). Playwright permission matrix E2E (70 tests: 6 roles × workspace access/denial/sidebar/page-level). Route coverage audit (136 routes, 10.3% baseline documented). Stryker mutation testing pilot on ProvisioningSaga + GraphBatchEnforcer (high=80, break=60). 70 mutation-killing supplement tests (38 saga + 32 enforcer). hbc-testing SKILL v1.1, tanstack-jest SKILL v1.1, permission-system SKILL v1.2. ~156 new Jest tests (1101 total across 62 suites). Coverage: 92.24%/80.71%/90.03%/93.03%.
 
 ---
 
@@ -270,24 +279,10 @@ Phase 5B Workflow State Machines + E2E Coverage (Feb 2026) — No new IDataServi
 - **ProvisioningSaga rollback (Phase 7S3)**: `rollback(projectCode, originalToken)` looks up log by token and runs compensation in strict reverse. Sets `rollbackFromToken` on log.
 - **Idempotency token format (Phase 7S3)**: `generateCryptoHex4()` uses `crypto.getRandomValues()` — never `Math.random()`. Validation: format regex + 24h expiry + replay detection.
 - **IDataService 285 methods (Phase 7S3)**: +1 method `getProvisioningLogByToken(token)` for saga rollback.
-
-### New Skill Documentation (added 23 Feb 2026 at commit 55027ece)
-- **Provisioning Engine Skill Creation** `.claude/skills/provisioning-engine/SKILL.md` – 7-step engine protocol, guaranteed stable flows, manual test steps, and cross-references.  
-  Cross-ref: §7 (ProvisioningService), §12 (Feature Flags: provisioningEngineV2), DATA_ARCHITECTURE.md, SECURITY_ANALYSIS.md.  
-  Impact: ~40 % faster onboarding/extension of site-creation features.
-
-  ### New Skill Documentation (added 23 Feb 2026 at commit fb4d8793)
-- **`.claude/skills/resilient-data-operations/SKILL.md`** – Batching, retry/backoff, saga compensation, SignalR status patterns.  
-  Cross-ref: §7 (GraphBatchService, ProvisioningSaga), §12 (ConnectorMutationResilience, ProvisioningSaga), `.claude/skills/provisioning-engine/SKILL.md`, Elevated UI/UX Design Skill.  
-  Impact: ~40 % faster extension of resilient connectors and workflows.
-### New Skill Documentation (added 23 Feb 2026 at commit 58c3dff)
-- **`.claude/skills/workflow-state-machines/SKILL.md`** — xstate v5 machine protocol, dual-path flag strategy, guard rules, and optimistic integration.
-  Cross-ref: §1, §16, §21, `.claude/skills/resilient-data-operations/SKILL.md`.
-  Impact: ~40 % reduction in workflow extension time.
-### New Skill Documentation (added 24 Feb 2026 — Phase 6A)
-- **`.claude/skills/site-template-management/SKILL.md`** v1.0 — ISiteTemplate model, 8 IDataService methods, TemplateSyncStatus lifecycle, GitOps sync flow, ProvisioningSaga Step 5 dual-path, Default fallback rule, admin UI tab protocol.
-  Cross-ref: §7 (284 methods), §15 (Phase 6A), §16 (template pitfalls), `.claude/skills/provisioning-engine/SKILL.md` v1.3, `.claude/skills/resilient-data-operations/SKILL.md` v1.4.
-  Impact: ~40 % faster onboarding/extension of site template management features.
+- **Per-file Jest coverage thresholds (Phase 7S4)**: Ratcheted floors in `jest.config.js` for 5 critical files. Thresholds match actual coverage floors — never set aspirational targets that break CI. Ratchet UP only after coverage improvements are verified green.
+- **Stryker mutation testing (Phase 7S4)**: `stryker.config.mjs` in sp-services, targets ProvisioningSaga.ts + GraphBatchEnforcer.ts. Run via `npm run test:mutation`. Thresholds: high=80, break=60. Jest runner + TypeScript checker.
+- **Dual-path parity regression guards (Phase 7S4)**: `permissions.dualpath.test.ts` baselines 108 known permission gaps (engine superset of legacy). Any NEW gap fails the test — prevents silent permission drift.
+- **Mutation-killing test patterns (Phase 7S4)**: Target exact boundary values (timing 9ms/10ms, queue depth 49/50, threshold 2/3), format assertions (token regex, progress %), ordering invariants (compensation reverse order), shape enforcement (result properties). See `ProvisioningSaga.mutation.test.ts` + `GraphBatchEnforcer.mutation.test.ts`.
 
 **Keep CLAUDE.md lean** — archive aggressively to CLAUDE_ARCHIVE.md.
 
@@ -342,6 +337,9 @@ Stage 2 of Phase 7 completed per roadmap: construction-scale benchmarks establis
 
 §18.7 Phase 7 Stage 3 Security Hardening Complete (commit after update)
 Stage 3 of Phase 7 completed per roadmap: OData injection remediation (3 SP filters), server-side feature flag enforcement (6 template mutations), GraphBatchEnforcer backpressure (MAX_QUEUE_DEPTH=50), permission escalation prevention + rate limiting, idempotency token hardening (crypto-safe, 24h expiry, replay detection), template sync state machine + content validation + multi-approver gates, Graph scope policy (least-privilege), ProvisioningSaga manual rollback + template version tracking. +1 IDataService method (285 total). 7 new AuditActions. 6 new utility files. PERMISSION_STRATEGY.md created. 4 SKILL.md version bumps. ~66 new tests (945 total). All Stage 3 deliverables and success criteria addressed. Ready for Stage 4 (Accessibility).
+
+§18.8 Phase 7 Stage 4 Testing & Permission Completeness Complete (commit after update)
+Stage 4 of Phase 7 completed per roadmap: 6-role permission matrix E2E (70 Playwright tests across 6 workspaces — positive access, denial, sidebar visibility, page-level checks). Dual-path permission parity (66 Jest tests verifying ROLE_PERMISSIONS vs PermissionEngine consistency, 108 known gaps baselined as regression guards). Permission coverage gap tests (20 edge cases). Per-file Jest coverage thresholds ratcheted on 5 critical files. 5 new Storybook stories (27→32). Stryker mutation testing pilot (ProvisioningSaga + GraphBatchEnforcer, thresholds high=80 break=60). 70 mutation-killing supplement tests. Route coverage audit (136 routes, 10.3% baseline). 3 SKILL.md version bumps (hbc-testing v1.1, tanstack-jest v1.1, permission-system v1.2). ~156 new Jest tests (1101 total across 62 suites). Coverage: 92.24%/80.71%/90.03%/93.03%. All Stage 4 deliverables and success criteria addressed. Ready for Stage 5 (Accessibility & Feature-Flag Debt Cleanup).
 
 ---
 

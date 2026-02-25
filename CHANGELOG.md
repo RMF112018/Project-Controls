@@ -2,6 +2,29 @@
 
 All notable changes to HBC Project Controls will be documented in this file.
 
+## [2026-02-25] - Phase 7 Stage 4 - test(phase7) - Testing & Permission Completeness
+
+### Added
+- `packages/hbc-sp-services/src/utils/__tests__/permissions.dualpath.test.ts` — 66 dual-path parity tests verifying ROLE_PERMISSIONS (legacy) vs PermissionEngine (TOOL_DEFINITIONS + permissionTemplates.json) consistency. 108 known gaps baselined as regression guards.
+- `packages/hbc-sp-services/src/utils/__tests__/permissions.coverage.test.ts` — 20 permission coverage gap tests (inactive configs, empty configs, deduplication, unknown roles, mixed paths, all 4 permission levels).
+- `packages/hbc-sp-services/src/services/__tests__/ProvisioningSaga.mutation.test.ts` — 38 mutation-killing tests targeting boundary values (token format, compensation reverse order, broadcast progress, siteAlias sanitization, Step 5 dual-path, audit logging precision).
+- `packages/hbc-sp-services/src/services/__tests__/GraphBatchEnforcer.mutation.test.ts` — 32 mutation-killing tests targeting boundary values (coalescence timing 9ms/10ms, flush threshold 2/3, backpressure 49/50, high water mark, dispose semantics, feature OFF passthrough).
+- `packages/hbc-sp-services/stryker.config.mjs` — Stryker Mutator configuration targeting ProvisioningSaga.ts + GraphBatchEnforcer.ts. Jest runner, TypeScript checker. Thresholds: high=80, break=60.
+- `playwright/permission-matrix.e2e.spec.ts` — 70 Playwright E2E tests covering 6 canonical roles × workspace access (31 positive, 18 denial, 21 sidebar/page-level checks).
+- `.claude/plans/route-coverage-audit.md` — Route coverage audit document (136 routes across 7 workspaces, 10.3% Playwright coverage baseline).
+- 5 new Storybook stories (27→32 total): `HeaderUserMenu.stories.tsx`, `ProvisioningStatusStepper.stories.tsx`, `SlideDrawer.stories.tsx`, `AppLauncher.stories.tsx`, `ContextualSidebar.stories.tsx`.
+
+### Changed
+- `packages/hbc-sp-services/jest.config.js` — Per-file coverage thresholds ratcheted: `permissions.ts` 90/80/85/90, `toolPermissionMap.ts` 90/80/85/90, `ProvisioningSaga.ts` 89/60/85/92, `GraphBatchEnforcer.ts` 96/90/77/97, `ListThresholdGuard.ts` 90/80/85/90.
+- `packages/hbc-sp-services/package.json` — Added `test:mutation` script and Stryker devDependencies (`@stryker-mutator/core` ^9.5.1, `@stryker-mutator/jest-runner` ^9.5.1, `@stryker-mutator/typescript-checker` ^9.5.1).
+- 3 SKILL.md version bumps: `hbc-testing-coverage-enforcement-spfx` v1.0→v1.1, `tanstack-jest-testing-patterns-spfx` v1.0→v1.1, `permission-system` v1.1→v1.2.
+- CLAUDE.md §7 (Phase 7S4 entry), §15 (Phase 7S4 status), §16 (+5 new pitfalls), §18.8 (Stage 4 completion block).
+
+### Verified
+- TypeScript: clean (0 errors), Jest: 1101 tests / 62 suites (0 failures), Coverage: 92.24% statements / 80.71% branches / 90.03% functions / 93.03% lines
+- All per-file coverage thresholds met
+- IDataService method count: 285/285 — data layer complete
+
 ## [2026-02-24] - Phase 7 Stage 3 - security(phase7) - Security Hardening (GitOps & Provisioning)
 
 ### Added

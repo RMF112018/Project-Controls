@@ -1,10 +1,10 @@
 ---
 name: HBC Permission System
 description: Configuration-driven RBAC engine with 6 core roles, global vs scoped access patterns, Entra ID group sync, and SOC2 audit logging for the HBC Project Controls suite
-version: 1.1
+version: 1.2
 category: permissions
-triggers: role, permission, RBAC, RoleGate, FeatureGate, Admin role screen, global vs scoped, Entra ID, SOC2 audit, permission matrix, role creation, escalation-prevention, rate-limiting, assertNotSelfEscalation, checkRateLimit, PermissionEscalationError
-updated: 2026-02-24
+triggers: role, permission, RBAC, RoleGate, FeatureGate, Admin role screen, global vs scoped, Entra ID, SOC2 audit, permission matrix, role creation, escalation-prevention, rate-limiting, assertNotSelfEscalation, checkRateLimit, PermissionEscalationError, dual-path parity, permission matrix E2E, workspace access
+updated: 2026-02-25
 ---
 
 # HBC Permission System Skill
@@ -37,8 +37,14 @@ Implementing, modifying, or debugging any role-based access, permission checks, 
 5. Remove a role from a user → verify RoleGate blocks access instantly.  
 6. Run full E2E suite for all 6 roles.
 
-**Reference**  
-- `CLAUDE.md` §5 (Roles & Permissions Matrix), §18 (Roadmap Phase 2)  
-- `.claude/plans/hbc-stabilization-and-suite-roadmap.md` (Deliverable #5)  
-- `SECURITY_PERMISSIONS_GUIDE.md` §1 (RBAC engine)  
+**Phase 7S4 Additions (v1.2)**
+- **Dual-path parity requirements**: ROLE_PERMISSIONS (legacy) must remain superset-consistent with PermissionEngine (TOOL_DEFINITIONS + permissionTemplates.json). 66 parity tests + known-gap baseline.
+- **E2E permission matrix**: 70 Playwright tests (`playwright/permission-matrix.e2e.spec.ts`) — 6 roles × workspace access (positive + denial + sidebar + page-level checks).
+- **Coverage gap tests**: 20 tests for resolvePermissionsFromConfig/hasGlobalAccess/resolveNavGroupAccess/resolveToolPermissions edge cases.
+
+**Reference**
+- `CLAUDE.md` §5 (Roles & Permissions Matrix), §18 (Roadmap Phase 2)
+- `.claude/plans/hbc-stabilization-and-suite-roadmap.md` (Deliverable #5)
+- `SECURITY_PERMISSIONS_GUIDE.md` §1 (RBAC engine)
+- `.claude/plans/route-coverage-audit.md` (route coverage baseline)
 - Master plan cross-reference: Phase 2
