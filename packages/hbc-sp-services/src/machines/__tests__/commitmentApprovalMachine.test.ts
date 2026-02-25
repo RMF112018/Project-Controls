@@ -16,7 +16,7 @@ describe('commitmentApprovalMachine', () => {
     entryId: 42,
     projectCode: 'P-042',
     currentStatus: 'NotStarted' as const,
-    actorRole: RoleName.OperationsTeam,
+    actorRole: RoleName.CommercialOperationsManager,
     userPermissions: basePerms,
   };
 

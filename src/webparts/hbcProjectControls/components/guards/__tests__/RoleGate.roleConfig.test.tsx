@@ -27,16 +27,16 @@ describe('RoleGate — Role Configuration Normalization', () => {
     jest.clearAllMocks();
   });
 
-  it('allows access when user has matching canonical role (Admin maps from SharePointAdmin)', () => {
-    // SharePointAdmin (legacy enum) normalizes to 'Admin'
-    // User has 'Admin' as a role string — but RoleName.SharePointAdmin = 'SharePoint Admin'
-    // normalizeRoleName('SharePoint Admin') → 'Admin', normalizeRoleName('Admin') → 'Admin' (pass-through)
+  it('allows access when user has matching canonical role (SharePoint Admin maps to Administrator)', () => {
+    // Legacy 'SharePoint Admin' normalizes to 'Administrator'
+    // User has 'SharePoint Admin' (legacy) → normalizeRoleName('SharePoint Admin') → 'Administrator'
+    // Allowed list uses RoleName.Administrator = 'Administrator' → both match
     mockUseAppContext.mockReturnValue({
-      currentUser: makeUser(['Admin' as RoleName]),
+      currentUser: makeUser(['SharePoint Admin' as RoleName]),
     });
 
     render(
-      <RoleGate allowedRoles={[RoleName.SharePointAdmin]}>
+      <RoleGate allowedRoles={[RoleName.Administrator]}>
         <div>Admin Content</div>
       </RoleGate>
     );
@@ -45,15 +45,14 @@ describe('RoleGate — Role Configuration Normalization', () => {
   });
 
   it('allows access when user has legacy role that maps to allowed canonical role', () => {
-    // User has ExecutiveLeadership (legacy enum value 'Executive Leadership')
-    // normalizeRoleName('Executive Leadership') → 'Leadership'
-    // Allowed list uses 'Leadership' (canonical) — normalizeRoleName('Leadership') → 'Leadership'
+    // User has 'Executive Leadership' (legacy) → normalizeRoleName('Executive Leadership') → 'Leadership'
+    // Allowed list uses RoleName.Leadership = 'Leadership' — both match
     mockUseAppContext.mockReturnValue({
-      currentUser: makeUser([RoleName.ExecutiveLeadership]),
+      currentUser: makeUser(['Executive Leadership' as RoleName]),
     });
 
     render(
-      <RoleGate allowedRoles={['Leadership' as RoleName]}>
+      <RoleGate allowedRoles={[RoleName.Leadership]}>
         <div>Leadership Content</div>
       </RoleGate>
     );
@@ -63,16 +62,14 @@ describe('RoleGate — Role Configuration Normalization', () => {
 
   it('allows access when allowed list uses legacy name and user has canonical', () => {
     // User has canonical 'Leadership' role
-    // Allowed list has ExecutiveLeadership ('Executive Leadership')
-    // normalizeRoleName('Leadership') → 'Leadership' (pass-through)
-    // normalizeRoleName('Executive Leadership') → 'Leadership'
+    // Allowed list has 'Executive Leadership' (legacy) → normalizes to 'Leadership'
     // Both normalize to 'Leadership' → match
     mockUseAppContext.mockReturnValue({
-      currentUser: makeUser(['Leadership' as RoleName]),
+      currentUser: makeUser([RoleName.Leadership]),
     });
 
     render(
-      <RoleGate allowedRoles={[RoleName.ExecutiveLeadership]}>
+      <RoleGate allowedRoles={['Executive Leadership' as RoleName]}>
         <div>Canonical User Content</div>
       </RoleGate>
     );
@@ -81,16 +78,16 @@ describe('RoleGate — Role Configuration Normalization', () => {
   });
 
   it('blocks access when no role match after normalization', () => {
-    // BD Representative normalizes to 'Business Development Manager'
-    // Operations Team normalizes to 'Project Manager'
+    // Business Development Manager and Commercial Operations Manager are distinct
+    // User has Business Development Manager, allowed requires Commercial Operations Manager
     // No overlap → blocked
     mockUseAppContext.mockReturnValue({
-      currentUser: makeUser([RoleName.BDRepresentative]),
+      currentUser: makeUser([RoleName.BusinessDevelopmentManager]),
     });
 
     render(
       <RoleGate
-        allowedRoles={[RoleName.OperationsTeam]}
+        allowedRoles={[RoleName.CommercialOperationsManager]}
         fallback={<div>Access Denied</div>}
       >
         <div>Protected Content</div>
@@ -108,7 +105,7 @@ describe('RoleGate — Role Configuration Normalization', () => {
 
     render(
       <RoleGate
-        allowedRoles={[RoleName.SharePointAdmin]}
+        allowedRoles={[RoleName.Administrator]}
         fallback={<div>Please log in</div>}
       >
         <div>Secret Content</div>
@@ -120,15 +117,15 @@ describe('RoleGate — Role Configuration Normalization', () => {
   });
 
   it('renders children when any normalized role matches', () => {
-    // IDS normalizes to 'Admin', Marketing normalizes to 'Business Development Manager'
-    // Allowed list: SharePointAdmin → 'Admin', OperationsTeam → 'Project Manager'
-    // IDS → 'Admin' matches SharePointAdmin → 'Admin'
+    // User has IDS Manager and Marketing Manager (canonical roles)
+    // Allowed list: Administrator, Commercial Operations Manager, IDS Manager
+    // IDS Manager matches
     mockUseAppContext.mockReturnValue({
-      currentUser: makeUser([RoleName.IDS, RoleName.Marketing]),
+      currentUser: makeUser([RoleName.IDSManager, RoleName.MarketingManager]),
     });
 
     render(
-      <RoleGate allowedRoles={[RoleName.SharePointAdmin, RoleName.OperationsTeam]}>
+      <RoleGate allowedRoles={[RoleName.Administrator, RoleName.CommercialOperationsManager, RoleName.IDSManager]}>
         <div>Accessible</div>
       </RoleGate>
     );
@@ -140,11 +137,11 @@ describe('RoleGate — Role Configuration Normalization', () => {
     // Both user role and allowed role are the same legacy enum value
     // ExecutiveLeadership → 'Leadership', ExecutiveLeadership → 'Leadership' — match
     mockUseAppContext.mockReturnValue({
-      currentUser: makeUser([RoleName.ExecutiveLeadership]),
+      currentUser: makeUser([RoleName.Leadership]),
     });
 
     render(
-      <RoleGate allowedRoles={[RoleName.ExecutiveLeadership]}>
+      <RoleGate allowedRoles={[RoleName.Leadership]}>
         <div>Backward Compatible</div>
       </RoleGate>
     );
@@ -153,15 +150,14 @@ describe('RoleGate — Role Configuration Normalization', () => {
   });
 
   it('multiple roles: user with multiple roles passes if any matches', () => {
-    // User has BDRepresentative ('BD Representative' → 'Business Development Manager')
-    //   and EstimatingCoordinator ('Estimating Coordinator' → 'Estimating Coordinator')
-    // Allowed: EstimatingCoordinator → 'Estimating Coordinator' — matches second user role
+    // User has Business Development Manager and Estimator
+    // Allowed: Estimator — matches second user role
     mockUseAppContext.mockReturnValue({
-      currentUser: makeUser([RoleName.BDRepresentative, RoleName.EstimatingCoordinator]),
+      currentUser: makeUser([RoleName.BusinessDevelopmentManager, RoleName.Estimator]),
     });
 
     render(
-      <RoleGate allowedRoles={[RoleName.EstimatingCoordinator]}>
+      <RoleGate allowedRoles={[RoleName.Estimator]}>
         <div>Multi-Role Access</div>
       </RoleGate>
     );

@@ -12,9 +12,12 @@ import { useToast } from './ToastContainer';
  */
 export const SwUpdateMonitor: React.FC = () => {
   const { addToast } = useToast();
+  const didRegister = React.useRef(false);
 
   React.useEffect(() => {
     if (!('serviceWorker' in navigator) || window.location.hostname === 'localhost') return;
+    if (didRegister.current) return;
+    didRegister.current = true;
 
     import('workbox-window')
       .then(({ Workbox }) => {
@@ -33,10 +36,11 @@ export const SwUpdateMonitor: React.FC = () => {
           window.location.reload();
         });
 
+        // Stage 4 (sub-task 2): register once and avoid noisy duplicate attempts.
         void wb.register();
       })
       .catch(() => {
-        // workbox-window unavailable or SW registration failed — silent degradation
+        // Stage 4 (sub-task 7): silent degradation keeps production console clean.
       });
   // addToast is stable — only run once on mount
   // eslint-disable-next-line react-hooks/exhaustive-deps

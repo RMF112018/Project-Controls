@@ -12,6 +12,7 @@ import {
   Badge,
   Button,
   Persona,
+  Tooltip,
   makeStyles,
   shorthands,
   tokens,
@@ -19,7 +20,7 @@ import {
 import { InfoRegular } from '@fluentui/react-icons';
 import { useAppContext } from '../contexts/AppContext';
 import { useResponsive } from '../hooks/useResponsive';
-import { APP_VERSION } from '@hbc/sp-services';
+import { APP_VERSION, ROLE_LANDING_ROUTES, LANDING_PAGE_CONFIG, ROLE_PERMISSION_SETS } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../theme/tokens';
 
 export interface IHeaderUserMenuProps {
@@ -81,7 +82,34 @@ const useStyles = makeStyles({
     opacity: 0.9,
     color: '#fff',
   },
+  roleLanding: {
+    fontSize: tokens.fontSizeBase100,
+    color: tokens.colorNeutralForeground4,
+    marginLeft: '4px',
+  },
+  landingDescription: {
+    fontSize: tokens.fontSizeBase100,
+    color: tokens.colorNeutralForeground3,
+    ...shorthands.padding('0', '12px', '8px', '12px'),
+    fontStyle: 'italic',
+  },
+  permissionBadge: {
+    fontSize: '10px',
+    marginLeft: '4px',
+    color: tokens.colorNeutralForeground4,
+  },
 });
+
+// Stage 3 (sub-task 7): Compute permission summary for tooltip preview.
+function getPermissionSummary(roleName: string): string {
+  const perms = ROLE_PERMISSION_SETS[roleName];
+  if (!perms) return 'No permissions defined';
+  const permArray = Array.from(perms);
+  const count = permArray.length;
+  const categories = new Set(permArray.map(p => p.split(':')[0]));
+  const topCategories = Array.from(categories).slice(0, 3).join(', ');
+  return `${count} permissions (${topCategories})`;
+}
 
 export const HeaderUserMenu: React.FC<IHeaderUserMenuProps> = ({ onWhatsNew }) => {
   const styles = useStyles();
@@ -149,17 +177,38 @@ export const HeaderUserMenu: React.FC<IHeaderUserMenuProps> = ({ onWhatsNew }) =
             </MenuItem>
 
             {/* Dev tools section — only in dev modes with config */}
+            {/* Stage 2 (sub-task 6): Landing route preview per role in switcher */}
             {hasDevTools && devToolsConfig && isMockMode && (
               <>
                 <MenuDivider />
                 <MenuGroup>
                   <MenuGroupHeader>Development Tools</MenuGroupHeader>
                   {devToolsConfig.roleOptions.map(({ label, value }) => (
-                    <MenuItemRadio key={label} name="devRole" value={value}>
-                      {label}
-                    </MenuItemRadio>
+                    <Tooltip
+                      key={label}
+                      content={getPermissionSummary(value)}
+                      relationship="description"
+                      positioning="before"
+                    >
+                      <MenuItemRadio name="devRole" value={value}>
+                        {label}
+                        <span className={styles.roleLanding}>
+                          {' \u2192 '}{ROLE_LANDING_ROUTES[value] ?? '/'}
+                        </span>
+                        <span className={styles.permissionBadge}>
+                          ({ROLE_PERMISSION_SETS[value]?.size ?? 0})
+                        </span>
+                      </MenuItemRadio>
+                    </Tooltip>
                   ))}
                 </MenuGroup>
+                {devToolsConfig.currentRole && LANDING_PAGE_CONFIG[devToolsConfig.currentRole] && (
+                  <div className={styles.landingDescription}>
+                    {LANDING_PAGE_CONFIG[devToolsConfig.currentRole].title}
+                    {' \u2014 '}
+                    {LANDING_PAGE_CONFIG[devToolsConfig.currentRole].description}
+                  </div>
+                )}
               </>
             )}
 

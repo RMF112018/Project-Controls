@@ -41,8 +41,8 @@ function createTemplate(id: number, name: string, toolKey: string): IPermissionT
 describe('Standalone RBAC resolver', () => {
   it('resolves roles from Graph group names and email fallback', () => {
     const roles: IRole[] = [
-      createRole(RoleName.ExecutiveLeadership, ['hbc - executive leadership']),
-      createRole(RoleName.BDRepresentative, ['bd.user@hbc.com']),
+      createRole(RoleName.Leadership, ['hbc - executive leadership']),
+      createRole(RoleName.BusinessDevelopmentManager, ['bd.user@hbc.com']),
     ];
 
     const membership: IStandaloneGraphMembership = {
@@ -51,11 +51,11 @@ describe('Standalone RBAC resolver', () => {
     };
 
     const resolved = resolveStandaloneRoles(roles, membership, 'bd.user@hbc.com');
-    expect(resolved).toEqual(expect.arrayContaining([RoleName.ExecutiveLeadership, RoleName.BDRepresentative]));
+    expect(resolved).toEqual(expect.arrayContaining([RoleName.Leadership, RoleName.BusinessDevelopmentManager]));
   });
 
   it('builds current user permissions from resolved roles', () => {
-    const roles: IRole[] = [createRole(RoleName.Marketing, ['hbc - marketing'])];
+    const roles: IRole[] = [createRole(RoleName.MarketingManager, ['hbc - marketing'])];
     const membership: IStandaloneGraphMembership = {
       groupIds: new Set<string>(),
       groupNames: new Set<string>(['hbc - marketing']),
@@ -67,7 +67,7 @@ describe('Standalone RBAC resolver', () => {
       membership
     );
 
-    expect(user.roles).toEqual([RoleName.Marketing]);
+    expect(user.roles).toEqual([RoleName.MarketingManager]);
     expect(user.permissions.has('marketing:dashboard:view')).toBe(true);
   });
 
@@ -87,7 +87,7 @@ describe('Standalone RBAC resolver', () => {
         userId: 'u1',
         userDisplayName: 'User',
         userEmail: 'pm@hbc.com',
-        assignedRole: RoleName.OperationsTeam,
+        assignedRole: RoleName.CommercialOperationsManager,
         templateOverrideId: 9,
         granularFlagOverrides: [{ toolKey: 'buyout_log', flags: ['can_approve_compliance'] }],
         assignedBy: 'admin@hbc.com',
@@ -106,7 +106,7 @@ describe('Standalone RBAC resolver', () => {
       dataService,
       userEmail: 'pm@hbc.com',
       projectCode: '25-042-01',
-      roles: [RoleName.OperationsTeam],
+      roles: [RoleName.CommercialOperationsManager],
     });
 
     expect(resolved.source).toBe('ProjectOverride');
@@ -125,7 +125,7 @@ describe('Standalone RBAC resolver', () => {
       dataService,
       userEmail: 'readonly@hbc.com',
       projectCode: null,
-      roles: [RoleName.RiskManagement],
+      roles: [RoleName.RiskManager],
     });
 
     expect(resolved.templateId).toBe(0);

@@ -18,6 +18,7 @@ import {
   AccordionHeader,
   AccordionPanel,
 } from '@fluentui/react-components';
+import { ROLE_NAV_ITEMS } from '@hbc/sp-services';
 import { useAppContext } from '../contexts/AppContext';
 import { ProjectPicker } from '../shared/ProjectPicker';
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
@@ -92,7 +93,7 @@ export const ContextualSidebar: React.FC = () => {
   const styles = useStyles();
   const navigate = useAppNavigate();
   const location = useAppLocation();
-  const { selectedProject, setSelectedProject, isProjectSite } = useAppContext();
+  const { selectedProject, setSelectedProject, isProjectSite, currentUser, dataServiceMode } = useAppContext();
   const { workspace } = useWorkspace();
 
   const isActivePath = React.useCallback((path: string): boolean => {
@@ -100,15 +101,29 @@ export const ContextualSidebar: React.FC = () => {
     return location.pathname === path || location.pathname.startsWith(path + '/');
   }, [location.pathname]);
 
-  // For non-hub workspaces, filter out items whose path matches the workspace basePath
-  // to avoid duplication with the persistent "{Workspace} Dashboard" link.
-  // Also remove groups that become empty after filtering.
+  const primaryRole = currentUser?.roles[0] ?? '';
+  const isMockMode = dataServiceMode === 'mock';
+
+  // Stage 2 (sub-task 3): Role-based sidebar group filtering.
+  // In mock mode, show all groups (fullAccess bypass for dev testing).
+  // In production, filter to groups whitelisted in ROLE_NAV_ITEMS.
   const filteredGroups = React.useMemo(() => {
     if (!workspace || workspace.id === 'hub') return workspace?.sidebarGroups ?? [];
-    return workspace.sidebarGroups
+
+    let groups = workspace.sidebarGroups
       .map(g => ({ ...g, items: g.items.filter(i => i.path !== workspace.basePath) }))
       .filter(g => g.items.length > 0);
-  }, [workspace]);
+
+    if (!isMockMode && primaryRole) {
+      const navConfig = ROLE_NAV_ITEMS[primaryRole];
+      const allowedGroups = navConfig?.sidebarGroups?.[workspace.id];
+      if (allowedGroups) {
+        groups = groups.filter(g => allowedGroups.includes(g.label));
+      }
+    }
+
+    return groups;
+  }, [workspace, isMockMode, primaryRole]);
 
   const isNonHubWorkspace = workspace && workspace.id !== 'hub';
 

@@ -10,6 +10,7 @@ import { PERMISSIONS } from '@hbc/sp-services';
 import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
 import { requireProject } from '../guards/requireProject';
+import { requireRole } from '../guards/requireRole';
 import type { ITanStackRouteContext } from '../routeContext';
 
 // Lazy page imports for code-splitting
@@ -84,6 +85,10 @@ export function createPreconstructionWorkspaceRoutes(rootRoute: unknown) {
     component: PreconstructionLayout,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
       requireFeature(context, 'PreconstructionWorkspace');
+      requireRole(context, [
+        'Administrator', 'Preconstruction Manager', 'Business Development Manager',
+        'Estimator', 'IDS Manager',
+      ]);
     },
   });
 

@@ -209,6 +209,21 @@ export class SharePointDataService implements IDataService {
     this._pageContextUser = pageContextUser;
   }
 
+  // Stage 4 (sub-task 3): centralized list-access precheck for clearer
+  // permission and existence failures before hitting deeper list operations.
+  private async ensureListAccess(listTitle: string, operation: 'read' | 'write'): Promise<void> {
+    try {
+      const list = this.sp.web.lists.getByTitle(listTitle);
+      await list.select('Id', 'Title')();
+    } catch (err) {
+      throw this.handleError('ensureListAccess', err, {
+        entityType: 'ListPermission',
+        entityId: listTitle,
+        metadata: { operation },
+      });
+    }
+  }
+
   private paginateArray<T extends { id?: number }>(
     rows: T[],
     request: ICursorPageRequest
@@ -239,6 +254,7 @@ export class SharePointDataService implements IDataService {
   async getLeads(_options?: IListQueryOptions): Promise<IPagedResult<ILead>> {
     performanceService.startMark('sp:getLeads');
     try {
+      await this.ensureListAccess(LIST_NAMES.LEADS_MASTER, 'read'); // Stage 4 (sub-task 3)
       const items = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items
         .top(_options?.top || 100)();
       performanceService.endMark('sp:getLeads');
@@ -252,6 +268,7 @@ export class SharePointDataService implements IDataService {
   async getLeadById(id: number): Promise<ILead | null> {
     performanceService.startMark('sp:getLeadById');
     try {
+      await this.ensureListAccess(LIST_NAMES.LEADS_MASTER, 'read'); // Stage 4 (sub-task 3)
       const item = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items.getById(id)();
       performanceService.endMark('sp:getLeadById');
       return item as ILead;
@@ -279,6 +296,7 @@ export class SharePointDataService implements IDataService {
   async createLead(data: ILeadFormData): Promise<ILead> {
     performanceService.startMark('sp:createLead');
     try {
+      await this.ensureListAccess(LIST_NAMES.LEADS_MASTER, 'write'); // Stage 4 (sub-task 3)
       const result = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items.add(data);
       performanceService.endMark('sp:createLead');
       return result as ILead;
@@ -291,6 +309,7 @@ export class SharePointDataService implements IDataService {
   async updateLead(id: number, data: Partial<ILead>): Promise<ILead> {
     performanceService.startMark('sp:updateLead');
     try {
+      await this.ensureListAccess(LIST_NAMES.LEADS_MASTER, 'write'); // Stage 4 (sub-task 3)
       await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items.getById(id).update(data);
       performanceService.endMark('sp:updateLead');
       return this.getLeadById(id) as Promise<ILead>;
@@ -303,6 +322,7 @@ export class SharePointDataService implements IDataService {
   async deleteLead(id: number): Promise<void> {
     performanceService.startMark('sp:deleteLead');
     try {
+      await this.ensureListAccess(LIST_NAMES.LEADS_MASTER, 'write'); // Stage 4 (sub-task 3)
       await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items.getById(id).delete();
       performanceService.endMark('sp:deleteLead');
     } catch (err) {
@@ -315,6 +335,7 @@ export class SharePointDataService implements IDataService {
   async searchLeads(query: string): Promise<ILead[]> {
     performanceService.startMark('sp:searchLeads');
     try {
+      await this.ensureListAccess(LIST_NAMES.LEADS_MASTER, 'read'); // Stage 4 (sub-task 3)
       const items = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items
         .filter(`${safeODataSubstringOf('Title', query)} or ${safeODataSubstringOf('ClientName', query)} or ${safeODataSubstringOf('ProjectCode', query)}`)
         .top(5000)();

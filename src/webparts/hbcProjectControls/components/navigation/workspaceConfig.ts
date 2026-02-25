@@ -1,5 +1,7 @@
 import { RoleName, PERMISSIONS } from '@hbc/sp-services';
 
+const ALL_ROLES = Object.values(RoleName) as RoleName[];
+
 export interface ISidebarItem {
   label: string;
   path: string;
@@ -30,11 +32,7 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
     label: 'Admin',
     icon: 'Settings24Regular',
     basePath: '/admin',
-    roles: [
-      RoleName.SharePointAdmin,
-      RoleName.ExecutiveLeadership,
-      RoleName.IDS,
-    ],
+    roles: ALL_ROLES,
     featureFlag: 'AdminWorkspace',
     sidebarGroups: [
       {
@@ -42,7 +40,7 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
         items: [
           { label: 'Connections', path: '/admin/connections', permission: PERMISSIONS.ADMIN_CONNECTIONS },
           { label: 'Hub Site URL', path: '/admin/hub-site', permission: PERMISSIONS.ADMIN_CONFIG },
-          { label: 'Workflows', path: '/admin/workflows', permission: PERMISSIONS.WORKFLOW_MANAGE, featureFlag: 'WorkflowDefinitions' },
+          { label: 'Workflows', path: '/admin/workflows', permission: PERMISSIONS.WORKFLOW_MANAGE },
         ],
       },
       {
@@ -63,9 +61,9 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
       {
         label: 'Dev Tools',
         items: [
-          { label: 'Dev Users', path: '/admin/dev-users', permission: PERMISSIONS.ADMIN_FLAGS, featureFlag: 'DevUserManagement' },
-          { label: 'Feature Flags', path: '/admin/feature-flags', permission: PERMISSIONS.ADMIN_FLAGS, featureFlag: 'DevUserManagement' },
-          { label: 'Audit Log', path: '/admin/audit-log', permission: PERMISSIONS.ADMIN_FLAGS, featureFlag: 'DevUserManagement' },
+          { label: 'Dev Users', path: '/admin/dev-users', permission: PERMISSIONS.ADMIN_FLAGS },
+          { label: 'Feature Flags', path: '/admin/feature-flags', permission: PERMISSIONS.ADMIN_FLAGS },
+          { label: 'Audit Log', path: '/admin/audit-log', permission: PERMISSIONS.ADMIN_FLAGS },
         ],
       },
     ],
@@ -75,15 +73,7 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
     label: 'Preconstruction',
     icon: 'DocumentSearch24Regular',
     basePath: '/preconstruction',
-    roles: [
-      RoleName.SharePointAdmin,
-      RoleName.BDRepresentative,
-      RoleName.EstimatingCoordinator,
-      RoleName.ExecutiveLeadership,
-      RoleName.OperationsTeam,
-      RoleName.PreconstructionTeam,
-      RoleName.IDS,
-    ],
+    roles: ALL_ROLES,
     featureFlag: 'PreconstructionWorkspace',
     sidebarGroups: [
       {
@@ -123,16 +113,7 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
     label: 'Operations',
     icon: 'BuildingFactory24Regular',
     basePath: '/operations',
-    roles: [
-      RoleName.SharePointAdmin,
-      RoleName.OperationsTeam,
-      RoleName.ExecutiveLeadership,
-      RoleName.DepartmentDirector,
-      RoleName.RiskManagement,
-      RoleName.QualityControl,
-      RoleName.Safety,
-      RoleName.IDS,
-    ],
+    roles: ALL_ROLES,
     featureFlag: 'OperationsWorkspace',
     sidebarGroups: [
       {
@@ -205,17 +186,7 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
     label: 'Shared Services',
     icon: 'PeopleCommunity24Regular',
     basePath: '/shared-services',
-    roles: [
-      RoleName.SharePointAdmin,
-      RoleName.ExecutiveLeadership,
-      RoleName.DepartmentDirector,
-      RoleName.Marketing,
-      RoleName.BDRepresentative,
-      RoleName.AccountingManager,
-      RoleName.RiskManagement,
-      RoleName.OperationsTeam,
-      RoleName.IDS,
-    ],
+    roles: ALL_ROLES,
     featureFlag: 'SharedServicesWorkspace',
     sidebarGroups: [
       {
@@ -273,14 +244,7 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
     label: 'HB Site Control',
     icon: 'Toolbox24Regular',
     basePath: '/site-control',
-    roles: [
-      RoleName.SharePointAdmin,
-      RoleName.ExecutiveLeadership,
-      RoleName.DepartmentDirector,
-      RoleName.OperationsTeam,
-      RoleName.QualityControl,
-      RoleName.Safety,
-    ],
+    roles: ALL_ROLES,
     featureFlag: 'SiteControlWorkspace',
     sidebarGroups: [
       {

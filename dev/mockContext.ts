@@ -4,7 +4,7 @@ import { RoleName } from '@hbc/sp-services';
 // Dev-only mock role state
 // ---------------------------------------------------------------------------
 
-let currentMockRole: RoleName = RoleName.ExecutiveLeadership;
+let currentMockRole: RoleName = RoleName.Leadership;
 
 /** Get the currently selected mock role (dev server only). */
 export function getMockUserRole(): RoleName {

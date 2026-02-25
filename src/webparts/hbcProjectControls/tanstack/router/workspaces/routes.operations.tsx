@@ -11,6 +11,7 @@ import { PERMISSIONS } from '@hbc/sp-services';
 import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
 import { requireProject } from '../guards/requireProject';
+import { requireRole } from '../guards/requireRole';
 import type { ITanStackRouteContext } from '../routeContext';
 
 // Layout
@@ -181,6 +182,11 @@ export function createOperationsWorkspaceRoutes(rootRoute: unknown) {
     component: OperationsLayout,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
       requireFeature(context, 'OperationsWorkspace');
+      requireRole(context, [
+        'Administrator', 'Commercial Operations Manager', 'Luxury Residential Manager',
+        'Manager of Operational Excellence', 'Safety Manager', 'Quality Control Manager',
+        'Warranty Manager',
+      ]);
     },
   });
 

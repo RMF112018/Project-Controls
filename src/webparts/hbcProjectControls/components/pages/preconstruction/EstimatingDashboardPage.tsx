@@ -329,6 +329,31 @@ export const EstimatingDashboardPage: React.FC = () => {
         </div>
       )}
 
+      {/* Stage 3 (sub-task 5): Recent Activity feed */}
+      {!loading && currentPursuits.length > 0 && (
+        <div className={styles.chartCard}>
+          <h3 className={styles.chartTitle}>Recent Activity</h3>
+          <div style={{ display: 'grid', gap: '8px' }}>
+            {currentPursuits.slice(0, 5).map((pursuit, idx) => (
+              <div key={pursuit.id ?? idx} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '8px 0', borderBottom: idx < 4 ? `1px solid ${tokens.colorNeutralStroke2}` : 'none',
+              }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '13px' }}>{pursuit.Title ?? 'Untitled Pursuit'}</div>
+                  <div style={{ fontSize: '12px', color: tokens.colorNeutralForeground3 }}>
+                    {pursuit.LeadEstimator ?? 'Unassigned'} &middot; {pursuit.Source ?? 'Unknown'}
+                  </div>
+                </div>
+                <div style={{ fontSize: '12px', color: tokens.colorNeutralForeground4, whiteSpace: 'nowrap' }}>
+                  {pursuit.AwardStatus ?? 'Pending'}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Section 3: PowerBI Placeholder */}
       <FeatureGate featureName="PowerBIIntegration">
         <div className={styles.chartCard}>

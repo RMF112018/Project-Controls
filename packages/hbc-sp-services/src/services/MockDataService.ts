@@ -93,7 +93,7 @@ import { IJobNumberRequest } from '../models/IJobNumberRequest';
 import { IProjectType } from '../models/IProjectType';
 import { IStandardCostCode } from '../models/IStandardCostCode';
 
-import { ROLE_PERMISSIONS } from '../utils/permissions';
+import { PERMISSIONS, ROLE_PERMISSIONS, ROLE_PERMISSION_SETS, ALL_PERMISSIONS } from '../utils/permissions';
 import { getRecommendedDecision, calculateTotalScore } from '../utils/scoreCalculator';
 import { computeScheduleMetrics } from '../utils/scheduleMetrics';
 
@@ -425,8 +425,27 @@ export class MockDataService implements IDataService {
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
-  private _currentRole: RoleName = RoleName.ExecutiveLeadership;
+  private _currentRole: RoleName = RoleName.Leadership;
   private _isDevSuperAdmin: boolean = false;
+
+  private static readonly MOCK_ROLE_PROFILES: Record<string, { displayName: string; email: string }> = {
+    [RoleName.Administrator]: { displayName: 'Alex Admin', email: 'aadmin@hedrickbrothers.com' },
+    [RoleName.Leadership]: { displayName: 'Lisa Leader', email: 'lleader@hedrickbrothers.com' },
+    [RoleName.MarketingManager]: { displayName: 'Maria Marketing', email: 'mmarketing@hedrickbrothers.com' },
+    [RoleName.PreconstructionManager]: { displayName: 'Paul Precon', email: 'pprecon@hedrickbrothers.com' },
+    [RoleName.BusinessDevelopmentManager]: { displayName: 'Brian BizDev', email: 'bbizdev@hedrickbrothers.com' },
+    [RoleName.Estimator]: { displayName: 'Emily Estimator', email: 'eestimator@hedrickbrothers.com' },
+    [RoleName.IDSManager]: { displayName: 'Ivan IDS', email: 'iids@hedrickbrothers.com' },
+    [RoleName.CommercialOperationsManager]: { displayName: 'Carlos CommOps', email: 'ccommops@hedrickbrothers.com' },
+    [RoleName.LuxuryResidentialManager]: { displayName: 'Laura Luxury', email: 'lluxury@hedrickbrothers.com' },
+    [RoleName.ManagerOfOperationalExcellence]: { displayName: 'Oscar OpEx', email: 'oopex@hedrickbrothers.com' },
+    [RoleName.SafetyManager]: { displayName: 'Sam Safety', email: 'ssafety@hedrickbrothers.com' },
+    [RoleName.QualityControlManager]: { displayName: 'Quinn QC', email: 'qqc@hedrickbrothers.com' },
+    [RoleName.WarrantyManager]: { displayName: 'Wendy Warranty', email: 'wwarranty@hedrickbrothers.com' },
+    [RoleName.HumanResourcesManager]: { displayName: 'Hannah HR', email: 'hhr@hedrickbrothers.com' },
+    [RoleName.AccountingManager]: { displayName: 'Adam Accounting', email: 'aaccounting@hedrickbrothers.com' },
+    [RoleName.RiskManager]: { displayName: 'Rachel Risk', email: 'rrisk@hedrickbrothers.com' },
+  };
 
   /** Set the mock user role (called by the dev RoleSwitcher). */
   public setCurrentUserRole(role: RoleName): void {
@@ -2188,42 +2207,38 @@ export class MockDataService implements IDataService {
   public async getCurrentUser(): Promise<ICurrentUser> {
     await delay();
 
-    // Dev super-admin: union of ALL role permissions
+    // Stage 3 (sub-task 2): Use granular ROLE_PERMISSION_SETS instead of ALL_PERMISSIONS.
+    // Dev super-admin always gets full access for API compatibility.
     if (this._isDevSuperAdmin) {
-      const allPerms = new Set<string>();
-      for (const perms of Object.values(ROLE_PERMISSIONS)) {
-        for (const p of perms) allPerms.add(p);
-      }
       return {
         id: 0,
         displayName: 'Dev Super-Admin',
         email: 'superadmin@hedrickbrothers.dev',
         loginName: 'i:0#.f|membership|superadmin@hedrickbrothers.dev',
-        roles: [RoleName.ExecutiveLeadership],
-        permissions: allPerms,
+        roles: [RoleName.Administrator],
+        permissions: new Set<string>(ALL_PERMISSIONS),
         photoUrl: undefined,
       };
     }
 
     const roleName = this._currentRole;
-    const perms = ROLE_PERMISSIONS[roleName] ?? [];
+    const profile = MockDataService.MOCK_ROLE_PROFILES[roleName];
+    const email = profile?.email ?? 'devuser@hedrickbrothers.com';
+    const displayName = profile?.displayName ?? 'Dev User';
 
-    // Return the first real user from users.json that matches the selected role.
-    // This ensures the mock user's email aligns with workflow step assignee emails.
-    const matchingUser = this.users.find(
-      (u: { roles: string[] }) => u.roles.includes(roleName)
-    );
-
-    const email = matchingUser?.email ?? 'devuser@hedrickbrothers.com';
+    const rolePerms = ROLE_PERMISSION_SETS[roleName];
+    const permissions = rolePerms
+      ? new Set<string>(rolePerms)
+      : new Set<string>(ALL_PERMISSIONS);
 
     return {
-      id: matchingUser?.id ?? 999,
-      displayName: matchingUser?.displayName ?? 'Dev User',
+      id: Object.values(RoleName).indexOf(roleName) + 1,
+      displayName,
       email,
       loginName: `i:0#.f|membership|${email}`,
       roles: [roleName],
-      permissions: new Set<string>(perms),
-      photoUrl: undefined
+      permissions,
+      photoUrl: undefined,
     };
   }
 
@@ -5935,19 +5950,19 @@ export class MockDataService implements IDataService {
       let signerName = '';
       let signerEmail = '';
       if (sig.role === 'Lead Estimator') {
-        const estCoord = teamMembers.find(tm => tm.role === RoleName.EstimatingCoordinator);
+        const estCoord = teamMembers.find(tm => tm.role === RoleName.Estimator);
         signerName = estCoord?.name || '';
         signerEmail = estCoord?.email || '';
       } else if (sig.role === 'Project Executive') {
         signerName = lead?.ProjectExecutive || '';
-        const px = teamMembers.find(tm => tm.role === RoleName.ExecutiveLeadership);
+        const px = teamMembers.find(tm => tm.role === RoleName.Leadership);
         signerEmail = px?.email || '';
       } else if (sig.role === 'Project Manager') {
         signerName = lead?.ProjectManager || '';
-        const pm = teamMembers.find(tm => tm.role === RoleName.OperationsTeam && tm.department === 'Project Management');
+        const pm = teamMembers.find(tm => tm.role === RoleName.CommercialOperationsManager && tm.department === 'Project Management');
         signerEmail = pm?.email || '';
       } else if (sig.role === 'Superintendent') {
-        const super_ = teamMembers.find(tm => tm.role === RoleName.OperationsTeam && tm.department === 'Field Operations');
+        const super_ = teamMembers.find(tm => tm.role === RoleName.CommercialOperationsManager && tm.department === 'Field Operations');
         signerName = super_?.name || '';
         signerEmail = super_?.email || '';
       }
@@ -6235,8 +6250,7 @@ export class MockDataService implements IDataService {
       if ((status === 'PendingPXReview' || status === 'PendingPXValidation')) {
         // In mock mode, PX users are Executive Leadership — check all roles
         const currentUserData = this.users.find(u => u.email?.toLowerCase() === email);
-        const isPX = currentUserData?.roles?.includes(RoleName.ExecutiveLeadership) ||
-          currentUserData?.roles?.includes(RoleName.DepartmentDirector);
+        const isPX = currentUserData?.roles?.includes(RoleName.Leadership);
         if (isPX) {
           const requestedDate = assembled.lastUpdatedAt || assembled.createdAt || now.toISOString().split('T')[0];
           items.push({
@@ -6514,20 +6528,22 @@ export class MockDataService implements IDataService {
     // Step 1: Find the user's default template via security group mapping
     // In mock mode, map the current role to a security group by convention
     const roleToGroupMap: Record<string, string> = {
-      'Executive Leadership': 'HBC - Executive Leadership',
-      'Department Director': 'HBC - Project Executives',
-      'Operations Team': 'HBC - Project Managers',
-      'Preconstruction Team': 'HBC - Estimating',
-      'BD Representative': 'HBC - Business Development',
-      'Estimating Coordinator': 'HBC - Estimating',
+      'Administrator': 'HBC - SharePoint Admins',
+      'Leadership': 'HBC - Executive Leadership',
+      'Marketing Manager': 'HBC - Business Development',
+      'Preconstruction Manager': 'HBC - Estimating',
+      'Business Development Manager': 'HBC - Business Development',
+      'Estimator': 'HBC - Estimating',
+      'IDS Manager': 'HBC - Read Only',
+      'Commercial Operations Manager': 'HBC - Project Managers',
+      'Luxury Residential Manager': 'HBC - Project Managers',
+      'Manager of Operational Excellence': 'HBC - Project Managers',
+      'Safety Manager': 'HBC - Read Only',
+      'Quality Control Manager': 'HBC - Read Only',
+      'Warranty Manager': 'HBC - Read Only',
+      'Human Resources Manager': 'HBC - Read Only',
       'Accounting Manager': 'HBC - Accounting',
-      'Legal': 'HBC - Read Only',
-      'Risk Management': 'HBC - Read Only',
-      'Marketing': 'HBC - Read Only',
-      'Quality Control': 'HBC - Read Only',
-      'Safety': 'HBC - Read Only',
-      'IDS': 'HBC - Read Only',
-      'SharePoint Admin': 'HBC - SharePoint Admins',
+      'Risk Manager': 'HBC - Read Only',
     };
 
     const roleName = this._currentRole;

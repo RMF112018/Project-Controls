@@ -30,7 +30,7 @@ describe('useWorkflowMachine', () => {
           scorecardId: 1,
           projectCode: 'P-1',
           currentStatus: ScorecardStatus.BDDraft,
-          actorRole: RoleName.BDRepresentative,
+          actorRole: RoleName.BusinessDevelopmentManager,
           userPermissions: [PERMISSIONS.GONOGO_SUBMIT],
         },
       })
@@ -53,7 +53,7 @@ describe('useWorkflowMachine', () => {
           scorecardId: 1,
           projectCode: 'P-1',
           currentStatus: ScorecardStatus.BDDraft,
-          actorRole: RoleName.BDRepresentative,
+          actorRole: RoleName.BusinessDevelopmentManager,
           userPermissions: [PERMISSIONS.GONOGO_SUBMIT],
         },
       })
@@ -76,7 +76,7 @@ describe('useWorkflowMachine', () => {
     // send is callable without error
     expect(() => {
       act(() => {
-        result.current.send({ type: 'SUBMIT_FOR_REVIEW', actorRole: RoleName.BDRepresentative });
+        result.current.send({ type: 'SUBMIT_FOR_REVIEW', actorRole: RoleName.BusinessDevelopmentManager });
       });
     }).not.toThrow();
   });
@@ -89,7 +89,7 @@ describe('useWorkflowMachine', () => {
           scorecardId: 1,
           projectCode: 'P-1',
           currentStatus: ScorecardStatus.BDDraft,
-          actorRole: RoleName.BDRepresentative,
+          actorRole: RoleName.BusinessDevelopmentManager,
           userPermissions: [], // No permissions
         },
       })
@@ -113,7 +113,7 @@ describe('useWorkflowMachine', () => {
           scorecardId: 1,
           projectCode: 'P-1',
           currentStatus: ScorecardStatus.BDDraft,
-          actorRole: RoleName.BDRepresentative,
+          actorRole: RoleName.BusinessDevelopmentManager,
           userPermissions: [PERMISSIONS.GONOGO_SUBMIT],
         },
       })
@@ -137,7 +137,7 @@ describe('useWorkflowMachine', () => {
           scorecardId: 1,
           projectCode: 'P-1',
           currentStatus: ScorecardStatus.BDDraft,
-          actorRole: RoleName.BDRepresentative,
+          actorRole: RoleName.BusinessDevelopmentManager,
           userPermissions: [PERMISSIONS.GONOGO_SUBMIT],
         },
       })

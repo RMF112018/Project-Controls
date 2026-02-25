@@ -12,13 +12,13 @@ function createMockDataService(): Partial<IDataService> {
       status: 'sent',
     }),
     getRoles: jest.fn().mockResolvedValue([
-      { id: 1, Title: 'BD Representative', UserOrGroup: 'bd@test.com', IsActive: true },
-      { id: 2, Title: 'Executive Leadership', UserOrGroup: 'exec@test.com', IsActive: true },
-      { id: 3, Title: 'Estimating Coordinator', UserOrGroup: 'ec@test.com', IsActive: true },
-      { id: 4, Title: 'Department Director', UserOrGroup: 'dir@test.com', IsActive: true },
-      { id: 5, Title: 'Operations Team', UserOrGroup: 'ops@test.com', IsActive: true },
-      { id: 6, Title: 'Preconstruction Team', UserOrGroup: 'precon@test.com', IsActive: true },
-      { id: 7, Title: 'Risk Management', UserOrGroup: 'risk@test.com', IsActive: true },
+      { id: 1, Title: 'Business Development Manager', UserOrGroup: ['bd@test.com'], IsActive: true },
+      { id: 2, Title: 'Leadership', UserOrGroup: ['exec@test.com'], IsActive: true },
+      { id: 3, Title: 'Estimator', UserOrGroup: ['ec@test.com'], IsActive: true },
+      { id: 4, Title: 'Commercial Operations Manager', UserOrGroup: ['ops@test.com'], IsActive: true },
+      { id: 5, Title: 'Preconstruction Manager', UserOrGroup: ['precon@test.com'], IsActive: true },
+      { id: 6, Title: 'Risk Manager', UserOrGroup: ['risk@test.com'], IsActive: true },
+      { id: 7, Title: 'Marketing Manager', UserOrGroup: ['marketing@test.com'], IsActive: true },
     ]),
   };
 }

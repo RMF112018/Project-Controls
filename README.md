@@ -7,7 +7,7 @@
 ![TypeScript 5.3](https://img.shields.io/badge/TypeScript-5.3.3-3178c6)
 ![Fluent UI v9](https://img.shields.io/badge/Fluent_UI-v9-0078d4)
 ![Node 22.14](https://img.shields.io/badge/Node-22.14.0_(Volta)-339933)
-![Last Updated](https://img.shields.io/badge/Last_Updated-2026--02--21-blue)
+![Last Updated](https://img.shields.io/badge/Last_Updated-2026--02--25-blue)
 
 ---
 
@@ -22,7 +22,7 @@ The application runs inside SharePoint Online as a single-page app with hash-bas
 **What makes it different:**
 
 - **Context-aware** — automatically detects hub vs. project site and adjusts UI
-- **Role-based access** — 14 roles with 70+ granular permissions, plus a template-based permission engine for project-level scoping
+- **Role-based access** — 16 canonical roles with granular permissions, plus a template-based permission engine for project-level scoping
 - **Feature-flagged** — 25 flags across 5 categories control what's visible per role and environment
 - **AI-assisted development** — built with Claude + Cursor using a living blueprint (`CLAUDE.md`) that documents every model, route, permission, and service method
 
@@ -37,7 +37,7 @@ The application runs inside SharePoint Online as a single-page app with hash-bas
 | **Operations** | Active Projects portfolio, Project Startup checklist (55 items), Responsibility matrices (Internal/Owner/Sub), Project Management Plan (16 sections, approval cycles, signatures), Superintendent's Plan, Risk & Cost management, Quality/Safety trackers, Schedule & Critical Path, Monthly Project Review (10-step workflow), Buyout log with commitment approval, Compliance log, Contract tracking, Closeout checklist, Lessons Learned |
 | **Turnover** | Formal meeting agenda (prerequisites, estimate overview, 10 discussion items, subcontractor table, 10 exhibits, 4-party signature block with affidavit) |
 | **Admin** | 9-tab Admin Panel (Connections, Roles, Feature Flags, Provisioning, Workflows, Audit Log, Permissions, Sectors, Assignments), configurable approval-chain workflows, assignment mappings, site provisioning (7-step engine with PowerAutomate fallback) |
-| **Security** | RBAC with 14 roles, permission engine with templates + project scoping, Azure AD people picker, Graph API integration (8 scopes), audit trail |
+| **Security** | RBAC with 16 canonical roles, permission engine with templates + project scoping, Azure AD people picker, Graph API integration (8 scopes), audit trail |
 
 ---
 
@@ -99,7 +99,7 @@ graph TB
 ### Security Model
 
 ```
-Azure AD Groups --> RoleName (14 roles) --> ROLE_PERMISSIONS --> Set<string>
+Azure AD Groups --> RoleName (16 roles) --> ROLE_PERMISSIONS --> Set<string>
                                                 |
                                     [Permission Engine enabled?]
                                                 |
@@ -194,7 +194,7 @@ npm install
 npm run dev
 ```
 
-Opens a standalone dev server on `http://localhost:3000` with mock data. Includes a **RoleSwitcher** to test all 14 roles + a dev super-admin mode.
+Opens a standalone dev server on `http://localhost:3000` with mock data. Includes a **RoleSwitcher** to test all 16 roles + a dev super-admin mode.
 
 ### SPFx Workbench
 
@@ -229,6 +229,18 @@ The build validates standalone environment variables first (`VITE_AAD_CLIENT_ID`
 4. Grant Graph API permissions in SharePoint Admin Center (8 scopes — see [Security & Permissions](#security--permissions))
 5. Add the web part to a page
 6. Set the `dataServiceMode` web part property to `'sharepoint'` for live data
+
+### Production Readiness (Stage 4)
+
+- Service worker + manifest are now registered from SPFx runtime (`HbcProjectControlsWebPart.ts`) and monitored in-app (`SwUpdateMonitor.tsx`).
+- Runtime caching policy in `public/sw.js` is tuned for SharePoint/Graph reads with offline fallback to `public/offline.html`.
+- Graph and AAD token resilience include bounded retry/backoff paths for transient failures and auth edge cases.
+- Playwright production checks include:
+  - `playwright/lighthouse-budget.e2e.spec.ts`
+  - `playwright/load-time.e2e.spec.ts`
+  - `playwright/console-clean.e2e.spec.ts`
+  - `playwright/permission-matrix.e2e.spec.ts` (16-role coverage)
+  - `playwright/offline-mode.spec.ts` (offline fallback verification)
 
 ### Available Scripts
 

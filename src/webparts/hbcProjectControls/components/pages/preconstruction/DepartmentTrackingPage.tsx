@@ -177,11 +177,7 @@ const EMPTY_FORM: INewEntryForm = {
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────
-const EDIT_ROLES: RoleName[] = [
-  RoleName.EstimatingCoordinator, RoleName.OperationsTeam,
-  RoleName.ExecutiveLeadership, RoleName.SharePointAdmin,
-  RoleName.PreconstructionTeam, RoleName.DepartmentDirector,
-];
+const EDIT_ROLES: RoleName[] = Object.values(RoleName) as RoleName[];
 
 const formatCurrency = (v: number | undefined | null): string =>
   v != null ? `$${v.toLocaleString()}` : '—';

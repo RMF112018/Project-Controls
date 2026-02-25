@@ -8,11 +8,10 @@ import { NotificationEvent, RoleName } from '../../models/enums';
  */
 function createMockDataService(roleOverrides?: { Title: RoleName; UserOrGroup: string[] }[]): Partial<IDataService> {
   const defaultRoles = [
-    { id: 1, Title: RoleName.BDRepresentative, UserOrGroup: ['bd@test.com'], Permissions: [], UserOrGroupIds: [1], IsActive: true },
-    { id: 2, Title: RoleName.ExecutiveLeadership, UserOrGroup: ['exec@test.com'], Permissions: [], UserOrGroupIds: [2], IsActive: true },
-    { id: 3, Title: RoleName.DepartmentDirector, UserOrGroup: ['dir@test.com'], Permissions: [], UserOrGroupIds: [3], IsActive: true },
-    { id: 4, Title: RoleName.OperationsTeam, UserOrGroup: ['ops@test.com'], Permissions: [], UserOrGroupIds: [4], IsActive: true },
-    { id: 5, Title: RoleName.PreconstructionTeam, UserOrGroup: ['precon@test.com'], Permissions: [], UserOrGroupIds: [5], IsActive: true },
+    { id: 1, Title: RoleName.BusinessDevelopmentManager, UserOrGroup: ['bd@test.com'], Permissions: [], UserOrGroupIds: [1], IsActive: true },
+    { id: 2, Title: RoleName.Leadership, UserOrGroup: ['exec@test.com', 'dir@test.com'], Permissions: [], UserOrGroupIds: [2, 3], IsActive: true },
+    { id: 3, Title: RoleName.CommercialOperationsManager, UserOrGroup: ['ops@test.com'], Permissions: [], UserOrGroupIds: [4], IsActive: true },
+    { id: 4, Title: RoleName.PreconstructionManager, UserOrGroup: ['precon@test.com'], Permissions: [], UserOrGroupIds: [5], IsActive: true },
   ];
 
   const roles = roleOverrides
@@ -71,7 +70,6 @@ describe('NotificationService — Provisioning Events', () => {
     );
 
     const call = (mockDs.sendNotification as jest.Mock).mock.calls[0][0];
-    // SiteProvisioned targets: BD Rep, Executive Leadership, Department Director, Operations Team, Precon Team
     expect(call.recipients).toContain('bd@test.com');
     expect(call.recipients).toContain('exec@test.com');
     expect(call.recipients).toContain('dir@test.com');
@@ -84,11 +82,10 @@ describe('NotificationService — Provisioning Events', () => {
 
   it('returns undefined when all roles have empty UserOrGroup', async () => {
     const emptyRoles = [
-      { Title: RoleName.BDRepresentative, UserOrGroup: [] as string[] },
-      { Title: RoleName.ExecutiveLeadership, UserOrGroup: [] as string[] },
-      { Title: RoleName.DepartmentDirector, UserOrGroup: [] as string[] },
-      { Title: RoleName.OperationsTeam, UserOrGroup: [] as string[] },
-      { Title: RoleName.PreconstructionTeam, UserOrGroup: [] as string[] },
+      { Title: RoleName.BusinessDevelopmentManager, UserOrGroup: [] as string[] },
+      { Title: RoleName.Leadership, UserOrGroup: [] as string[] },
+      { Title: RoleName.CommercialOperationsManager, UserOrGroup: [] as string[] },
+      { Title: RoleName.PreconstructionManager, UserOrGroup: [] as string[] },
     ];
     const emptyDs = createMockDataService(emptyRoles);
     const emptyService = new NotificationService(emptyDs as IDataService);
@@ -129,11 +126,10 @@ describe('NotificationService — Provisioning Events', () => {
     const provDs = createProvisioningMockDataService();
     // Wire up roles for notification resolution
     provDs.getRoles.mockResolvedValue([
-      { id: 1, Title: RoleName.BDRepresentative, UserOrGroup: ['bd@test.com'], Permissions: [], UserOrGroupIds: [1], IsActive: true },
-      { id: 2, Title: RoleName.ExecutiveLeadership, UserOrGroup: ['exec@test.com'], Permissions: [], UserOrGroupIds: [2], IsActive: true },
-      { id: 3, Title: RoleName.DepartmentDirector, UserOrGroup: ['dir@test.com'], Permissions: [], UserOrGroupIds: [3], IsActive: true },
-      { id: 4, Title: RoleName.OperationsTeam, UserOrGroup: ['ops@test.com'], Permissions: [], UserOrGroupIds: [4], IsActive: true },
-      { id: 5, Title: RoleName.PreconstructionTeam, UserOrGroup: ['precon@test.com'], Permissions: [], UserOrGroupIds: [5], IsActive: true },
+      { id: 1, Title: RoleName.BusinessDevelopmentManager, UserOrGroup: ['bd@test.com'], Permissions: [], UserOrGroupIds: [1], IsActive: true },
+      { id: 2, Title: RoleName.Leadership, UserOrGroup: ['exec@test.com', 'dir@test.com'], Permissions: [], UserOrGroupIds: [2, 3], IsActive: true },
+      { id: 3, Title: RoleName.CommercialOperationsManager, UserOrGroup: ['ops@test.com'], Permissions: [], UserOrGroupIds: [4], IsActive: true },
+      { id: 4, Title: RoleName.PreconstructionManager, UserOrGroup: ['precon@test.com'], Permissions: [], UserOrGroupIds: [5], IsActive: true },
     ]);
 
     const mockHubNav = { addNavigationLink: jest.fn().mockResolvedValue(undefined), removeNavigationLink: jest.fn().mockResolvedValue(undefined), getNavigationLinks: jest.fn().mockResolvedValue([]) };

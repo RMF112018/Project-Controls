@@ -1,19 +1,36 @@
 {
   "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "id": "/manifest-hbc-project-controls",
   "name": "HBC Project Controls",
   "short_name": "HBC Controls",
-  "description": "Hedrick Brothers Construction – Project Controls field application",
+  "description": "Hedrick Brothers Construction Project Controls app for field and office teams with offline-ready workflows.",
   "start_url": "/",
+  "display_override": ["standalone", "minimal-ui", "browser"],
   "display": "standalone",
   "background_color": "#1a1a2e",
   "theme_color": "#cc3333",
-  "orientation": "any",
+  "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en-US",
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable any" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable any" }
   ],
+  "shortcuts": [
+    {
+      "name": "Hub Dashboard",
+      "short_name": "Hub",
+      "url": "/#/",
+      "description": "Open the enterprise analytics hub"
+    },
+    {
+      "name": "Operations",
+      "short_name": "Ops",
+      "url": "/#/operations",
+      "description": "Open operations workspace"
+    }
+  ],
+  "prefer_related_applications": false,
   "categories": ["business", "productivity"],
   "screenshots": []
 }

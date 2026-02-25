@@ -9,6 +9,7 @@ import { createRoute } from '@tanstack/react-router';
 import { PERMISSIONS } from '@hbc/sp-services';
 import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
+import { requireRole } from '../guards/requireRole';
 import type { ITanStackRouteContext } from '../routeContext';
 
 // Layout
@@ -109,6 +110,10 @@ export function createSharedServicesWorkspaceRoutes(rootRoute: unknown): unknown
     component: SharedServicesLayout,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
       requireFeature(context, 'SharedServicesWorkspace');
+      requireRole(context, [
+        'Administrator', 'Marketing Manager', 'Human Resources Manager',
+        'Accounting Manager', 'Risk Manager',
+      ]);
     },
   });
 

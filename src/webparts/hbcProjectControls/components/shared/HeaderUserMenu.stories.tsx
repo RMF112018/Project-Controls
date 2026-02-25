@@ -49,7 +49,7 @@ export const Default: Story = {
  * (not available in Storybook's AppProvider path — badge shown only in dev server).
  */
 const mockDs = new MockDataService();
-mockDs.setCurrentUserRole(RoleName.ExecutiveLeadership);
+mockDs.setCurrentUserRole(RoleName.Leadership);
 
 export const MockMode: Story = {
   args: {
@@ -64,7 +64,7 @@ export const MockMode: Story = {
  * BD Representative role — shows a different user persona secondary text.
  */
 const bdDs = new MockDataService();
-bdDs.setCurrentUserRole(RoleName.BDRepresentative);
+bdDs.setCurrentUserRole(RoleName.BusinessDevelopmentManager);
 
 export const BDRepresentative: Story = {
   args: {

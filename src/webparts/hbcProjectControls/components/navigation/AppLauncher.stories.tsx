@@ -36,7 +36,7 @@ type Story = StoryObj<typeof AppLauncher>;
  * Click the grid icon to open the workspace menu.
  */
 const execDs = new MockDataService();
-execDs.setCurrentUserRole(RoleName.ExecutiveLeadership);
+execDs.setCurrentUserRole(RoleName.Leadership);
 
 export const AllWorkspaces: Story = {
   parameters: {
@@ -49,7 +49,7 @@ export const AllWorkspaces: Story = {
  * Admin and other restricted workspaces are hidden via RoleGate.
  */
 const bdDs = new MockDataService();
-bdDs.setCurrentUserRole(RoleName.BDRepresentative);
+bdDs.setCurrentUserRole(RoleName.BusinessDevelopmentManager);
 
 export const LimitedAccess: Story = {
   parameters: {
@@ -61,7 +61,7 @@ export const LimitedAccess: Story = {
  * Operations Team role — mid-level access to operations-focused workspaces.
  */
 const opsDs = new MockDataService();
-opsDs.setCurrentUserRole(RoleName.OperationsTeam);
+opsDs.setCurrentUserRole(RoleName.CommercialOperationsManager);
 
 export const OperationsTeam: Story = {
   parameters: {
@@ -73,7 +73,7 @@ export const OperationsTeam: Story = {
  * Estimating Coordinator — preconstruction-focused workspace visibility.
  */
 const estDs = new MockDataService();
-estDs.setCurrentUserRole(RoleName.EstimatingCoordinator);
+estDs.setCurrentUserRole(RoleName.Estimator);
 
 export const EstimatingCoordinator: Story = {
   parameters: {

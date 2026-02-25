@@ -32,7 +32,7 @@ type Story = StoryObj<typeof ContextualSidebar>;
  * Shows BD, Estimating, IDS, and other preconstruction sidebar groups.
  */
 const preconDs = new MockDataService();
-preconDs.setCurrentUserRole(RoleName.ExecutiveLeadership);
+preconDs.setCurrentUserRole(RoleName.Leadership);
 
 export const Preconstruction: Story = {
   parameters: {
@@ -46,7 +46,7 @@ export const Preconstruction: Story = {
  * Shows Commercial Ops, Logs & Reports, Safety, QC, Procore groups.
  */
 const opsDs = new MockDataService();
-opsDs.setCurrentUserRole(RoleName.ExecutiveLeadership);
+opsDs.setCurrentUserRole(RoleName.Leadership);
 
 export const Operations: Story = {
   parameters: {
@@ -60,7 +60,7 @@ export const Operations: Story = {
  * Shows System Config, Security & Access, Provisioning, Dev Tools groups.
  */
 const adminDs = new MockDataService();
-adminDs.setCurrentUserRole(RoleName.ExecutiveLeadership);
+adminDs.setCurrentUserRole(RoleName.Leadership);
 
 export const Admin: Story = {
   parameters: {
@@ -74,7 +74,7 @@ export const Admin: Story = {
  * Shows Marketing, HR, Accounting, Risk Management, BambooHR groups.
  */
 const sharedDs = new MockDataService();
-sharedDs.setCurrentUserRole(RoleName.ExecutiveLeadership);
+sharedDs.setCurrentUserRole(RoleName.Leadership);
 
 export const SharedServices: Story = {
   parameters: {

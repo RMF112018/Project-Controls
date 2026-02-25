@@ -9,6 +9,7 @@ import { createRoute } from '@tanstack/react-router';
 import { PERMISSIONS } from '@hbc/sp-services';
 import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
+import { requireRole } from '../guards/requireRole';
 import type { ITanStackRouteContext } from '../routeContext';
 
 // Lazy page imports for code-splitting
@@ -68,6 +69,7 @@ export function createAdminWorkspaceRoutes(rootRoute: unknown) {
     component: AdminLayout,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
       requireFeature(context, 'AdminWorkspace');
+      requireRole(context, ['Administrator']);
     },
   });
 

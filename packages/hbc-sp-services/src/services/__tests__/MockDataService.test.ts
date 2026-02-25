@@ -175,22 +175,22 @@ describe('MockDataService', () => {
 
   describe('Authentication & Roles', () => {
     it('getCurrentUser returns user matching current role', async () => {
-      ds.setCurrentUserRole(RoleName.ExecutiveLeadership);
+      ds.setCurrentUserRole(RoleName.Leadership);
       const user = await ds.getCurrentUser();
       expect(user).toBeDefined();
-      expect(user.roles).toContain(RoleName.ExecutiveLeadership);
+      expect(user.roles).toContain(RoleName.Leadership);
     });
 
     it('setCurrentUserRole changes returned user', async () => {
-      ds.setCurrentUserRole(RoleName.BDRepresentative);
+      ds.setCurrentUserRole(RoleName.BusinessDevelopmentManager);
       const bdUser = await ds.getCurrentUser();
 
-      ds.setCurrentUserRole(RoleName.ExecutiveLeadership);
+      ds.setCurrentUserRole(RoleName.Leadership);
       const execUser = await ds.getCurrentUser();
 
       // Different roles should (potentially) return different users
-      expect(bdUser.roles).toContain(RoleName.BDRepresentative);
-      expect(execUser.roles).toContain(RoleName.ExecutiveLeadership);
+      expect(bdUser.roles).toContain(RoleName.BusinessDevelopmentManager);
+      expect(execUser.roles).toContain(RoleName.Leadership);
     });
 
     it('getRoles returns all roles', async () => {
@@ -201,9 +201,8 @@ describe('MockDataService', () => {
     it('getFeatureFlags returns all flags', async () => {
       const flags = await ds.getFeatureFlags();
       expect(flags.length).toBeGreaterThan(0);
-      // Check some known flags
-      expect(flags.some(f => f.FeatureName === 'LeadIntake')).toBe(true);
-      expect(flags.some(f => f.FeatureName === 'GoNoGoScorecard')).toBe(true);
+      expect(flags.some(f => f.FeatureName === 'PermissionEngine')).toBe(true);
+      expect(flags.some(f => f.FeatureName === 'SiteTemplateManagement')).toBe(true);
     });
   });
 
@@ -453,7 +452,7 @@ describe('MockDataService', () => {
 
   describe('Permission Engine', () => {
     it('resolveUserPermissions returns correct permissions for role', async () => {
-      ds.setCurrentUserRole(RoleName.ExecutiveLeadership);
+      ds.setCurrentUserRole(RoleName.Leadership);
       const user = await ds.getCurrentUser();
       const resolved = await ds.resolveUserPermissions(user.email, null);
       expect(resolved.permissions).toBeDefined();
@@ -461,7 +460,7 @@ describe('MockDataService', () => {
     });
 
     it('getAccessibleProjects returns assigned projects', async () => {
-      ds.setCurrentUserRole(RoleName.ExecutiveLeadership);
+      ds.setCurrentUserRole(RoleName.Leadership);
       const user = await ds.getCurrentUser();
       const projects = await ds.getAccessibleProjects(user.email);
       expect(Array.isArray(projects)).toBe(true);

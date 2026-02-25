@@ -49,7 +49,7 @@ function buildTemplate(
         subject: `New Lead Submitted: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `A new lead "${ctx.leadTitle}" for client ${ctx.clientName ?? 'Unknown'} has been submitted and is awaiting Go/No-Go evaluation.`,
         type: NotificationType.Both,
-        recipientRoles: ['Executive Leadership', 'Department Director', 'Estimating Coordinator'],
+        recipientRoles: ['Leadership', 'Estimator'],
       };
 
     case NotificationEvent.GoNoGoScoringRequested:
@@ -57,7 +57,7 @@ function buildTemplate(
         subject: `Go/No-Go Scoring Requested: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `A Go/No-Go scorecard has been created for "${ctx.leadTitle}" (${ctx.clientName ?? ''}). Committee members are requested to complete their scoring.`,
         type: NotificationType.Both,
-        recipientRoles: ['Executive Leadership', 'Department Director'],
+        recipientRoles: ['Leadership'],
       };
 
     case NotificationEvent.GoNoGoDecisionMade:
@@ -65,7 +65,7 @@ function buildTemplate(
         subject: `Go/No-Go Decision: ${ctx.decision ?? 'Pending'} — ${ctx.leadTitle ?? 'Untitled'}`,
         body: `The Go/No-Go committee has made a "${ctx.decision}" decision for "${ctx.leadTitle}" (${ctx.clientName ?? ''}).${ctx.score !== undefined ? ` Final score: ${ctx.score}/92.` : ''}${ctx.projectCode ? ` Project code: ${ctx.projectCode}.` : ''}`,
         type: NotificationType.Both,
-        recipientRoles: ['BD Representative', 'Executive Leadership', 'Department Director', 'Estimating Coordinator', 'Preconstruction Team'],
+        recipientRoles: ['Business Development Manager', 'Leadership', 'Estimator', 'Preconstruction Manager'],
       };
 
     case NotificationEvent.SiteProvisioned:
@@ -73,7 +73,7 @@ function buildTemplate(
         subject: `Project Site Provisioned: ${ctx.projectCode ?? ''}`,
         body: `A SharePoint project site has been provisioned for "${ctx.leadTitle}" (${ctx.projectCode ?? ''}).${ctx.siteUrl ? ` Site URL: ${ctx.siteUrl}` : ''}`,
         type: NotificationType.Both,
-        recipientRoles: ['BD Representative', 'Executive Leadership', 'Department Director', 'Operations Team', 'Preconstruction Team'],
+        recipientRoles: ['Business Development Manager', 'Leadership', 'Commercial Operations Manager', 'Preconstruction Manager'],
       };
 
     case NotificationEvent.PreconKickoff:
@@ -81,7 +81,7 @@ function buildTemplate(
         subject: `Precon Kickoff Scheduled: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `A preconstruction kickoff meeting has been scheduled for "${ctx.leadTitle}" (${ctx.projectCode ?? ''}).${ctx.meetingDate ? ` Date: ${ctx.meetingDate}.` : ''}`,
         type: NotificationType.Both,
-        recipientRoles: ['BD Representative', 'Estimating Coordinator', 'Preconstruction Team', 'Executive Leadership', 'Department Director'],
+        recipientRoles: ['Business Development Manager', 'Estimator', 'Preconstruction Manager', 'Leadership'],
       };
 
     case NotificationEvent.DeliverableDueApproaching:
@@ -89,7 +89,7 @@ function buildTemplate(
         subject: `Deliverable Due Soon: ${ctx.deliverableName ?? 'Untitled'}`,
         body: `The deliverable "${ctx.deliverableName}" for project ${ctx.projectCode ?? ''} is due on ${ctx.dueDate ?? 'TBD'}.`,
         type: NotificationType.Email,
-        recipientRoles: ['Estimating Coordinator', 'Preconstruction Team'],
+        recipientRoles: ['Estimator', 'Preconstruction Manager'],
       };
 
     case NotificationEvent.WinLossRecorded:
@@ -97,7 +97,7 @@ function buildTemplate(
         subject: `${ctx.outcome ?? 'Win/Loss'} Recorded: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `A "${ctx.outcome}" outcome has been recorded for "${ctx.leadTitle}" (${ctx.clientName ?? ''}).`,
         type: NotificationType.Both,
-        recipientRoles: ['BD Representative', 'Executive Leadership', 'Department Director', 'Marketing'],
+        recipientRoles: ['Business Development Manager', 'Leadership', 'Marketing Manager'],
       };
 
     case NotificationEvent.AutopsyScheduled:
@@ -105,7 +105,7 @@ function buildTemplate(
         subject: `Loss Autopsy Scheduled: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `A loss autopsy meeting has been scheduled for "${ctx.leadTitle}" (${ctx.clientName ?? ''}).${ctx.meetingDate ? ` Date: ${ctx.meetingDate}.` : ''}${ctx.scheduledBy ? ` Scheduled by: ${ctx.scheduledBy}.` : ''}`,
         type: NotificationType.Both,
-        recipientRoles: ['BD Representative', 'Executive Leadership', 'Department Director', 'Estimating Coordinator'],
+        recipientRoles: ['Business Development Manager', 'Leadership', 'Estimator'],
       };
 
     case NotificationEvent.TurnoverCompleted:
@@ -113,7 +113,7 @@ function buildTemplate(
         subject: `Turnover Completed: ${ctx.projectCode ?? ''}`,
         body: `Project turnover has been completed for ${ctx.projectCode ?? 'Unknown project'} ("${ctx.leadTitle ?? ''}").`,
         type: NotificationType.Both,
-        recipientRoles: ['BD Representative', 'Executive Leadership', 'Department Director', 'Operations Team'],
+        recipientRoles: ['Business Development Manager', 'Leadership', 'Commercial Operations Manager'],
       };
 
     case NotificationEvent.SafetyFolderChanged:
@@ -121,7 +121,7 @@ function buildTemplate(
         subject: `Safety Folder Updated: ${ctx.projectCode ?? ''}`,
         body: `The safety folder for project ${ctx.projectCode ?? ''} has been updated.`,
         type: NotificationType.Email,
-        recipientRoles: ['Safety', 'Operations Team'],
+        recipientRoles: ['Safety Manager', 'Commercial Operations Manager'],
       };
 
     case NotificationEvent.JobNumberRequested:
@@ -138,7 +138,7 @@ function buildTemplate(
         subject: `Job Number Assigned: ${ctx.projectCode ?? ''} — ${ctx.leadTitle ?? 'Untitled'}`,
         body: `Official job number ${ctx.projectCode ?? ''} has been assigned to "${ctx.leadTitle}" (${ctx.clientName ?? ''}). The project code has been updated across all records.`,
         type: NotificationType.Both,
-        recipientRoles: ['Estimating Coordinator', 'BD Representative', 'Executive Leadership', 'Department Director'],
+        recipientRoles: ['Estimator', 'Business Development Manager', 'Leadership'],
       };
 
     case NotificationEvent.EstimatingKickoffScheduled:
@@ -146,7 +146,7 @@ function buildTemplate(
         subject: `Estimating Kick-Off Scheduled: ${ctx.projectCode ?? ''}`,
         body: `An estimating kick-off meeting has been scheduled for "${ctx.leadTitle ?? 'Untitled'}" (${ctx.projectCode ?? ''}).`,
         type: NotificationType.Both,
-        recipientRoles: ['Estimating Coordinator', 'Executive Leadership', 'Department Director'],
+        recipientRoles: ['Estimator', 'Leadership'],
       };
 
     case NotificationEvent.AutopsyFinalized:
@@ -154,7 +154,7 @@ function buildTemplate(
         subject: `Post-Bid Autopsy Finalized: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `The Post-Bid Autopsy for "${ctx.leadTitle ?? 'Untitled'}" (${ctx.clientName ?? ''}) has been finalized.${ctx.processScore !== undefined ? ` Process Score: ${ctx.processScore}%.` : ''}${ctx.overallRating !== undefined ? ` Overall Rating: ${ctx.overallRating}/10.` : ''} Lessons Learned have been updated. Archive is now unlocked.`,
         type: NotificationType.Both,
-        recipientRoles: ['BD Representative', 'Executive Leadership', 'Department Director', 'Estimating Coordinator', 'Preconstruction Team'],
+        recipientRoles: ['Business Development Manager', 'Leadership', 'Estimator', 'Preconstruction Manager'],
       };
 
     case NotificationEvent.CommitmentSubmitted:
@@ -162,7 +162,7 @@ function buildTemplate(
         subject: `Commitment Review Required: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
         body: `A commitment for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has been submitted for review.${ctx.contractValue !== undefined ? ` Contract value: $${ctx.contractValue.toLocaleString()}.` : ''}`,
         type: NotificationType.Both,
-        recipientRoles: ['Executive Leadership', 'Department Director'],
+        recipientRoles: ['Leadership'],
       };
 
     case NotificationEvent.CommitmentWaiverRequired:
@@ -170,7 +170,7 @@ function buildTemplate(
         subject: `Compliance Waiver Required: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
         body: `A compliance waiver (${ctx.waiverType ?? 'Unknown'}) is required for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''}.${ctx.contractValue !== undefined ? ` Contract value: $${ctx.contractValue.toLocaleString()}.` : ''} Please review in the Buyout Log.`,
         type: NotificationType.Both,
-        recipientRoles: ['Executive Leadership', 'Department Director', 'Risk Management'],
+        recipientRoles: ['Leadership', 'Risk Manager'],
       };
 
     case NotificationEvent.CommitmentApproved:
@@ -178,7 +178,7 @@ function buildTemplate(
         subject: `Commitment Approved: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
         body: `The commitment for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has been fully approved and is now Committed.${ctx.approverName ? ` Approved by: ${ctx.approverName}.` : ''}`,
         type: NotificationType.Both,
-        recipientRoles: ['Operations Team'],
+        recipientRoles: ['Commercial Operations Manager'],
       };
 
     case NotificationEvent.CommitmentEscalatedToCFO:
@@ -186,7 +186,7 @@ function buildTemplate(
         subject: `CFO Review Required: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
         body: `A high-value compliance waiver for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has been escalated to the CFO for final review.${ctx.contractValue !== undefined ? ` Contract value: $${ctx.contractValue.toLocaleString()}.` : ''}`,
         type: NotificationType.Both,
-        recipientRoles: ['Executive Leadership', 'Department Director'],
+        recipientRoles: ['Leadership'],
       };
 
     case NotificationEvent.CommitmentRejected:
@@ -194,7 +194,7 @@ function buildTemplate(
         subject: `Commitment Rejected: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
         body: `The commitment for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has been rejected.${ctx.approverName ? ` Rejected by: ${ctx.approverName}.` : ''} Please review and resubmit if applicable.`,
         type: NotificationType.Both,
-        recipientRoles: ['Operations Team'],
+        recipientRoles: ['Commercial Operations Manager'],
       };
 
     case NotificationEvent.ScorecardSubmittedForReview:
@@ -202,7 +202,7 @@ function buildTemplate(
         subject: `Go/No-Go Scorecard Ready for Review: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `A Go/No-Go scorecard for "${ctx.leadTitle}" (${ctx.clientName ?? ''}) has been submitted for review by ${ctx.submittedBy ?? 'Unknown'}.`,
         type: NotificationType.Both,
-        recipientRoles: ['Executive Leadership', 'Department Director'],
+        recipientRoles: ['Leadership'],
       };
 
     case NotificationEvent.ScorecardReturnedForRevision:
@@ -210,7 +210,7 @@ function buildTemplate(
         subject: `Go/No-Go Scorecard Returned: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `The Go/No-Go scorecard for "${ctx.leadTitle}" has been returned for revision.${ctx.returnComment ? ` Comments: "${ctx.returnComment}"` : ''}`,
         type: NotificationType.Both,
-        recipientRoles: ['BD Representative'],
+        recipientRoles: ['Business Development Manager'],
       };
 
     case NotificationEvent.ScorecardCommitteeScoresFinalized:
@@ -218,7 +218,7 @@ function buildTemplate(
         subject: `Committee Scores Finalized: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `Committee scoring for "${ctx.leadTitle}" (${ctx.clientName ?? ''}) has been finalized.${ctx.committeeTotal !== undefined ? ` Committee total: ${ctx.committeeTotal}/92.` : ''} The scorecard is now pending a final decision.`,
         type: NotificationType.Both,
-        recipientRoles: ['Executive Leadership', 'Department Director', 'BD Representative'],
+        recipientRoles: ['Leadership', 'Business Development Manager'],
       };
 
     case NotificationEvent.ScorecardDecisionRecorded:
@@ -226,7 +226,7 @@ function buildTemplate(
         subject: `Go/No-Go Decision Recorded: ${ctx.decision ?? 'Pending'} — ${ctx.leadTitle ?? 'Untitled'}`,
         body: `A final "${ctx.decision}" decision has been recorded for "${ctx.leadTitle}" (${ctx.clientName ?? ''}).${ctx.score !== undefined ? ` Committee score: ${ctx.score}/92.` : ''}${ctx.projectCode ? ` Project code: ${ctx.projectCode}.` : ''}`,
         type: NotificationType.Both,
-        recipientRoles: ['BD Representative', 'Executive Leadership', 'Department Director', 'Estimating Coordinator', 'Preconstruction Team'],
+        recipientRoles: ['Business Development Manager', 'Leadership', 'Estimator', 'Preconstruction Manager'],
       };
 
     case NotificationEvent.ScorecardUnlockedForEditing:
@@ -234,7 +234,7 @@ function buildTemplate(
         subject: `Go/No-Go Scorecard Unlocked: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `The Go/No-Go scorecard for "${ctx.leadTitle}" has been unlocked for editing by ${ctx.unlockedBy ?? 'Unknown'}.${ctx.reason ? ` Reason: ${ctx.reason}` : ''}`,
         type: NotificationType.Both,
-        recipientRoles: ['BD Representative', 'Executive Leadership', 'Department Director'],
+        recipientRoles: ['Business Development Manager', 'Leadership'],
       };
 
     case NotificationEvent.ScorecardSubmittedToDirector:
@@ -242,7 +242,7 @@ function buildTemplate(
         subject: `Go/No-Go Scorecard Submitted for Review: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `A Go/No-Go scorecard for "${ctx.leadTitle}" has been submitted for Director review by ${ctx.submittedBy ?? 'Unknown'}. Please review and approve, return, or reject.`,
         type: NotificationType.Both,
-        recipientRoles: ['Department Director', 'Executive Leadership'],
+        recipientRoles: ['Leadership'],
       };
 
     case NotificationEvent.ScorecardReturnedByDirector:
@@ -250,7 +250,7 @@ function buildTemplate(
         subject: `Go/No-Go Scorecard Returned for Revision: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `The Go/No-Go scorecard for "${ctx.leadTitle}" has been returned for revision by the Director.${ctx.comment ? ` Comment: ${ctx.comment}` : ''}`,
         type: NotificationType.Both,
-        recipientRoles: ['BD Representative'],
+        recipientRoles: ['Business Development Manager'],
       };
 
     case NotificationEvent.ScorecardRejectedByDirector:
@@ -258,7 +258,7 @@ function buildTemplate(
         subject: `Go/No-Go Scorecard Rejected: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `The Go/No-Go scorecard for "${ctx.leadTitle}" has been rejected by the Director.${ctx.reason ? ` Reason: ${ctx.reason}` : ''} The BD Rep may revise and resubmit or archive.`,
         type: NotificationType.Both,
-        recipientRoles: ['BD Representative', 'Executive Leadership'],
+        recipientRoles: ['Business Development Manager', 'Leadership'],
       };
 
     case NotificationEvent.ScorecardAdvancedToCommittee:
@@ -266,7 +266,7 @@ function buildTemplate(
         subject: `Go/No-Go Scorecard Advanced to Committee: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `The Go/No-Go scorecard for "${ctx.leadTitle}" has been approved by the Director and advanced to the Go/No-Go Committee for scoring and decision.`,
         type: NotificationType.Both,
-        recipientRoles: ['Executive Leadership', 'Department Director', 'Estimating Coordinator'],
+        recipientRoles: ['Leadership', 'Estimator'],
       };
 
     case NotificationEvent.ScorecardApprovedGo:
@@ -274,7 +274,7 @@ function buildTemplate(
         subject: `GO Decision: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `The Go/No-Go Committee has approved "${ctx.leadTitle}" as GO.${ctx.conditions ? ` Conditions: ${ctx.conditions}` : ''} The Estimating Coordinator has been notified to proceed.`,
         type: NotificationType.Both,
-        recipientRoles: ['BD Representative', 'Executive Leadership', 'Department Director', 'Estimating Coordinator'],
+        recipientRoles: ['Business Development Manager', 'Leadership', 'Estimator'],
       };
 
     case NotificationEvent.ScorecardDecidedNoGo:
@@ -282,7 +282,7 @@ function buildTemplate(
         subject: `NO GO Decision: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `The Go/No-Go Committee has decided NO GO for "${ctx.leadTitle}". The scorecard has been archived.`,
         type: NotificationType.Both,
-        recipientRoles: ['BD Representative', 'Executive Leadership', 'Department Director'],
+        recipientRoles: ['Business Development Manager', 'Leadership'],
       };
 
     case NotificationEvent.EstimatingCoordinatorNotifiedGo:
@@ -290,7 +290,7 @@ function buildTemplate(
         subject: `New GO Project Ready for Estimating: ${ctx.leadTitle ?? 'Untitled'}`,
         body: `"${ctx.leadTitle}" has received a GO decision on ${ctx.decisionDate ?? 'today'}. Please begin the estimating kickoff process.`,
         type: NotificationType.Both,
-        recipientRoles: ['Estimating Coordinator'],
+        recipientRoles: ['Estimator'],
       };
 
     case NotificationEvent.ContractTrackingSubmitted:
@@ -298,7 +298,7 @@ function buildTemplate(
         subject: `Contract Tracking Review Required: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
         body: `A subcontract for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has been submitted for tracking review.${ctx.contractValue !== undefined ? ` Contract value: $${ctx.contractValue.toLocaleString()}.` : ''}`,
         type: NotificationType.Both,
-        recipientRoles: ['Operations Team'],
+        recipientRoles: ['Commercial Operations Manager'],
       };
 
     case NotificationEvent.ContractTrackingStepAdvanced:
@@ -306,7 +306,7 @@ function buildTemplate(
         subject: `Contract Tracking Advanced: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
         body: `The contract tracking for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has been approved and advanced to the next step.${ctx.approverName ? ` Approved by: ${ctx.approverName}.` : ''}`,
         type: NotificationType.Both,
-        recipientRoles: ['Operations Team', 'Risk Management', 'Executive Leadership'],
+        recipientRoles: ['Commercial Operations Manager', 'Risk Manager', 'Leadership'],
       };
 
     case NotificationEvent.ContractTrackingCompleted:
@@ -314,7 +314,7 @@ function buildTemplate(
         subject: `Contract Tracked: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
         body: `The subcontract for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has completed all approval steps and is now fully tracked.`,
         type: NotificationType.Both,
-        recipientRoles: ['Operations Team'],
+        recipientRoles: ['Commercial Operations Manager'],
       };
 
     case NotificationEvent.ContractTrackingRejected:
@@ -322,7 +322,7 @@ function buildTemplate(
         subject: `Contract Tracking Rejected: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,
         body: `The contract tracking for "${ctx.divisionDescription ?? ''}" on project ${ctx.projectCode ?? ''} has been rejected.${ctx.approverName ? ` Rejected by: ${ctx.approverName}.` : ''} Please review and resubmit if applicable.`,
         type: NotificationType.Both,
-        recipientRoles: ['Operations Team'],
+        recipientRoles: ['Commercial Operations Manager'],
       };
 
     default:
@@ -330,7 +330,7 @@ function buildTemplate(
         subject: `Notification: ${event}`,
         body: `A notification event (${event}) occurred for project ${ctx.projectCode ?? ''}.`,
         type: NotificationType.Email,
-        recipientRoles: ['Operations Team'],
+        recipientRoles: ['Commercial Operations Manager'],
       };
   }
 }

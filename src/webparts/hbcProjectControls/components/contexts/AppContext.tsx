@@ -273,10 +273,15 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     return () => clearTimeout(permResolveTimerRef.current);
   }, [selectedProject?.projectCode, currentUser?.email, dataService, featureFlags, isPermissionEngineEnabled]);
 
+  // Stage 3 (sub-task 3): In mock/dev mode, bypass granular permission checks
+  // so all UI remains accessible during development. Production uses real sets.
+  const devModeFullAccess = dataServiceMode === 'mock';
+
   const hasPermission = React.useCallback((permission: string): boolean => {
     if (!currentUser) return false;
+    if (devModeFullAccess) return true;
     return currentUser.permissions.has(permission);
-  }, [currentUser]);
+  }, [currentUser, devModeFullAccess]);
 
   // Use roles array ref (stable across permission-only updates) instead of
   // currentUser object ref to prevent identity cascade through routerProps →

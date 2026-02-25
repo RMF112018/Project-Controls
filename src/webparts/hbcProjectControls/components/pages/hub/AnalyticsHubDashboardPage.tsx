@@ -17,17 +17,16 @@ import {
 import type { EChartsOption } from 'echarts';
 import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
-import { HbcCard } from '../../shared/HbcCard';
 import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { HbcEChart } from '../../shared/HbcEChart';
 import { FeatureGate } from '../../guards/FeatureGate';
-import { RoleGate } from '../../guards/RoleGate';
 import { useAppNavigate } from '../../hooks/router/useAppNavigate';
+import { useAppContext } from '../../contexts/AppContext';
 import { LAUNCHER_WORKSPACES } from '../../navigation/workspaceConfig';
 import { useHubDashboardData } from './useHubDashboardData';
 import { usePerformanceMarker } from '../../hooks/usePerformanceMarker';
 import { HBC_COLORS, ELEVATION, TRANSITION } from '../../../theme/tokens';
-import { Stage } from '@hbc/sp-services';
+import { Stage, ROLE_NAV_ITEMS } from '@hbc/sp-services';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -35,6 +34,51 @@ const useStyles = makeStyles({
   root: {
     display: 'grid',
     ...shorthands.gap('24px'),
+  },
+  workspaceSelectorGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    ...shorthands.gap('16px'),
+    '@media (max-width: 1024px)': {
+      gridTemplateColumns: 'repeat(2, 1fr)',
+    },
+    '@media (max-width: 768px)': {
+      gridTemplateColumns: '1fr',
+    },
+  },
+  workspaceCard: {
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.borderRadius('8px'),
+    ...shorthands.padding('20px'),
+    boxShadow: ELEVATION.level1,
+    cursor: 'pointer',
+    transitionProperty: 'box-shadow, transform',
+    transitionDuration: TRANSITION.normal,
+    display: 'flex',
+    flexDirection: 'column',
+    ...shorthands.gap('8px'),
+    ':hover': {
+      boxShadow: ELEVATION.level2,
+      transform: 'translateY(-2px)',
+    },
+  },
+  workspaceCardTitle: {
+    fontSize: '16px',
+    fontWeight: '600',
+    color: HBC_COLORS.navy,
+    marginTop: '0',
+    marginBottom: '0',
+  },
+  workspaceCardDescription: {
+    fontSize: '12px',
+    color: tokens.colorNeutralForeground3,
+    lineHeight: '1.4',
+  },
+  workspaceCardModuleCount: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: HBC_COLORS.orange,
+    marginTop: 'auto',
   },
   kpiStrip: {
     display: 'grid',
@@ -89,15 +133,7 @@ const useStyles = makeStyles({
     marginBottom: '16px',
     marginTop: '0',
   },
-  quickLinksGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-    ...shorthands.gap('16px'),
-  },
-  workspaceSubtitle: {
-    fontSize: '12px',
-    color: tokens.colorNeutralForeground3,
-  },
+  
   // Activity feed
   activityFeed: {
     maxHeight: '400px',
@@ -224,8 +260,21 @@ const HEATMAP_DATA: [number, number, number][] = [
 export const AnalyticsHubDashboardPage: React.FC = () => {
   const styles = useStyles();
   const navigate = useAppNavigate();
+  const { currentUser, dataServiceMode } = useAppContext();
   const { loading, kpis, leads, activeProjects } = useHubDashboardData();
   usePerformanceMarker('page:analytics-hub', { autoMeasure: true });
+
+  // Stage 2 (sub-tasks 4+7): Role-filtered workspace cards.
+  // Mock mode shows all workspaces; production filters by ROLE_NAV_ITEMS.
+  const primaryRole = currentUser?.roles[0] ?? '';
+  const isMockMode = dataServiceMode === 'mock';
+  const visibleWorkspaces = React.useMemo(() => {
+    const base = LAUNCHER_WORKSPACES.filter(w => !w.requireProject);
+    if (isMockMode || !primaryRole) return base;
+    const navConfig = ROLE_NAV_ITEMS[primaryRole];
+    if (!navConfig) return base;
+    return base.filter(w => navConfig.workspaces.includes(w.id));
+  }, [isMockMode, primaryRole]);
 
   // ── Chart 1: Pipeline Funnel ────────────────────────────────────────────
 
@@ -476,6 +525,16 @@ export const AnalyticsHubDashboardPage: React.FC = () => {
     };
   }, []);
 
+  // ── Workspace card descriptions ─────────────────────────────────────
+  const WORKSPACE_DESCRIPTIONS: Record<string, string> = React.useMemo(() => ({
+    admin: 'System configuration, roles, provisioning, and dev tools',
+    preconstruction: 'Business development, estimating, IDS, and pipeline management',
+    operations: 'Commercial ops, safety, QC & warranty, and project delivery',
+    'shared-services': 'Marketing, HR, accounting, risk management, and BambooHR',
+    'site-control': 'Jobsite sign-in, safety inspections, and QC checklists',
+    'project-hub': 'Per-project dashboard, manual, financials, and logs',
+  }), []);
+
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
@@ -484,6 +543,29 @@ export const AnalyticsHubDashboardPage: React.FC = () => {
         title="Analytics Hub"
         subtitle="Enterprise-wide project intelligence and performance metrics"
       />
+
+      {/* ── Workspace Selector Cards ──────────────────────────────────── */}
+      <div className={styles.workspaceSelectorGrid}>
+        {visibleWorkspaces.map(workspace => (
+          <FeatureGate key={workspace.id} featureName={workspace.featureFlag ?? ''} fallback={null}>
+            <div
+              className={styles.workspaceCard}
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate(workspace.basePath)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(workspace.basePath); }}
+            >
+              <div className={styles.workspaceCardTitle}>{workspace.label}</div>
+              <div className={styles.workspaceCardDescription}>
+                {WORKSPACE_DESCRIPTIONS[workspace.id] ?? ''}
+              </div>
+              <div className={styles.workspaceCardModuleCount}>
+                {workspace.sidebarGroups.length} module{workspace.sidebarGroups.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+          </FeatureGate>
+        ))}
+      </div>
 
       {/* ── KPI Strip ──────────────────────────────────────────────────── */}
       {loading ? (
@@ -613,41 +695,6 @@ export const AnalyticsHubDashboardPage: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* ── Workspace Quick Links ──────────────────────────────────────── */}
-      <div>
-        <h2 className={styles.sectionTitle}>Workspaces</h2>
-        <div className={styles.quickLinksGrid}>
-          {LAUNCHER_WORKSPACES.map(workspace => {
-            const card = (
-              <HbcCard
-                key={workspace.id}
-                title={workspace.label}
-                interactive
-                onClick={() => navigate(workspace.basePath)}
-              >
-                <span className={styles.workspaceSubtitle}>
-                  {workspace.sidebarGroups.length} module{workspace.sidebarGroups.length !== 1 ? 's' : ''}
-                </span>
-              </HbcCard>
-            );
-
-            const gated = workspace.featureFlag ? (
-              <FeatureGate key={workspace.id} featureName={workspace.featureFlag}>
-                {card}
-              </FeatureGate>
-            ) : (
-              <React.Fragment key={workspace.id}>{card}</React.Fragment>
-            );
-
-            return (
-              <RoleGate key={workspace.id} allowedRoles={workspace.roles}>
-                {gated}
-              </RoleGate>
-            );
-          })}
-        </div>
-      </div>
 
       {/* ── Power BI Embed Placeholder ─────────────────────────────────── */}
       <FeatureGate featureName="PowerBIIntegration">

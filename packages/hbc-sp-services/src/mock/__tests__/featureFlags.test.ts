@@ -27,8 +27,8 @@ const flags = featureFlags as IFeatureFlag[];
 
 describe('Feature Flag Registry Integrity', () => {
   describe('total flag count', () => {
-    it('should contain exactly 56 flags (60 original - 4 removed in Phase 7S5)', () => {
-      expect(flags).toHaveLength(56);
+    it('should contain exactly 25 flags (30 post-Batch 5D - 5 Batch 5E Preconstruction + Misc)', () => {
+      expect(flags).toHaveLength(25);
     });
   });
 
@@ -49,20 +49,20 @@ describe('Feature Flag Registry Integrity', () => {
   });
 
   describe('production-ready flags are enabled', () => {
-    it('VirtualizedListsV1 should be present and enabled', () => {
-      const flag = flags.find((f) => f.FeatureName === 'VirtualizedListsV1');
+    it('PermissionEngine should be present and enabled', () => {
+      const flag = flags.find((f) => f.FeatureName === 'PermissionEngine');
       expect(flag).toBeDefined();
       expect(flag!.Enabled).toBe(true);
     });
 
-    it('VirtualizedListsV1 should have no role restriction (globally enabled)', () => {
-      const flag = flags.find((f) => f.FeatureName === 'VirtualizedListsV1');
+    it('PermissionEngine should have no role restriction (globally enabled)', () => {
+      const flag = flags.find((f) => f.FeatureName === 'PermissionEngine');
       expect(flag).toBeDefined();
       expect(flag!.EnabledForRoles).toBeNull();
     });
 
-    it('GraphBatchingEnabled should be present and enabled', () => {
-      const flag = flags.find((f) => f.FeatureName === 'GraphBatchingEnabled');
+    it('TelemetryDashboard should be present and enabled', () => {
+      const flag = flags.find((f) => f.FeatureName === 'TelemetryDashboard');
       expect(flag).toBeDefined();
       expect(flag!.Enabled).toBe(true);
     });
@@ -70,23 +70,127 @@ describe('Feature Flag Registry Integrity', () => {
 
   describe('dead flags must not exist', () => {
     it('TanStackRouterEnabled should NOT exist (removed Phase 7S5)', () => {
-      const flag = flags.find((f) => f.FeatureName === 'TanStackRouterEnabled');
-      expect(flag).toBeUndefined();
+      expect(flags.find((f) => f.FeatureName === 'TanStackRouterEnabled')).toBeUndefined();
     });
 
     it('InfinitePaging_AuditCompliance should NOT exist (removed Phase 7S5)', () => {
-      const flag = flags.find((f) => f.FeatureName === 'InfinitePaging_AuditCompliance');
-      expect(flag).toBeUndefined();
+      expect(flags.find((f) => f.FeatureName === 'InfinitePaging_AuditCompliance')).toBeUndefined();
     });
 
     it('InfinitePaging_OpsLogs should NOT exist (removed Phase 7S5)', () => {
-      const flag = flags.find((f) => f.FeatureName === 'InfinitePaging_OpsLogs');
-      expect(flag).toBeUndefined();
+      expect(flags.find((f) => f.FeatureName === 'InfinitePaging_OpsLogs')).toBeUndefined();
     });
 
     it('InfinitePaging_StartupRisk should NOT exist (removed Phase 7S5)', () => {
-      const flag = flags.find((f) => f.FeatureName === 'InfinitePaging_StartupRisk');
-      expect(flag).toBeUndefined();
+      expect(flags.find((f) => f.FeatureName === 'InfinitePaging_StartupRisk')).toBeUndefined();
+    });
+
+    it('LeadIntake should NOT exist (removed Batch 5B)', () => {
+      expect(flags.find((f) => f.FeatureName === 'LeadIntake')).toBeUndefined();
+    });
+
+    it('GoNoGoScorecard should NOT exist (removed Batch 5B)', () => {
+      expect(flags.find((f) => f.FeatureName === 'GoNoGoScorecard')).toBeUndefined();
+    });
+
+    it('PipelineDashboard should NOT exist (removed Batch 5B)', () => {
+      expect(flags.find((f) => f.FeatureName === 'PipelineDashboard')).toBeUndefined();
+    });
+
+    it('EstimatingTracker should NOT exist (removed Batch 5B)', () => {
+      expect(flags.find((f) => f.FeatureName === 'EstimatingTracker')).toBeUndefined();
+    });
+
+    it('ExecutiveDashboard should NOT exist (removed Batch 5B)', () => {
+      expect(flags.find((f) => f.FeatureName === 'ExecutiveDashboard')).toBeUndefined();
+    });
+
+    it('TurnoverWorkflow should NOT exist (removed Batch 5C)', () => {
+      expect(flags.find((f) => f.FeatureName === 'TurnoverWorkflow')).toBeUndefined();
+    });
+
+    it('ProjectStartup should NOT exist (removed Batch 5C)', () => {
+      expect(flags.find((f) => f.FeatureName === 'ProjectStartup')).toBeUndefined();
+    });
+
+    it('MarketingProjectRecord should NOT exist (removed Batch 5C)', () => {
+      expect(flags.find((f) => f.FeatureName === 'MarketingProjectRecord')).toBeUndefined();
+    });
+
+    it('ProjectManagementPlan should NOT exist (removed Batch 5C)', () => {
+      expect(flags.find((f) => f.FeatureName === 'ProjectManagementPlan')).toBeUndefined();
+    });
+
+    it('MonthlyProjectReview should NOT exist (removed Batch 5C)', () => {
+      expect(flags.find((f) => f.FeatureName === 'MonthlyProjectReview')).toBeUndefined();
+    });
+
+    it('ContractTracking should NOT exist (removed Batch 5C)', () => {
+      expect(flags.find((f) => f.FeatureName === 'ContractTracking')).toBeUndefined();
+    });
+
+    it('ContractTrackingDevPreview should NOT exist (removed Batch 5C)', () => {
+      expect(flags.find((f) => f.FeatureName === 'ContractTrackingDevPreview')).toBeUndefined();
+    });
+
+    it('ScheduleModule should NOT exist (removed Batch 5C)', () => {
+      expect(flags.find((f) => f.FeatureName === 'ScheduleModule')).toBeUndefined();
+    });
+
+    it('ConstraintsLog should NOT exist (removed Batch 5C)', () => {
+      expect(flags.find((f) => f.FeatureName === 'ConstraintsLog')).toBeUndefined();
+    });
+
+    it('AutoSiteProvisioning should NOT exist (removed Batch 5D)', () => {
+      expect(flags.find((f) => f.FeatureName === 'AutoSiteProvisioning')).toBeUndefined();
+    });
+
+    it('PerformanceMonitoring should NOT exist (removed Batch 5D)', () => {
+      expect(flags.find((f) => f.FeatureName === 'PerformanceMonitoring')).toBeUndefined();
+    });
+
+    it('LazyHeavyLibsV1 should NOT exist (removed Batch 5D)', () => {
+      expect(flags.find((f) => f.FeatureName === 'LazyHeavyLibsV1')).toBeUndefined();
+    });
+
+    it('PhaseChunkingV1 should NOT exist (removed Batch 5D)', () => {
+      expect(flags.find((f) => f.FeatureName === 'PhaseChunkingV1')).toBeUndefined();
+    });
+
+    it('VirtualizedListsV1 should NOT exist (removed Batch 5D)', () => {
+      expect(flags.find((f) => f.FeatureName === 'VirtualizedListsV1')).toBeUndefined();
+    });
+
+    it('SiteProvisioningWizard should NOT exist (removed Batch 5D)', () => {
+      expect(flags.find((f) => f.FeatureName === 'SiteProvisioningWizard')).toBeUndefined();
+    });
+
+    it('RoleConfigurationEngine should NOT exist (removed Batch 5D)', () => {
+      expect(flags.find((f) => f.FeatureName === 'RoleConfigurationEngine')).toBeUndefined();
+    });
+
+    it('GraphBatchingEnabled should NOT exist (removed Batch 5D)', () => {
+      expect(flags.find((f) => f.FeatureName === 'GraphBatchingEnabled')).toBeUndefined();
+    });
+
+    it('MeetingScheduler should NOT exist (removed Batch 5E)', () => {
+      expect(flags.find((f) => f.FeatureName === 'MeetingScheduler')).toBeUndefined();
+    });
+
+    it('LossAutopsy should NOT exist (removed Batch 5E)', () => {
+      expect(flags.find((f) => f.FeatureName === 'LossAutopsy')).toBeUndefined();
+    });
+
+    it('WorkflowDefinitions should NOT exist (removed Batch 5E)', () => {
+      expect(flags.find((f) => f.FeatureName === 'WorkflowDefinitions')).toBeUndefined();
+    });
+
+    it('EnableHelpSystem should NOT exist (removed Batch 5E)', () => {
+      expect(flags.find((f) => f.FeatureName === 'EnableHelpSystem')).toBeUndefined();
+    });
+
+    it('DevUserManagement should NOT exist (removed Batch 5E)', () => {
+      expect(flags.find((f) => f.FeatureName === 'DevUserManagement')).toBeUndefined();
     });
   });
 
@@ -110,12 +214,13 @@ describe('Feature Flag Registry Integrity', () => {
     });
   });
 
-  describe('sequential IDs (no gaps)', () => {
-    it('IDs should be sequential from 1 to 56 with no gaps', () => {
-      const sortedIds = flags.map((f) => f.id).sort((a, b) => a - b);
-      for (let i = 0; i < sortedIds.length; i++) {
-        expect(sortedIds[i]).toBe(i + 1);
-      }
+  describe('ID uniqueness and ordering', () => {
+    it('IDs should be unique and sorted ascending', () => {
+      const ids = flags.map((f) => f.id);
+      const uniqueIds = [...new Set(ids)];
+      expect(uniqueIds.length).toBe(ids.length);
+      const sorted = [...ids].sort((a, b) => a - b);
+      expect(ids).toEqual(sorted);
     });
   });
 });

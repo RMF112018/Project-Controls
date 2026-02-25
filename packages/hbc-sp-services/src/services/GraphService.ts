@@ -56,19 +56,81 @@ export class GraphService implements IGraphService {
     }).catch(() => { /* audit is non-blocking */ });
   }
 
+  // Stage 4 (sub-task 3): Harden Graph calls with bounded retry/backoff and
+  // a single auth-refresh retry path for 401/403-style transient auth errors.
+  private getGraphStatusCode(err: unknown): number | undefined {
+    if (!err || typeof err !== 'object') return undefined;
+    const maybe = err as { statusCode?: number; status?: number; code?: string };
+    if (typeof maybe.statusCode === 'number') return maybe.statusCode;
+    if (typeof maybe.status === 'number') return maybe.status;
+    if (maybe.code === 'Unauthorized') return 401;
+    return undefined;
+  }
+
+  private isTransientStatus(status: number | undefined): boolean {
+    if (!status) return false;
+    return status === 408 || status === 429 || (status >= 500 && status <= 599);
+  }
+
+  private isAuthRetryableStatus(status: number | undefined): boolean {
+    return status === 401 || status === 403;
+  }
+
+  private async delay(ms: number): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private async executeGraphCall<T>(
+    endpoint: string,
+    operation: string,
+    fn: () => Promise<T>
+  ): Promise<T> {
+    const maxTransientRetries = 2;
+    let attempt = 0;
+    let authRetryUsed = false;
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        return await fn();
+      } catch (err) {
+        const status = this.getGraphStatusCode(err);
+        const transient = this.isTransientStatus(status);
+        const authRetryable = this.isAuthRetryableStatus(status);
+        const canRetryTransient = transient && attempt < maxTransientRetries;
+        const canRetryAuth = authRetryable && !authRetryUsed;
+
+        if (canRetryAuth) {
+          authRetryUsed = true;
+          await this.delay(300);
+          continue;
+        }
+
+        if (canRetryTransient) {
+          attempt += 1;
+          const backoffMs = 200 * Math.pow(2, attempt);
+          await this.delay(backoffMs);
+          continue;
+        }
+
+        this.logGraphCall(
+          AuditAction.GraphApiCallFailed,
+          endpoint,
+          `${operation} failed${status ? ` [${status}]` : ''}: ${err instanceof Error ? err.message : String(err)}`
+        );
+        throw err;
+      }
+    }
+  }
+
   async getCurrentUserProfile(): Promise<{ displayName: string; email: string; id: string }> {
     if (!this.graphClient) throw new Error('Graph client not initialized');
-    try {
-      const me = await this.graphClient.api('/me').select('displayName,mail,id').get();
-      return { displayName: me.displayName, email: me.mail, id: me.id };
-    } catch (err) {
-      this.logGraphCall(
-        AuditAction.GraphApiCallFailed,
-        'GET /me',
-        `getCurrentUserProfile failed: ${err instanceof Error ? err.message : String(err)}`
-      );
-      throw err;
-    }
+    const me = await this.executeGraphCall(
+      'GET /me',
+      'getCurrentUserProfile',
+      async () => this.graphClient.api('/me').select('displayName,mail,id').get()
+    );
+    return { displayName: me.displayName, email: me.mail, id: me.id };
   }
 
   async getUserPhoto(email: string): Promise<string | null> {
@@ -83,20 +145,15 @@ export class GraphService implements IGraphService {
 
   async getGroupMembers(groupId: string): Promise<Array<{ displayName: string; email: string }>> {
     if (!this.graphClient) throw new Error('Graph client not initialized');
-    try {
-      const result = await this.graphClient.api(`/groups/${groupId}/members`).select('displayName,mail').get();
-      return result.value.map((m: { displayName: string; mail: string }) => ({
-        displayName: m.displayName,
-        email: m.mail,
-      }));
-    } catch (err) {
-      this.logGraphCall(
-        AuditAction.GraphApiCallFailed,
-        `GET /groups/${groupId}/members`,
-        `getGroupMembers failed for group ${groupId}: ${err instanceof Error ? err.message : String(err)}`
-      );
-      throw err;
-    }
+    const result = await this.executeGraphCall(
+      `GET /groups/${groupId}/members`,
+      'getGroupMembers',
+      async () => this.graphClient.api(`/groups/${groupId}/members`).select('displayName,mail').get()
+    );
+    return result.value.map((m: { displayName: string; mail: string }) => ({
+      displayName: m.displayName,
+      email: m.mail,
+    }));
   }
 
   async addGroupMember(groupId: string, userId: string): Promise<void> {
@@ -104,23 +161,18 @@ export class GraphService implements IGraphService {
       console.warn('Graph client not initialized');
       return;
     }
-    try {
-      await this.graphClient.api(`/groups/${groupId}/members/$ref`).post({
+    await this.executeGraphCall(
+      `POST /groups/${groupId}/members/$ref`,
+      'addGroupMember',
+      async () => this.graphClient.api(`/groups/${groupId}/members/$ref`).post({
         '@odata.id': `https://graph.microsoft.com/v1.0/directoryObjects/${userId}`,
-      });
-      this.logGraphCall(
-        AuditAction.GraphGroupMemberAdded,
-        `POST /groups/${groupId}/members/$ref`,
-        `Added user ${userId} to group ${groupId}`
-      );
-    } catch (err) {
-      this.logGraphCall(
-        AuditAction.GraphGroupMemberAddFailed,
-        `POST /groups/${groupId}/members/$ref`,
-        `Failed to add user ${userId} to group ${groupId}: ${err instanceof Error ? err.message : String(err)}`
-      );
-      throw err;
-    }
+      })
+    );
+    this.logGraphCall(
+      AuditAction.GraphGroupMemberAdded,
+      `POST /groups/${groupId}/members/$ref`,
+      `Added user ${userId} to group ${groupId}`
+    );
   }
 
   /**
@@ -201,26 +253,21 @@ export class GraphService implements IGraphService {
 
   async getCalendarAvailability(emails: string[], start: string, end: string): Promise<ICalendarAvailability[]> {
     if (!this.graphClient) throw new Error('Graph client not initialized');
-    try {
-      const result = await this.graphClient.api('/me/calendar/getSchedule').post({
+    const result = await this.executeGraphCall(
+      'POST /me/calendar/getSchedule',
+      'getCalendarAvailability',
+      async () => this.graphClient.api('/me/calendar/getSchedule').post({
         schedules: emails,
         startTime: { dateTime: start, timeZone: 'Eastern Standard Time' },
         endTime: { dateTime: end, timeZone: 'Eastern Standard Time' },
         availabilityViewInterval: 60,
-      });
-      return result.value.map((schedule: { scheduleId: string; availabilityView: string }) => ({
-        email: schedule.scheduleId,
-        displayName: schedule.scheduleId,
-        slots: this.parseAvailabilityView(schedule.availabilityView, start),
-      }));
-    } catch (err) {
-      this.logGraphCall(
-        AuditAction.GraphApiCallFailed,
-        'POST /me/calendar/getSchedule',
-        `getCalendarAvailability failed for ${emails.length} emails: ${err instanceof Error ? err.message : String(err)}`
-      );
-      throw err;
-    }
+      })
+    );
+    return result.value.map((schedule: { scheduleId: string; availabilityView: string }) => ({
+      email: schedule.scheduleId,
+      displayName: schedule.scheduleId,
+      slots: this.parseAvailabilityView(schedule.availabilityView, start),
+    }));
   }
 
   private parseAvailabilityView(view: string, startDate: string): ICalendarAvailability['slots'] {
@@ -240,8 +287,10 @@ export class GraphService implements IGraphService {
 
   async createCalendarEvent(meeting: Partial<IMeeting>): Promise<IMeeting> {
     if (!this.graphClient) throw new Error('Graph client not initialized');
-    try {
-      const event = await this.graphClient.api('/me/events').post({
+    const event = await this.executeGraphCall(
+      'POST /me/events',
+      'createCalendarEvent',
+      async () => this.graphClient.api('/me/events').post({
         subject: meeting.subject,
         start: { dateTime: meeting.startTime, timeZone: 'Eastern Standard Time' },
         end: { dateTime: meeting.endTime, timeZone: 'Eastern Standard Time' },
@@ -251,88 +300,75 @@ export class GraphService implements IGraphService {
         })),
         isOnlineMeeting: true,
         onlineMeetingProvider: 'teamsForBusiness',
-      });
-      this.logGraphCall(
-        AuditAction.GraphApiCallSucceeded,
-        'POST /me/events',
-        `Calendar event created: "${meeting.subject}" with ${meeting.attendees?.length || 0} attendees`
-      );
-      return {
-        id: event.id,
-        subject: event.subject,
-        type: meeting.type!,
-        startTime: event.start.dateTime,
-        endTime: event.end.dateTime,
-        attendees: meeting.attendees || [],
-        teamsLink: event.onlineMeeting?.joinUrl,
-        projectCode: meeting.projectCode,
-        leadId: meeting.leadId,
-        createdBy: '',
-        createdAt: new Date().toISOString(),
-      };
-    } catch (err) {
-      this.logGraphCall(
-        AuditAction.GraphApiCallFailed,
-        'POST /me/events',
-        `createCalendarEvent failed for "${meeting.subject}": ${err instanceof Error ? err.message : String(err)}`
-      );
-      throw err;
-    }
+      })
+    );
+    this.logGraphCall(
+      AuditAction.GraphApiCallSucceeded,
+      'POST /me/events',
+      `Calendar event created: "${meeting.subject}" with ${meeting.attendees?.length || 0} attendees`
+    );
+    return {
+      id: event.id,
+      subject: event.subject,
+      type: meeting.type!,
+      startTime: event.start.dateTime,
+      endTime: event.end.dateTime,
+      attendees: meeting.attendees || [],
+      teamsLink: event.onlineMeeting?.joinUrl,
+      projectCode: meeting.projectCode,
+      leadId: meeting.leadId,
+      createdBy: '',
+      createdAt: new Date().toISOString(),
+    };
   }
 
   async sendEmail(to: string[], subject: string, body: string): Promise<void> {
     if (!this.graphClient) throw new Error('Graph client not initialized');
-    try {
-      await this.graphClient.api('/me/sendMail').post({
+    await this.executeGraphCall(
+      'POST /me/sendMail',
+      'sendEmail',
+      async () => this.graphClient.api('/me/sendMail').post({
         message: {
           subject,
           body: { contentType: 'HTML', content: body },
           toRecipients: to.map(email => ({ emailAddress: { address: email } })),
         },
-      });
-      this.logGraphCall(
-        AuditAction.GraphApiCallSucceeded,
-        'POST /me/sendMail',
-        `Email sent: "${subject}" to ${to.length} recipients`
-      );
-    } catch (err) {
-      this.logGraphCall(
-        AuditAction.GraphApiCallFailed,
-        'POST /me/sendMail',
-        `sendEmail failed for "${subject}" to ${to.join(', ')}: ${err instanceof Error ? err.message : String(err)}`
-      );
-      throw err;
-    }
+      })
+    );
+    this.logGraphCall(
+      AuditAction.GraphApiCallSucceeded,
+      'POST /me/sendMail',
+      `Email sent: "${subject}" to ${to.length} recipients`
+    );
   }
 
   async createTeamsChat(members: string[], message: string): Promise<string> {
     if (!this.graphClient) throw new Error('Graph client not initialized');
-    try {
-      const chat = await this.graphClient.api('/chats').post({
+    const chat = await this.executeGraphCall(
+      'POST /chats',
+      'createTeamsChat:createChat',
+      async () => this.graphClient.api('/chats').post({
         chatType: 'group',
         members: members.map(email => ({
           '@odata.type': '#microsoft.graph.aadUserConversationMember',
           roles: ['owner'],
           'user@odata.bind': `https://graph.microsoft.com/v1.0/users/${email}`,
         })),
-      });
-      await this.graphClient.api(`/chats/${chat.id}/messages`).post({
+      })
+    );
+    await this.executeGraphCall(
+      `POST /chats/${chat.id}/messages`,
+      'createTeamsChat:postMessage',
+      async () => this.graphClient.api(`/chats/${chat.id}/messages`).post({
         body: { content: message },
-      });
-      this.logGraphCall(
-        AuditAction.GraphApiCallSucceeded,
-        'POST /chats',
-        `Teams chat created with ${members.length} members`
-      );
-      return chat.id;
-    } catch (err) {
-      this.logGraphCall(
-        AuditAction.GraphApiCallFailed,
-        'POST /chats',
-        `createTeamsChat failed with ${members.length} members: ${err instanceof Error ? err.message : String(err)}`
-      );
-      throw err;
-    }
+      })
+    );
+    this.logGraphCall(
+      AuditAction.GraphApiCallSucceeded,
+      'POST /chats',
+      `Teams chat created with ${members.length} members`
+    );
+    return chat.id;
   }
 }
 

@@ -28,43 +28,44 @@ export interface IRoleToolAccess {
 }
 
 /**
- * Maps legacy 14-role RoleName values to the new 6 core roles.
- * Bidirectional: used by RoleGate normalization and migration utilities.
+ * Maps legacy 14-role RoleName values to the new 16-role system.
+ * Used by RoleGate normalization and migration utilities.
  */
 export const LEGACY_ROLE_MAP: Record<string, string> = {
-  // Direct mappings (kept as-is)
-  'Estimating Coordinator': 'Estimating Coordinator',
-
-  // Merged into Admin
-  'SharePoint Admin': 'Admin',
-  'IDS': 'Admin',
-
-  // Merged into Business Development Manager
+  'SharePoint Admin': 'Administrator',
+  'IDS': 'IDS Manager',
   'BD Representative': 'Business Development Manager',
-  'Marketing': 'Business Development Manager',
-
-  // Merged into Project Manager
-  'Operations Team': 'Project Manager',
-  'Preconstruction Team': 'Project Manager',
-  'Accounting Manager': 'Project Manager',
-  'Legal': 'Project Manager',
-  'Risk Management': 'Project Manager',
-  'Quality Control': 'Project Manager',
-  'Safety': 'Project Manager',
-
-  // Merged into Leadership (global)
+  'Marketing': 'Marketing Manager',
+  'Operations Team': 'Commercial Operations Manager',
+  'Preconstruction Team': 'Preconstruction Manager',
+  'Estimating Coordinator': 'Estimator',
+  'Accounting Manager': 'Accounting Manager',
+  'Legal': 'Risk Manager',
+  'Risk Management': 'Risk Manager',
+  'Quality Control': 'Quality Control Manager',
+  'Safety': 'Safety Manager',
   'Executive Leadership': 'Leadership',
-  'Department Director': 'Project Executive',
+  'Department Director': 'Leadership',
 };
 
-/** The 6 canonical role names after migration */
+/** The 16 canonical role names */
 export const CANONICAL_ROLES = [
-  'Admin',
-  'Business Development Manager',
-  'Estimating Coordinator',
-  'Project Manager',
+  'Administrator',
   'Leadership',
-  'Project Executive',
+  'Marketing Manager',
+  'Preconstruction Manager',
+  'Business Development Manager',
+  'Estimator',
+  'IDS Manager',
+  'Commercial Operations Manager',
+  'Luxury Residential Manager',
+  'Manager of Operational Excellence',
+  'Safety Manager',
+  'Quality Control Manager',
+  'Warranty Manager',
+  'Human Resources Manager',
+  'Accounting Manager',
+  'Risk Manager',
 ] as const;
 
 export type CanonicalRoleName = typeof CANONICAL_ROLES[number];

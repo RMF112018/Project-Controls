@@ -1,40 +1,27 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
+import { FluentProvider } from '@fluentui/react-components';
 import { App } from '@components/App';
 import type { IDevToolsConfig } from '@components/App';
-import { MockDataService, RoleName } from '@hbc/sp-services';
+import { MockDataService, RoleName, ROLE_LANDING_ROUTES } from '@hbc/sp-services';
 import type { IDataService } from '@hbc/sp-services';
 import type { ISiteContext } from '@hbc/sp-services';
+import { hbcLightTheme } from '../src/webparts/hbcProjectControls/theme/hbcTheme';
+import { MockAuthScreen } from '../src/webparts/hbcProjectControls/components/shared/MockAuthScreen';
 import { MSALAuthProvider } from './auth/MSALAuthProvider';
 import { MsalBoundary } from './auth/MsalBoundary';
 import { setMockUserRole, getMockUserRole } from './mockContext';
 import { getQueryClient } from '../src/webparts/hbcProjectControls/tanstack/query/queryClient';
 
-const DEV_SUPER_ADMIN = 'DEV_SUPER_ADMIN';
-type RoleValue = RoleName | typeof DEV_SUPER_ADMIN;
 type DataServiceMode = 'mock' | 'standalone';
 
-/** Central role options for the dev role switcher (consolidated from dev/RoleSwitcher.tsx). */
-const ROLE_OPTIONS: ReadonlyArray<{ label: string; value: string }> = [
-  { label: '\u26A1 DEV: Super-Admin', value: DEV_SUPER_ADMIN },
-  { label: 'President / VP Operations', value: RoleName.ExecutiveLeadership },
-  { label: 'OpEx Manager', value: RoleName.IDS },
-  { label: 'Department Director', value: RoleName.DepartmentDirector },
-  { label: 'SharePoint Admin', value: RoleName.SharePointAdmin },
-  { label: 'Project Executive', value: RoleName.OperationsTeam },
-  { label: 'Project Manager', value: RoleName.OperationsTeam },
-  { label: 'Estimating Coordinator', value: RoleName.EstimatingCoordinator },
-  { label: 'BD Representative', value: RoleName.BDRepresentative },
-  { label: 'Accounting Controller', value: RoleName.AccountingManager },
-  { label: 'Legal / Risk Manager', value: RoleName.Legal },
-  { label: 'Marketing', value: RoleName.Marketing },
-  { label: 'Quality Control', value: RoleName.QualityControl },
-  { label: 'Safety', value: RoleName.Safety },
-  { label: 'Read-Only Observer', value: RoleName.RiskManagement },
-];
+const ROLE_OPTIONS: ReadonlyArray<{ label: string; value: string }> = Object.values(RoleName).map(
+  (role) => ({ label: role, value: role })
+);
 
-// Persist mode across refreshes (MSAL already caches tokens in localStorage)
 const STORAGE_KEY = 'hbc-dev-mode';
+const ROLE_SESSION_KEY = 'hbc-dev-selected-role';
+
 const getInitialMode = (): DataServiceMode => {
   const stored = localStorage.getItem(STORAGE_KEY);
   const envMode = (process.env.DATA_SERVICE_MODE as DataServiceMode | undefined);
@@ -42,35 +29,60 @@ const getInitialMode = (): DataServiceMode => {
   return 'mock';
 };
 
-const mockDataService = new MockDataService(); // singleton — never recreated
+const getPersistedRole = (): RoleName | null => {
+  const stored = sessionStorage.getItem(ROLE_SESSION_KEY);
+  if (stored && Object.values(RoleName).includes(stored as RoleName)) {
+    return stored as RoleName;
+  }
+  return null;
+};
+
+const mockDataService = new MockDataService();
 
 const DevRoot: React.FC = () => {
   const [mode, setMode] = React.useState<DataServiceMode>(getInitialMode);
   const [standaloneService, setStandaloneService] = React.useState<IDataService | null>(null);
   const [standaloneUser, setStandaloneUser] = React.useState<{ displayName: string; email: string } | null>(null);
   const [standaloneSiteContext, setStandaloneSiteContext] = React.useState<ISiteContext | null>(null);
-  const [role, setRole] = React.useState<RoleValue>(getMockUserRole());
   const [authError, setAuthError] = React.useState<string | null>(null);
 
+  const persistedRole = getPersistedRole();
+  const [role, setRole] = React.useState<RoleName | null>(persistedRole);
+  const [hasSelectedRole, setHasSelectedRole] = React.useState(persistedRole !== null);
+
+  // If we recovered a persisted role, prime the data service on mount
+  React.useEffect(() => {
+    if (persistedRole) {
+      mockDataService.setCurrentUserRole(persistedRole);
+      setMockUserRole(persistedRole);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleInitialRoleSelect = React.useCallback((selectedRole: RoleName) => {
+    mockDataService.setCurrentUserRole(selectedRole);
+    setMockUserRole(selectedRole);
+    sessionStorage.setItem(ROLE_SESSION_KEY, selectedRole);
+    window.location.hash = `#${ROLE_LANDING_ROUTES[selectedRole] ?? '/'}`;
+    setRole(selectedRole);
+    setHasSelectedRole(true);
+  }, []);
+
   const handleRoleChange = React.useCallback(
-    (newRole: RoleValue | string) => {
-      if (newRole === role) return;
-      if (newRole === DEV_SUPER_ADMIN) {
-        mockDataService.setDevSuperAdminMode(true);
-      } else {
-        mockDataService.setDevSuperAdminMode(false);
-        setMockUserRole(newRole as RoleName);
-        mockDataService.setCurrentUserRole(newRole as RoleName);
-      }
-      // Targeted invalidation of role-dependent query caches
+    (newRole: string) => {
+      if (newRole === String(role)) return;
+      const typedRole = newRole as RoleName;
+      mockDataService.setDevSuperAdminMode(false);
+      setMockUserRole(typedRole);
+      mockDataService.setCurrentUserRole(typedRole);
+      sessionStorage.setItem(ROLE_SESSION_KEY, typedRole);
       getQueryClient().invalidateQueries({
         predicate: (query) =>
           ['projects', 'pipeline', 'analytics', 'permissions', 'user'].some((k) =>
             String(query.queryKey[0]).includes(k)
           ),
       });
-      window.location.hash = '#/';
-      setRole(newRole as RoleValue);
+      window.location.hash = `#${ROLE_LANDING_ROUTES[typedRole] ?? '/'}`;
+      setRole(typedRole);
     },
     [role]
   );
@@ -104,6 +116,7 @@ const DevRoot: React.FC = () => {
 
   const hubUrl = process.env.SP_HUB_URL ?? '';
 
+  // Standalone mode
   if (mode === 'standalone') {
     if (!standaloneService) {
       return (
@@ -123,9 +136,9 @@ const DevRoot: React.FC = () => {
       );
     }
     const standaloneDevToolsConfig: IDevToolsConfig = {
-      currentRole: String(role),
+      currentRole: String(role ?? ''),
       roleOptions: ROLE_OPTIONS,
-      onRoleChange: () => { /* role switching disabled in standalone — real user */ },
+      onRoleChange: () => { /* role switching disabled in standalone */ },
       onSwitchMode: handleReturnToMock,
       mode: 'standalone',
     };
@@ -142,7 +155,16 @@ const DevRoot: React.FC = () => {
     );
   }
 
-  // Default: mock mode
+  // Mock mode: show role picker if no role selected yet
+  if (!hasSelectedRole || !role) {
+    return (
+      <FluentProvider theme={hbcLightTheme}>
+        <MockAuthScreen onRoleSelect={handleInitialRoleSelect} />
+      </FluentProvider>
+    );
+  }
+
+  // Mock mode: app with selected role
   const mockDevToolsConfig: IDevToolsConfig = {
     currentRole: String(role),
     roleOptions: ROLE_OPTIONS,

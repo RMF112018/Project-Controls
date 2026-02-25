@@ -25,6 +25,29 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
   private _themeProvider: ThemeProvider | undefined;
   private _themeVariant: IReadonlyTheme | undefined;
 
+  // Stage 4 (sub-task 2): Ensure PWA manifest is discoverable in SPFx runtime.
+  private ensureManifestLink(): void {
+    if (typeof document === 'undefined') return;
+    const existing = document.querySelector('link[rel="manifest"]');
+    if (existing) return;
+
+    const manifestHref = `${window.location.origin}/manifest.json`;
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = manifestHref;
+    document.head.appendChild(link);
+  }
+
+  // Stage 4 (sub-task 2): Register service worker for production deployment path.
+  private registerServiceWorker(): void {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    if (window.location.hostname === 'localhost') return;
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      // Non-blocking: PWA install/offline should never break web part bootstrap.
+      console.warn('[HBC] Service worker registration skipped:', err);
+    });
+  }
+
   protected async onInit(): Promise<void> {
     performanceService.startMark('webpart:onInit');
     await super.onInit();
@@ -33,6 +56,10 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
     this._themeProvider.themeChangedEvent.add(this, this._handleThemeChanged);
 
     const useSP = this.properties.dataServiceMode === 'sharepoint';
+
+    // Stage 4 (sub-task 2): PWA bootstrapping in SPFx context.
+    this.ensureManifestLink();
+    this.registerServiceWorker();
 
     if (useSP) {
       // Production: use SharePointDataService with PnP JS
@@ -110,8 +137,18 @@ export default class HbcProjectControlsWebPart extends BaseClientSideWebPart<IHb
       signalRService.initialize(
         'https://func-hbc-signalr-prod.azurewebsites.net/api',
         async () => {
-          const tokenProvider = await this.context.aadTokenProviderFactory.getTokenProvider();
-          return tokenProvider.getToken('api://func-hbc-signalr-prod.azurewebsites.net');
+          // Stage 4 (sub-task 3): Bounded retry around Entra token acquisition.
+          let lastErr: unknown;
+          for (let attempt = 0; attempt < 2; attempt += 1) {
+            try {
+              const tokenProvider = await this.context.aadTokenProviderFactory.getTokenProvider();
+              return await tokenProvider.getToken('api://func-hbc-signalr-prod.azurewebsites.net');
+            } catch (err) {
+              lastErr = err;
+              await new Promise(resolve => setTimeout(resolve, 300 * (attempt + 1)));
+            }
+          }
+          throw lastErr instanceof Error ? lastErr : new Error('Failed to acquire Entra token');
         }
       );
     }

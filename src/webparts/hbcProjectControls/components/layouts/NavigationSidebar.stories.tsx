@@ -15,7 +15,7 @@ type Story = StoryObj<typeof NavigationSidebar>;
 
 // Executive Leadership — all nav groups visible
 const execDs = new MockDataService();
-execDs.setCurrentUserRole(RoleName.ExecutiveLeadership);
+execDs.setCurrentUserRole(RoleName.Leadership);
 
 export const ExecutiveLeadership: Story = {
   parameters: { dataService: execDs, initialRoute: '/' },
@@ -23,7 +23,7 @@ export const ExecutiveLeadership: Story = {
 
 // BD Representative — Preconstruction nav only
 const bdRepDs = new MockDataService();
-bdRepDs.setCurrentUserRole(RoleName.BDRepresentative);
+bdRepDs.setCurrentUserRole(RoleName.BusinessDevelopmentManager);
 
 export const BDRepresentative: Story = {
   parameters: { dataService: bdRepDs, initialRoute: '/' },
@@ -31,7 +31,7 @@ export const BDRepresentative: Story = {
 
 // Operations Team — Project nav visible
 const opsDs = new MockDataService();
-opsDs.setCurrentUserRole(RoleName.OperationsTeam);
+opsDs.setCurrentUserRole(RoleName.CommercialOperationsManager);
 
 export const OperationsTeam: Story = {
   parameters: { dataService: opsDs, initialRoute: '/' },

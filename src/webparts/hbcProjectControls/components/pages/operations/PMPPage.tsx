@@ -70,7 +70,7 @@ const useStyles = makeStyles({
 
 function getActorRole(userRoles: string[]): RoleName {
   const firstMatch = userRoles.find((role) => Object.values(RoleName).includes(role as RoleName));
-  return (firstMatch as RoleName) ?? RoleName.BDRepresentative;
+  return (firstMatch as RoleName) ?? RoleName.Leadership;
 }
 
 function mapStateToDisplayStatus(state: string, fallback: PMPStatus): PMPStatus {

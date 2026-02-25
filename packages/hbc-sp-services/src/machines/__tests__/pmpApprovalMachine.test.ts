@@ -10,7 +10,7 @@ describe('pmpApprovalMachine', () => {
     currentStatus: 'Draft' as const,
     pendingSteps: 2,
     pendingSignatures: 2,
-    actorRole: RoleName.OperationsTeam,
+    actorRole: RoleName.CommercialOperationsManager,
     userPermissions: [PERMISSIONS.PMP_EDIT, PERMISSIONS.PMP_APPROVE, PERMISSIONS.PMP_FINAL_APPROVE, PERMISSIONS.PMP_SIGN],
   };
 

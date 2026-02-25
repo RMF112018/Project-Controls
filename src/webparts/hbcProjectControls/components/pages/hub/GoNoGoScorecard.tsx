@@ -53,7 +53,7 @@ const EVENT_LABELS: Record<string, string> = {
 
 function getActorRole(userRoles: string[]): RoleName {
   const firstMatch = userRoles.find((role) => Object.values(RoleName).includes(role as RoleName));
-  return (firstMatch as RoleName) ?? RoleName.BDRepresentative;
+  return (firstMatch as RoleName) ?? RoleName.Leadership;
 }
 
 function mapStateToStatus(state: string, fallback: ScorecardStatus): ScorecardStatus {

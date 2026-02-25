@@ -90,20 +90,22 @@ export enum LossReason {
 }
 
 export enum RoleName {
-  BDRepresentative = 'BD Representative',
-  EstimatingCoordinator = 'Estimating Coordinator',
+  Administrator = 'Administrator',
+  Leadership = 'Leadership',
+  MarketingManager = 'Marketing Manager',
+  PreconstructionManager = 'Preconstruction Manager',
+  BusinessDevelopmentManager = 'Business Development Manager',
+  Estimator = 'Estimator',
+  IDSManager = 'IDS Manager',
+  CommercialOperationsManager = 'Commercial Operations Manager',
+  LuxuryResidentialManager = 'Luxury Residential Manager',
+  ManagerOfOperationalExcellence = 'Manager of Operational Excellence',
+  SafetyManager = 'Safety Manager',
+  QualityControlManager = 'Quality Control Manager',
+  WarrantyManager = 'Warranty Manager',
+  HumanResourcesManager = 'Human Resources Manager',
   AccountingManager = 'Accounting Manager',
-  PreconstructionTeam = 'Preconstruction Team',
-  OperationsTeam = 'Operations Team',
-  ExecutiveLeadership = 'Executive Leadership',
-  Legal = 'Legal',
-  RiskManagement = 'Risk Management',
-  Marketing = 'Marketing',
-  QualityControl = 'Quality Control',
-  Safety = 'Safety',
-  IDS = 'IDS',
-  DepartmentDirector = 'Department Director',
-  SharePointAdmin = 'SharePoint Admin'
+  RiskManager = 'Risk Manager',
 }
 
 export enum ProvisioningStatus {

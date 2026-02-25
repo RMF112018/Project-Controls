@@ -3,26 +3,11 @@ import { PERMISSIONS, ROLE_PERMISSIONS } from '../utils/permissions';
 import { RoleName, ScorecardStatus } from '../models/enums';
 import type { IGoNoGoMachineContext } from './types';
 
-export const ALL_WORKFLOW_ROLES: readonly RoleName[] = [
-  RoleName.BDRepresentative,
-  RoleName.EstimatingCoordinator,
-  RoleName.AccountingManager,
-  RoleName.PreconstructionTeam,
-  RoleName.OperationsTeam,
-  RoleName.ExecutiveLeadership,
-  RoleName.Legal,
-  RoleName.RiskManagement,
-  RoleName.Marketing,
-  RoleName.QualityControl,
-  RoleName.Safety,
-  RoleName.IDS,
-  RoleName.DepartmentDirector,
-  RoleName.SharePointAdmin,
-] as const;
+export const ALL_WORKFLOW_ROLES: readonly RoleName[] = Object.values(RoleName) as RoleName[];
 
 const ALL_PERMISSION_KEYS = Object.values(PERMISSIONS);
-if (ALL_WORKFLOW_ROLES.length !== 14) {
-  throw new Error(`goNoGoMachine role coverage must stay at 14; found ${ALL_WORKFLOW_ROLES.length}`);
+if (ALL_WORKFLOW_ROLES.length < 16) {
+  throw new Error(`goNoGoMachine role coverage must be at least 16; found ${ALL_WORKFLOW_ROLES.length}`);
 }
 if (ALL_PERMISSION_KEYS.length < 70) {
   throw new Error(`goNoGoMachine guard floor requires >=70 permissions; found ${ALL_PERMISSION_KEYS.length}`);

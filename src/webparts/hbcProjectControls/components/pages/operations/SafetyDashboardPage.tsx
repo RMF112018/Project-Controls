@@ -1,12 +1,18 @@
+// Stage 3 (sub-tasks 5+6): Polished with Quick Actions and TanStack Query.
 import * as React from 'react';
-import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import { makeStyles, shorthands, tokens, Button } from '@fluentui/react-components';
+import { useQuery } from '@tanstack/react-query';
+import {
+  ShieldError24Regular,
+  CalendarSearchRegular,
+  Certificate24Regular,
+} from '@fluentui/react-icons';
 import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
 import { HbcCard } from '../../shared/HbcCard';
 import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAppNavigate } from '../../hooks/router/useAppNavigate';
-import type { ISafetyConcern } from '@hbc/sp-services';
 
 const useStyles = makeStyles({
   kpiGrid: {
@@ -14,6 +20,18 @@ const useStyles = makeStyles({
     gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
     ...shorthands.gap('16px'),
     ...shorthands.padding('16px', '0'),
+  },
+  quickActions: {
+    display: 'flex',
+    ...shorthands.gap('12px'),
+    ...shorthands.padding('0', '0', '16px'),
+    flexWrap: 'wrap',
+  },
+  sectionLabel: {
+    fontSize: tokens.fontSizeBase400,
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground1,
+    ...shorthands.padding('8px', '0', '4px'),
   },
   tileGrid: {
     display: 'grid',
@@ -51,30 +69,24 @@ const TILES = [
   },
 ];
 
-export const SafetyDashboardPage: React.FC = () => {
+export const SafetyDashboardPage: React.FC = React.memo(() => {
   const styles = useStyles();
   const { dataService, selectedProject } = useAppContext();
   const navigate = useAppNavigate();
-  const [concerns, setConcerns] = React.useState<ISafetyConcern[]>([]);
-  const [loading, setLoading] = React.useState(false);
+  const projectCode = selectedProject?.projectCode;
 
-  React.useEffect(() => {
-    if (!selectedProject?.projectCode) {
-      setConcerns([]);
-      return;
-    }
-    setLoading(true);
-    dataService
-      .getSafetyConcerns(selectedProject.projectCode)
-      .then(result => setConcerns(result))
-      .catch(() => setConcerns([]))
-      .finally(() => setLoading(false));
-  }, [dataService, selectedProject?.projectCode]);
+  // Stage 3 (sub-task 6): Replaced manual useEffect/useState with TanStack Query.
+  const { data: concerns = [], isLoading: loading } = useQuery({
+    queryKey: ['dashboard', 'safety', 'concerns', projectCode],
+    queryFn: () => dataService.getSafetyConcerns(projectCode!),
+    enabled: !!projectCode,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const openCount = concerns.filter(c => c.status === 'Open' || c.status === 'Monitoring').length;
   const resolvedCount = concerns.filter(c => c.status === 'Resolved' || c.status === 'Closed').length;
   const totalCount = concerns.length;
-  const hasProject = !!selectedProject?.projectCode;
+  const hasProject = !!projectCode;
 
   return (
     <div>
@@ -90,6 +102,30 @@ export const SafetyDashboardPage: React.FC = () => {
           </div>
         )
       )}
+      <div className={styles.sectionLabel}>Quick Actions</div>
+      <div className={styles.quickActions}>
+        <Button
+          appearance="primary"
+          icon={<ShieldError24Regular />}
+          onClick={() => navigate('/operations/safety/resources')}
+        >
+          Report Concern
+        </Button>
+        <Button
+          appearance="outline"
+          icon={<CalendarSearchRegular />}
+          onClick={() => navigate('/operations/safety/scorecard')}
+        >
+          Schedule Inspection
+        </Button>
+        <Button
+          appearance="outline"
+          icon={<Certificate24Regular />}
+          onClick={() => navigate('/operations/safety/training')}
+        >
+          View Certifications
+        </Button>
+      </div>
       <div className={styles.tileGrid}>
         {TILES.map(tile => (
           <HbcCard
@@ -104,4 +140,5 @@ export const SafetyDashboardPage: React.FC = () => {
       </div>
     </div>
   );
-};
+});
+SafetyDashboardPage.displayName = 'SafetyDashboardPage';

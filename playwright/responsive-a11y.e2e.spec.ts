@@ -62,32 +62,140 @@ async function ensureProjectSelected(page: Page): Promise<void> {
 
 /**
  * Checks visible interactive elements for WCAG 2.5.8 minimum touch target
- * sizing (44x44 CSS px). Logs undersized elements as warnings for baseline
- * documentation without failing the test — many Fluent UI v9 components use
- * invisible padding to meet the spec, which boundingBox() does not capture.
+ * sizing (44x44 CSS px). Uses both bounding box and computed min-width/min-height
+ * so Fluent UI v9 invisible padding is accounted for.
  */
-async function checkTouchTargets(page: Page): Promise<string[]> {
+interface ITouchTargetAudit {
+  undersized: string[];
+  hbcUndersized: string[];
+  formControlUndersized: string[];
+}
+
+function parsePx(value: string | null | undefined): number {
+  if (!value) return 0;
+  const n = Number.parseFloat(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+async function checkTouchTargets(page: Page): Promise<ITouchTargetAudit> {
   const buttons = page.locator(
-    'button:visible, [role="button"]:visible, a[href]:visible, [role="menuitem"]:visible, [role="tab"]:visible',
+    [
+      'button:visible',
+      '[role="button"]:visible',
+      'a[href]:visible',
+      '[role="menuitem"]:visible',
+      '[role="tab"]:visible',
+      'input:visible',
+      'select:visible',
+      'textarea:visible',
+      '[role="checkbox"]:visible',
+      '[role="radio"]:visible',
+      '[role="switch"]:visible',
+      '[role="combobox"]:visible',
+      '[role="spinbutton"]:visible',
+      '[role="slider"]:visible',
+    ].join(', '),
   );
   const count = await buttons.count();
-  const tooSmall: string[] = [];
+  const undersized: string[] = [];
+  const hbcUndersized: string[] = [];
+  const formControlUndersized: string[] = [];
 
-  for (let i = 0; i < Math.min(count, 20); i += 1) {
-    const box = await buttons.nth(i).boundingBox();
-    if (box && (box.width < 44 || box.height < 44)) {
-      const text = await buttons.nth(i).textContent();
-      tooSmall.push(
-        `"${text?.trim().slice(0, 40)}" (${Math.round(box.width)}x${Math.round(box.height)})`,
-      );
+  // Evaluate a broad but bounded sample so regression assertions are meaningful.
+  for (let i = 0; i < Math.min(count, 160); i += 1) {
+    const element = buttons.nth(i);
+    const [box, text, meta] = await Promise.all([
+      element.boundingBox(),
+      element.textContent(),
+      element.evaluate((el) => {
+        const html = el as HTMLElement;
+        const cs = window.getComputedStyle(html);
+        const cls = html.className || '';
+        const isHbcAuthored =
+          html.hasAttribute('data-hbc') ||
+          /\bhbc[-_]/i.test(cls) ||
+          /\bdata-hbc\b/i.test((html.getAttribute('data-testid') ?? ''));
+        const role = html.getAttribute('role') ?? '';
+        const tag = html.tagName.toLowerCase();
+        const isFormControl =
+          tag === 'input' ||
+          tag === 'select' ||
+          tag === 'textarea' ||
+          role === 'checkbox' ||
+          role === 'radio' ||
+          role === 'switch' ||
+          role === 'combobox' ||
+          role === 'spinbutton' ||
+          role === 'slider';
+        return {
+          minWidth: cs.minWidth,
+          minHeight: cs.minHeight,
+          className: cls,
+          tag,
+          role,
+          isHbcAuthored,
+          isFormControl,
+        };
+      }),
+    ]);
+    if (!box) continue;
+
+    const minWidth = parsePx(meta.minWidth);
+    const minHeight = parsePx(meta.minHeight);
+    const effectiveWidth = Math.max(box.width, minWidth);
+    const effectiveHeight = Math.max(box.height, minHeight);
+
+    if (effectiveWidth < 44 || effectiveHeight < 44) {
+      const descriptor = `"${(text ?? '').trim().slice(0, 40)}" <${meta.tag}${meta.role ? ` role=${meta.role}` : ''}> (${Math.round(effectiveWidth)}x${Math.round(effectiveHeight)})`;
+      undersized.push(descriptor);
+      if (meta.isHbcAuthored) {
+        hbcUndersized.push(descriptor);
+      }
+      if (meta.isFormControl) {
+        formControlUndersized.push(descriptor);
+      }
     }
   }
 
-  if (tooSmall.length > 0) {
-    console.warn(`Touch target warnings (${tooSmall.length}):`, tooSmall.slice(0, 5));
+  if (undersized.length > 0) {
+    console.warn(`Touch target warnings (${undersized.length}):`, undersized.slice(0, 5));
   }
 
-  return tooSmall;
+  return { undersized, hbcUndersized, formControlUndersized };
+}
+
+/**
+ * Strict form-control audit scoped to a container (e.g., main content).
+ * Used for mobile workflow pages where WCAG 2.5.8 must be enforced strictly.
+ */
+async function checkFormControlsInRegion(page: Page, containerSelector: string): Promise<string[]> {
+  const controls = page.locator(
+    `${containerSelector} input:visible, ${containerSelector} select:visible, ${containerSelector} textarea:visible, ${containerSelector} button:visible, ${containerSelector} [role="checkbox"]:visible, ${containerSelector} [role="radio"]:visible, ${containerSelector} [role="switch"]:visible, ${containerSelector} [role="combobox"]:visible`,
+  );
+  const count = await controls.count();
+  const undersized: string[] = [];
+
+  for (let i = 0; i < Math.min(count, 80); i += 1) {
+    const control = controls.nth(i);
+    const [box, text, styleMeta] = await Promise.all([
+      control.boundingBox(),
+      control.textContent(),
+      control.evaluate((el) => {
+        const cs = window.getComputedStyle(el as HTMLElement);
+        const tag = (el as HTMLElement).tagName.toLowerCase();
+        const role = (el as HTMLElement).getAttribute('role') ?? '';
+        return { minWidth: cs.minWidth, minHeight: cs.minHeight, tag, role };
+      }),
+    ]);
+    if (!box) continue;
+    const width = Math.max(box.width, parsePx(styleMeta.minWidth));
+    const height = Math.max(box.height, parsePx(styleMeta.minHeight));
+    if (width < 44 || height < 44) {
+      undersized.push(`"${(text ?? '').trim().slice(0, 40)}" <${styleMeta.tag}${styleMeta.role ? ` role=${styleMeta.role}` : ''}> (${Math.round(width)}x${Math.round(height)})`);
+    }
+  }
+
+  return undersized;
 }
 
 // ---------------------------------------------------------------------------
@@ -139,12 +247,14 @@ test.describe('Responsive A11y — Mobile (375x812)', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    const undersized = await checkTouchTargets(page);
+    const { undersized, hbcUndersized } = await checkTouchTargets(page);
 
     // Baseline documentation — record the count of undersized elements.
     // This assertion ensures future regressions (more undersized targets)
     // are caught, while not blocking on the current baseline.
-    expect(undersized.length).toBeLessThan(50);
+    expect(undersized.length).toBeLessThan(25);
+    // Strict for HBC-authored controls only; Fluent UI controls remain baseline-only.
+    expect(hbcUndersized).toEqual([]);
   });
 
   test('operations dashboard — axe scan at mobile viewport', async ({ page, switchRole }) => {
@@ -173,6 +283,23 @@ test.describe('Responsive A11y — Mobile (375x812)', () => {
 
     await checkTouchTargets(page);
     await checkA11y(page);
+  });
+
+  test('operations dashboard — form controls meet strict touch targets at mobile viewport', async ({
+    page,
+    switchRole,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/#/');
+    await page.waitForLoadState('networkidle');
+    await switchRole('OperationsTeam');
+    await page.goto('/#/operations');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(600);
+    await ensureProjectSelected(page);
+
+    const formControlUndersized = await checkFormControlsInRegion(page, 'main');
+    expect(formControlUndersized).toEqual([]);
   });
 });
 
@@ -337,7 +464,7 @@ test.describe('Responsive A11y — Cross-viewport', () => {
     // targets than desktop — responsive CSS should enlarge or hide elements.
     // Using generous threshold since many Fluent UI elements meet 44px via
     // padding that boundingBox() does not account for.
-    expect(mobileUndersized.length).toBeLessThan(desktopUndersized.length + 20);
-    expect(tabletUndersized.length).toBeLessThan(desktopUndersized.length + 20);
+    expect(mobileUndersized.undersized.length).toBeLessThan(desktopUndersized.undersized.length + 20);
+    expect(tabletUndersized.undersized.length).toBeLessThan(desktopUndersized.undersized.length + 20);
   });
 });

@@ -46,9 +46,9 @@ describe('Permission Resolution Coverage (Phase 7S4)', () => {
     });
 
     test('inactive config is skipped, falls back to ROLE_PERMISSIONS', () => {
-      // 'Estimating Coordinator' normalizes to itself per LEGACY_ROLE_MAP
+      // 'Estimating Coordinator' normalizes to 'Estimator' per LEGACY_ROLE_MAP
       const inactiveConfig = makeConfig({
-        roleName: 'Estimating Coordinator',
+        roleName: 'Estimator',
         isActive: false,
         defaultPermissions: ['custom:perm'],
       });
@@ -63,13 +63,13 @@ describe('Permission Resolution Coverage (Phase 7S4)', () => {
       // Should fall back to the hard-coded ROLE_PERMISSIONS entry
       expect(result).toContain(PERMISSIONS.ESTIMATING_EDIT);
       expect(result).toEqual(
-        expect.arrayContaining(ROLE_PERMISSIONS['Estimating Coordinator']),
+        expect.arrayContaining(ROLE_PERMISSIONS['Estimator']),
       );
     });
 
     test('duplicate role names in userRoles are deduplicated', () => {
       const config = makeConfig({
-        roleName: 'Estimating Coordinator',
+        roleName: 'Estimator',
         defaultPermissions: ['estimating:read', 'estimating:edit'],
       });
 
@@ -87,16 +87,16 @@ describe('Permission Resolution Coverage (Phase 7S4)', () => {
     test('multiple roles merge permissions without duplicates', () => {
       const configA = makeConfig({
         id: 1,
-        roleName: 'Estimating Coordinator',
+        roleName: 'Estimator',
         defaultPermissions: ['estimating:read', 'shared:perm'],
       });
       const configB = makeConfig({
         id: 2,
-        roleName: 'Project Manager',
+        roleName: 'Commercial Operations Manager',
         defaultPermissions: ['pmp:edit', 'shared:perm'],
       });
 
-      // 'Estimating Coordinator' normalizes to itself, 'Operations Team' normalizes to 'Project Manager'
+      // 'Estimating Coordinator' normalizes to 'Estimator', 'Operations Team' normalizes to 'Commercial Operations Manager'
       const result = resolvePermissionsFromConfig(
         [configA, configB],
         ['Estimating Coordinator', 'Operations Team'],
@@ -109,10 +109,10 @@ describe('Permission Resolution Coverage (Phase 7S4)', () => {
       expect(result).toContain('pmp:edit');
     });
 
-    test('normalizes legacy role before config lookup (SharePoint Admin -> Admin)', () => {
-      // 'SharePoint Admin' normalizes to 'Admin' per LEGACY_ROLE_MAP
+    test('normalizes legacy role before config lookup (SharePoint Admin -> Administrator)', () => {
+      // 'SharePoint Admin' normalizes to 'Administrator' per LEGACY_ROLE_MAP
       const adminConfig = makeConfig({
-        roleName: 'Admin',
+        roleName: 'Administrator',
         defaultPermissions: ['admin:all'],
       });
 
@@ -122,14 +122,14 @@ describe('Permission Resolution Coverage (Phase 7S4)', () => {
       );
 
       expect(result).toContain('admin:all');
-      // Should NOT fall through to ROLE_PERMISSIONS['Admin'] (which doesn't exist)
+      // Should NOT fall through to ROLE_PERMISSIONS['Administrator']
       // because the config was found
       expect(result).toHaveLength(1);
     });
 
     test('handles zero-length defaultPermissions from config', () => {
       const emptyConfig = makeConfig({
-        roleName: 'Estimating Coordinator',
+        roleName: 'Estimator',
         defaultPermissions: [],
       });
 
@@ -154,7 +154,7 @@ describe('Permission Resolution Coverage (Phase 7S4)', () => {
     });
 
     test('returns false when config exists but isGlobal is false', () => {
-      // 'Executive Leadership' normalizes to 'Leadership'
+      // 'Executive Leadership' normalizes to 'Leadership' per LEGACY_ROLE_MAP
       const config = makeConfig({
         roleName: 'Leadership',
         isGlobal: false,
@@ -165,7 +165,7 @@ describe('Permission Resolution Coverage (Phase 7S4)', () => {
     });
 
     test('returns true when at least one role has isGlobal: true among multiple roles', () => {
-      // 'Executive Leadership' -> 'Leadership', 'Estimating Coordinator' stays same
+      // 'Executive Leadership' -> 'Leadership', 'Estimating Coordinator' -> 'Estimator'
       const leadershipConfig = makeConfig({
         id: 1,
         roleName: 'Leadership',
@@ -173,7 +173,7 @@ describe('Permission Resolution Coverage (Phase 7S4)', () => {
       });
       const ecConfig = makeConfig({
         id: 2,
-        roleName: 'Estimating Coordinator',
+        roleName: 'Estimator',
         isGlobal: false,
       });
 
@@ -213,12 +213,10 @@ describe('Permission Resolution Coverage (Phase 7S4)', () => {
   // ---------------------------------------------------------------------------
   describe('resolveNavGroupAccess edge cases', () => {
     test('config navGroupAccess takes precedence over NAV_GROUP_ROLES', () => {
-      // 'Estimating Coordinator' stays 'Estimating Coordinator' after normalization.
-      // NAV_GROUP_ROLES does not have 'Estimating Coordinator' in any group
-      // except via Preconstruction which has 'Estimating Coordinator'.
-      // But with a config, it should use config's navGroupAccess instead.
+      // 'Estimating Coordinator' normalizes to 'Estimator'.
+      // With a config, it should use config's navGroupAccess instead of NAV_GROUP_ROLES.
       const config = makeConfig({
-        roleName: 'Estimating Coordinator',
+        roleName: 'Estimator',
         navGroupAccess: ['CustomGroup', 'Preconstruction'],
       });
 
@@ -232,7 +230,7 @@ describe('Permission Resolution Coverage (Phase 7S4)', () => {
 
     test('empty navGroupAccess in config returns empty for that role', () => {
       const config = makeConfig({
-        roleName: 'Estimating Coordinator',
+        roleName: 'Estimator',
         navGroupAccess: [],
       });
 
@@ -243,38 +241,27 @@ describe('Permission Resolution Coverage (Phase 7S4)', () => {
     });
 
     test('falls back correctly for roles in NAV_GROUP_ROLES', () => {
-      // 'BD Representative' normalizes to 'Business Development Manager'
-      // 'Business Development Manager' is NOT in NAV_GROUP_ROLES (legacy names are)
-      // So no groups found via fallback. Let's use a role that stays as-is.
-      // 'Estimating Coordinator' stays 'Estimating Coordinator' after normalization.
-      // Check NAV_GROUP_ROLES: Preconstruction includes 'Estimating Coordinator'.
+      // 'Estimating Coordinator' normalizes to 'Estimator'.
+      // NAV_GROUP_ROLES uses ALL_ROLE_NAMES (includes 'Estimator') for all groups.
       const result = resolveNavGroupAccess([], ['Estimating Coordinator']);
 
+      expect(result.length).toBeGreaterThan(0);
       expect(result).toContain('Preconstruction');
     });
 
     test('multiple roles merge nav groups without duplicates', () => {
-      // Both 'Executive Leadership' (-> 'Leadership') and 'SharePoint Admin' (-> 'Admin')
-      // won't be found in NAV_GROUP_ROLES (since those use legacy names).
-      // Use roles that don't normalize away from NAV_GROUP_ROLES keys.
-      // 'Estimating Coordinator' -> 'Estimating Coordinator' (in Preconstruction)
-      // 'Marketing' -> 'Business Development Manager' (NOT in NAV_GROUP_ROLES)
-      // Let's use two roles that stay the same and share a NAV_GROUP:
-      // Actually, need to use roles NOT in LEGACY_ROLE_MAP so they pass through unchanged.
-      // Or use roles that map to themselves. 'Estimating Coordinator' maps to itself.
-      // Let's create configs for two roles that share a nav group.
+      // 'Estimating Coordinator' -> 'Estimator', 'Operations Team' -> 'Commercial Operations Manager'
       const configA = makeConfig({
         id: 1,
-        roleName: 'Estimating Coordinator',
+        roleName: 'Estimator',
         navGroupAccess: ['Preconstruction', 'Admin'],
       });
       const configB = makeConfig({
         id: 2,
-        roleName: 'Project Manager',
+        roleName: 'Commercial Operations Manager',
         navGroupAccess: ['Operations', 'Admin'],
       });
 
-      // 'Operations Team' normalizes to 'Project Manager'
       const result = resolveNavGroupAccess(
         [configA, configB],
         ['Estimating Coordinator', 'Operations Team'],

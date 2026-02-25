@@ -193,224 +193,467 @@ export const PERMISSIONS = {
 
 export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS];
 
-// Nav group visibility by role
+/** All permission values as an array — used for dev-mode full-access override */
+export const ALL_PERMISSIONS = Object.values(PERMISSIONS);
+
+/** All 16 role string values for convenience */
+const ALL_ROLE_NAMES = [
+  'Administrator', 'Leadership', 'Marketing Manager', 'Preconstruction Manager',
+  'Business Development Manager', 'Estimator', 'IDS Manager',
+  'Commercial Operations Manager', 'Luxury Residential Manager',
+  'Manager of Operational Excellence', 'Safety Manager', 'Quality Control Manager',
+  'Warranty Manager', 'Human Resources Manager', 'Accounting Manager', 'Risk Manager',
+];
+
+// Nav group visibility by role — every role has full access to all nav groups
 export const NAV_GROUP_ROLES: Record<string, string[]> = {
-  Marketing: ['Marketing', 'BD Representative', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
-  Preconstruction: ['BD Representative', 'Estimating Coordinator', 'Preconstruction Team', 'Executive Leadership', 'Department Director', 'Legal', 'SharePoint Admin'],
-  Operations: ['Operations Team', 'Executive Leadership', 'Department Director', 'Risk Management', 'Quality Control', 'Safety', 'IDS', 'SharePoint Admin'],
-  Accounting: ['Accounting Manager', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
-  Admin: ['Executive Leadership', 'SharePoint Admin'],
-  'Human Resources': ['Executive Leadership', 'Department Director', 'SharePoint Admin'],
-  'Shared Services': ['Marketing', 'BD Representative', 'Accounting Manager', 'Risk Management', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
-  'HB Site Control': ['Quality Control', 'Safety', 'Operations Team', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
-  'Procore Integration': ['Operations Team', 'Executive Leadership', 'Department Director', 'SharePoint Admin'],
-  'BambooHR': ['Executive Leadership', 'Department Director', 'SharePoint Admin'],
+  Marketing: ALL_ROLE_NAMES,
+  Preconstruction: ALL_ROLE_NAMES,
+  Operations: ALL_ROLE_NAMES,
+  Accounting: ALL_ROLE_NAMES,
+  Admin: ALL_ROLE_NAMES,
+  'Human Resources': ALL_ROLE_NAMES,
+  'Shared Services': ALL_ROLE_NAMES,
+  'HB Site Control': ALL_ROLE_NAMES,
+  'Procore Integration': ALL_ROLE_NAMES,
+  'BambooHR': ALL_ROLE_NAMES,
 };
 
-// Role to permissions mapping
-export const ROLE_PERMISSIONS: Record<string, string[]> = {
-  'BD Representative': [
-    PERMISSIONS.LEAD_CREATE, PERMISSIONS.LEAD_READ, PERMISSIONS.LEAD_EDIT, PERMISSIONS.LEAD_DELETE,
-    PERMISSIONS.GONOGO_SCORE_ORIGINATOR, PERMISSIONS.GONOGO_SUBMIT, PERMISSIONS.GONOGO_READ,
-    PERMISSIONS.PRECON_READ, PERMISSIONS.PROPOSAL_READ,
-    PERMISSIONS.WINLOSS_RECORD, PERMISSIONS.WINLOSS_READ,
-    PERMISSIONS.CONTRACT_READ, PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
-    PERMISSIONS.ESTIMATING_READ, PERMISSIONS.MEETING_SCHEDULE, PERMISSIONS.MEETING_READ,
-    PERMISSIONS.SITE_PROVISION,
-    PERMISSIONS.KICKOFF_VIEW,
-    PERMISSIONS.AUTOPSY_VIEW, PERMISSIONS.AUTOPSY_CREATE, PERMISSIONS.AUTOPSY_EDIT, PERMISSIONS.AUTOPSY_SCHEDULE,
-    PERMISSIONS.MARKETING_DASHBOARD_VIEW, PERMISSIONS.MARKETING_EDIT, PERMISSIONS.PROJECT_RECORD_EDIT,
-    PERMISSIONS.PRECON_HUB_VIEW,
-    PERMISSIONS.SHARED_SERVICES_HUB_VIEW,
-  ],
-  'Estimating Coordinator': [
-    PERMISSIONS.LEAD_READ,
-    PERMISSIONS.GONOGO_READ,
-    PERMISSIONS.PRECON_EDIT, PERMISSIONS.PRECON_READ,
-    PERMISSIONS.PROPOSAL_EDIT, PERMISSIONS.PROPOSAL_READ,
-    PERMISSIONS.WINLOSS_READ,
-    PERMISSIONS.CONTRACT_READ, PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
-    PERMISSIONS.ESTIMATING_READ, PERMISSIONS.ESTIMATING_EDIT,
-    PERMISSIONS.MEETING_READ,
-    PERMISSIONS.PROJECT_NUMBER_REQUEST_VIEW, PERMISSIONS.JOB_NUMBER_REQUEST_CREATE,
-    PERMISSIONS.KICKOFF_VIEW, PERMISSIONS.KICKOFF_EDIT, PERMISSIONS.KICKOFF_TEMPLATE_EDIT,
-    PERMISSIONS.AUTOPSY_VIEW, PERMISSIONS.AUTOPSY_CREATE, PERMISSIONS.AUTOPSY_EDIT, PERMISSIONS.AUTOPSY_SCHEDULE,
-    PERMISSIONS.PRECON_HUB_VIEW, PERMISSIONS.PROJECT_HUB_VIEW,
-    PERMISSIONS.TURNOVER_AGENDA_EDIT, PERMISSIONS.TURNOVER_SIGN,
-  ],
-  'Accounting Manager': [
-    PERMISSIONS.LEAD_READ,
-    PERMISSIONS.GONOGO_READ,
-    PERMISSIONS.PRECON_READ, PERMISSIONS.PROPOSAL_READ,
-    PERMISSIONS.WINLOSS_READ,
-    PERMISSIONS.CONTRACT_READ, PERMISSIONS.CONTRACT_VIEW_FINANCIALS,
-    PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
-    PERMISSIONS.ESTIMATING_READ, PERMISSIONS.MEETING_READ,
-    PERMISSIONS.PROJECT_NUMBER_REQUEST_VIEW, PERMISSIONS.JOB_NUMBER_REQUEST_FINALIZE, PERMISSIONS.ACCOUNTING_QUEUE_VIEW,
-    PERMISSIONS.SHARED_SERVICES_HUB_VIEW,
-  ],
-  'Preconstruction Team': [
-    PERMISSIONS.PRECON_EDIT, PERMISSIONS.PRECON_READ,
-    PERMISSIONS.PROPOSAL_EDIT, PERMISSIONS.PROPOSAL_READ,
-    PERMISSIONS.WINLOSS_READ,
-    PERMISSIONS.CONTRACT_READ, PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
-    PERMISSIONS.ESTIMATING_READ, PERMISSIONS.MEETING_READ,
-    PERMISSIONS.KICKOFF_VIEW,
-    PERMISSIONS.AUTOPSY_VIEW,
-    PERMISSIONS.BUYOUT_VIEW,
-    PERMISSIONS.TURNOVER_AGENDA_EDIT,
-  ],
-  'Operations Team': [
-    PERMISSIONS.TURNOVER_EDIT, PERMISSIONS.TURNOVER_READ,
-    PERMISSIONS.CLOSEOUT_EDIT, PERMISSIONS.CLOSEOUT_READ,
-    PERMISSIONS.MEETING_READ,
-    PERMISSIONS.STARTUP_CHECKLIST_EDIT, PERMISSIONS.MATRIX_EDIT, PERMISSIONS.PROJECT_RECORD_OPS_EDIT,
-    PERMISSIONS.PMP_EDIT, PERMISSIONS.PMP_SIGN, PERMISSIONS.MONTHLY_REVIEW_PM,
-    PERMISSIONS.RISK_EDIT, PERMISSIONS.QUALITY_EDIT, PERMISSIONS.SAFETY_EDIT,
-    PERMISSIONS.SCHEDULE_VIEW, PERMISSIONS.SCHEDULE_EDIT, PERMISSIONS.SCHEDULE_IMPORT, PERMISSIONS.SCHEDULE_MANAGE,
-    PERMISSIONS.SUPERINTENDENT_PLAN_EDIT, PERMISSIONS.LESSONS_EDIT,
-    PERMISSIONS.BUYOUT_VIEW, PERMISSIONS.BUYOUT_EDIT, PERMISSIONS.BUYOUT_MANAGE,
-    PERMISSIONS.PROJECT_HUB_VIEW,
-    PERMISSIONS.COMMITMENT_SUBMIT,
-    PERMISSIONS.CONTRACT_TRACKING_SUBMIT, PERMISSIONS.CONTRACT_TRACKING_APPROVE_APM, PERMISSIONS.CONTRACT_TRACKING_APPROVE_PM,
-    PERMISSIONS.ACTIVE_PROJECTS_VIEW,
-    PERMISSIONS.COMPLIANCE_LOG_VIEW,
-    PERMISSIONS.TURNOVER_AGENDA_EDIT, PERMISSIONS.TURNOVER_SIGN,
-    PERMISSIONS.CONSTRAINTS_VIEW, PERMISSIONS.CONSTRAINTS_EDIT, PERMISSIONS.CONSTRAINTS_MANAGE,
-    PERMISSIONS.PERMITS_VIEW, PERMISSIONS.PERMITS_EDIT, PERMISSIONS.PERMITS_MANAGE,
-    PERMISSIONS.SITE_CONTROL_HUB_VIEW,
-    PERMISSIONS.PROJECT_NUMBER_REQUEST_VIEW,
-    PERMISSIONS.PROCORE_VIEW, PERMISSIONS.PROCORE_SYNC,
-  ],
-  'Executive Leadership': [
-    PERMISSIONS.LEAD_READ,
-    PERMISSIONS.GONOGO_SCORE_COMMITTEE, PERMISSIONS.GONOGO_DECIDE, PERMISSIONS.GONOGO_READ, PERMISSIONS.GONOGO_REVIEW,
-    PERMISSIONS.PRECON_READ, PERMISSIONS.PROPOSAL_READ,
-    PERMISSIONS.WINLOSS_READ,
-    PERMISSIONS.CONTRACT_READ, PERMISSIONS.CONTRACT_VIEW_FINANCIALS,
-    PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
-    PERMISSIONS.ESTIMATING_READ,
-    PERMISSIONS.SCHEDULE_VIEW, PERMISSIONS.SCHEDULE_IMPORT, PERMISSIONS.SCHEDULE_MANAGE,
-    PERMISSIONS.ADMIN_ROLES, PERMISSIONS.ADMIN_FLAGS, PERMISSIONS.ADMIN_CONFIG, PERMISSIONS.ADMIN_CONNECTIONS, PERMISSIONS.ADMIN_PROVISIONING, PERMISSIONS.ADMIN_TEMPLATE_SYNC,
-    PERMISSIONS.ADMIN_ASSIGNMENTS,
-    PERMISSIONS.MEETING_SCHEDULE, PERMISSIONS.MEETING_READ,
-    PERMISSIONS.STARTUP_CHECKLIST_SIGNOFF, PERMISSIONS.MARKETING_DASHBOARD_VIEW,
-    PERMISSIONS.PMP_APPROVE, PERMISSIONS.PMP_FINAL_APPROVE, PERMISSIONS.PMP_SIGN,
-    PERMISSIONS.MONTHLY_REVIEW_PX, PERMISSIONS.MONTHLY_REVIEW_CREATE,
-    PERMISSIONS.KICKOFF_VIEW, PERMISSIONS.KICKOFF_EDIT, PERMISSIONS.KICKOFF_TEMPLATE_EDIT,
-    PERMISSIONS.AUTOPSY_VIEW, PERMISSIONS.AUTOPSY_CREATE, PERMISSIONS.AUTOPSY_EDIT, PERMISSIONS.AUTOPSY_SCHEDULE,
-    PERMISSIONS.BUYOUT_VIEW, PERMISSIONS.BUYOUT_EDIT,
-    PERMISSIONS.PRECON_HUB_VIEW, PERMISSIONS.PROJECT_HUB_VIEW,
-    PERMISSIONS.COMMITMENT_APPROVE_PX, PERMISSIONS.COMMITMENT_APPROVE_CFO, PERMISSIONS.COMMITMENT_ESCALATE,
-    PERMISSIONS.CONTRACT_TRACKING_APPROVE_PX,
-    PERMISSIONS.ACTIVE_PROJECTS_VIEW, PERMISSIONS.ACTIVE_PROJECTS_SYNC,
-    PERMISSIONS.COMPLIANCE_LOG_VIEW,
-    PERMISSIONS.WORKFLOW_MANAGE,
-    PERMISSIONS.TURNOVER_AGENDA_EDIT, PERMISSIONS.TURNOVER_SIGN,
-    PERMISSIONS.PERMISSION_TEMPLATES_MANAGE, PERMISSIONS.PERMISSION_PROJECT_TEAM_MANAGE, PERMISSIONS.PERMISSION_PROJECT_TEAM_VIEW,
-    PERMISSIONS.CONSTRAINTS_VIEW, PERMISSIONS.CONSTRAINTS_EDIT,
-    PERMISSIONS.PERMITS_VIEW, PERMISSIONS.PERMITS_EDIT,
-    PERMISSIONS.CONNECTOR_VIEW, PERMISSIONS.CONNECTOR_MANAGE, PERMISSIONS.CONNECTOR_SYNC,
-    PERMISSIONS.SHARED_SERVICES_HUB_VIEW, PERMISSIONS.HR_VIEW, PERMISSIONS.HR_EDIT,
-    PERMISSIONS.RISK_MANAGEMENT_VIEW, PERMISSIONS.RISK_MANAGEMENT_EDIT,
-    PERMISSIONS.SITE_CONTROL_HUB_VIEW,
-    PERMISSIONS.PROJECT_NUMBER_REQUEST_VIEW, PERMISSIONS.JOB_NUMBER_REQUEST_CREATE,
-    PERMISSIONS.PROCORE_VIEW, PERMISSIONS.PROCORE_SYNC,
-    PERMISSIONS.BAMBOO_VIEW, PERMISSIONS.BAMBOO_SYNC,
-  ],
-  'Department Director': [
-    PERMISSIONS.LEAD_READ, PERMISSIONS.SCHEDULE_VIEW,
-    PERMISSIONS.GONOGO_SCORE_COMMITTEE, PERMISSIONS.GONOGO_DECIDE, PERMISSIONS.GONOGO_READ, PERMISSIONS.GONOGO_REVIEW,
-    PERMISSIONS.PRECON_READ, PERMISSIONS.PROPOSAL_READ,
-    PERMISSIONS.WINLOSS_READ,
-    PERMISSIONS.CONTRACT_READ, PERMISSIONS.CONTRACT_VIEW_FINANCIALS,
-    PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
-    PERMISSIONS.ESTIMATING_READ,
-    PERMISSIONS.MEETING_SCHEDULE, PERMISSIONS.MEETING_READ,
-    PERMISSIONS.STARTUP_CHECKLIST_SIGNOFF, PERMISSIONS.MARKETING_DASHBOARD_VIEW,
-    PERMISSIONS.PMP_APPROVE, PERMISSIONS.PMP_FINAL_APPROVE, PERMISSIONS.PMP_SIGN,
-    PERMISSIONS.MONTHLY_REVIEW_PX, PERMISSIONS.MONTHLY_REVIEW_CREATE,
-    PERMISSIONS.KICKOFF_VIEW, PERMISSIONS.KICKOFF_EDIT, PERMISSIONS.KICKOFF_TEMPLATE_EDIT,
-    PERMISSIONS.AUTOPSY_VIEW, PERMISSIONS.AUTOPSY_CREATE, PERMISSIONS.AUTOPSY_EDIT, PERMISSIONS.AUTOPSY_SCHEDULE,
-    PERMISSIONS.BUYOUT_VIEW, PERMISSIONS.BUYOUT_EDIT,
-    PERMISSIONS.PRECON_HUB_VIEW, PERMISSIONS.PROJECT_HUB_VIEW,
-    PERMISSIONS.COMMITMENT_APPROVE_PX, PERMISSIONS.COMMITMENT_APPROVE_CFO, PERMISSIONS.COMMITMENT_ESCALATE,
-    PERMISSIONS.CONTRACT_TRACKING_APPROVE_PX,
-    PERMISSIONS.ACTIVE_PROJECTS_VIEW, PERMISSIONS.ACTIVE_PROJECTS_SYNC,
-    PERMISSIONS.COMPLIANCE_LOG_VIEW,
-    PERMISSIONS.TURNOVER_AGENDA_EDIT, PERMISSIONS.TURNOVER_SIGN,
-    PERMISSIONS.PERMISSION_PROJECT_TEAM_VIEW,
-    PERMISSIONS.CONSTRAINTS_VIEW, PERMISSIONS.CONSTRAINTS_EDIT,
-    PERMISSIONS.PERMITS_VIEW, PERMISSIONS.PERMITS_EDIT,
-    PERMISSIONS.SHARED_SERVICES_HUB_VIEW, PERMISSIONS.HR_VIEW, PERMISSIONS.HR_EDIT,
-    PERMISSIONS.RISK_MANAGEMENT_VIEW, PERMISSIONS.RISK_MANAGEMENT_EDIT,
-    PERMISSIONS.SITE_CONTROL_HUB_VIEW,
-    PERMISSIONS.PROJECT_NUMBER_REQUEST_VIEW, PERMISSIONS.JOB_NUMBER_REQUEST_CREATE,
-    PERMISSIONS.PROCORE_VIEW,
-    PERMISSIONS.BAMBOO_VIEW, PERMISSIONS.BAMBOO_SYNC,
-  ],
-  'Legal': [
-    PERMISSIONS.LEAD_READ, PERMISSIONS.GONOGO_READ,
-    PERMISSIONS.PRECON_READ, PERMISSIONS.PROPOSAL_READ,
-    PERMISSIONS.WINLOSS_READ,
-    PERMISSIONS.CONTRACT_READ, PERMISSIONS.CONTRACT_EDIT,
-    PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
-    PERMISSIONS.MEETING_READ,
-  ],
-  'Risk Management': [
-    PERMISSIONS.LEAD_READ, PERMISSIONS.GONOGO_READ,
-    PERMISSIONS.PRECON_READ, PERMISSIONS.PROPOSAL_READ,
-    PERMISSIONS.WINLOSS_READ,
-    PERMISSIONS.CONTRACT_READ,
-    PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
-    PERMISSIONS.MEETING_READ,
-    PERMISSIONS.RISK_EDIT,
-    PERMISSIONS.COMMITMENT_APPROVE_COMPLIANCE, PERMISSIONS.COMMITMENT_ESCALATE,
-    PERMISSIONS.CONTRACT_TRACKING_APPROVE_RISK,
-    PERMISSIONS.COMPLIANCE_LOG_VIEW,
-    PERMISSIONS.SHARED_SERVICES_HUB_VIEW, PERMISSIONS.RISK_MANAGEMENT_VIEW, PERMISSIONS.RISK_MANAGEMENT_EDIT,
-  ],
-  'Marketing': [
-    PERMISSIONS.LEAD_READ, PERMISSIONS.GONOGO_READ,
-    PERMISSIONS.PRECON_READ, PERMISSIONS.MARKETING_EDIT,
-    PERMISSIONS.PROPOSAL_EDIT, PERMISSIONS.PROPOSAL_READ,
-    PERMISSIONS.WINLOSS_READ,
-    PERMISSIONS.CONTRACT_READ, PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
-    PERMISSIONS.MEETING_READ,
-    PERMISSIONS.PROJECT_RECORD_EDIT, PERMISSIONS.MARKETING_DASHBOARD_VIEW,
-    PERMISSIONS.SHARED_SERVICES_HUB_VIEW,
-  ],
-  'Quality Control': [
-    PERMISSIONS.PRECON_READ,
-    PERMISSIONS.PROPOSAL_READ,
-    PERMISSIONS.WINLOSS_READ,
-    PERMISSIONS.CONTRACT_READ, PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
-    PERMISSIONS.MEETING_READ,
-    PERMISSIONS.QUALITY_EDIT,
-    PERMISSIONS.SITE_CONTROL_HUB_VIEW,
-  ],
-  'Safety': [
-    PERMISSIONS.PRECON_READ,
-    PERMISSIONS.PROPOSAL_READ,
-    PERMISSIONS.WINLOSS_READ,
-    PERMISSIONS.CONTRACT_READ, PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
-    PERMISSIONS.MEETING_READ,
-    PERMISSIONS.SAFETY_EDIT,
-    PERMISSIONS.SITE_CONTROL_HUB_VIEW,
-  ],
-  'IDS': [
-    PERMISSIONS.PRECON_READ,
-    PERMISSIONS.PROPOSAL_READ,
-    PERMISSIONS.WINLOSS_READ,
-    PERMISSIONS.CONTRACT_READ, PERMISSIONS.TURNOVER_READ, PERMISSIONS.CLOSEOUT_READ,
-    PERMISSIONS.MEETING_READ, PERMISSIONS.ADMIN_CONFIG, PERMISSIONS.ADMIN_TEMPLATE_SYNC,
-    PERMISSIONS.PERMISSION_TEMPLATES_MANAGE, PERMISSIONS.PERMISSION_PROJECT_TEAM_MANAGE, PERMISSIONS.PERMISSION_PROJECT_TEAM_VIEW,
-  ],
-  'SharePoint Admin': [
-    // Full admin access to all tools/modules
-    ...Object.values(PERMISSIONS),
-  ],
+// ---------------------------------------------------------------------------
+// Stage 3 (sub-task 2): Granular per-role permission sets.
+// Single source of truth — each role receives only the permissions it needs.
+// Administrator retains ALL. Dev/mock mode can override via ALL_PERMISSIONS.
+// ---------------------------------------------------------------------------
+
+const P = PERMISSIONS;
+
+const READ_VIEW_PERMISSIONS: string[] = ALL_PERMISSIONS.filter(
+  p => p.includes(':read') || p.includes(':view')
+);
+
+export const ROLE_PERMISSION_SETS: Record<string, ReadonlySet<string>> = {
+  'Administrator': new Set(ALL_PERMISSIONS),
+
+  'Leadership': new Set(READ_VIEW_PERMISSIONS),
+
+  'Preconstruction Manager': new Set([
+    P.LEAD_CREATE, P.LEAD_READ, P.LEAD_EDIT, P.LEAD_DELETE,
+    P.GONOGO_SCORE_ORIGINATOR, P.GONOGO_SCORE_COMMITTEE, P.GONOGO_SUBMIT, P.GONOGO_DECIDE, P.GONOGO_READ, P.GONOGO_REVIEW,
+    P.PRECON_READ, P.PRECON_EDIT,
+    P.PROPOSAL_READ, P.PROPOSAL_EDIT,
+    P.WINLOSS_RECORD, P.WINLOSS_READ,
+    P.ESTIMATING_READ,
+    P.KICKOFF_VIEW, P.KICKOFF_EDIT, P.KICKOFF_TEMPLATE_EDIT,
+    P.AUTOPSY_VIEW, P.AUTOPSY_CREATE, P.AUTOPSY_EDIT, P.AUTOPSY_SCHEDULE,
+    P.ACTIVE_PROJECTS_VIEW,
+    P.PROJECT_HUB_VIEW, P.PRECON_HUB_VIEW,
+    P.MEETING_SCHEDULE, P.MEETING_READ,
+    P.PROJECT_NUMBER_REQUEST_VIEW, P.JOB_NUMBER_REQUEST_CREATE,
+    P.WORKFLOW_MANAGE,
+  ]),
+
+  'Business Development Manager': new Set([
+    P.LEAD_CREATE, P.LEAD_READ, P.LEAD_EDIT, P.LEAD_DELETE,
+    P.GONOGO_SCORE_ORIGINATOR, P.GONOGO_SUBMIT, P.GONOGO_READ,
+    P.PRECON_READ,
+    P.PROPOSAL_READ, P.PROPOSAL_EDIT,
+    P.WINLOSS_RECORD, P.WINLOSS_READ,
+    P.ACTIVE_PROJECTS_VIEW,
+    P.PRECON_HUB_VIEW,
+    P.MEETING_SCHEDULE, P.MEETING_READ,
+  ]),
+
+  'Estimator': new Set([
+    P.ESTIMATING_READ, P.ESTIMATING_EDIT,
+    P.KICKOFF_VIEW, P.KICKOFF_EDIT, P.KICKOFF_TEMPLATE_EDIT,
+    P.AUTOPSY_VIEW, P.AUTOPSY_CREATE, P.AUTOPSY_EDIT, P.AUTOPSY_SCHEDULE,
+    P.PRECON_READ,
+    P.PRECON_HUB_VIEW,
+    P.PROJECT_NUMBER_REQUEST_VIEW, P.JOB_NUMBER_REQUEST_CREATE,
+    P.MEETING_READ,
+  ]),
+
+  'IDS Manager': new Set([
+    P.PRECON_READ, P.PRECON_EDIT,
+    P.PRECON_HUB_VIEW,
+    P.ESTIMATING_READ,
+    P.MEETING_READ,
+  ]),
+
+  'Marketing Manager': new Set([
+    P.MARKETING_EDIT, P.MARKETING_DASHBOARD_VIEW,
+    P.SHARED_SERVICES_HUB_VIEW,
+  ]),
+
+  'Commercial Operations Manager': new Set([
+    P.PROJECT_HUB_VIEW,
+    P.CONTRACT_READ, P.CONTRACT_EDIT, P.CONTRACT_VIEW_FINANCIALS,
+    P.TURNOVER_READ, P.TURNOVER_EDIT, P.TURNOVER_AGENDA_EDIT, P.TURNOVER_SIGN,
+    P.CLOSEOUT_READ, P.CLOSEOUT_EDIT,
+    P.PMP_EDIT, P.PMP_APPROVE, P.PMP_FINAL_APPROVE, P.PMP_SIGN,
+    P.SCHEDULE_VIEW, P.SCHEDULE_EDIT, P.SCHEDULE_IMPORT, P.SCHEDULE_MANAGE,
+    P.BUYOUT_VIEW, P.BUYOUT_EDIT, P.BUYOUT_MANAGE,
+    P.COMMITMENT_SUBMIT, P.COMMITMENT_APPROVE_PX, P.COMMITMENT_APPROVE_COMPLIANCE, P.COMMITMENT_APPROVE_CFO, P.COMMITMENT_ESCALATE,
+    P.CONTRACT_TRACKING_SUBMIT, P.CONTRACT_TRACKING_APPROVE_APM, P.CONTRACT_TRACKING_APPROVE_PM, P.CONTRACT_TRACKING_APPROVE_RISK, P.CONTRACT_TRACKING_APPROVE_PX,
+    P.STARTUP_CHECKLIST_EDIT, P.STARTUP_CHECKLIST_SIGNOFF, P.MATRIX_EDIT, P.PROJECT_RECORD_EDIT, P.PROJECT_RECORD_OPS_EDIT,
+    P.MONTHLY_REVIEW_PM, P.MONTHLY_REVIEW_PX, P.MONTHLY_REVIEW_CREATE,
+    P.CONSTRAINTS_VIEW, P.CONSTRAINTS_EDIT, P.CONSTRAINTS_MANAGE,
+    P.PERMITS_VIEW, P.PERMITS_EDIT, P.PERMITS_MANAGE,
+    P.SUPERINTENDENT_PLAN_EDIT,
+    P.RISK_EDIT, P.QUALITY_EDIT, P.SAFETY_EDIT, P.LESSONS_EDIT,
+    P.ACTIVE_PROJECTS_VIEW,
+    P.COMPLIANCE_LOG_VIEW,
+    P.PROCORE_VIEW,
+    P.MEETING_SCHEDULE, P.MEETING_READ,
+  ]),
+
+  'Luxury Residential Manager': new Set([
+    P.PROJECT_HUB_VIEW,
+    P.CONTRACT_READ, P.CONTRACT_EDIT, P.CONTRACT_VIEW_FINANCIALS,
+    P.TURNOVER_READ, P.TURNOVER_EDIT, P.TURNOVER_AGENDA_EDIT, P.TURNOVER_SIGN,
+    P.CLOSEOUT_READ, P.CLOSEOUT_EDIT,
+    P.PMP_EDIT, P.PMP_APPROVE, P.PMP_SIGN,
+    P.SCHEDULE_VIEW, P.SCHEDULE_EDIT, P.SCHEDULE_IMPORT,
+    P.BUYOUT_VIEW, P.BUYOUT_EDIT, P.BUYOUT_MANAGE,
+    P.COMMITMENT_SUBMIT, P.COMMITMENT_ESCALATE,
+    P.CONTRACT_TRACKING_SUBMIT, P.CONTRACT_TRACKING_APPROVE_APM, P.CONTRACT_TRACKING_APPROVE_PM,
+    P.STARTUP_CHECKLIST_EDIT, P.STARTUP_CHECKLIST_SIGNOFF, P.MATRIX_EDIT, P.PROJECT_RECORD_EDIT, P.PROJECT_RECORD_OPS_EDIT,
+    P.MONTHLY_REVIEW_PM, P.MONTHLY_REVIEW_CREATE,
+    P.CONSTRAINTS_VIEW, P.CONSTRAINTS_EDIT,
+    P.PERMITS_VIEW, P.PERMITS_EDIT,
+    P.SUPERINTENDENT_PLAN_EDIT,
+    P.RISK_EDIT, P.QUALITY_EDIT, P.SAFETY_EDIT, P.LESSONS_EDIT,
+    P.ACTIVE_PROJECTS_VIEW,
+    P.PROCORE_VIEW,
+    P.MEETING_SCHEDULE, P.MEETING_READ,
+  ]),
+
+  'Manager of Operational Excellence': new Set([
+    P.PROJECT_HUB_VIEW,
+    P.STARTUP_CHECKLIST_EDIT, P.STARTUP_CHECKLIST_SIGNOFF,
+    P.SCHEDULE_VIEW,
+    P.ACTIVE_PROJECTS_VIEW,
+    P.SAFETY_EDIT, P.QUALITY_EDIT, P.LESSONS_EDIT,
+    P.MEETING_READ,
+  ]),
+
+  'Safety Manager': new Set([
+    P.SAFETY_EDIT,
+    P.SITE_CONTROL_HUB_VIEW,
+    P.PROJECT_HUB_VIEW,
+    P.SCHEDULE_VIEW,
+    P.ACTIVE_PROJECTS_VIEW,
+    P.MEETING_READ,
+  ]),
+
+  'Quality Control Manager': new Set([
+    P.QUALITY_EDIT,
+    P.SITE_CONTROL_HUB_VIEW,
+    P.PROJECT_HUB_VIEW,
+    P.SCHEDULE_VIEW,
+    P.ACTIVE_PROJECTS_VIEW,
+    P.MEETING_READ,
+  ]),
+
+  'Warranty Manager': new Set([
+    P.QUALITY_EDIT,
+    P.PROJECT_HUB_VIEW,
+    P.MEETING_READ,
+  ]),
+
+  'Human Resources Manager': new Set([
+    P.HR_VIEW, P.HR_EDIT,
+    P.BAMBOO_VIEW, P.BAMBOO_SYNC,
+    P.SHARED_SERVICES_HUB_VIEW,
+  ]),
+
+  'Accounting Manager': new Set([
+    P.ACCOUNTING_QUEUE_VIEW,
+    P.CONTRACT_VIEW_FINANCIALS, P.CONTRACT_READ,
+    P.JOB_NUMBER_REQUEST_FINALIZE, P.PROJECT_NUMBER_REQUEST_VIEW,
+    P.SHARED_SERVICES_HUB_VIEW,
+  ]),
+
+  'Risk Manager': new Set([
+    P.RISK_MANAGEMENT_VIEW, P.RISK_MANAGEMENT_EDIT,
+    P.COMPLIANCE_LOG_VIEW,
+    P.CONTRACT_READ,
+    P.CONTRACT_TRACKING_APPROVE_RISK,
+    P.SHARED_SERVICES_HUB_VIEW,
+  ]),
 };
+
+// Backward-compatible array form derived from the Set-based source of truth
+export const ROLE_PERMISSIONS: Record<string, string[]> = Object.fromEntries(
+  Object.entries(ROLE_PERMISSION_SETS).map(([role, perms]) => [role, Array.from(perms)])
+);
+
+/** Role-to-landing-page route mapping for the 16 standard roles */
+export const ROLE_LANDING_ROUTES: Record<string, string> = {
+  'Administrator': '/admin',
+  'Leadership': '/hub',
+  'Marketing Manager': '/marketing',
+  'Preconstruction Manager': '/preconstruction',
+  'Business Development Manager': '/business-development',
+  'Estimator': '/estimating',
+  'IDS Manager': '/ids',
+  'Commercial Operations Manager': '/operations',
+  'Luxury Residential Manager': '/operations',
+  'Manager of Operational Excellence': '/opex',
+  'Safety Manager': '/safety',
+  'Quality Control Manager': '/qc-warranty',
+  'Warranty Manager': '/qc-warranty',
+  'Human Resources Manager': '/people-culture',
+  'Accounting Manager': '/accounting',
+  'Risk Manager': '/risk-management',
+};
+
+// ---------------------------------------------------------------------------
+// Stage 2: Role-specific navigation config (sub-task 2)
+// ---------------------------------------------------------------------------
+
+/** Per-role navigation visibility — defines which workspaces and sidebar groups a role accesses */
+export interface IRoleNavConfig {
+  workspaces: string[];
+  sidebarGroups?: Record<string, string[]>;
+}
+
+export const ROLE_NAV_ITEMS: Record<string, IRoleNavConfig> = {
+  'Administrator': {
+    workspaces: ['admin', 'preconstruction', 'operations', 'shared-services', 'site-control'],
+  },
+  'Leadership': {
+    workspaces: [],
+  },
+  'Marketing Manager': {
+    workspaces: ['shared-services'],
+    sidebarGroups: { 'shared-services': ['Marketing'] },
+  },
+  'Preconstruction Manager': {
+    workspaces: ['preconstruction'],
+  },
+  'Business Development Manager': {
+    workspaces: ['preconstruction'],
+    sidebarGroups: { preconstruction: ['Business Development'] },
+  },
+  'Estimator': {
+    workspaces: ['preconstruction'],
+    sidebarGroups: { preconstruction: ['Estimating'] },
+  },
+  'IDS Manager': {
+    workspaces: ['preconstruction'],
+    sidebarGroups: { preconstruction: ['Innovation & Digital Services'] },
+  },
+  'Commercial Operations Manager': {
+    workspaces: ['operations'],
+    sidebarGroups: { operations: ['Operations', 'Commercial Operations'] },
+  },
+  'Luxury Residential Manager': {
+    workspaces: ['operations'],
+    sidebarGroups: { operations: ['Operations', 'Commercial Operations'] },
+  },
+  'Manager of Operational Excellence': {
+    workspaces: ['operations'],
+    sidebarGroups: { operations: ['Operations', 'Operational Excellence'] },
+  },
+  'Safety Manager': {
+    workspaces: ['operations', 'site-control'],
+    sidebarGroups: { operations: ['Operations', 'Safety'], 'site-control': ['Safety'] },
+  },
+  'Quality Control Manager': {
+    workspaces: ['operations', 'site-control'],
+    sidebarGroups: { operations: ['Operations', 'Quality Control & Warranty'], 'site-control': ['Quality Control'] },
+  },
+  'Warranty Manager': {
+    workspaces: ['operations'],
+    sidebarGroups: { operations: ['Operations', 'Quality Control & Warranty'] },
+  },
+  'Human Resources Manager': {
+    workspaces: ['shared-services'],
+    sidebarGroups: { 'shared-services': ['Human Resources', 'BambooHR'] },
+  },
+  'Accounting Manager': {
+    workspaces: ['shared-services'],
+    sidebarGroups: { 'shared-services': ['Accounting'] },
+  },
+  'Risk Manager': {
+    workspaces: ['shared-services'],
+    sidebarGroups: { 'shared-services': ['Risk Management'] },
+  },
+};
+
+/** Landing page metadata for each role — icon, title, description, default visible sections */
+export interface ILandingPageConfig {
+  icon: string;
+  title: string;
+  description: string;
+  defaultVisibleSections: string[];
+}
+
+export const LANDING_PAGE_CONFIG: Record<string, ILandingPageConfig> = {
+  'Administrator': {
+    icon: 'Settings24Regular',
+    title: 'System Administration',
+    description: 'Manage system configuration, security, and provisioning',
+    defaultVisibleSections: ['System Configuration', 'Security & Access', 'Provisioning', 'Dev Tools'],
+  },
+  'Leadership': {
+    icon: 'Home24Regular',
+    title: 'Analytics Hub',
+    description: 'Enterprise-wide project intelligence and performance metrics',
+    defaultVisibleSections: ['KPIs', 'Charts', 'Activity Feed'],
+  },
+  'Marketing Manager': {
+    icon: 'Megaphone24Regular',
+    title: 'Marketing Dashboard',
+    description: 'Campaign management, resources, and request tracking',
+    defaultVisibleSections: ['Resources', 'Requests', 'Tracking'],
+  },
+  'Preconstruction Manager': {
+    icon: 'DocumentSearch24Regular',
+    title: 'Preconstruction Hub',
+    description: 'Business development, estimating, and IDS oversight',
+    defaultVisibleSections: ['Business Development', 'Estimating', 'Innovation & Digital Services'],
+  },
+  'Business Development Manager': {
+    icon: 'Handshake24Regular',
+    title: 'Business Development',
+    description: 'Lead management, Go/No-Go, pipeline, and opportunity tracking',
+    defaultVisibleSections: ['Lead Management', 'Go/No-Go', 'Pipeline'],
+  },
+  'Estimator': {
+    icon: 'Calculator24Regular',
+    title: 'Estimating Dashboard',
+    description: 'Department tracking, project number requests, and post-bid autopsies',
+    defaultVisibleSections: ['Department Tracking', 'Project Number Requests', 'Post-Bid Autopsies'],
+  },
+  'IDS Manager': {
+    icon: 'LaptopSettings24Regular',
+    title: 'Innovation & Digital Services',
+    description: 'IDS tracking, technology initiatives, and digital delivery',
+    defaultVisibleSections: ['IDS Tracking', 'Documents'],
+  },
+  'Commercial Operations Manager': {
+    icon: 'BuildingFactory24Regular',
+    title: 'Operations Dashboard',
+    description: 'Commercial project delivery, scheduling, and financial forecasting',
+    defaultVisibleSections: ['Commercial Operations', 'Project Hub', 'Financial Forecasting'],
+  },
+  'Luxury Residential Manager': {
+    icon: 'BuildingDesktop24Regular',
+    title: 'Operations Dashboard',
+    description: 'Luxury residential project delivery and operations oversight',
+    defaultVisibleSections: ['Commercial Operations', 'Luxury Residential'],
+  },
+  'Manager of Operational Excellence': {
+    icon: 'Lightbulb24Regular',
+    title: 'Operational Excellence',
+    description: 'Onboarding, training, and continuous improvement programs',
+    defaultVisibleSections: ['Onboarding', 'Training'],
+  },
+  'Safety Manager': {
+    icon: 'Shield24Regular',
+    title: 'Safety Dashboard',
+    description: 'Safety training, certifications, scorecards, and jobsite inspections',
+    defaultVisibleSections: ['Training & Certification', 'Safety Scorecard', 'Inspections'],
+  },
+  'Quality Control Manager': {
+    icon: 'Checkmark24Regular',
+    title: 'QC & Warranty Dashboard',
+    description: 'Quality assurance tracking, checklists, and issue resolution',
+    defaultVisibleSections: ['QA Tracking', 'Checklists', 'Best Practices'],
+  },
+  'Warranty Manager': {
+    icon: 'ReceiptMoney24Regular',
+    title: 'QC & Warranty Dashboard',
+    description: 'Warranty management and quality control oversight',
+    defaultVisibleSections: ['Warranty', 'QA Tracking'],
+  },
+  'Human Resources Manager': {
+    icon: 'People24Regular',
+    title: 'People & Culture',
+    description: 'HR operations, openings, announcements, and employee programs',
+    defaultVisibleSections: ['Openings', 'Announcements', 'Initiatives'],
+  },
+  'Accounting Manager': {
+    icon: 'Money24Regular',
+    title: 'Accounting Dashboard',
+    description: 'Project setup, accounts receivable, and financial reporting',
+    defaultVisibleSections: ['New Project Setup', 'Accounts Receivable Report'],
+  },
+  'Risk Manager': {
+    icon: 'ShieldTask24Regular',
+    title: 'Risk Management',
+    description: 'Knowledge center, risk requests, and enrollment tracking',
+    defaultVisibleSections: ['Knowledge Center', 'Requests', 'Enrollment Tracking'],
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Stage 3 (sub-task 2): Expanded granular permission checks.
+// Role-based predicate functions for fine-grained access control across all
+// major feature domains. Each checks the user's roles array, not permission
+// strings, providing a readable API for component-level gating.
+// ---------------------------------------------------------------------------
+
+const roleCheck = (roles: string[], allowed: string[]): boolean =>
+  roles.some(r => allowed.includes(r));
+
+export const GRANULAR_PERMISSIONS = {
+  // Financial & Accounting
+  canViewFinancials: (roles: string[]): boolean =>
+    roleCheck(roles, ['Accounting Manager', 'Leadership', 'Administrator']),
+  canEditAccounting: (roles: string[]): boolean =>
+    roleCheck(roles, ['Accounting Manager', 'Administrator']),
+  canFinalizeJobNumbers: (roles: string[]): boolean =>
+    roleCheck(roles, ['Accounting Manager', 'Administrator']),
+
+  // Project Operations
+  canEditProjects: (roles: string[]): boolean =>
+    roleCheck(roles, ['Commercial Operations Manager', 'Luxury Residential Manager', 'Administrator']),
+  canManageSchedule: (roles: string[]): boolean =>
+    roleCheck(roles, ['Commercial Operations Manager', 'Luxury Residential Manager', 'Administrator']),
+  canApprovePMP: (roles: string[]): boolean =>
+    roleCheck(roles, ['Commercial Operations Manager', 'Administrator']),
+  canManageBuyout: (roles: string[]): boolean =>
+    roleCheck(roles, ['Commercial Operations Manager', 'Luxury Residential Manager', 'Administrator']),
+  canApproveCommitments: (roles: string[]): boolean =>
+    roleCheck(roles, ['Commercial Operations Manager', 'Administrator']),
+
+  // Safety & Quality
+  canManageSafety: (roles: string[]): boolean =>
+    roleCheck(roles, ['Safety Manager', 'Administrator']),
+  canManageQuality: (roles: string[]): boolean =>
+    roleCheck(roles, ['Quality Control Manager', 'Warranty Manager', 'Administrator']),
+  canManageWarranty: (roles: string[]): boolean =>
+    roleCheck(roles, ['Warranty Manager', 'Administrator']),
+
+  // Preconstruction
+  canManageLeads: (roles: string[]): boolean =>
+    roleCheck(roles, ['Preconstruction Manager', 'Business Development Manager', 'Administrator']),
+  canDecideGoNoGo: (roles: string[]): boolean =>
+    roleCheck(roles, ['Preconstruction Manager', 'Leadership', 'Administrator']),
+  canEditEstimates: (roles: string[]): boolean =>
+    roleCheck(roles, ['Estimator', 'Preconstruction Manager', 'Administrator']),
+  canManageIDS: (roles: string[]): boolean =>
+    roleCheck(roles, ['IDS Manager', 'Preconstruction Manager', 'Administrator']),
+
+  // Shared Services
+  canEditMarketing: (roles: string[]): boolean =>
+    roleCheck(roles, ['Marketing Manager', 'Administrator']),
+  canEditHR: (roles: string[]): boolean =>
+    roleCheck(roles, ['Human Resources Manager', 'Administrator']),
+  canEditRiskManagement: (roles: string[]): boolean =>
+    roleCheck(roles, ['Risk Manager', 'Administrator']),
+
+  // Administration
+  canAccessAdmin: (roles: string[]): boolean =>
+    roleCheck(roles, ['Administrator']),
+  canManagePermissions: (roles: string[]): boolean =>
+    roleCheck(roles, ['Administrator']),
+} as const;
+
+// ---------------------------------------------------------------------------
 
 export type PermissionValue = typeof PERMISSIONS[keyof typeof PERMISSIONS];
 export type RolePermissionMap = typeof ROLE_PERMISSIONS;

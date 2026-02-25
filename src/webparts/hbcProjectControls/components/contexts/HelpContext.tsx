@@ -31,8 +31,7 @@ interface IHelpProviderProps {
 }
 
 export const HelpProvider: React.FC<IHelpProviderProps> = ({ children }) => {
-  const { dataService, isFeatureEnabled } = useAppContext();
-  const enabled = isFeatureEnabled('EnableHelpSystem');
+  const { dataService } = useAppContext();
 
   const [guides, setGuides] = React.useState<IHelpGuide[]>([]);
   const [supportConfig, setSupportConfig] = React.useState<ISupportConfig | null>(null);
@@ -45,7 +44,6 @@ export const HelpProvider: React.FC<IHelpProviderProps> = ({ children }) => {
   const [isContactSupportOpen, setIsContactSupportOpen] = React.useState(false);
 
   const loadGuides = React.useCallback(async () => {
-    if (!enabled) return;
     setIsLoading(true);
     try {
       const [fetchedGuides, config] = await Promise.all([
@@ -59,7 +57,7 @@ export const HelpProvider: React.FC<IHelpProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [dataService, enabled]);
+  }, [dataService]);
 
   React.useEffect(() => {
     loadGuides();

@@ -9,6 +9,7 @@ import { createRoute } from '@tanstack/react-router';
 import { PERMISSIONS } from '@hbc/sp-services';
 import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
+import { requireRole } from '../guards/requireRole';
 import type { ITanStackRouteContext } from '../routeContext';
 
 // Layout
@@ -78,6 +79,7 @@ export function createSiteControlWorkspaceRoutes(rootRoute: unknown): unknown[] 
     component: SiteControlLayout,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
       requireFeature(context, 'SiteControlWorkspace');
+      requireRole(context, ['Administrator', 'Safety Manager', 'Quality Control Manager']);
     },
   });
 

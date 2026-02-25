@@ -1,5 +1,4 @@
 import { PERMISSIONS, ROLE_PERMISSIONS, NAV_GROUP_ROLES } from '../permissions';
-import { RoleName } from '../../models/enums';
 
 describe('permissions', () => {
   describe('PERMISSIONS constant', () => {
@@ -11,45 +10,41 @@ describe('permissions', () => {
     });
   });
 
+  // Stage 3: Updated to reflect granular per-role permission sets.
   describe('ROLE_PERMISSIONS', () => {
-    it('ExecutiveLeadership has admin:config', () => {
-      expect(ROLE_PERMISSIONS['Executive Leadership']).toContain('admin:config');
-    });
-
-    it('DepartmentDirector does NOT have admin:config', () => {
-      expect(ROLE_PERMISSIONS['Department Director']).not.toContain('admin:config');
-    });
-
-    it('DepartmentDirector does NOT have workflow:manage', () => {
-      expect(ROLE_PERMISSIONS['Department Director']).not.toContain('workflow:manage');
-    });
-
-    it('BDRepresentative has lead:create', () => {
-      expect(ROLE_PERMISSIONS['BD Representative']).toContain('lead:create');
-    });
-
-    it('BDRepresentative does NOT have admin:config', () => {
-      expect(ROLE_PERMISSIONS['BD Representative']).not.toContain('admin:config');
-    });
-
-    it('EstimatingCoordinator has estimating:edit', () => {
-      expect(ROLE_PERMISSIONS['Estimating Coordinator']).toContain('estimating:edit');
-    });
-
-    it('SharePointAdmin has ALL permissions', () => {
-      const spAdminPerms = ROLE_PERMISSIONS['SharePoint Admin'];
-      const allPerms = Object.values(PERMISSIONS);
-      for (const perm of allPerms) {
-        expect(spAdminPerms).toContain(perm);
+    it('Leadership has only read/view permissions', () => {
+      for (const perm of ROLE_PERMISSIONS['Leadership']) {
+        expect(perm).toMatch(/:read|:view/);
       }
     });
 
-    it('all 14 roles have entries', () => {
+    it('Business Development Manager has lead:create', () => {
+      expect(ROLE_PERMISSIONS['Business Development Manager']).toContain('lead:create');
+    });
+
+    it('Business Development Manager has gonogo:submit', () => {
+      expect(ROLE_PERMISSIONS['Business Development Manager']).toContain('gonogo:submit');
+    });
+
+    it('Estimator has estimating:edit', () => {
+      expect(ROLE_PERMISSIONS['Estimator']).toContain('estimating:edit');
+    });
+
+    it('Administrator has ALL permissions', () => {
+      const adminPerms = ROLE_PERMISSIONS['Administrator'];
+      const allPerms = Object.values(PERMISSIONS);
+      for (const perm of allPerms) {
+        expect(adminPerms).toContain(perm);
+      }
+    });
+
+    it('all 16 roles have entries', () => {
       const expectedRoles = [
-        'BD Representative', 'Estimating Coordinator', 'Accounting Manager',
-        'Preconstruction Team', 'Operations Team', 'Executive Leadership',
-        'Department Director', 'Legal', 'Risk Management', 'Marketing',
-        'Quality Control', 'Safety', 'IDS', 'SharePoint Admin',
+        'Administrator', 'Leadership', 'Marketing Manager', 'Preconstruction Manager',
+        'Business Development Manager', 'Estimator', 'IDS Manager',
+        'Commercial Operations Manager', 'Luxury Residential Manager',
+        'Manager of Operational Excellence', 'Safety Manager', 'Quality Control Manager',
+        'Warranty Manager', 'Human Resources Manager', 'Accounting Manager', 'Risk Manager',
       ];
       for (const role of expectedRoles) {
         expect(ROLE_PERMISSIONS[role]).toBeDefined();
@@ -57,32 +52,36 @@ describe('permissions', () => {
       }
     });
 
-    it('Operations Team has pmp:edit but not pmp:approve', () => {
-      expect(ROLE_PERMISSIONS['Operations Team']).toContain('pmp:edit');
-      expect(ROLE_PERMISSIONS['Operations Team']).not.toContain('pmp:approve');
+    it('Commercial Operations Manager has pmp:edit and pmp:approve', () => {
+      expect(ROLE_PERMISSIONS['Commercial Operations Manager']).toContain('pmp:edit');
+      expect(ROLE_PERMISSIONS['Commercial Operations Manager']).toContain('pmp:approve');
     });
 
-    it('Legal has contract:edit but not contract:view:financials', () => {
-      expect(ROLE_PERMISSIONS['Legal']).toContain('contract:edit');
-      expect(ROLE_PERMISSIONS['Legal']).not.toContain('contract:view:financials');
+    it('Risk Manager has risk_management and contract:read', () => {
+      expect(ROLE_PERMISSIONS['Risk Manager']).toContain('risk_management:view');
+      expect(ROLE_PERMISSIONS['Risk Manager']).toContain('risk_management:edit');
+      expect(ROLE_PERMISSIONS['Risk Manager']).toContain('contract:read');
     });
   });
 
   describe('NAV_GROUP_ROLES', () => {
-    it('Admin group includes ExecutiveLeadership and SharePointAdmin', () => {
-      expect(NAV_GROUP_ROLES.Admin).toContain('Executive Leadership');
-      expect(NAV_GROUP_ROLES.Admin).toContain('SharePoint Admin');
+    it('Admin group includes Leadership and Administrator', () => {
+      expect(NAV_GROUP_ROLES.Admin).toContain('Leadership');
+      expect(NAV_GROUP_ROLES.Admin).toContain('Administrator');
     });
 
-    it('Admin group does NOT include DepartmentDirector', () => {
-      expect(NAV_GROUP_ROLES.Admin).not.toContain('Department Director');
+    it('Admin group includes all 16 roles', () => {
+      const allRoles = Object.keys(ROLE_PERMISSIONS);
+      for (const role of allRoles) {
+        expect(NAV_GROUP_ROLES.Admin).toContain(role);
+      }
     });
 
-    it('Operations group includes OperationsTeam', () => {
-      expect(NAV_GROUP_ROLES.Operations).toContain('Operations Team');
+    it('Operations group includes Commercial Operations Manager', () => {
+      expect(NAV_GROUP_ROLES.Operations).toContain('Commercial Operations Manager');
     });
 
-    it('all 5 nav groups have entries', () => {
+    it('all nav groups have entries', () => {
       expect(NAV_GROUP_ROLES.Marketing).toBeDefined();
       expect(NAV_GROUP_ROLES.Preconstruction).toBeDefined();
       expect(NAV_GROUP_ROLES.Operations).toBeDefined();
@@ -90,12 +89,12 @@ describe('permissions', () => {
       expect(NAV_GROUP_ROLES.Admin).toBeDefined();
     });
 
-    it('Marketing includes BD Representative', () => {
-      expect(NAV_GROUP_ROLES.Marketing).toContain('BD Representative');
+    it('Marketing includes Business Development Manager', () => {
+      expect(NAV_GROUP_ROLES.Marketing).toContain('Business Development Manager');
     });
 
-    it('Preconstruction includes Legal', () => {
-      expect(NAV_GROUP_ROLES.Preconstruction).toContain('Legal');
+    it('Preconstruction includes Risk Manager', () => {
+      expect(NAV_GROUP_ROLES.Preconstruction).toContain('Risk Manager');
     });
   });
 });

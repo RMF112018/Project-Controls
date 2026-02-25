@@ -10,6 +10,7 @@ import {
   tokens,
 } from '@fluentui/react-components';
 import { Grid24Regular } from '@fluentui/react-icons';
+import { ROLE_NAV_ITEMS } from '@hbc/sp-services';
 import { RoleGate } from '../guards/RoleGate';
 import { FeatureGate } from '../guards/FeatureGate';
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
@@ -61,13 +62,23 @@ const useStyles = makeStyles({
 export const AppLauncher: React.FC = () => {
   const styles = useStyles();
   const navigate = useAppNavigate();
-  const { selectedProject } = useAppContext();
+  const { selectedProject, currentUser, dataServiceMode } = useAppContext();
 
-  // Filter out workspaces that require a project when none is selected
-  const visibleWorkspaces = React.useMemo(
-    () => LAUNCHER_WORKSPACES.filter(w => !w.requireProject || selectedProject),
-    [selectedProject],
-  );
+  const primaryRole = currentUser?.roles[0] ?? '';
+  const isMockMode = dataServiceMode === 'mock';
+
+  // Stage 2 (sub-task 3): Role-based workspace filtering.
+  // Mock mode bypasses filtering so all workspaces remain visible during dev testing.
+  const visibleWorkspaces = React.useMemo(() => {
+    let workspaces = LAUNCHER_WORKSPACES.filter(w => !w.requireProject || selectedProject);
+    if (!isMockMode && primaryRole) {
+      const navConfig = ROLE_NAV_ITEMS[primaryRole];
+      if (navConfig) {
+        workspaces = workspaces.filter(w => navConfig.workspaces.includes(w.id));
+      }
+    }
+    return workspaces;
+  }, [selectedProject, isMockMode, primaryRole]);
 
   return (
     <Menu>

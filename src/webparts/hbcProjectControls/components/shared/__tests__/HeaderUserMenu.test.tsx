@@ -24,21 +24,21 @@ function makeUser(overrides: Partial<ICurrentUser> = {}): ICurrentUser {
     displayName: 'Bobby Fetting',
     email: 'bfetting@hedrickbrothers.com',
     loginName: 'bfetting@hedrickbrothers.com',
-    roles: [RoleName.ExecutiveLeadership],
+    roles: [RoleName.Leadership],
     permissions: new Set<string>(),
     ...overrides,
   };
 }
 
 const MOCK_ROLE_OPTIONS: ReadonlyArray<{ label: string; value: string }> = [
-  { label: 'President / VP Operations', value: RoleName.ExecutiveLeadership },
-  { label: 'BD Representative', value: RoleName.BDRepresentative },
-  { label: 'Estimating Coordinator', value: RoleName.EstimatingCoordinator },
+  { label: 'Leadership', value: RoleName.Leadership },
+  { label: 'Business Development Manager', value: RoleName.BusinessDevelopmentManager },
+  { label: 'Estimator', value: RoleName.Estimator },
 ];
 
 function makeDevToolsConfig(overrides: Partial<IDevToolsConfig> = {}): IDevToolsConfig {
   return {
-    currentRole: RoleName.ExecutiveLeadership,
+    currentRole: RoleName.Leadership,
     roleOptions: MOCK_ROLE_OPTIONS,
     onRoleChange: jest.fn(),
     onSwitchMode: jest.fn(),
@@ -117,9 +117,9 @@ describe('HeaderUserMenu', () => {
     if (button) fireEvent.click(button);
 
     // Check role items are present
-    expect(screen.getByText('President / VP Operations')).toBeInTheDocument();
-    expect(screen.getByText('BD Representative')).toBeInTheDocument();
-    expect(screen.getByText('Estimating Coordinator')).toBeInTheDocument();
+    expect(screen.getByText('Leadership')).toBeInTheDocument();
+    expect(screen.getByText('Business Development Manager')).toBeInTheDocument();
+    expect(screen.getByText('Estimator')).toBeInTheDocument();
   });
 
   it('calls onWhatsNew when What\'s New item is clicked', () => {

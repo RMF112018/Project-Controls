@@ -15,7 +15,7 @@ function makeUser(permissions: string[]): ICurrentUser {
     displayName: 'Test User',
     email: 'test@hbc.com',
     loginName: 'test@hbc.com',
-    roles: [RoleName.ExecutiveLeadership],
+    roles: [RoleName.Leadership],
     permissions: new Set(permissions),
   };
 }

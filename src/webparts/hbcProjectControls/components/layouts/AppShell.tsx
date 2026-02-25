@@ -19,6 +19,7 @@ import { FeatureGate } from '../guards';
 import { useResponsive } from '../hooks/useResponsive';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
+import { useAppLocation } from '../hooks/router/useAppLocation';
 import { IEnvironmentConfig } from '@hbc/sp-services';
 import { HeaderUserMenu } from '../shared/HeaderUserMenu';
 import { ArrowMaximize24Regular, ArrowMinimize24Regular } from '@fluentui/react-icons';
@@ -48,7 +49,12 @@ const useStyles = makeStyles({
     top: '-100px',
     left: '16px',
     zIndex: 3000,
-    ...shorthands.padding('8px', '16px'),
+    ...shorthands.padding('12px', '16px'),
+    minHeight: '44px',
+    minWidth: '44px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: HBC_COLORS.navy,
     color: '#fff',
     ...shorthands.borderRadius('0', '0', '4px', '4px'),
@@ -84,7 +90,12 @@ const useStyles = makeStyles({
     color: '#fff',
     fontSize: '20px',
     cursor: 'pointer',
-    ...shorthands.padding('4px'),
+    ...shorthands.padding('0'),
+    minWidth: '44px',
+    minHeight: '44px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     lineHeight: '1',
   },
   brandName: {
@@ -167,7 +178,9 @@ const useStyles = makeStyles({
     backgroundColor: 'transparent',
     color: '#fff',
     cursor: 'pointer',
-    ...shorthands.padding('4px'),
+    ...shorthands.padding('0'),
+    minWidth: '44px',
+    minHeight: '44px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -200,6 +213,8 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
   const { currentUser, dataService, isFeatureEnabled, isFullScreen, toggleFullScreen, exitFullScreen, isOnline, isLoading, error } = useAppContext();
   const { isMobile, isTablet } = useResponsive();
   const navigate = useAppNavigate();
+  const { pathname } = useAppLocation();
+  const isHubRoute = pathname === '/' || pathname === '/hub';
   const { isHelpPanelOpen, helpPanelMode, isTourActive } = useHelp();
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
   const [whatsNewOpen, setWhatsNewOpen] = React.useState(false);
@@ -316,8 +331,6 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
     }
   }, []);
 
-  const isHelpSystemEnabled = isFeatureEnabled('EnableHelpSystem');
-
   const insightsItems = React.useMemo<IHbcInsightItem[]>(() => [
     {
       id: 'offline-signal',
@@ -329,11 +342,9 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
     },
     {
       id: 'help-system',
-      title: isHelpSystemEnabled ? 'Guided help is enabled' : 'Guided help is disabled',
-      description: isHelpSystemEnabled
-        ? 'Use Ctrl+K and search for "tour" to start contextual guidance.'
-        : 'Enable the help system feature flag to activate tours and contextual documentation.',
-      severity: isHelpSystemEnabled ? 'info' : 'warning',
+      title: 'Guided help is enabled',
+      description: 'Use Ctrl+K and search for "tour" to start contextual guidance.',
+      severity: 'info',
       isVisible: true,
     },
     {
@@ -344,7 +355,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
         : 'Press Ctrl+Shift+F to enter focused mode and reduce visual clutter.',
       severity: 'info',
     },
-  ], [isOnline, isHelpSystemEnabled, isFullScreen]);
+  ], [isOnline, isFullScreen]);
 
   const sidebarWidth = isMobile ? 0 : isTablet ? 48 : 220;
 
@@ -410,9 +421,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           >
             {isFullScreen ? <ArrowMinimize24Regular /> : <ArrowMaximize24Regular />}
           </button>
-          <FeatureGate featureName="EnableHelpSystem">
-            <HelpMenu />
-          </FeatureGate>
+          <HelpMenu />
           <SyncStatusIndicator />
           <FeatureGate featureName="RealTimeUpdates">
             <PresenceIndicator />
@@ -422,8 +431,8 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
       </header>
 
       <div className={styles.body}>
-        {/* Mobile nav overlay */}
-        {!isFullScreen && isMobile && mobileNavOpen && (
+        {/* Mobile nav overlay — suppressed on hub/dashboard */}
+        {!isFullScreen && !isHubRoute && isMobile && mobileNavOpen && (
           <>
             <div className={styles.mobileOverlay} onClick={() => setMobileNavOpen(false)} />
             <div className={styles.mobileNav}>
@@ -432,8 +441,8 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           </>
         )}
 
-        {/* Desktop/Tablet sidebar — hidden in full-screen */}
-        {!isFullScreen && !isMobile && (
+        {/* Desktop/Tablet sidebar — hidden in full-screen and on hub/dashboard */}
+        {!isFullScreen && !isHubRoute && !isMobile && (
           <nav
             data-print-hide
             aria-label="Main navigation"
@@ -471,10 +480,8 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
         items={insightsItems}
       />
       {isHelpPanelOpen && <HelpPanel mode={helpPanelMode} />}
-      <FeatureGate featureName="EnableHelpSystem">
-        <GuidedTour />
-        <ContactSupportDialog />
-      </FeatureGate>
+      <GuidedTour />
+      <ContactSupportDialog />
       <style>{`
         .hbc-skip-link:focus {
           top: 0 !important;

@@ -78,33 +78,23 @@ describe('Role Configuration - Permission Utilities', () => {
     it('uses config when available', () => {
       const configs: IRoleConfiguration[] = [
         makeConfig({
-          roleName: 'Admin',
+          roleName: 'Administrator',
           defaultPermissions: [PERMISSIONS.ADMIN_ROLES, PERMISSIONS.ADMIN_FLAGS],
         }),
       ];
 
       const result = resolvePermissionsFromConfig(configs, ['SharePoint Admin']);
-      // 'SharePoint Admin' normalizes to 'Admin'
+      // 'SharePoint Admin' normalizes to 'Administrator' per LEGACY_ROLE_MAP
       expect(result).toContain(PERMISSIONS.ADMIN_ROLES);
       expect(result).toContain(PERMISSIONS.ADMIN_FLAGS);
       expect(result).toHaveLength(2);
     });
 
     it('falls back to ROLE_PERMISSIONS when no config matches', () => {
-      // Pass empty configs; 'Marketing' is a legacy role in ROLE_PERMISSIONS
-      const result = resolvePermissionsFromConfig([], ['Marketing']);
-      // 'Marketing' normalizes to 'Business Development Manager', which has no
-      // hard-coded entry in ROLE_PERMISSIONS. The original 'Marketing' entry
-      // does exist though. Because normalizeRoleName maps 'Marketing' ->
-      // 'Business Development Manager' and ROLE_PERMISSIONS has no key for
-      // that canonical name, the result will be empty. Let's use a role that
-      // stays the same after normalization and IS in ROLE_PERMISSIONS.
-      const resultLegal = resolvePermissionsFromConfig([], ['Legal']);
-      // 'Legal' normalizes to 'Project Manager', which is NOT in ROLE_PERMISSIONS.
-      // We need a role where normalize is identity AND exists in ROLE_PERMISSIONS.
-      // 'Estimating Coordinator' maps to itself in LEGACY_ROLE_MAP.
+      // 'Estimating Coordinator' normalizes to 'Estimator' per LEGACY_ROLE_MAP.
+      // ROLE_PERMISSIONS has 'Estimator' (canonical 16-role system).
       const resultEC = resolvePermissionsFromConfig([], ['Estimating Coordinator']);
-      const expected = ROLE_PERMISSIONS['Estimating Coordinator'];
+      const expected = ROLE_PERMISSIONS['Estimator'];
       expect(resultEC).toEqual(expect.arrayContaining(expected));
       expect(resultEC).toHaveLength(expected.length);
     });
@@ -126,7 +116,7 @@ describe('Role Configuration - Permission Utilities', () => {
 
       const result = resolvePermissionsFromConfig(configs, [
         'Executive Leadership', // normalizes to 'Leadership'
-        'Department Director',  // normalizes to 'Project Executive'
+        'Project Executive',    // passes through (not in LEGACY_ROLE_MAP)
       ]);
 
       // LEAD_READ should appear exactly once
@@ -151,12 +141,12 @@ describe('Role Configuration - Permission Utilities', () => {
       expect(hasGlobalAccess(configs, ['Executive Leadership'])).toBe(true);
     });
 
-    it('returns false for Project Manager (isGlobal: false)', () => {
+    it('returns false for Commercial Operations Manager (isGlobal: false)', () => {
       const configs: IRoleConfiguration[] = [
-        makeConfig({ roleName: 'Project Manager', isGlobal: false }),
+        makeConfig({ roleName: 'Commercial Operations Manager', isGlobal: false }),
       ];
 
-      // 'Operations Team' normalizes to 'Project Manager'
+      // 'Operations Team' normalizes to 'Commercial Operations Manager'
       expect(hasGlobalAccess(configs, ['Operations Team'])).toBe(false);
     });
   });
@@ -168,12 +158,12 @@ describe('Role Configuration - Permission Utilities', () => {
     it('uses config navGroupAccess when available', () => {
       const configs: IRoleConfiguration[] = [
         makeConfig({
-          roleName: 'Admin',
+          roleName: 'Administrator',
           navGroupAccess: ['Admin', 'Operations', 'Marketing'],
         }),
       ];
 
-      // 'SharePoint Admin' normalizes to 'Admin'
+      // 'SharePoint Admin' normalizes to 'Administrator' per LEGACY_ROLE_MAP
       const result = resolveNavGroupAccess(configs, ['SharePoint Admin']);
       expect(result).toEqual(
         expect.arrayContaining(['Admin', 'Operations', 'Marketing']),
@@ -182,14 +172,13 @@ describe('Role Configuration - Permission Utilities', () => {
     });
 
     it('falls back to NAV_GROUP_ROLES for unknown role', () => {
-      // 'Estimating Coordinator' normalizes to itself and is in NAV_GROUP_ROLES
-      // under 'Preconstruction'
+      // 'Estimating Coordinator' normalizes to 'Estimator'; NAV_GROUP_ROLES uses
+      // ALL_ROLE_NAMES (includes 'Estimator') for all groups
       const result = resolveNavGroupAccess([], ['Estimating Coordinator']);
 
-      // Gather expected groups from NAV_GROUP_ROLES
       const expectedGroups: string[] = [];
       for (const [group, roles] of Object.entries(NAV_GROUP_ROLES)) {
-        if (roles.includes('Estimating Coordinator')) {
+        if (roles.includes('Estimator')) {
           expectedGroups.push(group);
         }
       }

@@ -24,20 +24,22 @@ export interface IStandaloneUserIdentity {
 }
 
 const ROLE_TO_SECURITY_GROUP: Record<RoleName, string> = {
-  [RoleName.ExecutiveLeadership]: 'HBC - Executive Leadership',
-  [RoleName.DepartmentDirector]: 'HBC - Project Executives',
-  [RoleName.OperationsTeam]: 'HBC - Project Managers',
-  [RoleName.PreconstructionTeam]: 'HBC - Estimating',
-  [RoleName.BDRepresentative]: 'HBC - Business Development',
-  [RoleName.EstimatingCoordinator]: 'HBC - Estimating',
+  [RoleName.Administrator]: 'HBC - SharePoint Admins',
+  [RoleName.Leadership]: 'HBC - Executive Leadership',
+  [RoleName.MarketingManager]: 'HBC - Business Development',
+  [RoleName.PreconstructionManager]: 'HBC - Estimating',
+  [RoleName.BusinessDevelopmentManager]: 'HBC - Business Development',
+  [RoleName.Estimator]: 'HBC - Estimating',
+  [RoleName.IDSManager]: 'HBC - Read Only',
+  [RoleName.CommercialOperationsManager]: 'HBC - Project Managers',
+  [RoleName.LuxuryResidentialManager]: 'HBC - Project Managers',
+  [RoleName.ManagerOfOperationalExcellence]: 'HBC - Project Managers',
+  [RoleName.SafetyManager]: 'HBC - Read Only',
+  [RoleName.QualityControlManager]: 'HBC - Read Only',
+  [RoleName.WarrantyManager]: 'HBC - Read Only',
+  [RoleName.HumanResourcesManager]: 'HBC - Read Only',
   [RoleName.AccountingManager]: 'HBC - Accounting',
-  [RoleName.Legal]: 'HBC - Read Only',
-  [RoleName.RiskManagement]: 'HBC - Read Only',
-  [RoleName.Marketing]: 'HBC - Read Only',
-  [RoleName.QualityControl]: 'HBC - Read Only',
-  [RoleName.Safety]: 'HBC - Read Only',
-  [RoleName.IDS]: 'HBC - Read Only',
-  [RoleName.SharePointAdmin]: 'HBC - SharePoint Admins',
+  [RoleName.RiskManager]: 'HBC - Read Only',
 };
 
 function normalize(value: string): string {

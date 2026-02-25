@@ -633,8 +633,8 @@ describe('ProvisioningService', () => {
     it('sends SiteProvisioned notification on successful completion', async () => {
       // Must have roles so NotificationService resolves recipients
       mockDs.getRoles.mockResolvedValue([
-        { Title: 'BD Representative', UserOrGroup: ['bd@test.com'] },
-        { Title: 'Operations Team', UserOrGroup: ['ops@test.com'] },
+        { Title: 'Business Development Manager', UserOrGroup: ['bd@test.com'] },
+        { Title: 'Commercial Operations Manager', UserOrGroup: ['ops@test.com'] },
       ]);
       mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
         siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',
@@ -670,9 +670,9 @@ describe('ProvisioningService', () => {
 
     it('resolves recipients from roles for notification', async () => {
       mockDs.getRoles.mockResolvedValue([
-        { Title: 'BD Representative', UserOrGroup: ['bd@test.com'] },
-        { Title: 'Operations Team', UserOrGroup: ['ops@test.com'] },
-        { Title: 'Executive Leadership', UserOrGroup: ['exec@test.com'] },
+        { Title: 'Business Development Manager', UserOrGroup: ['bd@test.com'] },
+        { Title: 'Commercial Operations Manager', UserOrGroup: ['ops@test.com'] },
+        { Title: 'Leadership', UserOrGroup: ['exec@test.com'] },
       ]);
       mockDs.getProvisioningStatus.mockResolvedValue(createMockLog({
         siteUrl: 'https://hedrickbrotherscom.sharepoint.com/sites/2504201',

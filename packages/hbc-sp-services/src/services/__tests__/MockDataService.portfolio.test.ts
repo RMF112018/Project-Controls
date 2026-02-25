@@ -470,15 +470,15 @@ describe('MockDataService — Project Assignments', () => {
   // ─── getAccessibleProjects ─────────────────────────────────────────
 
   describe('getAccessibleProjects', () => {
-    it('returns all lead project codes for globalAccess user (default ExecutiveLeadership)', async () => {
+    it('returns all lead project codes for globalAccess user (default Leadership)', async () => {
       const codes = await ds.getAccessibleProjects('bcashin@hedrickbrothers.com');
-      // ExecutiveLeadership has globalAccess → returns all lead project codes
+      // Leadership has globalAccess → returns all lead project codes
       // Should be more than the 2 directly assigned project codes
       expect(codes.length).toBeGreaterThan(2);
     });
 
-    it('returns only assigned codes after setCurrentUserRole(Marketing)', async () => {
-      ds.setCurrentUserRole(RoleName.Marketing);
+    it('returns only assigned codes after setCurrentUserRole(MarketingManager)', async () => {
+      ds.setCurrentUserRole(RoleName.MarketingManager);
       const codes = await ds.getAccessibleProjects('bcashin@hedrickbrothers.com');
       // Marketing has no globalAccess → only project team assignments
       const assignments = await ds.getMyProjectAssignments('bcashin@hedrickbrothers.com');
@@ -487,7 +487,7 @@ describe('MockDataService — Project Assignments', () => {
     });
 
     it('returns empty for unknown user with no globalAccess', async () => {
-      ds.setCurrentUserRole(RoleName.Marketing);
+      ds.setCurrentUserRole(RoleName.MarketingManager);
       const codes = await ds.getAccessibleProjects('nobody@example.com');
       expect(codes).toEqual([]);
     });

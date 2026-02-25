@@ -37,7 +37,7 @@ const baseCommands: IHbcCommandPaletteCommand[] = [
     label: 'Open Admin Panel',
     keywords: ['admin', 'permissions'],
     section: 'Administration',
-    requiredRoles: [RoleName.SharePointAdmin],
+    requiredRoles: [RoleName.Administrator],
     run: () => undefined,
   },
   {

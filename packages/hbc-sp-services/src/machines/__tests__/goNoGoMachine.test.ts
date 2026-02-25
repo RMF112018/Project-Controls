@@ -8,12 +8,12 @@ describe('goNoGoMachine', () => {
     scorecardId: 100,
     projectCode: 'P-100',
     currentStatus: ScorecardStatus.BDDraft,
-    actorRole: RoleName.BDRepresentative,
+    actorRole: RoleName.BusinessDevelopmentManager,
     userPermissions: [PERMISSIONS.GONOGO_SUBMIT],
   };
 
-  it('covers all 14 workflow roles', () => {
-    expect(ALL_WORKFLOW_ROLES).toHaveLength(14);
+  it('covers all 16 workflow roles', () => {
+    expect(ALL_WORKFLOW_ROLES).toHaveLength(16);
   });
 
   it('starts in bdDraft', () => {
@@ -25,16 +25,16 @@ describe('goNoGoMachine', () => {
   it('transitions submit -> awaitingDirectorReview', () => {
     const actor = createActor(goNoGoMachine, { input: baseContext });
     actor.start();
-    actor.send({ type: 'SUBMIT_FOR_REVIEW', actorRole: RoleName.BDRepresentative });
+    actor.send({ type: 'SUBMIT_FOR_REVIEW', actorRole: RoleName.BusinessDevelopmentManager });
     expect(actor.getSnapshot().value).toBe('awaitingDirectorReview');
   });
 
   it('blocks submit when permission is missing', () => {
     const actor = createActor(goNoGoMachine, {
-      input: { ...baseContext, userPermissions: [], actorRole: RoleName.BDRepresentative },
+      input: { ...baseContext, userPermissions: [], actorRole: RoleName.BusinessDevelopmentManager },
     });
     actor.start();
-    actor.send({ type: 'SUBMIT_FOR_REVIEW', actorRole: RoleName.BDRepresentative });
+    actor.send({ type: 'SUBMIT_FOR_REVIEW', actorRole: RoleName.BusinessDevelopmentManager });
     expect(actor.getSnapshot().value).toBe('bdDraft');
   });
 
@@ -42,13 +42,13 @@ describe('goNoGoMachine', () => {
     const actor = createActor(goNoGoMachine, {
       input: {
         ...baseContext,
-        actorRole: RoleName.SharePointAdmin,
+        actorRole: RoleName.Administrator,
         userPermissions: [PERMISSIONS.GONOGO_SUBMIT, PERMISSIONS.GONOGO_REVIEW],
       },
     });
     actor.start();
-    actor.send({ type: 'SUBMIT_FOR_REVIEW', actorRole: RoleName.SharePointAdmin });
-    actor.send({ type: 'DIRECTOR_APPROVE', actorRole: RoleName.SharePointAdmin });
+    actor.send({ type: 'SUBMIT_FOR_REVIEW', actorRole: RoleName.Administrator });
+    actor.send({ type: 'DIRECTOR_APPROVE', actorRole: RoleName.Administrator });
     expect(actor.getSnapshot().value).toBe('awaitingCommitteeScoring');
   });
 
@@ -56,7 +56,7 @@ describe('goNoGoMachine', () => {
     const actor = createActor(goNoGoMachine, {
       input: {
         ...baseContext,
-        actorRole: RoleName.SharePointAdmin,
+        actorRole: RoleName.Administrator,
         userPermissions: [
           PERMISSIONS.GONOGO_SUBMIT,
           PERMISSIONS.GONOGO_REVIEW,
@@ -66,9 +66,9 @@ describe('goNoGoMachine', () => {
       },
     });
     actor.start();
-    actor.send({ type: 'SUBMIT_FOR_REVIEW', actorRole: RoleName.SharePointAdmin });
-    actor.send({ type: 'DIRECTOR_APPROVE', actorRole: RoleName.SharePointAdmin });
-    actor.send({ type: 'DECIDE_NOGO', actorRole: RoleName.SharePointAdmin, reason: 'risk' });
+    actor.send({ type: 'SUBMIT_FOR_REVIEW', actorRole: RoleName.Administrator });
+    actor.send({ type: 'DIRECTOR_APPROVE', actorRole: RoleName.Administrator });
+    actor.send({ type: 'DECIDE_NOGO', actorRole: RoleName.Administrator, reason: 'risk' });
     expect(actor.getSnapshot().value).toBe('noGo');
     expect(actor.getSnapshot().status).toBe('done');
   });
@@ -77,8 +77,10 @@ describe('goNoGoMachine', () => {
     expect(mapGoNoGoStateToStatus('awaitingCommitteeScoring')).toBe(ScorecardStatus.AwaitingCommitteeScoring);
   });
 
+  // Stage 3: Updated to reflect granular per-role permissions.
   it('has permissions configured for known roles', () => {
-    expect(ROLE_PERMISSIONS['BD Representative']).toContain(PERMISSIONS.GONOGO_SUBMIT);
-    expect(ROLE_PERMISSIONS['Executive Leadership']).toContain(PERMISSIONS.GONOGO_DECIDE);
+    expect(ROLE_PERMISSIONS['Business Development Manager']).toContain(PERMISSIONS.GONOGO_SUBMIT);
+    expect(ROLE_PERMISSIONS['Preconstruction Manager']).toContain(PERMISSIONS.GONOGO_DECIDE);
+    expect(ROLE_PERMISSIONS['Leadership']).toContain(PERMISSIONS.GONOGO_READ);
   });
 });

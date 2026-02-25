@@ -13,12 +13,12 @@ type Story = StoryObj<typeof RoleGate>;
 
 // Executive Leadership sees content
 const execDs = new MockDataService();
-execDs.setCurrentUserRole(RoleName.ExecutiveLeadership);
+execDs.setCurrentUserRole(RoleName.Leadership);
 
 export const RoleMatches: Story = {
   parameters: { dataService: execDs },
   args: {
-    allowedRoles: [RoleName.ExecutiveLeadership, RoleName.IDS],
+    allowedRoles: [RoleName.Leadership, RoleName.IDSManager],
     children: React.createElement(
       'div',
       { style: { padding: 16, background: '#D1FAE5', borderRadius: 4 } },
@@ -34,12 +34,12 @@ export const RoleMatches: Story = {
 
 // BD Representative does not see content — shows fallback
 const bdRepDs = new MockDataService();
-bdRepDs.setCurrentUserRole(RoleName.BDRepresentative);
+bdRepDs.setCurrentUserRole(RoleName.BusinessDevelopmentManager);
 
 export const RoleBlocked: Story = {
   parameters: { dataService: bdRepDs },
   args: {
-    allowedRoles: [RoleName.ExecutiveLeadership],
+    allowedRoles: [RoleName.Leadership],
     children: React.createElement(
       'div',
       { style: { padding: 16, background: '#D1FAE5', borderRadius: 4 } },
