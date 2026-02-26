@@ -98,6 +98,29 @@
     "totalRoutes": 58,
     "lazyRoutes": 53,
     "inlineRoutes": 5,
-    "note": "5 inline routes intentional (ComingSoonPage x3, AccessDeniedPage, NotFoundPage). createLazyRoute: 7, lazyRouteComponent: 46 (39 unique components)."
+    "note": "5 inline routes intentional (ComingSoonPage x3, AccessDeniedPage, NotFoundPage). Page-level React.lazy remains primary split strategy; Stage 11 adds lazy route-definition branches for sharedservices marketing, operations logs, and admin."
+  },
+  "stage11LazyRouteGovernance": {
+    "routeModules": [
+      {
+        "branch": "sharedservices-marketing",
+        "modulePattern": "routes.sharedservices.lazy",
+        "maxModuleBytes": 180000
+      },
+      {
+        "branch": "operations-logs",
+        "modulePattern": "routes.operations.lazy",
+        "maxModuleBytes": 120000
+      },
+      {
+        "branch": "admin",
+        "modulePattern": "routes.admin.lazy",
+        "maxModuleBytes": 140000
+      }
+    ],
+    "telemetryThresholdsMs": {
+      "warn": 250,
+      "critical": 500
+    }
   }
 }

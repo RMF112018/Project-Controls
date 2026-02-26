@@ -61,6 +61,13 @@ const AuditLogPage = React.lazy(() =>
   import('../../../components/pages/admin/AuditLogPage').then(m => ({ default: m.AuditLogPage }))
 );
 
+export const AdminLayoutLazyRoute = {
+  options: {
+    id: 'admin-layout',
+    component: AdminLayout,
+  },
+};
+
 export function createAdminWorkspaceRoutes(rootRoute: unknown) {
   // Layout route — feature-gated
   const adminLayout = createRoute({

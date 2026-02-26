@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { RouterProvider, createHashHistory, createRouter } from '@tanstack/react-router';
 import type { QueryClient } from '@tanstack/react-query';
-import type { IDataService, ICurrentUser, ISelectedProject } from '@hbc/sp-services';
+import type { IDataService, ICurrentUser, ISelectedProject, ITelemetryService } from '@hbc/sp-services';
 import type { IQueryScope } from '../query/queryKeys';
 import { createTanStackPilotRouteTree } from './routes.activeProjects';
 import { RouteSuspenseFallback } from '../../components/boundaries/RouteSuspenseFallback';
@@ -14,10 +14,11 @@ export interface ITanStackRouterProviderProps {
   selectedProject: ISelectedProject | null;
   isFeatureEnabled: (featureName: string) => boolean;
   scope: IQueryScope;
+  telemetryService?: ITelemetryService;
 }
 
 export async function createHbcTanStackRouter(initialContext: ITanStackRouterProviderProps) {
-  const routeTree = await createTanStackPilotRouteTree();
+  const routeTree = await createTanStackPilotRouteTree(initialContext.telemetryService);
 
   return createRouter({
     routeTree,
@@ -28,6 +29,7 @@ export async function createHbcTanStackRouter(initialContext: ITanStackRouterPro
       selectedProject: initialContext.selectedProject,
       isFeatureEnabled: initialContext.isFeatureEnabled,
       scope: initialContext.scope,
+      telemetryService: initialContext.telemetryService,
     },
     history: createHashHistory(),
     defaultPreload: 'intent',
@@ -44,6 +46,7 @@ export const TanStackPilotRouter: React.FC<ITanStackRouterProviderProps> = ({
   selectedProject,
   isFeatureEnabled,
   scope,
+  telemetryService,
 }) => {
   // Capture initial values so first route evaluation uses the same
   // context shape as prior synchronous router initialization.
@@ -56,6 +59,7 @@ export const TanStackPilotRouter: React.FC<ITanStackRouterProviderProps> = ({
       selectedProject,
       isFeatureEnabled,
       scope,
+      telemetryService,
     };
   }
 
@@ -67,7 +71,9 @@ export const TanStackPilotRouter: React.FC<ITanStackRouterProviderProps> = ({
     void (async () => {
       const nextRouter = await createHbcTanStackRouter(initialContextRef.current!);
       if (isMounted) {
-        setRouter(nextRouter);
+        React.startTransition(() => {
+          setRouter(nextRouter);
+        });
       }
     })();
 
@@ -84,7 +90,8 @@ export const TanStackPilotRouter: React.FC<ITanStackRouterProviderProps> = ({
     selectedProject,
     isFeatureEnabled,
     scope,
-  }), [queryClient, dataService, currentUser, selectedProject, isFeatureEnabled, scope]);
+    telemetryService,
+  }), [queryClient, dataService, currentUser, selectedProject, isFeatureEnabled, scope, telemetryService]);
 
   // ── 2. Deferred context update via useEffect ──────────────────────────
   // CRITICAL: router.update() must NOT run during render.
@@ -98,9 +105,11 @@ export const TanStackPilotRouter: React.FC<ITanStackRouterProviderProps> = ({
       return;
     }
 
-    router.update({
-      ...router.options,
-      context: routerContext,
+    React.startTransition(() => {
+      router.update({
+        ...router.options,
+        context: routerContext,
+      });
     });
   }, [router, routerContext]);
 

@@ -120,6 +120,37 @@ Use this template for all new debt items:
 | Large-list smoke | Infinite pagination + virtualization flow is stable | smoke run with high-volume list fixtures/data |
 | Runtime safety | RBAC, optimistic updates, telemetry, and client filtering unchanged | targeted operations/preconstruction smoke validation |
 
+## Performance and Governance Rules - Stage 11 (Lazy Route-Definition Branches)
+
+### Route-Definition Lazy Branch Requirements
+
+- Keep non-critical route-definition branches lazy at root route assembly:
+  - shared services marketing branch
+  - operations logs/reports branch
+  - admin branch
+- Preserve existing guard order, route paths, and parent-child route relationships when adjusting branch split points.
+- Do not replace existing global Suspense/ErrorBoundary structure with branch-specific fallback context plumbing unless a production incident requires it.
+
+### Telemetry Requirements for Lazy Branch Loads
+
+- Emit Stage 11 lazy-branch telemetry on route-definition import completion/failure:
+  - metric name: `route:lazy:load:duration`
+  - event name: `route:lazy:load`
+  - required properties: `branch`, `fromPath`, `toPath`, `success`
+- Threshold posture:
+  - warn at `250ms`
+  - critical at `500ms`
+- Investigate regressions when critical threshold is crossed consistently for any branch over multiple releases.
+
+### Bundle Governance Requirements
+
+- Every release candidate must enforce Stage 11 lazy-route module checks through:
+  - `npm run verify:bundle-governance`
+- Governance must fail if any Stage 11 branch route-definition module:
+  - is absent from analyze stats,
+  - exceeds configured module byte budget,
+  - appears only in initial chunks (must remain async).
+
 ## Monitoring and Alert Review Process
 
 - Daily review open alerts/incidents and classify into defect vs. debt.

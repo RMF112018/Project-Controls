@@ -7,12 +7,14 @@
  */
 import * as React from 'react';
 import { createRoute } from '@tanstack/react-router';
+import type { ITelemetryService } from '@hbc/sp-services';
 import { PERMISSIONS } from '@hbc/sp-services';
 import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
 import { requireProject } from '../guards/requireProject';
 import { requireRole } from '../guards/requireRole';
 import type { ITanStackRouteContext } from '../routeContext';
+import { loadLazyWorkspaceBranch } from '../routes.activeProjects';
 
 // Layout
 const OperationsLayout = React.lazy(() =>
@@ -174,7 +176,7 @@ const QCDocumentsPage = React.lazy(() =>
   import('../../../components/pages/operations/QCDocumentsPage').then(m => ({ default: m.QCDocumentsPage }))
 );
 
-export function createOperationsWorkspaceRoutes(rootRoute: unknown) {
+export function createOperationsWorkspaceRoutes(rootRoute: unknown, telemetryService?: ITelemetryService) {
   // Layout route — feature-gated
   const opsLayout = createRoute({
     getParentRoute: () => rootRoute as never,
@@ -431,7 +433,12 @@ export function createOperationsWorkspaceRoutes(rootRoute: unknown) {
       requirePermission(context, PERMISSIONS.MONTHLY_REVIEW_PM);
       requireProject(context);
     },
-  });
+  }).lazy(() => loadLazyWorkspaceBranch(
+    'operations-logs',
+    '/operations/logs/monthly-reports',
+    () => import('./routes.operations.lazy'),
+    telemetryService
+  ).then(m => m.OperationsLogsMonthlyLazyRoute as never));
 
   const logsSubScorecard = createRoute({
     getParentRoute: () => opsLayout as never,

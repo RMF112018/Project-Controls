@@ -101,6 +101,13 @@ const BambooMappingsPage = React.lazy(() =>
   import('../../../components/pages/sharedservices/BambooMappingsPage').then(m => ({ default: m.BambooMappingsPage }))
 );
 
+export const SharedServicesLayoutLazyRoute = {
+  options: {
+    id: 'shared-services-layout',
+    component: SharedServicesLayout,
+  },
+};
+
 // ── Route Factory ────────────────────────────────────────────────────
 
 export function createSharedServicesWorkspaceRoutes(rootRoute: unknown): unknown[] {

@@ -76,7 +76,8 @@ const AppRoutes: React.FC = () => {
     selectedProject,
     isFeatureEnabled,
     scope,
-  }), [queryClient, dataService, currentUser, selectedProject, isFeatureEnabled, scope]);
+    telemetryService,
+  }), [queryClient, dataService, currentUser, selectedProject, isFeatureEnabled, scope, telemetryService]);
 
   const handleRender = React.useCallback<React.ProfilerOnRenderCallback>((id, phase, actualDuration, baseDuration, startTime, commitTime) => {
     if (!enableReactProfiling || typeof window === 'undefined') {

@@ -137,9 +137,11 @@ module.exports = {
           priority: 20,
           chunks: 'async',
         },
+        // Keep xstate chunk naming controlled by existing webpackChunkName
+        // comments in dynamic imports; a fixed splitChunks name here can
+        // conflict with that async chunk in webpack 5.
         xstateWorkflow: {
           test: /[\\/]node_modules[\\/](xstate|@xstate)[\\/]/,
-          name: 'lib-xstate-workflow',
           priority: 20,
           chunks: 'async',
         },

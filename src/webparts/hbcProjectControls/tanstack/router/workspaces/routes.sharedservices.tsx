@@ -6,11 +6,13 @@
  */
 import * as React from 'react';
 import { createRoute } from '@tanstack/react-router';
+import type { ITelemetryService } from '@hbc/sp-services';
 import { PERMISSIONS } from '@hbc/sp-services';
 import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
 import { requireRole } from '../guards/requireRole';
 import type { ITanStackRouteContext } from '../routeContext';
+import { loadLazyWorkspaceBranch } from '../routes.activeProjects';
 
 // Layout
 const SharedServicesLayout = React.lazy(() =>
@@ -103,7 +105,7 @@ const BambooMappingsPage = React.lazy(() =>
 
 // ── Route Factory ────────────────────────────────────────────────────
 
-export function createSharedServicesWorkspaceRoutes(rootRoute: unknown): unknown[] {
+export function createSharedServicesWorkspaceRoutes(rootRoute: unknown, telemetryService?: ITelemetryService): unknown[] {
   const sharedServicesLayout = createRoute({
     getParentRoute: () => rootRoute as never,
     id: 'shared-services-layout',
@@ -115,7 +117,12 @@ export function createSharedServicesWorkspaceRoutes(rootRoute: unknown): unknown
         'Accounting Manager', 'Risk Manager',
       ]);
     },
-  });
+  }).lazy(() => loadLazyWorkspaceBranch(
+    'sharedservices-marketing',
+    '/shared-services/marketing',
+    () => import('./routes.sharedservices.lazy'),
+    telemetryService
+  ).then(m => m.SharedServicesLayoutLazyRoute as never));
 
   // ── Landing ──
   const dashboardRoute = createRoute({

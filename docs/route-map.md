@@ -1,6 +1,19 @@
 # HBC Project Controls — Route Map
 
-> Auto-generated from Batch 3 lazy-loading hardening. Last updated: 2026-02-20.
+> Route strategy reference. Last updated: 2026-02-26 (Stage 11 Sub-task 3).
+
+## Stage 11 Route-Branch Lazy Status
+
+- Stage 11 introduces lazy route-definition branches in TanStack Router root assembly for non-critical workspaces:
+  - `sharedservices-marketing` via `routes.sharedservices.lazy.tsx`
+  - `operations-logs` via `routes.operations.lazy.tsx`
+  - `admin` via `routes.admin.lazy.tsx`
+- Page-level code splitting remains unchanged and continues to use `React.lazy` for individual views.
+- Existing app-level and route-level Suspense/ErrorBoundary layers remain canonical; no branch-labeled fallback contexts were introduced.
+- Lazy-branch load telemetry is emitted per branch using:
+  - metric: `route:lazy:load:duration`
+  - event: `route:lazy:load`
+  - properties: `branch`, `fromPath`, `toPath`, `success`
 
 ## Route Table
 
@@ -75,6 +88,9 @@
 
 | Chunk | Contents | Strategy |
 |---|---|---|
+| `routes.sharedservices.lazy` | Shared Services route-definition module | TanStack route-branch lazy import |
+| `routes.operations.lazy` | Operations logs/report route-definition module | TanStack route-branch lazy import |
+| `routes.admin.lazy` | Admin route-definition module | TanStack route-branch lazy import |
 | `phase-operations` | 10 lighter ops pages | Fat barrel (`OperationsModule.tsx`) |
 | `phase-preconstruction` | 11 precon pages | Fat barrel (`PreconstructionModule.tsx`) |
 | `phase-admin-hub` | 10 admin/hub pages | Fat barrel (`AdminHubModule.tsx`) |
@@ -108,6 +124,8 @@
 ### Concurrent Navigation
 
 `TanStackAdapterBridge` wraps all `navigate()` calls in `React.startTransition()`, making navigation from all 24+ page components concurrent. `NavigationSidebar` and `Breadcrumb` also use `startTransition` via `useTransitionNavigate` (double-wrap is safe — `startTransition` is idempotent).
+
+Stage 11 additionally wraps async router creation/context update in `React.startTransition()` to keep lazy-branch hydration smooth without introducing new fallback layers.
 
 ### Preload Inventory
 

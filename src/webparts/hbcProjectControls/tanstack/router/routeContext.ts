@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import type { IDataService, ICurrentUser, ISelectedProject } from '@hbc/sp-services';
+import type { IDataService, ICurrentUser, ISelectedProject, ITelemetryService } from '@hbc/sp-services';
 import type { IQueryScope } from '../query/queryKeys';
 
 export interface ITanStackRouteContext {
@@ -9,4 +9,5 @@ export interface ITanStackRouteContext {
   scope: IQueryScope;
   selectedProject: ISelectedProject | null;
   isFeatureEnabled: (featureName: string) => boolean;
+  telemetryService?: ITelemetryService;
 }

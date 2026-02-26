@@ -2,6 +2,33 @@
 
 All notable changes to HBC Project Controls will be documented in this file.
 
+## [Unreleased]
+
+### [2026-02-26] - Stage 11 Sub-Task 3 - perf(router-governance) - Lazy Branch UX Polish, Telemetry, and Governance Closure
+
+#### Added
+- Lazy route-branch load telemetry instrumentation for non-critical branches:
+  - metric: `route:lazy:load:duration`
+  - event: `route:lazy:load`
+  - properties: `branch`, `fromPath`, `toPath`, `success`
+- Stage 11 bundle governance checks for lazy route-definition modules, including async-chunk enforcement and per-module size thresholds.
+- Playwright smoke assertions for first-hit lazy branch navigation:
+  - `/#/shared-services/marketing`
+  - `/#/operations/logs/monthly-reports`
+  - `/#/admin`
+
+#### Changed
+- Router assembly now loads Stage 11 route-definition branches through lazy module imports and records import duration telemetry.
+- Operations workspace route tree now injects logs/reports routes from a dedicated lazy branch module while preserving route paths and guard chains.
+- Workspace root lazy module pattern is preserved for admin, operations logs, and shared services branches via TanStack route `.lazy()` wiring.
+- Router initialization/context updates use lightweight `React.startTransition` wrapping to reduce visible jank without adding new boundary layers.
+- App router provider passes telemetry service into TanStack router context for branch-load instrumentation.
+- Maintenance and route-map documentation updated to include Stage 11 lazy-route governance and monitoring thresholds.
+
+#### Notes
+- UX polish intentionally remains non-invasive: existing Suspense/ErrorBoundary layers are preserved.
+- Page-level `React.lazy` behavior and RBAC/feature-guard semantics remain unchanged.
+
 ## [2026-02-25] - Stage 9 Sub-Task 4 - docs(maintenance) - Long-Term Maintenance Process + Technical Debt Tracking
 
 ### Added

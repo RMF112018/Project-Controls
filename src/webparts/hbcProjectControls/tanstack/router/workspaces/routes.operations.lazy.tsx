@@ -21,6 +21,13 @@ const SubcontractorScorecardPage = React.lazy(() =>
   import('../../../components/pages/operations/SubcontractorScorecardPage').then(m => ({ default: m.SubcontractorScorecardPage }))
 );
 
+export const OperationsLogsMonthlyLazyRoute = {
+  options: {
+    id: '/operations/logs/monthly-reports',
+    component: MonthlyReportsPage,
+  },
+};
+
 export function createOperationsLogsRoutes(opsLayout: unknown): unknown[] {
   const logsBuyout = createRoute({
     getParentRoute: () => opsLayout as never,

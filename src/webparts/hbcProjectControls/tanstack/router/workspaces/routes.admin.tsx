@@ -6,11 +6,13 @@
  */
 import * as React from 'react';
 import { createRoute } from '@tanstack/react-router';
+import type { ITelemetryService } from '@hbc/sp-services';
 import { PERMISSIONS } from '@hbc/sp-services';
 import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
 import { requireRole } from '../guards/requireRole';
 import type { ITanStackRouteContext } from '../routeContext';
+import { loadLazyWorkspaceBranch } from '../routes.activeProjects';
 
 // Lazy page imports for code-splitting
 const AdminLayout = React.lazy(() =>
@@ -61,7 +63,7 @@ const AuditLogPage = React.lazy(() =>
   import('../../../components/pages/admin/AuditLogPage').then(m => ({ default: m.AuditLogPage }))
 );
 
-export function createAdminWorkspaceRoutes(rootRoute: unknown) {
+export function createAdminWorkspaceRoutes(rootRoute: unknown, telemetryService?: ITelemetryService) {
   // Layout route — feature-gated
   const adminLayout = createRoute({
     getParentRoute: () => rootRoute as never,
@@ -71,7 +73,12 @@ export function createAdminWorkspaceRoutes(rootRoute: unknown) {
       requireFeature(context, 'AdminWorkspace');
       requireRole(context, ['Administrator']);
     },
-  });
+  }).lazy(() => loadLazyWorkspaceBranch(
+    'admin',
+    '/admin',
+    () => import('./routes.admin.lazy'),
+    telemetryService
+  ).then(m => m.AdminLayoutLazyRoute as never));
 
   // Dashboard landing
   const adminDashboard = createRoute({
