@@ -85,10 +85,8 @@ interface ISignalRProviderProps {
 }
 
 export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) => {
-  const { isFeatureEnabled, selectedProject, telemetryService, isTelemetryExceptionCaptureEnabled } = useAppContext();
-  // Stage 6 Sub-task 4: RealTimeUpdates remains intentionally disabled/deprecated by default.
-  // Fallback behavior is to keep SignalR disconnected without changing non-realtime flows.
-  const isEnabled = isFeatureEnabled('RealTimeUpdates');
+  const { selectedProject, telemetryService, isTelemetryExceptionCaptureEnabled } = useAppContext();
+  const isEnabled = true;
   const [connectionStatus, setConnectionStatus] = React.useState<SignalRConnectionStatus>(
     signalRService.status
   );
@@ -102,7 +100,7 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
     return unsubscribe;
   }, []);
 
-  // Connect/disconnect based on feature flag
+  // Stage 12: RealTimeUpdates promoted to permanent behavior.
   React.useEffect(() => {
     const trackSignalRError = (error: unknown, operation: string): void => {
       if (!isTelemetryExceptionCaptureEnabled || !telemetryService.isInitialized()) {
@@ -115,17 +113,17 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
       });
     };
 
-    if (isEnabled) {
-      Promise.resolve(signalRService.connect()).catch((error) => {
-        console.warn('[SignalR] connect failed:', error);
-        trackSignalRError(error, 'connect');
-      });
-    } else {
+    Promise.resolve(signalRService.connect()).catch((error) => {
+      console.warn('[SignalR] connect failed:', error);
+      trackSignalRError(error, 'connect');
+    });
+
+    return () => {
       Promise.resolve(signalRService.disconnect()).catch((error) => {
         console.warn('[SignalR] disconnect failed:', error);
         trackSignalRError(error, 'disconnect');
       });
-    }
+    };
   }, [isEnabled, telemetryService, isTelemetryExceptionCaptureEnabled]);
 
   // Auto-join/leave project group when selectedProject changes

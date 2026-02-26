@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Button, makeStyles, MessageBar, shorthands, Spinner, tokens } from '@fluentui/react-components';
-import { useMutation } from '@tanstack/react-query';
-import { GoNoGoDecision, PERMISSIONS, type IGoNoGoScorecard, RoleName, ScorecardStatus } from '@hbc/sp-services';
+import { GoNoGoDecision, type IGoNoGoScorecard, RoleName, ScorecardStatus } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcDataTable } from '../../shared/HbcDataTable';
 import type { IHbcDataTableColumn } from '../../shared/HbcDataTable';
@@ -75,11 +74,10 @@ function mapStateToStatus(state: string, fallback: ScorecardStatus): ScorecardSt
 
 export const GoNoGoScorecard: React.FC<IGoNoGoScorecardProps> = ({ mode }) => {
   const styles = useStyles();
-  const { dataService, currentUser, isFeatureEnabled, selectedProject } = useAppContext();
+  const { dataService, currentUser, selectedProject } = useAppContext();
   const [scorecards, setScorecards] = React.useState<IGoNoGoScorecard[]>([]);
   const [loading, setLoading] = React.useState(true);
 
-  const workflowEnabled = isFeatureEnabled('WorkflowStateMachine');
   const activeScorecard = React.useMemo(() => {
     if (mode === 'project-hub' && selectedProject?.leadId) {
       return scorecards.find((card) => card.LeadID === selectedProject.leadId) ?? scorecards[0] ?? null;
@@ -160,18 +158,6 @@ export const GoNoGoScorecard: React.FC<IGoNoGoScorecardProps> = ({ mode }) => {
     },
   });
 
-  const fallbackMutation = useMutation<IGoNoGoScorecard, Error, { eventType: string }>({
-    mutationFn: async ({ eventType }) => {
-      if (!activeScorecard) {
-        throw new Error('No scorecard selected');
-      }
-      if (eventType === 'SUBMIT_FOR_REVIEW') {
-        return dataService.submitScorecard(activeScorecard.id, currentUser?.email ?? 'system');
-      }
-      return dataService.updateScorecard(activeScorecard.id, {});
-    },
-  });
-
   const workflowInput = React.useMemo(() => ({
     scorecardId: activeScorecard?.id ?? 0,
     projectCode: activeScorecard?.ProjectCode ?? selectedProject?.projectCode ?? '',
@@ -182,7 +168,7 @@ export const GoNoGoScorecard: React.FC<IGoNoGoScorecardProps> = ({ mode }) => {
 
   const workflow = useWorkflowMachine({
     machineType: 'goNoGo',
-    enabled: workflowEnabled && !!activeScorecard,
+    enabled: !!activeScorecard,
     input: workflowInput,
   });
 
@@ -193,11 +179,11 @@ export const GoNoGoScorecard: React.FC<IGoNoGoScorecardProps> = ({ mode }) => {
 
   const displayedStatusById = React.useMemo(() => {
     const map = new Map<number, ScorecardStatus>();
-    if (workflowEnabled && activeScorecard && workflow.state) {
+    if (activeScorecard && workflow.state) {
       map.set(activeScorecard.id, mapStateToStatus(workflow.state, activeScorecard.scorecardStatus));
     }
     return map;
-  }, [workflowEnabled, activeScorecard, workflow.state]);
+  }, [activeScorecard, workflow.state]);
 
   const columns = React.useMemo((): IHbcDataTableColumn<IGoNoGoScorecard>[] => [
     { key: 'ProjectCode', header: 'Lead', render: (row) => row.ProjectCode || '—' },
@@ -226,17 +212,12 @@ export const GoNoGoScorecard: React.FC<IGoNoGoScorecardProps> = ({ mode }) => {
     if (!activeScorecard) return;
     const actorRole = getActorRole(currentUser?.roles ?? []);
 
-    if (!workflowEnabled) {
-      await fallbackMutation.mutateAsync({ eventType });
-      return;
-    }
-
     await transition.transition(
       eventType,
       { eventType },
       { actorRole, reason: 'Workflow UI action' }
     );
-  }, [activeScorecard, currentUser?.roles, fallbackMutation, transition, workflowEnabled]);
+  }, [activeScorecard, currentUser?.roles, transition]);
 
   if (mode === 'project-hub' && !selectedProject) {
     return (
@@ -254,7 +235,7 @@ export const GoNoGoScorecard: React.FC<IGoNoGoScorecardProps> = ({ mode }) => {
         subtitle={mode === 'project-hub' ? `${selectedProject?.projectCode ?? ''} ${selectedProject?.projectName ?? ''}`.trim() : undefined}
       />
 
-      {workflowEnabled && activeScorecard && workflow.isReady && (
+      {activeScorecard && workflow.isReady && (
         <div className={styles.actions}>
           {workflow.allowedEvents.map((eventType) => (
             <Button
@@ -272,7 +253,7 @@ export const GoNoGoScorecard: React.FC<IGoNoGoScorecardProps> = ({ mode }) => {
         </div>
       )}
 
-      {workflowEnabled && workflow.error && (
+      {workflow.error && (
         <MessageBar intent="warning">Workflow machine unavailable: {workflow.error.message}</MessageBar>
       )}
 
@@ -284,19 +265,6 @@ export const GoNoGoScorecard: React.FC<IGoNoGoScorecardProps> = ({ mode }) => {
         keyExtractor={(row) => String(row.id)}
       />
 
-      {!workflowEnabled && activeScorecard && (
-        <div className={styles.actions}>
-          <Button
-            size="small"
-            appearance="primary"
-            disabled={!currentUser?.permissions?.has(PERMISSIONS.GONOGO_SUBMIT)}
-            onClick={() => void runWorkflowAction('SUBMIT_FOR_REVIEW')}
-            data-testid="gonogo-machine-action-SUBMIT_FOR_REVIEW"
-          >
-            Submit for Review
-          </Button>
-        </div>
-      )}
     </div>
   );
 };

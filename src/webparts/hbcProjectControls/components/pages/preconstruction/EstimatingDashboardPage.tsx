@@ -2,8 +2,8 @@
  * EstimatingDashboardPage — Estimating Department Dashboard.
  *
  * Route: /preconstruction/estimating — 5 KPI cards, 3 interactive ECharts
- * (award status donut, estimates by source, estimator workload), and PowerBI
- * placeholder behind feature flag.
+ * (award status donut, estimates by source, estimator workload), and Power BI
+ * placeholder section.
  */
 import * as React from 'react';
 import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
@@ -19,7 +19,6 @@ import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
 import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { HbcEChart } from '../../shared/HbcEChart';
-import { FeatureGate } from '../../guards/FeatureGate';
 import { AwardStatus } from '@hbc/sp-services';
 import { useEstimatingDashboardData } from './useEstimatingDashboardData';
 import { HBC_COLORS, ELEVATION, TRANSITION } from '../../../theme/tokens';
@@ -354,15 +353,13 @@ export const EstimatingDashboardPage: React.FC = () => {
         </div>
       )}
 
-      {/* Section 3: PowerBI Placeholder */}
-      <FeatureGate featureName="PowerBIIntegration">
-        <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Power BI Reports</h3>
-          <div className={styles.powerBiPlaceholder}>
-            Power BI embedded reports will appear here when configured.
-          </div>
+      {/* Section 3: Power BI Placeholder */}
+      <div className={styles.chartCard}>
+        <h3 className={styles.chartTitle}>Power BI Reports</h3>
+        <div className={styles.powerBiPlaceholder}>
+          Power BI embedded reports will appear here when configured.
         </div>
-      </FeatureGate>
+      </div>
     </div>
   );
 };

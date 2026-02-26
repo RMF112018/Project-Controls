@@ -3,7 +3,7 @@
  *
  * Root route `/` — enterprise-wide project intelligence and performance metrics.
  * 5 KPI cards, 6 interactive ECharts, recent activity feed, role-gated workspace
- * quick links, and a Power BI embed placeholder behind feature flag.
+ * quick links, and a Power BI embed placeholder section.
  */
 import * as React from 'react';
 import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
@@ -697,17 +697,15 @@ export const AnalyticsHubDashboardPage: React.FC = () => {
       )}
 
       {/* ── Power BI Embed Placeholder ─────────────────────────────────── */}
-      <FeatureGate featureName="PowerBIIntegration">
-        <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Power BI Reports</h3>
-          <div className={styles.powerBiPlaceholder}>
-            <span>Power BI embedded reports will appear here when configured.</span>
-            <span className={styles.powerBiSubtext}>
-              Contact IT to enable Power BI integration for live executive reporting.
-            </span>
-          </div>
+      <div className={styles.chartCard}>
+        <h3 className={styles.chartTitle}>Power BI Reports</h3>
+        <div className={styles.powerBiPlaceholder}>
+          <span>Power BI embedded reports will appear here when configured.</span>
+          <span className={styles.powerBiSubtext}>
+            Contact IT to enable Power BI integration for live executive reporting.
+          </span>
         </div>
-      </FeatureGate>
+      </div>
     </div>
   );
 };

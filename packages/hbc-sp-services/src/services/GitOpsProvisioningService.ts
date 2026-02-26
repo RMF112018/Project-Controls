@@ -4,7 +4,7 @@ import { ITemplateRegistry } from '../models/ITemplateManifest';
 
 /**
  * GitOpsProvisioningService — orchestrates template application from committed registry.
- * Used by ProvisioningService step 5 when `useGitOpsProvisioning = true`.
+ * Used by ProvisioningService step 5 as the permanent template application path.
  */
 export class GitOpsProvisioningService {
   constructor(private dataService: IDataService) {}

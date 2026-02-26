@@ -2,8 +2,8 @@
  * PreconDashboardPage — Preconstruction Workspace Landing Dashboard.
  *
  * Route: /preconstruction — 4 KPI cards, 3 interactive ECharts (lead funnel,
- * win rate by PE, post-bid autopsy trend), sub-hub quick links, and PowerBI
- * placeholder behind feature flag.
+ * win rate by PE, post-bid autopsy trend), sub-hub quick links, and Power BI
+ * placeholder section.
  */
 import * as React from 'react';
 import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
@@ -19,7 +19,6 @@ import { KPICard } from '../../shared/KPICard';
 import { HbcCard } from '../../shared/HbcCard';
 import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { HbcEChart } from '../../shared/HbcEChart';
-import { FeatureGate } from '../../guards/FeatureGate';
 import { useAppNavigate } from '../../hooks/router/useAppNavigate';
 import { Stage } from '@hbc/sp-services';
 import { usePreconDashboardData } from './usePreconDashboardData';
@@ -409,15 +408,13 @@ export const PreconDashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Section 4: PowerBI Placeholder */}
-      <FeatureGate featureName="PowerBIIntegration">
-        <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Power BI Reports</h3>
-          <div className={styles.powerBiPlaceholder}>
-            Power BI embedded reports will appear here when configured.
-          </div>
+      {/* Section 4: Power BI Placeholder */}
+      <div className={styles.chartCard}>
+        <h3 className={styles.chartTitle}>Power BI Reports</h3>
+        <div className={styles.powerBiPlaceholder}>
+          Power BI embedded reports will appear here when configured.
         </div>
-      </FeatureGate>
+      </div>
     </div>
   );
 };

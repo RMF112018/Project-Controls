@@ -26,125 +26,30 @@
     "id": 33,
     "FeatureName": "GitOpsProvisioning",
     "DisplayName": "GitOps Template Provisioning",
-    "Enabled": false,
+    "Enabled": true,
     "EnabledForRoles": null,
     "TargetDate": null,
-    "Notes": "Deprecated (Stage 6 Sub-task 4): intentionally disabled; gate retained for compatibility; no runtime behavior change. Step 5 uses committed /templates/ instead of Template_Registry SP list",
-    "Category": "Infrastructure"
-  },
-  {
-    "id": 34,
-    "FeatureName": "TemplateSiteSync",
-    "DisplayName": "Template Site Sync Panel",
-    "Enabled": false,
-    "EnabledForRoles": [
-      "Leadership",
-      "IDS Manager",
-      "Administrator"
-    ],
-    "TargetDate": null,
-    "Notes": "Deprecated (Stage 6 Sub-task 4): intentionally disabled; gate retained for compatibility; no runtime behavior change. Shows Template Site sync UI in AdminPanel → Provisioning tab",
-    "Category": "Infrastructure"
-  },
-  {
-    "id": 37,
-    "FeatureName": "OptimisticMutationsEnabled",
-    "DisplayName": "Optimistic Mutations Enabled",
-    "Enabled": false,
-    "EnabledForRoles": null,
-    "TargetDate": null,
-    "Notes": "Deprecated (Stage 6 Sub-task 4): intentionally disabled; gate retained for compatibility; no runtime behavior change. Global gate for optimistic mutation lifecycle (onMutate rollback/invalidation).",
-    "Category": "Infrastructure"
-  },
-  {
-    "id": 38,
-    "FeatureName": "OptimisticMutations_Leads",
-    "DisplayName": "Optimistic Mutations Leads",
-    "Enabled": false,
-    "EnabledForRoles": [
-      "Administrator"
-    ],
-    "TargetDate": null,
-    "Notes": "Deprecated (Stage 6 Sub-task 4): intentionally disabled; gate retained for compatibility; no runtime behavior change. Enables optimistic mutation flow for Leads domain.",
-    "Category": "Infrastructure"
-  },
-  {
-    "id": 39,
-    "FeatureName": "OptimisticMutations_Estimating",
-    "DisplayName": "Optimistic Mutations Estimating",
-    "Enabled": false,
-    "EnabledForRoles": [
-      "Estimator",
-      "Administrator"
-    ],
-    "TargetDate": null,
-    "Notes": "Deprecated (Stage 6 Sub-task 4): intentionally disabled; gate retained for compatibility; no runtime behavior change. Enables optimistic mutation flow for Estimating domain.",
-    "Category": "Infrastructure"
-  },
-  {
-    "id": 40,
-    "FeatureName": "OptimisticMutations_Buyout",
-    "DisplayName": "Optimistic Mutations Buyout",
-    "Enabled": false,
-    "EnabledForRoles": [
-      "Manager of Operational Excellence",
-      "Administrator"
-    ],
-    "TargetDate": null,
-    "Notes": "Deprecated (Stage 6 Sub-task 4): intentionally disabled; gate retained for compatibility; no runtime behavior change. Enables optimistic mutation flow for Buyout and compliance workflows.",
-    "Category": "Infrastructure"
-  },
-  {
-    "id": 41,
-    "FeatureName": "OptimisticMutations_PMP",
-    "DisplayName": "Optimistic Mutations PMP",
-    "Enabled": false,
-    "EnabledForRoles": [
-      "Commercial Operations Manager",
-      "Administrator"
-    ],
-    "TargetDate": null,
-    "Notes": "Deprecated (Stage 6 Sub-task 4): intentionally disabled; gate retained for compatibility; no runtime behavior change. Enables optimistic mutation flow for PMP updates and approvals.",
-    "Category": "Infrastructure"
-  },
-  {
-    "id": 43,
-    "FeatureName": "InfinitePagingEnabled",
-    "DisplayName": "Infinite Paging Enabled",
-    "Enabled": false,
-    "EnabledForRoles": null,
-    "TargetDate": null,
-    "Notes": "Deprecated (Stage 6 Sub-task 4): intentionally disabled; gate retained for compatibility; no runtime behavior change. Global gate for cursor-based infinite query paging.",
-    "Category": "Infrastructure"
-  },
-  {
-    "id": 51,
-    "FeatureName": "ConnectorMutationResilience",
-    "DisplayName": "Connector Mutation Resilience",
-    "Enabled": false,
-    "EnabledForRoles": null,
-    "TargetDate": null,
-    "Notes": "Deprecated (Stage 6 Sub-task 4): intentionally disabled; gate retained for compatibility; no runtime behavior change. Phase 5A: Enables retry/backoff for connector mutations via useConnectorMutation hook",
+    "Notes": "Stage 12: promoted to permanent provisioning path. Step 5 always uses committed /templates/ registry flow.",
     "Category": "Infrastructure"
   },
   {
     "id": 52,
     "FeatureName": "WorkflowStateMachine",
     "DisplayName": "Workflow State Machine",
-    "Enabled": false,
+    "Enabled": true,
     "EnabledForRoles": null,
     "TargetDate": null,
-    "Notes": "Deprecated (Stage 6 Sub-task 4): intentionally disabled; gate retained for compatibility; no runtime behavior change. Intentionally disabled — dual-path guard. Legacy imperative path is active fallback. Referenced by GoNoGoScorecard and PMPPage.",
+    "Notes": "Stage 12: promoted to permanent workflow execution path for Go/No-Go and PMP pages.",
     "Category": "Infrastructure"
   },
   {
     "id": 53,
     "FeatureName": "ProvisioningSaga",
     "DisplayName": "Provisioning Saga",
-    "Enabled": false,
+    "Enabled": true,
     "EnabledForRoles": null,
     "TargetDate": null,
-    "Notes": "Deprecated (Stage 6 Sub-task 4): intentionally disabled; gate retained for compatibility; no runtime behavior change. Intentionally disabled — dual-path guard. Legacy provisioning path is active fallback. Referenced by ProvisioningPage FeatureGate.",
+    "Notes": "Stage 12: promoted to permanent provisioning execution path.",
     "Category": "Infrastructure"
   },
   {
@@ -161,36 +66,26 @@
     "Category": "Infrastructure"
   },
   {
-    "id": 57,
-    "FeatureName": "PowerBIIntegration",
-    "DisplayName": "Power BI Embedded Reports",
-    "Enabled": false,
-    "EnabledForRoles": null,
-    "TargetDate": null,
-    "Notes": "Deprecated (Stage 6 Sub-task 4): intentionally disabled; gate retained for compatibility; no runtime behavior change. Power BI embed — not yet deployed. Referenced by PreconDashboardPage, EstimatingDashboardPage, AnalyticsHubDashboardPage.",
-    "Category": "Integrations"
-  },
-  {
     "id": 58,
     "FeatureName": "RealTimeUpdates",
     "DisplayName": "Real-Time Updates (SignalR)",
-    "Enabled": false,
+    "Enabled": true,
     "EnabledForRoles": null,
     "TargetDate": null,
-    "Notes": "Deprecated (Stage 6 Sub-task 4): intentionally disabled; gate retained for compatibility; no runtime behavior change. SignalR real-time push — not yet deployed. Referenced by AppShell (PresenceIndicator) and SignalRContext.",
+    "Notes": "Stage 12: promoted to permanent SignalR and presence updates behavior.",
     "Category": "Infrastructure"
   },
   {
     "id": 59,
     "FeatureName": "NonLocalhostTelemetry",
     "DisplayName": "Non-Localhost Telemetry",
-    "Enabled": false,
+    "Enabled": true,
     "EnabledForRoles": [
       "Leadership",
       "Administrator"
     ],
     "TargetDate": null,
-    "Notes": "Controls non-localhost telemetry activation. Must also be enabled via Admin toggle. Default off for production safety (Stage 8 Sub-task 1, 2026-02-25).",
+    "Notes": "Controls non-localhost telemetry activation. Must also be enabled via Admin toggle (runtime gate retained).",
     "Category": "Observability"
   }
 ]

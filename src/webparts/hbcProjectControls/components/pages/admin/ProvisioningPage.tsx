@@ -116,7 +116,7 @@ function formatDate(iso: string | null | undefined): string {
   }
 }
 
-/** Expandable cell with ProvisioningStatusStepper — dual-path via deprecated-disabled ProvisioningSaga gate. */
+/** Expandable cell with ProvisioningStatusStepper for provisioning progress detail. */
 const ProvisioningProgressCell: React.FC<{ log: IProvisioningLog }> = ({ log }) => {
   const styles = useStyles();
   const [expanded, setExpanded] = React.useState(false);
@@ -567,16 +567,7 @@ export const ProvisioningPage: React.FC = () => {
       key: 'progress',
       header: 'Progress',
       render: (row) => (
-        <FeatureGate
-          featureName="ProvisioningSaga"
-          fallback={
-            <span className={styles.progressText}>
-              {row.completedSteps} / 7 steps
-            </span>
-          }
-        >
-          <ProvisioningProgressCell log={row} />
-        </FeatureGate>
+        <ProvisioningProgressCell log={row} />
       ),
     },
     {

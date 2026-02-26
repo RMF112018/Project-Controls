@@ -1,11 +1,9 @@
 import * as React from 'react';
 import { Button, makeStyles, Spinner, shorthands, tokens } from '@fluentui/react-components';
-import { useMutation } from '@tanstack/react-query';
 import { RoleName, type IProjectManagementPlan, type PMPStatus } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { CollapsibleSection } from '../../shared/CollapsibleSection';
 import { StatusBadge } from '../../shared/StatusBadge';
-import { HbcButton } from '../../shared/HbcButton';
 import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useToast } from '../../shared/ToastContainer';
@@ -87,15 +85,12 @@ function mapStateToDisplayStatus(state: string, fallback: PMPStatus): PMPStatus 
 
 export const PMPPage: React.FC = () => {
   const styles = useStyles();
-  const { dataService, selectedProject, currentUser, isFeatureEnabled } = useAppContext();
+  const { dataService, selectedProject, currentUser } = useAppContext();
   const projectCode = selectedProject?.projectCode || '';
   const { addToast } = useToast();
 
   const [plan, setPlan] = React.useState<IProjectManagementPlan | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [submitting, setSubmitting] = React.useState(false);
-
-  const workflowEnabled = isFeatureEnabled('WorkflowStateMachine');
 
   React.useEffect(() => {
     if (!projectCode) {
@@ -109,23 +104,7 @@ export const PMPPage: React.FC = () => {
       .finally(() => setLoading(false));
   }, [dataService, projectCode]);
 
-  // --- Legacy imperative path (flag OFF) --- byte-for-byte preserved ---
-  const handleSubmitForApproval = React.useCallback(async (): Promise<void> => {
-    if (!projectCode || !currentUser) return;
-
-    setSubmitting(true);
-    try {
-      const updated = await dataService.submitPMPForApproval(projectCode, currentUser.email);
-      setPlan(updated);
-      addToast('PMP submitted for approval.', 'success');
-    } catch {
-      addToast('Failed to submit PMP for approval.', 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  }, [dataService, projectCode, currentUser, addToast]);
-
-  // --- Machine-driven path (flag ON) ---
+  // Stage 12: Workflow machine path is now permanent.
   const optimisticMutation = useHbcOptimisticMutation<IProjectManagementPlan, { eventType: string }, IProjectManagementPlan | null>({
     method: 'submitPMPForApproval',
     domainFlag: OPTIMISTIC_MUTATION_FLAGS.workflows,
@@ -152,13 +131,6 @@ export const PMPPage: React.FC = () => {
     },
   });
 
-  const fallbackMutation = useMutation<IProjectManagementPlan, Error, { eventType: string }>({
-    mutationFn: async () => {
-      if (!plan) throw new Error('No PMP loaded');
-      return dataService.submitPMPForApproval(projectCode, currentUser?.email ?? 'system');
-    },
-  });
-
   const workflowInput = React.useMemo(() => ({
     pmpId: plan?.id ?? 0,
     projectCode: plan?.projectCode ?? projectCode,
@@ -171,7 +143,7 @@ export const PMPPage: React.FC = () => {
 
   const workflow = useWorkflowMachine({
     machineType: 'pmpApproval',
-    enabled: workflowEnabled && !!plan,
+    enabled: !!plan,
     input: workflowInput,
   });
 
@@ -182,22 +154,14 @@ export const PMPPage: React.FC = () => {
 
   // Display status: machine state when enabled, otherwise plan.status
   const displayStatus = React.useMemo((): PMPStatus => {
-    if (workflowEnabled && plan && workflow.state) {
+    if (plan && workflow.state) {
       return mapStateToDisplayStatus(workflow.state, plan.status);
     }
     return plan?.status ?? 'Draft';
-  }, [workflowEnabled, plan, workflow.state]);
+  }, [plan, workflow.state]);
 
   const runWorkflowAction = React.useCallback(async (eventType: string): Promise<void> => {
     if (!plan) return;
-
-    if (!workflowEnabled) {
-      await fallbackMutation.mutateAsync({ eventType });
-      const refreshed = await dataService.getProjectManagementPlan(projectCode);
-      setPlan(refreshed);
-      addToast('PMP submitted for approval.', 'success');
-      return;
-    }
 
     try {
       await transition.transition(
@@ -209,7 +173,7 @@ export const PMPPage: React.FC = () => {
     } catch {
       addToast('Failed to complete PMP workflow action.', 'error');
     }
-  }, [plan, workflowEnabled, fallbackMutation, transition, currentUser?.roles, dataService, projectCode, addToast]);
+  }, [plan, transition, currentUser?.roles, addToast]);
 
   if (!projectCode) {
     return (
@@ -269,8 +233,7 @@ export const PMPPage: React.FC = () => {
         <span>Last Updated: {plan.lastUpdatedAt}</span>
       </div>
 
-      {/* Machine-driven action bar (flag ON) */}
-      {workflowEnabled && plan && workflow.isReady && (
+      {plan && workflow.isReady && (
         <div className={styles.actions}>
           {workflow.allowedEvents.map((eventType) => (
             <Button
@@ -316,21 +279,6 @@ export const PMPPage: React.FC = () => {
         </CollapsibleSection>
       )}
 
-      {/* Legacy imperative path (flag OFF) — byte-for-byte preserved */}
-      {!workflowEnabled && (
-        <div className={styles.actions}>
-          {plan.status === 'Draft' && (
-            <HbcButton
-              emphasis="strong"
-              onClick={handleSubmitForApproval}
-              isLoading={submitting}
-              data-testid="pmp-machine-action-SUBMIT_FOR_APPROVAL"
-            >
-              Submit for Approval
-            </HbcButton>
-          )}
-        </div>
-      )}
     </div>
   );
 };

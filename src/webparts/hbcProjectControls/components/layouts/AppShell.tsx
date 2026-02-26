@@ -15,7 +15,6 @@ import { HbcInsightsPanel } from '../shared/HbcInsightsPanel';
 import type { IHbcInsightItem } from '../shared/HbcInsightsPanel';
 import { useHbcMotionStyles } from '../shared/HbcMotion';
 import { HelpMenu, HelpPanel, GuidedTour, ContactSupportDialog } from '../help';
-import { FeatureGate } from '../guards';
 import { useResponsive } from '../hooks/useResponsive';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
@@ -423,10 +422,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           </button>
           <HelpMenu />
           <SyncStatusIndicator />
-          {/* Stage 6 Sub-task 4: RealTimeUpdates is intentionally disabled/deprecated by default. */}
-          <FeatureGate featureName="RealTimeUpdates">
-            <PresenceIndicator />
-          </FeatureGate>
+          <PresenceIndicator />
           <HeaderUserMenu onWhatsNew={() => setWhatsNewOpen(true)} />
         </div>
       </header>

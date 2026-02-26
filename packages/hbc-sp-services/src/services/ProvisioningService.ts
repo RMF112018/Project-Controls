@@ -31,10 +31,8 @@ export class ProvisioningService {
   private offlineQueueService?: OfflineQueueService;
   private usePowerAutomate: boolean;
   private useRealOps: boolean;
-  private useGitOpsProvisioning: boolean;
   private entraIdSyncService?: EntraIdSyncService;
   private siteDefaults?: ISiteProvisioningDefaults;
-  private isFeatureEnabled?: (flag: string) => boolean;
   private signalRBroadcast?: (msg: SignalRMessage) => void;
 
   constructor(
@@ -56,10 +54,10 @@ export class ProvisioningService {
     this.offlineQueueService = offlineQueueService;
     this.usePowerAutomate = usePowerAutomate ?? false;
     this.useRealOps = useRealOps ?? false;
-    this.useGitOpsProvisioning = useGitOpsProvisioning ?? false;
     this.entraIdSyncService = entraIdSyncService;
-    this.isFeatureEnabled = isFeatureEnabled;
     this.signalRBroadcast = signalRBroadcast;
+    void useGitOpsProvisioning;
+    void isFeatureEnabled;
   }
 
   /**
@@ -88,18 +86,13 @@ export class ProvisioningService {
       Details: `Site provisioning triggered for "${input.projectName}" (${input.projectCode})`,
     }).catch(console.error);
 
-    // Phase 5C: Dual-path — saga with compensation when flag ON, legacy runSteps when OFF
-    if (this.isFeatureEnabled?.('ProvisioningSaga')) {
-      const saga = new ProvisioningSaga(this.dataService, this.signalRBroadcast, graphBatchEnforcer, listThresholdGuard);
-      saga.execute(input).then(result => {
-        if (result.success && result.siteUrl) {
-          this.handlePostCompletion(input, result.siteUrl).catch(console.error);
-        }
-      }).catch(console.error);
-    } else {
-      // Unchanged legacy path
-      this.runSteps(input).catch(console.error);
-    }
+    // Stage 12: ProvisioningSaga promoted to permanent path.
+    const saga = new ProvisioningSaga(this.dataService, this.signalRBroadcast, graphBatchEnforcer, listThresholdGuard);
+    saga.execute(input).then(result => {
+      if (result.success && result.siteUrl) {
+        this.handlePostCompletion(input, result.siteUrl).catch(console.error);
+      }
+    }).catch(console.error);
 
     return log;
   }
@@ -357,11 +350,7 @@ export class ProvisioningService {
         }
         break;
       case 5:
-        if (this.useGitOpsProvisioning) {
-          await new GitOpsProvisioningService(this.dataService).applyTemplates(siteUrl, input.division);
-        } else {
-          await this.dataService.copyTemplateFiles(siteUrl, input.projectCode, input.division);
-        }
+        await new GitOpsProvisioningService(this.dataService).applyTemplates(siteUrl, input.division);
         break;
       case 6: await this.dataService.copyLeadDataToProjectSite(siteUrl, input.leadId, input.projectCode); break;
       case 7: break; // Handled post-loop via updateLead()

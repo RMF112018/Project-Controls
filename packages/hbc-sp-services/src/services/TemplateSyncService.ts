@@ -11,7 +11,7 @@ export interface IDiffResult {
 
 /**
  * TemplateSyncService — computes diff between live Template Site and committed registry.
- * Used by TemplateSiteSyncPanel to detect drift before creating a GitHub PR.
+ * Used by provisioning governance tooling to detect drift before creating a GitHub PR.
  */
 export class TemplateSyncService {
   constructor(private dataService: IDataService) {}

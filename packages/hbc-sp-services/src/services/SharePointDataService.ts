@@ -697,7 +697,7 @@ export class SharePointDataService implements IDataService {
         Details: thresholdResult.message,
       }).catch(() => {}); // fire-and-forget
     }
-    if (ListThresholdGuard.shouldUseCursorPaging(items.length, false)) {
+    if (ListThresholdGuard.shouldUseCursorPaging(items.length)) {
       const pageResult = await this.getAuditLogPage({ pageSize: 100 });
       return pageResult.items;
     }

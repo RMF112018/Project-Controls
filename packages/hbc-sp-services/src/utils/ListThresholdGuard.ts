@@ -3,7 +3,7 @@
  *
  * Monitors SharePoint list item counts against the 5,000-item list view threshold.
  * - Warning at 3,000 (telemetry only, no behavioral change)
- * - Critical at 4,500 (force cursor paging when InfinitePagingEnabled is ON)
+ * - Critical at 4,500 (force cursor paging)
  *
  * Exported singleton `listThresholdGuard` with default thresholds.
  */
@@ -74,15 +74,10 @@ export class ListThresholdGuard {
   }
 
   /**
-   * Dual-gate check: returns true ONLY when BOTH conditions are met:
-   * 1. itemCount >= criticalThreshold (4500)
-   * 2. isInfinitePagingEnabled === true
-   *
-   * This prevents false positives: flag alone on small list shouldn't force paging;
-   * count alone without infrastructure shouldn't force paging.
+   * Threshold-governed check: use cursor paging when item volume is critical.
    */
-  static shouldUseCursorPaging(itemCount: number, isInfinitePagingEnabled: boolean): boolean {
-    return itemCount >= LIST_THRESHOLD_CRITICAL && isInfinitePagingEnabled;
+  static shouldUseCursorPaging(itemCount: number): boolean {
+    return itemCount >= LIST_THRESHOLD_CRITICAL;
   }
 }
 

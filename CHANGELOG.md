@@ -4,6 +4,35 @@ All notable changes to HBC Project Controls will be documented in this file.
 
 ## [Unreleased]
 
+### [2026-02-26] - Stage 12 Sub-Task 3 - refactor(flags) - Final 13-Flag Cleanup (9 Removed, 4 Promoted)
+
+#### Removed
+- Deprecated-disabled registry flags removed: `TemplateSiteSync` (34), `OptimisticMutationsEnabled` (37), `OptimisticMutations_Leads` (38), `OptimisticMutations_Estimating` (39), `OptimisticMutations_Buyout` (40), `OptimisticMutations_PMP` (41), `InfinitePagingEnabled` (43), `ConnectorMutationResilience` (51), `PowerBIIntegration` (57).
+- Removed Power BI feature-gate wrappers from:
+  - `src/webparts/hbcProjectControls/components/pages/preconstruction/PreconDashboardPage.tsx`
+  - `src/webparts/hbcProjectControls/components/pages/preconstruction/EstimatingDashboardPage.tsx`
+  - `src/webparts/hbcProjectControls/components/pages/hub/AnalyticsHubDashboardPage.tsx`
+- Removed deprecated Stage 12 TODO markers and stale dual-path/deprecated comments in promoted paths.
+
+#### Changed
+- Promoted to permanent runtime behavior and enabled by default in registry:
+  - `GitOpsProvisioning` (33)
+  - `WorkflowStateMachine` (52)
+  - `ProvisioningSaga` (53)
+  - `RealTimeUpdates` (58)
+- Promoted `NonLocalhostTelemetry` (59) to enabled-by-default while preserving admin runtime toggle control.
+- `packages/hbc-sp-services/src/services/ProvisioningService.ts`:
+  - `ProvisioningSaga` is now the permanent path in `provisionSite`.
+  - Step 5 template application now always uses `GitOpsProvisioningService`.
+- `src/webparts/hbcProjectControls/components/pages/hub/GoNoGoScorecard.tsx` and `src/webparts/hbcProjectControls/components/pages/operations/PMPPage.tsx` now run workflow-machine path without legacy fallback branches.
+- `src/webparts/hbcProjectControls/components/layouts/AppShell.tsx` and `src/webparts/hbcProjectControls/components/contexts/SignalRContext.tsx` now run real-time presence/SignalR behavior without feature gating.
+- `packages/hbc-sp-services/src/utils/ListThresholdGuard.ts` now uses threshold-only cursor paging logic; removed obsolete InfinitePaging flag coupling.
+
+#### Notes
+- Feature-flag registry now contains zero `Enabled: false` entries.
+- Stage 10 virtualization/infinite-query posture and Stage 11 lazy-route governance were preserved by design (no route-tree or virtualization architecture rollback).
+- Teams core smoke now passes at 100% (1/1), completing Stage 12 E2E closure.
+
 ### [2026-02-26] - Stage 11 Sub-Task 3 - perf(router-governance) - Lazy Branch UX Polish, Telemetry, and Governance Closure
 
 #### Added

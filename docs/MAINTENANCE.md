@@ -63,6 +63,10 @@ Use this template for all new debt items:
 - Closed debt items must include objective evidence from validation commands.
 - If a debt item reopens, create a new row with linked prior item for traceability.
 - Governance reviews must update both debt status and next checkpoint date.
+- Feature-flag registry posture: no deprecated-disabled runtime flags are permitted in active releases.
+- New flags must include explicit lifecycle intent (`temporary rollout` or `permanent`) and a removal/promotion checkpoint date.
+- Flag cleanup changes must remove dead branches, stale gate comments, and obsolete registry entries in the same release.
+- Stage 12 closure confirms zero disabled flags in the live registry and full smoke coverage across standalone and Teams core suites.
 
 ## Release and Rollout Maintenance Gates
 

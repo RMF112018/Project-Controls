@@ -4,7 +4,7 @@
  * Provides reverse-order compensation on failure, idempotency tokens, and optional
  * SignalR broadcast callbacks. Compensation failures are logged but NEVER thrown.
  *
- * Feature flag: ProvisioningSaga (default OFF).
+ * Stage 12: ProvisioningSaga is the permanent provisioning path.
  * When OFF, ProvisioningService.runSteps() is used unchanged.
  */
 import type { IDataService } from './IDataService';

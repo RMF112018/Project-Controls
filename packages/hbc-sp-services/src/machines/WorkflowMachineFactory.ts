@@ -13,10 +13,9 @@ const syncRegistry: Record<WorkflowMachineType, AnyStateMachine> = {
 /**
  * WorkflowMachineFactory — Singleton factory for xstate v5 workflow machines.
  *
- * DUAL-PATH ENFORCEMENT (Phase 5B):
- * - Feature flag `WorkflowStateMachine` gates all machine usage in UI.
- * - When flag OFF: machines are never instantiated; legacy imperative path runs byte-for-byte.
- * - When flag ON: machines loaded lazily via getAsync() into lib-xstate-workflow chunk.
+ * PERMANENT MACHINE PATH (Stage 12):
+ * - Workflow machines are the default execution path in UI.
+ * - Machines are loaded lazily via getAsync() into lib-xstate-workflow chunk.
  * - UI components MUST use useWorkflowMachine/useWorkflowTransition hooks — never import
  *   machines directly or call machine.send() outside hooks.
  */
