@@ -79,6 +79,42 @@ Use this template for all new debt items:
 | Teams Smoke | Teams-hosted smoke must pass | `npm run test:e2e:teams-core-smoke` |
 | Router Parity | Route parity smoke must pass | `npm run test:e2e:router-parity` |
 
+## Accessibility Guardrails - Stage 13
+
+- Any scrollable landmark container (`main`, workspace/sidebar navigation regions) must be keyboard-focusable using minimal `tabIndex` and semantic HTML.
+- Header identity components (including Fluent UI Persona text) must maintain WCAG 2.2 AA contrast against the active header background token set.
+- Axe suppressions for critical rules (for example, `scrollable-region-focusable` and contrast exceptions) are not permitted as long-lived defaults; use runtime remediation first.
+- Release candidates must keep responsive and primary accessibility Playwright suites green with these rules actively enforced.
+
+## Stage 13 Closure Governance (Performance + A11y + Release Gates)
+
+### Performance Assertion Thresholds (Enforced)
+
+- Lazy-route chunk duration must remain `< 200ms` when chunk timing entries are observable.
+- First rows/content readiness must remain `< 800ms` when row signals are present; fallback meaningful-content readiness must remain `< 3200ms`.
+- Navigation timing gates must hold at `domInteractive < 2500ms` and `loadEventEnd < 4000ms`.
+- INP proxy (rAF interaction latency) must remain `< 180ms`.
+- LCP proxy must remain `< 2500ms` when LCP entries are available.
+- Long-task guardrails require `max long task < 250ms` with bounded long-task counts per suite context.
+- Virtualization frame-jank bounds require `max frame delta < 140ms` and `average frame delta < 45ms`.
+- Memory growth guardrail requires heap growth `< 45%` when `performance.memory` is available; fallback hard gate is long-task stability when memory APIs are unavailable.
+
+### Accessibility Standards (Enforced)
+
+- Scrollable landmark keyboard access and WCAG AA contrast requirements are mandatory on critical routes.
+- Long-lived axe suppressions for critical rules are not permitted.
+- Both `playwright/accessibility.spec.ts` and `playwright/responsive-a11y.e2e.spec.ts` must remain green in release candidates.
+
+### Stage 13 Release Gating Requirements
+
+- Required verification commands:
+  - `npx playwright test playwright/*smoke*.spec.ts playwright/responsive-a11y.e2e.spec.ts playwright/accessibility.spec.ts playwright/load-time.e2e.spec.ts playwright/performance-benchmarks.e2e.spec.ts playwright/router-branch-parity.spec.ts playwright/virtualized-infinite.spec.ts --reporter=line`
+  - `npx tsc --noEmit`
+- Closure conditions:
+  - `100%` pass rate for the targeted Stage 13 verification matrix.
+  - Zero disabled accessibility suppressions for remediated Stage 13 rules.
+  - Stage 10/11 performance metric coverage remains active with adaptive hard-budget enforcement.
+
 ## Performance Gating Rules - Stage 10 (Infinite Queries & Virtualization)
 
 ### Query Page-Size Defaults (Field Device Baseline)

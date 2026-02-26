@@ -4,6 +4,65 @@ All notable changes to HBC Project Controls will be documented in this file.
 
 ## [Unreleased]
 
+### [2026-02-26] - Stage 13 Sub-Task 4 - docs(governance) - Final Verification + Release Closure
+
+#### Added
+- Final Stage 13 closure evidence from targeted end-to-end verification:
+  - Playwright targeted matrix passed at `60/60` (smoke + responsive-a11y + accessibility + perf coverage).
+  - TypeScript release gate passed: `npx tsc --noEmit`.
+- Stage 13 closure governance codified in `docs/MAINTENANCE.md` with exact performance and accessibility enforcement thresholds.
+
+#### Changed
+- Stage 13 is now formally closed with:
+  - Stage 10/11 performance assertions active across prioritized smoke/performance suites.
+  - All 5 previously failing responsive accessibility violations remediated.
+  - Zero disabled accessibility suppressions for the remediated rule set in primary accessibility coverage.
+
+#### Notes
+- Closure verification summary: `60/60` targeted suites passed with zero regressions detected.
+
+### [2026-02-26] - Stage 13 Sub-Task 3 - fix(a11y) - Critical Axe Violation Closure (Scrollable Regions + Header Contrast)
+
+#### Added
+- Production a11y hardening for known P1/P2 axe failures on critical routes:
+  - keyboard-focusable scrollable main shell region in `AppShell`
+  - keyboard-focusable scrollable workspace sidebar region in `ContextualSidebar`
+  - WCAG AA-compliant Persona text contrast overrides in `HeaderUserMenu`
+
+#### Changed
+- `playwright/accessibility.spec.ts` now enforces full axe coverage for:
+  - `scrollable-region-focusable` (rule no longer disabled)
+  - Persona text contrast (no Persona selector exclusions)
+- Removed legacy suppression comments tied to previously deferred shell/header accessibility debt.
+
+#### Notes
+- Fixes preserve Stage 10 virtualization and Stage 11 lazy route behavior while restoring keyboard and contrast compliance on home/admin/shared-services flows.
+
+### [2026-02-26] - Stage 13 Sub-Task 2 - test(perf) - Stage 10/11 Smoke Performance Assertion Extension
+
+#### Added
+- Production-grade performance assertions across prioritized Playwright smoke suites:
+  - `playwright/router-branch-parity.spec.ts`
+  - `playwright/virtualized-infinite.spec.ts`
+  - `playwright/load-time.e2e.spec.ts`
+  - `playwright/performance-benchmarks.e2e.spec.ts`
+  - `playwright/teams-core-smoke.spec.ts`
+- Stage 11 lazy-route chunk timing checks with adaptive fallback to hard navigation/long-task budgets when chunk entries are not observable.
+- Stage 10 virtualization and field-device jank gates (frame-delta and long-task budgets) on virtualized route smoke paths.
+- LCP and INP proxy assertions using `performance` APIs and `requestAnimationFrame`-based interaction latency checks.
+- Memory snapshot gating in benchmarks using `performance.memory.usedJSHeapSize` when available, with bounded-growth threshold and strict fallback guards.
+
+#### Changed
+- Reworked `playwright/performance-benchmarks.e2e.spec.ts` away from brittle route/selector assumptions to stable route readiness and adaptive signal checks.
+- Upgraded `playwright/load-time.e2e.spec.ts` from elapsed-time-only checks to structured navigation timing, LCP proxy, INP proxy, and long-task budgets.
+- Added minimal Teams embed performance gates for critical field routes:
+  - `/#/operations/project/settings`
+  - `/#/operations/project/manual/startup`
+  - `/#/operations/pmp`
+
+#### Notes
+- Assertion strategy is adaptive hard-budget: timing/jank budgets fail hard; optional markers (chunk/virtualization metadata) are asserted when present without introducing flaky coupling.
+
 ### [2026-02-26] - Stage 12 Sub-Task 3 - refactor(flags) - Final 13-Flag Cleanup (9 Removed, 4 Promoted)
 
 #### Removed
