@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, makeStyles, Spinner, shorthands, tokens } from '@fluentui/react-components';
 import { useMutation } from '@tanstack/react-query';
-import { PERMISSIONS, RoleName, type IProjectManagementPlan, type PMPStatus } from '@hbc/sp-services';
+import { RoleName, type IProjectManagementPlan, type PMPStatus } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { CollapsibleSection } from '../../shared/CollapsibleSection';
 import { StatusBadge } from '../../shared/StatusBadge';

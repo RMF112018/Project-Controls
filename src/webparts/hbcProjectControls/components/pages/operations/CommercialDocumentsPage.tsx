@@ -3,7 +3,6 @@ import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
   container: {

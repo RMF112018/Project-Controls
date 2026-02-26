@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useWorkflowMachine } from '../useWorkflowMachine';
 import { PERMISSIONS, RoleName, ScorecardStatus } from '@hbc/sp-services';

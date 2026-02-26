@@ -210,12 +210,12 @@ interface IAppShellProps {
 export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
   const styles = useStyles();
   const motionStyles = useHbcMotionStyles();
-  const { currentUser, dataService, isFeatureEnabled, isFullScreen, toggleFullScreen, exitFullScreen, isOnline, isLoading, error } = useAppContext();
+  const { dataService, isFeatureEnabled, isFullScreen, toggleFullScreen, exitFullScreen, isOnline, isLoading, error } = useAppContext();
   const { isMobile, isTablet } = useResponsive();
   const navigate = useAppNavigate();
   const { pathname } = useAppLocation();
   const isHubRoute = pathname === '/' || pathname === '/hub';
-  const { isHelpPanelOpen, helpPanelMode, isTourActive } = useHelp();
+  const { isHelpPanelOpen, helpPanelMode } = useHelp();
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
   const [whatsNewOpen, setWhatsNewOpen] = React.useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = React.useState(false);

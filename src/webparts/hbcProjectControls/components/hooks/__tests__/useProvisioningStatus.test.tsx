@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { useProvisioningStatus } from '../useProvisioningStatus';
 import type { SignalRMessage, IProvisioningStatusMessage } from '@hbc/sp-services';
