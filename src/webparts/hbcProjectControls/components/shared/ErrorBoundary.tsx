@@ -7,6 +7,7 @@ interface IErrorBoundaryProps {
   fallback?: React.ReactNode;
   boundaryName?: string;
   telemetryService?: ITelemetryService;
+  telemetryEnabled?: boolean;
   telemetryProperties?: Record<string, string>;
 }
 
@@ -35,7 +36,8 @@ export class ErrorBoundary extends React.Component<IErrorBoundaryProps, IErrorBo
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     console.error('ErrorBoundary caught:', error, errorInfo);
 
-    if (!isLocalhostTelemetryEnabled() || !this.props.telemetryService?.isInitialized()) {
+    const telemetryEnabled = this.props.telemetryEnabled ?? isLocalhostTelemetryEnabled();
+    if (!telemetryEnabled || !this.props.telemetryService?.isInitialized()) {
       return;
     }
 

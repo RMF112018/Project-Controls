@@ -11,6 +11,8 @@
   },
   "scripts": {
     "build:lib": "cd packages/hbc-sp-services && npm run build",
+    "sp-services:pack": "npm run --workspace=packages/hbc-sp-services pack:local",
+    "sp-services:publish:check": "npm run --workspace=packages/hbc-sp-services publish:check",
     "build:app": "gulp bundle --ship && gulp package-solution --ship",
     "build:standalone": "npm run build:lib && npm run validate:standalone-env && vite build --config dev/vite.standalone.config.ts",
     "build:standalone:analyze": "npm run build:lib && npm run validate:standalone-env && STANDALONE_ANALYZE=true vite build --config dev/vite.standalone.config.ts",

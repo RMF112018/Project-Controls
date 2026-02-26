@@ -179,5 +179,18 @@
     "TargetDate": null,
     "Notes": "Deprecated (Stage 6 Sub-task 4): intentionally disabled; gate retained for compatibility; no runtime behavior change. SignalR real-time push — not yet deployed. Referenced by AppShell (PresenceIndicator) and SignalRContext.",
     "Category": "Infrastructure"
+  },
+  {
+    "id": 59,
+    "FeatureName": "NonLocalhostTelemetry",
+    "DisplayName": "Non-Localhost Telemetry",
+    "Enabled": false,
+    "EnabledForRoles": [
+      "Leadership",
+      "Administrator"
+    ],
+    "TargetDate": null,
+    "Notes": "Controls non-localhost telemetry activation. Must also be enabled via Admin toggle. Default off for production safety (Stage 8 Sub-task 1, 2026-02-25).",
+    "Category": "Observability"
   }
 ]

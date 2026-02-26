@@ -490,6 +490,53 @@ Uses a hybrid CSS pattern — **Griffel `makeStyles()`** (Fluent UI v9 CSS-in-JS
 
 ---
 
+## `@hbc/sp-services` Suite Consumption
+
+`@hbc/sp-services` is prepared for cross-application consumption by HBC Suite projects.
+
+### Install / Import
+
+```bash
+npm install @hbc/sp-services
+```
+
+```ts
+import type { IDataService, IFeatureFlag, IActiveProject } from '@hbc/sp-services';
+import { MockDataService, SharePointDataService, CACHE_KEYS, RoleName } from '@hbc/sp-services';
+```
+
+### Semver + Peer Dependencies
+
+- Package version follows semantic versioning.
+- Host apps should provide peer dependencies compatible with:
+  - `react` / `react-dom` `>=18.2.0 <19`
+  - `@pnp/sp`, `@pnp/graph`, `@pnp/queryable`, `@pnp/logging` `^4.4.1`
+  - `@microsoft/signalr` `^8.0.0 || ^10.0.0`
+
+### Monorepo Build/Pack/Publish Workflow
+
+```bash
+# Build shared package
+npm run build:lib
+
+# Validate package contents
+npm run sp-services:pack
+
+# Validate publish command
+npm run sp-services:publish:check
+```
+
+For internal publication:
+
+```bash
+cd packages/hbc-sp-services
+npm publish --access restricted
+```
+
+The package-level guide is also available at `packages/hbc-sp-services/README.md`.
+
+---
+
 ## Contributing
 
 ### Before You Code

@@ -64,13 +64,6 @@ function entityTypeToCacheKeys(entityType: EntityType, projectCode?: string): st
   return keys;
 }
 
-function isLocalhostTelemetryEnabled(): boolean {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  return window.location.hostname === 'localhost';
-}
-
 export interface ISignalRContextValue {
   connectionStatus: SignalRConnectionStatus;
   isEnabled: boolean;
@@ -92,7 +85,7 @@ interface ISignalRProviderProps {
 }
 
 export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) => {
-  const { isFeatureEnabled, selectedProject, telemetryService } = useAppContext();
+  const { isFeatureEnabled, selectedProject, telemetryService, isTelemetryExceptionCaptureEnabled } = useAppContext();
   // Stage 6 Sub-task 4: RealTimeUpdates remains intentionally disabled/deprecated by default.
   // Fallback behavior is to keep SignalR disconnected without changing non-realtime flows.
   const isEnabled = isFeatureEnabled('RealTimeUpdates');
@@ -112,7 +105,7 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
   // Connect/disconnect based on feature flag
   React.useEffect(() => {
     const trackSignalRError = (error: unknown, operation: string): void => {
-      if (!isLocalhostTelemetryEnabled() || !telemetryService.isInitialized()) {
+      if (!isTelemetryExceptionCaptureEnabled || !telemetryService.isInitialized()) {
         return;
       }
       const exception = error instanceof Error ? error : new Error(String(error));
@@ -133,7 +126,7 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
         trackSignalRError(error, 'disconnect');
       });
     }
-  }, [isEnabled, telemetryService]);
+  }, [isEnabled, telemetryService, isTelemetryExceptionCaptureEnabled]);
 
   // Auto-join/leave project group when selectedProject changes
   React.useEffect(() => {
@@ -147,7 +140,7 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
     if (prevCode) {
       Promise.resolve(signalRService.leaveGroup(`project:${prevCode.toLowerCase()}`)).catch((error) => {
         console.warn('[SignalR] leaveGroup failed:', error);
-        if (isLocalhostTelemetryEnabled() && telemetryService.isInitialized()) {
+        if (isTelemetryExceptionCaptureEnabled && telemetryService.isInitialized()) {
           const exception = error instanceof Error ? error : new Error(String(error));
           telemetryService.trackException(exception, {
             source: 'SignalRProvider',
@@ -160,7 +153,7 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
     if (newCode) {
       Promise.resolve(signalRService.joinGroup(`project:${newCode.toLowerCase()}`)).catch((error) => {
         console.warn('[SignalR] joinGroup failed:', error);
-        if (isLocalhostTelemetryEnabled() && telemetryService.isInitialized()) {
+        if (isTelemetryExceptionCaptureEnabled && telemetryService.isInitialized()) {
           const exception = error instanceof Error ? error : new Error(String(error));
           telemetryService.trackException(exception, {
             source: 'SignalRProvider',
@@ -172,7 +165,7 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
     }
 
     prevProjectRef.current = newCode;
-  }, [isEnabled, connectionStatus, selectedProject, telemetryService]);
+  }, [isEnabled, connectionStatus, selectedProject, telemetryService, isTelemetryExceptionCaptureEnabled]);
 
   // Cache invalidation: clear stale cache when entity changes arrive
   React.useEffect(() => {
@@ -186,7 +179,7 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
         keysToInvalidate.forEach(key => cacheService.removeByPrefix(key));
       } catch (error) {
         console.warn('[SignalR] entity-change cache invalidation failed:', error);
-        if (isLocalhostTelemetryEnabled() && telemetryService.isInitialized()) {
+        if (isTelemetryExceptionCaptureEnabled && telemetryService.isInitialized()) {
           const exception = error instanceof Error ? error : new Error(String(error));
           telemetryService.trackException(exception, {
             source: 'SignalRProvider',
@@ -197,7 +190,7 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
     });
 
     return unsubscribe;
-  }, [isEnabled, telemetryService]);
+  }, [isEnabled, telemetryService, isTelemetryExceptionCaptureEnabled]);
 
   // Phase 5C: Provisioning status cache invalidation
   React.useEffect(() => {
@@ -212,7 +205,7 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
           cacheService.removeByPrefix(CACHE_KEYS.PROVISIONING);
         } catch (error) {
           console.warn('[SignalR] provisioning cache invalidation failed:', error);
-          if (isLocalhostTelemetryEnabled() && telemetryService.isInitialized()) {
+          if (isTelemetryExceptionCaptureEnabled && telemetryService.isInitialized()) {
             const exception = error instanceof Error ? error : new Error(String(error));
             telemetryService.trackException(exception, {
               source: 'SignalRProvider',
@@ -224,7 +217,7 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
     });
 
     return unsubscribeProvisioning;
-  }, [isEnabled, telemetryService]);
+  }, [isEnabled, telemetryService, isTelemetryExceptionCaptureEnabled]);
 
   // Stable subscribe function
   const subscribe = React.useCallback(
@@ -239,7 +232,7 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
     (message: SignalRMessage) => {
       signalRService.broadcastChange(message).catch((error) => {
         console.warn(error);
-        if (isLocalhostTelemetryEnabled() && telemetryService.isInitialized()) {
+        if (isTelemetryExceptionCaptureEnabled && telemetryService.isInitialized()) {
           const exception = error instanceof Error ? error : new Error(String(error));
           telemetryService.trackException(exception, {
             source: 'SignalRProvider',
@@ -248,7 +241,7 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
         }
       });
     },
-    [telemetryService]
+    [telemetryService, isTelemetryExceptionCaptureEnabled]
   );
 
   const value = React.useMemo<ISignalRContextValue>(
@@ -260,6 +253,7 @@ export const SignalRProvider: React.FC<ISignalRProviderProps> = ({ children }) =
     <ErrorBoundary
       boundaryName="SignalRProvider"
       telemetryService={telemetryService}
+      telemetryEnabled={isTelemetryExceptionCaptureEnabled}
     >
       <SignalRContext.Provider value={value}>{children}</SignalRContext.Provider>
     </ErrorBoundary>

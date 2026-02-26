@@ -60,11 +60,33 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground3,
     backgroundColor: tokens.colorNeutralBackground3,
   },
+  telemetryGateCard: {
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    ...shorthands.padding('12px'),
+    display: 'grid',
+    ...shorthands.gap('8px'),
+    backgroundColor: tokens.colorNeutralBackground2,
+  },
+  telemetryGateTitle: {
+    fontWeight: 600 as const,
+    fontSize: '14px',
+    color: tokens.colorNeutralForeground1,
+  },
+  telemetryGateNotes: {
+    fontSize: '12px',
+    color: tokens.colorNeutralForeground3,
+  },
 });
 
 export const FeatureFlagsPage: React.FC = () => {
   const styles = useStyles();
-  const { dataService, currentUser } = useAppContext();
+  const {
+    dataService,
+    currentUser,
+    isNonLocalhostTelemetryAdminEnabled,
+    setNonLocalhostTelemetryAdminEnabled,
+  } = useAppContext();
   const { addToast } = useToast();
 
   const [flags, setFlags] = React.useState<IFeatureFlag[]>([]);
@@ -124,6 +146,10 @@ export const FeatureFlagsPage: React.FC = () => {
     return groups;
   }, [flags]);
 
+  const isNonLocalhostTelemetryFeatureEnabled = React.useMemo(() => (
+    flags.some(flag => flag.FeatureName === 'NonLocalhostTelemetry' && flag.Enabled)
+  ), [flags]);
+
   if (loading) {
     return (
       <div>
@@ -144,6 +170,18 @@ export const FeatureFlagsPage: React.FC = () => {
         subtitle="Toggle application features by category. Changes take effect immediately."
       />
       <div className={styles.container}>
+        <div className={styles.telemetryGateCard}>
+          <span className={styles.telemetryGateTitle}>Non-localhost telemetry runtime activation</span>
+          <Switch
+            checked={isNonLocalhostTelemetryAdminEnabled}
+            disabled={!isNonLocalhostTelemetryFeatureEnabled}
+            onChange={(_, data) => setNonLocalhostTelemetryAdminEnabled(data.checked)}
+            aria-label="Enable non-localhost telemetry for this browser"
+          />
+          <span className={styles.telemetryGateNotes}>
+            Requires two gates to activate outside localhost: feature flag `NonLocalhostTelemetry` and this admin toggle. Default is off for production safety.
+          </span>
+        </div>
         {CATEGORY_ORDER.map(category => {
           const categoryFlags = groupedFlags.get(category) || [];
           if (categoryFlags.length === 0) return null;

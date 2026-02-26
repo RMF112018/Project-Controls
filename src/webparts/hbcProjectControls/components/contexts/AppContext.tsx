@@ -41,6 +41,9 @@ export interface IAppContextValue {
   getDashboardPreference: (key: string) => IDashboardPreference | undefined;
   setDashboardPreference: (key: string, value: IDashboardPreference) => void;
   resetDashboardPreference: (key: string) => void;
+  isNonLocalhostTelemetryAdminEnabled: boolean;
+  setNonLocalhostTelemetryAdminEnabled: (enabled: boolean) => void;
+  isTelemetryExceptionCaptureEnabled: boolean;
   devToolsConfig?: IDevToolsConfig;
 }
 
@@ -53,6 +56,15 @@ interface IAppProviderProps {
   dataServiceMode?: 'mock' | 'standalone' | 'sharepoint';
   devToolsConfig?: IDevToolsConfig;
   children: React.ReactNode;
+}
+
+const NON_LOCALHOST_TELEMETRY_ADMIN_TOGGLE_KEY = 'hbc:telemetry:nonlocalhost:enabled';
+
+function isLocalhostEnvironment(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  return window.location.hostname === 'localhost';
 }
 
 export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetryService, siteUrl, dataServiceMode, devToolsConfig, children }) => {
@@ -71,6 +83,16 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
   const [resolvedPermissions, setResolvedPermissions] = React.useState<IResolvedPermissions | null>(null);
   const [isProjectSwitching, setIsProjectSwitching] = React.useState(false);
   const [dashboardPreferences, setDashboardPreferences] = React.useState<Record<string, IDashboardPreference>>({});
+  const [isNonLocalhostTelemetryAdminEnabled, setIsNonLocalhostTelemetryAdminEnabledState] = React.useState<boolean>(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    try {
+      return window.localStorage.getItem(NON_LOCALHOST_TELEMETRY_ADMIN_TOGGLE_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   // Site detection — compute once on mount
   const siteContext = React.useMemo(() => {
@@ -277,6 +299,24 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     return true;
   }, [featureFlags, userRoles]);
 
+  const setNonLocalhostTelemetryAdminEnabled = React.useCallback((enabled: boolean): void => {
+    setIsNonLocalhostTelemetryAdminEnabledState(enabled);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(NON_LOCALHOST_TELEMETRY_ADMIN_TOGGLE_KEY, String(enabled));
+      } catch {
+        // best-effort persistence
+      }
+    }
+  }, []);
+
+  const isTelemetryExceptionCaptureEnabled = React.useMemo(() => {
+    if (isLocalhostEnvironment()) {
+      return true;
+    }
+    return isFeatureEnabled('NonLocalhostTelemetry') && isNonLocalhostTelemetryAdminEnabled;
+  }, [isFeatureEnabled, isNonLocalhostTelemetryAdminEnabled]);
+
   const getDashboardPreference = React.useCallback((key: string): IDashboardPreference | undefined => (
     dashboardPreferences[key]
   ), [dashboardPreferences]);
@@ -326,8 +366,11 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     getDashboardPreference,
     setDashboardPreference,
     resetDashboardPreference,
+    isNonLocalhostTelemetryAdminEnabled,
+    setNonLocalhostTelemetryAdminEnabled,
+    isTelemetryExceptionCaptureEnabled,
     devToolsConfig,
-  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isProjectSwitching, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode, isOnline, dashboardPreferences, getDashboardPreference, setDashboardPreference, resetDashboardPreference, devToolsConfig]);
+  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isProjectSwitching, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode, isOnline, dashboardPreferences, getDashboardPreference, setDashboardPreference, resetDashboardPreference, isNonLocalhostTelemetryAdminEnabled, setNonLocalhostTelemetryAdminEnabled, isTelemetryExceptionCaptureEnabled, devToolsConfig]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

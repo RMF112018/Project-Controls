@@ -13,13 +13,14 @@ interface IWorkspaceLayoutProps {
  * Provides workspace identification, error boundary, and suspense fallback.
  */
 export const WorkspaceLayout: React.FC<IWorkspaceLayoutProps> = ({ workspaceId, children }) => {
-  const { telemetryService } = useAppContext();
+  const { telemetryService, isTelemetryExceptionCaptureEnabled } = useAppContext();
 
   return (
     <div data-workspace={workspaceId}>
       <ErrorBoundary
         boundaryName="WorkspaceLayout"
         telemetryService={telemetryService}
+        telemetryEnabled={isTelemetryExceptionCaptureEnabled}
         telemetryProperties={{ workspaceId }}
       >
         <React.Suspense fallback={<RouteSuspenseFallback />}>

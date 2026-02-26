@@ -141,6 +141,7 @@ export const App: React.FC<IAppProps> = ({ dataService, telemetryService, siteUr
       <ErrorBoundary
         boundaryName="AppRoot"
         telemetryService={telemetryService}
+        telemetryEnabled={typeof window !== 'undefined' && window.location.hostname === 'localhost'}
       >
         <QueryClientProvider client={queryClient}>
           <AppProvider dataService={dataService} telemetryService={telemetryService} siteUrl={siteUrl} dataServiceMode={dataServiceMode} devToolsConfig={devToolsConfig}>

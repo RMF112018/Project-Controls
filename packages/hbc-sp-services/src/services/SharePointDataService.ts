@@ -643,7 +643,12 @@ export class SharePointDataService implements IDataService {
   private handleError(
     method: string,
     err: unknown,
-    options?: { entityType?: string; entityId?: string; rethrow?: boolean }
+    options?: {
+      entityType?: string;
+      entityId?: string;
+      rethrow?: boolean;
+      metadata?: Record<string, unknown>;
+    }
   ): DataServiceError {
     const dsError = err instanceof DataServiceError
       ? err

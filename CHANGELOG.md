@@ -2,6 +2,133 @@
 
 All notable changes to HBC Project Controls will be documented in this file.
 
+## [2026-02-25] - Stage 8 Sub-Task 4 - docs(release) - Final Stage 6-8 Rollout Notes + Deployment/Rollback Checklist
+
+### Added
+- Final consolidated Stage 6-8 production deployment and rollback checklist with explicit gate criteria, verification commands, rollback triggers, and owner accountability.
+- Consolidated Stage 8 and overall Stage 6-8 release summary for final production deployment governance.
+
+### Changed
+- Consolidated release-governance guidance from distributed Stage 6-8 entries into one final rollout-ready section for deployment decisioning and rollback execution.
+
+### Stage 8 + Stage 6-8 Consolidated Summary
+- Stage 8 Sub-task 1 completed controlled telemetry activation using a dual gate (`NonLocalhostTelemetry` feature flag + admin toggle), preserving localhost diagnostics and default-off non-localhost behavior.
+- Stage 8 Sub-task 2 remediated lingering smoke failures (`mode-switch`, `teams-core`) and expanded critical-path E2E coverage for settings, startup/closeout, and optimistic-host render paths.
+- Stage 8 Sub-task 3 prepared `@hbc/sp-services` for suite consumption with semantic versioning, package export/packaging metadata, and documented pack/publish workflow.
+- Stage 8 Sub-task 4 finalizes release governance with an operations-ready deployment and rollback checklist tied to objective evidence gates.
+- Stage 6 established performance/scalability baselines (profiling instrumentation, optimistic mutation hardening, lazy routing, and disabled-flag governance hygiene).
+- Stage 7 hardened production posture (bundle-size governance, localhost-gated observability boundaries, shared-service abstraction extraction, and release-readiness criteria).
+- Across Stage 6-8, no planned runtime behavior change was introduced for guarded/disabled paths unless explicitly enabled via feature gate + admin control.
+
+### Production Deployment and Rollback Checklist (Stage 6-8 Final)
+
+| Gate | Primary Evidence (Stage Source) | Deploy Criteria | Verification Command | Rollback Trigger | Rollback Action | Owner |
+|---|---|---|---|---|---|---|
+| Compile integrity gate | Stage 6-8 cumulative changes | Clean TypeScript compile from deployment candidate branch | `npx tsc --noEmit` | Any compile or type regression | Stop release train; revert candidate commit set to last green deployment tag and rerun compile gates | Engineering |
+| Bundle governance gate | Stage 7 Sub-task 1 (`verify:bundle-governance`) | Entrypoint budget policy remains compliant and analyze output is produced | `npm run verify:bundle-governance` | Budget breach or analyze failure | Revert latest bundle-affecting changes; redeploy last known-good `.sppkg` artifact | Engineering |
+| Routing/RBAC parity gate | Stage 6 Sub-task 3 lazy-route rollout | Non-critical lazy routes preserve path IDs, RBAC, and feature-gate behavior | `npm run test:e2e:router-parity` | Navigation mismatch, access drift, or lazy-route boot regression | Roll back to pre-change route tree commit and redeploy package | Engineering + QA |
+| Telemetry controlled-activation gate | Stage 8 Sub-task 1 dual-gate telemetry | Non-localhost telemetry stays disabled unless both controls are enabled intentionally | Manual admin toggle + feature-flag validation | Unexpected telemetry emission in non-localhost | Stop rollout, keep `NonLocalhostTelemetry` disabled, turn off admin toggle, redeploy last known-good package | Engineering + Operations |
+| Flag-governance gate | Stage 6 Sub-task 4 deprecated-disabled flags | Deprecated-disabled flags remain off with no accidental activation | Manual feature-flag review in admin + registry check | Any disabled/deprecated flag observed active unintentionally | Restore flag registry to approved disabled state and redeploy | Operations |
+| E2E smoke gate | Stage 8 Sub-task 2 smoke remediation | Core smoke suites pass for standalone and Teams-hosted surfaces | `npm run test:e2e:standalone-smoke` and `npm run test:e2e:teams-core-smoke` | Smoke failure on mode-switch, Teams shell, or critical operations route | Halt deployment; revert to last passing smoke build; reopen rollout after fix + rerun | QA |
+| Package-consumption gate | Stage 8 Sub-task 3 package readiness | Shared package build/pack succeeds and remains consumable by suite apps | `npm run build:lib` and `npm run sp-services:pack` | Package build or pack failure | Roll back package metadata/versioning change set and republish last stable package | Engineering |
+| Final deployment approval gate | Stage 6-8 consolidated governance | All gates above pass with deployment sign-off recorded | Manual checklist sign-off + changelog evidence | Any gate unresolved at release cut | Cancel release window and execute controlled rollback to previous production deployment | Release Manager |
+
+### Final Release Notes
+- `NonLocalhostTelemetry` remains dual-gated and default-off in non-localhost environments unless explicitly enabled by both feature flag and admin runtime toggle.
+- Deprecated-disabled feature flags remain intentionally off to preserve controlled rollout safety and compatibility fallback paths.
+- This final checklist is the canonical Stage 6-8 deployment and rollback reference for production readiness decisions.
+
+### Notes
+- Documentation-only update; zero production runtime behavior change.
+
+## [2026-02-25] - Stage 8 Sub-Task 3 - chore(packaging) - `@hbc/sp-services` Suite Consumption Readiness
+
+### Added
+- `packages/hbc-sp-services/README.md` — Added package-level consumption guide with install/import examples, peer dependency expectations, semantic versioning guidance, and build/pack/publish workflow.
+- Root `package.json` scripts:
+  - `sp-services:pack`
+  - `sp-services:publish:check`
+  for monorepo-friendly package validation.
+
+### Changed
+- `packages/hbc-sp-services/package.json`:
+  - Enabled publishable package posture (`private: false`) and bumped package version to `1.1.0`.
+  - Added `exports`, `files`, `sideEffects`, and `publishConfig.access`.
+  - Added `prepack`, `pack:local`, and `publish:check` scripts.
+  - Relaxed React peer dependency ranges to `>=18.2.0 <19` for broader suite compatibility.
+- Root `README.md` — Added dedicated `@hbc/sp-services` suite-consumption section with import and publish workflow guidance.
+
+### Notes
+- Packaging/documentation hardening only; no production runtime behavior changes.
+- Existing web part consumption contract for `@hbc/sp-services` remains intact.
+
+## [2026-02-25] - Stage 8 Sub-Task 2 - test(e2e) - Smoke Remediation + Critical Path Coverage
+
+### Added
+- Expanded Playwright smoke assertions for critical operations paths:
+  - project settings route (`/#/operations/project/settings`)
+  - startup/closeout route (`/#/operations/project/manual/startup`)
+  - optimistic-mutation host route (`/#/operations/pmp`) with non-destructive render checks.
+- Added iframe role-picker recovery helper logic in teams-core smoke to keep Teams embed checks deterministic.
+
+### Changed
+- `playwright/mode-switch.spec.ts` now uses role fixture bootstrap so mode roundtrip checks run from authenticated app shell state.
+- `playwright/teams-core-smoke.spec.ts` now handles role-picker-first boot inside iframe before asserting `main` rendering and route navigation.
+
+### Notes
+- No production code behavior changes.
+- E2E-only remediation for smoke stability and coverage hardening.
+
+## [2026-02-25] - Stage 8 Sub-Task 1 - feat(observability) - Controlled Non-Localhost Telemetry Activation
+
+### Added
+- `packages/hbc-sp-services/src/mock/featureFlags.json` — Added feature flag `NonLocalhostTelemetry` (`id: 59`, default `Enabled: false`, `Category: "Observability"`, roles: `Leadership` + `Administrator`) with explicit Stage 8 safety notes.
+- `src/webparts/hbcProjectControls/components/contexts/AppContext.tsx` — Added admin-controlled non-localhost telemetry toggle state and exported effective gate value (`isTelemetryExceptionCaptureEnabled`) for critical-path consumers.
+- `src/webparts/hbcProjectControls/components/pages/admin/FeatureFlagsPage.tsx` — Added dedicated admin runtime switch for non-localhost telemetry activation with dual-gate guidance.
+
+### Changed
+- `src/webparts/hbcProjectControls/components/shared/ErrorBoundary.tsx` — Added optional `telemetryEnabled` prop so exception forwarding can follow context-controlled activation instead of localhost-only assumptions.
+- `src/webparts/hbcProjectControls/components/contexts/SignalRContext.tsx` and `src/webparts/hbcProjectControls/components/layouts/WorkspaceLayout.tsx` — Switched telemetry forwarding checks to the new effective gate and passed explicit boundary telemetry enablement.
+- `src/webparts/hbcProjectControls/components/App.tsx` — Root boundary now passes explicit localhost telemetry enablement to preserve existing development behavior at the app shell edge.
+
+### Notes
+- Dual-gate policy for non-localhost environments: `NonLocalhostTelemetry` feature flag must be enabled and admin runtime toggle must be on.
+- Localhost telemetry experience remains enabled for development diagnostics.
+- Default behavior remains production-safe/off when the feature flag is disabled.
+
+## [2026-02-25] - Stage 7 Sub-Task 4 - docs(readiness) - Production-Readiness Checklist + Release Gate
+
+### Added
+- Added a Stage 6-7 production-readiness checklist with implementation status, remaining gaps, field-deployment criteria, and verification evidence commands.
+- Added a deployment gate summary for release reviewers to make explicit go/no-go decisions from one section.
+
+### Changed
+- Consolidated Stage 6-7 readiness guidance from distributed changelog entries into a single release-governance section.
+- Standardized remaining-gap documentation for controlled rollout items (localhost-only telemetry activation and intentionally disabled/deprecated flags).
+
+### Production Readiness Checklist (Stage 6-7)
+
+| Domain | Stage Source | Implemented | Remaining Gap | Field Deployment Criteria | Verification Command / Evidence |
+|---|---|---|---|---|---|
+| Runtime profiling baseline | Stage 6 Sub-task 1 | Localhost-gated React + Query profiling instrumentation added | Profiling remains opt-in/local-only (by design) | No production overhead when profiling toggles are off | `npx tsc --noEmit`, changelog Stage 6 Sub-task 1 notes |
+| Optimistic mutation hardening | Stage 6 Sub-task 2 | `onMutate`/rollback/`onSettled` patterns added for high-frequency operations | Closeout/startup remains plumbing-only (no UI editing path yet) | Mutations reconcile correctly under API failure and rapid updates | `npx tsc --noEmit`, existing optimistic tests and manual mutation validation |
+| Non-critical lazy routing | Stage 6 Sub-task 3 | Admin/shared-services route modules lazy-loaded with preserved guards | None blocking; continue monitoring route-level chunk growth | RBAC/feature flags/route parity preserved with no navigation regressions | `npm run test:e2e:router-parity`, `npm run bundle:analyze` |
+| Disabled-flag cleanup governance | Stage 6 Sub-task 4 | 13 referenced disabled flags marked deprecated-disabled with rationale | Flags intentionally remain disabled until rollout readiness is approved | Gate behavior remains stable and auditable with no surprise activation | changelog Stage 6 Sub-task 4 registry + manual gated-flow checks |
+| Bundle budget governance | Stage 7 Sub-task 1 | Entrypoint budget + reporting/enforcement scripts in `package.json` | Continue tightening budget as feature surface grows | Entrypoint remains under 12 MiB policy threshold | `npm run verify:bundle-governance` |
+| Observability hardening | Stage 7 Sub-task 2 | Reusable error-boundary telemetry wired for critical paths | Full non-localhost telemetry activation intentionally deferred | Localhost diagnostics available; production behavior unchanged | `npx tsc --noEmit`, localhost error simulation checks |
+| Shared-service abstraction | Stage 7 Sub-task 3 | Shared contracts + navigation/column utility consolidation completed | Continue extracting additional reusable surface as modules mature | Stable shared contracts consumed by webpart without behavior drift | `npx tsc --noEmit`, import-resolution validation in webpart paths |
+
+### Deployment Gate Summary
+- `Gate A - Compile`: pass `npx tsc --noEmit`.
+- `Gate B - Bundle`: pass `npm run bundle:analyze` and keep entrypoint budget compliance checks active.
+- `Gate C - Navigation parity`: pass router parity smoke to confirm lazy-route and RBAC continuity.
+- `Gate D - Controlled rollout items`: confirm deprecated-disabled flags remain intentionally off and localhost-only telemetry remains non-production.
+- `Gate E - Field readiness`: approve only when all gates above pass and remaining gaps are accepted for this release window.
+
+### Notes
+- Documentation-only sub-task; zero production runtime behavior change.
+- This checklist is the canonical Stage 6-7 release-readiness view for field deployment review.
+
 ## [2026-02-25] - Stage 7 Sub-Task 3 - refactor(shared-services) - Extract Shared Models + Permission/Column Utilities
 
 ### Added
