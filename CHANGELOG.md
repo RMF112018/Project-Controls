@@ -2,6 +2,79 @@
 
 All notable changes to HBC Project Controls will be documented in this file.
 
+## [2026-02-25] - Stage 9 Sub-Task 4 - docs(maintenance) - Long-Term Maintenance Process + Technical Debt Tracking
+
+### Added
+- `docs/MAINTENANCE.md` as the canonical long-term maintenance governance guide, including:
+  - operating cadence,
+  - technical debt lifecycle and register template,
+  - severity/SLA model,
+  - release gate validation matrix,
+  - waiver/exception policy.
+
+### Changed
+- Consolidated Stage 9 governance closure and Stage 6-9 operational posture into a single maintenance-facing summary with a canonical pointer to `docs/MAINTENANCE.md`.
+
+### Stage 9 + Stage 6-9 Consolidated Summary
+- Stage 9 completed production telemetry rollout controls, cross-suite package publication readiness, shared-surface smoke validation, and long-term maintenance governance.
+- Stage 6 established profiling, optimistic mutation/invalidation hardening, lazy-route code splitting, and disabled-flag governance hygiene.
+- Stage 7 hardened production readiness with bundle-budget enforcement, observability boundaries, shared-service extraction, and release-readiness criteria.
+- Stage 8 completed controlled telemetry activation, smoke remediation/coverage expansion, and final deployment/rollback governance closure.
+- Across Stage 6-9, guarded/disabled behavior remains stable unless explicitly enabled through approved gate controls.
+
+### Notes
+- Documentation-only governance update; zero production runtime behavior change.
+
+## [2026-02-25] - Stage 9 Sub-Task 3 - test(integration) - Cross-Suite Shared-Service Smoke Coverage
+
+### Added
+- `playwright/shared-services-integration-smoke.spec.ts` — Added cross-suite Playwright smoke coverage validating shared `@hbc/sp-services` consumption across:
+  - shared model contract importability (`ISelectedProject`, `ITelemetryMetrics`, workspace/sidebar contracts),
+  - permission helper behavior (`filterVisibleWorkspaces`, `filterVisibleSidebarGroups`) with deterministic role-based expectations,
+  - column mapping helper behavior (`getColumnKeys`, `getColumnEntries`, `getColumnName`) against shared mapping constants.
+
+### Changed
+- `package.json` — Added `test:e2e:shared-services-smoke` script for targeted execution of shared-surface integration smoke coverage.
+- Smoke matrix now explicitly includes a package-consumption regression check for shared models, permission utilities, and column mapping helpers used by HBC suite consumers.
+
+### Notes
+- Test-only/governance update; no production runtime behavior changes.
+
+## [2026-02-25] - Stage 9 Sub-Task 2 - chore(release) - Internal Feed Publish Workflow + v1.1.0 Consumption Validation
+
+### Added
+- `packages/hbc-sp-services/README.md` — Added internal-feed publication guidance for `@hbc/sp-services@1.1.0` using environment-managed `.npmrc` registry/auth configuration.
+- `package.json` (root) and `packages/hbc-sp-services/package.json` — Added internal publish script aliases for dry-run and publish execution:
+  - `sp-services:publish:internal:dry`
+  - `sp-services:publish:internal`
+  - `publish:internal:dry`
+  - `publish:internal`
+- Added post-publish consumption validation checklist covering feed version verification and webpart import/type-check validation.
+
+### Changed
+- Standardized monorepo-to-npm internal feed workflow around mandatory preflight checks (`build:lib`, `sp-services:pack`, publish dry-run) before publish execution.
+- Documentation now explicitly confirms `@hbc/sp-services` rollout target version `1.1.0` for suite consumers.
+
+### Notes
+- Workflow/documentation hardening only; zero production runtime behavior change.
+- Registry target remains environment-driven (`.npmrc`) and is intentionally not hardcoded in package metadata.
+
+## [2026-02-25] - Stage 9 Sub-Task 1 - feat(observability) - Production Telemetry Rollout + Admin Threshold Monitoring
+
+### Added
+- `src/webparts/hbcProjectControls/components/pages/admin/FeatureFlagsPage.tsx` — Added telemetry monitoring configuration UI with threshold controls for exception-volume and slow-commit alerts, plus rollout guidance and effective-state indicators.
+- `packages/hbc-sp-services/src/services/ITelemetryService.ts` — Added runtime telemetry gate and alert-threshold contracts (`ITelemetryAlertThresholds`, runtime toggle methods, threshold getter/setter methods).
+- `packages/hbc-sp-services/src/services/TelemetryService.ts` — Added threshold-based telemetry alert emission (`hbc.telemetry.alert`) for exception-rate and slow-commit conditions with bounded throttle behavior.
+
+### Changed
+- `src/webparts/hbcProjectControls/components/contexts/AppContext.tsx` — Added persisted telemetry threshold state and runtime propagation to telemetry service (`setRuntimeEnabled`, `setAlertThresholds`) while preserving dual-gate safety (`NonLocalhostTelemetry` + admin toggle).
+- `src/webparts/hbcProjectControls/components/App.tsx` — Root error boundary now respects effective telemetry gate from app context instead of localhost-only gating.
+- `packages/hbc-sp-services/src/services/TelemetryService.ts` and `packages/hbc-sp-services/src/services/MockTelemetryService.ts` — Telemetry send path now requires explicit runtime enablement, preserving zero emission behavior when disabled.
+
+### Notes
+- Disabled behavior remains unchanged: non-localhost telemetry stays inactive unless both the feature flag and admin toggle are enabled.
+- Localhost diagnostics remain available and continue to support development troubleshooting.
+
 ## [2026-02-25] - Stage 8 Sub-Task 4 - docs(release) - Final Stage 6-8 Rollout Notes + Deployment/Rollback Checklist
 
 ### Added

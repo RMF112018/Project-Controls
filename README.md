@@ -242,6 +242,10 @@ The build validates standalone environment variables first (`VITE_AAD_CLIENT_ID`
   - `playwright/permission-matrix.e2e.spec.ts` (16-role coverage)
   - `playwright/offline-mode.spec.ts` (offline fallback verification)
 
+### Maintenance Governance
+
+- Long-term maintenance process, technical debt tracking template, and governance rules are maintained in `docs/MAINTENANCE.md`.
+
 ### Available Scripts
 
 | Command | Description |
@@ -524,6 +528,10 @@ npm run sp-services:pack
 
 # Validate publish command
 npm run sp-services:publish:check
+
+# Internal feed dry-run + publish (registry/auth via .npmrc)
+npm run sp-services:publish:internal:dry
+npm run sp-services:publish:internal
 ```
 
 For internal publication:
