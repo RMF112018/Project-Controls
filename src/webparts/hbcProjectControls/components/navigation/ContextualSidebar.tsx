@@ -18,7 +18,7 @@ import {
   AccordionHeader,
   AccordionPanel,
 } from '@fluentui/react-components';
-import { ROLE_NAV_ITEMS } from '@hbc/sp-services';
+import { filterVisibleSidebarGroups } from '@hbc/sp-services';
 import { useAppContext } from '../contexts/AppContext';
 import { ProjectPicker } from '../shared/ProjectPicker';
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
@@ -110,19 +110,16 @@ export const ContextualSidebar: React.FC = () => {
   const filteredGroups = React.useMemo(() => {
     if (!workspace || workspace.id === 'hub') return workspace?.sidebarGroups ?? [];
 
-    let groups = workspace.sidebarGroups
+    const groups = workspace.sidebarGroups
       .map(g => ({ ...g, items: g.items.filter(i => i.path !== workspace.basePath) }))
       .filter(g => g.items.length > 0);
 
-    if (!isMockMode && primaryRole) {
-      const navConfig = ROLE_NAV_ITEMS[primaryRole];
-      const allowedGroups = navConfig?.sidebarGroups?.[workspace.id];
-      if (allowedGroups) {
-        groups = groups.filter(g => allowedGroups.includes(g.label));
-      }
-    }
-
-    return groups;
+    return filterVisibleSidebarGroups({
+      groups,
+      workspaceId: workspace.id,
+      primaryRole,
+      isMockMode,
+    });
   }, [workspace, isMockMode, primaryRole]);
 
   const isNonHubWorkspace = workspace && workspace.id !== 'hub';

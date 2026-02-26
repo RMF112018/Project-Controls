@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Input, makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcField } from '../../shared/HbcField';
 import { HbcButton } from '../../shared/HbcButton';
@@ -8,6 +9,9 @@ import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
 import type { IActiveProject } from '@hbc/sp-services';
+import { useQueryScope } from '../../../tanstack/query/useQueryScope';
+import { qk } from '../../../tanstack/query/queryKeys';
+import { activeProjectsOptions } from '../../../tanstack/query/queryOptions/operations';
 
 const useStyles = makeStyles({
   container: {
@@ -35,12 +39,10 @@ const useStyles = makeStyles({
 export const ProjectSettingsPage: React.FC = () => {
   const styles = useStyles();
   const { dataService, selectedProject } = useAppContext();
+  const scope = useQueryScope();
+  const queryClient = useQueryClient();
   const projectCode = selectedProject?.projectCode || '';
   const { addToast } = useToast();
-
-  const [project, setProject] = React.useState<IActiveProject | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [saving, setSaving] = React.useState(false);
 
   const [projectName, setProjectName] = React.useState('');
   const [address, setAddress] = React.useState('');
@@ -49,46 +51,78 @@ export const ProjectSettingsPage: React.FC = () => {
   const [division, setDivision] = React.useState('');
   const [sector, setSector] = React.useState('');
 
+  const projectsQuery = useQuery(activeProjectsOptions(scope, dataService));
+  const project = React.useMemo(
+    () => (projectsQuery.data ?? []).find((item) => item.projectCode === projectCode) ?? null,
+    [projectsQuery.data, projectCode]
+  );
+
   React.useEffect(() => {
-    if (!projectCode) {
-      setLoading(false);
+    if (!project) {
       return;
     }
+    setProjectName(project.projectName);
+    setAddress(project.region || '');
+    setStartDate(project.schedule.startDate || '');
+    setEndDate(project.schedule.substantialCompletionDate || '');
+    setDivision(project.sector);
+    setSector(project.sector);
+  }, [project]);
 
-    dataService.getActiveProjects()
-      .then(projects => {
-        const found = projects.find(p => p.projectCode === projectCode) || null;
-        setProject(found);
-        if (found) {
-          setProjectName(found.projectName);
-          setAddress(found.region || '');
-          setStartDate(found.schedule.startDate || '');
-          setEndDate(found.schedule.substantialCompletionDate || '');
-          setDivision(found.sector);
-          setSector(found.sector);
-        }
-      })
-      .catch(() => setProject(null))
-      .finally(() => setLoading(false));
-  }, [dataService, projectCode]);
+  const updateProjectMutation = useMutation<IActiveProject, Error, { id: number; data: Partial<IActiveProject> }, { snapshots: Array<[ReadonlyArray<unknown>, unknown]> }>({
+    mutationFn: async ({ id, data }) => dataService.updateActiveProject(id, data),
+    onMutate: async ({ id, data }) => {
+      const queryKey = qk.activeProjects.base(scope);
+      await queryClient.cancelQueries({ queryKey });
+
+      const snapshots = queryClient.getQueriesData<unknown>({ queryKey });
+
+      queryClient.setQueriesData<IActiveProject[]>(
+        { queryKey },
+        (previous = []) => previous.map((item) => (
+          item.id === id
+            ? {
+                ...item,
+                ...data,
+              }
+            : item
+        ))
+      );
+
+      return { snapshots };
+    },
+    onError: (_error, _variables, context) => {
+      context?.snapshots.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(queryKey, previousData);
+      });
+      addToast('Failed to save project settings.', 'error');
+    },
+    onSuccess: () => {
+      addToast('Project settings saved successfully.', 'success');
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: qk.activeProjects.base(scope) });
+    },
+  });
 
   const handleSave = React.useCallback(async (): Promise<void> => {
     if (!project) return;
-
-    setSaving(true);
     try {
-      await dataService.updateActiveProject(project.id, {
-        projectName,
-        region: address,
-        sector: sector as IActiveProject['sector'],
+      await updateProjectMutation.mutateAsync({
+        id: project.id,
+        data: {
+          projectName,
+          region: address,
+          sector: sector as IActiveProject['sector'],
+        },
       });
-      addToast('Project settings saved successfully.', 'success');
     } catch {
-      addToast('Failed to save project settings.', 'error');
-    } finally {
-      setSaving(false);
+      // Error toast handled in mutation onError.
     }
-  }, [dataService, project, projectName, address, sector, addToast]);
+  }, [project, projectName, address, sector, updateProjectMutation]);
+
+  const loading = !!projectCode && projectsQuery.isLoading;
+  const saving = updateProjectMutation.isPending;
 
   if (!projectCode) {
     return (

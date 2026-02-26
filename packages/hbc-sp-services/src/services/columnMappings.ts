@@ -10,6 +10,25 @@
  *   - Child-list relationships are noted with the child list name
  */
 
+export type ColumnMapping = Record<string, string>;
+
+export function getColumnName<TMapping extends ColumnMapping, TKey extends keyof TMapping>(
+  mapping: TMapping,
+  key: TKey
+): TMapping[TKey] {
+  return mapping[key];
+}
+
+export function getColumnKeys<TMapping extends ColumnMapping>(mapping: TMapping): Array<keyof TMapping> {
+  return Object.keys(mapping) as Array<keyof TMapping>;
+}
+
+export function getColumnEntries<TMapping extends ColumnMapping>(
+  mapping: TMapping
+): Array<[keyof TMapping, TMapping[keyof TMapping]]> {
+  return Object.entries(mapping) as Array<[keyof TMapping, TMapping[keyof TMapping]]>;
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // ──── Hub-Level Lists ────
 // ════════════════════════════════════════════════════════════════════════════

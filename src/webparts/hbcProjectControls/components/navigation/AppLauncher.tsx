@@ -10,7 +10,7 @@ import {
   tokens,
 } from '@fluentui/react-components';
 import { Grid24Regular } from '@fluentui/react-icons';
-import { ROLE_NAV_ITEMS } from '@hbc/sp-services';
+import { filterVisibleWorkspaces } from '@hbc/sp-services';
 import { RoleGate } from '../guards/RoleGate';
 import { FeatureGate } from '../guards/FeatureGate';
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
@@ -70,14 +70,12 @@ export const AppLauncher: React.FC = () => {
   // Stage 2 (sub-task 3): Role-based workspace filtering.
   // Mock mode bypasses filtering so all workspaces remain visible during dev testing.
   const visibleWorkspaces = React.useMemo(() => {
-    let workspaces = LAUNCHER_WORKSPACES.filter(w => !w.requireProject || selectedProject);
-    if (!isMockMode && primaryRole) {
-      const navConfig = ROLE_NAV_ITEMS[primaryRole];
-      if (navConfig) {
-        workspaces = workspaces.filter(w => navConfig.workspaces.includes(w.id));
-      }
-    }
-    return workspaces;
+    return filterVisibleWorkspaces({
+      workspaces: LAUNCHER_WORKSPACES,
+      primaryRole,
+      isMockMode,
+      hasSelectedProject: !!selectedProject,
+    });
   }, [selectedProject, isMockMode, primaryRole]);
 
   return (

@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { useAppContext, ISelectedProject } from '../contexts/AppContext';
+import { useAppContext } from '../contexts/AppContext';
 import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
-import { Stage, getStageLabel, isActiveStage, ILead } from '@hbc/sp-services';
+import { Stage, getStageLabel, isActiveStage, ILead, type ISelectedProject } from '@hbc/sp-services';
 
 interface IProjectPickerProps {
   selected: ISelectedProject | null;

@@ -1,14 +1,25 @@
 import * as React from 'react';
+import type { ITelemetryService } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../theme/tokens';
 
 interface IErrorBoundaryProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  boundaryName?: string;
+  telemetryService?: ITelemetryService;
+  telemetryProperties?: Record<string, string>;
 }
 
 interface IErrorBoundaryState {
   hasError: boolean;
   error?: Error;
+}
+
+function isLocalhostTelemetryEnabled(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  return window.location.hostname === 'localhost';
 }
 
 export class ErrorBoundary extends React.Component<IErrorBoundaryProps, IErrorBoundaryState> {
@@ -23,6 +34,20 @@ export class ErrorBoundary extends React.Component<IErrorBoundaryProps, IErrorBo
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     console.error('ErrorBoundary caught:', error, errorInfo);
+
+    if (!isLocalhostTelemetryEnabled() || !this.props.telemetryService?.isInitialized()) {
+      return;
+    }
+
+    try {
+      this.props.telemetryService.trackException(error, {
+        boundaryName: this.props.boundaryName ?? 'ErrorBoundary',
+        hasComponentStack: String(Boolean(errorInfo.componentStack)),
+        ...this.props.telemetryProperties,
+      });
+    } catch {
+      // Telemetry failures must never interfere with boundary fallback rendering.
+    }
   }
 
   render(): React.ReactNode {

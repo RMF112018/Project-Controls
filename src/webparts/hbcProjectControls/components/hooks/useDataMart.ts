@@ -25,26 +25,126 @@ export interface IUseDataMartResult {
   alertCount: number;
 }
 
+interface IDataMartMutationContext {
+  snapshots: Array<[ReadonlyArray<unknown>, unknown]>;
+}
+
+function isDataMartRecord(value: unknown): value is IProjectDataMart {
+  return !!value && typeof value === 'object' && 'projectCode' in value;
+}
+
+function applyProjectSyncOptimistic(
+  value: unknown,
+  projectCode: string,
+  syncBy: string
+): unknown {
+  const now = new Date().toISOString();
+  if (Array.isArray(value)) {
+    return value.map((item) => {
+      if (!isDataMartRecord(item) || item.projectCode !== projectCode) {
+        return item;
+      }
+      return {
+        ...item,
+        lastSyncBy: syncBy,
+        lastSyncDate: now,
+      };
+    });
+  }
+
+  if (isDataMartRecord(value) && value.projectCode === projectCode) {
+    return {
+      ...value,
+      lastSyncBy: syncBy,
+      lastSyncDate: now,
+    };
+  }
+
+  return value;
+}
+
+function applySyncAllOptimistic(value: unknown, syncBy: string): unknown {
+  const now = new Date().toISOString();
+  if (!Array.isArray(value)) {
+    return value;
+  }
+
+  return value.map((item) => {
+    if (!isDataMartRecord(item)) {
+      return item;
+    }
+    return {
+      ...item,
+      lastSyncBy: syncBy,
+      lastSyncDate: now,
+    };
+  });
+}
+
 export function useDataMart(): IUseDataMartResult {
-  const { dataService } = useAppContext();
+  const { dataService, currentUser } = useAppContext();
   const scope = useQueryScope();
   const queryClient = useQueryClient();
   const [filters, setFilters] = React.useState<IDataMartFilter | undefined>(undefined);
   const [localError, setLocalError] = React.useState<string | null>(null);
+  const optimisticSyncBy = currentUser?.email ?? 'sync-pending';
 
   const recordsQuery = useQuery(dataMartRecordsOptions(scope, dataService, filters));
+  const invalidateDataMartQueries = React.useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: qk.dataMart.base(scope) });
+  }, [queryClient, scope]);
 
-  const syncProjectMutation = useMutation({
+  const syncProjectMutation = useMutation<IDataMartSyncResult, Error, string, IDataMartMutationContext>({
     mutationFn: async (projectCode: string): Promise<IDataMartSyncResult> => dataService.syncToDataMart(projectCode),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: qk.dataMart.base(scope) });
+    onMutate: async (projectCode) => {
+      await queryClient.cancelQueries({ queryKey: qk.dataMart.base(scope) });
+
+      const snapshots = queryClient.getQueriesData<unknown>({
+        queryKey: qk.dataMart.base(scope),
+      });
+
+      queryClient.setQueriesData<unknown>(
+        { queryKey: qk.dataMart.base(scope) },
+        (previous: unknown) => applyProjectSyncOptimistic(previous, projectCode, optimisticSyncBy)
+      );
+
+      return { snapshots };
+    },
+    onError: (_error, _projectCode, context) => {
+      setLocalError('Failed to sync project to Data Mart');
+      context?.snapshots.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(queryKey, previousData);
+      });
+    },
+    onSettled: async () => {
+      await invalidateDataMartQueries();
     },
   });
 
-  const syncAllMutation = useMutation({
+  const syncAllMutation = useMutation<IDataMartSyncResult[], Error, void, IDataMartMutationContext>({
     mutationFn: async (): Promise<IDataMartSyncResult[]> => dataService.triggerDataMartSync(),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: qk.dataMart.base(scope) });
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: qk.dataMart.base(scope) });
+
+      const snapshots = queryClient.getQueriesData<unknown>({
+        queryKey: qk.dataMart.base(scope),
+      });
+
+      queryClient.setQueriesData<unknown>(
+        { queryKey: qk.dataMart.base(scope) },
+        (previous: unknown) => applySyncAllOptimistic(previous, optimisticSyncBy)
+      );
+
+      return { snapshots };
+    },
+    onError: (_error, _variables, context) => {
+      setLocalError('Failed to trigger Data Mart sync');
+      context?.snapshots.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(queryKey, previousData);
+      });
+    },
+    onSettled: async () => {
+      await invalidateDataMartQueries();
     },
   });
 
@@ -75,21 +175,19 @@ export function useDataMart(): IUseDataMartResult {
       if (!result.success) {
         setLocalError(result.error || 'Sync failed');
       }
-      await queryClient.invalidateQueries({ queryKey: qk.dataMart.base(scope) });
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : 'Failed to sync project to Data Mart');
     }
-  }, [syncProjectMutation, queryClient, scope]);
+  }, [syncProjectMutation]);
 
   const syncAll = React.useCallback(async () => {
     setLocalError(null);
     try {
       await syncAllMutation.mutateAsync();
-      await queryClient.invalidateQueries({ queryKey: qk.dataMart.base(scope) });
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : 'Failed to trigger Data Mart sync');
     }
-  }, [syncAllMutation, queryClient, scope]);
+  }, [syncAllMutation]);
 
   useSignalRQueryInvalidation({
     entityType: EntityType.DataMart,

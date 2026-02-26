@@ -43,6 +43,12 @@ jobs:
       - name: Bundle (production)
         run: npm run bundle:ship:analyze
 
+      - name: Bundle budget report
+        run: npm run bundle:budget:report
+
+      - name: Enforce SPFx entrypoint budget
+        run: npm run verify:bundle-budget:entrypoint
+
       - name: Verify bundle size (PR fail)
         if: github.event_name == 'pull_request'
         run: npm run verify:bundle-size:fail

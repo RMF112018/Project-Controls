@@ -653,6 +653,55 @@ export const GRANULAR_PERMISSIONS = {
     roleCheck(roles, ['Administrator']),
 } as const;
 
+export interface IWorkspaceVisibilityOptions<TWorkspace extends { id: string; requireProject?: boolean }> {
+  workspaces: readonly TWorkspace[];
+  primaryRole: string;
+  isMockMode: boolean;
+  hasSelectedProject: boolean;
+}
+
+export function filterVisibleWorkspaces<TWorkspace extends { id: string; requireProject?: boolean }>(
+  options: IWorkspaceVisibilityOptions<TWorkspace>
+): TWorkspace[] {
+  const { workspaces, primaryRole, isMockMode, hasSelectedProject } = options;
+
+  let filtered = workspaces.filter((workspace) => !workspace.requireProject || hasSelectedProject);
+
+  if (!isMockMode && primaryRole) {
+    const navConfig = ROLE_NAV_ITEMS[primaryRole];
+    if (navConfig) {
+      filtered = filtered.filter((workspace) => navConfig.workspaces.includes(workspace.id));
+    }
+  }
+
+  return filtered;
+}
+
+export interface ISidebarGroupVisibilityOptions<TGroup extends { label: string }> {
+  groups: readonly TGroup[];
+  workspaceId: string;
+  primaryRole: string;
+  isMockMode: boolean;
+}
+
+export function filterVisibleSidebarGroups<TGroup extends { label: string }>(
+  options: ISidebarGroupVisibilityOptions<TGroup>
+): TGroup[] {
+  const { groups, workspaceId, primaryRole, isMockMode } = options;
+
+  if (isMockMode || !primaryRole) {
+    return [...groups];
+  }
+
+  const navConfig = ROLE_NAV_ITEMS[primaryRole];
+  const allowedGroups = navConfig?.sidebarGroups?.[workspaceId];
+  if (!allowedGroups) {
+    return [...groups];
+  }
+
+  return groups.filter((group) => allowedGroups.includes(group.label));
+}
+
 // ---------------------------------------------------------------------------
 
 export type PermissionValue = typeof PERMISSIONS[keyof typeof PERMISSIONS];

@@ -10,9 +10,7 @@ import { useTelemetryPageView } from '../../hooks/useTelemetryPageView';
 // Workspace route factories
 import { createHubWorkspaceRoutes } from './workspaces/routes.hub';
 import { createPreconstructionWorkspaceRoutes } from './workspaces/routes.preconstruction';
-import { createAdminWorkspaceRoutes } from './workspaces/routes.admin';
 import { createOperationsWorkspaceRoutes } from './workspaces/routes.operations';
-import { createSharedServicesWorkspaceRoutes } from './workspaces/routes.sharedservices';
 import { createSiteControlWorkspaceRoutes } from './workspaces/routes.sitecontrol';
 import { createProjectHubWorkspaceRoutes } from './workspaces/routes.projecthub';
 
@@ -48,19 +46,29 @@ const rootRoute = createRootRouteWithContext<ITanStackRouteContext>()({
   component: RootLayout,
 });
 
-export const tanStackPilotRouteTree = rootRoute.addChildren([
-  // Hub workspace: placeholder home, access-denied, not-found
-  ...(createHubWorkspaceRoutes(rootRoute) as AnyRoute[]),
-  // Preconstruction workspace: BD, Estimating, IDS
-  ...(createPreconstructionWorkspaceRoutes(rootRoute) as AnyRoute[]),
-  // Admin workspace: System Config, Security, Provisioning, Dev Tools
-  ...(createAdminWorkspaceRoutes(rootRoute) as AnyRoute[]),
-  // Operations workspace: Commercial Ops, Project Hub, OpEx, Safety, QC & Warranty
-  ...(createOperationsWorkspaceRoutes(rootRoute) as AnyRoute[]),
-  // Shared Services workspace: Marketing, HR, Accounting, Risk Management
-  ...(createSharedServicesWorkspaceRoutes(rootRoute) as AnyRoute[]),
-  // HB Site Control workspace: Jobsite Management, Safety, Quality Control
-  ...(createSiteControlWorkspaceRoutes(rootRoute) as AnyRoute[]),
-  // Project Hub workspace: project-scoped cross-cutting module
-  ...(createProjectHubWorkspaceRoutes(rootRoute) as AnyRoute[]),
-]);
+export async function createTanStackPilotRouteTree() {
+  const [
+    { createAdminWorkspaceRoutes },
+    { createSharedServicesWorkspaceRoutes },
+  ] = await Promise.all([
+    import('./workspaces/routes.admin'),
+    import('./workspaces/routes.sharedservices'),
+  ]);
+
+  return rootRoute.addChildren([
+    // Hub workspace: placeholder home, access-denied, not-found
+    ...(createHubWorkspaceRoutes(rootRoute) as AnyRoute[]),
+    // Preconstruction workspace: BD, Estimating, IDS
+    ...(createPreconstructionWorkspaceRoutes(rootRoute) as AnyRoute[]),
+    // Admin workspace: System Config, Security, Provisioning, Dev Tools
+    ...(createAdminWorkspaceRoutes(rootRoute) as AnyRoute[]),
+    // Operations workspace: Commercial Ops, Project Hub, OpEx, Safety, QC & Warranty
+    ...(createOperationsWorkspaceRoutes(rootRoute) as AnyRoute[]),
+    // Shared Services workspace: Marketing, HR, Accounting, Risk Management
+    ...(createSharedServicesWorkspaceRoutes(rootRoute) as AnyRoute[]),
+    // HB Site Control workspace: Jobsite Management, Safety, Quality Control
+    ...(createSiteControlWorkspaceRoutes(rootRoute) as AnyRoute[]),
+    // Project Hub workspace: project-scoped cross-cutting module
+    ...(createProjectHubWorkspaceRoutes(rootRoute) as AnyRoute[]),
+  ]);
+}

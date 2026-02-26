@@ -116,7 +116,7 @@ function formatDate(iso: string | null | undefined): string {
   }
 }
 
-/** Expandable cell with ProvisioningStatusStepper — shown when ProvisioningSaga flag is ON */
+/** Expandable cell with ProvisioningStatusStepper — dual-path via deprecated-disabled ProvisioningSaga gate. */
 const ProvisioningProgressCell: React.FC<{ log: IProvisioningLog }> = ({ log }) => {
   const styles = useStyles();
   const [expanded, setExpanded] = React.useState(false);

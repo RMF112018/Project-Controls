@@ -423,6 +423,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
           </button>
           <HelpMenu />
           <SyncStatusIndicator />
+          {/* Stage 6 Sub-task 4: RealTimeUpdates is intentionally disabled/deprecated by default. */}
           <FeatureGate featureName="RealTimeUpdates">
             <PresenceIndicator />
           </FeatureGate>

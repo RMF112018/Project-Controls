@@ -2,6 +2,109 @@
 
 All notable changes to HBC Project Controls will be documented in this file.
 
+## [2026-02-25] - Stage 7 Sub-Task 3 - refactor(shared-services) - Extract Shared Models + Permission/Column Utilities
+
+### Added
+- `packages/hbc-sp-services/src/models/sharedContracts.ts` — Added consolidated shared contracts for app selection, workspace navigation, and telemetry dashboard aggregates (`ISelectedProject`, `IDashboardPreference`, `IWorkspaceConfig`, `ITelemetryMetrics`, related types).
+- `packages/hbc-sp-services/src/services/columnMappings.ts` — Added typed column mapping helper exports (`ColumnMapping`, `getColumnName`, `getColumnKeys`, `getColumnEntries`) to standardize mapping consumption.
+- `packages/hbc-sp-services/src/utils/permissions.ts` — Added reusable role-based navigation helpers (`filterVisibleWorkspaces`, `filterVisibleSidebarGroups`) for centralized workspace/sidebar filtering.
+
+### Changed
+- `packages/hbc-sp-services/src/models/index.ts` — Re-exported newly extracted shared model modules.
+- `src/webparts/hbcProjectControls/components/contexts/AppContext.tsx` — Replaced local app-selection/dashboard type ownership with shared `@hbc/sp-services` model imports and re-exports.
+- `src/webparts/hbcProjectControls/components/navigation/workspaceConfig.ts` — Replaced local workspace/sidebar interface ownership with shared `@hbc/sp-services` model types.
+- `src/webparts/hbcProjectControls/components/navigation/AppLauncher.tsx` and `src/webparts/hbcProjectControls/components/navigation/ContextualSidebar.tsx` — Replaced duplicate local role-filtering logic with shared permission utility helpers.
+- `src/webparts/hbcProjectControls/hooks/useTelemetryMetrics.ts` — Replaced local telemetry metric interface ownership with shared `@hbc/sp-services` model types.
+- `src/webparts/hbcProjectControls/tanstack/router/routeContext.ts`, `src/webparts/hbcProjectControls/tanstack/router/router.tsx`, and `src/webparts/hbcProjectControls/components/shared/ProjectPicker.tsx` — Repointed `ISelectedProject` imports to shared package exports.
+
+### Notes
+- No runtime behavior changes; this sub-task only centralizes shared contracts/utilities and removes duplicate local type/filtering ownership.
+
+## [2026-02-25] - Stage 7 Sub-Task 2 - perf(observability) - Localhost Telemetry Error Boundaries
+
+### Added
+- `src/webparts/hbcProjectControls/components/shared/ErrorBoundary.tsx` — Added telemetry-capable reusable React error boundary with localhost-gated exception forwarding and scoped metadata support (`boundaryName`, `telemetryProperties`).
+- `src/webparts/hbcProjectControls/components/contexts/SignalRContext.tsx` — Added localhost-gated telemetry capture for handled SignalR operational failures (`connect`, `disconnect`, group membership, cache invalidation, broadcast).
+
+### Changed
+- `src/webparts/hbcProjectControls/components/App.tsx` — Wired root boundary with telemetry service + `AppRoot` boundary name for localhost exception capture.
+- `src/webparts/hbcProjectControls/components/layouts/WorkspaceLayout.tsx` — Wired workspace boundary metadata (`WorkspaceLayout`, `workspaceId`) for scoped diagnostics.
+- `src/webparts/hbcProjectControls/components/contexts/SignalRContext.tsx` — Wrapped provider subtree in reusable telemetry-aware boundary (`SignalRProvider`).
+
+### Notes
+- Exception telemetry forwarding is localhost-gated in this sub-task and does not activate in production.
+- Existing fallback UI/retry behavior is preserved.
+
+## [2026-02-25] - Stage 7 Sub-Task 1 - perf(governance) - SPFx Bundle Budget + CI Enforcement
+
+### Added
+- `package.json` — Added `bundle:budget:report` and `verify:bundle-budget:entrypoint` scripts for SPFx webpack-stats budget reporting and enforcement against a 12 MiB entrypoint threshold (`12,582,912` bytes).
+- `package.json` — Added `verify:bundle-governance` command to run production bundle analysis plus budget report/enforcement in one sequence.
+
+### Changed
+- `.github/workflows/ci.yml` — Added explicit bundle budget reporting and SPFx entrypoint budget enforcement steps after production bundle analysis.
+
+### Notes
+- Initial SPFx entrypoint budget is set to `< 12 MiB` for `hbc-project-controls-web-part`.
+- Governance-only hardening; no production runtime behavior changes.
+
+## [2026-02-25] - Stage 6 Sub-Task 4 - refactor(flags) - Deprecate Remaining 13 Disabled Flags (No Behavior Change)
+
+### Added
+- `packages/hbc-sp-services/src/mock/featureFlags.json` — Added explicit deprecation metadata for the 13 disabled Stage 5 registry flags (33, 34, 37, 38, 39, 40, 41, 43, 51, 52, 53, 57, 58) while preserving `Enabled: false`.
+- Inline deprecation rationale comments at gate callsites for `RealTimeUpdates`, `ProvisioningSaga`, optimistic mutation gates, and connector mutation resilience.
+
+### Changed
+- Updated Stage 5 registry wording for the 13 disabled referenced flags to `Deprecated (disabled)` to reflect intentional non-rollout posture.
+
+### Notes
+- No runtime behavior change; all affected flags remain disabled.
+- Gating paths are intentionally retained for compatibility and controlled rollout readiness.
+
+## [2026-02-25] - Stage 6 Sub-Task 3 - perf(router) - Lazy Route Module Loading (Non-Critical Workspaces)
+
+### Added
+- `src/webparts/hbcProjectControls/tanstack/router/routes.activeProjects.tsx` — Added inline dynamic imports for non-critical workspace route modules (`routes.admin`, `routes.sharedservices`) when building the TanStack route tree.
+
+### Changed
+- `src/webparts/hbcProjectControls/tanstack/router/routes.activeProjects.tsx` — Removed eager static imports for admin/shared-services route factories and switched to async route-tree construction.
+- `src/webparts/hbcProjectControls/tanstack/router/router.tsx` — Updated router bootstrapping to await async route-tree creation before mounting `RouterProvider`, preserving existing context update semantics.
+
+### Notes
+- Operations workspace route registration remains unchanged.
+- Existing RBAC/feature-flag checks, route paths/IDs/hierarchy, and runtime navigation behavior are preserved.
+
+## [2026-02-25] - Stage 6 Sub-Task 2 - perf(optimistic) - TanStack Mutation Optimism + Invalidation Consolidation
+
+### Added
+- `src/webparts/hbcProjectControls/tanstack/query/queryOptions/operations.ts` — Added standardized TanStack query option builders for operations data (`activeProjects`, `startupChecklist`, `closeoutItems`) to align optimistic mutation paths with deterministic query keys.
+- `src/webparts/hbcProjectControls/components/pages/operations/StartupCloseoutPage.tsx` — Added internal optimistic mutation plumbing (`updateChecklistItem`, `updateCloseoutItem`) with rollback and settled invalidation, while keeping the page read-only for now.
+
+### Changed
+- `src/webparts/hbcProjectControls/components/hooks/useDataMart.ts` — Implemented optimistic mutation lifecycles for `syncProject` and `syncAll` with snapshot rollback and consolidated `onSettled` invalidation.
+- `src/webparts/hbcProjectControls/components/hooks/useDataMart.ts` — Removed duplicate Data Mart invalidations by centralizing to a single helper.
+- `src/webparts/hbcProjectControls/components/hooks/usePermissionEngine.ts` — Added optimistic cache patch + rollback + settled invalidation for template, mapping, and assignment mutations.
+- `src/webparts/hbcProjectControls/components/pages/operations/ProjectSettingsPage.tsx` — Migrated settings save flow to TanStack `useMutation` with optimistic active-project cache patch and rollback safety.
+
+### Notes
+- Existing non-optimistic/read-only closeout UI behavior is preserved.
+- SignalR-driven invalidation remains complementary to mutation-settled invalidation.
+
+## [2026-02-25] - Stage 6 Sub-Task 1 - perf(profile) - Runtime Profiling Instrumentation Baseline
+
+### Added
+- `src/webparts/hbcProjectControls/components/App.tsx` — Added optional React 18 commit profiling wrapper around TanStack Router tree (`React.Profiler`) gated by localhost + `localStorage['showReactProfiler']='true'`.
+- `src/webparts/hbcProjectControls/components/App.tsx` — Added bounded in-browser capture buffer `window.__hbcReactProfileEvents__` (last 250 commits) for manual runtime analysis without affecting production users.
+- `src/webparts/hbcProjectControls/tanstack/query/queryClient.ts` — Added optional TanStack Query cache/mutation timing observers gated by localhost + `localStorage['showQueryProfiler']='true'`.
+- `src/webparts/hbcProjectControls/tanstack/query/queryClient.ts` — Added bounded in-browser capture buffer `window.__hbcQueryProfileEvents__` (last 400 events) to identify slow query/mutation paths in heavy pages and permission/data-mart workflows.
+
+### Changed
+- `src/webparts/hbcProjectControls/components/App.tsx` — Long React commits (`>=16ms`) now emit telemetry metric `react:commit:duration` with profiler metadata (`profilerId`, `phase`) when profiling is enabled.
+
+### Notes
+- Profiling instrumentation is strictly opt-in and localhost-only to avoid runtime overhead in SharePoint-hosted production pages.
+- Existing behavior and query caching semantics are unchanged when profiling flags are not enabled.
+
 ## [2026-02-25] - Stage 5 Sub-Task 9 - docs(flags) - Feature Flag Registry Documentation
 
 ### Added
@@ -14,21 +117,21 @@ All notable changes to HBC Project Controls will be documented in this file.
 | PermissionEngine | 23 | Active | Infrastructure | Procore-modeled permission engine with templates and project scoping | `AppShell.tsx`, `AppContext.tsx`, `workspaceConfig.ts`, `routes.admin.tsx`, `useSectorDefinitions.ts` |
 | TelemetryDashboard | 32 | Active (role-gated) | Debug | Application Insights + ECharts telemetry dashboard (Leadership, Administrator) | Route-level gating via admin workspace; `telemetry.spec.ts` |
 | SiteTemplateManagement | 56 | Active (role-gated) | Infrastructure | Phase 6A template CRUD, GitOps sync, provisioning (Leadership, Administrator) | `ProvisioningPage.tsx` (FeatureGate), `MockDataService.ts` (assertFeatureFlagEnabled) |
-| GitOpsProvisioning | 33 | Ready to enable | Infrastructure | Step 5 committed /templates/ instead of Template_Registry SP list | `ProvisioningService.ts`, `GitOpsProvisioningService.ts`, `MockDataService.ts`, `enums.ts` |
-| TemplateSiteSync | 34 | Ready to enable | Infrastructure | Template Site sync UI in AdminPanel Provisioning tab | `TemplateSyncService.ts` |
-| OptimisticMutationsEnabled | 37 | Ready to enable | Infrastructure | Global gate for optimistic mutation lifecycle (onMutate rollback/invalidation) | `optimisticMutationFlags.ts`, `useMutationFeatureGate.ts`, `useConnectorMutation.ts` |
-| OptimisticMutations_Leads | 38 | Ready to enable | Infrastructure | Optimistic mutation flow for Leads domain (Administrator) | `optimisticMutationFlags.ts` via `useMutationFeatureGate` |
-| OptimisticMutations_Estimating | 39 | Ready to enable | Infrastructure | Optimistic mutation flow for Estimating domain (Estimator, Administrator) | `optimisticMutationFlags.ts` via `useMutationFeatureGate` |
-| OptimisticMutations_Buyout | 40 | Ready to enable | Infrastructure | Optimistic mutation flow for Buyout/compliance workflows (Mgr of Operational Excellence, Administrator) | `optimisticMutationFlags.ts` via `useMutationFeatureGate` |
-| OptimisticMutations_PMP | 41 | Ready to enable | Infrastructure | Optimistic mutation flow for PMP updates/approvals (Commercial Operations Mgr, Administrator) | `optimisticMutationFlags.ts` via `useMutationFeatureGate` |
-| InfinitePagingEnabled | 43 | Ready to enable | Infrastructure | Global gate for cursor-based infinite query paging | `ListThresholdGuard.ts` |
-| ConnectorMutationResilience | 51 | Ready to enable | Infrastructure | Phase 5A retry/backoff for connector mutations via useConnectorMutation hook | `useConnectorMutation.ts`, `optimisticMutationFlags.ts` |
-| WorkflowStateMachine | 52 | Dual-path guard | Infrastructure | XState workflow engine; legacy imperative path is active fallback | `GoNoGoScorecard.tsx`, `PMPPage.tsx` (isFeatureEnabled) |
-| ProvisioningSaga | 53 | Dual-path guard | Infrastructure | Saga-based provisioning; legacy provisioning path is active fallback | `ProvisioningPage.tsx` (FeatureGate), `ProvisioningService.ts` (isFeatureEnabled) |
-| PowerBIIntegration | 57 | Not deployed | Integrations | Power BI embedded reports -- not yet deployed | `PreconDashboardPage.tsx`, `EstimatingDashboardPage.tsx`, `AnalyticsHubDashboardPage.tsx` (FeatureGate) |
-| RealTimeUpdates | 58 | Not deployed | Infrastructure | SignalR real-time push -- not yet deployed | `AppShell.tsx` (FeatureGate), `SignalRContext.tsx` (isFeatureEnabled) |
+| GitOpsProvisioning | 33 | Deprecated (disabled) | Infrastructure | Step 5 committed /templates/ instead of Template_Registry SP list | `ProvisioningService.ts`, `GitOpsProvisioningService.ts`, `MockDataService.ts`, `enums.ts` |
+| TemplateSiteSync | 34 | Deprecated (disabled) | Infrastructure | Template Site sync UI in AdminPanel Provisioning tab | `TemplateSyncService.ts` |
+| OptimisticMutationsEnabled | 37 | Deprecated (disabled) | Infrastructure | Global gate for optimistic mutation lifecycle (onMutate rollback/invalidation) | `optimisticMutationFlags.ts`, `useMutationFeatureGate.ts`, `useConnectorMutation.ts` |
+| OptimisticMutations_Leads | 38 | Deprecated (disabled) | Infrastructure | Optimistic mutation flow for Leads domain (Administrator) | `optimisticMutationFlags.ts` via `useMutationFeatureGate` |
+| OptimisticMutations_Estimating | 39 | Deprecated (disabled) | Infrastructure | Optimistic mutation flow for Estimating domain (Estimator, Administrator) | `optimisticMutationFlags.ts` via `useMutationFeatureGate` |
+| OptimisticMutations_Buyout | 40 | Deprecated (disabled) | Infrastructure | Optimistic mutation flow for Buyout/compliance workflows (Mgr of Operational Excellence, Administrator) | `optimisticMutationFlags.ts` via `useMutationFeatureGate` |
+| OptimisticMutations_PMP | 41 | Deprecated (disabled) | Infrastructure | Optimistic mutation flow for PMP updates/approvals (Commercial Operations Mgr, Administrator) | `optimisticMutationFlags.ts` via `useMutationFeatureGate` |
+| InfinitePagingEnabled | 43 | Deprecated (disabled) | Infrastructure | Global gate for cursor-based infinite query paging | `ListThresholdGuard.ts` |
+| ConnectorMutationResilience | 51 | Deprecated (disabled) | Infrastructure | Phase 5A retry/backoff for connector mutations via useConnectorMutation hook | `useConnectorMutation.ts`, `optimisticMutationFlags.ts` |
+| WorkflowStateMachine | 52 | Deprecated (disabled) | Infrastructure | XState workflow engine; legacy imperative path is active fallback | `GoNoGoScorecard.tsx`, `PMPPage.tsx` (isFeatureEnabled) |
+| ProvisioningSaga | 53 | Deprecated (disabled) | Infrastructure | Saga-based provisioning; legacy provisioning path is active fallback | `ProvisioningPage.tsx` (FeatureGate), `ProvisioningService.ts` (isFeatureEnabled) |
+| PowerBIIntegration | 57 | Deprecated (disabled) | Integrations | Power BI embedded reports -- not yet deployed | `PreconDashboardPage.tsx`, `EstimatingDashboardPage.tsx`, `AnalyticsHubDashboardPage.tsx` (FeatureGate) |
+| RealTimeUpdates | 58 | Deprecated (disabled) | Infrastructure | SignalR real-time push -- not yet deployed | `AppShell.tsx` (FeatureGate), `SignalRContext.tsx` (isFeatureEnabled) |
 
-**Status legend:** Active = enabled globally; Active (role-gated) = enabled for specific roles; Ready to enable = disabled, code wired, awaiting deployment; Dual-path guard = intentionally disabled, legacy fallback active; Not deployed = disabled, gating code exists but feature not ready.
+**Status legend:** Active = enabled globally; Active (role-gated) = enabled for specific roles; Deprecated (disabled) = intentionally disabled with gate retained for compatibility and no runtime behavior change.
 
 ## [2026-02-25] - Stage 5 Sub-Task 8 - a11y(keyboard) - Expand Keyboard Navigation Tests
 

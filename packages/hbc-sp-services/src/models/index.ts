@@ -50,6 +50,7 @@ export * from './IProjectDataMart';
 export * from './IScheduleActivity';
 export * from './IConstraintLog';
 export * from './IPermit';
+export * from './sharedContracts';
 export * from './ITelemetryEvent';
 export * from './ITemplateManifest';
 export * from './IProjectKpiSnapshot';

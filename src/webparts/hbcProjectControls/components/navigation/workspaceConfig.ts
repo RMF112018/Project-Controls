@@ -1,30 +1,9 @@
 import { RoleName, PERMISSIONS } from '@hbc/sp-services';
+import type { IWorkspaceConfig } from '@hbc/sp-services';
 
 const ALL_ROLES = Object.values(RoleName) as RoleName[];
 
-export interface ISidebarItem {
-  label: string;
-  path: string;
-  icon?: string;
-  permission?: string;
-  featureFlag?: string;
-}
-
-export interface ISidebarGroup {
-  label: string;
-  items: ISidebarItem[];
-}
-
-export interface IWorkspaceConfig {
-  id: string;
-  label: string;
-  icon: string;
-  basePath: string;
-  roles: RoleName[];
-  featureFlag?: string;
-  requireProject?: boolean;
-  sidebarGroups: ISidebarGroup[];
-}
+export type { IWorkspaceConfig, ISidebarGroup, ISidebarItem } from '@hbc/sp-services';
 
 export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
   {

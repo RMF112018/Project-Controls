@@ -40,6 +40,8 @@ export function useConnectorMutation<TData, TVariables>(
 
   const isResilienceEnabled = React.useMemo(() => {
     if (typeof isFeatureEnabled !== 'function') return false;
+    // Stage 6 Sub-task 4: retained as a deprecated disabled gate for compatibility;
+    // when off, retry remains 0 to preserve established production behavior.
     return isFeatureEnabled(OPTIMISTIC_MUTATION_FLAGS.connectors);
   }, [isFeatureEnabled]);
 

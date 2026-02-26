@@ -9,6 +9,8 @@ export function useMutationFeatureGate(domainFlag: string): boolean {
     if (typeof isFeatureEnabled !== 'function') {
       return false;
     }
+    // Stage 6 Sub-task 4: optimistic flags remain intentionally disabled-by-default;
+    // this keeps baseline non-optimistic behavior unchanged unless admins opt in.
     if (!isFeatureEnabled(OPTIMISTIC_MUTATION_FLAGS.global)) {
       return false;
     }

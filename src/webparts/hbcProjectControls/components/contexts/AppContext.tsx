@@ -3,7 +3,8 @@ import {
   IDataService,
   ICurrentUser,
   IFeatureFlag,
-  Stage,
+  IDashboardPreference,
+  ISelectedProject,
   IResolvedPermissions,
   detectSiteContext,
   DEFAULT_HUB_SITE_URL,
@@ -15,28 +16,7 @@ import type { IDevToolsConfig } from '../App';
 import { useFullScreen } from '../hooks/useFullScreen';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
-export interface IDashboardPreference {
-  layout?: string[];
-  collapsedWidgets?: string[];
-  filters?: Record<string, string | number | boolean | string[]>;
-  viewMode?: string;
-  updatedAt: string;
-}
-
-export type ProjectHealthStatus = 'Green' | 'Yellow' | 'Red';
-
-export interface ISelectedProject {
-  projectCode: string;
-  projectName: string;
-  stage: Stage;
-  region?: string;
-  division?: string;
-  leadId?: number;
-  siteUrl?: string;  // Project SP site URL (set on project sites, optional on hub selection)
-  clientName?: string;
-  projectValue?: number;
-  overallHealth?: ProjectHealthStatus;
-}
+export type { IDashboardPreference, ISelectedProject, ProjectHealthStatus } from '@hbc/sp-services';
 
 export interface IAppContextValue {
   dataService: IDataService;

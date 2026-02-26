@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { makeStyles, shorthands } from '@fluentui/react-components';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../shared/PageHeader';
 import { CollapsibleSection } from '../../shared/CollapsibleSection';
 import { HbcDataTable } from '../../shared/HbcDataTable';
@@ -9,6 +10,9 @@ import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useAppContext } from '../../contexts/AppContext';
 import type { IStartupChecklistItem, ICloseoutItem } from '@hbc/sp-services';
+import { useQueryScope } from '../../../tanstack/query/useQueryScope';
+import { closeoutItemsOptions, startupChecklistOptions } from '../../../tanstack/query/queryOptions/operations';
+import { qk } from '../../../tanstack/query/queryKeys';
 import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
@@ -55,32 +59,56 @@ const CLOSEOUT_COLUMNS: IHbcDataTableColumn<ICloseoutItem>[] = [
 export const StartupCloseoutPage: React.FC = () => {
   const styles = useStyles();
   const { dataService, selectedProject } = useAppContext();
+  const scope = useQueryScope();
+  const queryClient = useQueryClient();
   const projectCode = selectedProject?.projectCode || '';
 
-  const [startupItems, setStartupItems] = React.useState<IStartupChecklistItem[]>([]);
-  const [closeoutItems, setCloseoutItems] = React.useState<ICloseoutItem[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const startupQuery = useQuery(startupChecklistOptions(scope, dataService, projectCode));
+  const closeoutQuery = useQuery(closeoutItemsOptions(scope, dataService, projectCode));
 
-  React.useEffect(() => {
-    if (!projectCode) {
-      setLoading(false);
-      return;
-    }
+  const startupItems = startupQuery.data ?? [];
+  const closeoutItems = closeoutQuery.data ?? [];
+  const loading = !!projectCode && (startupQuery.isLoading || closeoutQuery.isLoading);
 
-    Promise.all([
-      dataService.getStartupChecklist(projectCode),
-      dataService.getCloseoutItems(projectCode),
-    ])
-      .then(([startup, closeout]) => {
-        setStartupItems(startup);
-        setCloseoutItems(closeout);
-      })
-      .catch(() => {
-        setStartupItems([]);
-        setCloseoutItems([]);
-      })
-      .finally(() => setLoading(false));
-  }, [dataService, projectCode]);
+  // Mutation plumbing for upcoming editable startup/closeout UX.
+  // The page remains read-only in this change.
+  useMutation<IStartupChecklistItem, Error, { itemId: number; data: Partial<IStartupChecklistItem> }, { previous?: IStartupChecklistItem[] }>({
+    mutationFn: async ({ itemId, data }) => dataService.updateChecklistItem(projectCode, itemId, data),
+    onMutate: async ({ itemId, data }) => {
+      const queryKey = qk.startupChecklist.base(scope, projectCode);
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<IStartupChecklistItem[]>(queryKey);
+      queryClient.setQueryData<IStartupChecklistItem[]>(queryKey, (current = []) => (
+        current.map((item) => (item.id === itemId ? { ...item, ...data } : item))
+      ));
+      return { previous };
+    },
+    onError: (_error, _vars, context) => {
+      queryClient.setQueryData(qk.startupChecklist.base(scope, projectCode), context?.previous);
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: qk.startupChecklist.base(scope, projectCode) });
+    },
+  });
+
+  useMutation<ICloseoutItem, Error, { itemId: number; data: Partial<ICloseoutItem> }, { previous?: ICloseoutItem[] }>({
+    mutationFn: async ({ itemId, data }) => dataService.updateCloseoutItem(itemId, data),
+    onMutate: async ({ itemId, data }) => {
+      const queryKey = qk.closeout.byProject(scope, projectCode);
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<ICloseoutItem[]>(queryKey);
+      queryClient.setQueryData<ICloseoutItem[]>(queryKey, (current = []) => (
+        current.map((item) => (item.id === itemId ? { ...item, ...data } : item))
+      ));
+      return { previous };
+    },
+    onError: (_error, _vars, context) => {
+      queryClient.setQueryData(qk.closeout.byProject(scope, projectCode), context?.previous);
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: qk.closeout.byProject(scope, projectCode) });
+    },
+  });
 
   if (!projectCode) {
     return (

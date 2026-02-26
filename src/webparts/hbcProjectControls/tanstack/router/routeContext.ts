@@ -1,7 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
-import type { IDataService, ICurrentUser } from '@hbc/sp-services';
+import type { IDataService, ICurrentUser, ISelectedProject } from '@hbc/sp-services';
 import type { IQueryScope } from '../query/queryKeys';
-import type { ISelectedProject } from '../../components/contexts/AppContext';
 
 export interface ITanStackRouteContext {
   queryClient: QueryClient;
