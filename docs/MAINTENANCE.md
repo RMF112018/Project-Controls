@@ -75,6 +75,51 @@ Use this template for all new debt items:
 | Teams Smoke | Teams-hosted smoke must pass | `npm run test:e2e:teams-core-smoke` |
 | Router Parity | Route parity smoke must pass | `npm run test:e2e:router-parity` |
 
+## Performance Gating Rules - Stage 10 (Infinite Queries & Virtualization)
+
+### Query Page-Size Defaults (Field Device Baseline)
+
+- Use `pageSize: 50` for dense preconstruction datasets with heavier row payloads (for example: estimating/department-tracking style records).
+- Use `pageSize: 100` for operations dashboards and checklist/project lists with lighter row payloads.
+- Rationale: first payload stays constrained for slower field-device networks while preserving smooth incremental hydration for subsequent pages.
+
+### Virtualization Thresholds, Overscan, and Transition Usage
+
+- Virtualization is mandatory for list/table surfaces once row volume exceeds `200` rendered rows or where infinite pages are enabled.
+- Keep virtualization logic centralized in shared table components so row measurement, scroll-container behavior, and overscan tuning remain consistent.
+- Default overscan posture should prioritize touch-scroll smoothness while limiting memory growth; start from shared defaults and tune only with measured evidence.
+- Wrap filter/search state updates in `React.startTransition` where large row sets are rendered to reduce typing and interaction jank under concurrent rendering.
+
+### Bundle-Size and Memory Monitoring Requirements
+
+- Every release candidate must include bundle posture evidence from `npm run bundle:analyze`.
+- Stage 10 large-list validation must include runtime memory snapshots (baseline vs. virtualized/infinite-query state) in React DevTools/Profiler.
+- Performance gate requires observed memory reduction target of `>=40%` on representative high-volume construction lists before production rollout.
+
+### Rollback Procedure (Stage 10 Paging/Virtualization)
+
+1. Revert affected list pages to prior full-fetch `useQuery`/`useEffect` data paths for emergency stabilization only.
+2. Preserve existing query-key naming to avoid cache contract drift during rollback and forward reapplication.
+3. Disable incremental `Load More` UX affordances where full-fetch fallback is active to prevent mixed-mode behavior.
+4. Redeploy last known-good package after rollback and rerun compile/smoke gates before re-opening rollout.
+5. Create/track a debt item for rollback follow-up and reintroduce Stage 10 behavior only after root-cause remediation is verified.
+
+### Field Usability Notes (Load More + Touch Scrolling)
+
+- Initial list render should prioritize first-page responsiveness; additional pages load on explicit user action (`Load More`) or controlled infinite triggers.
+- Touch scrolling must remain smooth under virtualized rendering; avoid auto-fetch-all behavior that negates field-device payload limits.
+- Keep `isFetchingNextPage` indicators visible near list controls and expose explicit retry actions on page-fetch errors.
+- For intermittent connectivity, preserve already loaded rows and provide recoverable retry flow instead of resetting full list state.
+
+### Deployment Verification Checklist (Stage 10)
+
+| Gate | Requirement | Validation Command |
+|---|---|---|
+| TypeScript integrity | No compile/type regressions | `npx tsc --noEmit` |
+| Bundle analysis | Analyze output generated and reviewed | `npm run bundle:analyze` |
+| Large-list smoke | Infinite pagination + virtualization flow is stable | smoke run with high-volume list fixtures/data |
+| Runtime safety | RBAC, optimistic updates, telemetry, and client filtering unchanged | targeted operations/preconstruction smoke validation |
+
 ## Monitoring and Alert Review Process
 
 - Daily review open alerts/incidents and classify into defect vs. debt.
@@ -95,6 +140,12 @@ Required waiver fields:
 - expiration date.
 
 Waivers expire automatically at the recorded date and must be renewed explicitly.
+
+## Recent Changes
+
+- Stage 10 introduced infinite-query pagination and centralized virtualization guardrails as release-gated operational policy.
+- Operators should verify first-page behavior before requesting full dataset expansion; use explicit `Load More` paths to manage field-device network/memory constraints.
+- During rollout validation, capture evidence for page-fetch latency, scroll smoothness, and memory posture alongside standard compile/bundle/smoke gates.
 
 ## Document Review Policy
 

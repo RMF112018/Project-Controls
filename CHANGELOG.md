@@ -741,6 +741,29 @@ All notable changes to HBC Project Controls will be documented in this file.
 
 ## [Unreleased]
 
+## [2026-02-26] - Stage 10 Sub-Task 4 - docs(maintenance) - Infinite Queries + Virtualization Documentation Closure
+
+### Added
+- Stage 10 documentation closure covering TanStack Query v5 infinite-query rollout across high-volume construction lists, centralized virtualization in shared table rendering, and progressive-load UX guidance (`Load More`, `isFetchingNextPage`, retry flows, transition-backed filtering updates).
+- Stage 10 maintenance gating rules in `docs/MAINTENANCE.md`, including page-size defaults (`50`/`100`), virtualization thresholds/overscan policy, memory and bundle governance checks, rollback runbook, and deployment verification checklist.
+
+### Changed
+- Consolidated Stage 10 performance posture into governance documentation with field-device focused guardrails for infinite pagination, virtualized row rendering, and touch-scroll usability.
+- Added operational Stage 10 setup/usability instructions for incremental loading behavior and manual dataset expansion controls in maintenance guidance.
+- Documented Stage 10 impacted surfaces at a governance level:
+  - `src/webparts/hbcProjectControls/components/pages/preconstruction/DepartmentTrackingPage.tsx`
+  - `src/webparts/hbcProjectControls/components/pages/operations/StartupCloseoutPage.tsx`
+  - `src/webparts/hbcProjectControls/components/pages/operations/CommercialDashboardPage.tsx`
+  - `src/webparts/hbcProjectControls/components/pages/operations/LuxuryResidentialPage.tsx`
+  - `src/webparts/hbcProjectControls/components/pages/operations/ProjectDashboardPage.tsx`
+  - `src/webparts/hbcProjectControls/components/shared/HbcDataTable.tsx`
+  - `packages/hbc-sp-services/src/services/` (paged service contracts/implementations)
+
+### Notes
+- Performance targets and deployment gates now explicitly track Stage 10 outcomes: memory reduction `>=40%`, first-50-item load under field constraints, and sub-page incremental fetch expectations.
+- Stage 10 field-device performance targets are tracked in maintenance gating as first-50-item load `<800 ms` and subsequent page fetch windows `<300 ms` under representative high-volume datasets.
+- Stage 10 runtime/performance gate ownership and rollback rules are documented in `docs/MAINTENANCE.md` and are now the canonical reference for release decisioning.
+
 ### Added
 - TanStack Router v1 as sole runtime router (hash history, 58 routes including root)
 - 53 lazy-loaded routes (91.4% coverage): 46 via `lazyRouteComponent`, 7 via `createLazyRoute`
