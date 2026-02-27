@@ -37,6 +37,11 @@ const ADMIN_GROUPS = [
     path: '/admin/roles',
   },
   {
+    label: 'Entra Role Mapping',
+    description: 'Map Microsoft Entra groups/roles to internal app roles and permission templates.',
+    path: '/admin/entra-mappings',
+  },
+  {
     label: 'Provisioning',
     description: 'Site provisioning queue, retry management, and template sync.',
     path: '/admin/provisioning',

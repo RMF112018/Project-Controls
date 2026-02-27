@@ -15,6 +15,17 @@
   - event: `route:lazy:load`
   - properties: `branch`, `fromPath`, `toPath`, `success`
 
+## Stage 17 Workflow Route Notes
+
+For Stage 17 Project Number Request handoff operations, the runbook uses:
+
+- Estimator workflow route: `/#/preconstruction/project-number-requests` (and `/new` entry flow)
+- Accounting workflow route: `/#/shared-services/accounting/new-project`
+
+Historical route entries in this file (for example `/job-request` and `/accounting-queue`) are retained for continuity with prior staging references. Use the Stage 17 runbook as the operational source for the current handoff flow:
+
+- `docs/stage-17-project-number-request-workflow.md`
+
 ## Route Table
 
 | Path | Component | Chunk | Guards | Lazy Strategy |

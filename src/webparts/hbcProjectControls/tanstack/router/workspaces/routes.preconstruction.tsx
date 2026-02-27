@@ -223,6 +223,7 @@ export function createPreconstructionWorkspaceRoutes(rootRoute: unknown) {
     component: ProjectNumberRequestForm,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
       requireFeature(context, 'ProjectNumberRequestsModule');
+      // Estimator-family create flow depends on JOB_NUMBER_REQUEST_CREATE.
       requirePermission(context, PERMISSIONS.JOB_NUMBER_REQUEST_CREATE);
     },
   });

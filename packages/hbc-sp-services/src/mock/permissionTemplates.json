@@ -319,7 +319,7 @@
       { "toolKey": "schedule", "level": "NONE" },
       { "toolKey": "monthly_review", "level": "NONE" },
       { "toolKey": "lessons_learned", "level": "NONE" },
-      { "toolKey": "shared_services_hub", "level": "READ_ONLY" },
+      { "toolKey": "shared_services_hub", "level": "ADMIN" },
       { "toolKey": "hr", "level": "NONE" },
       { "toolKey": "risk_management", "level": "NONE" },
       { "toolKey": "site_control_hub", "level": "NONE" },

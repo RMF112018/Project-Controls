@@ -4361,7 +4361,7 @@ export class MockDataService implements IDataService {
     const existing = this.jobNumberRequests[index];
 
     // Detect number assignment → status transition
-    if (data.AssignedJobNumber && !existing.AssignedJobNumber) {
+    if (data.AssignedJobNumber && !existing.AssignedJobNumber && data.RequestStatus === undefined) {
       data.RequestStatus = JobNumberRequestStatus.PendingProvisioning;
       data.AssignedDate = data.AssignedDate ?? new Date().toISOString().split('T')[0];
       data.BallInCourt = 'System';
@@ -4479,15 +4479,17 @@ export class MockDataService implements IDataService {
     request.RequestStatus = JobNumberRequestStatus.Completed;
     request.BallInCourt = undefined;
 
-    // Completion notifications to originator + PX + PM
-    const recipients = [request.Originator ?? ''];
-    if (request.ProjectExecutive) recipients.push(request.Email ?? request.ProjectExecutive);
+    // Step 7: service-centric completion notification to estimator/originator recipients.
+    const recipients = Array.from(new Set([
+      request.Email,
+      request.Originator,
+    ].filter((value): value is string => Boolean(value && value.trim()))));
     if (request.ProjectManager) recipients.push(request.ProjectManager);
 
     await this.sendNotification({
       type: NotificationType.Both,
-      subject: `Project Site Ready: ${request.ProjectName ?? 'Untitled'}`,
-      body: `The SharePoint site for ${request.ProjectName ?? 'Untitled'} (${request.AssignedJobNumber || request.TempProjectCode}) has been provisioned at ${request.SiteUrl}.`,
+      subject: `Project Site Ready: ${request.ProjectName ?? request.ProjectAddress ?? `Request ${request.id}`}`,
+      body: `Accounting setup is complete and site provisioning finished for ${request.ProjectName ?? request.ProjectAddress ?? `Request ${request.id}`} (${request.AssignedJobNumber || request.TempProjectCode || request.id}).`,
       recipients: recipients.filter(Boolean),
       sentBy: 'system',
       relatedEntityType: 'ProjectNumberRequest',
@@ -4500,7 +4502,7 @@ export class MockDataService implements IDataService {
       EntityType: EntityType.ProjectNumberRequest,
       EntityId: String(request.id),
       User: 'system',
-      Details: `Site provisioned at ${request.SiteUrl}`,
+      Details: `Project number provisioning completed for ${request.ProjectName ?? request.ProjectAddress ?? `Request ${request.id}`} at ${request.SiteUrl}.`,
     });
 
     return { ...request };

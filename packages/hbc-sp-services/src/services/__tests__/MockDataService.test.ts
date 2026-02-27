@@ -9,6 +9,7 @@ import {
   EntityType,
   DeliverableStatus,
 } from '../../models/enums';
+import { JobNumberRequestStatus } from '../../models/IJobNumberRequest';
 import { SCORECARD_CRITERIA } from '../../models/IGoNoGoScorecard';
 
 describe('MockDataService', () => {
@@ -244,6 +245,55 @@ describe('MockDataService', () => {
       });
       const retried = await ds.retryProvisioning('25-099-01', 3);
       expect(retried.status).toBe(ProvisioningStatus.InProgress);
+    });
+  });
+
+  // ─── Project Number Workflow ─────────────────────────────────
+
+  describe('Project Number Workflow', () => {
+    it('submitProjectNumberRequest typical creates pending-controller request and controller notification', async () => {
+      const created = await ds.submitProjectNumberRequest({
+        Email: 'estimator@hedrickbrothers.com',
+        Originator: 'estimator@hedrickbrothers.com',
+        SubmittedBy: 'Estimator User',
+        ProjectName: 'Step8 Test Project',
+        StreetAddress: '123 Buildway Ave',
+        CityState: 'West Palm Beach, FL',
+        ZipCode: '33401',
+        County: 'Palm Beach',
+        ProjectExecutive: 'Bobby Fetting',
+        OfficeDivision: '01-43',
+      }, 'typical');
+
+      expect(created.RequestStatus).toBe(JobNumberRequestStatus.PendingController);
+      const notifications = await ds.getNotifications();
+      expect(notifications.some((n) => n.subject.includes('New Project Number Request'))).toBe(true);
+    });
+
+    it('triggerProjectNumberProvisioning emits completion notification and provisioning-complete audit', async () => {
+      const created = await ds.submitProjectNumberRequest({
+        Email: 'estimator@hedrickbrothers.com',
+        Originator: 'estimator@hedrickbrothers.com',
+        SubmittedBy: 'Estimator User',
+        ProjectName: 'Step8 Provisioning Project',
+        StreetAddress: '456 Builder St',
+        CityState: 'West Palm Beach, FL',
+        ZipCode: '33401',
+        County: 'Palm Beach',
+        ProjectExecutive: 'Bobby Fetting',
+        OfficeDivision: '01-43',
+      }, 'alternate');
+
+      const completed = await ds.triggerProjectNumberProvisioning(created.id);
+      expect(completed.RequestStatus).toBe(JobNumberRequestStatus.Completed);
+
+      const notifications = await ds.getNotifications();
+      const completionNotification = notifications.find((n) => n.relatedEntityId === String(created.id) && n.subject.includes('Project Site Ready'));
+      expect(completionNotification).toBeDefined();
+      expect(completionNotification?.recipients).toContain('estimator@hedrickbrothers.com');
+
+      const audit = await ds.getAuditLog(EntityType.ProjectNumberRequest, String(created.id));
+      expect(audit.some((entry) => entry.Action === AuditAction.ProjectNumberProvisioningCompleted)).toBe(true);
     });
   });
 

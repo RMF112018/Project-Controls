@@ -63,9 +63,10 @@ import { IProcoreProject, IProcoreRFI, IProcoreSubmittal, IProcoreBudgetLineItem
 import { ITemplateRegistry, ITemplateSiteConfig, ITemplateManifestLog } from '../models/ITemplateManifest';
 import { ITemplateFileMetadata } from './IDataService';
 import { ISiteTemplate, SiteTemplateType } from '../models/ISiteTemplate';
-import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField, TurnoverStatus, ScorecardStatus, WorkflowActionType, ActionPriority, AuditAction, EntityType, TemplateSyncStatus } from '../models/enums';
+import { GoNoGoDecision, Stage, RoleName, WorkflowKey, PermissionLevel, StepAssignmentType, ConditionField, TurnoverStatus, ScorecardStatus, WorkflowActionType, ActionPriority, AuditAction, EntityType, NotificationType, TemplateSyncStatus } from '../models/enums';
 import { DataServiceError } from './DataServiceError';
 import { performanceService } from './PerformanceService';
+import { powerAutomateService } from './PowerAutomateService';
 import { LIST_NAMES, CACHE_KEYS, CACHE_TTL_MS, HUB_LISTS } from '../utils/constants';
 import { ListThresholdGuard, listThresholdGuard, ThresholdLevel } from '../utils/ListThresholdGuard';
 import { ROLE_PERMISSIONS } from '../utils/permissions';
@@ -621,10 +622,59 @@ export class SharePointDataService implements IDataService {
   }
 
   // --- Notifications ---
-  async sendNotification(_notification: Partial<INotification>): Promise<INotification> {
+  async sendNotification(notification: Partial<INotification>): Promise<INotification> {
     performanceService.startMark('sp:sendNotification');
-    throw new Error('Use PowerAutomateService directly');
+    const recipients = (notification.recipients ?? [])
+      .map((value) => value?.trim() ?? '')
+      .filter(Boolean);
+    const type = notification.type ?? NotificationType.Email;
+    let status: INotification['status'] = 'pending';
+    let details = `Notification queued for ${recipients.length} recipient(s).`;
+
+    const result: INotification = {
+      id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type,
+      subject: notification.subject ?? '',
+      body: notification.body ?? '',
+      recipients,
+      sentAt: new Date().toISOString(),
+      sentBy: notification.sentBy ?? this._pageContextUser?.email ?? 'system',
+      relatedEntityType: notification.relatedEntityType,
+      relatedEntityId: notification.relatedEntityId,
+      projectCode: notification.projectCode,
+      status: 'pending',
+    };
+
+    try {
+      await powerAutomateService.triggerNotification({
+        type: type === NotificationType.Email ? 'email' : type === NotificationType.Teams ? 'teams' : 'both',
+        recipients,
+        subject: result.subject,
+        body: result.body,
+        projectCode: result.projectCode,
+      });
+      status = 'sent';
+      details = `Notification dispatch attempted for ${recipients.length} recipient(s).`;
+    } catch (err) {
+      status = 'failed';
+      details = `Notification dispatch failed: ${err instanceof Error ? err.message : String(err)}`;
+    }
+
+    result.status = status;
+    const isProjectNumberNotification = (
+      notification.relatedEntityType === EntityType.ProjectNumberRequest ||
+      notification.relatedEntityType === 'ProjectNumberRequest'
+    );
+    this.logAudit({
+      Action: status === 'failed' ? AuditAction.ServiceError : AuditAction.ProjectNumberRequestUpdated,
+      EntityType: isProjectNumberNotification ? EntityType.ProjectNumberRequest : EntityType.Project,
+      EntityId: notification.relatedEntityId ?? notification.projectCode ?? result.id,
+      User: result.sentBy,
+      Details: `[Notification:${status}] ${details} Subject: ${result.subject || '(none)'}`,
+    }).catch(() => { /* fire-and-forget */ });
+
     performanceService.endMark('sp:sendNotification');
+    return result;
   }
 
   async getNotifications(_projectCode?: string): Promise<INotification[]> {
@@ -3600,12 +3650,88 @@ export class SharePointDataService implements IDataService {
     const col = JOB_NUMBER_REQUESTS_COLUMNS;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: Record<string, any> = {};
+    const hasAccountingUpdate = (
+      data.AccountingCostCenter !== undefined ||
+      data.AccountingDivisionCode !== undefined ||
+      data.AccountingPhaseCode !== undefined ||
+      data.BudgetInitialAmount !== undefined ||
+      data.BudgetContingencyAmount !== undefined ||
+      data.BudgetNotes !== undefined ||
+      data.FinancialCodingCompletedBy !== undefined ||
+      data.FinancialCodingCompletedAt !== undefined
+    );
+
+    if (data.RequestDate !== undefined) updateData[col.RequestDate] = data.RequestDate;
+    if (data.Originator !== undefined) updateData[col.Originator] = data.Originator;
+    if (data.RequiredByDate !== undefined) updateData[col.RequiredByDate] = data.RequiredByDate;
+    if (data.ProjectAddress !== undefined) updateData[col.ProjectAddress] = data.ProjectAddress;
+    if (data.ProjectExecutive !== undefined) updateData[col.ProjectExecutive] = data.ProjectExecutive;
+    if (data.ProjectManager !== undefined) updateData[col.ProjectManager] = data.ProjectManager;
+    if (data.ProjectType !== undefined) updateData[col.ProjectType] = data.ProjectType;
+    if (data.ProjectTypeLabel !== undefined) updateData[col.ProjectTypeLabel] = data.ProjectTypeLabel;
+    if (data.SiteProvisioningHeld !== undefined) updateData[col.SiteProvisioningHeld] = data.SiteProvisioningHeld;
+    if (data.TempProjectCode !== undefined) updateData[col.TempProjectCode] = data.TempProjectCode;
+    if (data.Email !== undefined) updateData[col.Email] = data.Email;
+    if (data.ProjectName !== undefined) updateData[col.ProjectName] = data.ProjectName;
+    if (data.StreetAddress !== undefined) updateData[col.StreetAddress] = data.StreetAddress;
+    if (data.CityState !== undefined) updateData[col.CityState] = data.CityState;
+    if (data.ZipCode !== undefined) updateData[col.ZipCode] = data.ZipCode;
+    if (data.County !== undefined) updateData[col.County] = data.County;
+    if (data.OfficeDivision !== undefined) updateData[col.OfficeDivision] = data.OfficeDivision;
+    if (data.OfficeDivisionLabel !== undefined) updateData[col.OfficeDivisionLabel] = data.OfficeDivisionLabel;
+    if (data.ManagedInProcore !== undefined) updateData[col.ManagedInProcore] = data.ManagedInProcore;
+    if (data.AdditionalSageAccess !== undefined) updateData[col.AdditionalSageAccess] = data.AdditionalSageAccess;
+    if (data.TimberscanApprover !== undefined) updateData[col.TimberscanApprover] = data.TimberscanApprover;
+    if (data.WorkflowType !== undefined) updateData[col.WorkflowType] = data.WorkflowType;
+    if (data.SubmittedBy !== undefined) updateData[col.SubmittedBy] = data.SubmittedBy;
+    if (data.ProvisioningTriggeredAt !== undefined) updateData[col.ProvisioningTriggeredAt] = data.ProvisioningTriggeredAt;
+    if (data.SiteUrl !== undefined) updateData[col.SiteUrl] = data.SiteUrl;
     if (data.RequestStatus !== undefined) updateData[col.RequestStatus] = data.RequestStatus;
     if (data.AssignedJobNumber !== undefined) updateData[col.AssignedJobNumber] = data.AssignedJobNumber;
     if (data.AssignedBy !== undefined) updateData[col.AssignedBy] = data.AssignedBy;
     if (data.AssignedDate !== undefined) updateData[col.AssignedDate] = data.AssignedDate;
     if (data.BallInCourt !== undefined) updateData[col.BallInCourt] = data.BallInCourt;
-    if (data.Notes !== undefined) updateData[col.Notes] = data.Notes;
+    if (!hasAccountingUpdate && data.Notes !== undefined) {
+      updateData[col.Notes] = data.Notes;
+    }
+    if (hasAccountingUpdate) {
+      const existingRaw = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(requestId)();
+      const notesRaw = existingRaw[col.Notes];
+      let parsed: unknown = null;
+      if (typeof notesRaw === 'string' && notesRaw) {
+        try {
+          parsed = JSON.parse(notesRaw as string);
+        } catch {
+          parsed = null;
+        }
+      }
+      const existingEnvelope = (
+        parsed &&
+        typeof parsed === 'object' &&
+        (Object.prototype.hasOwnProperty.call(parsed, 'accountingSetup') || Object.prototype.hasOwnProperty.call(parsed, 'userNotes'))
+      )
+        ? (parsed as {
+            userNotes?: string;
+            accountingSetup?: Partial<IJobNumberRequest>;
+          })
+        : null;
+      const nextEnvelope = {
+        userNotes: data.Notes ?? existingEnvelope?.userNotes ?? (
+          typeof notesRaw === 'string' && !existingEnvelope ? notesRaw : undefined
+        ),
+        accountingSetup: {
+          AccountingCostCenter: data.AccountingCostCenter ?? existingEnvelope?.accountingSetup?.AccountingCostCenter,
+          AccountingDivisionCode: data.AccountingDivisionCode ?? existingEnvelope?.accountingSetup?.AccountingDivisionCode,
+          AccountingPhaseCode: data.AccountingPhaseCode ?? existingEnvelope?.accountingSetup?.AccountingPhaseCode,
+          BudgetInitialAmount: data.BudgetInitialAmount ?? existingEnvelope?.accountingSetup?.BudgetInitialAmount,
+          BudgetContingencyAmount: data.BudgetContingencyAmount ?? existingEnvelope?.accountingSetup?.BudgetContingencyAmount,
+          BudgetNotes: data.BudgetNotes ?? existingEnvelope?.accountingSetup?.BudgetNotes,
+          FinancialCodingCompletedBy: data.FinancialCodingCompletedBy ?? existingEnvelope?.accountingSetup?.FinancialCodingCompletedBy,
+          FinancialCodingCompletedAt: data.FinancialCodingCompletedAt ?? existingEnvelope?.accountingSetup?.FinancialCodingCompletedAt,
+        },
+      };
+      updateData[col.Notes] = JSON.stringify(nextEnvelope);
+    }
 
     await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(requestId).update(updateData);
     const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(requestId)();
@@ -3673,8 +3799,36 @@ export class SharePointDataService implements IDataService {
     });
 
     const updated = await this.sp.web.lists.getByTitle(LIST_NAMES.JOB_NUMBER_REQUESTS).items.getById(requestId)();
+    const request = this.mapToJobNumberRequest(updated as Record<string, unknown>);
+    const projectLabel = request.ProjectName ?? request.ProjectAddress ?? `Request ${requestId}`;
+    const recipients = Array.from(new Set([
+      request.Email,
+      request.Originator,
+    ].filter((value): value is string => Boolean(value && value.trim()))));
+
+    // Service-centric Step 7 ownership: provisioning completion emits notification + audit.
+    if (recipients.length > 0) {
+      await this.sendNotification({
+        type: NotificationType.Both,
+        subject: `Project Site Ready: ${projectLabel}`,
+        body: `Accounting setup is complete and site provisioning finished for ${projectLabel} (${jobNum}).`,
+        recipients,
+        sentBy: 'system',
+        relatedEntityType: EntityType.ProjectNumberRequest,
+        relatedEntityId: String(requestId),
+        projectCode: request.AssignedJobNumber || request.TempProjectCode || jobNum,
+      });
+    }
+    await this.logAudit({
+      Action: AuditAction.ProjectNumberProvisioningCompleted,
+      EntityType: EntityType.ProjectNumberRequest,
+      EntityId: String(requestId),
+      User: 'system',
+      Details: `Project number provisioning completed for ${projectLabel} at ${siteUrl}.`,
+    });
+
     performanceService.endMark('sp:triggerProjectNumberProvisioning');
-    return this.mapToJobNumberRequest(updated as Record<string, unknown>);
+    return request;
   }
 
   // --- Reference Data ---
@@ -6799,6 +6953,7 @@ export class SharePointDataService implements IDataService {
 
   async createSecurityGroupMapping(data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> {
     performanceService.startMark('sp:createSecurityGroupMapping');
+    // Used by Admin Entra role-mapping UI to persist principal-to-template assignments.
     const spItem: Record<string, unknown> = {
       [SECURITY_GROUP_MAPPINGS_COLUMNS.securityGroupId]: data.securityGroupId || '',
       [SECURITY_GROUP_MAPPINGS_COLUMNS.securityGroupName]: data.securityGroupName || '',
@@ -6813,6 +6968,7 @@ export class SharePointDataService implements IDataService {
 
   async updateSecurityGroupMapping(id: number, data: Partial<ISecurityGroupMapping>): Promise<ISecurityGroupMapping> {
     performanceService.startMark('sp:updateSecurityGroupMapping');
+    // Used by Admin Entra role-mapping UI to update existing principal mappings.
     const updateData: Record<string, unknown> = {};
     if (data.securityGroupId !== undefined) updateData[SECURITY_GROUP_MAPPINGS_COLUMNS.securityGroupId] = data.securityGroupId;
     if (data.securityGroupName !== undefined) updateData[SECURITY_GROUP_MAPPINGS_COLUMNS.securityGroupName] = data.securityGroupName;
@@ -8131,11 +8287,32 @@ export class SharePointDataService implements IDataService {
   private mapToJobNumberRequest(item: Record<string, unknown>): IJobNumberRequest {
     const col = JOB_NUMBER_REQUESTS_COLUMNS;
     let requestedCostCodes: string[] = [];
+    let userNotes: string | undefined;
+    let accountingSetup: Partial<IJobNumberRequest> | undefined;
     try {
       const raw = item[col.RequestedCostCodes];
       if (typeof raw === 'string' && raw) requestedCostCodes = JSON.parse(raw);
       else if (Array.isArray(raw)) requestedCostCodes = raw as string[];
     } catch { /* safe fallback */ }
+    try {
+      const rawNotes = item[col.Notes];
+      if (typeof rawNotes === 'string' && rawNotes) {
+        const parsed = JSON.parse(rawNotes);
+        if (
+          parsed &&
+          typeof parsed === 'object' &&
+          (Object.prototype.hasOwnProperty.call(parsed, 'accountingSetup') || Object.prototype.hasOwnProperty.call(parsed, 'userNotes'))
+        ) {
+          const typed = parsed as { userNotes?: string; accountingSetup?: Partial<IJobNumberRequest> };
+          userNotes = typed.userNotes;
+          accountingSetup = typed.accountingSetup;
+        } else {
+          userNotes = rawNotes;
+        }
+      }
+    } catch {
+      userNotes = (item[col.Notes] as string) || undefined;
+    }
 
     return {
       id: (item[col.id] as number) || (item.Id as number),
@@ -8156,7 +8333,7 @@ export class SharePointDataService implements IDataService {
       AssignedDate: (item[col.AssignedDate] as string) || undefined,
       SiteProvisioningHeld: !!(item[col.SiteProvisioningHeld]),
       TempProjectCode: (item[col.TempProjectCode] as string) || undefined,
-      Notes: (item[col.Notes] as string) || undefined,
+      Notes: userNotes,
       // Phase 4E fields
       Email: (item[col.Email] as string) || undefined,
       ProjectName: (item[col.ProjectName] as string) || undefined,
@@ -8174,6 +8351,14 @@ export class SharePointDataService implements IDataService {
       SubmittedBy: (item[col.SubmittedBy] as string) || undefined,
       ProvisioningTriggeredAt: (item[col.ProvisioningTriggeredAt] as string) || undefined,
       SiteUrl: (item[col.SiteUrl] as string) || undefined,
+      AccountingCostCenter: accountingSetup?.AccountingCostCenter,
+      AccountingDivisionCode: accountingSetup?.AccountingDivisionCode,
+      AccountingPhaseCode: accountingSetup?.AccountingPhaseCode,
+      BudgetInitialAmount: accountingSetup?.BudgetInitialAmount,
+      BudgetContingencyAmount: accountingSetup?.BudgetContingencyAmount,
+      BudgetNotes: accountingSetup?.BudgetNotes,
+      FinancialCodingCompletedBy: accountingSetup?.FinancialCodingCompletedBy,
+      FinancialCodingCompletedAt: accountingSetup?.FinancialCodingCompletedAt,
     };
   }
 

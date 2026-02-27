@@ -1,6 +1,7 @@
 export enum JobNumberRequestStatus {
   Pending = 'Pending',
   Completed = 'Completed',
+  SetupComplete = 'SetupComplete',
   Draft = 'Draft',
   Submitted = 'Submitted',
   PendingController = 'PendingController',
@@ -65,4 +66,14 @@ export interface IJobNumberRequest {
   ProvisioningTriggeredAt?: string;
   /** URL of provisioned SharePoint site */
   SiteUrl?: string;
+
+  // ── Stage 17 Step 6: Accounting Setup Fields ───────────────────────
+  AccountingCostCenter?: string;
+  AccountingDivisionCode?: string;
+  AccountingPhaseCode?: string;
+  BudgetInitialAmount?: number;
+  BudgetContingencyAmount?: number;
+  BudgetNotes?: string;
+  FinancialCodingCompletedBy?: string;
+  FinancialCodingCompletedAt?: string;
 }

@@ -12,8 +12,11 @@ const ROLE_SELECT_LABELS: Record<string, string> = {
   SharePointAdmin: 'Administrator',
   OperationsTeam: 'Commercial Operations Manager',
   EstimatingCoordinator: 'Estimator',
+  // Dev alias must map to canonical menu label consumed by role normalization.
+  EstimatorDev: 'Estimator',
   BDRepresentative: 'Business Development Manager',
   AccountingManager: 'Accounting Manager',
+  AccountingManagerDev: 'Accounting Manager',
   Legal: 'Risk Manager',
   Marketing: 'Marketing Manager',
   QualityControl: 'Quality Control Manager',

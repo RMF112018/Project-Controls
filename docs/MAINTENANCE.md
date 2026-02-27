@@ -294,3 +294,41 @@ Waivers expire automatically at the recorded date and must be renewed explicitly
 - Review this document at least once per sprint-end governance checkpoint.
 - Update when release gates, command names, or ownership model changes.
 - Reference major maintenance-process updates in `CHANGELOG.md`.
+
+## Stage 17 Operational Governance (Project Number Request Workflow)
+
+### Stage 17 Regression Checks (Required)
+
+- Queue row click stability:
+  - Accounting Manager can click pending rows without UI freeze or input lock.
+- Form editability:
+  - financial coding and budget fields are immediately editable and persist typed input.
+- Submit responsiveness:
+  - save and save+provision actions complete without interaction freeze.
+
+### Stage 17 Incident Triage Flow
+
+1. Confirm role mapping correctness (Estimator and Accounting Manager).
+2. Reproduce with targeted workflow test:
+   - `npx playwright test playwright/project-number-handoff.e2e.spec.ts --reporter=line`
+3. Classify failure type:
+   - access/guard issue,
+   - queue interaction freeze,
+   - form state/editability regression,
+   - submit/provisioning completion regression.
+4. Apply rollback/escalation decision using severity model in this document.
+5. Re-verify with the same targeted workflow command after mitigation.
+
+### Stage 17 Rollback Checklist
+
+1. Revert to last known-good package/config for workflow-critical regressions.
+2. Validate Estimator request creation and Accounting completion path end-to-end.
+3. Confirm completion visibility and notifications in Estimator view.
+4. Capture incident evidence and closure notes for auditability.
+5. Track follow-up remediation as a debt item with explicit exit criteria.
+
+### Stage 17 Documentation References
+
+- Primary runbook: `docs/stage-17-project-number-request-workflow.md`
+- Permission alignment: `docs/PERMISSION_STRATEGY.md`
+- Standalone/production environment behavior: `docs/standalone-mode.md`

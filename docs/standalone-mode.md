@@ -69,6 +69,39 @@ Run in this order for standalone changes:
 4. `npm run test:e2e -- playwright/mode-switch.spec.ts playwright/offline-mode.spec.ts playwright/standalone-auth.spec.ts`
 5. `npm run build:app` (SPFx regression guard)
 
+## Stage 17 Workflow Validation (Project Number Request -> Accounting Setup)
+
+Use this workflow-focused validation for Stage 17:
+
+1. Confirm standalone prerequisites and consent posture:
+   - `npm run validate:standalone-env`
+   - `npm run verify:standalone`
+2. Run handoff workflow coverage:
+   - `npx playwright test playwright/project-number-handoff.e2e.spec.ts --reporter=line`
+3. Confirm outcomes:
+   - Estimator can submit request.
+   - Accounting queue row click remains responsive.
+   - Accounting form fields are editable and submit succeeds.
+   - Completion status is visible to Estimator.
+
+### Standalone vs Production Differences (Stage 17)
+
+| Area | Standalone | Production (SPFx/SharePoint) |
+|---|---|---|
+| Authentication | Browser MSAL flow | SPFx context identity |
+| Role resolution | Graph-assisted + App_Roles fallback | SharePoint-integrated role resolution in production runtime |
+| Dev role simulation | RoleSwitcher available for dev validation | Not used as authorization mechanism |
+| Provisioning/notifications behavior | Depends on standalone service wiring and consent/config state | Depends on deployed production service configuration and tenant wiring |
+| Security boundary | UX/RBAC guard + configured data service behavior | SharePoint permissions remain authoritative boundary |
+
+### Operational Caveats
+
+- Missing Graph consent can reduce group-matching fidelity in standalone tests.
+- Environment variable drift can cause standalone-only behavior differences.
+- Always run a production-like validation pass before release sign-off.
+
+Cross-reference: `docs/stage-17-project-number-request-workflow.md`
+
 ## Troubleshooting
 
 ### Popup blocked or cancelled

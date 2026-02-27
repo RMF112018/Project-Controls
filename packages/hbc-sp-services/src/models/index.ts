@@ -56,6 +56,7 @@ export * from './ITemplateManifest';
 export * from './IProjectKpiSnapshot';
 export * from './ISiteProvisioningDefaults';
 export * from './IEntraGroupSyncResult';
+export * from './IEntraDirectoryPrincipal';
 export * from './IAuditSnapshot';
 export * from './IRoleConfiguration';
 export * from './IExternalConnector';

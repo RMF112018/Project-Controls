@@ -4,6 +4,23 @@ All notable changes to HBC Project Controls will be documented in this file.
 
 ## [Unreleased]
 
+### [2026-02-27] - Stage 17 Step 9 - docs(workflow) - Mandatory Documentation Update
+
+#### Added
+- New Stage 17 operational runbook:
+  - `docs/stage-17-project-number-request-workflow.md`
+
+#### Changed
+- Updated Stage 17-aligned documentation references and operational guidance:
+  - `docs/PERMISSION_STRATEGY.md`
+  - `docs/standalone-mode.md`
+  - `docs/MAINTENANCE.md`
+  - `docs/route-map.md`
+- Explicitly documented standalone vs production differences for the Estimator -> Accounting handoff workflow.
+
+#### Notes
+- Documentation-only update; no runtime API/interface/type changes.
+
 ### [2026-02-27] - Stage 15 Sub-Task 3 - feat(observability) - Sampling, Correlation, and Monitoring Export Hardening
 
 #### Added

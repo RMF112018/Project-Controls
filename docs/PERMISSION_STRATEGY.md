@@ -670,6 +670,37 @@ Both guards accept an optional `fallback` prop (defaults to `null`) rendered whe
 
 ---
 
+## Stage 17 Job Number Request & Accounting Handoff Addendum
+
+This addendum captures Stage 17 permission intent for the Estimator -> Accounting workflow.
+
+### A. Dual-role hardening intent
+
+- Stage 17 hardens role behavior for Estimator and Accounting Manager paths to ensure expected create/finalize workflow access.
+- Dev-role validation must match production permission intent, but production authority remains identity mapping plus SharePoint boundaries.
+
+### B. Entra mapping ownership
+
+- Identity administrators are responsible for keeping Entra principal mappings aligned to application roles used by this workflow.
+- Role mapping updates should be validated immediately with a role-based smoke check before release sign-off.
+
+### C. Workflow permission keys
+
+The Stage 17 workflow depends on these permission keys:
+
+| Permission Key | Constant | Primary Workflow Use |
+|---|---|---|
+| `job_number_request:create` | `JOB_NUMBER_REQUEST_CREATE` | Estimator creates request |
+| `job_number_request:finalize` | `JOB_NUMBER_REQUEST_FINALIZE` | Accounting Manager finalizes request/job number |
+| `accounting_queue:view` | `ACCOUNTING_QUEUE_VIEW` | Accounting Manager accesses setup queue |
+
+### D. Cross-reference runbook
+
+For full operational procedures, environment notes, and verification:  
+`docs/stage-17-project-number-request-workflow.md`
+
+---
+
 ## Appendix A: Permission Matrix Summary (Role x Key)
 
 Legend: **C** = Create, **R** = Read, **E** = Edit, **D** = Delete, **A** = Approve, **S** = Sign, **X** = Execute

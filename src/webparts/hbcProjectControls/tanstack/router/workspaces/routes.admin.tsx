@@ -46,6 +46,9 @@ const AssignmentsPage = React.lazy(() =>
 const SectorsPage = React.lazy(() =>
   import('../../../components/pages/admin/SectorsPage').then(m => ({ default: m.SectorsPage }))
 );
+const EntraMappingsPage = React.lazy(() =>
+  import('../../../components/pages/admin/EntraMappingsPage').then(m => ({ default: m.EntraMappingsPage }))
+);
 
 // Provisioning
 const ProvisioningPage = React.lazy(() =>
@@ -160,6 +163,16 @@ export function createAdminWorkspaceRoutes(rootRoute: unknown, telemetryService?
     },
   });
 
+  const entraMappings = createRoute({
+    getParentRoute: () => adminLayout as never,
+    path: '/admin/entra-mappings',
+    component: EntraMappingsPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'PermissionEngine');
+      requirePermission(context, PERMISSIONS.PERMISSION_TEMPLATES_MANAGE);
+    },
+  });
+
   // ── Provisioning ─────────────────────────────────────────────────
   const provisioning = createRoute({
     getParentRoute: () => adminLayout as never,
@@ -223,6 +236,7 @@ export function createAdminWorkspaceRoutes(rootRoute: unknown, telemetryService?
       permissions,
       assignments,
       sectors,
+      entraMappings,
       // Provisioning
       provisioning,
       // Dev Tools

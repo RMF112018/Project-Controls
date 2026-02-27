@@ -169,6 +169,7 @@ export interface IDataService {
   getMeetings(projectCode?: string): Promise<IMeeting[]>;
 
   // Notifications
+  // Notification transport is best-effort and should not block workflow completion paths.
   sendNotification(notification: Partial<INotification>): Promise<INotification>;
   getNotifications(projectCode?: string): Promise<INotification[]>;
 
@@ -372,6 +373,8 @@ export interface IDataService {
   finalizeJobNumber(requestId: number, jobNumber: string, assignedBy: string): Promise<IJobNumberRequest>;
 
   // Project Number Requests — Extended Workflow (Phase 4E)
+  // Stage 17 Step 6: Accounting setup flow persists via updateJobNumberRequest,
+  // provisions via triggerProjectNumberProvisioning, and emits sendNotification/logAudit.
   getJobNumberRequestById(requestId: number): Promise<IJobNumberRequest | null>;
   updateJobNumberRequest(requestId: number, data: Partial<IJobNumberRequest>): Promise<IJobNumberRequest>;
   submitProjectNumberRequest(data: Partial<IJobNumberRequest>, workflowType: 'typical' | 'alternate'): Promise<IJobNumberRequest>;

@@ -6,6 +6,7 @@ export { RolesPage } from './RolesPage';
 export { PermissionsPage } from './PermissionsPage';
 export { AssignmentsPage } from './AssignmentsPage';
 export { SectorsPage } from './SectorsPage';
+export { EntraMappingsPage } from './EntraMappingsPage';
 export { ProvisioningPage } from './ProvisioningPage';
 export { DevUsersPage } from './DevUsersPage';
 export { FeatureFlagsPage } from './FeatureFlagsPage';

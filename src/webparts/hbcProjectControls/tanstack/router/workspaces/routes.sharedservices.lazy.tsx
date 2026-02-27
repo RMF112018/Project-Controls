@@ -227,6 +227,8 @@ export function createSharedServicesWorkspaceRoutes(rootRoute: unknown): unknown
   });
 
   // ── Accounting Hub ──
+  // Stage 17 Step 1: Keep a single ACCOUNTING_QUEUE_VIEW gate for all Accounting routes.
+  // Full accounting capability is hardened via Accounting Manager role/template elevation.
   const accountingDashboardRoute = createRoute({
     getParentRoute: () => sharedServicesLayout as never,
     path: '/shared-services/accounting',

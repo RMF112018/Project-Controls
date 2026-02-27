@@ -6,6 +6,7 @@
  * Pre-populates when editing existing request (via $requestId route param).
  */
 import * as React from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   makeStyles,
   shorthands,
@@ -29,7 +30,7 @@ import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAppNavigate } from '../../hooks/router/useAppNavigate';
 import { useAppParams } from '../../hooks/router/useAppParams';
-import type { IJobNumberRequest } from '@hbc/sp-services';
+import { JobNumberRequestStatus, type IJobNumberRequest } from '@hbc/sp-services';
 
 // ── Exact Options from Plan Spec ────────────────────────────────────
 
@@ -91,6 +92,8 @@ interface IProjectNumberFormData {
   timberscanApprover: string;
 }
 
+const PROJECT_NUMBER_REQUESTS_QUERY_KEY = ['project-number-requests'] as const;
+
 // ── Styles (Griffel + tokens — 4.75/10 elevation) ───────────────────
 const useStyles = makeStyles({
   formCard: {
@@ -140,6 +143,7 @@ export const ProjectNumberRequestForm: React.FC = () => {
   const navigate = useAppNavigate();
   const params = useAppParams();
   const { addToast } = useToast();
+  const queryClient = useQueryClient();
 
   const requestId = (params as Record<string, string>).requestId;
   const isEditing = Boolean(requestId);
@@ -164,6 +168,75 @@ export const ProjectNumberRequestForm: React.FC = () => {
   const [submitting, setSubmitting] = React.useState<'typical' | 'alternate' | null>(null);
   const [validationErrors, setValidationErrors] = React.useState<Record<string, string>>({});
   const [loadingExisting, setLoadingExisting] = React.useState(isEditing);
+
+  const createRequestMutation = useMutation<
+    IJobNumberRequest,
+    unknown,
+    { requestData: Partial<IJobNumberRequest>; workflowType: 'typical' | 'alternate' },
+    { previousRequests?: IJobNumberRequest[] }
+  >({
+    mutationFn: ({ requestData, workflowType }) => dataService.submitProjectNumberRequest(requestData, workflowType),
+    onMutate: async ({ requestData }) => {
+      await queryClient.cancelQueries({ queryKey: PROJECT_NUMBER_REQUESTS_QUERY_KEY });
+      const previousRequests = queryClient.getQueryData<IJobNumberRequest[]>(PROJECT_NUMBER_REQUESTS_QUERY_KEY);
+      const optimisticRequest: IJobNumberRequest = {
+        id: -Date.now(),
+        LeadID: requestData.LeadID ?? 0,
+        RequestDate: requestData.RequestDate ?? new Date().toISOString().split('T')[0],
+        Originator: requestData.Originator ?? '',
+        RequiredByDate: requestData.RequiredByDate ?? '',
+        ProjectAddress: requestData.ProjectAddress ?? requestData.StreetAddress ?? '',
+        ProjectExecutive: requestData.ProjectExecutive ?? '',
+        ProjectManager: requestData.ProjectManager,
+        ProjectType: requestData.ProjectType ?? requestData.OfficeDivision ?? '',
+        ProjectTypeLabel: requestData.ProjectTypeLabel ?? requestData.OfficeDivisionLabel ?? '',
+        IsEstimatingOnly: requestData.IsEstimatingOnly ?? false,
+        RequestedCostCodes: requestData.RequestedCostCodes ?? [],
+        RequestStatus: JobNumberRequestStatus.Submitted,
+        SiteProvisioningHeld: requestData.SiteProvisioningHeld ?? true,
+        TempProjectCode: requestData.TempProjectCode,
+        Notes: requestData.Notes,
+        Email: requestData.Email,
+        ProjectName: requestData.ProjectName,
+        StreetAddress: requestData.StreetAddress,
+        CityState: requestData.CityState,
+        ZipCode: requestData.ZipCode,
+        County: requestData.County,
+        OfficeDivision: requestData.OfficeDivision,
+        OfficeDivisionLabel: requestData.OfficeDivisionLabel,
+        ManagedInProcore: requestData.ManagedInProcore,
+        AdditionalSageAccess: requestData.AdditionalSageAccess,
+        TimberscanApprover: requestData.TimberscanApprover,
+        WorkflowType: requestData.WorkflowType,
+        BallInCourt: 'Submitting...',
+        SubmittedBy: requestData.SubmittedBy,
+      };
+      queryClient.setQueryData<IJobNumberRequest[]>(PROJECT_NUMBER_REQUESTS_QUERY_KEY, (current = []) => [
+        optimisticRequest,
+        ...current,
+      ]);
+      return { previousRequests };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousRequests) {
+        queryClient.setQueryData(PROJECT_NUMBER_REQUESTS_QUERY_KEY, context.previousRequests);
+      }
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: PROJECT_NUMBER_REQUESTS_QUERY_KEY });
+    },
+  });
+
+  const updateRequestMutation = useMutation<
+    IJobNumberRequest,
+    unknown,
+    { requestId: number; requestData: Partial<IJobNumberRequest> }
+  >({
+    mutationFn: ({ requestId, requestData }) => dataService.updateJobNumberRequest(requestId, requestData),
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: PROJECT_NUMBER_REQUESTS_QUERY_KEY });
+    },
+  });
 
   // ── Pre-populate from existing request ────────────────────────────
   React.useEffect(() => {
@@ -253,20 +326,35 @@ export const ProjectNumberRequestForm: React.FC = () => {
         SubmittedBy: currentUser?.displayName ?? currentUser?.email ?? '',
       };
 
-      await dataService.submitProjectNumberRequest(requestData, workflowType);
-      addToast(
-        workflowType === 'typical'
-          ? 'Request submitted. Notification sent to Controller.'
-          : 'Request submitted. Site provisioning initiated.',
-        'success'
-      );
+      if (isEditing && requestId) {
+        await updateRequestMutation.mutateAsync({ requestId: Number(requestId), requestData });
+        addToast('Request updated successfully.', 'success');
+      } else {
+        await createRequestMutation.mutateAsync({ requestData, workflowType });
+        addToast(
+          workflowType === 'typical'
+            ? 'Request submitted. Notification sent to Controller.'
+            : 'Request submitted. Site provisioning initiated.',
+          'success'
+        );
+      }
       navigate('/preconstruction/project-number-requests');
     } catch {
       addToast('Failed to submit request. Please try again.', 'error');
     } finally {
       setSubmitting(null);
     }
-  }, [formData, validate, dataService, currentUser, navigate, addToast]);
+  }, [
+    formData,
+    validate,
+    currentUser,
+    navigate,
+    addToast,
+    createRequestMutation,
+    updateRequestMutation,
+    isEditing,
+    requestId,
+  ]);
 
   // ── Back Navigation ───────────────────────────────────────────────
   const onBack = React.useCallback(() => {

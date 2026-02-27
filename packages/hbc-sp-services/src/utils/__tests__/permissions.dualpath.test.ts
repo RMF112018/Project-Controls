@@ -317,6 +317,18 @@ describe('Permission Dual-Path Parity (Phase 7S4)', () => {
       expect(perms).not.toContain(PERMISSIONS.PMP_EDIT);
     });
 
+    it('Accounting Controller (template 7) keeps shared_services_hub at ADMIN level', () => {
+      const template7 = permissionTemplates.find(t => t.id === 7);
+      expect(template7).toBeDefined();
+      const sharedServicesHub = template7!.toolAccess.find((ta: { toolKey: string }) => ta.toolKey === 'shared_services_hub');
+      expect(sharedServicesHub).toBeDefined();
+      expect(sharedServicesHub!.level).toBe('ADMIN');
+      // Note: site:provision is an existing permission key but is not currently mapped
+      // from any existing toolKey in TOOL_DEFINITIONS.
+      const perms = resolveEnginePerms(7);
+      expect(perms).toContain(PERMISSIONS.SHARED_SERVICES_HUB_VIEW);
+    });
+
     it('Project Manager (template 4) does not grant admin:config', () => {
       const perms = resolveEnginePerms(4);
       expect(perms).not.toContain(PERMISSIONS.ADMIN_CONFIG);

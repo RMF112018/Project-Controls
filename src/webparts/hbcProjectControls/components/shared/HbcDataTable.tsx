@@ -524,17 +524,20 @@ export function HbcDataTable<TData>({
     onPageIndexChange?.(nextPageIndex);
   };
 
-  const onTableRowClick = (item: TData): void => {
-    const rowKey = keyExtractor(item);
-    setLastHighlightKey(rowKey);
-    onRowClick?.(item);
-    if (linkedChartId && onChartLinkHighlight) {
-      onChartLinkHighlight({
-        chartId: linkedChartId,
-        rowKey,
-      });
-    }
-  };
+  const onTableRowClick = React.useCallback(
+    (item: TData): void => {
+      const rowKey = keyExtractor(item);
+      onRowClick?.(item);
+      if (linkedChartId && onChartLinkHighlight) {
+        setLastHighlightKey(rowKey);
+        onChartLinkHighlight({
+          chartId: linkedChartId,
+          rowKey,
+        });
+      }
+    },
+    [keyExtractor, linkedChartId, onChartLinkHighlight, onRowClick]
+  );
 
   const renderedToolbarSlot = typeof toolbarSlot === 'function' ? toolbarSlot(toolbarContext) : toolbarSlot;
   const renderedFooterSlot = typeof footerSlot === 'function' ? footerSlot(footerContext) : footerSlot;

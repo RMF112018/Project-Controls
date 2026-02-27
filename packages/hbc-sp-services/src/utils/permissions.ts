@@ -267,8 +267,11 @@ export const ROLE_PERMISSION_SETS: Record<string, ReadonlySet<string>> = {
     P.ESTIMATING_READ, P.ESTIMATING_EDIT,
     P.KICKOFF_VIEW, P.KICKOFF_EDIT, P.KICKOFF_TEMPLATE_EDIT,
     P.AUTOPSY_VIEW, P.AUTOPSY_CREATE, P.AUTOPSY_EDIT, P.AUTOPSY_SCHEDULE,
-    P.PRECON_READ,
+    P.PRECON_READ, P.PRECON_EDIT,
     P.PRECON_HUB_VIEW,
+    // Required for Estimating Project Hub route access in dev RoleSwitcher parity path.
+    P.PROJECT_HUB_VIEW,
+    // Required for /preconstruction/project-number-requests/new guard parity in dev RoleSwitcher flows.
     P.PROJECT_NUMBER_REQUEST_VIEW, P.JOB_NUMBER_REQUEST_CREATE,
     P.MEETING_READ,
   ]),
@@ -370,7 +373,9 @@ export const ROLE_PERMISSION_SETS: Record<string, ReadonlySet<string>> = {
   'Accounting Manager': new Set([
     P.ACCOUNTING_QUEUE_VIEW,
     P.CONTRACT_VIEW_FINANCIALS, P.CONTRACT_READ,
-    P.JOB_NUMBER_REQUEST_FINALIZE, P.PROJECT_NUMBER_REQUEST_VIEW,
+    P.JOB_NUMBER_REQUEST_CREATE, P.JOB_NUMBER_REQUEST_FINALIZE, P.PROJECT_NUMBER_REQUEST_VIEW,
+    // Granted via hardcoded role-set path for dev RoleSwitcher; full template parity + Entra ID mapping handled in Step 2 (production-only)
+    P.SITE_PROVISION,
     P.SHARED_SERVICES_HUB_VIEW,
   ]),
 

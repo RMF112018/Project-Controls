@@ -1,5 +1,6 @@
 import { ICalendarAvailability, IMeeting } from '../models/IMeeting';
 import { IAuditEntry } from '../models/IAuditEntry';
+import type { IEntraDirectoryPrincipal } from '../models/IEntraDirectoryPrincipal';
 import { AuditAction, EntityType } from '../models/enums';
 import { graphBatchService, type IBatchResult } from './GraphBatchService';
 import { bindEnforcerFeatureCheck } from './GraphBatchEnforcer';
@@ -11,6 +12,9 @@ export interface IGraphService {
   getCurrentUserProfile(): Promise<{ displayName: string; email: string; id: string }>;
   getUserPhoto(email: string): Promise<string | null>;
   getGroupMembers(groupId: string): Promise<Array<{ displayName: string; email: string }>>;
+  getEntraSecurityGroups(search?: string, top?: number): Promise<IEntraDirectoryPrincipal[]>;
+  getEntraDirectoryRoles(search?: string, top?: number): Promise<IEntraDirectoryPrincipal[]>;
+  ensureProjectSiteProvisioned(projectCode: string, projectName: string): Promise<{ siteUrl: string }>;
   addGroupMember(groupId: string, userId: string): Promise<void>;
   batchAddGroupMembers(groupId: string, userIds: string[]): Promise<IBatchResult>;
   batchGetUserPhotos(emails: string[]): Promise<Map<string, string | null>>;
@@ -154,6 +158,114 @@ export class GraphService implements IGraphService {
       displayName: m.displayName,
       email: m.mail,
     }));
+  }
+
+  async getEntraSecurityGroups(search?: string, top = 50): Promise<IEntraDirectoryPrincipal[]> {
+    if (!this.graphClient) throw new Error('Graph client not initialized');
+    const boundedTop = Math.max(1, Math.min(top, 100));
+    const result = await this.executeGraphCall(
+      `GET /groups?$filter=securityEnabled eq true&$top=${boundedTop}`,
+      'getEntraSecurityGroups',
+      async () => this.graphClient
+        .api('/groups')
+        .select('id,displayName,description,securityEnabled')
+        .filter('securityEnabled eq true')
+        .top(boundedTop)
+        .get()
+    );
+    const searchNormalized = search?.trim().toLowerCase() ?? '';
+    const groups = ((result?.value ?? []) as Array<{
+      id?: string;
+      displayName?: string;
+      description?: string;
+      securityEnabled?: boolean;
+    }>)
+      .filter(group => group.securityEnabled !== false && Boolean(group.id) && Boolean(group.displayName))
+      .map(group => ({
+        id: String(group.id),
+        displayName: String(group.displayName),
+        description: group.description || undefined,
+        principalType: 'securityGroup' as const,
+      }))
+      .filter(group => (
+        !searchNormalized ||
+        group.displayName.toLowerCase().includes(searchNormalized) ||
+        (group.description?.toLowerCase().includes(searchNormalized) ?? false)
+      ));
+    this.logGraphCall(
+      AuditAction.GraphApiCallSucceeded,
+      'GET /groups',
+      `Fetched ${groups.length} security-enabled Entra groups`
+    );
+    return groups;
+  }
+
+  async getEntraDirectoryRoles(search?: string, top = 50): Promise<IEntraDirectoryPrincipal[]> {
+    if (!this.graphClient) throw new Error('Graph client not initialized');
+    const boundedTop = Math.max(1, Math.min(top, 100));
+    const result = await this.executeGraphCall(
+      `GET /directoryRoles?$top=${boundedTop}`,
+      'getEntraDirectoryRoles',
+      async () => this.graphClient
+        .api('/directoryRoles')
+        .select('id,displayName,description')
+        .top(boundedTop)
+        .get()
+    );
+    const searchNormalized = search?.trim().toLowerCase() ?? '';
+    const roles = ((result?.value ?? []) as Array<{
+      id?: string;
+      displayName?: string;
+      description?: string;
+    }>)
+      .filter(role => Boolean(role.id) && Boolean(role.displayName))
+      .map(role => ({
+        id: String(role.id),
+        displayName: String(role.displayName),
+        description: role.description || undefined,
+        principalType: 'directoryRole' as const,
+      }))
+      .filter(role => (
+        !searchNormalized ||
+        role.displayName.toLowerCase().includes(searchNormalized) ||
+        (role.description?.toLowerCase().includes(searchNormalized) ?? false)
+      ));
+    this.logGraphCall(
+      AuditAction.GraphApiCallSucceeded,
+      'GET /directoryRoles',
+      `Fetched ${roles.length} Entra directory roles`
+    );
+    return roles;
+  }
+
+  async ensureProjectSiteProvisioned(projectCode: string, projectName: string): Promise<{ siteUrl: string }> {
+    const sanitizedCode = projectCode.trim() || 'project-site';
+    const fallbackUrl = `https://hedrickbrothers.sharepoint.com/sites/${sanitizedCode}`;
+    if (!this.graphClient) {
+      return { siteUrl: fallbackUrl };
+    }
+
+    const alias = sanitizedCode.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+    try {
+      const site = await this.executeGraphCall(
+        'POST /sites/root/sites',
+        'ensureProjectSiteProvisioned',
+        async () => this.graphClient.api('/sites/root/sites').post({
+          displayName: projectName || sanitizedCode,
+          name: alias,
+        })
+      );
+      const siteUrl = (site?.webUrl as string) || fallbackUrl;
+      this.logGraphCall(
+        AuditAction.SiteProvisioningCompleted,
+        'POST /sites/root/sites',
+        `Ensured project site for ${sanitizedCode}: ${siteUrl}`
+      );
+      return { siteUrl };
+    } catch {
+      // Fallback keeps Accounting setup flow non-blocking when Graph provisioning is delegated elsewhere.
+      return { siteUrl: fallbackUrl };
+    }
   }
 
   async addGroupMember(groupId: string, userId: string): Promise<void> {

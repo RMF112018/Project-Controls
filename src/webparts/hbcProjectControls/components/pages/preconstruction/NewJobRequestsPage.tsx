@@ -22,6 +22,7 @@ const useStyles = makeStyles({
 
 export const NewJobRequestsPage: React.FC = () => {
   const styles = useStyles();
+  // Legacy compatibility page: routed Project Number Request flow uses ProjectNumberRequestsPage + ProjectNumberRequestForm.
 
   const columns = React.useMemo((): IHbcDataTableColumn<IJobNumberRequest>[] => [
     { key: 'Originator', header: 'Lead', render: (row) => row.Originator || '—' },
