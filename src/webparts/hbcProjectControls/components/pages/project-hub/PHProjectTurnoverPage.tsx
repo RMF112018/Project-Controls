@@ -2,7 +2,6 @@ import * as React from 'react';
 import { makeStyles, shorthands, tokens, Checkbox, ProgressBar } from '@fluentui/react-components';
 import type {
   ITurnoverSection,
-  ProjectHubTurnoverItem as ITurnoverItem,
 } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';

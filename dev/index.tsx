@@ -50,6 +50,13 @@ const DevRoot: React.FC = () => {
   const [role, setRole] = React.useState<RoleName | null>(persistedRole);
   const [hasSelectedRole, setHasSelectedRole] = React.useState(persistedRole !== null);
 
+  const navigateToRoleLanding = React.useCallback((selectedRole: RoleName) => {
+    // Defer hash mutation until after React commits local role state to avoid guard race conditions.
+    window.setTimeout(() => {
+      window.location.hash = `#${ROLE_LANDING_ROUTES[selectedRole] ?? '/'}`;
+    }, 0);
+  }, []);
+
   // If we recovered a persisted role, prime the data service on mount
   React.useEffect(() => {
     if (persistedRole) {
@@ -62,10 +69,10 @@ const DevRoot: React.FC = () => {
     mockDataService.setCurrentUserRole(selectedRole);
     setMockUserRole(selectedRole);
     sessionStorage.setItem(ROLE_SESSION_KEY, selectedRole);
-    window.location.hash = `#${ROLE_LANDING_ROUTES[selectedRole] ?? '/'}`;
     setRole(selectedRole);
     setHasSelectedRole(true);
-  }, []);
+    navigateToRoleLanding(selectedRole);
+  }, [navigateToRoleLanding]);
 
   const handleRoleChange = React.useCallback(
     (newRole: string) => {
@@ -81,10 +88,10 @@ const DevRoot: React.FC = () => {
             String(query.queryKey[0]).includes(k)
           ),
       });
-      window.location.hash = `#${ROLE_LANDING_ROUTES[typedRole] ?? '/'}`;
       setRole(typedRole);
+      navigateToRoleLanding(typedRole);
     },
-    [role]
+    [navigateToRoleLanding, role]
   );
 
   const handleEnterStandalone = React.useCallback(() => {

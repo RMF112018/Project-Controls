@@ -17,7 +17,7 @@ interface IErrorBoundaryState {
 }
 
 interface ITelemetryCorrelationCapable extends ITelemetryService {
-  newOperationId?: (scope: string) => string;
+  newOperationId: (scope: string) => string;
 }
 
 function isLocalhostTelemetryEnabled(): boolean {

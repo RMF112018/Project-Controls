@@ -24,9 +24,27 @@ const ROLE_SELECT_LABELS: Record<string, string> = {
 
 type RoleFixture = {
   switchRole: (role: string) => Promise<void>;
+  bootstrapAdminSession: () => Promise<void>;
 };
 
 export const test = base.extend<RoleFixture>({
+  bootstrapAdminSession: async ({ page }, use) => {
+    // Seed role/version before app boot so mock auth and welcome modal do not
+    // interrupt deterministic Administrator-focused E2E flows.
+    await page.addInitScript(() => {
+      try {
+        sessionStorage.setItem('hbc-dev-selected-role', 'Administrator');
+        localStorage.setItem('hbc-last-seen-version', '1.0.0');
+      } catch { /* noop */ }
+    });
+
+    const bootstrapAdminSession = async () => {
+      await page.goto('/#/');
+      await page.waitForLoadState('networkidle');
+    };
+
+    await use(bootstrapAdminSession);
+  },
   switchRole: async ({ page }, use) => {
     // Bypass MockAuthScreen by pre-seeding the session role (dev/index.tsx reads
     // sessionStorage['hbc-dev-selected-role'] to skip the initial role picker).
@@ -48,7 +66,8 @@ export const test = base.extend<RoleFixture>({
         await page.keyboard.press('Escape');
         await modal.waitFor({ state: 'hidden', timeout: 2_000 });
       }
-      // Open the header user menu (consolidated from floating RoleSwitcher)
+      // Strict visibility wait here prevents menu-trigger flake while the shell
+      // is still settling after role/context changes.
       const trigger = page.locator('[data-testid="role-switcher"]');
       await trigger.waitFor({ state: 'visible', timeout: 15_000 });
       await trigger.click();

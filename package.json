@@ -63,6 +63,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:standalone-smoke": "playwright test playwright/mode-switch.spec.ts playwright/offline-mode.spec.ts playwright/standalone-auth.spec.ts",
+    "test:flow:admin-role-create": "playwright test playwright/admin-role-creation.spec.ts",
     "test:e2e:shared-services-smoke": "playwright test playwright/shared-services-integration-smoke.spec.ts",
     "test:e2e:router-parity": "playwright test playwright/router-branch-parity.spec.ts",
     "test:e2e:teams-core-smoke": "playwright test playwright/teams-core-smoke.spec.ts",

@@ -35,7 +35,7 @@ export interface IAppProps {
 }
 
 interface ITelemetryCorrelationCapable extends ITelemetryService {
-  newOperationId?: (scope: string) => string;
+  newOperationId: (scope: string) => string;
 }
 
 function mergeThemes(baseTheme: Theme, hostThemePatch?: Partial<Theme>): Theme {
@@ -68,7 +68,7 @@ function isReactProfilingEnabled(): boolean {
 }
 
 const AppRoutes: React.FC = () => {
-  const { dataService, currentUser, selectedProject, isFeatureEnabled, telemetryService } = useAppContext();
+  const { dataService, currentUser, selectedProject, isFeatureEnabled, telemetryService, isLoading } = useAppContext();
   const scope = useQueryScope();
   const queryClient = useQueryClient();
   const enableReactProfiling = React.useMemo(() => isReactProfilingEnabled(), []);
@@ -195,11 +195,13 @@ const AppRoutes: React.FC = () => {
     };
   }, [telemetryService]);
 
-  const routeTree = (
-    <React.Suspense fallback={ROUTE_SUSPENSE_FALLBACK}>
-      <TanStackAppRouterProvider {...routerProps} />
-    </React.Suspense>
-  );
+  const routeTree = isLoading
+    ? ROUTE_SUSPENSE_FALLBACK
+    : (
+      <React.Suspense fallback={ROUTE_SUSPENSE_FALLBACK}>
+        <TanStackAppRouterProvider {...routerProps} />
+      </React.Suspense>
+    );
 
   if (!enableReactProfiling) {
     return routeTree;

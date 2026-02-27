@@ -1,4 +1,5 @@
 import { redirect } from '@tanstack/react-router';
+import { normalizeRoleName } from '@hbc/sp-services';
 import type { ITanStackRouteContext } from '../routeContext';
 
 /**
@@ -8,7 +9,9 @@ import type { ITanStackRouteContext } from '../routeContext';
  */
 export function requireRole(context: ITanStackRouteContext, allowedRoles: string[]): void {
   const userRoles = context.currentUser?.roles;
-  if (!userRoles || !userRoles.some(r => allowedRoles.includes(r))) {
+  const normalizedAllowedRoles = allowedRoles.map((role) => normalizeRoleName(role));
+  const normalizedUserRoles = userRoles?.map((role) => normalizeRoleName(role));
+  if (!normalizedUserRoles || !normalizedUserRoles.some((role) => normalizedAllowedRoles.includes(role))) {
     throw redirect({ to: '/access-denied', replace: true });
   }
 }

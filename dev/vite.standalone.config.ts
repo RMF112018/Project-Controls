@@ -20,6 +20,48 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       {
+        name: 'guard-react-misc-vendor-cycle',
+        generateBundle(_outputOptions, bundle) {
+          const chunkEntries = Object.entries(bundle).filter(([, value]) => value.type === 'chunk');
+          const chunkImports = new Map<string, Set<string>>();
+          const fileToChunk = new Map<string, string>();
+
+          for (const [fileName] of chunkEntries) {
+            const baseName = fileName.replace(/\.[^.]+$/, '');
+            if (baseName.includes('react-vendor')) {
+              fileToChunk.set(fileName, 'react-vendor');
+            } else if (baseName.includes('misc-vendor')) {
+              fileToChunk.set(fileName, 'misc-vendor');
+            }
+          }
+
+          for (const [fileName, value] of chunkEntries) {
+            const from = fileToChunk.get(fileName);
+            if (!from) {
+              continue;
+            }
+            for (const imported of value.imports) {
+              const to = fileToChunk.get(imported);
+              if (!to) {
+                continue;
+              }
+              if (!chunkImports.has(from)) {
+                chunkImports.set(from, new Set<string>());
+              }
+              chunkImports.get(from)?.add(to);
+            }
+          }
+
+          const reactImportsMisc = chunkImports.get('react-vendor')?.has('misc-vendor') === true;
+          const miscImportsReact = chunkImports.get('misc-vendor')?.has('react-vendor') === true;
+          if (reactImportsMisc && miscImportsReact) {
+            this.error(
+              'Standalone build guard failed: detected react-vendor <-> misc-vendor circular chunk import.'
+            );
+          }
+        },
+      },
+      {
         name: 'inject-standalone-entry',
         transformIndexHtml: {
           order: 'pre',
@@ -104,14 +146,10 @@ export default defineConfig(({ mode }) => {
             if (id.includes('/components/pages/hub/MarketingDashboard.tsx')) return 'page-marketing';
             if (id.includes('/components/pages/project/ProjectRecord.tsx')) return 'page-project-record';
 
-            // Vendor splitting
+            // Fallback stabilization: unify all node_modules to prevent
+            // react-vendor <-> misc-vendor cyclic initialization in standalone builds.
             if (!id.includes('node_modules')) return undefined;
-            if (id.includes('/react/') || id.includes('/react-dom/')) return 'react-vendor';
-            if (id.includes('/@fluentui/')) return 'fluent-vendor';
-            if (id.includes('/@pnp/')) return 'pnp-vendor';
-            if (id.includes('/@azure/msal-')) return 'msal-vendor';
-            if (id.includes('/echarts') || id.includes('/echarts-for-react/')) return 'echarts-vendor';
-            return 'misc-vendor';
+            return 'vendor';
           }
         }
       }
