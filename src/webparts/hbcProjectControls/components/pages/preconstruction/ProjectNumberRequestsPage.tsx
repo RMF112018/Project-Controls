@@ -17,7 +17,7 @@ import { HbcDataTable } from '../../shared/HbcDataTable';
 import type { IHbcDataTableColumn } from '../../shared/HbcDataTable';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAppNavigate } from '../../hooks/router/useAppNavigate';
-import { JobNumberRequestStatus } from '@hbc/sp-services';
+import { JobNumberRequestStatus, formatDate } from '@hbc/sp-services';
 import type { IJobNumberRequest } from '@hbc/sp-services';
 
 // ── Status Color Mapping ────────────────────────────────────────────
@@ -86,13 +86,6 @@ export const ProjectNumberRequestsPage: React.FC = () => {
     navigate('/preconstruction/project-number-requests/new');
   }, [navigate]);
 
-  // ── Format Date (mm/dd/yyyy) ──────────────────────────────────────
-  const formatDate = React.useCallback((dateStr?: string): string => {
-    if (!dateStr) return '—';
-    const d = new Date(dateStr);
-    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US');
-  }, []);
-
   // ── Column Definitions (7 per plan spec) ──────────────────────────
   const columns = React.useMemo((): IHbcDataTableColumn<IJobNumberRequest>[] => [
     {
@@ -129,14 +122,14 @@ export const ProjectNumberRequestsPage: React.FC = () => {
     {
       key: 'RequestDate',
       header: 'Request Date',
-      render: (row) => formatDate(row.RequestDate),
+      render: (row) => formatDate(row.RequestDate, { dateStyle: 'numeric', placeholder: '—', fallbackOnInvalid: '—' }),
       sortable: true,
       width: '120px',
     },
     {
       key: 'RequiredByDate',
       header: 'Required by Date',
-      render: (row) => formatDate(row.RequiredByDate),
+      render: (row) => formatDate(row.RequiredByDate, { dateStyle: 'numeric', placeholder: '—', fallbackOnInvalid: '—' }),
       sortable: true,
       width: '140px',
     },
@@ -152,7 +145,7 @@ export const ProjectNumberRequestsPage: React.FC = () => {
       render: (row) => row.BallInCourt || '—',
       sortable: true,
     },
-  ], [formatDate, styles.statusBadge]);
+  ], [styles.statusBadge]);
 
   // ── Render ────────────────────────────────────────────────────────
   return (

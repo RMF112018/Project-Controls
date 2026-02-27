@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import type { IRaciRow } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
@@ -68,14 +69,6 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
 });
-
-interface IRaciRow {
-  activity: string;
-  px: string;
-  pm: string;
-  super: string;
-  pe: string;
-}
 
 const RACI_DATA: IRaciRow[] = [
   { activity: 'Contract Review & Execution', px: 'A', pm: 'R', super: 'I', pe: 'C' },

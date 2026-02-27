@@ -29,6 +29,39 @@ async function checkA11y(page: Page): Promise<void> {
     // (tabindex/role adjustments) outside fixture stabilization scope.
     .disableRules(['scrollable-region-focusable'])
     .analyze();
+  const scanSummary = {
+    name: 'a11y:scan:summary',
+    route: page.url(),
+    role: 'unknown',
+    timestamp: new Date().toISOString(),
+    violationCount: results.violations.length,
+    criticalCount: results.violations.filter((violation) => violation.impact === 'critical').length,
+    seriousCount: results.violations.filter((violation) => violation.impact === 'serious').length,
+  };
+  await test.info().attach('a11y-scan-summary', {
+    contentType: 'application/json',
+    body: Buffer.from(JSON.stringify(scanSummary, null, 2)),
+  });
+  const violationDetail = {
+    name: 'a11y:violation:detail',
+    route: page.url(),
+    timestamp: new Date().toISOString(),
+    byImpact: {
+      critical: results.violations.filter((violation) => violation.impact === 'critical').length,
+      serious: results.violations.filter((violation) => violation.impact === 'serious').length,
+      moderate: results.violations.filter((violation) => violation.impact === 'moderate').length,
+      minor: results.violations.filter((violation) => violation.impact === 'minor').length,
+    },
+    byRuleId: results.violations.map((violation) => ({
+      ruleId: violation.id,
+      count: violation.nodes.length,
+      impact: violation.impact ?? 'unknown',
+    })),
+  };
+  await test.info().attach('a11y-violation-detail', {
+    contentType: 'application/json',
+    body: Buffer.from(JSON.stringify(violationDetail, null, 2)),
+  });
   expect(results.violations).toEqual([]);
 }
 

@@ -1,27 +1,16 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import type {
+  ProjectHubConstraint as IConstraint,
+  ProjectHubConstraintPriority as ConstraintPriority,
+  ProjectHubConstraintStatus as ConstraintStatus,
+} from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { KPICard } from '../../shared/KPICard';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-type ConstraintPriority = 'Critical' | 'High' | 'Medium' | 'Low';
-type ConstraintStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed';
-
-interface IConstraint {
-  id: string;
-  description: string;
-  category: string;
-  priority: ConstraintPriority;
-  status: ConstraintStatus;
-  owner: string;
-  dateIdentified: string;
-  targetResolution: string;
-  resolvedDate: string | null;
-  impact: string;
-}
 
 const MOCK_CONSTRAINTS: IConstraint[] = [
   { id: 'c-1', description: 'Structural steel delivery delayed by fabricator', category: 'Material', priority: 'Critical', status: 'In Progress', owner: 'Mike Thompson', dateIdentified: '2026-01-28', targetResolution: '2026-02-28', resolvedDate: null, impact: 'May delay 3rd floor slab by 5 days if not resolved.' },

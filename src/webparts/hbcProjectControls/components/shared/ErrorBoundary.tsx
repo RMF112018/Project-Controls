@@ -16,6 +16,10 @@ interface IErrorBoundaryState {
   error?: Error;
 }
 
+interface ITelemetryCorrelationCapable extends ITelemetryService {
+  newOperationId?: (scope: string) => string;
+}
+
 function isLocalhostTelemetryEnabled(): boolean {
   if (typeof window === 'undefined') {
     return false;
@@ -42,10 +46,26 @@ export class ErrorBoundary extends React.Component<IErrorBoundaryProps, IErrorBo
     }
 
     try {
+      const correlationCapable = this.props.telemetryService as ITelemetryCorrelationCapable;
+      const operationId = correlationCapable.newOperationId?.('ui-boundary') ?? '';
       this.props.telemetryService.trackException(error, {
         boundaryName: this.props.boundaryName ?? 'ErrorBoundary',
         hasComponentStack: String(Boolean(errorInfo.componentStack)),
+        corr_operation_id: operationId,
         ...this.props.telemetryProperties,
+      });
+      this.props.telemetryService.trackEvent({
+        name: 'ui:error:boundary',
+        properties: {
+          boundaryName: this.props.boundaryName ?? 'ErrorBoundary',
+          errorType: error.name || 'Error',
+          hasComponentStack: String(Boolean(errorInfo.componentStack)),
+          corr_operation_id: operationId,
+          ...this.props.telemetryProperties,
+        },
+        measurements: {
+          stackLength: errorInfo.componentStack?.length ?? 0,
+        },
       });
     } catch {
       // Telemetry failures must never interfere with boundary fallback rendering.

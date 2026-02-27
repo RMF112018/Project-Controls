@@ -60,6 +60,9 @@ const FeatureFlagsPage = React.lazy(() =>
 const AuditLogPage = React.lazy(() =>
   import('../../../components/pages/admin/AuditLogPage').then(m => ({ default: m.AuditLogPage }))
 );
+const TelemetryDashboardPage = React.lazy(() =>
+  import('../../../components/pages/admin/TelemetryDashboardPage').then(m => ({ default: m.TelemetryDashboardPage }))
+);
 
 export const AdminLayoutLazyRoute = {
   options: {
@@ -76,7 +79,7 @@ export function createAdminWorkspaceRoutes(rootRoute: unknown) {
     component: AdminLayout,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
       requireFeature(context, 'AdminWorkspace');
-      requireRole(context, ['Administrator']);
+      requireRole(context, ['Administrator', 'Leadership']);
     },
   });
 
@@ -86,7 +89,7 @@ export function createAdminWorkspaceRoutes(rootRoute: unknown) {
     path: '/admin',
     component: AdminDashboardPage,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
-      requirePermission(context, PERMISSIONS.ADMIN_CONFIG);
+      requireRole(context, ['Administrator', 'Leadership']);
     },
   });
 
@@ -198,6 +201,16 @@ export function createAdminWorkspaceRoutes(rootRoute: unknown) {
     },
   });
 
+  const telemetryDashboard = createRoute({
+    getParentRoute: () => adminLayout as never,
+    path: '/admin/telemetry',
+    component: TelemetryDashboardPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requireFeature(context, 'TelemetryDashboard');
+      requireRole(context, ['Administrator', 'Leadership']);
+    },
+  });
+
   return [
     adminLayout.addChildren([
       adminDashboard,
@@ -216,6 +229,7 @@ export function createAdminWorkspaceRoutes(rootRoute: unknown) {
       devUsers,
       featureFlags,
       auditLog,
+      telemetryDashboard,
     ] as never),
   ] as unknown[];
 }

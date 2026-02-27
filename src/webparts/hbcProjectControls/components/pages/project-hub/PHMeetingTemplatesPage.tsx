@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import type { IMeetingTemplate } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
@@ -47,12 +48,6 @@ const useStyles = makeStyles({
     color: HBC_COLORS.info,
   },
 });
-
-interface IMeetingTemplate {
-  name: string;
-  frequency: string;
-  agendaItems: string[];
-}
 
 const MEETING_TEMPLATES: IMeetingTemplate[] = [
   {

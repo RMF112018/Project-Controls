@@ -12,7 +12,7 @@ import type {
   IEstimatingTracker,
   ILossAutopsy,
 } from '@hbc/sp-services';
-import { Stage, isActiveStage, ScorecardStatus } from '@hbc/sp-services';
+import { Stage, ScorecardStatus, formatCurrencyCompact, isActiveStage } from '@hbc/sp-services';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,19 +35,6 @@ export interface IPreconDashboardData {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatCurrency(value: number): string {
-  if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(1)}B`;
-  }
-  if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(1)}M`;
-  }
-  if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(0)}K`;
-  }
-  return `$${value.toFixed(0)}`;
-}
 
 const TERMINAL_SCORECARD_STATUSES: ScorecardStatus[] = [
   ScorecardStatus.Go,
@@ -141,7 +128,7 @@ export function usePreconDashboardData(): IPreconDashboardData {
     return {
       activeLeads: activeCount,
       goNoGoInProgress: inProgress,
-      pipelineValue: formatCurrency(pipelineTotal),
+      pipelineValue: formatCurrencyCompact(pipelineTotal),
       pipelineRaw: pipelineTotal,
       estimatedWinRatePct: winRate,
     };

@@ -27,12 +27,13 @@ interface IExportButtonsProps {
 }
 
 const exportService = new ExportService();
+type IExportServiceWithJson = ExportService & { exportToJSON?: (data: Record<string, unknown>[], options: { filename: string; title?: string }) => void };
 
 export const ExportButtons: React.FC<IExportButtonsProps> = ({ pdfElementId, data, filename, title }) => {
   const styles = useStyles();
   const [exporting, setExporting] = React.useState<string | null>(null);
 
-  const handleExport = async (format: 'pdf' | 'excel' | 'csv'): Promise<void> => {
+  const handleExport = async (format: 'pdf' | 'excel' | 'csv' | 'json'): Promise<void> => {
     try {
       setExporting(format);
       if (format === 'pdf' && pdfElementId) {
@@ -41,6 +42,8 @@ export const ExportButtons: React.FC<IExportButtonsProps> = ({ pdfElementId, dat
         await exportService.exportToExcel(data, { filename, title });
       } else if (format === 'csv' && data) {
         exportService.exportToCSV(data, { filename, title });
+      } else if (format === 'json' && data) {
+        (exportService as IExportServiceWithJson).exportToJSON?.(data, { filename, title });
       }
     } catch (err) {
       console.error(`Export to ${format} failed:`, err);
@@ -64,6 +67,9 @@ export const ExportButtons: React.FC<IExportButtonsProps> = ({ pdfElementId, dat
           </Button>
           <Button size="small" appearance="subtle" className={styles.btn} disabled={!!exporting} onClick={() => handleExport('csv')}>
             {exporting === 'csv' ? '...' : 'CSV'}
+          </Button>
+          <Button size="small" appearance="subtle" className={styles.btn} disabled={!!exporting} onClick={() => handleExport('json')}>
+            {exporting === 'json' ? '...' : 'JSON'}
           </Button>
         </>
       )}

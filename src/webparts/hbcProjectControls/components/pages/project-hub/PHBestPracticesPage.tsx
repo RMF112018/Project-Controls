@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import type { IBestPractice } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
@@ -81,14 +82,6 @@ const useStyles = makeStyles({
     lineHeight: tokens.lineHeightBase300,
   },
 });
-
-interface IBestPractice {
-  title: string;
-  category: string;
-  categoryColor: string;
-  categoryBg: string;
-  text: string;
-}
 
 const BEST_PRACTICES: IBestPractice[] = [
   { title: 'Pre-Pour Walkdowns', category: 'Concrete', categoryColor: HBC_COLORS.info, categoryBg: HBC_COLORS.infoLight, text: 'Conduct a complete pre-pour walkdown with the superintendent, engineer, and concrete subcontractor 24 hours before every placement. Document findings with photographs.' },

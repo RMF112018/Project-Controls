@@ -11,7 +11,7 @@ import { ConfirmDialog } from '../../shared/ConfirmDialog';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
-import type { IBuyoutEntry } from '@hbc/sp-services';
+import { formatCurrency, formatDate, type IBuyoutEntry } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../../theme/tokens';
 
 const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
@@ -21,15 +21,11 @@ const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
   'Executed': { color: HBC_COLORS.navy, bg: HBC_COLORS.gray200 },
 };
 
-const formatCurrency = (value: number | undefined): string => {
-  if (value === undefined || value === null) return '--';
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
-};
+const formatCurrencyDisplay = (value: number | undefined): string =>
+  value === undefined || value === null ? '--' : formatCurrency(value);
 
-const formatDate = (dateStr: string | undefined): string => {
-  if (!dateStr) return '--';
-  return new Date(dateStr).toLocaleDateString();
-};
+const formatDateDisplay = (dateStr: string | undefined): string =>
+  dateStr ? formatDate(dateStr) : '--';
 
 const useStyles = makeStyles({
   root: {
@@ -118,7 +114,7 @@ export const BuyoutLogPage: React.FC = () => {
     {
       key: 'BuyoutAmount',
       header: 'Buyout Amount',
-      render: (row) => formatCurrency(row.contractValue ?? row.totalBudget),
+      render: (row) => formatCurrencyDisplay(row.contractValue ?? row.totalBudget),
       sortable: true,
     },
     {
@@ -132,7 +128,7 @@ export const BuyoutLogPage: React.FC = () => {
     {
       key: 'CommitmentDate',
       header: 'Commitment Date',
-      render: (row) => formatDate(row.contractExecutedDate || row.loiSentDate),
+      render: (row) => formatDateDisplay(row.contractExecutedDate || row.loiSentDate),
       sortable: true,
     },
   ], []);

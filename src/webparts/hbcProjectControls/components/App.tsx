@@ -34,6 +34,10 @@ export interface IAppProps {
   devToolsConfig?: IDevToolsConfig;
 }
 
+interface ITelemetryCorrelationCapable extends ITelemetryService {
+  newOperationId?: (scope: string) => string;
+}
+
 function mergeThemes(baseTheme: Theme, hostThemePatch?: Partial<Theme>): Theme {
   return {
     ...baseTheme,
@@ -100,12 +104,96 @@ const AppRoutes: React.FC = () => {
 
     // Capture actionable commits without flooding App Insights.
     if (actualDuration >= 16) {
+      const route = window.location.hash.replace(/^#/, '') || '/';
+      const workspace = route.split('/').filter(Boolean)[0] ?? 'hub';
       telemetryService.trackMetric('react:commit:duration', actualDuration, {
         profilerId: id,
         phase,
+        route,
+        workspace,
+      });
+      telemetryService.trackEvent({
+        name: 'react:commit:threshold',
+        properties: {
+          profilerId: id,
+          phase,
+          route,
+          workspace,
+        },
+        measurements: {
+          actualDurationMs: Math.round(actualDuration * 100) / 100,
+          baseDurationMs: Math.round(baseDuration * 100) / 100,
+        },
       });
     }
   }, [enableReactProfiling, telemetryService]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || typeof PerformanceObserver === 'undefined') {
+      return;
+    }
+    const supportsLongTask = PerformanceObserver.supportedEntryTypes?.includes('longtask');
+    if (!supportsLongTask) {
+      return;
+    }
+
+    const durations: number[] = [];
+    let windowStartedAt = Date.now();
+
+    const emitSummary = (): void => {
+      if (durations.length === 0) {
+        return;
+      }
+      const route = window.location.hash.replace(/^#/, '') || '/';
+      const workspace = route.split('/').filter(Boolean)[0] ?? 'hub';
+      const correlationCapable = telemetryService as ITelemetryCorrelationCapable;
+      const operationId = correlationCapable.newOperationId?.('longtask-jank') ?? '';
+      const maxLongTaskMs = Math.max(...durations);
+      const avgLongTaskMs = durations.reduce((sum, value) => sum + value, 0) / durations.length;
+      const sampleWindowMs = Math.max(1, Date.now() - windowStartedAt);
+
+      telemetryService.trackEvent({
+        name: 'longtask:jank:summary',
+        properties: {
+          route,
+          workspace,
+          corr_operation_id: operationId,
+        },
+        measurements: {
+          longTaskCount: durations.length,
+          maxLongTaskMs: Math.round(maxLongTaskMs * 100) / 100,
+          avgLongTaskMs: Math.round(avgLongTaskMs * 100) / 100,
+          sampleWindowMs,
+        },
+      });
+      telemetryService.trackMetric('longtask:jank:max', maxLongTaskMs, {
+        route,
+        workspace,
+        corr_operation_id: operationId,
+      });
+
+      durations.length = 0;
+      windowStartedAt = Date.now();
+    };
+
+    const observer = new PerformanceObserver((list) => {
+      const entries = list.getEntries();
+      for (const entry of entries) {
+        if (entry.duration > 0) {
+          durations.push(entry.duration);
+        }
+      }
+    });
+
+    observer.observe({ entryTypes: ['longtask'] });
+    const intervalId = window.setInterval(emitSummary, 30000);
+
+    return () => {
+      window.clearInterval(intervalId);
+      observer.disconnect();
+      emitSummary();
+    };
+  }, [telemetryService]);
 
   const routeTree = (
     <React.Suspense fallback={ROUTE_SUSPENSE_FALLBACK}>

@@ -1,4 +1,5 @@
 import { loadPdfDeps, loadXlsx } from '../utils/LazyExportUtils';
+import type { IMonitoringExportPayload } from './ITelemetryService';
 
 export interface IExportOptions {
   filename: string;
@@ -7,6 +8,14 @@ export interface IExportOptions {
 }
 
 export class ExportService {
+  private saveBlob(blob: Blob, filename: string): void {
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
   async exportToPDF(elementId: string, options: IExportOptions): Promise<void> {
     try {
       const { html2canvas, jsPDF } = await loadPdfDeps();
@@ -126,11 +135,57 @@ export class ExportService {
     ];
 
     const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${options.filename}.csv`;
-    link.click();
-    URL.revokeObjectURL(link.href);
+    this.saveBlob(blob, `${options.filename}.csv`);
+  }
+
+  exportToJSON(data: Record<string, unknown>[], options: IExportOptions): void {
+    const payload = JSON.stringify(data, null, 2);
+    const blob = new Blob([payload], { type: 'application/json;charset=utf-8;' });
+    this.saveBlob(blob, `${options.filename}.json`);
+  }
+
+  exportMonitoringBundle(payload: IMonitoringExportPayload, options: IExportOptions): void {
+    const filenameBase = options.filename;
+    const metadata = payload.metadata;
+    const rows = payload.rows;
+    const aggregates = payload.aggregates;
+
+    const jsonBlob = new Blob([
+      JSON.stringify({
+        metadata,
+        rows,
+        aggregates,
+      }, null, 2),
+    ], { type: 'application/json;charset=utf-8;' });
+    this.saveBlob(jsonBlob, `${filenameBase}.monitoring.json`);
+
+    const rowCsvData = rows.map((row) => ({
+      timestamp: row.timestamp,
+      kind: row.kind,
+      name: row.name,
+      route: row.route,
+      workspace: row.workspace,
+      role: row.role,
+      corr_session_id: row.corr_session_id,
+      corr_operation_id: row.corr_operation_id,
+      corr_parent_operation_id: row.corr_parent_operation_id ?? '',
+      properties: row.propertiesJson,
+      measurements: row.measurementsJson,
+    }));
+    this.exportToCSV(rowCsvData, { filename: `${filenameBase}.monitoring.rows`, title: options.title });
+
+    const aggregateCsvData: Record<string, unknown>[] = [
+      ...aggregates.byDay.map((row) => ({ category: 'byDay', key: row.day, value: row.count })),
+      ...aggregates.byName.map((row) => ({ category: 'byName', key: row.name, value: row.count })),
+      ...aggregates.p95ByMetric.map((row) => ({ category: 'p95ByMetric', key: row.metric, value: row.p95 })),
+      ...aggregates.breachCounts.map((row) => ({
+        category: 'breachCounts',
+        key: row.metric,
+        value: row.count,
+        threshold: row.threshold,
+      })),
+    ];
+    this.exportToCSV(aggregateCsvData, { filename: `${filenameBase}.monitoring.aggregates`, title: options.title });
   }
 }
 

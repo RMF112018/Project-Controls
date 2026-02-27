@@ -10,3 +10,4 @@ export { ProvisioningPage } from './ProvisioningPage';
 export { DevUsersPage } from './DevUsersPage';
 export { FeatureFlagsPage } from './FeatureFlagsPage';
 export { AuditLogPage } from './AuditLogPage';
+export { TelemetryDashboardPage } from './TelemetryDashboardPage';

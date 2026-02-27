@@ -5,24 +5,17 @@ import {
   Warning24Regular,
   Circle24Regular,
 } from '@fluentui/react-icons';
+import {
+  formatCurrency,
+  type IReviewSection,
+  type SectionStatus,
+} from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { KPICard } from '../../shared/KPICard';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-const formatCurrency = (value: number): string =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-
-type SectionStatus = 'On Track' | 'Attention' | 'At Risk';
-
-interface IReviewSection {
-  title: string;
-  status: SectionStatus;
-  items: { label: string; value: string }[];
-  commentary: string;
-}
 
 const MOCK_REVIEW_SECTIONS: IReviewSection[] = [
   {

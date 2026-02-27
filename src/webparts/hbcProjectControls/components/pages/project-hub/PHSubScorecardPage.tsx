@@ -1,26 +1,12 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import type { IScorecardEntry, OverallRating } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { KPICard } from '../../shared/KPICard';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-type OverallRating = 'Excellent' | 'Good' | 'Satisfactory' | 'Needs Improvement' | 'Poor';
-
-interface IScorecardEntry {
-  id: string;
-  subcontractor: string;
-  trade: string;
-  safety: number;
-  quality: number;
-  schedule: number;
-  cooperation: number;
-  overall: number;
-  rating: OverallRating;
-  lastReviewed: string;
-}
 
 const MOCK_SCORECARDS: IScorecardEntry[] = [
   { id: 'sc-1', subcontractor: 'Atlas Steel Fabricators', trade: 'Structural Steel', safety: 95, quality: 92, schedule: 88, cooperation: 90, overall: 91, rating: 'Excellent', lastReviewed: '2026-02-15' },

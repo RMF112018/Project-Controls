@@ -7,20 +7,12 @@ import {
   DocumentPdf24Regular,
   ArrowDownload24Regular,
 } from '@fluentui/react-icons';
+import type { IDocumentCategory } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { KPICard } from '../../shared/KPICard';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-interface IDocumentCategory {
-  name: string;
-  icon: React.ReactNode;
-  fileCount: number;
-  lastModified: string;
-  description: string;
-  recentFiles: { name: string; type: string; size: string; modified: string }[];
-}
 
 const MOCK_CATEGORIES: IDocumentCategory[] = [
   {
@@ -254,7 +246,7 @@ export const PHDocumentsPage: React.FC = () => {
         {MOCK_CATEGORIES.map((category) => (
           <HbcCard key={category.name} title={category.name}>
             <div className={styles.categoryHeader}>
-              <div className={styles.categoryIcon}>{category.icon}</div>
+              <div className={styles.categoryIcon}>{category.icon as React.ReactNode}</div>
               <div className={styles.categoryInfo}>
                 <span className={styles.categoryMeta}>
                   {category.fileCount.toLocaleString()} files

@@ -11,7 +11,7 @@ import { ExportButtons } from '../../shared/ExportButtons';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
-import type { IMonthlyProjectReview } from '@hbc/sp-services';
+import { formatDate, type IMonthlyProjectReview } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../../theme/tokens';
 
 const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
@@ -36,11 +36,6 @@ const STATUS_LABELS: Record<string, string> = {
   SubmittedToLeadership: 'Submitted to Leadership',
   FollowUpPending: 'Follow-Up Pending',
   Complete: 'Complete',
-};
-
-const formatDate = (dateStr: string | undefined | null): string => {
-  if (!dateStr) return '\u2014';
-  return new Date(dateStr).toLocaleDateString();
 };
 
 const useStyles = makeStyles({
@@ -143,7 +138,7 @@ export const MonthlyReportsPage: React.FC = () => {
     {
       key: 'Modified',
       header: 'Last Updated',
-      render: (row) => formatDate(row.lastUpdatedAt),
+      render: (row) => formatDate(row.lastUpdatedAt, { dateStyle: 'numeric', placeholder: '\u2014', fallbackOnInvalid: '\u2014' }),
       sortable: true,
     },
   ], []);

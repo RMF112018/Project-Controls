@@ -19,6 +19,7 @@ import {
   AccordionPanel,
 } from '@fluentui/react-components';
 import { filterVisibleSidebarGroups } from '@hbc/sp-services';
+import { RoleName } from '@hbc/sp-services';
 import { useAppContext } from '../contexts/AppContext';
 import { ProjectPicker } from '../shared/ProjectPicker';
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
@@ -93,7 +94,7 @@ export const ContextualSidebar: React.FC = () => {
   const styles = useStyles();
   const navigate = useAppNavigate();
   const location = useAppLocation();
-  const { selectedProject, setSelectedProject, isProjectSite, currentUser, dataServiceMode } = useAppContext();
+  const { selectedProject, setSelectedProject, isProjectSite, currentUser, dataServiceMode, isFeatureEnabled } = useAppContext();
   const { workspace } = useWorkspace();
 
   const isActivePath = React.useCallback((path: string): boolean => {
@@ -123,6 +124,16 @@ export const ContextualSidebar: React.FC = () => {
   }, [workspace, isMockMode, primaryRole]);
 
   const isNonHubWorkspace = workspace && workspace.id !== 'hub';
+  const canSeeTelemetryLink = React.useMemo(() => {
+    if (workspace?.id !== 'admin') {
+      return false;
+    }
+    if (!isFeatureEnabled('TelemetryDashboard')) {
+      return false;
+    }
+    const roles = currentUser?.roles ?? [];
+    return roles.includes(RoleName.Administrator) || roles.includes(RoleName.Leadership);
+  }, [workspace?.id, isFeatureEnabled, currentUser?.roles]);
 
   // ── Accordion State ───────────────────────────────────────────────────────
 
@@ -189,6 +200,13 @@ export const ContextualSidebar: React.FC = () => {
                   active={location.pathname === workspace.basePath}
                   onClick={() => navigate(workspace.basePath)}
                 />
+                {canSeeTelemetryLink && (
+                  <NavItem
+                    label="Telemetry"
+                    active={location.pathname.startsWith('/admin/telemetry')}
+                    onClick={() => navigate('/admin/telemetry')}
+                  />
+                )}
                 {selectedProject && workspace.id !== 'project-hub' && (
                   <NavItem
                     label="Project Hub"

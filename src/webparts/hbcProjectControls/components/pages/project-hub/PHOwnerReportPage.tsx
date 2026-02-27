@@ -1,29 +1,12 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import { formatCurrency, type IChangeOrder, type IRiskItem } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { KPICard } from '../../shared/KPICard';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-const formatCurrency = (value: number): string =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-
-interface IChangeOrder {
-  number: string;
-  description: string;
-  amount: number;
-  status: 'Approved' | 'Pending' | 'Rejected';
-  submittedDate: string;
-}
-
-interface IRiskItem {
-  description: string;
-  likelihood: 'High' | 'Medium' | 'Low';
-  impact: string;
-  mitigation: string;
-}
 
 const MOCK_CHANGE_ORDERS: IChangeOrder[] = [
   { number: 'CO-001', description: 'Owner-requested lobby upgrades', amount: 185_000, status: 'Approved', submittedDate: '2025-11-15' },

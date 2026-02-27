@@ -1,5 +1,10 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import {
+  formatCurrency,
+  type IVarianceItem,
+  type ProjectHubLessonLearned as ILessonLearned,
+} from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
 import { HbcCard } from '../../shared/HbcCard';
@@ -7,24 +12,6 @@ import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-interface IVarianceItem {
-  id: string;
-  division: string;
-  estimatedCost: number;
-  actualCost: number;
-  variance: number;
-  variancePct: number;
-  notes: string;
-}
-
-interface ILessonLearned {
-  id: string;
-  category: 'Estimating' | 'Scope' | 'Market' | 'Process';
-  finding: string;
-  recommendation: string;
-  impact: 'High' | 'Medium' | 'Low';
-}
 
 const MOCK_VARIANCE: IVarianceItem[] = [
   { id: '1', division: 'Concrete', estimatedCost: 1200000, actualCost: 1340000, variance: -140000, variancePct: -11.7, notes: 'Labor rates higher than projected' },
@@ -142,9 +129,9 @@ const useStyles = makeStyles({
   },
 });
 
-function formatCurrency(value: number): string {
+function formatVarianceCurrency(value: number): string {
   const absValue = Math.abs(value);
-  const formatted = absValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const formatted = formatCurrency(absValue);
   return value < 0 ? `(${formatted})` : formatted;
 }
 
@@ -184,7 +171,7 @@ export const PHPostBidAutopsyPage: React.FC = () => {
         <KPICard title="Total Actual" value={formatCurrency(totalActual)} />
         <KPICard
           title="Net Variance"
-          value={formatCurrency(totalVariance)}
+          value={formatVarianceCurrency(totalVariance)}
           subtitle={`${totalVariancePct}%`}
           trend={{ value: Math.abs(parseFloat(totalVariancePct)), isPositive: totalVariance >= 0 }}
         />
@@ -211,7 +198,7 @@ export const PHPostBidAutopsyPage: React.FC = () => {
                 <td className={styles.tableCellRight}>{formatCurrency(item.actualCost)}</td>
                 <td className={styles.tableCellRight}>
                   <span className={item.variance >= 0 ? styles.variancePositive : styles.varianceNegative}>
-                    {formatCurrency(item.variance)}
+                    {formatVarianceCurrency(item.variance)}
                   </span>
                 </td>
                 <td className={styles.tableCellRight}>

@@ -1,28 +1,16 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import {
+  formatCurrency,
+  type ProjectHubBuyoutPackage as IBuyoutPackage,
+  type ProjectHubBuyoutStatus as BuyoutStatus,
+} from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { KPICard } from '../../shared/KPICard';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-const formatCurrency = (value: number): string =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-
-type BuyoutStatus = 'Not Started' | 'Bidding' | 'Evaluating' | 'Awarded' | 'Executed';
-
-interface IBuyoutPackage {
-  id: string;
-  tradePackage: string;
-  divisionCode: string;
-  budgetAmount: number;
-  buyoutAmount: number | null;
-  savings: number | null;
-  status: BuyoutStatus;
-  subcontractor: string | null;
-  targetDate: string;
-}
 
 const MOCK_BUYOUT_PACKAGES: IBuyoutPackage[] = [
   { id: 'bp-1', tradePackage: 'Structural Steel', divisionCode: '05 12 00', budgetAmount: 2_800_000, buyoutAmount: 2_720_000, savings: 80_000, status: 'Executed', subcontractor: 'Atlas Steel Fabricators', targetDate: '2025-11-15' },

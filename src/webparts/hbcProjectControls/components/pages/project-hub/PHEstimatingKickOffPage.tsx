@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens, Checkbox } from '@fluentui/react-components';
+import type { ProjectHubKickoffChecklistItem as IChecklistItem } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
 import { HbcCard } from '../../shared/HbcCard';
@@ -7,14 +8,6 @@ import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-interface IChecklistItem {
-  id: string;
-  label: string;
-  description: string;
-  category: 'Documents' | 'Team' | 'Scope' | 'Schedule';
-  checked: boolean;
-}
 
 const INITIAL_CHECKLIST: IChecklistItem[] = [
   { id: 'doc-1', label: 'Bid Documents Received', description: 'All drawings, specifications, and addenda received and logged', category: 'Documents', checked: true },

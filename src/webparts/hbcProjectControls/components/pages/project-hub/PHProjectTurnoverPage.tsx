@@ -1,5 +1,9 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens, Checkbox, ProgressBar } from '@fluentui/react-components';
+import type {
+  ITurnoverSection,
+  ProjectHubTurnoverItem as ITurnoverItem,
+} from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
 import { HbcCard } from '../../shared/HbcCard';
@@ -7,20 +11,6 @@ import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-interface ITurnoverSection {
-  id: string;
-  title: string;
-  items: ITurnoverItem[];
-}
-
-interface ITurnoverItem {
-  id: string;
-  label: string;
-  description: string;
-  checked: boolean;
-  responsible: 'Estimating' | 'BD' | 'PM' | 'Superintendent';
-}
 
 const INITIAL_SECTIONS: ITurnoverSection[] = [
   {

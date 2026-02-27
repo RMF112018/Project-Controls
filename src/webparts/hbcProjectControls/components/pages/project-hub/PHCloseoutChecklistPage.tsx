@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import type { IChecklistCategory } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
@@ -57,11 +58,6 @@ const useStyles = makeStyles({
     marginTop: '1px',
   },
 });
-
-interface IChecklistCategory {
-  name: string;
-  items: string[];
-}
 
 const CLOSEOUT_CATEGORIES: IChecklistCategory[] = [
   {

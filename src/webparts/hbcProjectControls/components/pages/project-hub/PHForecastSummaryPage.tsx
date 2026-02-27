@@ -5,24 +5,12 @@ import {
   Money24Regular,
   DocumentBulletList24Regular,
 } from '@fluentui/react-icons';
+import { formatCurrency, type ICostLineItem } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-const formatCurrency = (value: number): string =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-
-interface ICostLineItem {
-  category: string;
-  originalBudget: number;
-  approvedChanges: number;
-  revisedBudget: number;
-  costToDate: number;
-  projectedFinal: number;
-  variance: number;
-}
 
 const MOCK_COST_LINES: ICostLineItem[] = [
   {

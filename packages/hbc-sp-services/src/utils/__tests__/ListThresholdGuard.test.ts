@@ -54,19 +54,14 @@ describe('ListThresholdGuard', () => {
 
   // ── static shouldUseCursorPaging dual-gate ──────────────────────────────
 
-  it('returns true only when both count >= 4500 AND isInfinitePagingEnabled', () => {
-    expect(ListThresholdGuard.shouldUseCursorPaging(4500, true)).toBe(true);
-    expect(ListThresholdGuard.shouldUseCursorPaging(5000, true)).toBe(true);
+  it('returns true when count >= 4500', () => {
+    expect(ListThresholdGuard.shouldUseCursorPaging(4500)).toBe(true);
+    expect(ListThresholdGuard.shouldUseCursorPaging(5000)).toBe(true);
   });
 
-  it('returns false when count >= 4500 but isInfinitePagingEnabled is false (count-only insufficient)', () => {
-    expect(ListThresholdGuard.shouldUseCursorPaging(4500, false)).toBe(false);
-    expect(ListThresholdGuard.shouldUseCursorPaging(10000, false)).toBe(false);
-  });
-
-  it('returns false when isInfinitePagingEnabled is true but count < 4500 (flag-only insufficient)', () => {
-    expect(ListThresholdGuard.shouldUseCursorPaging(3000, true)).toBe(false);
-    expect(ListThresholdGuard.shouldUseCursorPaging(4499, true)).toBe(false);
-    expect(ListThresholdGuard.shouldUseCursorPaging(0, true)).toBe(false);
+  it('returns false when count < 4500', () => {
+    expect(ListThresholdGuard.shouldUseCursorPaging(3000)).toBe(false);
+    expect(ListThresholdGuard.shouldUseCursorPaging(4499)).toBe(false);
+    expect(ListThresholdGuard.shouldUseCursorPaging(0)).toBe(false);
   });
 });

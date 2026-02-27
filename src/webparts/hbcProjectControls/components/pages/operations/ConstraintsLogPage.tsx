@@ -11,7 +11,7 @@ import { ConfirmDialog } from '../../shared/ConfirmDialog';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
-import type { IConstraintLog } from '@hbc/sp-services';
+import { formatDate, type IConstraintLog } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../../theme/tokens';
 
 const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
@@ -23,11 +23,6 @@ const PRIORITY_APPEARANCE: Record<string, { color: string; bg: string }> = {
   High: { color: HBC_COLORS.error, bg: HBC_COLORS.errorLight },
   Medium: { color: HBC_COLORS.warning, bg: HBC_COLORS.warningLight },
   Low: { color: HBC_COLORS.success, bg: HBC_COLORS.successLight },
-};
-
-const formatDate = (dateStr: string | undefined | null): string => {
-  if (!dateStr) return '\u2014';
-  return new Date(dateStr).toLocaleDateString();
 };
 
 const useStyles = makeStyles({
@@ -142,7 +137,7 @@ export const ConstraintsLogPage: React.FC = () => {
     {
       key: 'DueDate',
       header: 'Due Date',
-      render: (row) => formatDate(row.dueDate),
+      render: (row) => formatDate(row.dueDate, { dateStyle: 'numeric', placeholder: '\u2014', fallbackOnInvalid: '\u2014' }),
       sortable: true,
     },
   ], []);

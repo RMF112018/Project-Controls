@@ -11,7 +11,7 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
     label: 'Admin',
     icon: 'Settings24Regular',
     basePath: '/admin',
-    roles: ALL_ROLES,
+    roles: [RoleName.Administrator, RoleName.Leadership],
     featureFlag: 'AdminWorkspace',
     sidebarGroups: [
       {
@@ -43,6 +43,7 @@ export const WORKSPACE_CONFIGS: IWorkspaceConfig[] = [
           { label: 'Dev Users', path: '/admin/dev-users', permission: PERMISSIONS.ADMIN_FLAGS },
           { label: 'Feature Flags', path: '/admin/feature-flags', permission: PERMISSIONS.ADMIN_FLAGS },
           { label: 'Audit Log', path: '/admin/audit-log', permission: PERMISSIONS.ADMIN_FLAGS },
+          { label: 'Telemetry', path: '/admin/telemetry', featureFlag: 'TelemetryDashboard' },
         ],
       },
     ],

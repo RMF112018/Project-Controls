@@ -31,7 +31,7 @@ export { PerformanceService, performanceService } from './PerformanceService';
 export { SignalRService, signalRService } from './SignalRService';
 export type { SignalRConnectionStatus } from '../models/ISignalRMessage';
 export * from './columnMappings';
-export type { ITelemetryService, ITelemetryEvent } from './ITelemetryService';
+export type { ITelemetryService, ITelemetryEvent, ITelemetryStreamItem } from './ITelemetryService';
 export { TelemetryService, telemetryService } from './TelemetryService';
 export { MockTelemetryService, mockTelemetryService } from './MockTelemetryService';
 export { GitOpsProvisioningService } from './GitOpsProvisioningService';

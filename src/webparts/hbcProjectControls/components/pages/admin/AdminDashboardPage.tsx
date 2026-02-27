@@ -46,6 +46,11 @@ const ADMIN_GROUPS = [
     description: 'Developer user management, feature flag toggles, and audit log viewer.',
     path: '/admin/dev-users',
   },
+  {
+    label: 'Telemetry Dashboard',
+    description: 'Production monitoring for lazy-load, virtualization, accessibility, and load performance metrics.',
+    path: '/admin/telemetry',
+  },
 ];
 
 export const AdminDashboardPage: React.FC = () => {

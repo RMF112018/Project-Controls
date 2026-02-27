@@ -115,6 +115,77 @@ Use this template for all new debt items:
   - Zero disabled accessibility suppressions for remediated Stage 13 rules.
   - Stage 10/11 performance metric coverage remains active with adaptive hard-budget enforcement.
 
+## Stage 14 Governance (Shared Surface + Formatter Hygiene)
+
+### Shared Formatter Consumption Rule
+
+- Page-level date and currency formatting helpers are not permitted when equivalent shared utilities exist in `@hbc/sp-services`.
+- Required standard utilities:
+  - `formatCurrency` / `formatCurrencyCompact`
+  - `formatDate` / `formatDateTime`
+- Consumers must use formatter options for placeholder/style parity instead of creating local wrappers whenever possible.
+
+### Release Gate: Formatter Hygiene
+
+- Required pre-release guard:
+  - `rg -n --glob '!**/*.stories.tsx' --glob '!**/*.test.ts*' --glob '!**/__tests__/**' "function formatCurrency|const formatCurrency\\s*=|function formatDate|const formatDate\\s*=|const formatDate\\s*=\\s*React\\.useCallback" src/webparts/hbcProjectControls/components/pages/hub src/webparts/hbcProjectControls/components/pages/operations src/webparts/hbcProjectControls/components/pages/preconstruction`
+- Gate passes only when command returns no matches (`exit 1`).
+
+### Shared Surface Monitoring Baseline
+
+- Stage 14 baseline shared surface for `models+utils` is `327` exported `interface/type/enum` declarations.
+- Do not regress below this baseline in release candidates without documented waiver and compensating plan.
+- Counting method must remain consistent with Stage 14 closure:
+  - exported declarations only,
+  - `packages/hbc-sp-services/src/models` + `packages/hbc-sp-services/src/utils`,
+  - excluding tests.
+
+## Stage 15 Observability Governance (Sampling, Correlation, Monitoring Exports)
+
+### Telemetry Sampling Policy (Tiered)
+
+- Event-level deterministic sampling is required in telemetry service for high-volume signals.
+- Default sampling tiers:
+  - `100%` (P0 reliability): `route:lazy:load`, `route:lazy:load:duration`, `route:lazy:load:failure`, `chunk:load:error`, `a11y:scan:summary`, `a11y:responsive:summary`, `app:load:completed`, `ui:error:boundary`, `telemetry:export:generated`.
+  - `50%` (P1 high-volume): `app:init:phase:duration`, `virtualization:frame:jank`, `longtask:jank:summary`.
+  - `25%` (P2 noisy diagnostics): `react:commit:duration`, `table:filter:interaction`, `virtualization:state`.
+- Sampling decisions must be deterministic for identical event seeds to keep trend analytics stable across sessions.
+
+### Correlation ID Requirements
+
+- Every telemetry row used for monitoring/dashboard/export must include:
+  - `corr_session_id`,
+  - `corr_operation_id`.
+- When applicable, emit `corr_parent_operation_id` to preserve route/chunk/error lineage.
+- Correlation IDs must be propagated from boundary/error instrumentation to downstream sink/export pipelines without mutation.
+
+### Monitoring Export Contract (Grafana / Power BI Ready)
+
+- Default export retention window is `30 days` rolling unless operator explicitly overrides.
+- Monitoring exports must provide:
+  - normalized event rows dataset,
+  - aggregate dataset with daily counts, per-event counts, and percentile/breach summaries,
+  - metadata (`generatedAt`, `retentionDays`, `rowCount`, window bounds).
+- CSV and JSON artifacts must remain schema-stable release-to-release unless explicitly versioned in changelog.
+
+### Alert Threshold Baseline
+
+- `chunk:load:error`:
+  - investigate on any recurring error burst in release candidate smoke.
+- `longtask:jank:summary`:
+  - warn at `> 120ms` average long-task duration over sample window,
+  - critical at `> 250ms` max long-task duration.
+- `route:lazy:load:duration`:
+  - warn at `> 250ms`,
+  - critical at `> 500ms`.
+
+### Required Stage 15 Verification Gates
+
+- `npx tsc --noEmit`
+- `npx playwright test playwright/*smoke*.spec.ts --reporter=line`
+- `npx playwright test playwright/telemetry.spec.ts --reporter=line`
+- `npx playwright test playwright/accessibility.spec.ts playwright/responsive-a11y.e2e.spec.ts playwright/virtualized-infinite.spec.ts --reporter=line`
+
 ## Performance Gating Rules - Stage 10 (Infinite Queries & Virtualization)
 
 ### Query Page-Size Defaults (Field Device Baseline)

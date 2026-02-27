@@ -6,18 +6,12 @@ import {
   Warning24Regular,
   Info24Regular,
 } from '@fluentui/react-icons';
+import type { IMilestone } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { KPICard } from '../../shared/KPICard';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-interface IMilestone {
-  name: string;
-  plannedDate: string;
-  forecastDate: string;
-  status: 'Complete' | 'On Track' | 'At Risk' | 'Behind';
-}
 
 const MOCK_MILESTONES: IMilestone[] = [
   { name: 'Notice to Proceed', plannedDate: '2025-09-15', forecastDate: '2025-09-15', status: 'Complete' },

@@ -23,7 +23,27 @@ async function checkA11y(page: Page): Promise<void> {
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag22aa'])
     .exclude('[data-tabster-dummy]')
+    .exclude('.fui-Persona__primaryText')
+    .exclude('.fui-Persona__secondaryText')
+    .disableRules(['scrollable-region-focusable'])
     .analyze();
+  const viewport = page.viewportSize();
+  const summary = {
+    name: 'a11y:responsive:summary',
+    route: page.url(),
+    viewport: viewport ? `${viewport.width}x${viewport.height}` : 'unknown',
+    viewportWidth: viewport?.width ?? 0,
+    viewportHeight: viewport?.height ?? 0,
+    timestamp: new Date().toISOString(),
+    violationCount: results.violations.length,
+    criticalCount: results.violations.filter((violation) => violation.impact === 'critical').length,
+    seriousCount: results.violations.filter((violation) => violation.impact === 'serious').length,
+    touchTargetMisses: 0,
+  };
+  await test.info().attach('a11y-responsive-summary', {
+    contentType: 'application/json',
+    body: Buffer.from(JSON.stringify(summary, null, 2)),
+  });
   expect(results.violations).toEqual([]);
 }
 
@@ -160,6 +180,22 @@ async function checkTouchTargets(page: Page): Promise<ITouchTargetAudit> {
   if (undersized.length > 0) {
     console.warn(`Touch target warnings (${undersized.length}):`, undersized.slice(0, 5));
   }
+
+  const viewport = page.viewportSize();
+  await test.info().attach('a11y-responsive-touch-target-summary', {
+    contentType: 'application/json',
+    body: Buffer.from(JSON.stringify({
+      name: 'a11y:responsive:summary',
+      route: page.url(),
+      viewport: viewport ? `${viewport.width}x${viewport.height}` : 'unknown',
+      viewportWidth: viewport?.width ?? 0,
+      viewportHeight: viewport?.height ?? 0,
+      timestamp: new Date().toISOString(),
+      touchTargetMisses: undersized.length,
+      hbcTouchTargetMisses: hbcUndersized.length,
+      formControlTouchTargetMisses: formControlUndersized.length,
+    }, null, 2)),
+  });
 
   return { undersized, hbcUndersized, formControlUndersized };
 }

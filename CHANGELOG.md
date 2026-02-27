@@ -4,6 +4,98 @@ All notable changes to HBC Project Controls will be documented in this file.
 
 ## [Unreleased]
 
+### [2026-02-27] - Stage 15 Sub-Task 3 - feat(observability) - Sampling, Correlation, and Monitoring Export Hardening
+
+#### Added
+- Telemetry service observability hardening contracts:
+  - deterministic sampling rules (`setSamplingRules`, `getSamplingRules`),
+  - session/operation correlation helpers (`getSessionCorrelationId`, `newOperationId`),
+  - retention controls (`setRetentionDays`, `getRetentionDays`),
+  - monitoring export payload builder (`getMonitoringExportPayload`).
+- BI-ready export path in `ExportService`:
+  - `exportMonitoringBundle(...)` emits normalized JSON plus CSV rows/aggregate datasets for Grafana/Power BI ingestion.
+- New telemetry taxonomy coverage for high-value production monitoring surfaces:
+  - `ui:error:boundary`,
+  - `chunk:load:error`,
+  - `longtask:jank:summary`,
+  - `telemetry:export:generated`.
+
+#### Changed
+- `TelemetryService` now injects correlation fields on emitted telemetry:
+  - `corr_session_id`,
+  - `corr_operation_id`,
+  - `corr_parent_operation_id` (when provided).
+- Tiered event-level sampling now applies on top of Application Insights transport:
+  - P0 telemetry families retained at `100%`,
+  - high-volume Stage 10/11/13 metrics sampled by deterministic rules.
+- In-memory telemetry stream retention now enforces a 30-day rolling window (configurable) in addition to max-item capping.
+- Route and global error boundaries now emit normalized observability events with correlation-aware metadata and chunk-load classification.
+- Dashboard export flow now supports monitoring-bundle output and emits export generation telemetry.
+
+#### Notes
+- Stage 15 TODO telemetry markers remain fully resolved; this sub-task focuses on hardening and taxonomy completeness.
+- Export retention default is window-based (30 days) for monitoring datasets; no destructive persistent-store purge behavior is introduced.
+
+### [2026-02-27] - Stage 15 Sub-Task 2 - feat(telemetry) - Admin/Leadership Telemetry Dashboard + Observability Wiring
+
+#### Added
+- New admin telemetry monitoring route at `/#/admin/telemetry` with role-gated access for `Administrator` and `Leadership`.
+- New `TelemetryDashboardPage` with TanStack Query hybrid ingestion:
+  - persisted telemetry audit records (`EntityType.Telemetry`),
+  - live in-memory telemetry stream (`getRecentTelemetryItems`),
+  - performance log overlays for Stage 13 load KPIs.
+- Dashboard visualization surface with 8 chart cards covering Stage 10/11/13 observability:
+  - lazy-load duration and outcome trends,
+  - virtualization jank and virtualization coverage,
+  - a11y violation and severity trends,
+  - app init phase durations,
+  - Stage 13 load performance trend.
+- Dashboard filter and export controls:
+  - route/workspace/role/date filters,
+  - CSV + JSON export via shared `ExportButtons` and `ExportService.exportToJSON`.
+
+#### Changed
+- Telemetry service contracts and implementations now include a dashboard stream API and bounded recent-item ring buffer:
+  - `ITelemetryStreamItem`,
+  - `getRecentTelemetryItems(limit?)`,
+  - `setDashboardSink(sink?)`.
+- App context telemetry sink now persists Stage 15 event families to audit log (`AuditAction.Telemetry_QueryExecuted`, `EntityType.Telemetry`) with throttling for high-frequency streams.
+- Stage 15 instrumentation TODO markers from Sub-task 1 were resolved by wiring runtime events for:
+  - app init/load phases,
+  - route lazy fallback and lazy failure,
+  - react commit threshold,
+  - data-table filter latency and virtualization state,
+  - Playwright a11y and virtualization telemetry summaries as structured JSON attachments.
+- Admin navigation and routing updated for telemetry discoverability:
+  - `Telemetry` sidebar item behind `TelemetryDashboard` feature flag,
+  - admin route branch includes `/admin/telemetry`,
+  - admin workspace visibility narrowed to Administrator + Leadership.
+
+#### Notes
+- Observability model is hybrid-by-design: persisted audit telemetry for historical charting plus live stream telemetry for near-real-time dashboard updates.
+- Existing admin route permissions remain intact for non-telemetry pages, while telemetry route explicitly allows Leadership access.
+
+### [2026-02-26] - Stage 14 Sub-Task 4 - chore(governance) - Formatter Hygiene + Verification + Docs Closure
+
+#### Added
+- Shared formatter API options in `@hbc/sp-services` for consumption hygiene and output parity without local page helper duplication:
+  - `formatCurrency(value, options?)`
+  - `formatDate(dateStr, options?)`
+- Stage 14 governance documentation updates for shared-utility-first consumption and shared-surface monitoring baseline.
+
+#### Changed
+- Final formatter consolidation across hub/operations/preconstruction pages:
+  - removed remaining local `formatCurrency`/`formatDate` helper definitions,
+  - migrated remaining consumer paths to shared formatter utilities.
+- Final Stage 14 shared-surface gain confirmed at `10.8%` (`327` exported declarations vs. `295` baseline in `models+utils`).
+- Package version reference finalized at `@hbc/sp-services@1.2.0`.
+
+#### Notes
+- Verification closure:
+  - `npx tsc --noEmit` passed.
+  - `npm run build --workspace packages/hbc-sp-services` passed.
+  - `npx playwright test playwright/*smoke*.spec.ts --reporter=line` passed at `4/4` (`100%` smoke pass rate).
+
 ### [2026-02-26] - Stage 13 Sub-Task 4 - docs(governance) - Final Verification + Release Closure
 
 #### Added

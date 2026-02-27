@@ -1,10 +1,22 @@
-export function formatCurrency(value: number | undefined | null): string {
-  if (value === undefined || value === null) return '-';
-  return new Intl.NumberFormat('en-US', {
+interface ICurrencyFormatOptions {
+  placeholder?: string;
+  currency?: string;
+  minimumFractionDigits?: number;
+  maximumFractionDigits?: number;
+  locale?: string;
+}
+
+export function formatCurrency(
+  value: number | undefined | null,
+  options: ICurrencyFormatOptions = {},
+): string {
+  const placeholder = options.placeholder ?? '-';
+  if (value === undefined || value === null) return placeholder;
+  return new Intl.NumberFormat(options.locale ?? 'en-US', {
     style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    currency: options.currency ?? 'USD',
+    minimumFractionDigits: options.minimumFractionDigits ?? 0,
+    maximumFractionDigits: options.maximumFractionDigits ?? 0,
   }).format(value);
 }
 
@@ -16,10 +28,27 @@ export function formatCurrencyCompact(value: number | undefined | null): string 
   return formatCurrency(value);
 }
 
-export function formatDate(dateStr: string | undefined | null): string {
-  if (!dateStr) return '-';
+interface IDateFormatOptions {
+  placeholder?: string;
+  dateStyle?: 'short' | 'numeric';
+  locale?: string;
+  fallbackOnInvalid?: string;
+}
+
+export function formatDate(
+  dateStr: string | undefined | null,
+  options: IDateFormatOptions = {},
+): string {
+  const placeholder = options.placeholder ?? '-';
+  if (!dateStr) return placeholder;
   const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', {
+  if (Number.isNaN(date.getTime())) {
+    return options.fallbackOnInvalid ?? placeholder;
+  }
+  if (options.dateStyle === 'numeric') {
+    return date.toLocaleDateString(options.locale ?? 'en-US');
+  }
+  return date.toLocaleDateString(options.locale ?? 'en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',

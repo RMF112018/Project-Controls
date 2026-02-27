@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import { formatCurrency, type IEstimateLineItem } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
 import { HbcCard } from '../../shared/HbcCard';
@@ -7,17 +8,6 @@ import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-interface IEstimateLineItem {
-  id: string;
-  csiCode: string;
-  description: string;
-  quantity: number;
-  unit: string;
-  unitCost: number;
-  totalCost: number;
-  status: 'Draft' | 'In Review' | 'Approved' | 'Revised';
-}
 
 const MOCK_LINE_ITEMS: IEstimateLineItem[] = [
   { id: '1', csiCode: '03 30 00', description: 'Cast-in-Place Concrete', quantity: 4200, unit: 'CY', unitCost: 285, totalCost: 1197000, status: 'Approved' },
@@ -114,10 +104,6 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
 });
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
 
 export const PHEstimatePage: React.FC = () => {
   const styles = useStyles();

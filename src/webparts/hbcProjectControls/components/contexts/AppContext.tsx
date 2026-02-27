@@ -9,6 +9,8 @@ import {
   detectSiteContext,
   DEFAULT_HUB_SITE_URL,
   performanceService,
+  AuditAction,
+  EntityType,
 } from '@hbc/sp-services';
 import type { ITelemetryService } from '@hbc/sp-services';
 import { MockTelemetryService } from '@hbc/sp-services';
@@ -60,12 +62,43 @@ interface IAppProviderProps {
 
 const NON_LOCALHOST_TELEMETRY_ADMIN_TOGGLE_KEY = 'hbc:telemetry:nonlocalhost:enabled';
 
+interface ITelemetryStreamItem {
+  kind: 'event' | 'metric' | 'exception' | 'pageView';
+  name: string;
+  timestamp: string;
+  properties?: Record<string, string>;
+  measurements?: Record<string, number>;
+}
+
+interface ITelemetryDashboardSinkCapable {
+  setDashboardSink?: (sink?: (item: ITelemetryStreamItem) => void) => void;
+}
+
 function isLocalhostEnvironment(): boolean {
   if (typeof window === 'undefined') {
     return false;
   }
   return window.location.hostname === 'localhost';
 }
+
+const TELEMETRY_AUDIT_TRACKED_EVENTS = new Set<string>([
+  'route:lazy:load',
+  'route:lazy:load:duration',
+  'route:lazy:fallback:visible',
+  'route:lazy:load:failure',
+  'virtualization:state',
+  'virtualization:frame:jank',
+  'a11y:scan:summary',
+  'a11y:responsive:summary',
+  'app:init:phase:duration',
+  'app:load:completed',
+  'react:commit:threshold',
+  'table:filter:interaction',
+  'ui:error:boundary',
+  'chunk:load:error',
+  'longtask:jank:summary',
+  'telemetry:export:generated',
+]);
 
 export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetryService, siteUrl, dataServiceMode, devToolsConfig, children }) => {
   // Fallback to no-op MockTelemetryService if none provided (dev/test convenience)
@@ -135,6 +168,25 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
 
   React.useEffect(() => {
     const init = async (): Promise<void> => {
+      const emitPhaseDuration = (phaseMarkName: string): void => {
+        const phaseMark = performanceService.getMark(phaseMarkName);
+        if (phaseMark?.duration === undefined) {
+          return;
+        }
+        const properties = {
+          phase: phaseMarkName,
+          isProjectSite: String(isProjectSite),
+        };
+        resolvedTelemetry.trackMetric('app:init:phase:duration', phaseMark.duration, properties);
+        resolvedTelemetry.trackEvent({
+          name: 'app:init:phase:duration',
+          properties,
+          measurements: {
+            durationMs: phaseMark.duration,
+          },
+        });
+      };
+
       performanceService.startMark('app:contextInit');
       try {
         setIsLoading(true);
@@ -145,6 +197,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
         ]);
         const flags = rawFlags;
         performanceService.endMark('app:userFlagsFetch');
+        emitPhaseDuration('app:userFlagsFetch');
 
         // If PermissionEngine flag is enabled, resolve permissions via the engine
         const engineEnabled = flags.find(f => f.FeatureName === 'PermissionEngine')?.Enabled === true;
@@ -159,6 +212,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
             console.warn('Permission engine resolution failed, using role-based fallback');
           }
           performanceService.endMark('app:permissionResolve');
+          emitPhaseDuration('app:permissionResolve');
         }
 
         setCurrentUser(user);
@@ -185,15 +239,39 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
             console.warn('Auto-select failed for project code:', siteContext.projectCode);
           }
           performanceService.endMark('app:projectAutoSelect');
+          emitPhaseDuration('app:projectAutoSelect');
         }
 
         performanceService.endMark('app:contextInit');
+        emitPhaseDuration('app:contextInit');
 
         if (typeof window !== 'undefined') {
           (window as Window & { __hbcPerformanceMarks__?: unknown }).__hbcPerformanceMarks__ = performanceService.getAllMarks();
         }
 
         // Fire-and-forget performance log
+        const routePath = typeof window !== 'undefined'
+          ? (window.location.hash.replace(/^#/, '') || '/')
+          : '/';
+        const contextInitMark = performanceService.getMark('app:contextInit');
+        const userFlagsMark = performanceService.getMark('app:userFlagsFetch');
+        const webpartMark = performanceService.getMark('webpart:onInit');
+        const appLoadProperties = {
+          route: routePath,
+          isProjectSite: String(isProjectSite),
+          projectCode: siteContext.projectCode ?? '',
+        };
+        resolvedTelemetry.trackEvent({
+          name: 'app:load:completed',
+          properties: appLoadProperties,
+          measurements: {
+            webPartLoadMs: webpartMark?.duration ?? 0,
+            appInitMs: contextInitMark?.duration ?? 0,
+            dataFetchMs: userFlagsMark?.duration ?? 0,
+            totalLoadMs: contextInitMark?.duration ?? 0,
+          },
+        });
+
         performanceService.logWebPartLoad({
           userEmail: user.email,
           siteUrl: siteUrl || window.location.href,
@@ -208,7 +286,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
       }
     };
     init().catch(console.error);
-  }, [dataService, isProjectSite, siteContext]);
+  }, [dataService, isProjectSite, siteContext, resolvedTelemetry, siteUrl]);
 
   React.useEffect(() => {
     if (!currentUser) {
@@ -238,6 +316,42 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
 
     setDashboardPreferences(loaded);
   }, [currentUser, dashboardStoragePrefix]);
+
+  React.useEffect(() => {
+    const lastPersistedByKey = new Map<string, number>();
+    const throttleMs = 10_000;
+
+    const sink = (item: ITelemetryStreamItem): void => {
+      if (!TELEMETRY_AUDIT_TRACKED_EVENTS.has(item.name)) {
+        return;
+      }
+
+      const routeKey = item.properties?.route ?? item.properties?.toPath ?? '';
+      const throttleKey = `${item.name}:${routeKey}`;
+      const now = Date.now();
+      const prev = lastPersistedByKey.get(throttleKey) ?? 0;
+      if (now - prev < throttleMs) {
+        return;
+      }
+      lastPersistedByKey.set(throttleKey, now);
+
+      dataService.logAudit({
+        Action: AuditAction.Telemetry_QueryExecuted,
+        EntityType: EntityType.Telemetry,
+        EntityId: item.name,
+        User: currentUser?.email || 'system',
+        Details: JSON.stringify(item),
+      }).catch(() => {
+        // Telemetry persistence must never block UI flow.
+      });
+    };
+
+    const telemetryWithSink = resolvedTelemetry as ITelemetryService & ITelemetryDashboardSinkCapable;
+    telemetryWithSink.setDashboardSink?.(sink);
+    return () => {
+      telemetryWithSink.setDashboardSink?.(undefined);
+    };
+  }, [dataService, resolvedTelemetry, currentUser?.email]);
 
   // Route project-scoped data service queries to project site when selected
   React.useEffect(() => {

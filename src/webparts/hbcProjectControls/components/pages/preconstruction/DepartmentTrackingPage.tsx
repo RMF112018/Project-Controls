@@ -26,6 +26,7 @@ import {
   AuditAction,
   EntityType,
   RoleName,
+  formatCurrency,
 } from '@hbc/sp-services';
 import type { IEstimatingTracker } from '@hbc/sp-services';
 
@@ -179,9 +180,6 @@ const EMPTY_FORM: INewEntryForm = {
 // ── Helpers ──────────────────────────────────────────────────────────
 const EDIT_ROLES: RoleName[] = Object.values(RoleName) as RoleName[];
 
-const formatCurrency = (v: number | undefined | null): string =>
-  v != null ? `$${v.toLocaleString()}` : '—';
-
 // Stable array references — prevents React.memo defeat from Object.values() on every render
 const DELIVERABLE_OPTIONS = Object.values(DeliverableType);
 const ESTIMATE_SOURCE_OPTIONS = Object.values(EstimateSource);
@@ -262,7 +260,7 @@ const EditableNumberCell: React.FC<INumberCellProps> = React.memo(({
   const [editing, setEditing] = React.useState(false);
   const [localNum, setLocalNum] = React.useState(numValue);
   React.useEffect(() => setLocalNum(numValue), [numValue]);
-  const display = isCurrency ? formatCurrency(localNum) : (localNum != null ? String(localNum) : '—');
+  const display = isCurrency ? formatCurrency(localNum, { placeholder: '—', minimumFractionDigits: 0, maximumFractionDigits: 0 }) : (localNum != null ? String(localNum) : '—');
   if (!editing) {
     return (
       <span

@@ -1,25 +1,15 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import type {
+  ProjectHubPermitEntry as IPermitEntry,
+  ProjectHubPermitStatus as PermitStatus,
+} from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { KPICard } from '../../shared/KPICard';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-type PermitStatus = 'Approved' | 'Pending' | 'Under Review' | 'Expired' | 'Not Submitted';
-
-interface IPermitEntry {
-  id: string;
-  permitType: string;
-  permitNumber: string;
-  issuingAuthority: string;
-  submittedDate: string | null;
-  approvedDate: string | null;
-  expirationDate: string | null;
-  status: PermitStatus;
-  notes: string;
-}
 
 const MOCK_PERMITS: IPermitEntry[] = [
   { id: 'p-1', permitType: 'Building Permit', permitNumber: 'BP-2025-04821', issuingAuthority: 'City of West Palm Beach', submittedDate: '2025-08-10', approvedDate: '2025-09-12', expirationDate: '2026-09-12', status: 'Approved', notes: 'Main building permit for commercial office construction.' },

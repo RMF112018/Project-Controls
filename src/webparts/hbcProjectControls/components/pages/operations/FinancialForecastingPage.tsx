@@ -12,7 +12,7 @@ import { CollapsibleSection } from '../../shared/CollapsibleSection';
 import { ComingSoonPage } from '../../shared/ComingSoonPage';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useAppContext } from '../../contexts/AppContext';
-import type { IRiskCostManagement, IRiskCostItem } from '@hbc/sp-services';
+import { formatCurrency, type IRiskCostManagement, type IRiskCostItem } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../../theme/tokens';
 
 type ForecastTab = 'checklist' | 'summary' | 'gcgr' | 'cashflow';
@@ -66,16 +66,13 @@ const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
   Closed: { color: HBC_COLORS.gray500, bg: HBC_COLORS.gray100 },
 };
 
-const formatCurrency = (value: number): string =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
-
 const riskItemColumns: IHbcDataTableColumn<IRiskCostItem>[] = [
   { key: 'description', header: 'Description', render: (row) => row.description },
   { key: 'category', header: 'Category', render: (row) => row.category },
   {
     key: 'estimatedValue',
     header: 'Amount',
-    render: (row) => formatCurrency(row.estimatedValue),
+    render: (row) => formatCurrency(row.estimatedValue, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     sortable: true,
   },
   {
@@ -162,14 +159,14 @@ export const FinancialForecastingPage: React.FC = () => {
             <HbcSkeleton variant="kpi-grid" columns={4} />
           ) : (
             <div className={styles.kpiRow}>
-              <KPICard title="Original Budget" value={riskData ? formatCurrency(riskData.contractAmount) : '--'} />
+              <KPICard title="Original Budget" value={riskData ? formatCurrency(riskData.contractAmount, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--'} />
               <KPICard
                 title="Current Forecast"
-                value={riskData ? formatCurrency(riskData.contractAmount + totalVariance) : '--'}
+                value={riskData ? formatCurrency(riskData.contractAmount + totalVariance, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--'}
               />
               <KPICard
                 title="Variance"
-                value={riskData ? formatCurrency(totalVariance) : '--'}
+                value={riskData ? formatCurrency(totalVariance, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--'}
               />
               <KPICard
                 title="Risk Items"

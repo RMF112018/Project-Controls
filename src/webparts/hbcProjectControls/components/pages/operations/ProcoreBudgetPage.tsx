@@ -6,7 +6,7 @@ import { HbcButton } from '../../shared/HbcButton';
 import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { useAppContext } from '../../contexts/AppContext';
 import { useConnectorMutation } from '../../../tanstack/query/mutations/useConnectorMutation';
-import type { IProcoreBudgetLineItem, IConnectorRetryPolicy } from '@hbc/sp-services';
+import { formatCurrency, type IProcoreBudgetLineItem, type IConnectorRetryPolicy } from '@hbc/sp-services';
 
 const PROCORE_RETRY_POLICY: IConnectorRetryPolicy = {
   retryableStatuses: [429, 500, 502, 503, 504],
@@ -78,10 +78,6 @@ const useStyles = makeStyles({
   },
 });
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
-}
-
 export const ProcoreBudgetPage: React.FC = () => {
   const styles = useStyles();
   const { dataService, selectedProject } = useAppContext();
@@ -119,9 +115,9 @@ export const ProcoreBudgetPage: React.FC = () => {
       <PageHeader title="Procore Budget" subtitle="Budget line items and cost projections from Procore." />
       {!loading && items.length > 0 && (
         <div className={styles.kpiGrid}>
-          <KPICard title="Original Budget" value={formatCurrency(totalOriginal)} />
-          <KPICard title="Projected Cost" value={formatCurrency(totalProjected)} />
-          <KPICard title="Variance" value={formatCurrency(variance)} />
+          <KPICard title="Original Budget" value={formatCurrency(totalOriginal, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} />
+          <KPICard title="Projected Cost" value={formatCurrency(totalProjected, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} />
+          <KPICard title="Variance" value={formatCurrency(variance, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} />
           <KPICard title="Line Items" value={items.length} />
         </div>
       )}
@@ -153,11 +149,11 @@ export const ProcoreBudgetPage: React.FC = () => {
               <tr key={item.id}>
                 <td className={styles.td}>{item.costCode}</td>
                 <td className={styles.td}>{item.description}</td>
-                <td className={styles.tdRight}>{formatCurrency(item.originalBudget)}</td>
-                <td className={styles.tdRight}>{formatCurrency(item.revisedBudget)}</td>
-                <td className={styles.tdRight}>{formatCurrency(item.commitments)}</td>
-                <td className={styles.tdRight}>{formatCurrency(item.pendingChanges)}</td>
-                <td className={styles.tdRight}>{formatCurrency(item.projectedCost)}</td>
+                <td className={styles.tdRight}>{formatCurrency(item.originalBudget, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                <td className={styles.tdRight}>{formatCurrency(item.revisedBudget, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                <td className={styles.tdRight}>{formatCurrency(item.commitments, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                <td className={styles.tdRight}>{formatCurrency(item.pendingChanges, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                <td className={styles.tdRight}>{formatCurrency(item.projectedCost, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
               </tr>
             ))}
           </tbody>

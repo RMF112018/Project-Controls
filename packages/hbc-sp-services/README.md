@@ -25,6 +25,44 @@ import type { IDataService, IActiveProject, IFeatureFlag } from '@hbc/sp-service
 import { MockDataService, SharePointDataService, CACHE_KEYS, RoleName } from '@hbc/sp-services';
 ```
 
+## Formatter Consumption Guidance
+
+Use shared formatters instead of defining page-local currency/date helpers.
+
+```ts
+import { formatCurrency, formatCurrencyCompact, formatDate } from '@hbc/sp-services';
+
+const full = formatCurrency(1250000); // $1,250,000
+const compact = formatCurrencyCompact(1250000); // $1.3M
+
+const numericDate = formatDate('2026-02-26', { dateStyle: 'numeric', placeholder: '—' });
+const shortDate = formatDate('2026-02-26'); // Feb 26, 2026 style
+const safeMoney = formatCurrency(undefined, { placeholder: '—' });
+```
+
+Available formatter options:
+- `formatCurrency(value, options?)`
+  - `placeholder`, `currency`, `minimumFractionDigits`, `maximumFractionDigits`, `locale`
+- `formatDate(dateStr, options?)`
+  - `placeholder`, `dateStyle` (`short` or `numeric`), `locale`, `fallbackOnInvalid`
+
+## Shared Surface Metrics (Stage 14)
+
+- Baseline before Stage 14: `295` exported declarations (`models+utils`).
+- Stage 14 closure baseline: `327` exported declarations (`models+utils`).
+- Net gain: `10.8%`.
+
+Counting method:
+- Count exported `interface`, `type`, and `enum` declarations.
+- Include only `src/models` and `src/utils`.
+- Exclude test files.
+
+## Governance Rules
+
+- Prefer shared `@hbc/sp-services` models and utilities over local page-specific duplication.
+- Do not introduce local `formatCurrency` / `formatDate` helpers in page modules when shared utilities exist.
+- Any shared-surface regression below the Stage 14 baseline (`327`) requires explicit release waiver and remediation plan.
+
 ## Monorepo Consumption (this repo)
 
 - Root app consumes `@hbc/sp-services` via npm workspaces.

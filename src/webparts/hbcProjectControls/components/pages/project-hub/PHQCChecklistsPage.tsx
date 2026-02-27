@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import type { IQCChecklist } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
@@ -69,11 +70,6 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase400,
   },
 });
-
-interface IQCChecklist {
-  name: string;
-  items: string[];
-}
 
 const QC_CHECKLISTS: IQCChecklist[] = [
   {

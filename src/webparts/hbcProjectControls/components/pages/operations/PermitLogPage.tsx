@@ -11,7 +11,7 @@ import { ConfirmDialog } from '../../shared/ConfirmDialog';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
-import type { IPermit } from '@hbc/sp-services';
+import { formatDate, type IPermit } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../../theme/tokens';
 
 const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
@@ -22,11 +22,6 @@ const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
   'VOID': { color: HBC_COLORS.error, bg: HBC_COLORS.errorLight },
   'Expired': { color: HBC_COLORS.error, bg: HBC_COLORS.errorLight },
   'Closed': { color: HBC_COLORS.gray500, bg: HBC_COLORS.gray200 },
-};
-
-const formatDate = (dateStr: string | undefined | null): string => {
-  if (!dateStr) return '\u2014';
-  return new Date(dateStr).toLocaleDateString();
 };
 
 const truncate = (text: string | undefined, maxLen: number): string => {
@@ -128,13 +123,13 @@ export const PermitLogPage: React.FC = () => {
     {
       key: 'IssueDate',
       header: 'Issue Date',
-      render: (row) => formatDate(row.dateReceived),
+      render: (row) => formatDate(row.dateReceived, { dateStyle: 'numeric', placeholder: '\u2014', fallbackOnInvalid: '\u2014' }),
       sortable: true,
     },
     {
       key: 'ExpirationDate',
       header: 'Expiration Date',
-      render: (row) => formatDate(row.dateExpires),
+      render: (row) => formatDate(row.dateExpires, { dateStyle: 'numeric', placeholder: '\u2014', fallbackOnInvalid: '\u2014' }),
       sortable: true,
     },
     {

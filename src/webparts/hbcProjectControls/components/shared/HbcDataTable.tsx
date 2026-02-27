@@ -15,6 +15,7 @@ import {
 } from '@fluentui/react-components';
 import { HbcTanStackTable } from '../../tanstack/table/HbcTanStackTable';
 import type { IHbcVirtualizationConfig } from '../../tanstack/table/types';
+import AppContext from '../contexts/AppContext';
 
 export type HbcDataTableSize = 'compact' | 'regular';
 
@@ -334,6 +335,9 @@ export function HbcDataTable<TData>({
   enableBuiltInFooter = true,
 }: IHbcDataTableProps<TData>): React.ReactElement {
   const styles = useStyles();
+  const appContext = React.useContext(AppContext);
+  const filterInteractionStartedAt = React.useRef<number | null>(null);
+  const virtualizationSignatureRef = React.useRef<string>('');
   const [lastHighlightKey, setLastHighlightKey] = React.useState<string | number | null>(null);
 
   const initialStoredSettings = React.useMemo(
@@ -417,11 +421,74 @@ export function HbcDataTable<TData>({
   );
 
   const onFilterInput = (value: string): void => {
+    filterInteractionStartedAt.current = Date.now();
     if (globalFilter === undefined) {
       setInternalFilter(value);
     }
     onGlobalFilterChange?.(value);
   };
+
+  React.useEffect(() => {
+    if (filterInteractionStartedAt.current === null) {
+      return;
+    }
+    const startedAt = filterInteractionStartedAt.current;
+    filterInteractionStartedAt.current = null;
+
+    const rafId = requestAnimationFrame(() => {
+      const durationMs = Math.max(0, Date.now() - startedAt);
+      const route = typeof window !== 'undefined'
+        ? (window.location.hash.replace(/^#/, '') || '/')
+        : '/';
+      appContext?.telemetryService.trackMetric('table:filter:interaction', durationMs, {
+        tableId,
+        route,
+      });
+      appContext?.telemetryService.trackEvent({
+        name: 'table:filter:interaction',
+        properties: {
+          tableId,
+          route,
+        },
+        measurements: {
+          durationMs,
+          filteredCount: filteredItems.length,
+          totalCount: items.length,
+        },
+      });
+    });
+
+    return () => cancelAnimationFrame(rafId);
+  }, [appContext, filteredItems.length, items.length, resolvedFilter, tableId]);
+
+  React.useEffect(() => {
+    if (!virtualization) {
+      return;
+    }
+    const isVirtualized = virtualization.enabled && items.length >= virtualization.threshold;
+    const signature = `${tableId}:${isVirtualized}:${filteredItems.length}:${items.length}`;
+    if (virtualizationSignatureRef.current === signature) {
+      return;
+    }
+    virtualizationSignatureRef.current = signature;
+
+    const route = typeof window !== 'undefined'
+      ? (window.location.hash.replace(/^#/, '') || '/')
+      : '/';
+    appContext?.telemetryService.trackEvent({
+      name: 'virtualization:state',
+      properties: {
+        tableId,
+        route,
+        virtualized: String(isVirtualized),
+      },
+      measurements: {
+        threshold: virtualization.threshold,
+        filteredCount: filteredItems.length,
+        totalCount: items.length,
+      },
+    });
+  }, [appContext, filteredItems.length, items.length, tableId, virtualization]);
 
   const onGroupSelection = (value: string): void => {
     const nextGroupBy = value ? [value] : [];

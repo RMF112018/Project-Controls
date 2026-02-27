@@ -5,22 +5,14 @@ import {
   Circle24Regular,
   Clock24Regular,
 } from '@fluentui/react-icons';
+import type {
+  ProjectHubChecklistStatus as ChecklistStatus,
+  ProjectHubChecklistItem as IChecklistItem,
+} from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-type ChecklistStatus = 'Complete' | 'In Progress' | 'Not Started';
-
-interface IChecklistItem {
-  id: string;
-  title: string;
-  description: string;
-  status: ChecklistStatus;
-  assignee: string;
-  dueDate: string;
-  notes?: string;
-}
 
 const MOCK_CHECKLIST_ITEMS: IChecklistItem[] = [
   {

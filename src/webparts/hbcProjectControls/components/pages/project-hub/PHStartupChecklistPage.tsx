@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import type { IChecklistCategory } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
@@ -67,11 +68,6 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase400,
   },
 });
-
-interface IChecklistCategory {
-  name: string;
-  items: string[];
-}
 
 const CHECKLIST_CATEGORIES: IChecklistCategory[] = [
   {

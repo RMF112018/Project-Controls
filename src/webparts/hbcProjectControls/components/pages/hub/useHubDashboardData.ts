@@ -13,7 +13,7 @@ import type {
   IProcoreProject,
   IBambooHREmployee,
 } from '@hbc/sp-services';
-import { Stage, isActiveStage } from '@hbc/sp-services';
+import { Stage, formatCurrencyCompact, isActiveStage } from '@hbc/sp-services';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,19 +38,6 @@ export interface IHubDashboardData {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatCurrency(value: number): string {
-  if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(1)}B`;
-  }
-  if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(1)}M`;
-  }
-  if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(0)}K`;
-  }
-  return `$${value.toFixed(0)}`;
-}
 
 const EMPTY_KPIS: IHubKPIs = {
   activeProjects: 0,
@@ -150,7 +137,7 @@ export function useHubDashboardData(): IHubDashboardData {
 
     return {
       activeProjects: activeCount,
-      totalPipelineValue: formatCurrency(pipelineTotal),
+      totalPipelineValue: formatCurrencyCompact(pipelineTotal),
       totalPipelineRaw: pipelineTotal,
       winRatePct: winRate,
       safetyScore,

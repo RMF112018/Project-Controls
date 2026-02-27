@@ -1,21 +1,11 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import { formatCurrency, type ICashFlowMonth } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { KPICard } from '../../shared/KPICard';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-const formatCurrency = (value: number): string =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-
-interface ICashFlowMonth {
-  month: string;
-  billingProjection: number;
-  expenditureForecast: number;
-  netCashFlow: number;
-  cumulativeCash: number;
-}
 
 const MOCK_CASH_FLOW: ICashFlowMonth[] = [
   { month: 'Jan 2026', billingProjection: 980_000, expenditureForecast: 1_050_000, netCashFlow: -70_000, cumulativeCash: -70_000 },

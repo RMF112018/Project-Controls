@@ -6,7 +6,7 @@ import { HbcDataTable } from '../../shared/HbcDataTable';
 import type { IHbcDataTableColumn } from '../../shared/HbcDataTable';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
-import type { IQualityConcern, QualityConcernStatus } from '@hbc/sp-services';
+import { formatDate, type IQualityConcern, type QualityConcernStatus } from '@hbc/sp-services';
 
 const useStyles = makeStyles({
   tableContainer: {
@@ -24,19 +24,6 @@ const STATUS_MAP: Record<QualityConcernStatus, { label: string; color: string; b
   Monitoring: { label: 'Monitoring', color: tokens.colorStatusWarningForeground2, backgroundColor: tokens.colorStatusWarningBackground2 },
   Resolved: { label: 'Resolved', color: tokens.colorStatusSuccessForeground2, backgroundColor: tokens.colorStatusSuccessBackground2 },
   Closed: { label: 'Closed', color: tokens.colorNeutralForeground2, backgroundColor: tokens.colorNeutralBackground3 },
-};
-
-const formatDate = (value: string | null | undefined): string => {
-  if (!value) return '\u2014';
-  try {
-    return new Date(value).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return '\u2014';
-  }
 };
 
 export const QATrackingPage: React.FC = () => {
@@ -81,12 +68,12 @@ export const QATrackingPage: React.FC = () => {
     {
       key: 'raisedDate',
       header: 'Date Reported',
-      render: (row) => formatDate(row.raisedDate),
+      render: (row) => formatDate(row.raisedDate, { dateStyle: 'short', placeholder: '\u2014', fallbackOnInvalid: '\u2014' }),
     },
     {
       key: 'resolvedDate',
       header: 'Resolved Date',
-      render: (row) => formatDate(row.resolvedDate),
+      render: (row) => formatDate(row.resolvedDate, { dateStyle: 'short', placeholder: '\u2014', fallbackOnInvalid: '\u2014' }),
     },
     {
       key: 'raisedBy',

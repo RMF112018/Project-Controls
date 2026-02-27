@@ -1,23 +1,11 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import { formatCurrency, type IGCGRLineItem } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { KPICard } from '../../shared/KPICard';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-const formatCurrency = (value: number): string =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-
-interface IGCGRLineItem {
-  code: string;
-  description: string;
-  monthlyBudget: number;
-  totalBudget: number;
-  actualToDate: number;
-  projectedFinal: number;
-  variance: number;
-}
 
 const MOCK_GC_ITEMS: IGCGRLineItem[] = [
   { code: 'GC-01', description: 'Project Management Staff', monthlyBudget: 45_000, totalBudget: 810_000, actualToDate: 495_000, projectedFinal: 800_000, variance: 10_000 },

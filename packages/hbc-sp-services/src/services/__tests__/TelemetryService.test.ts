@@ -80,6 +80,26 @@ describe('MockTelemetryService', () => {
     copy.push({ name: 'injected' }); // mutate the copy
     expect(svc.getEvents()).toHaveLength(1); // original unaffected
   });
+
+  it('injects correlation IDs into recent telemetry items', () => {
+    svc.initialize('', 'u', 'Dev');
+    svc.trackEvent({ name: 'corr:event:test' });
+    const items = svc.getRecentTelemetryItems(1);
+    expect(items[0]?.properties?.corr_session_id).toBeTruthy();
+    expect(items[0]?.properties?.corr_operation_id).toBeTruthy();
+  });
+
+  it('applies retention window pruning for recent telemetry items', () => {
+    svc.initialize('', 'u', 'Dev');
+    svc.trackEvent({ name: 'retention:event:test' });
+    svc.setRetentionDays(1);
+    const payload = svc.getMonitoringExportPayload({
+      fromDate: new Date(Date.now() - (2 * 24 * 60 * 60 * 1000)).toISOString(),
+      toDate: new Date().toISOString(),
+    });
+    expect(payload.metadata.retentionDays).toBe(1);
+    expect(payload.metadata.rowCount).toBeGreaterThanOrEqual(1);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -127,5 +147,48 @@ describe('TelemetryService', () => {
     svc.initialize('conn2', 'user2', 'RoleB'); // should be no-op
     // Still initialized — just can't verify connection string (private)
     expect(svc.isInitialized()).toBe(true);
+  });
+
+  it('exposes sampling rules and deterministic IDs', () => {
+    const defaultRules = svc.getSamplingRules();
+    expect(defaultRules.length).toBeGreaterThan(0);
+
+    svc.setSamplingRules([{ namePattern: 'deterministic:test', sampleRate: 1 }]);
+    expect(svc.getSamplingRules()).toHaveLength(1);
+
+    const op1 = svc.newOperationId('test-scope');
+    const op2 = svc.newOperationId('test-scope');
+    expect(op1).not.toEqual(op2);
+    expect(svc.getSessionCorrelationId()).toContain('sess-');
+  });
+
+  it('injects correlation fields into tracked items', () => {
+    svc.trackEvent({ name: 'corr:test' });
+    const items = svc.getRecentTelemetryItems();
+    const event = items.find((item) => item.name === 'corr:test');
+    expect(event?.properties?.corr_session_id).toBeTruthy();
+    expect(event?.properties?.corr_operation_id).toBeTruthy();
+  });
+
+  it('drops sampled events when sample rate is 0', () => {
+    svc.setSamplingRules([{ namePattern: 'drop:event', sampleRate: 0 }]);
+    svc.trackEvent({ name: 'drop:event' });
+    const items = svc.getRecentTelemetryItems();
+    expect(items.some((item) => item.name === 'drop:event')).toBe(false);
+  });
+
+  it('builds monitoring export payload with expected schema', () => {
+    svc.setSamplingRules([{ namePattern: 'monitoring:event', sampleRate: 1 }]);
+    svc.trackEvent({
+      name: 'monitoring:event',
+      properties: { route: '/admin/telemetry', role: 'Leadership' },
+      measurements: { durationMs: 123 },
+    });
+    const payload = svc.getMonitoringExportPayload();
+    expect(payload.metadata.rowCount).toBeGreaterThanOrEqual(1);
+    expect(Array.isArray(payload.rows)).toBe(true);
+    expect(Array.isArray(payload.aggregates.byName)).toBe(true);
+    expect(payload.rows[0]).toHaveProperty('corr_session_id');
+    expect(payload.rows[0]).toHaveProperty('corr_operation_id');
   });
 });
