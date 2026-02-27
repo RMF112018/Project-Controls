@@ -150,6 +150,7 @@ export interface IDataService {
   getEstimatingByLeadId(leadId: number): Promise<IEstimatingTracker | null>;
   createEstimatingRecord(data: Partial<IEstimatingTracker>): Promise<IEstimatingTracker>;
   updateEstimatingRecord(id: number, data: Partial<IEstimatingTracker>): Promise<IEstimatingTracker>;
+  deleteEstimatingRecord(id: number): Promise<void>;
   getCurrentPursuits(): Promise<IEstimatingTracker[]>;
   getPreconEngagements(): Promise<IEstimatingTracker[]>;
   getEstimateLog(): Promise<IEstimatingTracker[]>;

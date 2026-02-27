@@ -462,9 +462,18 @@ export class SharePointDataService implements IDataService {
   async createEstimatingRecord(data: Partial<IEstimatingTracker>): Promise<IEstimatingTracker> {
     performanceService.startMark('sp:createEstimatingRecord');
     try {
-      const result = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items.add(data);
+      const result = await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items.add(data) as Record<string, unknown>;
+      const created = result.data as Record<string, unknown> | undefined;
+      const createdId = (created?.Id as number) || (created?.id as number) || (result.Id as number) || (result.id as number);
+      if (createdId) {
+        const fullRecord = await this.getEstimatingRecordById(createdId);
+        if (fullRecord) {
+          performanceService.endMark('sp:createEstimatingRecord');
+          return fullRecord;
+        }
+      }
       performanceService.endMark('sp:createEstimatingRecord');
-      return result as IEstimatingTracker;
+      return { id: createdId || 0, ...data } as IEstimatingTracker;
     } catch (err) {
       performanceService.endMark('sp:createEstimatingRecord');
       throw this.handleError('createEstimatingRecord', err, { entityType: 'EstimatingTracker' });
@@ -475,11 +484,23 @@ export class SharePointDataService implements IDataService {
     performanceService.startMark('sp:updateEstimatingRecord');
     try {
       await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items.getById(id).update(data);
+      const fullRecord = await this.getEstimatingRecordById(id);
       performanceService.endMark('sp:updateEstimatingRecord');
-      return { id, ...data } as IEstimatingTracker;
+      return fullRecord ?? { id, ...data } as IEstimatingTracker;
     } catch (err) {
       performanceService.endMark('sp:updateEstimatingRecord');
       throw this.handleError('updateEstimatingRecord', err, { entityType: 'EstimatingTracker', entityId: String(id) });
+    }
+  }
+
+  async deleteEstimatingRecord(id: number): Promise<void> {
+    performanceService.startMark('sp:deleteEstimatingRecord');
+    try {
+      await this.sp.web.lists.getByTitle(LIST_NAMES.ESTIMATING_TRACKER).items.getById(id).delete();
+      performanceService.endMark('sp:deleteEstimatingRecord');
+    } catch (err) {
+      performanceService.endMark('sp:deleteEstimatingRecord');
+      throw this.handleError('deleteEstimatingRecord', err, { entityType: 'EstimatingTracker', entityId: String(id) });
     }
   }
 

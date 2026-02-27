@@ -2173,6 +2173,15 @@ export class MockDataService implements IDataService {
     return { ...this.estimatingRecords[index] };
   }
 
+  public async deleteEstimatingRecord(id: number): Promise<void> {
+    await delay();
+    const index = this.estimatingRecords.findIndex(r => r.id === id);
+    if (index === -1) {
+      throw new Error(`Estimating record with id ${id} not found`);
+    }
+    this.estimatingRecords.splice(index, 1);
+  }
+
   public async getCurrentPursuits(): Promise<IEstimatingTracker[]> {
     await delay();
     return this.estimatingRecords.filter(

@@ -38,4 +38,8 @@ export interface IEstimatingTracker {
   SubmittedDate?: string;
   AwardStatus?: AwardStatus;
   NotesFeedback?: string;
+  /** Stage 18 Sub-task 6b: meeting review mode fields */
+  MeetingNotes?: Array<{ timestamp: string; user: string; text: string }>;
+  ActionItems?: string;
+  MeetingReviewed?: boolean;
 }

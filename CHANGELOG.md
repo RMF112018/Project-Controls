@@ -4,6 +4,172 @@ All notable changes to HBC Project Controls will be documented in this file.
 
 ## [Unreleased]
 
+### [2026-02-27] - Stage 18 COMPLETE - Sub-task 7 - feat(estimating) - Final Hardening: Performance, Permissions, ARIA, E2E
+
+#### Changed
+- Wrapped tab switches, Meeting Mode enter/exit, and CSV export in React.useTransition for non-blocking concurrent rendering under load.
+- Extracted ProjectActionsMenu as standalone React.memo component with explicit props; column defs no longer re-memoize on every render (stable renderActionMenu callback).
+- Gated Meeting Mode toggle and Mark Reviewed behind PERMISSIONS.ESTIMATING_EDIT; exports (CSV, Excel, PDF) behind PERMISSIONS.ESTIMATING_READ.
+- Added full ARIA compliance: aria-labels on all 17 toolbar and meeting controls, role="region" on spotlight and KPI sections, role="progressbar" on meeting progress, role="timer" on timer display, aria-live regions for dynamic content, aria-pressed on toggle buttons, aria-haspopup on action menu triggers.
+- Added Playwright E2E test suite (12 tests) covering tabs, KPIs, fullscreen, exports, action menus, drawer, and Meeting Review Mode full flow including keyboard exit.
+
+#### Notes
+- Stage 18 COMPLETE: 7 sub-tasks delivered (TanStack data layer, HbcDataTable modernization, inline editing, action menus, KPI cards, fullscreen/export, Meeting Review Mode, final hardening).
+- No changes to IEstimatingTracker, IDataService, MockDataService, SlideDrawer, HbcDataTable internals, routing, guards, or service contracts.
+- Feature flag gating point documented inline for future 'EstimatingDepartmentTracking' flag.
+- MeetingNotesThread and MeetingTextarea already wrapped in React.memo (verified, no changes needed).
+
+### [2026-02-27] - Stage 18 Sub-task 6b Refinement - feat(estimating) - Visual Hierarchy + Threaded Meeting Notes
+
+#### Changed
+- Elevated spotlight card visual hierarchy for meeting-room projection: navy header bar with 28px white title, orange project code accent, and horizontal progress bar.
+- Added color-coded section banners per tab context (Estimate Log=blue, Pursuits=amber, Precon=green) with icon + left-border accent.
+- Wrapped field grid in elevated card with alternating row stripes and generous spacing for readability at distance.
+- Converted MeetingNotes from flat string to threaded comment system: auto-dated entries with user attribution, newest-first scrollable list, "Post Note" button (Ctrl/Cmd+Enter shortcut).
+- Wrapped Meeting Notes and Action Items in elevated panels with navy left-border accent headers.
+- Enlarged footer buttons (size="medium"), 18px tabular-nums timer display, and larger reviewed badge.
+
+#### Notes
+- IEstimatingTracker.MeetingNotes type changed from `string` to `Array<{ timestamp: string; user: string; text: string }>`.
+- validateInlineField updated with explicit MeetingNotes array handling.
+- MeetingTextarea component retained for ActionItems (still a string field).
+- All styles use HBC design tokens (HBC_COLORS, ELEVATION, SPACING) from theme/tokens.
+- BuildingFactory24Regular used for Precon banner icon (BuildingMultiple24Regular unavailable).
+
+### [2026-02-27] - Stage 18 Sub-task 6b - feat(estimating) - Meeting Review Mode
+
+#### Changed
+- Added Meeting Review Mode to Department Tracking for sequential project-by-project review during estimating department meetings.
+- Meeting Mode toggle in toolbar auto-enters fullscreen and presents a large spotlight card for the current project with all fields editable (except Project #, which remains read-only).
+- Spotlight card includes dedicated Meeting Notes and Action Items sections (multi-line textarea, saved on blur via existing optimistic mutation flow).
+- Navigation via Previous/Next buttons and keyboard ArrowLeft/ArrowRight, with progress indicator showing current position.
+- Mark Reviewed button sets lightweight MeetingReviewed flag per project via mutation.
+- Optional 5-minute per-project timer with auto-advance checkbox for time-boxed reviews.
+- On mode exit, returns to normal tabbed view preserving all existing state.
+
+#### Notes
+- Added 3 optional fields to IEstimatingTracker: MeetingNotes, ActionItems, MeetingReviewed.
+- All Editable*Cell components reused from Stage 18 Sub-task 3 (no duplication).
+- Existing inline editing, exports, KPI cards, action menus, drawer, and all Sub-task 1–6 behavior preserved.
+- No changes to SlideDrawer, HbcDataTable, routing, guards, or service contracts.
+
+### [2026-02-27] - Stage 18 Sub-task 4 Refinement - feat(estimating) - Editable Project Details Drawer
+
+#### Changed
+- Made Department Tracking Project Details drawer editable: read-only by default with an "Edit Details" button (behind RoleGate) to toggle into edit mode.
+- In edit mode, all editable fields use the same Editable*Cell components (EditableTextCell, EditableNumberCell, EditableDateCell, EditableSelectCell) and handleInlineEdit flow from the main table inline editing.
+- ProjectCode and Title remain locked in the drawer (consistent with Stage 18 Sub-task 3 validation rules).
+- Drawer fields reflect live optimistic updates from the TanStack Query cache during editing via liveProjectRow memo derivation.
+- Added "Done Editing" action to return to read-only view without closing the drawer.
+
+#### Notes
+- New Entry drawer mode remains completely unchanged.
+- Existing KPI cards, fullscreen toggle, export, action menus, and all Sub-task 1–6 behavior preserved.
+- No changes to SlideDrawer, IEstimatingTracker, service contracts, routing, or guards.
+
+### [2026-02-27] - Stage 18 Sub-task 6 - feat(estimating) - One-Click Fullscreen + Multi-Format Export
+
+#### Changed
+- Added Department Tracking toolbar actions for one-click fullscreen and view-aware exports (CSV, Excel, PDF) while preserving KPI cards above tabs, page search behavior, and New Entry action placement.
+- Implemented fullscreen toggle for the KPI + tabs + table container with native Fullscreen API attempt and fixed-position fallback for SPFx host compatibility.
+- Wired export payload generation to active-tab live table view semantics:
+  - current tab dataset,
+  - applied page search filter,
+  - active grouping selection,
+  - active sort selection,
+  - active visible-column state.
+- Added lightweight CSV export via Blob/URL and print-based PDF export path, while reusing shared Excel export service flow.
+
+#### Notes
+- No changes were made to Department Tracking routing/guards, TanStack Query keys, mutation lifecycle, inline edit behavior, action-menu behavior, or shared `HbcDataTable` public interfaces.
+
+### [2026-02-27] - Stage 18 Sub-task 5 - feat(estimating) - Tab-Specific Visual KPI Cards
+
+#### Changed
+- Added tab-specific KPI cards to Department Tracking above tab navigation while preserving existing header, tab list, search toolbar, and New Entry action layout.
+- Implemented reactive KPI derivation from live TanStack Query-backed tab rows (`activeItems`) with no additional service calls:
+  - Activity level (active projects per tab),
+  - Open bid volume (Cost/GSF-based for estimate/pursuit tabs; Precon Fee-based for precon tab),
+  - Bids due this week / submissions this week (date-window count from existing row fields),
+  - Total Precon Fee,
+  - Won rate (`AwardedWithPrecon` + `AwardedWithoutPrecon` over decided rows).
+- Added Stage 18 inline implementation comment in Department Tracking clarifying KPI derivation from existing live query flow.
+
+#### Notes
+- KPI cards update automatically during optimistic inline edits and post-mutation refetches because calculations are memoized from the active tab query dataset.
+- No changes were made to query keys, service contracts, routing, guards, HbcDataTable public interfaces, or action-menu flows.
+
+### [2026-02-27] - Stage 18 Sub-task 4 - feat(estimating) - Project # / Name Action Menus
+
+#### Changed
+- Converted Department Tracking `ProjectCode` and `Title` cells into clickable action-menu triggers across:
+  - Estimate Tracking Log,
+  - Current Pursuits,
+  - Current Preconstruction.
+- Added reusable local `ProjectActionsMenu` in Department Tracking with item order:
+  - Project Details,
+  - Project Hub,
+  - Go/No-Go Scorecard,
+  - Kickoff (disabled),
+  - Deliverable Tracking (disabled),
+  - Turnover (disabled),
+  - Autopsy (disabled).
+- Added Project Details drawer mode using existing `SlideDrawer`, populated from full row data with title format `Project Details – [ProjectCode]`.
+- Wired Project Hub and Go/No-Go actions to TanStack Router navigation with permission-aware enablement and Go/No-Go existence gating.
+
+#### Notes
+- Inline editing behavior for non-project fields from Stage 18 Sub-task 3 remains unchanged.
+- TanStack Query data flow and optimistic mutation lifecycle from Stage 18 Sub-task 1 remain unchanged.
+- Shared `HbcDataTable` and `SlideDrawer` public interfaces were not modified.
+
+### [2026-02-27] - Stage 18 Sub-task 3 - feat(estimating) - Compact Inline Editing (All Fields Except Project # / Name)
+
+#### Changed
+- Hardened Department Tracking inline editing UX across all three tabs with compact click-to-edit behavior:
+  - click to edit,
+  - blur/Enter to save,
+  - Escape to cancel.
+- Enforced Stage 18 editability rule: `ProjectCode` and `Title` are now read-only in table cells.
+- Added client-side inline validation for enum-backed fields (`Source`, `DeliverableType`, `EstimateType`, `AwardStatus`) and numeric field normalization before mutation.
+- Added Fluent UI toast notifications for inline edit success/error outcomes.
+- Routed inline save operations through React 18 `useTransition` to keep editing interactions non-blocking.
+
+#### Notes
+- Existing optimistic update, rollback, audit logging, and invalidation behavior from Stage 18 Sub-task 1 remains unchanged.
+- Shared `HbcDataTable` interface and implementation were not modified in this sub-task.
+
+### [2026-02-27] - Stage 18 Sub-task 2 - refactor(estimating) - Department Tracking HbcDataTable Modernization
+
+#### Changed
+- Replaced Department Tracking custom HTML table rendering with shared `HbcDataTable` across all three estimating tabs:
+  - Estimate Tracking Log
+  - Current Pursuits
+  - Current Preconstruction
+- Migrated tab schemas to TanStack `ColumnDef<IEstimatingTracker>[]` definitions and bridged them to `HbcDataTable` column props at the page layer.
+- Preserved existing page toolbar/search UX with debounced global filtering, plus shared-table sorting, grouping, column visibility, and virtualization behaviors.
+- Kept inline-editing flows wired to the existing optimistic `updateRecordMutation` lifecycle from Stage 18 Sub-task 1.
+
+#### Notes
+- `HbcDataTable` shared interface remained unchanged in this sub-task.
+- TanStack Query data flow, cache keys, invalidation, routing, guards, and drawer/create-entry behavior are unchanged.
+
+### [2026-02-27] - Stage 18 Sub-task 1 - refactor(estimating) - Department Tracking TanStack Data Layer Migration
+
+#### Changed
+- Migrated Department Tracking page data flow from `useEffect`/local arrays to TanStack Query (`useQuery` + `useMutation`) with per-tab estimating query keys, optimistic cache updates, rollback, retry, and background refetch invalidation.
+- Added mutation lifecycle hardening for inline edits and record creation:
+  - optimistic cache patch/insert,
+  - rollback on failure,
+  - `qk.estimating.base(scope)` invalidation on settle,
+  - non-blocking audit logging in success paths.
+- Extended estimating tracker service contract to full CRUD surface with `deleteEstimatingRecord(id)`.
+- Implemented `deleteEstimatingRecord` in both Mock and SharePoint data services.
+- Hardened SharePoint estimating create/update return values to prefer full-entity reads for cache/type consistency.
+
+#### Notes
+- Route paths, guards, and feature gates for Department Tracking are unchanged.
+- Standalone/dev behavior remains backed by `MockDataService`.
+
 ### [2026-02-27] - Stage 17 Step 9 - docs(workflow) - Mandatory Documentation Update
 
 #### Added
