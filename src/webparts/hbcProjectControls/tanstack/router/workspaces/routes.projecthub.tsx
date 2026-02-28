@@ -6,7 +6,7 @@
  * 36 child routes + 1 layout route = 37 routes total.
  */
 import * as React from 'react';
-import { createRoute } from '@tanstack/react-router';
+import { createRoute, redirect } from '@tanstack/react-router';
 import { PERMISSIONS } from '@hbc/sp-services';
 import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
@@ -150,7 +150,10 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
     component: ProjectHubLayout,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
       requireFeature(context, 'ProjectHubWorkspace');
-      requireProject(context);
+      // Stage 19 routing fix: Removed requireProject from layout guard.
+      // Each child route independently guards with requireProject or search-param fallback.
+      // This unblocks DepartmentTrackingPage → Turnover/Dashboard cross-workspace navigation
+      // where projectCode is passed via search param instead of ProjectContext.
     },
   });
 
@@ -159,9 +162,18 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
     getParentRoute: () => phLayout as never,
     path: '/project-hub/dashboard',
     component: ProjectHubDashboardPage,
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+    // Stage 19: Accept ?handoffFrom=turnover and ?projectCode search params
+    validateSearch: (search: Record<string, unknown>) => ({
+      handoffFrom: (search.handoffFrom as string) || undefined,
+      projectCode: (search.projectCode as string) || undefined,
+    }),
+    beforeLoad: ({ context, search }: { context: ITanStackRouteContext; search: { projectCode?: string } }) => {
       requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
-      requireProject(context);
+      // Stage 19 routing fix: Accept projectCode from search params as alternative
+      // to context.selectedProject for cross-workspace navigation from DepartmentTrackingPage.
+      if (!context.selectedProject?.projectCode && !search.projectCode) {
+        throw redirect({ to: '/', replace: true });
+      }
     },
   });
 
@@ -210,9 +222,20 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
     getParentRoute: () => phLayout as never,
     path: '/project-hub/precon/turnover',
     component: PHProjectTurnoverPage,
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+    // Stage 19: Accept ?projectCode and ?leadId from DepartmentTrackingPage Turnover context menu.
+    // leadId supports on-demand agenda initialization via createTurnoverAgenda(projectCode, leadId).
+    validateSearch: (search: Record<string, unknown>) => ({
+      projectCode: (search.projectCode as string) || undefined,
+      leadId: search.leadId ? Number(search.leadId) : undefined,
+    }),
+    beforeLoad: ({ context, search }: { context: ITanStackRouteContext; search: { projectCode?: string } }) => {
       requirePermission(context, PERMISSIONS.TURNOVER_READ);
-      requireProject(context);
+      // Stage 19 routing fix: Accept projectCode from search params as alternative to
+      // context.selectedProject. DepartmentTrackingPage passes projectCode via search
+      // param for cross-workspace navigation (Preconstruction → Project Hub).
+      if (!context.selectedProject?.projectCode && !search.projectCode) {
+        throw redirect({ to: '/', replace: true });
+      }
     },
   });
 

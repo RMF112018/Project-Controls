@@ -1,0 +1,1 @@
+// TODO (Stage 19 – Sub-task 17): Create new service (mirror ExcelDeepBidImportService.ts). Provide CRUD for dynamic kick-off data, import-from-template validation, and optimistic persistence. Support 100% field coverage from **reference/Estimating Kickoff Template.xlsx**.

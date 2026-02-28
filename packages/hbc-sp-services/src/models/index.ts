@@ -38,6 +38,7 @@ export * from './IActiveProject';
 export * from './IComplianceSummary';
 export * from './IWorkflowDefinition';
 export * from './ITurnoverAgenda';
+export * from './IProjectHandoffPayload';
 export * from './IActionInbox';
 export * from './IPermissionTemplate';
 export * from './IEnvironmentConfig';

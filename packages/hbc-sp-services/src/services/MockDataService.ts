@@ -148,6 +148,7 @@ import { ITemplateFileMetadata } from './IDataService';
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverProjectHeader, ITurnoverPrerequisite, ITurnoverEstimateOverview, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverAttachment } from '../models/ITurnoverAgenda';
+import { IProjectHandoffPayload } from '../models/IProjectHandoffPayload';
 import { IActionInboxItem } from '../models/IActionInbox';
 import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions } from '../models/IPermissionTemplate';
 import { PermissionLevel, WorkflowKey, StepAssignmentType, ConditionField, TurnoverStatus, WorkflowActionType, ActionPriority, TemplateSyncStatus } from '../models/enums';
@@ -6134,13 +6135,46 @@ export class MockDataService implements IDataService {
     return JSON.parse(JSON.stringify(this.turnoverEstimateOverviews[idx]));
   }
 
+  // --- Stage 19: Estimating-to-Operations Handoff ---
+  // SOP Reference: "Estimating and Project Manager Turnover Meeting Procedure"
+  // Triggered when all 4 required attendees (Lead Estimator, PE, PM, Superintendent)
+  // have clicked "I Accept" in the Summary & Sign-off section.
+  async handoffProjectFromEstimating(payload: IProjectHandoffPayload): Promise<{ success: boolean; projectHubUrl: string }> {
+    await delay();
+
+    // 1. Mark the turnover agenda as Complete
+    const agendaIdx = this.turnoverAgendas.findIndex(a => a.id === payload.turnoverAgendaId);
+    if (agendaIdx !== -1) {
+      this.turnoverAgendas[agendaIdx] = {
+        ...this.turnoverAgendas[agendaIdx],
+        status: TurnoverStatus.Complete,
+        lastModifiedBy: payload.initiatedBy,
+        lastModifiedDate: payload.handoffDate,
+      };
+    }
+
+    // 2. Update the estimating tracker record — mark as handed off
+    const trackerIdx = (this.estimatingRecords as IEstimatingTracker[]).findIndex(
+      t => t.id === payload.estimatingTrackerId
+    );
+    if (trackerIdx !== -1) {
+      (this.estimatingRecords as IEstimatingTracker[])[trackerIdx] = {
+        ...(this.estimatingRecords as IEstimatingTracker[])[trackerIdx],
+        MeetingReviewed: true,
+      };
+    }
+
+    return {
+      success: true,
+      projectHubUrl: `/project-hub/dashboard?handoffFrom=turnover`,
+    };
+  }
+
   // --- Hub Site URL Configuration ---
   async getHubSiteUrl(): Promise<string> {
     await delay();
     return this.hubSiteUrl;
   }
-
-  // TODO (Stage 19+): Extend mock handoff fixtures to simulate full Precon → Ops lifecycle for E2E testing | Audit: offline/dev realism | Impact: Low
 
   async setHubSiteUrl(url: string): Promise<void> {
     await delay();

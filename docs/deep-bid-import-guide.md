@@ -1,0 +1,1 @@
+<!-- TODO (Stage 19 – Sub-task 14): Create this new markdown file (never any agent context files). Include setup, usage, primary-selection algorithm, Hilltop/Wellington screenshots, rollback to pure-Excel, and maintenance notes. Update README.md with one-line reference. Reference: plan mandatory documentation update (final sub-task). -->

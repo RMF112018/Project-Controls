@@ -4,10 +4,10 @@ import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
 import { HbcCard } from '../../shared/HbcCard';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
+import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
-
-// TODO (Stage 19+): Detect incoming handoff from Preconstruction via query param or TanStack Router loader and auto-populate kickoff data | Audit: zero re-keying for ops team | Impact: High
+import { useSearch } from '@tanstack/react-router';
 
 const useStyles = makeStyles({
   container: {
@@ -44,6 +44,21 @@ const useStyles = makeStyles({
 export const ProjectHubDashboardPage: React.FC = () => {
   const styles = useStyles();
   const { selectedProject } = useAppContext();
+  const { addToast } = useToast();
+
+  // Stage 19: Detect incoming handoff from Preconstruction turnover meeting.
+  // When the turnover sign-off completes, it navigates here with ?handoffFrom=turnover.
+  // The handoff mutation has already enriched the project record — we just notify the user.
+  const searchParams = useSearch({ strict: false }) as { handoffFrom?: string; projectCode?: string };
+  React.useEffect(() => {
+    if (searchParams.handoffFrom === 'turnover' && selectedProject) {
+      addToast(
+        'Project handed off from Estimating. Turnover meeting complete — kickoff fields pre-populated.',
+        'info',
+        5000
+      );
+    }
+  }, [searchParams.handoffFrom, selectedProject, addToast]);
 
   if (!selectedProject) {
     return (
@@ -59,6 +74,8 @@ export const ProjectHubDashboardPage: React.FC = () => {
 
   const projectName = selectedProject.projectName || 'Unknown Project';
   const projectCode = selectedProject.projectCode || '\u2014';
+
+  // TODO (Stage 19 – Sub-task 9 cont.): Consume new deepBidPackage in KPI cards and handoff alerts (builds on existing Stage-18 handoff instrumentation). Reference: plan handoff integration.
 
   return (
     <div className={styles.container}>

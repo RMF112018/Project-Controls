@@ -1,0 +1,1 @@
+// TODO (Stage 19 – Sub-task 7): Create Jest test suite (mirror existing service tests). Include unit tests for parser on attached Hilltop R2.xlsx and Wellington R2.1-BF.xlsx achieving 100% coverage of normalization logic. Reference: plan unit & integration tests deliverable.

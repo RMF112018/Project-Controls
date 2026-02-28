@@ -4,6 +4,109 @@ All notable changes to HBC Project Controls will be documented in this file.
 
 ## [Unreleased]
 
+<!-- TODO (Stage 19 – Sub-task 11): Add detailed entry under Stage 19 describing the non-disruptive Excel import engine, primary-selection logic, supported workbooks, and handoff benefits. Reference: plan CHANGELOG entry deliverable. -->
+
+### [2026-02-28] - Stage 19 Sub-task 4 - feat(turnover) - Floating Collapsible Discussion Panel
+
+#### Changed
+- Converted global Discussion thread from inline page element to floating fixed-bottom panel (persistent chat drawer / bottom sheet) that stays visible while scrolling through all 18 SOP sections.
+- ALL discussion threads (global + per-section) are now always active in both packet (read-only) and edit modes — removed `isEditMode` gate on TurnoverThread input. Users can comment on any section at will regardless of page mode.
+- Global thread panel is collapsible/expandable via navy header bar toggle with localStorage persistence (`hbc-turnover-discussion-panel-expanded` key).
+- Floating panel renders in both Normal Mode and Presentation Mode.
+
+#### Added
+- 8 new Griffel styles for floating panel: `floatingPanelContainer` (fixed bottom, z-index 1050), `floatingPanelCollapsed` (transform-based show/hide), `floatingPanelHeader` (48px navy header bar), `floatingPanelHeaderLeft`, `floatingPanelToggle` (44px touch target), `floatingPanelBody` (360px max-height scrollable), `floatingPanelBadge` (orange message count), `pageContentWithPanel` (64px bottom offset).
+- `ChevronDown24Regular` and `ChevronUp24Regular` icon imports for panel toggle.
+- `ELEVATION`, `TRANSITION`, `TOUCH_TARGET` token imports from `theme/tokens.ts`.
+- `DISCUSSION_PANEL_STORAGE_KEY` constant for localStorage persistence.
+- `isDiscussionPanelExpanded` state with localStorage initializer + sync effect.
+- `handleToggleDiscussionPanel` callback and `globalNoteCount` memo.
+- ARIA: `role="complementary"`, `aria-expanded`, `aria-controls`, keyboard Enter/Space toggle, `role="region"` on body.
+- `prefers-reduced-motion: reduce` media query — transitions disabled for motion-sensitive users.
+- Mobile responsive: full-width on screens ≤768px, max-width 800px centered on desktop.
+
+#### Notes
+- Z-index 1050: above navbar (999–1000), below HelpPanel (1100), below modals/toast (3000+).
+- Per-section inline threads unchanged in position — only the global thread moved to floating panel.
+- `ITurnoverThreadProps.isEditMode` prop removed — affects all call sites (1 global + per-section).
+- Transform-based animation (GPU-composited, no layout reflow) with `TRANSITION.normal` (250ms ease).
+- Comprehensive inline comments reference all Stage 19 sub-tasks (1: hybrid mode/Presentation Mode, 2: on-demand agenda init, 3: RichTextField, Pre-task 2: routing fixes).
+
+### [2026-02-28] - Stage 19 Sub-task 1 - feat(turnover) - PHProjectTurnoverPage: Estimating-to-Operations Turnover Meeting
+
+#### Added
+- Complete rewrite of PHProjectTurnoverPage with 18 SOP sections derived verbatim from the Estimating and Project Manager Turnover Meeting Procedure document.
+- Hybrid page mode: read-only meeting packet by default, togglable to collaborative edit mode for live meetings (role-gated to Estimator, PreconstructionManager, and Ops manager roles).
+- Sidebar navigation with 18 SOP sections grouped under 5 headings (Project Overview, Turnover to Operations, Risk & Value Analysis, Subcontractor Review, Documents & Closeout) with focused single-section view and Prev/Next cycling.
+- Presentation mode with two-column layout (22%/78%) and Document Picture-in-Picture API support (window.open fallback with BroadcastChannel sync) for conference-room projection.
+- Threaded comments system with global and per-section threads, @role mentions, file attachments, and emoji reactions.
+- BD Client & Project Notes pinned banner card with navy left-border accent, visible regardless of active section.
+- Preferred & Required Subcontractors DataGrid (Fluent UI v9) with Trade, Subcontractor, Email, Phone, Compass columns.
+- Project Estimate Overview section with formatted currency table (Contract Value, Duration, GC/GR, Contingency, Profit Margin, Buyout, Procore).
+- Summary & Sign-off section with 4 required signatories (Lead Estimator, Project Executive, Project Manager, Superintendent), SOP affidavit text, and "I Accept" buttons gated to matching Entra ID email.
+- Completion flow: auto-triggers handoffProjectFromEstimating() mutation when all signatures collected, generates PDF export, posts summary to global thread, navigates to Project Hub Dashboard.
+- IProjectHandoffPayload model for handoff mutation payload (financial roll-up, team assignments, signatures, generated artifacts).
+- handoffProjectFromEstimating() method added to IDataService, MockDataService, and SharePointDataService.
+- Turnover context menu item in DepartmentTrackingPage conditionally enabled when AwardStatus is "Awarded w/ Precon" or "Awarded w/o Precon".
+- Handoff detection in ProjectHubDashboardPage via ?handoffFrom=turnover search param with info toast notification.
+- validateSearch params added to phTurnover route (projectCode) and phDashboard route (handoffFrom).
+
+#### Notes
+- 18 SOP sections match the official Turnover Agenda document flow: Project Information, Meeting Attendees, Pre-Meeting Prerequisites, Purpose, General Project Information, Turnover to Operations, Project Estimate Overview, Risk Identification & Mitigation, Potential Savings or Shortfalls, Critical Lead Times, Subcontractor Proposals & Bid Leveling, Potential Buyouts, Scope Gaps, SDI Policy & Subcontractor Prequalification, Preferred & Required Subcontractors, Contract Document Exhibits, Post-Meeting Actions, Summary & Sign-off.
+- Existing ITurnoverAgenda model (7 child interfaces) and 10 IDataService turnover methods reused without modification.
+- One new IDataService method (handoffProjectFromEstimating) and one new model (IProjectHandoffPayload) added.
+- No changes to existing turnover models, shared components, guards, or theme tokens.
+
+### [2026-02-28] - Stage 19 Sub-task 3 - feat(turnover) - Rich Text Editing for Turnover Meeting Fields
+
+#### Added
+- `RichTextField` component (page-scoped in PHProjectTurnoverPage.tsx) — full-width contentEditable rich text editor with formatting toolbar (Bold, Italic, Underline, Bulleted/Numbered lists, Hyperlinks, File attachments). Zero new npm dependencies — uses `document.execCommand()` for universal browser support.
+- 7 Griffel styles for rich text: `richTextContainer` (focus ring), `richTextToolbar`, `richTextToolbarDivider`, `richTextEditorWrapper`, `richTextEditor` (120px min-height, 1.6 line-height), `richTextPlaceholder`, `richTextReadOnly`.
+- 7 new icon imports from `@fluentui/react-icons`: `TextBold20Regular`, `TextItalic20Regular`, `TextUnderline20Regular`, `TextBulletList20Regular`, `TextNumberListLtr20Regular`, `Link20Regular`, `Attach20Regular`.
+
+#### Changed
+- Replaced all 3 `<Textarea>` instances with `<RichTextField>`: TurnoverThread input, Discussion Item notes, Estimate Overview notes.
+- `notes` fields now store HTML strings (same `string` type — no model changes needed).
+- Read-only rendering switched from plain text to `dangerouslySetInnerHTML` with `richTextReadOnly` styles for proper HTML display (bold, lists, links).
+- Thread note rendering switched from `{note.text}` to `dangerouslySetInnerHTML` for HTML-formatted posts.
+- TurnoverThread empty check uses HTML tag-stripping (`draft.replace(/<[^>]*>/g, '').trim()`) to detect truly empty content.
+- Estimate Overview notes section now visible in edit mode even when empty (`notes || isEditMode`).
+- 300ms debounce on rich text `onChange` reduces mutation frequency vs per-keystroke firing.
+
+#### Notes
+- Accessibility: `role="toolbar"` with `aria-label` on toolbar, `aria-label` on all icon-only buttons, visible `:focus-within` brand stroke, `role="textbox"` with `aria-multiline` on editor.
+- Ctrl+B/I/U keyboard shortcuts work natively via contentEditable browser support.
+- File attachment buttons wired to hidden `<input type="file">` — upload service method out of scope (TODO for Stage 20+).
+- `Textarea` import removed from `@fluentui/react-components`.
+
+### [2026-02-28] - Stage 19 Sub-task 2 - feat(turnover) - On-Demand Turnover Agenda Initialization
+
+#### Added
+- Auto-initialization of turnover agenda when navigating from DepartmentTrackingPage — `useEffect` triggers `createTurnoverAgenda(projectCode, leadId)` automatically when no agenda exists and `leadId` is available in search params. Shows progress bar during initialization, then renders the full 18-section SOP page in edit mode.
+- `leadId` search param passed from DepartmentTrackingPage turnover navigation to support agenda creation with lead data auto-population.
+- `leadId` added to turnover route `validateSearch` in routes.projecthub.tsx.
+
+#### Changed
+- Replaced blocking "No turnover agenda found" empty state with auto-initialization flow (progress bar → full page) when `leadId` is available, or guidance MessageBar when navigating directly without `leadId`.
+
+#### Fixed
+- Mock data: Assigned valid `LeadID` values to all 4 awarded estimating records in `estimating.json` (previously `null`, which prevented `leadId` from appearing in the navigation URL).
+
+#### Notes
+- `createTurnoverAgenda` already existed in IDataService, MockDataService, and SharePointDataService — no service layer changes needed.
+- When `leadId` is not available (direct navigation without search params), shows guidance to navigate from Estimating Department Tracking page.
+- TODO comments for Stage 20+ automation: auto-populate from existing records (Go/No-Go scorecard, estimating kickoff, bid log).
+
+### [2026-02-28] - Stage 19 Pre-task 2 - fix(routing) - Turnover & Project Hub Cross-Workspace Navigation
+
+#### Fixed
+- Turnover context-menu item in DepartmentTrackingPage now correctly navigates to PHProjectTurnoverPage at `/project-hub/precon/turnover?projectCode=<code>` — project loads from search param.
+- Project Hub context-menu item now correctly navigates to ProjectHubDashboardPage at `/project-hub/dashboard?projectCode=<code>` (never AnalyticsHubDashboardPage).
+- ProjectHubLayout now accepts `projectCode` URL search param as fallback when `selectedProject` is not in context, rendering `<Outlet />` instead of blocking with "No Project Selected" warning.
+- Removed redundant `requireProject` guard from project-hub layout route — each child route independently enforces project requirement with search-param fallback support.
+- Added `projectCode` search-param validation to `phDashboard` and `phTurnover` route `beforeLoad` guards.
+- `handleNavigateProjectHub` in DepartmentTrackingPage now passes `projectCode` search param for cross-workspace navigation.
+
 ### Stage 18D (2026-02-27) - Added GitHub Actions TODO tracker workflow (.github/workflows/todo-tracker.yml) to auto-create issues from Stage 19+ TODO comments on push/PR.
 
 ### Stage 18C (2026-02-27) - Additional 10 TODO comments documenting Preconstruction ↔ Operations handoff gaps (award workflow, data sync, routing, models).

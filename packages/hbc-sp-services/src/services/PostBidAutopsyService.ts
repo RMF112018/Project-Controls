@@ -1,0 +1,1 @@
+// TODO (Stage 19 – Sub-task 23): Create new service (mirror KickOffService.ts). Provide full CRUD, template import validation, and optimistic persistence for 100% coverage of **reference/Estimating - Post Bid Autopsy.xlsx** structure.

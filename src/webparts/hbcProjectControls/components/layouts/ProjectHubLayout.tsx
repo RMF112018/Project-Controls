@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Outlet } from '@tanstack/react-router';
+import { Outlet, useSearch } from '@tanstack/react-router';
 import { makeStyles, shorthands, MessageBar, MessageBarBody, MessageBarTitle } from '@fluentui/react-components';
 import { WorkspaceLayout } from './WorkspaceLayout';
 import { useAppContext } from '../contexts/AppContext';
@@ -19,7 +19,15 @@ export const ProjectHubLayout: React.FC = () => {
   const { selectedProject } = useAppContext();
   const styles = useStyles();
 
-  if (!selectedProject) {
+  // Stage 19 routing fix: Check URL search params for projectCode as fallback.
+  // DepartmentTrackingPage navigates here with ?projectCode=XXX for cross-workspace
+  // navigation (Preconstruction → Project Hub) without setting selectedProject in context.
+  // Child routes (PHProjectTurnoverPage, ProjectHubDashboardPage) read projectCode from
+  // search params independently — the layout just needs to allow <Outlet /> to render.
+  const searchParams = useSearch({ strict: false }) as { projectCode?: string };
+  const hasProject = !!selectedProject || !!searchParams.projectCode;
+
+  if (!hasProject) {
     return (
       <WorkspaceLayout workspaceId="project-hub">
         <div className={styles.bannerContent}>

@@ -52,9 +52,9 @@ export function useFullScreen(): IUseFullScreenResult {
         webkitRequestFullscreen?: () => Promise<void>;
       };
       if (el.requestFullscreen) {
-        el.requestFullscreen().catch(() => { /* user denied or unavailable */ });
+        el.requestFullscreen()?.catch(() => { /* user denied or unavailable */ });
       } else if (el.webkitRequestFullscreen) {
-        el.webkitRequestFullscreen().catch(() => { /* webkit fallback */ });
+        el.webkitRequestFullscreen()?.catch(() => { /* webkit fallback */ });
       }
     }
   }, []);
@@ -70,9 +70,9 @@ export function useFullScreen(): IUseFullScreenResult {
         webkitExitFullscreen?: () => Promise<void>;
       };
       if (document.fullscreenElement) {
-        doc.exitFullscreen().catch(() => { /* already exited */ });
+        doc.exitFullscreen()?.catch(() => { /* already exited */ });
       } else if (doc.webkitExitFullscreen) {
-        doc.webkitExitFullscreen().catch(() => { /* webkit fallback */ });
+        doc.webkitExitFullscreen()?.catch(() => { /* webkit fallback */ });
       }
     }
   }, []);

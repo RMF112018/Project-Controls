@@ -1,0 +1,1 @@
+<!-- TODO (Stage 19 – Sub-task 27): Create new markdown. Include screenshots of **reference/Estimating - Post Bid Autopsy.xlsx** vs UI, dynamic field management, and 100% template fidelity. Update README.md, deep-bid-import-guide.md, and project-kickoff-guide.md with cross-references. -->

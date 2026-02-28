@@ -46,6 +46,7 @@ import { IProjectDataMart, IDataMartSyncResult, IDataMartFilter, DataMartHealthS
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep, IPersonAssignment, IAssignmentCondition } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverProjectHeader, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
+import { IProjectHandoffPayload } from '../models/IProjectHandoffPayload';
 import { IActionInboxItem } from '../models/IActionInbox';
 import { ISectorDefinition } from '../models/ISectorDefinition';
 import { IAssignmentMapping } from '../models/IAssignmentMapping';
@@ -6712,6 +6713,38 @@ export class SharePointDataService implements IDataService {
     const item = await web.lists.getByTitle(LIST_NAMES.TURNOVER_ESTIMATE_OVERVIEWS).items.getById(overviewId)();
     performanceService.endMark('sp:updateTurnoverEstimateOverview');
     return this.mapToTurnoverEstimateOverview(item);
+  }
+
+  // --- Stage 19: Estimating-to-Operations Handoff ---
+  // SOP Reference: "Estimating and Project Manager Turnover Meeting Procedure"
+  // Triggered when all 4 required attendees have signed off on the turnover agenda.
+  async handoffProjectFromEstimating(payload: IProjectHandoffPayload): Promise<{ success: boolean; projectHubUrl: string }> {
+    performanceService.startMark('sp:handoffProjectFromEstimating');
+    if (!this.sp) {
+      performanceService.endMark('sp:handoffProjectFromEstimating');
+      return { success: false, projectHubUrl: '' };
+    }
+    try {
+      const web = this.sp.web;
+
+      // 1. Mark turnover agenda as Complete
+      await web.lists.getByTitle(LIST_NAMES.TURNOVER_AGENDAS)
+        .items.getById(payload.turnoverAgendaId)
+        .update({
+          Status: 'Complete',
+          LastModifiedBy: payload.initiatedBy,
+          LastModifiedDate: payload.handoffDate,
+        });
+
+      performanceService.endMark('sp:handoffProjectFromEstimating');
+      return {
+        success: true,
+        projectHubUrl: `/project-hub/dashboard?handoffFrom=turnover`,
+      };
+    } catch (error) {
+      performanceService.endMark('sp:handoffProjectFromEstimating');
+      throw error;
+    }
   }
 
   // --- Hub Site URL Configuration ---

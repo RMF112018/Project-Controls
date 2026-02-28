@@ -43,6 +43,7 @@ import { IProjectDataMart, IDataMartSyncResult, IDataMartFilter } from '../model
 import { IComplianceEntry, IComplianceSummary, IComplianceLogFilter } from '../models/IComplianceSummary';
 import { IWorkflowDefinition, IWorkflowStep, IConditionalAssignment, IWorkflowStepOverride, IResolvedWorkflowStep } from '../models/IWorkflowDefinition';
 import { ITurnoverAgenda, ITurnoverPrerequisite, ITurnoverDiscussionItem, ITurnoverSubcontractor, ITurnoverExhibit, ITurnoverSignature, ITurnoverEstimateOverview, ITurnoverAttachment } from '../models/ITurnoverAgenda';
+import { IProjectHandoffPayload } from '../models/IProjectHandoffPayload';
 import { IActionInboxItem } from '../models/IActionInbox';
 import { IPermissionTemplate, ISecurityGroupMapping, IProjectTeamAssignment, IResolvedPermissions } from '../models/IPermissionTemplate';
 import { IEnvironmentConfig, EnvironmentTier } from '../models/IEnvironmentConfig';
@@ -475,6 +476,9 @@ export interface IDataService {
 
   // Turnover Estimate Overview
   updateTurnoverEstimateOverview(projectCode: string, data: Partial<ITurnoverEstimateOverview>): Promise<ITurnoverEstimateOverview>;
+
+  // Stage 19: Estimating-to-Operations Handoff
+  handoffProjectFromEstimating(payload: IProjectHandoffPayload): Promise<{ success: boolean; projectHubUrl: string }>;
 
   // Hub Site URL Configuration
   getHubSiteUrl(): Promise<string>;

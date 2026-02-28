@@ -281,6 +281,7 @@ const useStyles = makeStyles({
     flexDirection: 'column' as const,
     ...shorthands.gap(SPACING.lg),
   },
+  // TODO (Stage 19 – Sub-task 3): In the Estimating tab (after existing attachment controls), add "Attach Full Estimate Workbook" button + progress toast using existing HbcFileUpload and optimistic TanStack Query mutation pattern. On success, call ExcelDeepBidImportService and invalidate relevant queries. Gate behind DeepBidImportEnabled flag. Reference: plan UI upload deliverable and reuse of current attachment flow.
   spotlightSectionBanner: {
     display: 'flex',
     alignItems: 'center',
@@ -316,6 +317,7 @@ const useStyles = makeStyles({
   spotlightFieldRowAlt: {
     backgroundColor: HBC_COLORS.gray50,
   },
+  // TODO (Stage 19 – Sub-task 18): In Estimating tab (Project Details panel), replace/extend static fields with dynamic `KickOffSection` renderer. Each section must support inline edit, field removal, "+ Add custom field" button. Reference **reference/Estimating Kickoff Template.xlsx** for 100% field fidelity and existing HbcDataTable patterns.
   spotlightFieldLabel: {
     color: HBC_COLORS.textGray,
     fontWeight: tokens.fontWeightSemibold,
@@ -383,6 +385,7 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorStatusSuccessBackground2,
     color: tokens.colorStatusSuccessForeground2,
   },
+  // TODO (Stage 19 – Sub-task 24): In Estimating tab (Project Details panel, after Kick-Off section), add dynamic `PostBidAutopsySection` renderer with inline edit, field removal, and "+ Add custom field". Reference **reference/Estimating - Post Bid Autopsy.xlsx** for 100% field fidelity.
   spotlightNotesList: {
     maxHeight: '320px',
     overflowY: 'auto' as const,
@@ -420,6 +423,8 @@ const useStyles = makeStyles({
     marginTop: SPACING.md,
   },
 });
+
+// TODO (Stage 19 – Sub-task 4): Extend the existing SlideDrawer (Meeting Review Mode pattern) with new "Deep Bid Review" pane. If multiple versions detected, render side-by-side comparison of parsed summaries/GC&GRs; allow estimator to confirm/override primary selection. Persist choice via TanStack Query. Reference: plan review & selection UI deliverable.
 
 // ── Types ────────────────────────────────────────────────────────────
 type TabValue = 'estimate-log' | 'current-pursuits' | 'current-precon';
@@ -704,6 +709,8 @@ const EditableTextCell: React.FC<ITextCellProps> = React.memo(({
 });
 EditableTextCell.displayName = 'EditableTextCell';
 
+// TODO (Stage 19 – Sub-task 5): In KPI cards, HbcDataTable (inline-editable), and Meeting Review Mode, auto-populate primary summary/GC&GR values from the normalized IEstimateSummary/IGCGRScenario. Use existing useQueryScope and query-key patterns with optimistic updates. Data must render identically to current mock data once imported. Reference: plan integration deliverable.
+
 interface INumberCellProps extends IEditCellProps {
   numValue: number | undefined | null;
   isCurrency?: boolean;
@@ -942,6 +949,8 @@ const MeetingTextarea: React.FC<IMeetingTextareaProps> = React.memo(({
 MeetingTextarea.displayName = 'MeetingTextarea';
 
 // ── Stage 18 Sub-task 6b: Threaded Meeting Notes component ──
+// TODO (Stage 19 – Sub-task 10): Wrap import flow in React 18 useTransition; ensure TanStack Query caching prevents impact on lazy-loaded routes. Validate <8 s parse time on 5 MB+ workbooks. Reference: plan performance & scale testing deliverable.
+
 const formatNoteTimestamp = (iso: string): string => {
   try {
     return new Intl.DateTimeFormat('en-US', {
@@ -1046,6 +1055,8 @@ interface IProjectActionsMenuProps {
   onOpenDetails: (row: IEstimatingTracker) => void;
   onNavigateHub: (row: IEstimatingTracker) => void;
   onNavigateGoNoGo: (row: IEstimatingTracker) => void;
+  // Stage 19: Turnover menu item — enabled when AwardStatus is "Awarded w/ Precon" or "Awarded w/o Precon"
+  onNavigateTurnover: (row: IEstimatingTracker) => void;
   actionLinkClassName: string;
   editRoles: RoleName[];
 }
@@ -1079,7 +1090,17 @@ const ProjectActionsMenu = React.memo(function ProjectActionsMenu(props: IProjec
             {/* routing defined in future route-map.md */}
             <MenuItem disabled>Kickoff</MenuItem>
             <MenuItem disabled>Deliverable Tracking</MenuItem>
-            <MenuItem disabled>Turnover</MenuItem>
+            {/* Stage 19: Turnover menu item — conditional on Award Status per SOP.
+                Enabled only when AwardStatus is "Awarded w/ Precon" or "Awarded w/o Precon". */}
+            <MenuItem
+              disabled={
+                props.row.AwardStatus !== AwardStatus.AwardedWithPrecon &&
+                props.row.AwardStatus !== AwardStatus.AwardedWithoutPrecon
+              }
+              onClick={() => props.onNavigateTurnover(props.row)}
+            >
+              Turnover
+            </MenuItem>
             <MenuItem disabled>Autopsy</MenuItem>
           </MenuList>
         </MenuPopover>
@@ -1371,13 +1392,28 @@ export const DepartmentTrackingPage: React.FC = () => {
   }, []);
 
   const handleNavigateProjectHub = React.useCallback((row: IEstimatingTracker): void => {
-    void row;
-    void navigate({ to: '/project-hub/dashboard' });
+    // Stage 19 routing fix: Pass projectCode for cross-workspace navigation.
+    // Project Hub layout no longer blocks on context.selectedProject; dashboard
+    // route accepts projectCode search param as fallback.
+    void navigate({ to: '/project-hub/dashboard', search: { projectCode: row.ProjectCode } });
   }, [navigate]);
 
   const handleNavigateGoNoGo = React.useCallback((row: IEstimatingTracker): void => {
     void row;
     void navigate({ to: '/preconstruction/bd/go-no-go' });
+  }, [navigate]);
+
+  // Stage 19: Navigate to turnover page for the selected project.
+  // For turnover page usage guide, see docs/turnover-meeting-guide.md
+  // Award Status guard is enforced in the ProjectActionsMenu component (MenuItem disabled prop).
+  const handleNavigateTurnover = React.useCallback((row: IEstimatingTracker): void => {
+    // Stage 19 Sub-task 2: Pass leadId for on-demand turnover agenda initialization.
+    // createTurnoverAgenda(projectCode, leadId) needs both params to seed the agenda
+    // with lead data (estimate overview, team assignments, financial roll-up).
+    void navigate({
+      to: '/project-hub/precon/turnover',
+      search: { projectCode: row.ProjectCode, leadId: row.LeadID },
+    });
   }, [navigate]);
 
   // Stage 18 Sub-task 7: stable render callback for ProjectActionsMenu — prevents column def re-memoization.
@@ -1392,11 +1428,12 @@ export const DepartmentTrackingPage: React.FC = () => {
         onOpenDetails={handleOpenProjectDetails}
         onNavigateHub={handleNavigateProjectHub}
         onNavigateGoNoGo={handleNavigateGoNoGo}
+        onNavigateTurnover={handleNavigateTurnover}
         actionLinkClassName={styles.actionLink}
         editRoles={EDIT_ROLES}
       />
     ),
-    [canViewMenu, canViewProjectHub, canViewGoNoGo, hasGoNoGoScorecardForRow, handleOpenProjectDetails, handleNavigateProjectHub, handleNavigateGoNoGo, styles.actionLink],
+    [canViewMenu, canViewProjectHub, canViewGoNoGo, hasGoNoGoScorecardForRow, handleOpenProjectDetails, handleNavigateProjectHub, handleNavigateGoNoGo, handleNavigateTurnover, styles.actionLink],
   );
 
   // Stage 18: author columns as TanStack ColumnDef[] and bridge locally for HbcDataTable.

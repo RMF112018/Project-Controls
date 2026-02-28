@@ -46,3 +46,9 @@ export interface IEstimatingTracker {
   MeetingReviewed?: boolean;
 }
 // TODO (Stage 19+): Extend with deep bid fields (takeoffs, assemblies, ProEst/Bluebeam integration points) | Audit: effectiveness (deep estimating) | Impact: High
+
+// TODO (Stage 19 – Sub-task 1): Immediately after the existing deep-bid TODO cluster, add the new interfaces exactly as defined in the plan: IDeepBidPackage, IEstimateSummary (single primary), IGCGRScenario (single primary), IDeepBidRawCapture (full multi-worksheet parse tree). Use additive-only extension; preserve IExportable pattern and all existing IEstimatingTracker consumers. Ensure TypeScript compiles with zero breaking changes. Reference: plan deliverables & technical approach for model extension.
+
+// TODO (Stage 19 – Sub-task 16): Immediately after deep-bid interfaces, add `IKickOffSection`, `IKickOffField` (with type: text/yesno/responsible/deadline/notes, editable, removable), `IKickOffTemplate` mirroring **every row/section from reference/Estimating Kickoff Template.xlsx**. Support dynamic addition of custom fields per section. Preserve all existing models. Reference new Sub-tasks 16–21 added 28 February 2026.
+
+// TODO (Stage 19 – Sub-task 22): Immediately after Kick-Off interfaces, add `IPostBidAutopsySection`, `IPostBidAutopsyField` (supporting Yes/No, rating 1-10, open discussion, strengths/weaknesses lists, employee list, etc.) mirroring **every row/section from reference/Estimating - Post Bid Autopsy.xlsx**. Support dynamic addition/removal of custom fields per section. Reference new Sub-tasks 22–27 added 28 February 2026.

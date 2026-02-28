@@ -1,0 +1,1 @@
+<!-- TODO (Stage 19 – Sub-task 21): Create new markdown. Include screenshots of **reference/Estimating Kickoff Template.xlsx** vs UI, dynamic field management, and 100% template coverage. Update README.md and deep-bid-import-guide.md with cross-reference. -->
