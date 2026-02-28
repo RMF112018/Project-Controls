@@ -24,6 +24,7 @@ import { useAppContext } from '../contexts/AppContext';
 import { ProjectPicker } from '../shared/ProjectPicker';
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
 import { useAppLocation } from '../hooks/router/useAppLocation';
+import { useProjectHubNavigate } from '../project-hub/useProjectHubNavigate';
 import { useWorkspace } from './WorkspaceContext';
 import { NavItem } from './NavPrimitives';
 
@@ -93,6 +94,7 @@ function setPersistedGroup(wsId: string, groupLabel: string | null): void {
 export const ContextualSidebar: React.FC = () => {
   const styles = useStyles();
   const navigate = useAppNavigate();
+  const projectHubNavigate = useProjectHubNavigate();
   const location = useAppLocation();
   const { selectedProject, setSelectedProject, isProjectSite, currentUser, dataServiceMode, isFeatureEnabled } = useAppContext();
   const { workspace } = useWorkspace();
@@ -198,7 +200,14 @@ export const ContextualSidebar: React.FC = () => {
                 <NavItem
                   label={`${workspace.label} Dashboard`}
                   active={location.pathname === workspace.basePath}
-                  onClick={() => navigate(workspace.basePath)}
+                  onClick={() => {
+                    // Stage 20: Preserve search params for Project Hub workspace dashboard
+                    if (workspace?.id === 'project-hub') {
+                      projectHubNavigate(workspace.basePath);
+                    } else {
+                      navigate(workspace.basePath);
+                    }
+                  }}
                 />
                 {canSeeTelemetryLink && (
                   <NavItem
@@ -211,7 +220,7 @@ export const ContextualSidebar: React.FC = () => {
                   <NavItem
                     label="Project Hub"
                     active={location.pathname.startsWith('/project-hub')}
-                    onClick={() => navigate('/project-hub/dashboard')}
+                    onClick={() => projectHubNavigate('/project-hub/dashboard')}
                   />
                 )}
               </div>
@@ -236,7 +245,15 @@ export const ContextualSidebar: React.FC = () => {
                       key={item.path}
                       label={item.label}
                       active={isActivePath(item.path)}
-                      onClick={() => navigate(item.path)}
+                      onClick={() => {
+                        // Stage 20: Preserve projectCode/leadId search params
+                        // for Project Hub sidebar navigation.
+                        if (workspace?.id === 'project-hub') {
+                          projectHubNavigate(item.path);
+                        } else {
+                          navigate(item.path);
+                        }
+                      }}
                     />
                   ))}
                 </AccordionPanel>

@@ -4159,6 +4159,7 @@ export class MockDataService implements IDataService {
       SubcontractorProposalsDue: data.SubcontractorProposalsDue,
       PreSubmissionReview: data.PreSubmissionReview,
       SubcontractorSiteWalkThru: data.SubcontractorSiteWalkThru,
+      WinStrategyMeeting: data.WinStrategyMeeting,
       OwnerEstimateReview: data.OwnerEstimateReview,
       items,
       KickoffMeetingId: data.KickoffMeetingId,
@@ -4238,6 +4239,7 @@ export class MockDataService implements IDataService {
       notes: item.notes ?? '',
       tabRequired: item.tabRequired,
       isCustom: item.isCustom ?? true,
+      parentField: item.parentField,
       sortOrder: item.sortOrder ?? kickoffItems.length + 1,
     };
 

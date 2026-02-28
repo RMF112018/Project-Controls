@@ -55,3 +55,6 @@ export { ProvisioningStatusStepper } from './ProvisioningStatusStepper';
 export type { IProvisioningStepperProps } from './ProvisioningStatusStepper';
 export { HeaderUserMenu } from './HeaderUserMenu';
 export type { IHeaderUserMenuProps } from './HeaderUserMenu';
+export { KickOffSection } from './KickOffSection';
+export type { IKickOffSectionProps } from './KickOffSection';
+export * from './editableCells';

@@ -506,6 +506,7 @@ export const ESTIMATING_KICKOFFS_COLUMNS = {
   SubcontractorProposalsDue: 'SubcontractorProposalsDue', // SP: DateTime
   PreSubmissionReview: 'PreSubmissionReview',   // SP: DateTime
   SubcontractorSiteWalkThru: 'SubcontractorSiteWalkThru', // SP: DateTime
+  WinStrategyMeeting: 'WinStrategyMeeting',    // SP: DateTime
   OwnerEstimateReview: 'OwnerEstimateReview',  // SP: DateTime
   KeyPersonnel: 'KeyPersonnel',                // SP: Note (JSON-serialized IKeyPersonnelEntry[])
   // items: stored in child list → Estimating_Kickoff_Items
@@ -536,6 +537,7 @@ export const ESTIMATING_KICKOFF_ITEMS_COLUMNS = {
   notes: 'notes',                              // SP: Multiple Lines of Text
   tabRequired: 'tabRequired',                  // SP: Yes/No
   isCustom: 'isCustom',                        // SP: Yes/No
+  parentField: 'parentField',                  // SP: Single Line of Text
   sortOrder: 'sortOrder',                      // SP: Number
 } as const;
 

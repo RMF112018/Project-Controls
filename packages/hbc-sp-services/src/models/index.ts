@@ -31,6 +31,7 @@ export * from './IJobNumberRequest';
 export * from './IProjectType';
 export * from './IStandardCostCode';
 export * from './IEstimatingKickoff';
+export * from './IKickoffConfig';
 export * from './IBuyoutEntry';
 export * from './ICommitmentApproval';
 export * from './IContractTrackingApproval';

@@ -1,8 +1,15 @@
 import { IPersonAssignment } from './IWorkflowDefinition';
 
-export type EstimatingKickoffSection = 'managing' | 'deliverables_standard' | 'deliverables_nonstandard';
+export type EstimatingKickoffSection =
+  | 'project_info'
+  | 'managing'
+  | 'key_dates'
+  | 'deliverables_standard'
+  | 'deliverables_nonstandard';
 
 export type EstimatingKickoffStatus = 'yes' | 'no' | 'na' | null;
+
+export type KickoffDeliverableStatus = 'Pending' | 'In Progress' | 'Complete' | null;
 
 export interface IKeyPersonnelEntry {
   id: number;
@@ -26,6 +33,9 @@ export interface IEstimatingKickoffItem {
   notes?: string;
   tabRequired?: boolean;
   isCustom?: boolean;
+  deliverableStatus?: KickoffDeliverableStatus;
+  /** For project_info/key_dates items, maps to a parent IEstimatingKickoff field */
+  parentField?: string;
   sortOrder: number;
 }
 
@@ -38,8 +48,11 @@ export interface IEstimatingKickoff {
   Architect?: string;
   ProposalDueDateTime?: string;
   ProposalType?: string;
-  RFIFormat?: 'Excel' | 'Procore';
+  RFIFormat?: 'Excel' | 'Procore' | 'Other';
   PrimaryOwnerContact?: string;
+  OwnerContactPhone?: string;
+  OwnerContactEmail?: string;
+  RFIFormatOther?: string;
   ProposalDeliveryMethod?: string;
   CopiesIfHandDelivered?: number;
 
@@ -48,6 +61,7 @@ export interface IEstimatingKickoff {
   SubcontractorProposalsDue?: string;
   PreSubmissionReview?: string;
   SubcontractorSiteWalkThru?: string;
+  WinStrategyMeeting?: string;
   OwnerEstimateReview?: string;
 
   // Key Personnel

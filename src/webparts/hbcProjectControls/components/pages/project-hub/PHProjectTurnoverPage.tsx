@@ -101,7 +101,8 @@ import type {
   IProjectHandoffPayload,
 } from '@hbc/sp-services';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useSearch } from '@tanstack/react-router';
+import { useSearch } from '@tanstack/react-router';
+import { useProjectHubNavigate } from '../../project-hub/useProjectHubNavigate';
 import { useQueryScope } from '../../../tanstack/query/useQueryScope';
 import { qk } from '../../../tanstack/query/queryKeys';
 
@@ -1028,7 +1029,8 @@ export const PHProjectTurnoverPage: React.FC = () => {
   const styles = useStyles();
   const { dataService, currentUser, selectedProject, toggleFullScreen, exitFullScreen } = useAppContext();
   const { addToast } = useToast();
-  const navigate = useNavigate();
+  // Stage 20: Use project-hub-aware navigate to preserve projectCode/leadId
+  const navigate = useProjectHubNavigate();
   const scope = useQueryScope();
   const queryClient = useQueryClient();
   const exportServiceRef = React.useRef(new ExportService());
@@ -1361,7 +1363,7 @@ export const PHProjectTurnoverPage: React.FC = () => {
           <Button
             appearance="primary"
             size="large"
-            onClick={() => navigate({ to: '/project-hub/dashboard', search: { handoffFrom: 'turnover' } })}
+            onClick={() => navigate('/project-hub/dashboard', { search: { handoffFrom: 'turnover' } })}
           >
             Go to Project Hub
           </Button>

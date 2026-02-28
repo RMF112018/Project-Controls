@@ -67,4 +67,17 @@ describe('tanstack router guard helpers', () => {
     const context = buildContext();
     expect(() => requireFeature(context, 'DisabledFeature')).toThrow();
   });
+
+  // Stage 20: Layout beforeLoad returns minimal ISelectedProject from search params.
+  // requireProject must pass with only projectCode (empty projectName, default stage).
+  it('requireProject passes with minimal ISelectedProject from layout context extension', () => {
+    const context = buildContext({
+      selectedProject: {
+        projectCode: '25-022-01',
+        projectName: '',
+        stage: Stage.Pursuit,
+      },
+    });
+    expect(() => requireProject(context)).not.toThrow();
+  });
 });

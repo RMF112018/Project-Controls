@@ -7,7 +7,7 @@
  */
 import * as React from 'react';
 import { createRoute, redirect } from '@tanstack/react-router';
-import { PERMISSIONS } from '@hbc/sp-services';
+import { PERMISSIONS, Stage, type ISelectedProject } from '@hbc/sp-services';
 import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
 import { requireProject } from '../guards/requireProject';
@@ -30,8 +30,9 @@ const ProjectHubSettingsPage = React.lazy(() =>
 const PHGoNoGoPage = React.lazy(() =>
   import('../../../components/pages/project-hub/PHGoNoGoPage').then(m => ({ default: m.PHGoNoGoPage }))
 );
-const PHEstimatingKickOffPage = React.lazy(() =>
-  import('../../../components/pages/project-hub/PHEstimatingKickOffPage').then(m => ({ default: m.PHEstimatingKickOffPage }))
+// Stage 9: Replaced PHEstimatingKickOffPage (static checklist) with full Stage 8 EstimatingKickoffPage.
+const EstimatingKickoffPage = React.lazy(() =>
+  import('../../../components/pages/precon/EstimatingKickoffPage').then(m => ({ default: m.EstimatingKickoffPage }))
 );
 const PHEstimatePage = React.lazy(() =>
   import('../../../components/pages/project-hub/PHEstimatePage').then(m => ({ default: m.PHEstimatePage }))
@@ -148,12 +149,31 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
     getParentRoute: () => rootRoute as never,
     id: 'project-hub-layout',
     component: ProjectHubLayout,
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+    // Stage 20: Accept projectCode + leadId at layout level so all 36 child
+    // routes inherit search-param awareness without per-route changes.
+    validateSearch: (search: Record<string, unknown>) => ({
+      projectCode: (search.projectCode as string) || undefined,
+      leadId: search.leadId ? Number(search.leadId) : undefined,
+    }),
+    beforeLoad: ({ context, search }: {
+      context: ITanStackRouteContext;
+      search: { projectCode?: string; leadId?: number };
+    }): { selectedProject: ISelectedProject } | void => {
       requireFeature(context, 'ProjectHubWorkspace');
-      // Stage 19 routing fix: Removed requireProject from layout guard.
-      // Each child route independently guards with requireProject or search-param fallback.
-      // This unblocks DepartmentTrackingPage → Turnover/Dashboard cross-workspace navigation
-      // where projectCode is passed via search param instead of ProjectContext.
+      // Stage 20: If no selectedProject in context but search params have projectCode,
+      // return a minimal ISelectedProject as context extension for child routes.
+      // TanStack Router v1 merges returned objects into the route context seen by
+      // child beforeLoad functions, so all 33 requireProject() guards pass immediately.
+      if (!context.selectedProject?.projectCode && search.projectCode) {
+        return {
+          selectedProject: {
+            projectCode: search.projectCode,
+            projectName: '',
+            stage: Stage.Pursuit,
+            leadId: search.leadId,
+          } satisfies ISelectedProject,
+        };
+      }
     },
   });
 
@@ -201,10 +221,21 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
   const phEstKickoff = createRoute({
     getParentRoute: () => phLayout as never,
     path: '/project-hub/precon/estimating-kickoff',
-    component: PHEstimatingKickOffPage,
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
-      requirePermission(context, PERMISSIONS.ESTIMATING_READ);
-      requireProject(context);
+    component: EstimatingKickoffPage,
+    // Stage 9: Accept ?projectCode and ?leadId from DepartmentTrackingPage Kickoff context menu.
+    // leadId supports future kickoff initialization via createEstimatingKickoff(projectCode, leadId).
+    validateSearch: (search: Record<string, unknown>) => ({
+      projectCode: (search.projectCode as string) || undefined,
+      leadId: search.leadId ? Number(search.leadId) : undefined,
+    }),
+    beforeLoad: ({ context, search }: { context: ITanStackRouteContext; search: { projectCode?: string } }) => {
+      requirePermission(context, PERMISSIONS.KICKOFF_VIEW);
+      // Stage 9 routing fix: Accept projectCode from search params as alternative to
+      // context.selectedProject. DepartmentTrackingPage passes projectCode via search
+      // param for cross-workspace navigation (Preconstruction → Project Hub).
+      if (!context.selectedProject?.projectCode && !search.projectCode) {
+        throw redirect({ to: '/', replace: true });
+      }
     },
   });
 

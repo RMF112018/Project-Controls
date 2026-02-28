@@ -16,6 +16,7 @@ export * from './utils/validators';
 export * from './utils/breadcrumbs';
 export * from './utils/buyoutTemplate';
 export * from './utils/estimatingKickoffTemplate';
+export * from './utils/kickoffSectionConfigs';
 export * from './utils/turnoverAgendaTemplate';
 export * from './utils/siteDetector';
 export * from './utils/scheduleParser';

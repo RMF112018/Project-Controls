@@ -70,6 +70,9 @@ import { createColumnHelper } from '@tanstack/react-table';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useQueryScope } from '../../../tanstack/query/useQueryScope';
 import { qk } from '../../../tanstack/query/queryKeys';
+import { KickOffSection } from '../../shared/KickOffSection';
+import { ALL_KICKOFF_SECTION_CONFIGS, type IEstimatingKickoff, type IEstimatingKickoffItem, type EstimatingKickoffSection as KickoffSectionType } from '@hbc/sp-services';
+import { kickoffByProjectOptions } from '../../../tanstack/query/queryOptions/kickoffQueryOptions';
 
 // TODO (Stage 19+): Dark-mode parity & mobile-responsive drawer for field estimator use | Audit: usability | Impact: Medium
 
@@ -289,7 +292,7 @@ const useStyles = makeStyles({
   spotlightFieldRowAlt: {
     backgroundColor: HBC_COLORS.gray50,
   },
-  // TODO (Stage 19 – Sub-task 18): In Estimating tab (Project Details panel), replace/extend static fields with dynamic `KickOffSection` renderer. Each section must support inline edit, field removal, "+ Add custom field" button. Reference **reference/Estimating Kickoff Template.xlsx** for 100% field fidelity and existing HbcDataTable patterns.
+  // Stage 8: KickOffSection renderer integrated — see drawer kickoff sections below
   spotlightFieldLabel: {
     color: HBC_COLORS.textGray,
     fontWeight: tokens.fontWeightSemibold,
@@ -1094,6 +1097,8 @@ interface IProjectActionsMenuProps {
   onOpenDetails: (row: IEstimatingTracker) => void;
   onNavigateHub: (row: IEstimatingTracker) => void;
   onNavigateGoNoGo: (row: IEstimatingTracker) => void;
+  // Stage 9: Kickoff menu item — navigate to Project Hub kickoff page
+  onNavigateKickoff: (row: IEstimatingTracker) => void;
   // Stage 19: Turnover menu item — enabled when AwardStatus is "Awarded w/ Precon" or "Awarded w/o Precon"
   onNavigateTurnover: (row: IEstimatingTracker) => void;
   actionLinkClassName: string;
@@ -1127,8 +1132,8 @@ const ProjectActionsMenu = React.memo(function ProjectActionsMenu(props: IProjec
             <MenuItem disabled={!props.canOpenGoNoGo} onClick={() => props.onNavigateGoNoGo(props.row)}>
               Go/No-Go Scorecard
             </MenuItem>
-            {/* routing defined in future route-map.md */}
-            <MenuItem disabled>Kickoff</MenuItem>
+            {/* Stage 9: Kickoff menu item — navigate to Project Hub kickoff page */}
+            <MenuItem disabled={!props.canViewProjectHub} onClick={() => props.onNavigateKickoff(props.row)}>Kickoff</MenuItem>
             <MenuItem disabled>Deliverable Tracking</MenuItem>
             {/* Stage 19: Turnover menu item — conditional on Award Status per SOP.
                 Enabled only when AwardStatus is "Awarded w/ Precon" or "Awarded w/o Precon". */}
@@ -1223,6 +1228,132 @@ export const DepartmentTrackingPage: React.FC = () => {
     retry: 1,
     refetchOnWindowFocus: false,
   });
+
+  // Stage 8: Kickoff data for Project Details drawer
+  const kickoffQuery = useQuery(
+    kickoffByProjectOptions(scope, selectedProjectRow?.ProjectCode ?? '', dataService),
+  );
+
+  // Stage 8: Kickoff item update (optimistic)
+  const updateKickoffItemMutation = useMutation<
+    IEstimatingKickoffItem,
+    Error,
+    { kickoffId: number; itemId: number; data: Partial<IEstimatingKickoffItem> },
+    { previous?: IEstimatingKickoff | null }
+  >({
+    mutationFn: ({ kickoffId, itemId, data }) =>
+      dataService.updateKickoffItem(kickoffId, itemId, data),
+    onMutate: async ({ itemId, data }) => {
+      const pCode = selectedProjectRow?.ProjectCode ?? '';
+      const key = qk.kickoff.byProject(scope, pCode);
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<IEstimatingKickoff | null>(key);
+      if (previous) {
+        queryClient.setQueryData<IEstimatingKickoff | null>(key, {
+          ...previous,
+          items: previous.items.map(i => i.id === itemId ? { ...i, ...data } : i),
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        const pCode = selectedProjectRow?.ProjectCode ?? '';
+        queryClient.setQueryData(qk.kickoff.byProject(scope, pCode), context.previous);
+      }
+    },
+    onSettled: () => {
+      const pCode = selectedProjectRow?.ProjectCode ?? '';
+      queryClient.invalidateQueries({ queryKey: qk.kickoff.byProject(scope, pCode) });
+    },
+  });
+
+  // Stage 8: Kickoff parent field update
+  const updateKickoffMutation = useMutation<
+    IEstimatingKickoff,
+    Error,
+    { id: number; data: Partial<IEstimatingKickoff> }
+  >({
+    mutationFn: ({ id, data }) => dataService.updateEstimatingKickoff(id, data),
+    onSettled: () => {
+      const pCode = selectedProjectRow?.ProjectCode ?? '';
+      queryClient.invalidateQueries({ queryKey: qk.kickoff.byProject(scope, pCode) });
+    },
+  });
+
+  // Stage 8: Add custom kickoff row
+  const addKickoffItemMutation = useMutation<
+    IEstimatingKickoffItem,
+    Error,
+    { kickoffId: number; item: Partial<IEstimatingKickoffItem> }
+  >({
+    mutationFn: ({ kickoffId, item }) => dataService.addKickoffItem(kickoffId, item),
+    onSettled: () => {
+      const pCode = selectedProjectRow?.ProjectCode ?? '';
+      queryClient.invalidateQueries({ queryKey: qk.kickoff.byProject(scope, pCode) });
+    },
+  });
+
+  // Stage 8: Remove kickoff row
+  const removeKickoffItemMutation = useMutation<
+    void,
+    Error,
+    { kickoffId: number; itemId: number }
+  >({
+    mutationFn: ({ kickoffId, itemId }) => dataService.removeKickoffItem(kickoffId, itemId),
+    onSettled: () => {
+      const pCode = selectedProjectRow?.ProjectCode ?? '';
+      queryClient.invalidateQueries({ queryKey: qk.kickoff.byProject(scope, pCode) });
+    },
+  });
+
+  // Stage 8: Kickoff callbacks
+  const handleKickoffItemUpdate = React.useCallback(
+    (itemId: number, field: string, value: unknown) => {
+      const ko = kickoffQuery.data;
+      if (!ko) return;
+      updateKickoffItemMutation.mutate({
+        kickoffId: ko.id,
+        itemId,
+        data: { [field]: value } as Partial<IEstimatingKickoffItem>,
+      });
+    },
+    [kickoffQuery.data, updateKickoffItemMutation],
+  );
+
+  const handleKickoffFieldUpdate = React.useCallback(
+    (field: string, value: unknown) => {
+      const ko = kickoffQuery.data;
+      if (!ko) return;
+      updateKickoffMutation.mutate({
+        id: ko.id,
+        data: { [field]: value } as Partial<IEstimatingKickoff>,
+      });
+    },
+    [kickoffQuery.data, updateKickoffMutation],
+  );
+
+  const handleKickoffAddRow = React.useCallback(
+    (section: KickoffSectionType) => {
+      const ko = kickoffQuery.data;
+      if (!ko) return;
+      const sectionItems = ko.items.filter(i => i.section === section);
+      addKickoffItemMutation.mutate({
+        kickoffId: ko.id,
+        item: { section, task: '', status: null, isCustom: true, sortOrder: sectionItems.length + 1 },
+      });
+    },
+    [kickoffQuery.data, addKickoffItemMutation],
+  );
+
+  const handleKickoffRemoveRow = React.useCallback(
+    (itemId: number) => {
+      const ko = kickoffQuery.data;
+      if (!ko) return;
+      removeKickoffItemMutation.mutate({ kickoffId: ko.id, itemId });
+    },
+    [kickoffQuery.data, removeKickoffItemMutation],
+  );
 
   const updateRecordMutation = useMutation<
     IEstimatingTracker,
@@ -1456,6 +1587,14 @@ export const DepartmentTrackingPage: React.FC = () => {
     });
   }, [navigate]);
 
+  // Stage 9: Navigate to kickoff page for the selected project.
+  const handleNavigateKickoff = React.useCallback((row: IEstimatingTracker): void => {
+    void navigate({
+      to: '/project-hub/precon/estimating-kickoff',
+      search: { projectCode: row.ProjectCode, leadId: row.LeadID },
+    });
+  }, [navigate]);
+
   // Stage 18 Sub-task 7: stable render callback for ProjectActionsMenu — prevents column def re-memoization.
   const renderActionMenu = React.useCallback(
     (row: IEstimatingTracker, label: string) => (
@@ -1468,12 +1607,13 @@ export const DepartmentTrackingPage: React.FC = () => {
         onOpenDetails={handleOpenProjectDetails}
         onNavigateHub={handleNavigateProjectHub}
         onNavigateGoNoGo={handleNavigateGoNoGo}
+        onNavigateKickoff={handleNavigateKickoff}
         onNavigateTurnover={handleNavigateTurnover}
         actionLinkClassName={styles.actionLink}
         editRoles={EDIT_ROLES}
       />
     ),
-    [canViewMenu, canViewProjectHub, canViewGoNoGo, hasGoNoGoScorecardForRow, handleOpenProjectDetails, handleNavigateProjectHub, handleNavigateGoNoGo, handleNavigateTurnover, styles.actionLink],
+    [canViewMenu, canViewProjectHub, canViewGoNoGo, hasGoNoGoScorecardForRow, handleOpenProjectDetails, handleNavigateProjectHub, handleNavigateGoNoGo, handleNavigateKickoff, handleNavigateTurnover, styles.actionLink],
   );
 
   // Stage 18: author columns as TanStack ColumnDef[] and bridge locally for HbcDataTable.
@@ -2785,6 +2925,27 @@ export const DepartmentTrackingPage: React.FC = () => {
                 <span className={styles.drawerDetailValue}>{(liveProjectRow ?? selectedProjectRow).NotesFeedback || '—'}</span>
               )}
             </div>
+
+            {/* Stage 8: Estimating Kickoff sections (single source of truth) */}
+            {kickoffQuery.data && (
+              <div style={{ marginTop: '16px' }}>
+                {ALL_KICKOFF_SECTION_CONFIGS.map(config => (
+                  <KickOffSection
+                    key={config.sectionKey}
+                    config={config}
+                    items={kickoffQuery.data!.items.filter(i => i.section === config.sectionKey)}
+                    kickoff={kickoffQuery.data!}
+                    onItemUpdate={handleKickoffItemUpdate}
+                    onKickoffUpdate={handleKickoffFieldUpdate}
+                    onAddCustomRow={handleKickoffAddRow}
+                    onRemoveRow={handleKickoffRemoveRow}
+                    canEdit={isDrawerEditing && canEditEstimating}
+                    compact
+                    defaultExpanded={config.sectionKey === 'project_info'}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Drawer footer actions */}
             <div className={styles.drawerActions}>

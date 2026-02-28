@@ -3,6 +3,7 @@ import { Outlet, useSearch } from '@tanstack/react-router';
 import { makeStyles, shorthands, MessageBar, MessageBarBody, MessageBarTitle } from '@fluentui/react-components';
 import { WorkspaceLayout } from './WorkspaceLayout';
 import { useAppContext } from '../contexts/AppContext';
+import { ProjectHubProvider } from '../project-hub/ProjectHubProvider';
 
 const useStyles = makeStyles({
   bannerContent: {
@@ -44,7 +45,9 @@ export const ProjectHubLayout: React.FC = () => {
 
   return (
     <WorkspaceLayout workspaceId="project-hub">
-      <Outlet />
+      <ProjectHubProvider>
+        <Outlet />
+      </ProjectHubProvider>
     </WorkspaceLayout>
   );
 };
