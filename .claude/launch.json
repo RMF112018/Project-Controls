@@ -1,0 +1,35 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["webpack", "serve", "--config", "dev/webpack.config.js", "--mode", "development", "--port", "3001"],
+      "port": 3001
+    },
+    {
+      "name": "dev-standalone",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:standalone"],
+      "port": 4173
+    },
+    {
+      "name": "storybook",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "storybook"],
+      "port": 6006
+    },
+    {
+      "name": "serve",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "serve"],
+      "port": 4321
+    },
+    {
+      "name": "functions",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start"],
+      "port": 7071
+    }
+  ]
+}

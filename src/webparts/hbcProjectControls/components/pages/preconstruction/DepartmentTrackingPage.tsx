@@ -1,8 +1,6 @@
 import * as React from 'react';
 import {
-  Badge,
   Button,
-  Card,
   Checkbox,
   Input,
   Link,
@@ -43,9 +41,13 @@ import { PageHeader } from '../../shared/PageHeader';
 import { HbcButton } from '../../shared/HbcButton';
 import { HbcDataTable } from '../../shared/HbcDataTable';
 import type { IHbcDataTableColumn } from '../../shared/HbcDataTable';
+import type { IHbcVirtualizationConfig } from '../../../tanstack/table/types';
 import { useToast } from '../../shared/ToastContainer';
 import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
+import { ErrorBoundary } from '../../shared/ErrorBoundary';
+import { DashboardKpiGrid } from '../../common/DashboardKpiGrid';
+import type { IDashboardKpiItem } from '../../common/DashboardKpiGrid';
 import { HbcField } from '../../shared/HbcField';
 import { SlideDrawer } from '../../shared/SlideDrawer';
 import { RoleGate } from '../../guards/RoleGate';
@@ -76,36 +78,6 @@ const useStyles = makeStyles({
   container: {
     display: 'grid',
     ...shorthands.gap(tokens.spacingVerticalM),
-  },
-  kpiGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-    ...shorthands.gap(tokens.spacingHorizontalM),
-  },
-  kpiCard: {
-    backgroundColor: tokens.colorNeutralBackground1,
-    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
-  },
-  kpiHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    ...shorthands.gap(tokens.spacingHorizontalS),
-  },
-  kpiLabel: {
-    fontSize: tokens.fontSizeBase200,
-    color: tokens.colorNeutralForeground3,
-    fontWeight: tokens.fontWeightSemibold,
-  },
-  kpiValue: {
-    fontSize: tokens.fontSizeHero800,
-    lineHeight: tokens.lineHeightHero800,
-    color: tokens.colorNeutralForeground1,
-    fontWeight: tokens.fontWeightBold,
-  },
-  kpiSubtitle: {
-    fontSize: tokens.fontSizeBase200,
-    color: tokens.colorNeutralForeground3,
   },
   tabContent: {
     ...shorthands.padding(tokens.spacingVerticalM, '0'),
@@ -384,6 +356,62 @@ const useStyles = makeStyles({
     fontWeight: tokens.fontWeightSemibold,
     backgroundColor: tokens.colorStatusSuccessBackground2,
     color: tokens.colorStatusSuccessForeground2,
+    marginLeft: '12px',
+    verticalAlign: 'middle',
+  },
+  // P0.1: Status pill variants (replace inline style conditionals)
+  statusPillPending: {
+    backgroundColor: tokens.colorStatusWarningBackground2,
+    color: tokens.colorStatusWarningForeground2,
+  },
+  statusPillNeutral: {
+    backgroundColor: tokens.colorNeutralBackground3,
+    color: tokens.colorNeutralForeground3,
+  },
+  statusPillSuccess: {
+    backgroundColor: tokens.colorStatusSuccessBackground2,
+    color: tokens.colorStatusSuccessForeground2,
+  },
+  statusPillDanger: {
+    backgroundColor: tokens.colorStatusDangerBackground2,
+    color: tokens.colorStatusDangerForeground2,
+  },
+  dashText: {
+    color: tokens.colorNeutralForeground3,
+  },
+  // P0.1: Static layout replacements for inline styles
+  meetingNotesTextareaWrap: {
+    flex: 1,
+  },
+  progressBarRow: {
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap('12px'),
+    marginTop: '8px',
+  },
+  progressBarTrackConstrained: {
+    flex: 1,
+    maxWidth: '300px',
+  },
+  exitMeetingBtn: {
+    color: 'rgba(255,255,255,0.85)',
+  },
+  searchInputConstrained: {
+    maxWidth: '280px',
+  },
+  checklistGrid: {
+    display: 'grid',
+    ...shorthands.gap('4px'),
+  },
+  // P0.1: Section banner border-left variants by tab context
+  sectionBannerEstimate: {
+    borderLeft: `4px solid ${HBC_COLORS.info}`,
+  },
+  sectionBannerPursuits: {
+    borderLeft: `4px solid ${HBC_COLORS.warning}`,
+  },
+  sectionBannerPrecon: {
+    borderLeft: `4px solid ${HBC_COLORS.success}`,
   },
   // TODO (Stage 19 – Sub-task 24): In Estimating tab (Project Details panel, after Kick-Off section), add dynamic `PostBidAutopsySection` renderer with inline edit, field removal, and "+ Add custom field". Reference **reference/Estimating - Post Bid Autopsy.xlsx** for 100% field fidelity.
   spotlightNotesList: {
@@ -425,6 +453,16 @@ const useStyles = makeStyles({
 });
 
 // TODO (Stage 19 – Sub-task 4): Extend the existing SlideDrawer (Meeting Review Mode pattern) with new "Deep Bid Review" pane. If multiple versions detected, render side-by-side comparison of parsed summaries/GC&GRs; allow estimator to confirm/override primary selection. Persist choice via TanStack Query. Reference: plan review & selection UI deliverable.
+
+// P1.2: Shared virtualization config for all department tracking tables.
+// All 3 tabs use the same config; extracting to a constant avoids inline object re-creation.
+const DEPT_VIRTUALIZATION: IHbcVirtualizationConfig = {
+  enabled: true,
+  threshold: 100,
+  estimateRowHeight: 44,
+  overscan: 5,
+  adaptiveOverscan: true,
+};
 
 // ── Types ────────────────────────────────────────────────────────────
 type TabValue = 'estimate-log' | 'current-pursuits' | 'current-precon';
@@ -976,6 +1014,7 @@ interface IMeetingNotesThreadProps {
     noteUser: string;
     noteText: string;
     noteInput: string;
+    meetingNotesTextareaWrap: string;
   };
 }
 
@@ -1023,7 +1062,7 @@ const MeetingNotesThread: React.FC<IMeetingNotesThreadProps> = React.memo(({
           placeholder="Add a meeting note..."
           resize="vertical"
           rows={2}
-          style={{ flex: 1 }}
+          className={s.meetingNotesTextareaWrap}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
               e.preventDefault();
@@ -1063,7 +1102,7 @@ interface IProjectActionsMenuProps {
 
 const ProjectActionsMenu = React.memo(function ProjectActionsMenu(props: IProjectActionsMenuProps): React.ReactElement {
   if (!props.canViewMenu) {
-    return <span>{props.label || '—'}</span>;
+    return <span title={props.label || undefined}>{props.label || '—'}</span>;
   }
 
   return (
@@ -1074,6 +1113,7 @@ const ProjectActionsMenu = React.memo(function ProjectActionsMenu(props: IProjec
             className={props.actionLinkClassName}
             onClick={(event) => event.stopPropagation()}
             aria-haspopup="menu"
+            title={props.label || undefined}
           >
             {props.label || '—'}
           </Link>
@@ -1492,7 +1532,7 @@ export const DepartmentTrackingPage: React.FC = () => {
         width: '80px',
         render: (row: IEstimatingTracker) => {
           const isPending = row.AwardStatus === 'Pending' || !row.AwardStatus;
-          return <span className={styles.statusPill} style={{ backgroundColor: isPending ? tokens.colorStatusWarningBackground2 : tokens.colorNeutralBackground3, color: isPending ? tokens.colorStatusWarningForeground2 : tokens.colorNeutralForeground3 }}>{isPending ? 'Yes' : 'No'}</span>;
+          return <span className={mergeClasses(styles.statusPill, isPending ? styles.statusPillPending : styles.statusPillNeutral)}>{isPending ? 'Yes' : 'No'}</span>;
         },
       },
     }),
@@ -1505,8 +1545,8 @@ export const DepartmentTrackingPage: React.FC = () => {
         key: 'AwardedWOPrecon',
         width: '140px',
         render: (row: IEstimatingTracker) => row.AwardStatus === AwardStatus.AwardedWithoutPrecon
-          ? <span className={styles.statusPill} style={{ backgroundColor: tokens.colorStatusSuccessBackground2, color: tokens.colorStatusSuccessForeground2 }}>Yes</span>
-          : <span style={{ color: tokens.colorNeutralForeground3 }}>—</span>,
+          ? <span className={mergeClasses(styles.statusPill, styles.statusPillSuccess)}>Yes</span>
+          : <span className={styles.dashText}>—</span>,
       },
     }),
     columnHelper.accessor((row) => row.AwardStatus ?? '', {
@@ -1518,8 +1558,8 @@ export const DepartmentTrackingPage: React.FC = () => {
         key: 'NotAwarded',
         width: '100px',
         render: (row: IEstimatingTracker) => row.AwardStatus === AwardStatus.NotAwarded
-          ? <span className={styles.statusPill} style={{ backgroundColor: tokens.colorStatusDangerBackground2, color: tokens.colorStatusDangerForeground2 }}>Yes</span>
-          : <span style={{ color: tokens.colorNeutralForeground3 }}>—</span>,
+          ? <span className={mergeClasses(styles.statusPill, styles.statusPillDanger)}>Yes</span>
+          : <span className={styles.dashText}>—</span>,
       },
     }),
     columnHelper.accessor((row) => row.AwardStatus ?? '', {
@@ -1531,8 +1571,8 @@ export const DepartmentTrackingPage: React.FC = () => {
         key: 'AwardedWPrecon',
         width: '130px',
         render: (row: IEstimatingTracker) => row.AwardStatus === AwardStatus.AwardedWithPrecon
-          ? <span className={styles.statusPill} style={{ backgroundColor: tokens.colorStatusSuccessBackground2, color: tokens.colorStatusSuccessForeground2 }}>Yes</span>
-          : <span style={{ color: tokens.colorNeutralForeground3 }}>—</span>,
+          ? <span className={mergeClasses(styles.statusPill, styles.statusPillSuccess)}>Yes</span>
+          : <span className={styles.dashText}>—</span>,
       },
     }),
     columnHelper.accessor((row) => row.LeadEstimator ?? '', {
@@ -1622,6 +1662,8 @@ export const DepartmentTrackingPage: React.FC = () => {
     : currentPreconColumnDefs;
 
   // ── Filter state (kept page-local to preserve existing toolbar UX) ──
+  // P1.3 verified: useDeferredValue defers filter to filteredItems useMemo;
+  // tab switches use startUITransition; groupBy/sort/visibility delegated to TanStack Table.
   const [filter, setFilter] = React.useState('');
   const deferredFilter = React.useDeferredValue(filter);
 
@@ -2052,6 +2094,17 @@ export const DepartmentTrackingPage: React.FC = () => {
     ];
   }, [activeItems, activeTab, tabLabel]);
 
+  // P2.1: Map tracking KPIs to reusable DashboardKpiGrid items
+  const kpiGridItems = React.useMemo((): IDashboardKpiItem[] =>
+    trackingKpis.map((kpi) => ({
+      key: kpi.key,
+      title: kpi.label,
+      value: kpi.value,
+      subtitle: kpi.subtitle,
+      badge: tabLabel,
+    })),
+  [trackingKpis, tabLabel]);
+
   // ── Drawer title by tab ──────────────────────────────────────────
   const drawerTitle = drawerMode === 'project-details'
     ? `Project Details – ${String(selectedProjectRow?.ProjectCode ?? '—')}`
@@ -2101,17 +2154,16 @@ export const DepartmentTrackingPage: React.FC = () => {
                     {liveMeetingProject.ProjectCode || ''}
                   </span>
                   {liveMeetingProject.MeetingReviewed && (
-                    <span className={styles.reviewedBadge} style={{ marginLeft: '12px', verticalAlign: 'middle' }}>Reviewed</span>
+                    <span className={styles.reviewedBadge}>Reviewed</span>
                   )}
                 </div>
                 {/* Progress bar */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+                <div className={styles.progressBarRow}>
                   <span className={styles.spotlightProgress} role="status" aria-live="polite">
                     Project {clampedMeetingIndex + 1} of {meetingTotal}
                   </span>
                   <div
-                    className={styles.spotlightProgressBarTrack}
-                    style={{ flex: 1, maxWidth: '300px' }}
+                    className={mergeClasses(styles.spotlightProgressBarTrack, styles.progressBarTrackConstrained)}
                     role="progressbar"
                     aria-valuenow={clampedMeetingIndex + 1}
                     aria-valuemin={1}
@@ -2125,7 +2177,7 @@ export const DepartmentTrackingPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <Button appearance="subtle" icon={<Dismiss24Regular />} onClick={handleExitMeetingMode} style={{ color: 'rgba(255,255,255,0.85)' }} aria-label="Exit meeting review mode">
+              <Button appearance="subtle" icon={<Dismiss24Regular />} onClick={handleExitMeetingMode} className={styles.exitMeetingBtn} aria-label="Exit meeting review mode">
                 Exit Meeting Mode
               </Button>
             </div>
@@ -2135,14 +2187,12 @@ export const DepartmentTrackingPage: React.FC = () => {
               <div className={styles.spotlightBodyInner}>
                 {/* Section banner — tab-context colored */}
                 <div
-                  className={styles.spotlightSectionBanner}
-                  style={{
-                    borderLeft: `4px solid ${
-                      activeTab === 'estimate-log' ? HBC_COLORS.info
-                        : activeTab === 'current-pursuits' ? HBC_COLORS.warning
-                        : HBC_COLORS.success
-                    }`,
-                  }}
+                  className={mergeClasses(
+                    styles.spotlightSectionBanner,
+                    activeTab === 'estimate-log' ? styles.sectionBannerEstimate
+                      : activeTab === 'current-pursuits' ? styles.sectionBannerPursuits
+                      : styles.sectionBannerPrecon
+                  )}
                 >
                   {activeTab === 'estimate-log' && <DocumentBulletList24Regular />}
                   {activeTab === 'current-pursuits' && <TargetArrow24Regular />}
@@ -2285,6 +2335,7 @@ export const DepartmentTrackingPage: React.FC = () => {
                     noteUser: styles.spotlightNoteUser,
                     noteText: styles.spotlightNoteText,
                     noteInput: styles.spotlightNoteInput,
+                    meetingNotesTextareaWrap: styles.meetingNotesTextareaWrap,
                   }}
                 />
 
@@ -2351,20 +2402,10 @@ export const DepartmentTrackingPage: React.FC = () => {
           </div>
         ) : (
           /* Normal mode — KPI grid, tabs, toolbar, table (all existing behavior preserved) */
-          <>
-            {/* Stage 18 Sub-task 7: ARIA live region for KPI dynamic content */}
-            <div className={styles.kpiGrid} role="region" aria-label="Key performance indicators">
-              {trackingKpis.map((kpi) => (
-                <Card key={kpi.key} className={styles.kpiCard} size="small">
-                  <div className={styles.kpiHeader}>
-                    <span className={styles.kpiLabel}>{kpi.label}</span>
-                    <Badge appearance="tint" color="brand">{tabLabel}</Badge>
-                  </div>
-                  <div className={styles.kpiValue}>{kpi.value}</div>
-                  <div className={styles.kpiSubtitle}>{kpi.subtitle}</div>
-                </Card>
-              ))}
-            </div>
+          <ErrorBoundary boundaryName="DepartmentTrackingContent">
+            <React.Suspense fallback={<><SkeletonLoader variant="table" rows={1} columns={5} /><SkeletonLoader variant="table" rows={8} columns={6} /></>}>
+            {/* P2.1: Reusable KPI grid (replaces manual Card grid from Stage 18) */}
+            <DashboardKpiGrid items={kpiGridItems} />
 
             <TabList
               selectedValue={activeTab}
@@ -2385,10 +2426,10 @@ export const DepartmentTrackingPage: React.FC = () => {
                   placeholder={`Search ${activeTab === 'estimate-log' ? 'estimate log' : activeTab === 'current-pursuits' ? 'pursuits' : 'preconstruction'}...`}
                   aria-label="Filter table rows"
                   size="small"
-                  style={{ maxWidth: 280 }}
+                  className={styles.searchInputConstrained}
                 />
                 <div className={styles.toolbarRight}>
-                  <span className={styles.rowCount}>
+                  <span className={styles.rowCount} role="status" aria-live="polite">
                     {filteredItems.length} of {activeItems.length} row(s)
                   </span>
                   {/* Stage 18 Sub-task 7: ARIA labels + ESTIMATING_READ/EDIT permission gates on all toolbar actions */}
@@ -2449,7 +2490,7 @@ export const DepartmentTrackingPage: React.FC = () => {
                       columnVisibility={columnVisibilityByTab['estimate-log']}
                       onColumnVisibilityChange={(next) => setColumnVisibilityByTab((previous) => ({ ...previous, 'estimate-log': next }))}
                       enableInlineEditing
-                      virtualization={{ enabled: true, threshold: 100 }}
+                      virtualization={DEPT_VIRTUALIZATION}
                       enableBuiltInToolbar={false}
                       enableBuiltInFooter={false}
                     />
@@ -2472,7 +2513,7 @@ export const DepartmentTrackingPage: React.FC = () => {
                       columnVisibility={columnVisibilityByTab['current-pursuits']}
                       onColumnVisibilityChange={(next) => setColumnVisibilityByTab((previous) => ({ ...previous, 'current-pursuits': next }))}
                       enableInlineEditing
-                      virtualization={{ enabled: true, threshold: 100 }}
+                      virtualization={DEPT_VIRTUALIZATION}
                       enableBuiltInToolbar={false}
                       enableBuiltInFooter={false}
                     />
@@ -2495,7 +2536,7 @@ export const DepartmentTrackingPage: React.FC = () => {
                       columnVisibility={columnVisibilityByTab['current-precon']}
                       onColumnVisibilityChange={(next) => setColumnVisibilityByTab((previous) => ({ ...previous, 'current-precon': next }))}
                       enableInlineEditing
-                      virtualization={{ enabled: true, threshold: 100 }}
+                      virtualization={DEPT_VIRTUALIZATION}
                       enableBuiltInToolbar={false}
                       enableBuiltInFooter={false}
                     />
@@ -2503,7 +2544,8 @@ export const DepartmentTrackingPage: React.FC = () => {
                 </>
               )}
             </div>
-          </>
+            </React.Suspense>
+          </ErrorBoundary>
         )}
       </div>
 
@@ -2827,7 +2869,7 @@ export const DepartmentTrackingPage: React.FC = () => {
                 <Input value={form.PX_ProjectExecutive} onChange={(_, d) => updateField('PX_ProjectExecutive', d.value)} />
               </HbcField>
               <HbcField label="Checklist Items">
-                <div style={{ display: 'grid', gap: '4px' }}>
+                <div className={styles.checklistGrid}>
                   <Checkbox label="Bid Bond (Wanda)" checked={form.Chk_BidBond} onChange={(_, d) => updateField('Chk_BidBond', Boolean(d.checked))} />
                   <Checkbox label="P&P Bond" checked={form.Chk_PPBond} onChange={(_, d) => updateField('Chk_PPBond', Boolean(d.checked))} />
                   <Checkbox label="Schedule" checked={form.Chk_Schedule} onChange={(_, d) => updateField('Chk_Schedule', Boolean(d.checked))} />

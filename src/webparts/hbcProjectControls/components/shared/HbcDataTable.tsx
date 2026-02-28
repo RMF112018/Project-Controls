@@ -123,6 +123,7 @@ interface IStoredTableSettings {
   globalFilter?: string;
   groupBy?: string[];
   columnVisibility?: Record<string, boolean>;
+  columnSizing?: Record<string, number>;
   pageIndex?: number;
 }
 
@@ -360,12 +361,16 @@ export function HbcDataTable<TData>({
   const [internalPageIndex, setInternalPageIndex] = React.useState<number>(() =>
     initialStoredSettings.pageIndex ?? 0
   );
+  const [internalColumnSizing, setInternalColumnSizing] = React.useState<Record<string, number>>(() =>
+    initialStoredSettings.columnSizing ?? {}
+  );
 
   const resolvedDensity = size ?? internalDensity;
   const resolvedFilter = globalFilter ?? internalFilter;
   const resolvedGroupBy = groupBy ?? internalGroupBy;
   const resolvedVisibility = columnVisibility ?? internalVisibility;
   const resolvedPageIndex = pageIndex ?? internalPageIndex;
+  const resolvedColumnSizing = columnSizing ?? internalColumnSizing;
 
   React.useEffect(() => {
     if (!enablePersistence) {
@@ -377,6 +382,7 @@ export function HbcDataTable<TData>({
       globalFilter: resolvedFilter,
       groupBy: resolvedGroupBy,
       columnVisibility: resolvedVisibility,
+      columnSizing: resolvedColumnSizing,
       pageIndex: resolvedPageIndex,
     });
   }, [
@@ -387,6 +393,7 @@ export function HbcDataTable<TData>({
     resolvedFilter,
     resolvedGroupBy,
     resolvedVisibility,
+    resolvedColumnSizing,
     resolvedPageIndex,
   ]);
 
@@ -667,8 +674,13 @@ export function HbcDataTable<TData>({
             selectedRowKeys={selectedRowKeys}
             onSelectedRowKeysChange={onSelectedRowKeysChange}
             enableColumnResize={enableColumnResize}
-            columnSizing={columnSizing}
-            onColumnSizingChange={onColumnSizingChange}
+            columnSizing={resolvedColumnSizing}
+            onColumnSizingChange={(nextSizing) => {
+              if (columnSizing === undefined) {
+                setInternalColumnSizing(nextSizing);
+              }
+              onColumnSizingChange?.(nextSizing);
+            }}
           />
         </div>
       </div>

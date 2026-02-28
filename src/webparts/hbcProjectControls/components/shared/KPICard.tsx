@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import { Badge, createFocusOutlineStyle, makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { ELEVATION, TRANSITION } from '../../theme/tokens';
 import { SlideDrawer } from './SlideDrawer';
 
@@ -15,9 +15,11 @@ const useStyles = makeStyles({
   },
   clickable: {
     cursor: 'pointer',
+    position: 'relative',
     ':hover': {
       boxShadow: ELEVATION.level2,
     },
+    ...createFocusOutlineStyle({ style: { outlineOffset: '2px' } }),
   },
   header: {
     display: 'flex',
@@ -54,11 +56,12 @@ interface IKPICardProps {
   subtitle?: string;
   icon?: React.ReactNode;
   trend?: { value: number; isPositive: boolean };
+  badge?: string;
   onClick?: () => void;
   drillDown?: React.ReactNode;
 }
 
-export const KPICard: React.FC<IKPICardProps> = ({ title, value, subtitle, icon, trend, onClick, drillDown }) => {
+export const KPICard: React.FC<IKPICardProps> = ({ title, value, subtitle, icon, trend, badge, onClick, drillDown }) => {
   const styles = useStyles();
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
@@ -75,12 +78,19 @@ export const KPICard: React.FC<IKPICardProps> = ({ title, value, subtitle, icon,
   return (
     <>
       <div
+        role="group"
+        aria-label={title}
+        tabIndex={isClickable ? 0 : undefined}
         onClick={isClickable ? handleClick : undefined}
+        onKeyDown={isClickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); } } : undefined}
         className={`${styles.card}${isClickable ? ` ${styles.clickable}` : ''}`}
       >
         <div className={styles.header}>
           <div>
-            <div className={styles.title}>{title}</div>
+            <div className={styles.title}>
+              {title}
+              {badge && <>{' '}<Badge appearance="tint" color="brand">{badge}</Badge></>}
+            </div>
             <div className={styles.value}>{value}</div>
             {subtitle && <div className={styles.subtitle}>{subtitle}</div>}
             {trend && (

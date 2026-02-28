@@ -1,23 +1,25 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import { useQueries } from '@tanstack/react-query';
 import { PageHeader } from '../../shared/PageHeader';
-import { KPICard } from '../../shared/KPICard';
+import { DashboardKpiGrid } from '../../common/DashboardKpiGrid';
+import type { IDashboardKpiItem } from '../../common/DashboardKpiGrid';
 import { HbcCard } from '../../shared/HbcCard';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
+import { ErrorBoundary } from '../../shared/ErrorBoundary';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
+import { useQueryScope } from '../../../tanstack/query/useQueryScope';
+import { activeProjectsOptions, scheduleMetricsOptions, deliverablesOptions } from '../../../tanstack/query/queryOptions/operations';
 import { HBC_COLORS } from '../../../theme/tokens';
 import { useSearch } from '@tanstack/react-router';
+import type { IActiveProject } from '@hbc/sp-services';
 
 const useStyles = makeStyles({
   container: {
     display: 'grid',
     ...shorthands.gap('24px'),
-  },
-  kpiGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-    ...shorthands.gap('16px'),
   },
   sectionGrid: {
     display: 'grid',
@@ -41,9 +43,26 @@ const useStyles = makeStyles({
   },
 });
 
+// P1.1: Formatting helpers for KPI derivation
+function formatCurrency(amount: number): string {
+  if (Math.abs(amount) >= 1_000_000) {
+    return `$${(amount / 1_000_000).toFixed(1)}M`;
+  }
+  if (Math.abs(amount) >= 1_000) {
+    return `$${(amount / 1_000).toFixed(0)}K`;
+  }
+  return `$${amount.toFixed(0)}`;
+}
+
+function formatSignedCurrency(amount: number): string {
+  const formatted = formatCurrency(Math.abs(amount));
+  return amount >= 0 ? `+${formatted}` : `-${formatted}`;
+}
+
 export const ProjectHubDashboardPage: React.FC = () => {
   const styles = useStyles();
-  const { selectedProject } = useAppContext();
+  const { selectedProject, dataService } = useAppContext();
+  const scope = useQueryScope();
   const { addToast } = useToast();
 
   // Stage 19: Detect incoming handoff from Preconstruction turnover meeting.
@@ -59,6 +78,86 @@ export const ProjectHubDashboardPage: React.FC = () => {
       );
     }
   }, [searchParams.handoffFrom, selectedProject, addToast]);
+
+  // P1.1: Three parallel queries → five KPI derivations
+  // Placed before early return to satisfy React hooks ordering rules.
+  // Queries use `enabled` to avoid firing when no project is selected.
+  const currentProjectCode = selectedProject?.projectCode ?? '';
+  const [projectResult, scheduleResult, deliverablesResult] = useQueries({
+    queries: [
+      {
+        ...activeProjectsOptions(scope, dataService),
+        select: (data: IActiveProject[]) =>
+          data.find((p) => p.projectCode === currentProjectCode),
+        enabled: !!currentProjectCode,
+      },
+      scheduleMetricsOptions(scope, dataService, currentProjectCode),
+      deliverablesOptions(scope, dataService, currentProjectCode),
+    ],
+  });
+
+  const isKpiLoading = projectResult.isLoading || scheduleResult.isLoading || deliverablesResult.isLoading;
+  const isKpiError = projectResult.isError || scheduleResult.isError || deliverablesResult.isError;
+
+  // P1.1: Derive 5 KPIs from query data
+  const kpis = React.useMemo((): IDashboardKpiItem[] | null => {
+    const project = projectResult.data;
+    const metrics = scheduleResult.data;
+    const deliverables = deliverablesResult.data;
+
+    if (!project) return null;
+
+    const fin = project.financials;
+    const pctComplete = project.schedule.percentComplete ?? 0;
+    const costVariance = (fin.currentContractValue ?? 0) - (fin.projectedCost ?? 0);
+    const openDeliverables = (deliverables ?? []).filter(
+      (d) => d.status !== 'Complete'
+    ).length;
+    const overdue = (deliverables ?? []).filter(
+      (d) => d.status !== 'Complete' && d.dueDate && new Date(d.dueDate) < new Date()
+    ).length;
+
+    // Schedule variance from earned value metrics (SV in duration units)
+    const sv = metrics?.earnedValueMetrics?.sv;
+    const spi = metrics?.spiApproximation;
+    const schedVarLabel = sv != null ? `${sv >= 0 ? '+' : ''}${sv.toFixed(0)} days` : '\u2014';
+    const schedSubtitle = spi != null
+      ? spi >= 1.0 ? 'Ahead of schedule' : spi >= 0.9 ? 'On track' : 'Behind schedule'
+      : undefined;
+
+    return [
+      {
+        key: 'contract',
+        title: 'Contract Value',
+        value: formatCurrency(fin.currentContractValue ?? 0),
+        trend: fin.changeOrders ? { value: Number(((fin.changeOrders / (fin.originalContract || 1)) * 100).toFixed(1)), isPositive: (fin.changeOrders ?? 0) >= 0 } : undefined,
+      },
+      {
+        key: 'complete',
+        title: '% Complete',
+        value: `${pctComplete}%`,
+        subtitle: pctComplete >= 100 ? 'Complete' : pctComplete > 0 ? 'In progress' : 'Not started',
+      },
+      {
+        key: 'sched-var',
+        title: 'Schedule Variance',
+        value: schedVarLabel,
+        subtitle: schedSubtitle,
+      },
+      {
+        key: 'cost-var',
+        title: 'Cost Variance',
+        value: formatSignedCurrency(costVariance),
+        trend: { value: Number(Math.abs((costVariance / (fin.currentContractValue || 1)) * 100).toFixed(1)), isPositive: costVariance >= 0 },
+      },
+      {
+        key: 'deliverables',
+        title: 'Open Deliverables',
+        value: String(openDeliverables),
+        subtitle: overdue > 0 ? `${overdue} overdue` : undefined,
+      },
+    ];
+  }, [projectResult.data, scheduleResult.data, deliverablesResult.data]);
 
   if (!selectedProject) {
     return (
@@ -84,15 +183,31 @@ export const ProjectHubDashboardPage: React.FC = () => {
         subtitle={`${projectCode} \u2014 ${projectName}`}
       />
 
-      <div className={styles.kpiGrid}>
-        <KPICard title="Contract Value" value="$12.4M" trend={{ value: 2.1, isPositive: true }} />
-        <KPICard title="% Complete" value="47%" subtitle="On track" />
-        <KPICard title="Schedule Variance" value="+3 days" subtitle="Ahead of schedule" />
-        <KPICard title="Cost Variance" value="-$45K" trend={{ value: 1.2, isPositive: true }} />
-        <KPICard title="Open RFIs" value="12" subtitle="3 overdue" />
-      </div>
+      <ErrorBoundary boundaryName="ProjectHubDashboard">
+        <React.Suspense fallback={<SkeletonLoader variant="table" rows={3} columns={5} />}>
+          {isKpiError ? (
+            <HbcEmptyState
+              title="Error loading KPIs"
+              description="Unable to load project metrics. Please try again."
+              actions={[{
+                id: 'retry-kpis',
+                label: 'Retry',
+                appearance: 'primary',
+                onClick: () => {
+                  void projectResult.refetch();
+                  void scheduleResult.refetch();
+                  void deliverablesResult.refetch();
+                },
+              }]}
+            />
+          ) : (
+            <DashboardKpiGrid
+              items={kpis ?? []}
+              isLoading={isKpiLoading}
+            />
+          )}
 
-      <div className={styles.sectionGrid}>
+          <div className={styles.sectionGrid}>
         <HbcCard title="Project Overview">
           <div className={styles.infoRow}>
             <span className={styles.label}>Project Code</span>
@@ -157,6 +272,8 @@ export const ProjectHubDashboardPage: React.FC = () => {
           </div>
         </HbcCard>
       </div>
+        </React.Suspense>
+      </ErrorBoundary>
     </div>
   );
 };
