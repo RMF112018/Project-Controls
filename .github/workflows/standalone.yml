@@ -89,7 +89,7 @@ jobs:
           kill $PREVIEW_PID || true
 
       - name: Upload standalone artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: standalone-dist-${{ github.sha }}
           path: dist-standalone/
@@ -101,7 +101,7 @@ jobs:
 
       - name: Upload bundle report
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.analyze == true }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: standalone-stats-${{ github.sha }}
           path: dist-standalone/stats.html
