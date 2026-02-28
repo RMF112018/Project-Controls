@@ -4,6 +4,12 @@ All notable changes to HBC Project Controls will be documented in this file.
 
 ## [Unreleased]
 
+### Stage 18D (2026-02-27) - Added GitHub Actions TODO tracker workflow (.github/workflows/todo-tracker.yml) to auto-create issues from Stage 19+ TODO comments on push/PR.
+
+### Stage 18C (2026-02-27) - Additional 10 TODO comments documenting Preconstruction ↔ Operations handoff gaps (award workflow, data sync, routing, models).
+
+### Stage 18B (2026-02-27) - Strategic TODO instrumentation in Estimating pages to document performance, offline, real-time, and deep-bid roadmap items (12 comments added).
+
 ### [2026-02-27] - Stage 18 COMPLETE - Sub-task 7 - feat(estimating) - Final Hardening: Performance, Permissions, ARIA, E2E
 
 #### Changed

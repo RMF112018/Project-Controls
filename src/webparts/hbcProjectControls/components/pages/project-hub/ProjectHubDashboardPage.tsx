@@ -7,6 +7,8 @@ import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useAppContext } from '../../contexts/AppContext';
 import { HBC_COLORS } from '../../../theme/tokens';
 
+// TODO (Stage 19+): Detect incoming handoff from Preconstruction via query param or TanStack Router loader and auto-populate kickoff data | Audit: zero re-keying for ops team | Impact: High
+
 const useStyles = makeStyles({
   container: {
     display: 'grid',

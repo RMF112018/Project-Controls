@@ -29,6 +29,8 @@ export interface IEstimatingTracker {
   Chk_BusinessTerms?: boolean;
   DocSetStage?: string;
   PreconFee?: number;
+  // TODO (Stage 19+): Auto-takeoff summary calculations and workflow handoff to Ops/PMP pages | Audit: effectiveness (no re-keying) | Impact: High
+  // TODO (Stage 19+): Add IProjectHandoffPayload interface for status, financial roll-up, team assignment sync to Operations | Audit: data consistency on award | Impact: High
   FeePaidToDate?: number;
   DesignBudget?: number;
   EstimateType?: DeliverableType;
@@ -43,3 +45,4 @@ export interface IEstimatingTracker {
   ActionItems?: string;
   MeetingReviewed?: boolean;
 }
+// TODO (Stage 19+): Extend with deep bid fields (takeoffs, assemblies, ProEst/Bluebeam integration points) | Audit: effectiveness (deep estimating) | Impact: High

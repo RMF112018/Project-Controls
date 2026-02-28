@@ -143,3 +143,4 @@ export const DEFAULT_ALERT_THRESHOLDS: IAlertThresholds = {
   feeErosionPct: 5,
   scheduleDelayDays: 30,
 };
+// TODO (Stage 19+): Add preconHandoffMetadata?: { estimatingId: string; preconFee: number; awardedDate: Date } | Audit: traceability from BD/Estimating | Impact: Medium

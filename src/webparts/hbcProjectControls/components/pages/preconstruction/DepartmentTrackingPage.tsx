@@ -69,6 +69,8 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { useQueryScope } from '../../../tanstack/query/useQueryScope';
 import { qk } from '../../../tanstack/query/queryKeys';
 
+// TODO (Stage 19+): Dark-mode parity & mobile-responsive drawer for field estimator use | Audit: usability | Impact: Medium
+
 // ── Styles ───────────────────────────────────────────────────────────
 const useStyles = makeStyles({
   container: {
@@ -1086,6 +1088,7 @@ const ProjectActionsMenu = React.memo(function ProjectActionsMenu(props: IProjec
   );
 });
 ProjectActionsMenu.displayName = 'ProjectActionsMenu';
+// TODO (Stage 19+): Voice-to-text for meeting notes using Web Speech API + Fluent UI integration | Audit: usability & inclusivity | Impact: Medium
 
 // ── Component ────────────────────────────────────────────────────────
 export const DepartmentTrackingPage: React.FC = () => {
@@ -1096,6 +1099,7 @@ export const DepartmentTrackingPage: React.FC = () => {
   const scope = useQueryScope();
   const queryClient = useQueryClient();
   const [isPendingSave, startTransition] = React.useTransition();
+  // TODO (Stage 19+): Migrate HbcDataTable to TanStack Table virtualized rows for 500+ bid records | Audit: large-table performance budget | Impact: High
   // Stage 18 Sub-task 7: non-blocking UI transitions for tab switches, meeting mode, exports.
   const [, startUITransition] = React.useTransition();
   const activeSaveKeyRef = React.useRef<string | null>(null);
@@ -1665,6 +1669,8 @@ export const DepartmentTrackingPage: React.FC = () => {
   }, []);
 
   // ── Stage 18 Sub-task 6b: Meeting Review Mode helpers ──────────────
+  // TODO (Stage 19+): Implement real-time co-editing (SharePoint live / SignalR) for concurrent estimator notes & actions | Audit: engagement in weekly department meetings | Impact: High
+  // TODO (Stage 19+): Surface Operational Excellence readiness KPI once project moves to Project Hub | Audit: visibility across precon/ops boundary | Impact: Medium
 
   // Navigate through the current tab's filtered dataset
   const meetingTotal = filteredItems.length;
@@ -1922,6 +1928,10 @@ export const DepartmentTrackingPage: React.FC = () => {
     document.title = previousTitle;
   }, [tabLabel]);
 
+  // TODO (Stage 19+): Offline-first export queue with IndexedDB fallback for field estimators on spotty Wi-Fi | Audit: stability (offline resilience) | Impact: High
+  // TODO (Stage 19+): Add "Mark as Awarded" action that triggers handoff mutation + deep-link to /project/[id]/hub | Audit: estimator-to-ops transition | Impact: High
+
+  // TODO (Stage 19+): Add personalized estimator dashboard widgets (e.g., "My Bids Closing This Week") with TanStack Query prefetch | Audit: engagement & effectiveness | Impact: Medium
   // Stage 18 Sub-task 5: derive KPI cards directly from live tab query rows (no additional service calls).
   const trackingKpis = React.useMemo((): ITrackingKpiCard[] => {
     const toNumber = (value: unknown): number => {

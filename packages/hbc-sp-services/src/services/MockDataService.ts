@@ -2105,6 +2105,8 @@ export class MockDataService implements IDataService {
     };
   }
 
+  // TODO (Stage 19+): Phase out mock fixtures once real Graph API + Power Automate bid ingestion is live | Audit: mock dominance | Impact: Low
+
   public async getEstimatingRecordById(id: number): Promise<IEstimatingTracker | null> {
     await delay();
     return this.estimatingRecords.find(r => r.id === id) ?? null;
@@ -6137,6 +6139,8 @@ export class MockDataService implements IDataService {
     await delay();
     return this.hubSiteUrl;
   }
+
+  // TODO (Stage 19+): Extend mock handoff fixtures to simulate full Precon → Ops lifecycle for E2E testing | Audit: offline/dev realism | Impact: Low
 
   async setHubSiteUrl(url: string): Promise<void> {
     await delay();

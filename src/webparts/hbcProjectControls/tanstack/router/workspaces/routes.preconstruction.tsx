@@ -178,6 +178,8 @@ export function createPreconstructionWorkspaceRoutes(rootRoute: unknown) {
     },
   });
 
+  // TODO (Stage 19+): Add protected /preconstruction/:id/award → /project/:id/hub redirect with permission check (ESTIMATING_AWARD → OPS_READ) | Audit: smooth navigation handoff | Impact: Medium
+
   const estimatingPostBid = createRoute({
     getParentRoute: () => preconLayout as never,
     path: '/preconstruction/estimating/post-bid',

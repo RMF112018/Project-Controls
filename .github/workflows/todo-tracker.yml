@@ -1,0 +1,27 @@
+name: TODO to Issue Tracker
+on:
+  push:
+    branches: [ hb-suite-stabilization, bc-suite-stabilization, main ]
+  pull_request:
+    branches: [ hb-suite-stabilization, bc-suite-stabilization, main ]
+jobs:
+  todo-to-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: TODO to Issue
+        uses: alstr/todo-to-issue-action@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-close: true
+          labels: "todo,Stage 19+,enhancement"
+          include: "src/,packages/hbc-sp-services/,CHANGELOG.md"
+          exclude: "node_modules/,dist/,mock/"
+          body: |
+            **File:** {{file}}
+            **Line:** {{line}}
+            **Impact:** {{body}}  <!-- parses our | Impact: High format -->
+            **Stage:** Stage 19+

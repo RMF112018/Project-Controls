@@ -210,6 +210,9 @@ export class SharePointDataService implements IDataService {
     this._pageContextUser = pageContextUser;
   }
 
+  // TODO (Stage 19+): Implement optimistic offline sync with conflict resolution for Meeting Mode saves | Audit: stability (Wi-Fi gaps in meetings) | Impact: High
+  // TODO (Stage 19+): Implement cross-list update (Estimating_Tracker → Project_Hub) with transaction safety on award | Audit: data integrity at stage boundary | Impact: High
+
   // Stage 4 (sub-task 3): centralized list-access precheck for clearer
   // permission and existence failures before hitting deeper list operations.
   private async ensureListAccess(listTitle: string, operation: 'read' | 'write'): Promise<void> {

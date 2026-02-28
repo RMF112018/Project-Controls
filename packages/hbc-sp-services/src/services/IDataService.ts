@@ -151,6 +151,8 @@ export interface IDataService {
   createEstimatingRecord(data: Partial<IEstimatingTracker>): Promise<IEstimatingTracker>;
   updateEstimatingRecord(id: number, data: Partial<IEstimatingTracker>): Promise<IEstimatingTracker>;
   deleteEstimatingRecord(id: number): Promise<void>;
+  // TODO (Stage 19+): Add audit-trail methods (createdBy, modifiedBy, version history) on all tracker mutations | Audit: stability (concurrent edits) | Impact: Medium
+  // TODO (Stage 19+): Add handoffProjectFromEstimating(estimatingId: string): Promise<ProjectId> with optimistic update | Audit: seamless lifecycle handoff | Impact: High
   getCurrentPursuits(): Promise<IEstimatingTracker[]>;
   getPreconEngagements(): Promise<IEstimatingTracker[]>;
   getEstimateLog(): Promise<IEstimatingTracker[]>;
