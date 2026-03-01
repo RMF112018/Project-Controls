@@ -14,6 +14,7 @@ const WAVE_A_METHODS = new Set<string>([
   'deleteLead',
   'createEstimatingRecord',
   'updateEstimatingRecord',
+  'deleteEstimatingRecord',
   'addBuyoutEntry',
   'updateBuyoutEntry',
   'removeBuyoutEntry',
@@ -27,6 +28,16 @@ const WAVE_A_METHODS = new Set<string>([
   'recordFinalDecision',
   'submitContractTracking',
   'respondToContractTracking',
+  // Phase 1 Task 1: Estimating suite mutations
+  'updateKickoffItem',
+  'addKickoffItem',
+  'removeKickoffItem',
+  'createEstimatingKickoff',
+  'updateEstimatingKickoff',
+  'updateKickoffKeyPersonnel',
+  'savePostBidAutopsy',
+  'createPostBidAutopsy',
+  'finalizePostBidAutopsy',
 ]);
 
 export interface IUseHbcOptimisticMutationOptions<TData, TVariables, TState>

@@ -17,6 +17,10 @@ export const QUERY_STALE_TIMES = {
   closeout: 2 * 60 * 1000,
   actionInbox: 60 * 1000,
   connectors: 60 * 1000,
+  // Estimating suite (Phase 1 Task 1)
+  estimating: 60 * 1000,
+  kickoff: 5 * 60 * 1000,
+  postBidAutopsy: 5 * 60 * 1000,
 } as const;
 
 /** Per-domain garbage collection times. */

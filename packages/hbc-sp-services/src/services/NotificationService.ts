@@ -157,6 +157,14 @@ function buildTemplate(
         recipientRoles: ['Business Development Manager', 'Leadership', 'Estimator', 'Preconstruction Manager'],
       };
 
+    case NotificationEvent.PostBidAutopsyCreated:
+      return {
+        subject: `Post-Bid Autopsy Created: ${ctx.leadTitle ?? 'Untitled'}`,
+        body: `A Post-Bid Autopsy has been initialized for "${ctx.leadTitle ?? 'Untitled'}" (${ctx.projectCode ?? ''}). The estimating team can now complete the process review and SWOC analysis.`,
+        type: NotificationType.Both,
+        recipientRoles: ['Estimator', 'Preconstruction Manager'],
+      };
+
     case NotificationEvent.CommitmentSubmitted:
       return {
         subject: `Commitment Review Required: ${ctx.divisionDescription ?? 'Unknown Division'} — ${ctx.projectCode ?? ''}`,

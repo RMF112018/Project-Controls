@@ -185,7 +185,9 @@ export function createPreconstructionWorkspaceRoutes(rootRoute: unknown) {
     path: '/preconstruction/estimating/post-bid',
     component: PostBidAutopsiesPage,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
-      requirePermission(context, PERMISSIONS.ESTIMATING_READ);
+      // Phase 1 Task 2: Narrowed from ESTIMATING_READ to domain-specific AUTOPSY_VIEW
+      // for proper granularity in the 70-permission matrix.
+      requirePermission(context, PERMISSIONS.AUTOPSY_VIEW);
     },
   });
 

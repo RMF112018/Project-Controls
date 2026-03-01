@@ -39,6 +39,10 @@ export interface IEstimatingTracker {
   CostPerUnit?: number;
   SubmittedDate?: string;
   AwardStatus?: AwardStatus;
+  /** Phase 2 Task 3: Post-bid autopsy lifecycle status — synced by useEstimatingMutation */
+  PostBidStatus?: 'InProgress' | 'Completed';
+  /** Phase 2 Task 3: FK to the post-bid autopsy record */
+  PostBidAutopsyId?: number;
   NotesFeedback?: string;
   /** Stage 18 Sub-task 6b: meeting review mode fields */
   MeetingNotes?: Array<{ timestamp: string; user: string; text: string }>;

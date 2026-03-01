@@ -137,6 +137,8 @@ export enum AuditAction {
   PermissionChanged = 'Permission.Changed',
   MeetingScheduled = 'Meeting.Scheduled',
   LossRecorded = 'Loss.Recorded',
+  AutopsyCreated = 'Autopsy.Created',
+  AutopsyUpdated = 'Autopsy.Updated',
   AutopsyCompleted = 'Autopsy.Completed',
   ConfigFeatureFlagChanged = 'Config.FeatureFlagChanged',
   ConfigRoleChanged = 'Config.RoleChanged',
@@ -315,6 +317,8 @@ export enum EntityType {
   ListThreshold = 'ListThreshold',
   // Phase 6A: Site Template Management
   SiteTemplate = 'SiteTemplate',
+  // Phase 2 Task 3: Post-Bid Autopsy workflow
+  PostBidAutopsy = 'PostBidAutopsy',
 }
 
 export enum DeliverableStatus {
@@ -446,6 +450,8 @@ export enum NotificationEvent {
   ProjectNumberRequestSubmittedToController = 'ProjectNumberRequestSubmittedToController',
   ProjectNumberProvisioned = 'ProjectNumberProvisioned',
   ProjectNumberAssignedNotification = 'ProjectNumberAssignedNotification',
+  // Phase 2 Task 3: Post-Bid Autopsy workflow
+  PostBidAutopsyCreated = 'PostBidAutopsyCreated',
 }
 
 export enum TurnoverStatus {

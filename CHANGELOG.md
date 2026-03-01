@@ -4,6 +4,34 @@ All notable changes to HBC Project Controls will be documented in this file.
 
 ## [Unreleased]
 
+### [2026-03-01] - Phase 2 Task 3: Post-Bid Autopsy end-to-end integration with Estimating Tracker
+
+#### Added
+- **Workflow spec** (`docs/specs/estimating-post-bid-workflow.md`): Complete lifecycle specification covering status transitions, audit trail, notifications, Excel export, permissions, and business rules
+- **`PostBidAutopsyService.buildExcelExportData()`**: Multi-sheet Excel export helper producing 3 sheets (Process Review, SWOC Analysis, Summary) using existing `POST_BID_PROCESS_QUESTIONS` and `SWOC_SECTIONS` configs
+- **Excel export button** on `PostBidAutopsyPage`: Dedicated "Excel" button in action bar calling `ExportService.exportToExcelMultiSheet()` for full multi-sheet autopsy download
+- **Audit trail** on all autopsy mutations: `Autopsy.Created`, `Autopsy.Updated`, `Autopsy.Completed` audit actions logged via `dataService.logAudit()` (fire-and-forget)
+- **Notification wiring**: `PostBidAutopsyCreated` notification on initialize (→ Estimator, Precon Manager) and `AutopsyFinalized` notification on finalize (→ BD, Leadership, Estimator, Precon Manager)
+- **Tracker status sync**: `IEstimatingTracker.PostBidStatus` auto-updated to `'InProgress'` on create and `'Completed'` on finalize, plus `PostBidAutopsyId` FK linkage
+
+#### Changed
+- **`enums.ts`**: Added `AuditAction.AutopsyCreated`, `AuditAction.AutopsyUpdated`, `EntityType.PostBidAutopsy`, `NotificationEvent.PostBidAutopsyCreated`
+- **`IEstimatingTracker`**: Added optional `PostBidStatus` and `PostBidAutopsyId` fields for lifecycle tracking
+- **`useEstimatingMutation`**: Autopsy mutations now fire audit entries, notifications, and tracker status sync via `onSuccessEffects` (non-blocking, fire-and-forget)
+
+### [2026-03-01] - Phase 1 Task 2: Finalize TanStack Router configuration for Estimating sub-routes
+
+#### Changed
+- **`routes.projecthub.tsx`**: Narrowed `phPostBid` route permission from `ESTIMATING_READ` to domain-specific `AUTOPSY_VIEW` for proper 70-permission granularity
+- **`routes.projecthub.tsx`**: Added `validateSearch` for `?projectCode` and `?leadId` on `phPostBid` route, matching existing `phEstKickoff` / `phTurnover` pattern for cross-workspace navigation from DepartmentTrackingPage
+- **`routes.projecthub.tsx`**: Added `ensureQueryData` prefetch in `beforeLoad` for `phEstKickoff` (kickoff data) and `phPostBid` (autopsy data) — first routes in the app to use data prefetch, warming TanStack Query cache during navigation
+- **`routes.projecthub.tsx`**: Added `pendingComponent: EstimatingRoutePendingFallback` on `phEstKickoff`, `phEstimate`, and `phPostBid` routes for form-oriented skeleton loading
+- **`routes.preconstruction.tsx`**: Narrowed `estimatingPostBid` route permission from `ESTIMATING_READ` to `AUTOPSY_VIEW`
+
+#### Added
+- **`EstimatingRoutePendingFallback`** (`components/boundaries/EstimatingRoutePendingFallback.tsx`): Form-oriented pending fallback (4-card KPI grid + 6-row form skeleton) for estimating routes, replacing default table skeleton during navigation transitions
+- Barrel export in `components/boundaries/index.ts`
+
 ### [2026-02-28] - chore: implement Codified Context Foundation
 
 ### Added

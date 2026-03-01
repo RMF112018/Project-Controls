@@ -11,6 +11,7 @@ import {
   type IPostBidAutopsy,
   type IPostBidAutopsyItem,
   POST_BID_PROCESS_QUESTIONS,
+  SWOC_SECTIONS,
 } from '../models/IPostBidAutopsy';
 
 export class PostBidAutopsyService {
@@ -127,5 +128,63 @@ export class PostBidAutopsyService {
     }
 
     return errors;
+  }
+
+  /**
+   * Phase 2 Task 3 — Build multi-sheet Excel export data for a Post-Bid Autopsy.
+   * Returns an array of { name, data } objects consumable by
+   * ExportService.exportToExcelMultiSheet().
+   *
+   * Sheet 1 "Process Review": 13+ rows — #, Question, Answer, Criteria, Weakness Notes
+   * Sheet 2 "SWOC Analysis": 16 rows — Section, Prompt, Response
+   * Sheet 3 "Summary": Key metrics and metadata
+   */
+  static buildExcelExportData(
+    autopsy: IPostBidAutopsy,
+  ): Array<{ name: string; data: Record<string, unknown>[] }> {
+    // ── Sheet 1: Process Review ──
+    const processRows: Record<string, unknown>[] = autopsy.items.map((item, idx) => ({
+      '#': idx + 1,
+      'Question': item.question,
+      'Answer': item.answer === 'yes' ? 'Yes' : item.answer === 'no' ? 'No' : '',
+      'Criteria': item.criteria ?? '',
+      'Weakness / Issue Notes': item.weaknessNotes ?? '',
+    }));
+
+    // ── Sheet 2: SWOC Analysis ──
+    const swocRows: Record<string, unknown>[] = [];
+    for (const section of SWOC_SECTIONS) {
+      for (const prompt of section.prompts) {
+        const value = autopsy[prompt.field as keyof IPostBidAutopsy];
+        swocRows.push({
+          'Section': section.title,
+          'Prompt': prompt.label,
+          'Response': (value as string) ?? '',
+        });
+      }
+    }
+
+    // ── Sheet 3: Summary ──
+    const summaryRows: Record<string, unknown>[] = [
+      { 'Field': 'Project Code', 'Value': autopsy.ProjectCode },
+      { 'Field': 'Analysis Date', 'Value': autopsy.AnalysisDate ?? '' },
+      { 'Field': 'Process Score', 'Value': `${PostBidAutopsyService.computeProcessScore(autopsy.items)}%` },
+      { 'Field': 'Overall Rating', 'Value': `${autopsy.overallRating}/10` },
+      { 'Field': 'Overall Project Rate', 'Value': autopsy.overallPercentage !== undefined ? `${autopsy.overallPercentage}%` : '' },
+      { 'Field': 'General Notes', 'Value': autopsy.generalNotes ?? '' },
+      { 'Field': 'SOP Change Requests', 'Value': autopsy.sopChangeRequests ?? '' },
+      { 'Field': 'Team Members', 'Value': (autopsy.employees ?? []).join(', ') },
+      { 'Field': 'Status', 'Value': autopsy.isFinalized ? 'Finalized' : 'In Progress' },
+      { 'Field': 'Finalized By', 'Value': autopsy.finalizedBy ?? '' },
+      { 'Field': 'Finalized Date', 'Value': autopsy.finalizedDate ? new Date(autopsy.finalizedDate).toLocaleDateString() : '' },
+      { 'Field': 'Created By', 'Value': autopsy.CreatedBy },
+      { 'Field': 'Created Date', 'Value': autopsy.CreatedDate ? new Date(autopsy.CreatedDate).toLocaleDateString() : '' },
+    ];
+
+    return [
+      { name: 'Process Review', data: processRows },
+      { name: 'SWOC Analysis', data: swocRows },
+      { name: 'Summary', data: summaryRows },
+    ];
   }
 }

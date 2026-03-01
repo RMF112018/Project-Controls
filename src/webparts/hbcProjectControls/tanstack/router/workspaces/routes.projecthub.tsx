@@ -4,6 +4,10 @@
  * Cross-cutting project-scoped module: Preconstruction, Project Manual,
  * Cost & Time, Logs & Reports, Documents.
  * 36 child routes + 1 layout route = 37 routes total.
+ *
+ * Phase 1 Task 2: Estimating routes upgraded with domain-specific permissions
+ * (KICKOFF_VIEW, AUTOPSY_VIEW), data prefetch via ensureQueryData, and
+ * per-route pendingComponent for form-oriented skeleton loading.
  */
 import * as React from 'react';
 import { createRoute, redirect } from '@tanstack/react-router';
@@ -12,6 +16,9 @@ import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
 import { requireProject } from '../guards/requireProject';
 import type { ITanStackRouteContext } from '../routeContext';
+import { kickoffByProjectOptions } from '../../query/queryOptions/kickoffQueryOptions';
+import { postBidAutopsyByProjectOptions } from '../../query/queryOptions/postBidAutopsyQueryOptions';
+import { EstimatingRoutePendingFallback } from '../../../components/boundaries/EstimatingRoutePendingFallback';
 
 // Layout
 const ProjectHubLayout = React.lazy(() =>
@@ -223,6 +230,7 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
     getParentRoute: () => phLayout as never,
     path: '/project-hub/precon/estimating-kickoff',
     component: EstimatingKickoffPage,
+    pendingComponent: EstimatingRoutePendingFallback,
     // Stage 9: Accept ?projectCode and ?leadId from DepartmentTrackingPage Kickoff context menu.
     // leadId supports future kickoff initialization via createEstimatingKickoff(projectCode, leadId).
     validateSearch: (search: Record<string, unknown>) => ({
@@ -230,12 +238,24 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
       leadId: search.leadId ? Number(search.leadId) : undefined,
     }),
     beforeLoad: ({ context, search }: { context: ITanStackRouteContext; search: { projectCode?: string } }) => {
+      // Authorization: KICKOFF_VIEW enforced at loader level (permissions-engine-spec.md).
+      // Covers Estimator, Preconstruction Manager, Administrator, and Leadership roles.
       requirePermission(context, PERMISSIONS.KICKOFF_VIEW);
       // Stage 9 routing fix: Accept projectCode from search params as alternative to
       // context.selectedProject. DepartmentTrackingPage passes projectCode via search
       // param for cross-workspace navigation (Preconstruction → Project Hub).
       if (!context.selectedProject?.projectCode && !search.projectCode) {
         throw redirect({ to: '/', replace: true });
+      }
+      // Phase 1 Task 2: Prefetch kickoff data during navigation so the component
+      // renders with warm cache. ensureQueryData returns cached data if fresh,
+      // otherwise fetches in background. Fire-and-forget (void) so navigation
+      // is not blocked — the pendingComponent shows if data is not yet ready.
+      const projectCode = context.selectedProject?.projectCode ?? search.projectCode ?? '';
+      if (projectCode) {
+        void context.queryClient.ensureQueryData(
+          kickoffByProjectOptions(context.scope, projectCode, context.dataService),
+        );
       }
     },
   });
@@ -244,7 +264,9 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
     getParentRoute: () => phLayout as never,
     path: '/project-hub/precon/estimate',
     component: PHEstimatePage,
+    pendingComponent: EstimatingRoutePendingFallback,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      // Authorization: ESTIMATING_READ covers the estimate detail view.
       requirePermission(context, PERMISSIONS.ESTIMATING_READ);
       requireProject(context);
     },
@@ -275,9 +297,31 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
     getParentRoute: () => phLayout as never,
     path: '/project-hub/precon/post-bid',
     component: PostBidAutopsyPage,
-    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
-      requirePermission(context, PERMISSIONS.ESTIMATING_READ);
-      requireProject(context);
+    pendingComponent: EstimatingRoutePendingFallback,
+    // Phase 1 Task 2: Accept ?projectCode and ?leadId from DepartmentTrackingPage
+    // Post-Bid context menu, matching the phEstKickoff / phTurnover pattern.
+    validateSearch: (search: Record<string, unknown>) => ({
+      projectCode: (search.projectCode as string) || undefined,
+      leadId: search.leadId ? Number(search.leadId) : undefined,
+    }),
+    beforeLoad: ({ context, search }: { context: ITanStackRouteContext; search: { projectCode?: string } }) => {
+      // Authorization: AUTOPSY_VIEW is the domain-specific read permission for
+      // post-bid autopsies (permissions-engine-spec.md). Previously used the broader
+      // ESTIMATING_READ — narrowed for proper 70-permission granularity.
+      requirePermission(context, PERMISSIONS.AUTOPSY_VIEW);
+      // Phase 1 Task 2: Accept projectCode from search params as alternative to
+      // context.selectedProject for cross-workspace navigation parity with kickoff/turnover.
+      if (!context.selectedProject?.projectCode && !search.projectCode) {
+        throw redirect({ to: '/', replace: true });
+      }
+      // Phase 1 Task 2: Prefetch post-bid autopsy data during navigation.
+      // Fire-and-forget so navigation is not blocked.
+      const projectCode = context.selectedProject?.projectCode ?? search.projectCode ?? '';
+      if (projectCode) {
+        void context.queryClient.ensureQueryData(
+          postBidAutopsyByProjectOptions(context.scope, projectCode, context.dataService),
+        );
+      }
     },
   });
 
