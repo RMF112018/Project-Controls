@@ -40,8 +40,9 @@ const PHEstimatePage = React.lazy(() =>
 const PHProjectTurnoverPage = React.lazy(() =>
   import('../../../components/pages/project-hub/PHProjectTurnoverPage').then(m => ({ default: m.PHProjectTurnoverPage }))
 );
-const PHPostBidAutopsyPage = React.lazy(() =>
-  import('../../../components/pages/project-hub/PHPostBidAutopsyPage').then(m => ({ default: m.PHPostBidAutopsyPage }))
+// Stage 21: Replaced PHPostBidAutopsyPage (mock dashboard) with full PostBidAutopsyPage.
+const PostBidAutopsyPage = React.lazy(() =>
+  import('../../../components/pages/project-hub/PostBidAutopsyPage').then(m => ({ default: m.PostBidAutopsyPage }))
 );
 
 // ── Project Manual ───────────────────────────────────────────────────
@@ -273,7 +274,7 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
   const phPostBid = createRoute({
     getParentRoute: () => phLayout as never,
     path: '/project-hub/precon/post-bid',
-    component: PHPostBidAutopsyPage,
+    component: PostBidAutopsyPage,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
       requirePermission(context, PERMISSIONS.ESTIMATING_READ);
       requireProject(context);

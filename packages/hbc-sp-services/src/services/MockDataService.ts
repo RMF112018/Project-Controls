@@ -137,6 +137,8 @@ import templateRegistryData from '../mock/templateRegistry.json';
 import roleConfigurationsData from '../mock/roleConfigurations.json';
 import siteTemplatesData from '../mock/siteTemplates.json';
 import { createEstimatingKickoffTemplate } from '../utils/estimatingKickoffTemplate';
+import { IPostBidAutopsy } from '../models/IPostBidAutopsy';
+import { PostBidAutopsyService } from './PostBidAutopsyService';
 import { STANDARD_BUYOUT_DIVISIONS } from '../utils/buyoutTemplate';
 import { DEFAULT_HUB_SITE_URL } from '../utils/constants';
 import { IEstimatingKickoff, IEstimatingKickoffItem, IKeyPersonnelEntry } from '../models/IEstimatingKickoff';
@@ -344,6 +346,7 @@ export class MockDataService implements IDataService {
   private turnoverItems: ITurnoverItem[];
   private closeoutItems: ICloseoutItem[];
   private lossAutopsies: ILossAutopsy[];
+  private postBidAutopsies: IPostBidAutopsy[];
   private checklistItems: IStartupChecklistItem[];
   private internalMatrixTasks: IInternalMatrixTask[];
   private teamRoleAssignments: ITeamRoleAssignment[];
@@ -495,6 +498,7 @@ export class MockDataService implements IDataService {
     this.interviewPreps = [];
     this.contractInfos = [];
     this.lossAutopsies = JSON.parse(JSON.stringify(mockLossAutopsies)) as ILossAutopsy[];
+    this.postBidAutopsies = [];
     this.checklistItems = JSON.parse(JSON.stringify(mockStartupChecklist)) as IStartupChecklistItem[];
     const matrixData = JSON.parse(JSON.stringify(mockInternalMatrix)) as { tasks: IInternalMatrixTask[]; recurringItems: unknown[]; teamAssignments: ITeamRoleAssignment[] };
     this.internalMatrixTasks = matrixData.tasks;
@@ -3299,6 +3303,69 @@ export class MockDataService implements IDataService {
   public async getAllLossAutopsies(): Promise<ILossAutopsy[]> {
     await delay();
     return this.lossAutopsies.map(a => ({ ...a }));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Post-Bid Autopsy (Stage 21)
+  // ---------------------------------------------------------------------------
+
+  public async getPostBidAutopsy(projectCode: string): Promise<IPostBidAutopsy | null> {
+    await delay();
+    return this.postBidAutopsies.find(a => a.ProjectCode === projectCode) ?? null;
+  }
+
+  public async getPostBidAutopsyByLeadId(leadId: number): Promise<IPostBidAutopsy | null> {
+    await delay();
+    return this.postBidAutopsies.find(a => a.LeadID === leadId) ?? null;
+  }
+
+  public async createPostBidAutopsy(data: Partial<IPostBidAutopsy>): Promise<IPostBidAutopsy> {
+    await delay();
+    const id = this.getNextId();
+    const autopsy = PostBidAutopsyService.createBlankAutopsy(
+      id,
+      data.ProjectCode ?? '',
+      data.CreatedBy ?? 'system',
+      data.LeadID,
+    );
+    this.postBidAutopsies.push(autopsy);
+    return { ...autopsy };
+  }
+
+  public async savePostBidAutopsy(data: Partial<IPostBidAutopsy>): Promise<IPostBidAutopsy> {
+    await delay();
+    const index = this.postBidAutopsies.findIndex(
+      a => a.id === data.id || a.ProjectCode === data.ProjectCode,
+    );
+    if (index === -1) throw new Error(`No post-bid autopsy found for id=${data.id}`);
+    const updated: IPostBidAutopsy = {
+      ...this.postBidAutopsies[index],
+      ...data,
+      processScore: data.items
+        ? PostBidAutopsyService.computeProcessScore(data.items)
+        : this.postBidAutopsies[index].processScore,
+      ModifiedBy: data.ModifiedBy ?? 'system',
+      ModifiedDate: new Date().toISOString(),
+    };
+    this.postBidAutopsies[index] = updated;
+    return { ...updated };
+  }
+
+  public async finalizePostBidAutopsy(
+    projectCode: string,
+    data: Partial<IPostBidAutopsy>,
+  ): Promise<IPostBidAutopsy> {
+    await delay();
+    const index = this.postBidAutopsies.findIndex(a => a.ProjectCode === projectCode);
+    if (index === -1) throw new Error(`No post-bid autopsy found for project ${projectCode}`);
+    this.postBidAutopsies[index] = {
+      ...this.postBidAutopsies[index],
+      ...data,
+      isFinalized: true,
+      finalizedDate: new Date().toISOString(),
+      finalizedBy: data.finalizedBy ?? 'system',
+    };
+    return { ...this.postBidAutopsies[index] };
   }
 
   // ---------------------------------------------------------------------------

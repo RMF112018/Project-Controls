@@ -16,6 +16,7 @@ export * from './ITurnoverItem';
 export * from './ICloseoutItem';
 export * from './IActionItem';
 export * from './ILossAutopsy';
+export * from './IPostBidAutopsy';
 export * from './IStartupChecklist';
 export * from './IResponsibilityMatrix';
 export * from './IMarketingProjectRecord';

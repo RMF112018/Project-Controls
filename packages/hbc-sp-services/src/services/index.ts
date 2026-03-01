@@ -62,3 +62,4 @@ export { GraphBatchService, graphBatchService } from './GraphBatchService';
 export type { IBatchRequest, IBatchResponse, IBatchResult } from './GraphBatchService';
 export { ProvisioningSaga } from './ProvisioningSaga';
 export { GraphBatchEnforcer, graphBatchEnforcer, bindEnforcerFeatureCheck } from './GraphBatchEnforcer';
+export { PostBidAutopsyService } from './PostBidAutopsyService';

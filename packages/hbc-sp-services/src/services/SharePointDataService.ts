@@ -1709,6 +1709,30 @@ export class SharePointDataService implements IDataService {
     return await this.sp.web.lists.getByTitle('Loss_Autopsy').items() as import('../models').ILossAutopsy[];
   }
 
+  // --- Post-Bid Autopsy (Stage 21) ---
+  async getPostBidAutopsy(projectCode: string): Promise<import('../models').IPostBidAutopsy | null> {
+    const items = await this.sp.web.lists.getByTitle('Post_Bid_Autopsy').items.filter(`ProjectCode eq '${projectCode}'`)();
+    return items.length > 0 ? items[0] as import('../models').IPostBidAutopsy : null;
+  }
+  async getPostBidAutopsyByLeadId(leadId: number): Promise<import('../models').IPostBidAutopsy | null> {
+    const items = await this.sp.web.lists.getByTitle('Post_Bid_Autopsy').items.filter(`LeadID eq ${leadId}`)();
+    return items.length > 0 ? items[0] as import('../models').IPostBidAutopsy : null;
+  }
+  async createPostBidAutopsy(data: Partial<import('../models').IPostBidAutopsy>): Promise<import('../models').IPostBidAutopsy> {
+    const result = await this.sp.web.lists.getByTitle('Post_Bid_Autopsy').items.add(data);
+    return result as unknown as import('../models').IPostBidAutopsy;
+  }
+  async savePostBidAutopsy(data: Partial<import('../models').IPostBidAutopsy>): Promise<import('../models').IPostBidAutopsy> {
+    await this.sp.web.lists.getByTitle('Post_Bid_Autopsy').items.getById(data.id!).update(data);
+    return data as import('../models').IPostBidAutopsy;
+  }
+  async finalizePostBidAutopsy(projectCode: string, data: Partial<import('../models').IPostBidAutopsy>): Promise<import('../models').IPostBidAutopsy> {
+    const existing = await this.getPostBidAutopsy(projectCode);
+    if (!existing) throw new Error(`No post-bid autopsy found for ${projectCode}`);
+    await this.sp.web.lists.getByTitle('Post_Bid_Autopsy').items.getById(existing.id).update({ ...data, isFinalized: true });
+    return { ...existing, ...data, isFinalized: true } as import('../models').IPostBidAutopsy;
+  }
+
   // --- App Context ---
   // SP-INDEX-REQUIRED: App_Context_Config → SiteURL
   async getAppContextConfig(siteUrl: string): Promise<{

@@ -19,6 +19,7 @@ import { IContractInfo } from '../models/IContractInfo';
 import { ITurnoverItem } from '../models/ITurnoverItem';
 import { ICloseoutItem } from '../models/ICloseoutItem';
 import { ILossAutopsy } from '../models/ILossAutopsy';
+import { IPostBidAutopsy } from '../models/IPostBidAutopsy';
 import { IStartupChecklistItem } from '../models/IStartupChecklist';
 import { IInternalMatrixTask, ITeamRoleAssignment, IOwnerContractArticle, ISubContractClause } from '../models/IResponsibilityMatrix';
 import { IMarketingProjectRecord } from '../models/IMarketingProjectRecord';
@@ -276,6 +277,13 @@ export interface IDataService {
   finalizeLossAutopsy(leadId: number, data: Partial<ILossAutopsy>): Promise<ILossAutopsy>;
   isAutopsyFinalized(leadId: number): Promise<boolean>;
   getAllLossAutopsies(): Promise<ILossAutopsy[]>;
+
+  // Post-Bid Autopsy (Stage 21)
+  getPostBidAutopsy(projectCode: string): Promise<IPostBidAutopsy | null>;
+  getPostBidAutopsyByLeadId(leadId: number): Promise<IPostBidAutopsy | null>;
+  createPostBidAutopsy(data: Partial<IPostBidAutopsy>): Promise<IPostBidAutopsy>;
+  savePostBidAutopsy(data: Partial<IPostBidAutopsy>): Promise<IPostBidAutopsy>;
+  finalizePostBidAutopsy(projectCode: string, data: Partial<IPostBidAutopsy>): Promise<IPostBidAutopsy>;
 
   // Startup Checklist
   getStartupChecklist(projectCode: string): Promise<IStartupChecklistItem[]>;

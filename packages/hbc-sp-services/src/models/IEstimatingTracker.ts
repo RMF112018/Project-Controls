@@ -51,4 +51,4 @@ export interface IEstimatingTracker {
 
 // TODO (Stage 19 – Sub-task 16): Immediately after deep-bid interfaces, add `IKickOffSection`, `IKickOffField` (with type: text/yesno/responsible/deadline/notes, editable, removable), `IKickOffTemplate` mirroring **every row/section from reference/Estimating Kickoff Template.xlsx**. Support dynamic addition of custom fields per section. Preserve all existing models. Reference new Sub-tasks 16–21 added 28 February 2026.
 
-// TODO (Stage 19 – Sub-task 22): Immediately after Kick-Off interfaces, add `IPostBidAutopsySection`, `IPostBidAutopsyField` (supporting Yes/No, rating 1-10, open discussion, strengths/weaknesses lists, employee list, etc.) mirroring **every row/section from reference/Estimating - Post Bid Autopsy.xlsx**. Support dynamic addition/removal of custom fields per section. Reference new Sub-tasks 22–27 added 28 February 2026.
+// Stage 19 Sub-task 22: COMPLETED in Stage 21 — see IPostBidAutopsy.ts

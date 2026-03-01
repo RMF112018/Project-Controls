@@ -97,6 +97,11 @@ export const qk = {
     all: (scope: IQueryScope) => [...qk.scope(scope), 'autopsy', 'all'] as const,
     byLeadId: (scope: IQueryScope, leadId: number) => [...qk.scope(scope), 'autopsy', 'byLeadId', leadId] as const,
   },
+  postBidAutopsy: {
+    base: (scope: IQueryScope) => [...qk.scope(scope), 'postBidAutopsy'] as const,
+    byProject: (scope: IQueryScope, projectCode: string) => [...qk.scope(scope), 'postBidAutopsy', 'byProject', projectCode] as const,
+    byLeadId: (scope: IQueryScope, leadId: number) => [...qk.scope(scope), 'postBidAutopsy', 'byLeadId', leadId] as const,
+  },
   jobNumber: {
     base: (scope: IQueryScope) => [...qk.scope(scope), 'jobNumber'] as const,
     list: (scope: IQueryScope, statusHash: string) => [...qk.scope(scope), 'jobNumber', 'list', statusHash] as const,

@@ -4,6 +4,48 @@ All notable changes to HBC Project Controls will be documented in this file.
 
 ## [Unreleased]
 
+### [2026-02-28] - chore: implement Codified Context Foundation
+
+### Added
+- `tools/context-drift-check.py` – context drift detection adapted from the paper (arXiv:2602.20478) at commit 83db2ad9e8b0b8f164562564dbff4fad554d4e8b
+
+### Added
+- Codified Context Foundation – three-tier AI agent memory infrastructure (Hot-memory Constitution, Cold Knowledge Base, MCP retrieval server, and drift detection) to eliminate session drift and enable consistent agentic development.
+
+- Implements the three-tier AI agent memory infrastructure from the paper "Codified Context: Infrastructure for AI Agents in a Complex Codebase":
+- Hot-memory Constitution (CLAUDE.md)
+- 7 Domain-Expert Agents
+- Cold Knowledge Base (docs/specs/)
+- MCP Retrieval Server (tools/mcp-retrieval-server/)
+- Context drift detection (tools/context-drift-check.py)
+
+Establishes persistent, executable memory for Claude Code sessions and enables self-tuning per the paper.  
+Grounded in commit 83db2ad9e8b0b8f164562564dbff4fad554d4e8b.
+
+### [2026-02-28] - Stage 21 — Post-Bid Autopsy Digital Transformation
+
+#### Added
+- `IPostBidAutopsy` model with full interface, 13 process question items, 16 SWOC flat text fields, closing fields, and employee list (`packages/hbc-sp-services/src/models/IPostBidAutopsy.ts`)
+- `PostBidAutopsyService` with template factory (`createBlankAutopsy`), score computation (`computeProcessScore`), completion tracking, and finalization validation (`packages/hbc-sp-services/src/services/PostBidAutopsyService.ts`)
+- 5 new `IDataService` methods: `getPostBidAutopsy`, `getPostBidAutopsyByLeadId`, `createPostBidAutopsy`, `savePostBidAutopsy`, `finalizePostBidAutopsy`
+- `PostBidAutopsyPage` — full editable form replacing mock `PHPostBidAutopsyPage` at `/project-hub/precon/post-bid`:
+  - 13 Yes/No estimating process questions with conditional weakness notes (disabled when Yes)
+  - 4 SWOC open-discussion sections (Strengths, Weaknesses, Opportunities, Challenges) with 16 labeled textareas
+  - Confidentiality banner for Challenges section (hard-bid scenarios)
+  - Summary & Closing: overall rating (1–10 slider), percentage, general notes, SOP change requests
+  - Employees section via AzureADPeoplePicker (multiSelect)
+  - KPI cards: Process Score %, Overall Rating, Status, Completion
+  - "Initialize from Template" for first-time setup, "Finalize & Lock" with confirmation dialog
+  - TanStack Query integration with optimistic updates
+  - Custom question addition support
+  - ExportButtons for PDF/data export
+- TanStack Query keys (`qk.postBidAutopsy`) and query option factories
+- 100% field parity with `reference/Estimating - Post Bid Autopsy.xlsx`
+
+#### Changed
+- Route `/project-hub/precon/post-bid` now renders `PostBidAutopsyPage` (was `PHPostBidAutopsyPage` mock dashboard)
+- Marked Stage 19 Sub-task 22 TODO as completed in `IEstimatingTracker.ts`
+
 <!-- TODO (Stage 19 – Sub-task 11): Add detailed entry under Stage 19 describing the non-disruptive Excel import engine, primary-selection logic, supported workbooks, and handoff benefits. Reference: plan CHANGELOG entry deliverable. -->
 
 ### [2026-02-28] - Stage 19 Sub-task 4 - feat(turnover) - Floating Collapsible Discussion Panel
