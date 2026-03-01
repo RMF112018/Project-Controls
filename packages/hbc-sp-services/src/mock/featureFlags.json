@@ -1,5 +1,15 @@
 [
   {
+    "id": 2,
+    "FeatureName": "GoNoGoScorecard",
+    "DisplayName": "Go/No-Go Scorecard",
+    "Enabled": true,
+    "EnabledForRoles": null,
+    "TargetDate": null,
+    "Notes": "Phase 1 GNG Plan: Enables Go/No-Go scorecard scoring UI and TanStack Query hooks",
+    "Category": "Core Platform"
+  },
+  {
     "id": 23,
     "FeatureName": "PermissionEngine",
     "DisplayName": "Permission Engine",

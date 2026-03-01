@@ -1,10 +1,23 @@
+/**
+ * Phase 2 (GNG Plan) — Go/No-Go Scorecards list view.
+ *
+ * Migrated from useEffect data fetching to TanStack Query v5.
+ * Row-click navigates to the detail scoring page.
+ *
+ * Consumed by GoNoGoPage (preconstruction) and PHGoNoGoPage (project-hub).
+ */
 import * as React from 'react';
 import { Button, makeStyles, MessageBar, shorthands, Spinner, tokens } from '@fluentui/react-components';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { GoNoGoDecision, type IGoNoGoScorecard, RoleName, ScorecardStatus } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcDataTable } from '../../shared/HbcDataTable';
 import type { IHbcDataTableColumn } from '../../shared/HbcDataTable';
 import { useAppContext } from '../../contexts/AppContext';
+import { useNavigate } from '@router';
+import { gonogoScorecardsOptions } from '../../../tanstack/query/queryOptions/gonogoQueryOptions';
+import { useQueryScope } from '../../../tanstack/query/useQueryScope';
+import { qk } from '../../../tanstack/query/queryKeys';
 import { useWorkflowMachine } from '../../hooks/useWorkflowMachine';
 import { useWorkflowTransition } from '../../hooks/useWorkflowTransition';
 import { useHbcOptimisticMutation } from '../../../tanstack/query/mutations/useHbcOptimisticMutation';
@@ -75,8 +88,23 @@ function mapStateToStatus(state: string, fallback: ScorecardStatus): ScorecardSt
 export const GoNoGoScorecard: React.FC<IGoNoGoScorecardProps> = ({ mode }) => {
   const styles = useStyles();
   const { dataService, currentUser, selectedProject } = useAppContext();
-  const [scorecards, setScorecards] = React.useState<IGoNoGoScorecard[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const navigate = useNavigate();
+  const scope = useQueryScope();
+  const queryClient = useQueryClient();
+
+  // ── TanStack Query for scorecards (replaces useEffect) ─────────────
+
+  const { data: allScorecards = [], isLoading } = useQuery(
+    gonogoScorecardsOptions(scope, dataService),
+  );
+
+  // Filter for project-hub mode
+  const scorecards = React.useMemo(() => {
+    if (mode === 'project-hub' && selectedProject?.leadId) {
+      return allScorecards.filter((item) => item.LeadID === selectedProject.leadId);
+    }
+    return allScorecards;
+  }, [mode, selectedProject?.leadId, allScorecards]);
 
   const activeScorecard = React.useMemo(() => {
     if (mode === 'project-hub' && selectedProject?.leadId) {
@@ -85,31 +113,16 @@ export const GoNoGoScorecard: React.FC<IGoNoGoScorecardProps> = ({ mode }) => {
     return scorecards[0] ?? null;
   }, [mode, selectedProject?.leadId, scorecards]);
 
-  React.useEffect(() => {
-    let isMounted = true;
-    setLoading(true);
-    dataService.getScorecards()
-      .then((items) => {
-        if (!isMounted) return;
-        if (mode === 'project-hub' && selectedProject?.leadId) {
-          setScorecards(items.filter((item) => item.LeadID === selectedProject.leadId));
-          return;
-        }
-        setScorecards(items);
-      })
-      .catch(() => {
-        if (!isMounted) return;
-        setScorecards([]);
-      })
-      .finally(() => {
-        if (!isMounted) return;
-        setLoading(false);
-      });
+  // ── Row click navigation ───────────────────────────────────────────
 
-    return () => {
-      isMounted = false;
-    };
-  }, [dataService, mode, selectedProject?.leadId]);
+  const handleRowClick = React.useCallback((row: IGoNoGoScorecard) => {
+    const basePath = mode === 'project-hub'
+      ? '/project-hub/precon/go-no-go'
+      : '/preconstruction/bd/go-no-go';
+    navigate(`${basePath}/${row.LeadID}`);
+  }, [mode, navigate]);
+
+  // ── Workflow integration ───────────────────────────────────────────
 
   const optimisticMutation = useHbcOptimisticMutation<IGoNoGoScorecard, { eventType: string }, IGoNoGoScorecard[]>({
     method: 'submitScorecard',
@@ -148,13 +161,10 @@ export const GoNoGoScorecard: React.FC<IGoNoGoScorecardProps> = ({ mode }) => {
           return dataService.updateScorecard(activeScorecard.id, {});
       }
     },
-    getStateKey: () => ['gonogo', 'scorecards'],
+    getStateKey: () => qk.gonogo.scorecards(scope),
     applyOptimistic: (previous) => previous ?? [],
     onSettledEffects: async () => {
-      const refreshed = await dataService.getScorecards();
-      setScorecards(mode === 'project-hub' && selectedProject?.leadId
-        ? refreshed.filter((item) => item.LeadID === selectedProject.leadId)
-        : refreshed);
+      await queryClient.invalidateQueries({ queryKey: qk.gonogo.base(scope) });
     },
   });
 
@@ -261,8 +271,9 @@ export const GoNoGoScorecard: React.FC<IGoNoGoScorecardProps> = ({ mode }) => {
         tableId={mode === 'project-hub' ? 'projecthub-gonogo' : 'precon-gonogo'}
         columns={columns}
         items={scorecards}
-        isLoading={loading}
+        isLoading={isLoading}
         keyExtractor={(row) => String(row.id)}
+        onRowClick={handleRowClick}
       />
 
     </div>

@@ -26,6 +26,9 @@ const WAVE_A_METHODS = new Set<string>([
   'submitScorecard',
   'respondToScorecardSubmission',
   'recordFinalDecision',
+  // Phase 1 GNG Plan: scorecard score entry + creation
+  'updateScorecard',
+  'createScorecard',
   'submitContractTracking',
   'respondToContractTracking',
   // Phase 1 Task 1: Estimating suite mutations
@@ -38,6 +41,11 @@ const WAVE_A_METHODS = new Set<string>([
   'savePostBidAutopsy',
   'createPostBidAutopsy',
   'finalizePostBidAutopsy',
+  // Phase 3 GNG: Scorecard Collaboration
+  'addScorecardComment',
+  'updateScorecardComment',
+  'deleteScorecardComment',
+  'addScorecardNote',
 ]);
 
 export interface IUseHbcOptimisticMutationOptions<TData, TVariables, TState>

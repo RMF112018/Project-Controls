@@ -81,6 +81,10 @@ export const qk = {
     scorecards: (scope: IQueryScope) => [...qk.scope(scope), 'gonogo', 'scorecards'] as const,
     byLeadId: (scope: IQueryScope, leadId: number) => [...qk.scope(scope), 'gonogo', 'byLeadId', leadId] as const,
     versions: (scope: IQueryScope, scorecardId: number) => [...qk.scope(scope), 'gonogo', 'versions', scorecardId] as const,
+    // Phase 3: Collaboration
+    comments: (scope: IQueryScope, scorecardId: number) => [...qk.scope(scope), 'gonogo', 'comments', scorecardId] as const,
+    notes: (scope: IQueryScope, scorecardId: number) => [...qk.scope(scope), 'gonogo', 'notes', scorecardId] as const,
+    auditLog: (scope: IQueryScope, scorecardId: number) => [...qk.scope(scope), 'gonogo', 'auditLog', scorecardId] as const,
   },
   scorecards: {
     base: (scope: IQueryScope) => [...qk.scope(scope), 'gonogo', 'scorecards'] as const,

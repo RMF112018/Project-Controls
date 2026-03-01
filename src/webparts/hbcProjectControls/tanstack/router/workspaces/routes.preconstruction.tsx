@@ -12,6 +12,7 @@ import { requirePermission } from '../guards/requirePermission';
 import { requireProject } from '../guards/requireProject';
 import { requireRole } from '../guards/requireRole';
 import type { ITanStackRouteContext } from '../routeContext';
+import { RouteErrorBoundary } from '../../../components/boundaries/RouteErrorBoundary';
 
 // Lazy page imports for code-splitting
 const PreconstructionLayout = React.lazy(() =>
@@ -30,6 +31,9 @@ const LeadManagementPage = React.lazy(() =>
 );
 const GoNoGoPage = React.lazy(() =>
   import('../../../components/pages/preconstruction/GoNoGoPage').then(m => ({ default: m.GoNoGoPage }))
+);
+const GoNoGoScorecardDetail = React.lazy(() =>
+  import('../../../components/pages/hub/GoNoGoScorecardDetail').then(m => ({ default: m.GoNoGoScorecardDetail }))
 );
 const PipelinePage = React.lazy(() =>
   import('../../../components/pages/preconstruction/PipelinePage').then(m => ({ default: m.PipelinePage }))
@@ -125,6 +129,16 @@ export function createPreconstructionWorkspaceRoutes(rootRoute: unknown) {
     getParentRoute: () => preconLayout as never,
     path: '/preconstruction/bd/go-no-go',
     component: GoNoGoPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.GONOGO_READ);
+    },
+  });
+
+  const bdGoNoGoDetail = createRoute({
+    getParentRoute: () => preconLayout as never,
+    path: '/preconstruction/bd/go-no-go/$leadId',
+    component: GoNoGoScorecardDetail,
+    errorComponent: RouteErrorBoundary,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
       requirePermission(context, PERMISSIONS.GONOGO_READ);
     },
@@ -286,6 +300,7 @@ export function createPreconstructionWorkspaceRoutes(rootRoute: unknown) {
       bdDashboard,
       bdLeads,
       bdGoNoGo,
+      bdGoNoGoDetail,
       bdPipeline,
       bdProjectHub,
       bdDocuments,

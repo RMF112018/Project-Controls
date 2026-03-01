@@ -262,6 +262,12 @@ export enum AuditAction {
   TemplateSyncStarted = 'Template.SyncStarted',
   TemplateSyncCompleted = 'Template.SyncCompleted',
   TemplateSyncFailed = 'Template.SyncFailed',
+  // Phase 3 GNG: Scorecard Collaboration
+  ScorecardCommentAdded = 'Scorecard.CommentAdded',
+  ScorecardCommentEdited = 'Scorecard.CommentEdited',
+  ScorecardCommentDeleted = 'Scorecard.CommentDeleted',
+  ScorecardNoteAdded = 'Scorecard.NoteAdded',
+  ScorecardMentionSent = 'Scorecard.MentionSent',
   // Phase 7S3: Security Hardening
   BackpressureRejected = 'Graph.BackpressureRejected',
   FeatureFlagViolation = 'Security.FeatureFlagViolation',
@@ -319,6 +325,9 @@ export enum EntityType {
   SiteTemplate = 'SiteTemplate',
   // Phase 2 Task 3: Post-Bid Autopsy workflow
   PostBidAutopsy = 'PostBidAutopsy',
+  // Phase 3 GNG: Scorecard Collaboration
+  ScorecardComment = 'ScorecardComment',
+  ScorecardNote = 'ScorecardNote',
 }
 
 export enum DeliverableStatus {
@@ -452,6 +461,9 @@ export enum NotificationEvent {
   ProjectNumberAssignedNotification = 'ProjectNumberAssignedNotification',
   // Phase 2 Task 3: Post-Bid Autopsy workflow
   PostBidAutopsyCreated = 'PostBidAutopsyCreated',
+  // Phase 3 GNG: Scorecard Collaboration
+  ScorecardCommentMentioned = 'ScorecardCommentMentioned',
+  ScorecardNoteMentioned = 'ScorecardNoteMentioned',
 }
 
 export enum TurnoverStatus {

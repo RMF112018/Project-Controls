@@ -12,7 +12,7 @@ import {
 } from './IDataService';
 import { safeODataEq, safeODataSubstringOf } from '../utils/odataSanitizer';
 import { ILead, ILeadFormData } from '../models/ILead';
-import { IGoNoGoScorecard, IScorecardApprovalCycle, IScorecardApprovalStep, IScorecardVersion } from '../models/IGoNoGoScorecard';
+import { IGoNoGoScorecard, IScorecardApprovalCycle, IScorecardApprovalStep, IScorecardVersion, IScorecardCriterionComment, IScorecardNote } from '../models/IGoNoGoScorecard';
 import { IEstimatingTracker } from '../models/IEstimatingTracker';
 import { IRole, ICurrentUser } from '../models/IRole';
 import { IFeatureFlag } from '../models/IFeatureFlag';
@@ -7734,6 +7734,18 @@ export class SharePointDataService implements IDataService {
     performanceService.endMark('sp:archiveScorecard');
     return result;
   }
+
+  // ---------------------------------------------------------------------------
+  // Phase 3: Scorecard Collaboration — stubs (to be wired to SP lists)
+  // ---------------------------------------------------------------------------
+
+  public async getScorecardComments(_scorecardId: number): Promise<IScorecardCriterionComment[]> { throw new Error('Not implemented'); }
+  public async addScorecardComment(_scorecardId: number, _criterionId: number, _text: string, _authorEmail: string, _authorName: string): Promise<IScorecardCriterionComment> { throw new Error('Not implemented'); }
+  public async updateScorecardComment(_commentId: number, _text: string): Promise<IScorecardCriterionComment> { throw new Error('Not implemented'); }
+  public async deleteScorecardComment(_commentId: number): Promise<void> { throw new Error('Not implemented'); }
+  public async getScorecardNotes(_scorecardId: number): Promise<IScorecardNote[]> { throw new Error('Not implemented'); }
+  public async addScorecardNote(_scorecardId: number, _text: string, _authorEmail: string, _authorName: string, _mentions: string[]): Promise<IScorecardNote> { throw new Error('Not implemented'); }
+  public async getScorecardAuditLog(_scorecardId: number): Promise<IAuditEntry[]> { throw new Error('Not implemented'); }
 
   // ---------------------------------------------------------------------------
   // External Connectors (Phase 4A) — stubs

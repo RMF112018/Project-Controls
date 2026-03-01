@@ -59,3 +59,12 @@ export type { IHeaderUserMenuProps } from './HeaderUserMenu';
 export { KickOffSection } from './KickOffSection';
 export type { IKickOffSectionProps } from './KickOffSection';
 export * from './editableCells';
+// Phase 3: Collaboration
+export { CriterionCommentPopover } from './CriterionCommentPopover';
+export { ScorecardNotePanel } from './ScorecardNotePanel';
+export { ScorecardAuditLog } from './ScorecardAuditLog';
+export { ConflictDialog } from './ConflictDialog';
+export { LastEditedAvatar } from './LastEditedAvatar';
+// Phase 4: Polish & Integration
+export { ProjectHeaderInfo } from './ProjectHeaderInfo';
+export type { IProjectHeaderInfoProps } from './ProjectHeaderInfo';

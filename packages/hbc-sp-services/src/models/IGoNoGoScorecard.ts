@@ -86,6 +86,46 @@ export interface IGoNoGoScorecard {
   isArchived?: boolean;
   archivedDate?: string;
   archivedBy?: string;
+  // Phase 3: Collaboration
+  criterionComments?: IScorecardCriterionComment[];
+  notes?: IScorecardNote[];
+  criterionMeta?: IScorecardCriterionMeta;
+  lastModifiedDate?: string;   // ISO — conflict detection baseline
+  lastModifiedBy?: string;     // email
+}
+
+// Phase 3: Per-criterion inline comments
+export interface IScorecardCriterionComment {
+  id: number;
+  scorecardId: number;
+  criterionId: number;        // 1-19, matches SCORECARD_CRITERIA.id
+  authorEmail: string;
+  authorName: string;
+  text: string;
+  createdDate: string;        // ISO
+  editedDate?: string;
+}
+
+// Phase 3: Global discussion notes with @mentions
+export interface IScorecardNote {
+  id: number;
+  scorecardId: number;
+  authorEmail: string;
+  authorName: string;
+  text: string;
+  mentions: string[];          // emails of @mentioned users
+  createdDate: string;
+  editedDate?: string;
+}
+
+// Phase 3: Per-criterion last-edited tracking
+export interface IScorecardCriterionMeta {
+  [criterionId: number]: {
+    lastEditedBy_orig?: string;  // email
+    lastEditedAt_orig?: string;  // ISO
+    lastEditedBy_cmte?: string;
+    lastEditedAt_cmte?: string;
+  };
 }
 
 // IPersonAssignment is defined in IWorkflowDefinition.ts and re-exported from barrel

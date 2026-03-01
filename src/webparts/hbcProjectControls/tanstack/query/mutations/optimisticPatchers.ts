@@ -5,7 +5,10 @@ import type {
   IEstimatingKickoff,
   IEstimatingKickoffItem,
   IPostBidAutopsy,
+  IGoNoGoScorecard,
+  IScorecardCriterionComment,
 } from '@hbc/sp-services';
+import { calculateTotalScore } from '@hbc/sp-services';
 
 export function appendBuyoutEntryOptimistic(entries: IBuyoutEntry[], entry: IBuyoutEntry): IBuyoutEntry[] {
   return [...entries, entry].sort((a, b) => a.divisionCode.localeCompare(b.divisionCode));
@@ -109,5 +112,48 @@ export function mergeAutopsyOptimistic(
     ...autopsy,
     ...patch,
     ModifiedDate: new Date().toISOString(),
+  };
+}
+
+// ── Go/No-Go Scorecard Comment Patchers (Phase 3 GNG Plan) ──────────
+
+export function appendCommentOptimistic(
+  comments: IScorecardCriterionComment[],
+  comment: IScorecardCriterionComment,
+): IScorecardCriterionComment[] {
+  return [...comments, comment].sort((a, b) => a.createdDate.localeCompare(b.createdDate));
+}
+
+export function removeCommentOptimistic(
+  comments: IScorecardCriterionComment[],
+  commentId: number,
+): IScorecardCriterionComment[] {
+  return comments.filter((c) => c.id !== commentId);
+}
+
+// ── Go/No-Go Scorecard Patchers (Phase 1 GNG Plan) ───────────────────
+
+/**
+ * Optimistically merges a single criterion score into a scorecard,
+ * recalculating totals client-side via scoreCalculator.
+ */
+export function mergeScorecardScoresOptimistic(
+  scorecard: IGoNoGoScorecard,
+  criterionId: number,
+  column: 'originator' | 'committee',
+  value: number,
+): IGoNoGoScorecard {
+  const updatedScores: IGoNoGoScorecard['scores'] = {
+    ...scorecard.scores,
+    [criterionId]: {
+      ...scorecard.scores[criterionId],
+      [column]: value,
+    },
+  };
+  return {
+    ...scorecard,
+    scores: updatedScores,
+    TotalScore_Orig: calculateTotalScore(updatedScores, 'originator'),
+    TotalScore_Cmte: calculateTotalScore(updatedScores, 'committee'),
   };
 }

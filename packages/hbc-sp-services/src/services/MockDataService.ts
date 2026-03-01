@@ -16,6 +16,8 @@ import {
   IScorecardApprovalCycle,
   IScorecardApprovalStep,
   IScorecardVersion,
+  IScorecardCriterionComment,
+  IScorecardNote,
   IPersonAssignment,
   IEstimatingTracker,
   IRole,
@@ -418,6 +420,9 @@ export class MockDataService implements IDataService {
   private bambooTimeOff: IBambooHRTimeOff[];
   private bambooMappings: IBambooHREmployeeMapping[];
   private siteTemplates: ISiteTemplate[];
+  // Phase 3 GNG: Scorecard Collaboration
+  private scorecardCriterionComments: IScorecardCriterionComment[];
+  private scorecardNotes: IScorecardNote[];
   private nextId: number;
 
   // Dev-only: overridable role for the RoleSwitcher toolbar
@@ -802,6 +807,9 @@ export class MockDataService implements IDataService {
     ];
 
     this.siteTemplates = JSON.parse(JSON.stringify(siteTemplatesData)) as ISiteTemplate[];
+    // Phase 3 GNG: Scorecard Collaboration
+    this.scorecardCriterionComments = [];
+    this.scorecardNotes = [];
     this.nextId = 1000;
   }
 
@@ -1698,7 +1706,11 @@ export class MockDataService implements IDataService {
       currentVersion: existing.currentVersion,
       currentApprovalStep: existing.currentApprovalStep,
     };
-    this.scorecards[index] = { ...existing, ...data, ...preserved };
+    const updated = { ...existing, ...data, ...preserved };
+    // Phase 3: Stamp conflict detection fields
+    updated.lastModifiedDate = new Date().toISOString();
+    updated.lastModifiedBy = data.ScoredBy_Orig ?? existing.lastModifiedBy ?? 'system';
+    this.scorecards[index] = updated;
     return { ...this.scorecards[index] };
   }
 
@@ -7364,6 +7376,125 @@ export class MockDataService implements IDataService {
 
     this.scorecards[index] = scorecard;
     return { ...scorecard };
+  }
+
+  // ── Phase 3 GNG: Scorecard Collaboration ──────────────────────────────
+
+  async getScorecardComments(scorecardId: number): Promise<IScorecardCriterionComment[]> {
+    await delay();
+    return this.scorecardCriterionComments
+      .filter(c => c.scorecardId === scorecardId)
+      .map(c => ({ ...c }));
+  }
+
+  async addScorecardComment(
+    scorecardId: number,
+    criterionId: number,
+    text: string,
+    authorEmail: string,
+    authorName: string,
+  ): Promise<IScorecardCriterionComment> {
+    await delay();
+    const comment: IScorecardCriterionComment = {
+      id: this.nextId++,
+      scorecardId,
+      criterionId,
+      authorEmail,
+      authorName,
+      text,
+      createdDate: new Date().toISOString(),
+    };
+    this.scorecardCriterionComments.push(comment);
+    void this.logAudit({
+      Action: AuditAction.ScorecardCommentAdded,
+      EntityType: EntityType.ScorecardComment,
+      EntityId: String(scorecardId),
+      User: authorEmail,
+      Details: `Comment added on criterion ${criterionId}`,
+    });
+    return { ...comment };
+  }
+
+  async updateScorecardComment(commentId: number, text: string): Promise<IScorecardCriterionComment> {
+    await delay();
+    const index = this.scorecardCriterionComments.findIndex(c => c.id === commentId);
+    if (index === -1) throw new Error(`Comment ${commentId} not found`);
+    this.scorecardCriterionComments[index] = {
+      ...this.scorecardCriterionComments[index],
+      text,
+      editedDate: new Date().toISOString(),
+    };
+    void this.logAudit({
+      Action: AuditAction.ScorecardCommentEdited,
+      EntityType: EntityType.ScorecardComment,
+      EntityId: String(this.scorecardCriterionComments[index].scorecardId),
+      User: this.scorecardCriterionComments[index].authorEmail,
+      Details: `Comment ${commentId} edited`,
+    });
+    return { ...this.scorecardCriterionComments[index] };
+  }
+
+  async deleteScorecardComment(commentId: number): Promise<void> {
+    await delay();
+    const index = this.scorecardCriterionComments.findIndex(c => c.id === commentId);
+    if (index === -1) throw new Error(`Comment ${commentId} not found`);
+    const comment = this.scorecardCriterionComments[index];
+    this.scorecardCriterionComments.splice(index, 1);
+    void this.logAudit({
+      Action: AuditAction.ScorecardCommentDeleted,
+      EntityType: EntityType.ScorecardComment,
+      EntityId: String(comment.scorecardId),
+      User: comment.authorEmail,
+      Details: `Comment ${commentId} deleted from criterion ${comment.criterionId}`,
+    });
+  }
+
+  async getScorecardNotes(scorecardId: number): Promise<IScorecardNote[]> {
+    await delay();
+    return this.scorecardNotes
+      .filter(n => n.scorecardId === scorecardId)
+      .map(n => ({ ...n }));
+  }
+
+  async addScorecardNote(
+    scorecardId: number,
+    text: string,
+    authorEmail: string,
+    authorName: string,
+    mentions: string[],
+  ): Promise<IScorecardNote> {
+    await delay();
+    const note: IScorecardNote = {
+      id: this.nextId++,
+      scorecardId,
+      authorEmail,
+      authorName,
+      text,
+      mentions,
+      createdDate: new Date().toISOString(),
+    };
+    this.scorecardNotes.push(note);
+    void this.logAudit({
+      Action: AuditAction.ScorecardNoteAdded,
+      EntityType: EntityType.ScorecardNote,
+      EntityId: String(scorecardId),
+      User: authorEmail,
+      Details: `Note added${mentions.length > 0 ? ` mentioning ${mentions.join(', ')}` : ''}`,
+    });
+    return { ...note };
+  }
+
+  async getScorecardAuditLog(scorecardId: number): Promise<IAuditEntry[]> {
+    await delay();
+    const scorecardEntityId = String(scorecardId);
+    return this.auditLog
+      .filter(e =>
+        (e.EntityType === EntityType.Scorecard && e.EntityId === scorecardEntityId) ||
+        (e.EntityType === EntityType.ScorecardComment && e.EntityId === scorecardEntityId) ||
+        (e.EntityType === EntityType.ScorecardNote && e.EntityId === scorecardEntityId)
+      )
+      .sort((a, b) => b.Timestamp.localeCompare(a.Timestamp))
+      .map(e => ({ ...e }));
   }
 
   // ── Performance Monitoring ──────────────────────────────────────────────

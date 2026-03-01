@@ -1,5 +1,5 @@
 import { ILead, ILeadFormData } from '../models/ILead';
-import { IGoNoGoScorecard, IScorecardVersion } from '../models/IGoNoGoScorecard';
+import { IGoNoGoScorecard, IScorecardVersion, IScorecardCriterionComment, IScorecardNote } from '../models/IGoNoGoScorecard';
 import { IPersonAssignment } from '../models/IWorkflowDefinition';
 import { IEstimatingTracker } from '../models/IEstimatingTracker';
 import { IRole, ICurrentUser } from '../models/IRole';
@@ -546,6 +546,15 @@ export interface IDataService {
   // Scorecard archive (Phase 22)
   rejectScorecard(scorecardId: number, reason: string): Promise<IGoNoGoScorecard>;
   archiveScorecard(scorecardId: number, archivedBy: string): Promise<IGoNoGoScorecard>;
+
+  // Phase 3 GNG: Scorecard Collaboration
+  getScorecardComments(scorecardId: number): Promise<IScorecardCriterionComment[]>;
+  addScorecardComment(scorecardId: number, criterionId: number, text: string, authorEmail: string, authorName: string): Promise<IScorecardCriterionComment>;
+  updateScorecardComment(commentId: number, text: string): Promise<IScorecardCriterionComment>;
+  deleteScorecardComment(commentId: number): Promise<void>;
+  getScorecardNotes(scorecardId: number): Promise<IScorecardNote[]>;
+  addScorecardNote(scorecardId: number, text: string, authorEmail: string, authorName: string, mentions: string[]): Promise<IScorecardNote>;
+  getScorecardAuditLog(scorecardId: number): Promise<IAuditEntry[]>;
 
   // Performance monitoring
   logPerformanceEntry(entry: Partial<IPerformanceLog>): Promise<IPerformanceLog>;

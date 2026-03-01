@@ -1,5 +1,5 @@
 # HBC Project Controls – Hot-Memory Constitution
-## Version: 1.0 (28 Feb 2026) – commit 83db2ad9e8b0b8f164562564dbff4fad554d4e8b
+## Version: 1.0 (28 Feb 2026)
 Always loaded first in every agent session. This file is the single source of truth for consistency.
 
 ### 1. Project Overview (never hallucinate)
@@ -106,7 +106,9 @@ gulp package-solution --ship
 - Keep the MCP server running in a separate terminal:
 - cd tools/mcp-retrieval-server && uvicorn server:app --port 8001 --reload
 - Before any domain, routing, performance, or complex change, first call:
-- find_relevant_context("exact task description")
+- curl -X POST "http://localhost:8001/find_relevant_context" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "exact task description here", "top_k": 3}'
 - Paste the full JSON response (including filenames, relevance scores, and snippets) into your reasoning.
 - Always prefer and quote the highest-relevance spec returned.
 - If no specs match (score < 0.1), state this clearly and ask for clarification before proceeding.

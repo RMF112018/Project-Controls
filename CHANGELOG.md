@@ -4,6 +4,102 @@ All notable changes to HBC Project Controls will be documented in this file.
 
 ## [Unreleased]
 
+### [2026-03-01] - Phase 4 (GNG Plan): Polish, Export, Integration & Release
+
+#### Added
+- **`ProjectHeaderInfo.tsx`** (`components/shared/`): Responsive 2-column metadata grid showing all 24 Section 1 header fields auto-filled from lead data
+- **`useGoNoGoLeadData`** hook: Fetches `ILead` by `leadId` from route params using `qk.leads.byId` query key and `QUERY_STALE_TIMES.leads` (60s)
+- **`gonogoLeadByIdOptions`** query factory in `gonogoQueryOptions.ts`
+- PDF/Excel/CSV/JSON export via existing `ExportButtons` with `id="gonogo-print-area"` container
+- `HbcSkeleton variant="form"` replaces raw `Skeleton`/`SkeletonItem` for loading state
+- Route-level `errorComponent: RouteErrorBoundary` on both GoNoGo detail routes (preconstruction + project hub)
+- `clientName` auto-populated from `lead.ClientName` in `ScoreSummaryHeader`
+
+#### Changed
+- **`GoNoGoScorecardDetail.tsx`**: Now fetches associated lead data alongside scorecard; renders `ProjectHeaderInfo`, `ExportButtons`; uses `HbcSkeleton` loading state
+- **`routes.preconstruction.tsx`**: `bdGoNoGoDetail` route now has `errorComponent`
+- **`routes.projecthub.tsx`**: `phGoNoGoDetail` route now has `errorComponent`
+- `data-print-hide` attributes on non-printable UI elements (back button, workflow actions, export bar)
+
+#### Notes
+- Zero new npm dependencies
+- No `@hbc/sp-services` changes (reuses existing `IDataService.getLeadById`)
+- `ProjectHeaderInfo` returns `null` when no lead data — graceful degradation
+- References: Internal Development Plan v1.1 (2026-03-01), Phase 4: Polish, Export, Integration & Release
+
+### [2026-03-01] - Phase 3 (GNG Plan): Collaboration & Workflow
+
+#### Added
+- **`CriterionCommentPopover.tsx`** (`components/shared/`): Per-criterion comment popover with inline add/edit/delete, badge count, scrollable list, and own-comment actions
+- **`ScorecardNotePanel.tsx`** (`components/shared/`): Global discussion notes panel with @mention support via `AzureADPeoplePicker`, mention pills, and `CollapsibleSection` wrapper
+- **`ScorecardAuditLog.tsx`** (`components/shared/`): Change history panel with Timeline (chronological entries grouped by date) and Versions (table of `IScorecardVersion` snapshots) tabs
+- **`ConflictDialog.tsx`** (`components/shared/`): Version-conflict resolution dialog with Overwrite / Reload / Cancel actions
+- **`LastEditedAvatar.tsx`** (`components/shared/`): 20px Fluent UI Avatar with tooltip for per-criterion last-edited attribution
+- **`useConflictDetection.ts`** (`components/hooks/`): Timestamp-based concurrent edit detection hook with last-writer-wins strategy and user confirmation
+- **`useGoNoGoCommentMutations`** hook: Composition hook for add/edit/delete comments with optimistic append/remove
+- **`useGoNoGoNoteMutation`** hook: Note mutation hook with @mention notification support
+- **`useGoNoGoComments`**, **`useGoNoGoNotes`**, **`useGoNoGoAuditLog`**, **`useGoNoGoVersions`** query hooks: Feature-flag gated convenience hooks for collaboration data
+- 7 new `IDataService` methods: `getScorecardComments`, `addScorecardComment`, `updateScorecardComment`, `deleteScorecardComment`, `getScorecardNotes`, `addScorecardNote`, `getScorecardAuditLog`
+- 3 new interfaces: `IScorecardCriterionComment`, `IScorecardNote`, `IScorecardCriterionMeta`
+- 5 new `AuditAction` enum values, 2 `EntityType` values, 2 `NotificationEvent` values
+- Phase 3 collaboration section added to `docs/specs/go-no-go-scorecard.md`
+
+#### Changed
+- **`ScoringTable.tsx`**: Extended with 7th comment column, `CriterionCommentPopover` per row, `LastEditedAvatar` in point cells, and 8 new props for collaboration
+- **`GoNoGoScorecardDetail.tsx`**: Wired collaboration hooks (comments, notes, audit, versions, conflict detection), renders `ScorecardNotePanel`, `ScorecardAuditLog`, and `ConflictDialog`; score changes wrapped through conflict detection
+- **`useHbcOptimisticMutation.ts`**: Added 4 methods to `WAVE_A_METHODS` for comment/note optimistic mutations
+- **`optimisticPatchers.ts`**: Added `appendCommentOptimistic` and `removeCommentOptimistic`
+- **`MockDataService.ts`**: Implemented 7 new methods; `updateScorecard` now stamps `lastModifiedDate` and `lastModifiedBy`
+
+#### Notes
+- Zero new npm dependencies
+- Comments and notes are append-only for conflict safety (no conflict detection needed)
+- Score mutations wrapped through `useConflictDetection.wrapMutation` for concurrent edit protection
+- All 5 new components use `React.memo` with `displayName`, WCAG 2.2 AA compliant
+- References: Internal Development Plan v1.1 (2026-03-01), Phase 3: Collaboration & Workflow
+
+### [2026-03-01] - Phase 2 (GNG Plan): Core UI Form & Scoring Engine
+
+#### Added
+- **`GoNoGoScorecardDetail.tsx`** (`components/pages/hub/`): Detail page with project header, 19-criteria scoring form, strategy/commentary sections, debounced auto-save (300ms), and workflow actions
+- **`ScoringTable.tsx`** (`components/shared/`): Responsive 19-criteria × 2-scorer table with inline Fluent UI Select dropdowns, point resolution from `SCORECARD_CRITERIA`, tier color feedback, memoized rows, and mobile card layout (<768px)
+- **`ScoreSummaryHeader.tsx`** (`components/shared/`): KPI card grid showing originator/committee totals (/92), difference indicator, completion percentage bars, recommended decision, and scorecard status badge
+- Detail routes: `/preconstruction/bd/go-no-go/$leadId` and `/project-hub/precon/go-no-go/$leadId`
+
+#### Changed
+- **`GoNoGoScorecard.tsx`**: Migrated from `useEffect` data fetching to TanStack Query v5 (`gonogoScorecardsOptions`); added `onRowClick` navigation to detail page; invalidation uses `qk.gonogo.base(scope)` instead of manual refetch
+- **`routes.preconstruction.tsx`**: Added `bdGoNoGoDetail` route with `GONOGO_READ` permission guard
+- **`routes.projecthub.tsx`**: Added `phGoNoGoDetail` route with `GONOGO_READ` + project guard
+
+#### Notes
+- Zero new npm dependencies
+- Score entry uses debounced auto-save (300ms) with optimistic updates from Phase 1 hooks
+- `useDeferredValue` on totals keeps score entry responsive during recalculation
+- Responsive: full 6-column table on desktop, stacked cards on mobile (<768px)
+- All 19 criteria labels + point values sourced from `SCORECARD_CRITERIA` constant (never hard-coded)
+- Permissions: `GONOGO_SCORE_ORIGINATOR` controls originator editing, `GONOGO_SCORE_COMMITTEE` controls committee editing
+
+### [2026-03-01] - Phase 1 (GNG Plan): Data Model & Backend Integration
+
+#### Added
+- **`gonogoQueryOptions.ts`** (`tanstack/query/queryOptions/`): TanStack Query v5 options factories for scorecard-by-lead, all-scorecards, and version-history queries with 30s stale time
+- **`useGoNoGoMutation.ts`** (`tanstack/query/mutations/`): Composition mutation hook for score entry, scorecard creation, and workflow transitions with optimistic updates via `useHbcOptimisticMutation`
+- **`useGoNoGoEvaluation`** hook: Query wrapper for loading a scorecard by lead ID, feature-flag gated behind `GoNoGoScorecard`
+- **`useUpdateGoNoGoScore`** hook: Optimistic single-criterion score update mutation with `validateScore` guard
+- **`useCalculateGoNoGoTotals`** hook: Pure memoized calculation of originator/committee totals, difference, tier colors, completion percentages, and recommended decision — delegates to `scoreCalculator.ts`
+- **`mergeScorecardScoresOptimistic`** patcher (`optimisticPatchers.ts`): Merges single criterion score and recalculates totals for instant UI feedback
+- SharePoint list schema documentation added to `docs/specs/go-no-go-scorecard.md` — 38 choice columns (19 criteria x 2 scorers), calculated totals, scorer metadata, decision/strategy, commentary, and workflow/audit fields
+- Corrected max-score reference in spec: 92/57/19 (not 100/60/20) with percentage-based threshold note
+
+#### Changed
+- `WAVE_A_METHODS` (`useHbcOptimisticMutation.ts`): Added `updateScorecard` and `createScorecard` for Go/No-Go optimistic mutation support
+
+#### Notes
+- Zero new npm dependencies; reuses existing `scoreCalculator.ts` utilities and 14 `IDataService` Go/No-Go methods
+- All hooks gated behind `GoNoGoScorecard` feature flag + `OptimisticMutations_GoNoGo` for optimistic path
+- References: Internal Development Plan v1.1 (2026-03-01), Phase 1: Data Model & Backend Integration
+- Success criteria: "Statewide Windows and Doors" round-trip yields 73/73 totals, 0 difference, green (Focus All Efforts), Go recommendation with Strong confidence
+
 ### [2026-03-01] - Phase 6 Task 2: Estimating Micro-Animations
 
 #### Added

@@ -16,6 +16,7 @@ import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
 import { requireProject } from '../guards/requireProject';
 import type { ITanStackRouteContext } from '../routeContext';
+import { RouteErrorBoundary } from '../../../components/boundaries/RouteErrorBoundary';
 import { kickoffByProjectOptions } from '../../query/queryOptions/kickoffQueryOptions';
 import { postBidAutopsyByProjectOptions } from '../../query/queryOptions/postBidAutopsyQueryOptions';
 import { EstimatingRoutePendingFallback } from '../../../components/boundaries/EstimatingRoutePendingFallback';
@@ -36,6 +37,9 @@ const ProjectHubSettingsPage = React.lazy(() =>
 // ── Preconstruction ──────────────────────────────────────────────────
 const PHGoNoGoPage = React.lazy(() =>
   import('../../../components/pages/project-hub/PHGoNoGoPage').then(m => ({ default: m.PHGoNoGoPage }))
+);
+const GoNoGoScorecardDetail = React.lazy(() =>
+  import('../../../components/pages/hub/GoNoGoScorecardDetail').then(m => ({ default: m.GoNoGoScorecardDetail }))
 );
 // Stage 9: Replaced PHEstimatingKickOffPage (static checklist) with full Stage 8 EstimatingKickoffPage.
 const EstimatingKickoffPage = React.lazy(() =>
@@ -220,6 +224,17 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
     getParentRoute: () => phLayout as never,
     path: '/project-hub/precon/go-no-go',
     component: PHGoNoGoPage,
+    beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
+      requirePermission(context, PERMISSIONS.GONOGO_READ);
+      requireProject(context);
+    },
+  });
+
+  const phGoNoGoDetail = createRoute({
+    getParentRoute: () => phLayout as never,
+    path: '/project-hub/precon/go-no-go/$leadId',
+    component: GoNoGoScorecardDetail,
+    errorComponent: RouteErrorBoundary,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
       requirePermission(context, PERMISSIONS.GONOGO_READ);
       requireProject(context);
@@ -629,6 +644,7 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
       phSettings,
       // Preconstruction
       phGoNoGo,
+      phGoNoGoDetail,
       phEstKickoff,
       phEstimate,
       phTurnover,
