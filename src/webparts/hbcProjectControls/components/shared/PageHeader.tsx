@@ -4,32 +4,32 @@ import { HBC_COLORS } from '../../theme/tokens';
 
 const useStyles = makeStyles({
   root: {
-    marginBottom: '24px',
+    marginBottom: tokens.spacingVerticalL,
   },
   breadcrumbRow: {
-    marginBottom: '8px',
+    marginBottom: tokens.spacingVerticalS,
   },
   titleRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     flexWrap: 'wrap',
-    ...shorthands.gap('12px'),
+    ...shorthands.gap(tokens.spacingHorizontalM),
   },
   title: {
     ...shorthands.margin('0'),
-    fontSize: '24px',
-    fontWeight: '700',
+    fontSize: tokens.fontSizeBase600,
+    fontWeight: tokens.fontWeightBold,
     color: HBC_COLORS.navy,
   },
   subtitle: {
-    ...shorthands.margin('4px', '0', '0', '0'),
-    fontSize: '14px',
+    ...shorthands.margin(tokens.spacingVerticalXS, '0', '0', '0'),
+    fontSize: tokens.fontSizeBase300,
     color: tokens.colorNeutralForeground3,
   },
   actions: {
     display: 'flex',
-    ...shorthands.gap('8px'),
+    ...shorthands.gap(tokens.spacingHorizontalS),
     alignItems: 'center',
   },
 });

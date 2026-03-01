@@ -6,7 +6,7 @@
  * placeholder section.
  */
 import * as React from 'react';
-import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
+import { makeStyles, mergeClasses, shorthands, tokens } from '@fluentui/react-components';
 import {
   DocumentSearch24Regular,
   Money24Regular,
@@ -28,14 +28,17 @@ import { HBC_COLORS, ELEVATION, TRANSITION } from '../../../theme/tokens';
 const useStyles = makeStyles({
   root: {
     display: 'grid',
-    ...shorthands.gap('24px'),
+    ...shorthands.gap(tokens.spacingVerticalL),
   },
   kpiStrip: {
     display: 'grid',
     gridTemplateColumns: 'repeat(5, 1fr)',
-    ...shorthands.gap('16px'),
+    ...shorthands.gap(tokens.spacingHorizontalM),
     '@media (max-width: 1024px)': {
       gridTemplateColumns: 'repeat(3, 1fr)',
+    },
+    '@media (max-width: 768px)': {
+      gridTemplateColumns: 'repeat(2, 1fr)',
     },
     '@media (max-width: 640px)': {
       gridTemplateColumns: '1fr',
@@ -44,7 +47,7 @@ const useStyles = makeStyles({
   chartsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
-    ...shorthands.gap('16px'),
+    ...shorthands.gap(tokens.spacingHorizontalM),
     '@media (max-width: 1024px)': {
       gridTemplateColumns: 'repeat(2, 1fr)',
     },
@@ -54,8 +57,8 @@ const useStyles = makeStyles({
   },
   chartCard: {
     backgroundColor: tokens.colorNeutralBackground1,
-    ...shorthands.borderRadius('8px'),
-    ...shorthands.padding('20px'),
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingHorizontalL),
     boxShadow: ELEVATION.level1,
     transitionProperty: 'box-shadow',
     transitionDuration: TRANSITION.normal,
@@ -70,22 +73,50 @@ const useStyles = makeStyles({
     },
   },
   chartTitle: {
-    fontSize: '14px',
-    fontWeight: 600,
+    fontSize: tokens.fontSizeBase300,
+    fontWeight: tokens.fontWeightSemibold,
     color: HBC_COLORS.navy,
-    ...shorthands.margin('0', '0', '12px'),
+    ...shorthands.margin('0', '0', tokens.spacingVerticalS),
   },
   powerBiPlaceholder: {
     ...shorthands.border('2px', 'dashed', tokens.colorNeutralStroke2),
-    ...shorthands.borderRadius('8px'),
-    ...shorthands.padding('40px'),
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    ...shorthands.padding(tokens.spacingVerticalXXL),
     textAlign: 'center',
     color: tokens.colorNeutralForeground3,
-    fontSize: '14px',
+    fontSize: tokens.fontSizeBase300,
     minHeight: '200px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Recent Activity section — extracted from inline styles
+  activityList: {
+    display: 'grid',
+    ...shorthands.gap(tokens.spacingVerticalS),
+  },
+  activityItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    ...shorthands.padding(tokens.spacingVerticalS, '0'),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke2),
+    ':last-child': {
+      borderBottomStyle: 'none',
+    },
+  },
+  activityTitle: {
+    fontWeight: tokens.fontWeightSemibold,
+    fontSize: tokens.fontSizeBase200,
+  },
+  activitySubtitle: {
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground3,
+  },
+  activityStatus: {
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground4,
+    whiteSpace: 'nowrap',
   },
 });
 
@@ -107,7 +138,7 @@ const AWARD_STATUS_LABELS: Record<string, string> = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const EstimatingDashboardPage: React.FC = () => {
+const EstimatingDashboardPageInner: React.FC = () => {
   const styles = useStyles();
   const { loading, kpis, allRecords, currentPursuits } = useEstimatingDashboardData();
 
@@ -257,7 +288,7 @@ export const EstimatingDashboardPage: React.FC = () => {
       {loading ? (
         <HbcSkeleton variant="kpi-grid" columns={5} />
       ) : (
-        <div className={styles.kpiStrip}>
+        <div className={styles.kpiStrip} role="region" aria-label="Estimating key performance indicators">
           <KPICard
             title="Total Estimates"
             value={kpis.totalEstimates}
@@ -295,7 +326,7 @@ export const EstimatingDashboardPage: React.FC = () => {
 
       {/* Section 2: Charts Grid */}
       {!loading && (
-        <div className={styles.chartsGrid}>
+        <div className={styles.chartsGrid} role="region" aria-label="Estimating charts and analytics">
           {/* Chart 1: Award Status Distribution */}
           <div className={styles.chartCard}>
             <h3 className={styles.chartTitle}>Award Status Distribution</h3>
@@ -330,21 +361,18 @@ export const EstimatingDashboardPage: React.FC = () => {
 
       {/* Stage 3 (sub-task 5): Recent Activity feed */}
       {!loading && currentPursuits.length > 0 && (
-        <div className={styles.chartCard}>
+        <div className={styles.chartCard} role="region" aria-label="Recent estimating activity">
           <h3 className={styles.chartTitle}>Recent Activity</h3>
-          <div style={{ display: 'grid', gap: '8px' }}>
+          <div className={styles.activityList} role="list">
             {currentPursuits.slice(0, 5).map((pursuit, idx) => (
-              <div key={pursuit.id ?? idx} style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '8px 0', borderBottom: idx < 4 ? `1px solid ${tokens.colorNeutralStroke2}` : 'none',
-              }}>
+              <div key={pursuit.id ?? idx} className={styles.activityItem} role="listitem">
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: '13px' }}>{pursuit.Title ?? 'Untitled Pursuit'}</div>
-                  <div style={{ fontSize: '12px', color: tokens.colorNeutralForeground3 }}>
+                  <div className={styles.activityTitle}>{pursuit.Title ?? 'Untitled Pursuit'}</div>
+                  <div className={styles.activitySubtitle}>
                     {pursuit.LeadEstimator ?? 'Unassigned'} &middot; {pursuit.Source ?? 'Unknown'}
                   </div>
                 </div>
-                <div style={{ fontSize: '12px', color: tokens.colorNeutralForeground4, whiteSpace: 'nowrap' }}>
+                <div className={styles.activityStatus}>
                   {pursuit.AwardStatus ?? 'Pending'}
                 </div>
               </div>
@@ -363,3 +391,5 @@ export const EstimatingDashboardPage: React.FC = () => {
     </div>
   );
 };
+
+export const EstimatingDashboardPage = React.memo(EstimatingDashboardPageInner);

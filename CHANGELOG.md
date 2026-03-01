@@ -4,6 +4,106 @@ All notable changes to HBC Project Controls will be documented in this file.
 
 ## [Unreleased]
 
+### [2026-03-01] - Phase 4 Task 2: Mutation UX Feedback — `useMutationWithToast`
+
+#### Added
+- **`useMutationWithToast` hook** (`project-hub/shared/useMutationWithToast.ts`): Wraps `useMutation` with automatic success/error toast callbacks via `IToastConfig`; preserves full `UseMutationResult` including `isPending` for disabled states
+- **`withToastFeedback` utility** (`project-hub/shared/useMutationWithToast.ts`): Pure async function wrapping any `Promise`-returning function with toast feedback; used by `useEstimatingMutation` consumers and `mutateAsync` callers
+- **`IToastConfig` type**: Shared config supporting static strings or dynamic `(data, variables) => string` message functions with configurable durations
+
+#### Changed
+- **PostBidAutopsyPage**: 8 manual `.then()/.catch()` toast chains → `withToastFeedback`; 1 validation warning toast preserved as-is
+- **DepartmentTrackingPage**: `updateRecordMutation` → `useMutationWithToast` with dynamic `"${field} saved"` messages (2500ms success, 4000ms error); manual `addToast` calls removed from `handleInlineEdit`
+- **ProjectNumberRequestForm**: Submit handler create/update paths → `withToastFeedback` with context-aware success messages; validation and data-fetch toasts preserved as-is
+- **`project-hub/shared/index.ts`**: Barrel extended with `useMutationWithToast`, `withToastFeedback`, `IToastConfig`
+
+#### Notes
+- Zero functional changes; toast messages and durations preserved exactly as before
+- Preconstruction audit: 15 of 18 pages have zero mutations — no changes needed
+- Loading skeletons and disabled button states already implemented in all 3 migration targets
+- All existing feature flags unaffected
+
+### [2026-03-01] - Phase 4 Task 1: Preconstruction Consolidation & Shared Infrastructure Migration
+
+#### Added
+- **`project-hub/shared/`**: New shared infrastructure directory for hub-specific hooks and re-exports
+- **`useScoreTier` hook** (`project-hub/shared/useScoreTier.ts`): Memoized React hook wrapping `@hbc/sp-services` scoreCalculator utilities (tier, color, label, completion) for Go/No-Go scorecard display
+- **`useToolbarConfig` hook** (`project-hub/shared/useToolbarConfig.ts`): Griffel styles for tracker/editor toolbar layouts (search left, actions right, spotlight mode, active toggle)
+- **`project-hub/shared/index.ts`**: Barrel re-exporting `useButtonStyles`, `useScoreTier`, `useToolbarConfig`
+- **Spec Phase 4 section**: Complete preconstruction/ inventory (18 pages, 2 composition hooks, 1 barrel) categorized by complexity tier with shared pattern extraction targets
+
+#### Changed
+- **PostBidAutopsyPage**: `useButtonStyles` import path updated to `./shared` (project-hub/shared/ barrel)
+- **DepartmentTrackingPage**: `useButtonStyles` import path updated to `../project-hub/shared` (cross-directory verification)
+
+#### Notes
+- Zero functional changes; import-path-only migration in 2 consumer files
+- Bundle size neutral: barrel re-exports add no weight (tree-shaking)
+- All existing feature flags unaffected
+- DepartmentTrackingPage (3,067 lines) confirmed as "EstimatingTracker" verification target
+
+### [2026-03-01] - Phase 3 Task 3: Inline Validation + Real-Time Scoring UI
+
+#### Added
+- **PostBidAutopsyPage**: Progressive-disclosure inline validation — errors shown only after first "Finalize & Lock" attempt
+- **PostBidAutopsyPage**: Validation summary `MessageBar` (`intent="warning"`, `role="alert"`) above action bar listing all required-field errors
+- **PostBidAutopsyPage**: Unanswered process question row indicators (gold left-border on rows with `answer === null`)
+- **PostBidAutopsyPage**: CollapsibleSection badge error context — process section shows unanswered count, employees section shows missing-member error
+- **PostBidAutopsyPage**: Overall Rating inline error appended to field label when rating is invalid
+
+#### Changed
+- **PostBidAutopsyPage**: "Finalize & Lock" button now disabled after first attempt until all validation passes; wrapped in `Tooltip` with `relationship="description"` for WCAG-accessible error context
+- **PostBidAutopsyPage**: `handleFinalize` now sets `hasAttemptedFinalize` flag before validation check, enabling progressive disclosure
+
+#### Notes
+- Zero new npm dependencies; `MessageBar`, `Tooltip`, `mergeClasses` already imported
+- No service layer changes; validation mirrors existing `PostBidAutopsyService.validateForFinalization()` decomposed into field-keyed map for inline rendering
+- Role-based visibility unchanged (`canEdit && !isFinalized` gating preserved)
+
+### [2026-03-01] - Phase 3 Task 2: Shared `useButtonStyles` Hook for Button & Command-Bar Consistency
+
+#### Added
+- **`useButtonStyles` hook** (`components/shared/useButtonStyles.ts`): Centralized Griffel classes for button containers (`actionBar`, `actionGroup`, `drawerFooter`, `formActions`, `toolbar`, `toolbarActions`, `exportBar`) and button variants (`compact`, `toolbarEmphasis`, `iconOnly`, `iconOnlyPreferred`)
+- **WCAG 2.2 SC 2.5.8**: `iconOnly` (44px) and `iconOnlyPreferred` (48px) classes enforce minimum touch targets for icon-only buttons
+
+#### Changed
+- **ExportButtons**: Replaced 3 local hardcoded-px styles with `useButtonStyles` classes (`exportBar`, `exportLabel`, `compact`)
+- **PageHeader**: Tokenized 6 hardcoded pixel values (`marginBottom`, `gap`, `fontSize`, `fontWeight`) with Fluent UI v9 design tokens
+- **DepartmentTrackingPage**: Replaced 4 local button container styles (`drawerActions`, `toolbarActions`, `drawerEditToolbar`, `meetingToolbarBtn`) with shared hook classes
+- **ProjectNumberRequestForm**: Replaced local `actions` style with `useButtonStyles.formActions`
+- **PostBidAutopsyPage**: Replaced `actionBar`/`actionGroup` hardcoded-px styles (`'12px'`, `'16px'`, `'8px'`) with shared hook classes
+- **globalStyles.ts**: Tokenized hardcoded px in `actionBar`, `exportBar`, `exportLabel`, `paginationButton`, `paginationContainer`, `spinnerContainer`
+
+#### Notes
+- Zero feature behavior changes; all changes are CSS consistency and shared hook adoption
+- HbcButton component unchanged; `useButtonStyles` composes with it (containers + variants)
+- No new npm dependencies; net bundle size neutral (shared styles replace per-component duplicates)
+
+### [2026-03-01] - Phase 3 Task 1: Estimating Function UI Stabilization — Fluent UI v9 Consistency & A11y Pass
+
+#### Changed
+- **Token alignment**: Replaced all hardcoded pixel values (`'24px'`, `'16px'`, `'8px'`, etc.) with Fluent UI v9 design tokens (`tokens.spacingVerticalL`, `tokens.spacingHorizontalM`, `tokens.borderRadiusMedium`, etc.) across 10 preconstruction page components
+- **DepartmentTrackingPage**: Migrated all `SPACING.*` custom token usages to standard Fluent `tokens.*` for cross-file consistency; removed `SPACING` import
+- **EstimatingDashboardPage**: Extracted inline styles from Recent Activity section into makeStyles classes (`activityList`, `activityItem`, `activityTitle`, `activitySubtitle`, `activityStatus`)
+- **NewJobRequestsPage**: Migrated from `useEffect` data fetching to TanStack Query `useQuery` with `staleTime: 5min` (CLAUDE.md compliance)
+- **PipelinePage, BDDashboardPage, LeadManagementPage**: Same `useEffect` → `useQuery` migration with `staleTime: 5min`
+- **PreconDashboardPage**: Sub-hub quick links section wrapped in `<nav>` landmark for screen reader navigation
+- **ProjectNumberRequestForm**: Added `role="alert"` to validation error banner; added `aria-label` to RadioGroup; wrapped in `React.memo`
+- **ProjectNumberRequestsPage**: Added `role="region"` + `aria-label` to KPI grid; added `role="alert"` to error banner
+
+#### Added
+- **Accessibility**: Added `role="region"` + `aria-label` to all KPI strips, chart grids, and activity sections across dashboards
+- **Accessibility**: Added `ariaLabel` prop to all `HbcEChart` and `HbcDataTable` components that were missing it
+- **Accessibility**: Added `role="list"` / `role="listitem"` to Recent Activity feed items
+- **React.memo**: Wrapped all 10 active preconstruction page components in `React.memo` for render optimization
+- **Spec**: Created `docs/specs/estimating-function-ui-stabilization.md` documenting scope, token mapping, accessibility checklist, and responsive breakpoint strategy
+- **Responsive**: Added 768px tablet breakpoint to EstimatingDashboardPage KPI grid (was only 1024px + 640px)
+
+#### Notes
+- **Data hooks** (`useEstimatingDashboardData`, `usePreconDashboardData`) still use `useEffect` for multi-call composition — flagged as technical debt for future `useQueries` migration
+- **DepartmentTrackingPage** (2145+ lines): Changes limited to token alignment and a11y attributes only; structural refactoring deferred to Stage 19+
+- No new dependencies; no feature behavior changes; all changes behind existing feature flags
+
 ### [2026-03-01] - Phase 2 Task 3: Post-Bid Autopsy end-to-end integration with Estimating Tracker
 
 #### Added

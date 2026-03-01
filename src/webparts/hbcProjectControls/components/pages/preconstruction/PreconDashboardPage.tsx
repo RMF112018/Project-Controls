@@ -6,7 +6,7 @@
  * placeholder section.
  */
 import * as React from 'react';
-import { makeStyles, shorthands, tokens, mergeClasses } from '@fluentui/react-components';
+import { makeStyles, mergeClasses, shorthands, tokens } from '@fluentui/react-components';
 import {
   DocumentSearch24Regular,
   Money24Regular,
@@ -29,12 +29,12 @@ import { HBC_COLORS, ELEVATION, TRANSITION } from '../../../theme/tokens';
 const useStyles = makeStyles({
   root: {
     display: 'grid',
-    ...shorthands.gap('24px'),
+    ...shorthands.gap(tokens.spacingVerticalL),
   },
   kpiStrip: {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
-    ...shorthands.gap('16px'),
+    ...shorthands.gap(tokens.spacingHorizontalM),
     '@media (max-width: 1024px)': {
       gridTemplateColumns: 'repeat(2, 1fr)',
     },
@@ -45,7 +45,7 @@ const useStyles = makeStyles({
   chartsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
-    ...shorthands.gap('16px'),
+    ...shorthands.gap(tokens.spacingHorizontalM),
     '@media (max-width: 1024px)': {
       gridTemplateColumns: 'repeat(2, 1fr)',
     },
@@ -55,8 +55,8 @@ const useStyles = makeStyles({
   },
   chartCard: {
     backgroundColor: tokens.colorNeutralBackground1,
-    ...shorthands.borderRadius('8px'),
-    ...shorthands.padding('20px'),
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingHorizontalL),
     boxShadow: ELEVATION.level1,
     transitionProperty: 'box-shadow',
     transitionDuration: TRANSITION.normal,
@@ -71,34 +71,34 @@ const useStyles = makeStyles({
     },
   },
   chartTitle: {
-    fontSize: '14px',
-    fontWeight: 600,
+    fontSize: tokens.fontSizeBase300,
+    fontWeight: tokens.fontWeightSemibold,
     color: HBC_COLORS.navy,
-    ...shorthands.margin('0', '0', '12px'),
+    ...shorthands.margin('0', '0', tokens.spacingVerticalS),
   },
   sectionTitle: {
-    fontSize: '18px',
-    fontWeight: 600,
+    fontSize: tokens.fontSizeBase400,
+    fontWeight: tokens.fontWeightSemibold,
     color: HBC_COLORS.navy,
-    ...shorthands.margin('0', '0', '12px'),
+    ...shorthands.margin('0', '0', tokens.spacingVerticalS),
   },
   subHubGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-    ...shorthands.gap('16px'),
+    ...shorthands.gap(tokens.spacingHorizontalM),
   },
   hubDescription: {
-    fontSize: '13px',
+    fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground3,
     ...shorthands.margin('0'),
   },
   powerBiPlaceholder: {
     ...shorthands.border('2px', 'dashed', tokens.colorNeutralStroke2),
-    ...shorthands.borderRadius('8px'),
-    ...shorthands.padding('40px'),
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    ...shorthands.padding(tokens.spacingVerticalXXL),
     textAlign: 'center',
     color: tokens.colorNeutralForeground3,
-    fontSize: '14px',
+    fontSize: tokens.fontSizeBase300,
     minHeight: '200px',
     display: 'flex',
     alignItems: 'center',
@@ -141,7 +141,7 @@ const AUTOPSY_FALLBACK_RATING = [55, 60, 58, 66];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const PreconDashboardPage: React.FC = () => {
+const PreconDashboardPageInner: React.FC = () => {
   const styles = useStyles();
   const navigate = useAppNavigate();
   const { loading, kpis, leads, autopsies } = usePreconDashboardData();
@@ -193,7 +193,7 @@ export const PreconDashboardPage: React.FC = () => {
       peMap.set(pe, entry);
     });
 
-    // Filter to PEs with ≥2 leads, compute win rate, sort descending
+    // Filter to PEs with >=2 leads, compute win rate, sort descending
     const peData = Array.from(peMap.entries())
       .filter(([, v]) => v.total >= 2)
       .map(([name, v]) => ({
@@ -278,7 +278,7 @@ export const PreconDashboardPage: React.FC = () => {
 
     return {
       tooltip: { trigger: 'axis' },
-      legend: { data: ['Process Score', 'Overall Rating (×10)'], bottom: 0 },
+      legend: { data: ['Process Score', 'Overall Rating (\u00d710)'], bottom: 0 },
       grid: { left: '12%', right: '4%', bottom: '15%', top: '8%' },
       xAxis: { type: 'category' as const, data: quarters, boundaryGap: false },
       yAxis: { type: 'value' as const, name: 'Score', min: 40, max: 100 },
@@ -301,7 +301,7 @@ export const PreconDashboardPage: React.FC = () => {
           smooth: true,
         },
         {
-          name: 'Overall Rating (×10)',
+          name: 'Overall Rating (\u00d710)',
           type: 'line' as const,
           data: overallRatings,
           lineStyle: { type: 'dashed' as const },
@@ -325,7 +325,7 @@ export const PreconDashboardPage: React.FC = () => {
       {loading ? (
         <HbcSkeleton variant="kpi-grid" columns={4} />
       ) : (
-        <div className={styles.kpiStrip}>
+        <div className={styles.kpiStrip} role="region" aria-label="Preconstruction key performance indicators">
           <KPICard
             title="Active Leads"
             value={kpis.activeLeads}
@@ -358,7 +358,7 @@ export const PreconDashboardPage: React.FC = () => {
 
       {/* Section 2: Charts Grid */}
       {!loading && (
-        <div className={styles.chartsGrid}>
+        <div className={styles.chartsGrid} role="region" aria-label="Preconstruction charts and analytics">
           {/* Chart 1: Lead Funnel */}
           <div className={styles.chartCard}>
             <h3 className={styles.chartTitle}>Lead Funnel by Stage</h3>
@@ -392,7 +392,7 @@ export const PreconDashboardPage: React.FC = () => {
       )}
 
       {/* Section 3: Sub-Hub Quick Links */}
-      <div>
+      <nav aria-label="Preconstruction department navigation">
         <h2 className={styles.sectionTitle}>Departments</h2>
         <div className={styles.subHubGrid}>
           {SUB_HUBS.map(hub => (
@@ -406,7 +406,7 @@ export const PreconDashboardPage: React.FC = () => {
             </HbcCard>
           ))}
         </div>
-      </div>
+      </nav>
 
       {/* Section 4: Power BI Placeholder */}
       <div className={styles.chartCard}>
@@ -418,3 +418,5 @@ export const PreconDashboardPage: React.FC = () => {
     </div>
   );
 };
+
+export const PreconDashboardPage = React.memo(PreconDashboardPageInner);

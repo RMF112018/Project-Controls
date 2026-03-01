@@ -225,7 +225,7 @@ export const ProjectNumberRequestsPage: React.FC = () => {
       />
 
       {requestsQuery.isError ? (
-        <MessageBar intent="error" className={styles.errorBanner}>
+        <MessageBar intent="error" className={styles.errorBanner} role="alert">
           <MessageBarBody>Unable to refresh project number requests. Retrying automatically.</MessageBarBody>
         </MessageBar>
       ) : null}
@@ -234,7 +234,7 @@ export const ProjectNumberRequestsPage: React.FC = () => {
       {loading ? (
         <HbcSkeleton variant="kpi-grid" columns={3} />
       ) : (
-        <div className={styles.kpiGrid}>
+        <div className={styles.kpiGrid} role="region" aria-label="Project number request summary">
           <KPICard title="Total Requests" value={totalRequests} />
           <KPICard title="Pending" value={pendingCount} />
           <KPICard title="Completed" value={completedCount} />

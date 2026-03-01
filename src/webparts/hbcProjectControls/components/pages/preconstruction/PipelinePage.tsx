@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { makeStyles, shorthands } from '@fluentui/react-components';
+import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcEChart } from '../../shared/HbcEChart';
 import { KPICard } from '../../shared/KPICard';
@@ -13,11 +14,11 @@ const useStyles = makeStyles({
   kpiGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-    ...shorthands.gap('12px'),
-    ...shorthands.padding('16px', '0'),
+    ...shorthands.gap(tokens.spacingHorizontalSNudge),
+    ...shorthands.padding(tokens.spacingVerticalM, '0'),
   },
   chartContainer: {
-    ...shorthands.padding('16px', '0'),
+    ...shorthands.padding(tokens.spacingVerticalM, '0'),
   },
 });
 
@@ -29,19 +30,17 @@ const STAGE_ORDER = [
   Stage.Closeout,
 ];
 
-export const PipelinePage: React.FC = () => {
+const PipelinePageInner: React.FC = () => {
   const styles = useStyles();
   const { dataService } = useAppContext();
-  const [leads, setLeads] = React.useState<ILead[]>([]);
-  const [loading, setLoading] = React.useState(true);
 
-  React.useEffect(() => {
-    dataService.getLeads()
-      .then(result => setLeads(result.items))
-      .catch(() => setLeads([]))
-      .finally(() => setLoading(false));
-  }, [dataService]);
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['pipeline-leads'],
+    queryFn: () => dataService.getLeads(),
+    staleTime: 5 * 60_000,
+  });
 
+  const leads = data?.items ?? [];
   const activeLeads = leads.filter(l => isActiveStage(l.Stage));
   const totalValue = activeLeads.reduce((sum, l) => sum + (l.ProjectValue || 0), 0);
 
@@ -69,13 +68,19 @@ export const PipelinePage: React.FC = () => {
   return (
     <div>
       <PageHeader title="Pipeline" />
-      {loading ? <HbcSkeleton variant="kpi-grid" columns={2} /> : <div className={styles.kpiGrid}>
-        <KPICard title="Active Leads" value={activeLeads.length} />
-        <KPICard title="Total Pipeline Value" value={`$${(totalValue / 1_000_000).toFixed(1)}M`} />
-      </div>}
-      {loading ? <HbcSkeleton variant="card" /> : <div className={styles.chartContainer}>
-        <HbcEChart option={chartOption} height={400} />
-      </div>}
+      {loading ? <HbcSkeleton variant="kpi-grid" columns={2} /> : (
+        <div className={styles.kpiGrid} role="region" aria-label="Pipeline summary">
+          <KPICard title="Active Leads" value={activeLeads.length} />
+          <KPICard title="Total Pipeline Value" value={`$${(totalValue / 1_000_000).toFixed(1)}M`} />
+        </div>
+      )}
+      {loading ? <HbcSkeleton variant="card" /> : (
+        <div className={styles.chartContainer}>
+          <HbcEChart option={chartOption} height={400} ariaLabel="Pipeline funnel chart by stage" />
+        </div>
+      )}
     </div>
   );
 };
+
+export const PipelinePage = React.memo(PipelinePageInner);

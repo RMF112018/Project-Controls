@@ -36,9 +36,10 @@ import {
   TargetArrow24Regular,
   BuildingFactory24Regular,
 } from '@fluentui/react-icons';
-import { HBC_COLORS, ELEVATION, SPACING } from '../../../theme/tokens';
+import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcButton } from '../../shared/HbcButton';
+import { useButtonStyles, useMutationWithToast } from '../project-hub/shared';
 import { HbcDataTable } from '../../shared/HbcDataTable';
 import type { IHbcDataTableColumn } from '../../shared/HbcDataTable';
 import type { IHbcVirtualizationConfig } from '../../../tanstack/table/types';
@@ -109,8 +110,8 @@ const useStyles = makeStyles({
   },
   statusPill: {
     display: 'inline-block',
-    ...shorthands.padding('2px', '8px'),
-    ...shorthands.borderRadius('12px'),
+    ...shorthands.padding('2px', tokens.spacingHorizontalS),
+    ...shorthands.borderRadius(tokens.borderRadiusLarge),
     fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
   },
@@ -118,13 +119,7 @@ const useStyles = makeStyles({
     display: 'grid',
     ...shorthands.gap(tokens.spacingVerticalM),
   },
-  drawerActions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    ...shorthands.gap(tokens.spacingHorizontalS),
-    ...shorthands.padding(tokens.spacingVerticalM, '0', '0'),
-    ...shorthands.borderTop('1px', 'solid', tokens.colorNeutralStroke2),
-  },
+  // drawerActions → useButtonStyles().drawerFooter
   // ── Lightweight table styles ──
   toolbar: {
     display: 'flex',
@@ -139,11 +134,7 @@ const useStyles = makeStyles({
     ...shorthands.gap(tokens.spacingHorizontalS),
     marginLeft: 'auto',
   },
-  toolbarActions: {
-    display: 'flex',
-    alignItems: 'center',
-    ...shorthands.gap(tokens.spacingHorizontalXS),
-  },
+  // toolbarActions → useButtonStyles().toolbarActions
   rowCount: {
     fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground3,
@@ -182,16 +173,11 @@ const useStyles = makeStyles({
   drawerDetailValue: {
     color: tokens.colorNeutralForeground1,
   },
-  // Stage 18 Sub-task 4: toolbar row for Edit/Done actions inside project-details drawer
-  drawerEditToolbar: {
-    display: 'flex',
+  // drawerEditToolbar → useButtonStyles().toolbarActions + local drawerEditPadding
+  // meetingToolbarBtn → useButtonStyles().toolbarEmphasis
+  drawerEditPadding: {
     justifyContent: 'flex-end',
-    ...shorthands.gap(tokens.spacingHorizontalS),
     ...shorthands.padding('0', '0', tokens.spacingVerticalS),
-  },
-  // ── Stage 18 Sub-task 6b: Meeting Review Mode styles ──
-  meetingToolbarBtn: {
-    fontWeight: tokens.fontWeightSemibold,
   },
   spotlightContainer: {
     display: 'flex',
@@ -204,7 +190,7 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    ...shorthands.padding(SPACING.lg, SPACING.lg),
+    ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingHorizontalL),
     backgroundColor: HBC_COLORS.navy,
     boxShadow: ELEVATION.level2,
     flexShrink: 0,
@@ -219,7 +205,7 @@ const useStyles = makeStyles({
     color: HBC_COLORS.orange,
     fontWeight: tokens.fontWeightBold,
     fontSize: tokens.fontSizeBase400,
-    marginLeft: '12px',
+    marginLeft: tokens.spacingHorizontalS,
   },
   spotlightProgress: {
     fontSize: tokens.fontSizeBase400,
@@ -231,7 +217,7 @@ const useStyles = makeStyles({
     height: '6px',
     backgroundColor: 'rgba(255,255,255,0.2)',
     ...shorthands.borderRadius('3px'),
-    marginTop: '8px',
+    marginTop: tokens.spacingVerticalS,
   },
   spotlightProgressBarFill: {
     height: '100%',
@@ -244,7 +230,7 @@ const useStyles = makeStyles({
   spotlightBody: {
     flex: 1,
     overflowY: 'auto' as const,
-    ...shorthands.padding(SPACING.xl, SPACING.xl),
+    ...shorthands.padding(tokens.spacingVerticalXL, tokens.spacingHorizontalXL),
     display: 'flex',
     flexDirection: 'column' as const,
     alignItems: 'center',
@@ -254,17 +240,17 @@ const useStyles = makeStyles({
     maxWidth: '1200px',
     display: 'flex',
     flexDirection: 'column' as const,
-    ...shorthands.gap(SPACING.lg),
+    ...shorthands.gap(tokens.spacingVerticalL),
   },
   // TODO (Stage 19 – Sub-task 3): In the Estimating tab (after existing attachment controls), add "Attach Full Estimate Workbook" button + progress toast using existing HbcFileUpload and optimistic TanStack Query mutation pattern. On success, call ExcelDeepBidImportService and invalidate relevant queries. Gate behind DeepBidImportEnabled flag. Reference: plan UI upload deliverable and reuse of current attachment flow.
   spotlightSectionBanner: {
     display: 'flex',
     alignItems: 'center',
-    ...shorthands.gap('10px'),
-    ...shorthands.padding(SPACING.sm, SPACING.md),
+    ...shorthands.gap(tokens.spacingHorizontalSNudge),
+    ...shorthands.padding(tokens.spacingVerticalS, tokens.spacingHorizontalM),
     backgroundColor: HBC_COLORS.gray50,
     boxShadow: ELEVATION.level1,
-    ...shorthands.borderRadius('6px'),
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
     fontSize: tokens.fontSizeBase400,
     fontWeight: tokens.fontWeightSemibold,
     color: HBC_COLORS.navy,
@@ -272,21 +258,21 @@ const useStyles = makeStyles({
   spotlightFieldCard: {
     backgroundColor: '#FFFFFF',
     boxShadow: ELEVATION.level1,
-    ...shorthands.borderRadius('8px'),
-    ...shorthands.padding(SPACING.lg),
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    ...shorthands.padding(tokens.spacingVerticalL),
     ...shorthands.border('1px', 'solid', HBC_COLORS.gray200),
   },
   spotlightFieldGrid: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    ...shorthands.gap(SPACING.lg),
+    ...shorthands.gap(tokens.spacingVerticalL),
   },
   spotlightFieldRow: {
     display: 'grid',
     gridTemplateColumns: '180px 1fr',
-    ...shorthands.gap(SPACING.md),
+    ...shorthands.gap(tokens.spacingHorizontalM),
     alignItems: 'center',
-    ...shorthands.padding(SPACING.sm, SPACING.md),
+    ...shorthands.padding(tokens.spacingVerticalS, tokens.spacingHorizontalM),
     ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray200),
   },
   spotlightFieldRowAlt: {
@@ -304,20 +290,20 @@ const useStyles = makeStyles({
     backgroundColor: '#FFFFFF',
     boxShadow: ELEVATION.level1,
     ...shorthands.border('1px', 'solid', HBC_COLORS.gray200),
-    ...shorthands.borderRadius('8px'),
-    ...shorthands.padding(SPACING.lg),
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    ...shorthands.padding(tokens.spacingVerticalL),
   },
   spotlightPanelHeader: {
     display: 'flex',
     alignItems: 'center',
-    ...shorthands.gap('8px'),
-    ...shorthands.padding('0', '0', SPACING.md, '0'),
+    ...shorthands.gap(tokens.spacingHorizontalS),
+    ...shorthands.padding('0', '0', tokens.spacingHorizontalM, '0'),
     ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray200),
-    marginBottom: SPACING.md,
+    marginBottom: tokens.spacingHorizontalM,
     borderLeftWidth: '4px',
     borderLeftStyle: 'solid',
     borderLeftColor: HBC_COLORS.navy,
-    paddingLeft: SPACING.md,
+    paddingLeft: tokens.spacingHorizontalM,
     fontSize: tokens.fontSizeBase400,
     fontWeight: tokens.fontWeightSemibold,
     color: HBC_COLORS.navy,
@@ -326,7 +312,7 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    ...shorthands.padding(SPACING.lg, SPACING.lg),
+    ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingVerticalL),
     backgroundColor: HBC_COLORS.gray50,
     boxShadow: '0 -2px 6px rgba(0,0,0,0.08)',
     flexShrink: 0,
@@ -353,13 +339,13 @@ const useStyles = makeStyles({
     display: 'inline-flex',
     alignItems: 'center',
     ...shorthands.gap(tokens.spacingHorizontalXS),
-    ...shorthands.padding('4px', '12px'),
-    ...shorthands.borderRadius('14px'),
+    ...shorthands.padding(tokens.spacingVerticalXS, tokens.spacingHorizontalSNudge),
+    ...shorthands.borderRadius(tokens.borderRadiusCircular),
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
     backgroundColor: tokens.colorStatusSuccessBackground2,
     color: tokens.colorStatusSuccessForeground2,
-    marginLeft: '12px',
+    marginLeft: tokens.spacingHorizontalS,
     verticalAlign: 'middle',
   },
   // P0.1: Status pill variants (replace inline style conditionals)
@@ -389,8 +375,8 @@ const useStyles = makeStyles({
   progressBarRow: {
     display: 'flex',
     alignItems: 'center',
-    ...shorthands.gap('12px'),
-    marginTop: '8px',
+    ...shorthands.gap(tokens.spacingHorizontalSNudge),
+    marginTop: tokens.spacingVerticalS,
   },
   progressBarTrackConstrained: {
     flex: 1,
@@ -404,7 +390,7 @@ const useStyles = makeStyles({
   },
   checklistGrid: {
     display: 'grid',
-    ...shorthands.gap('4px'),
+    ...shorthands.gap(tokens.spacingVerticalXS),
   },
   // P0.1: Section banner border-left variants by tab context
   sectionBannerEstimate: {
@@ -422,12 +408,12 @@ const useStyles = makeStyles({
     overflowY: 'auto' as const,
     display: 'flex',
     flexDirection: 'column' as const,
-    ...shorthands.gap(SPACING.sm),
+    ...shorthands.gap(tokens.spacingVerticalS),
   },
   spotlightNoteEntry: {
     ...shorthands.border('1px', 'solid', HBC_COLORS.gray200),
-    ...shorthands.borderRadius('6px'),
-    ...shorthands.padding(SPACING.sm, SPACING.md),
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    ...shorthands.padding(tokens.spacingVerticalS, tokens.spacingHorizontalM),
     backgroundColor: HBC_COLORS.gray50,
   },
   spotlightNoteTimestamp: {
@@ -439,19 +425,19 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
     color: HBC_COLORS.navy,
-    marginLeft: '8px',
+    marginLeft: tokens.spacingHorizontalS,
   },
   spotlightNoteText: {
     fontSize: tokens.fontSizeBase300,
     color: tokens.colorNeutralForeground1,
-    marginTop: '4px',
+    marginTop: tokens.spacingVerticalXS,
     whiteSpace: 'pre-wrap' as const,
   },
   spotlightNoteInput: {
     display: 'flex',
-    ...shorthands.gap(SPACING.sm),
+    ...shorthands.gap(tokens.spacingVerticalS),
     alignItems: 'flex-end',
-    marginTop: SPACING.md,
+    marginTop: tokens.spacingHorizontalM,
   },
 });
 
@@ -1159,6 +1145,7 @@ ProjectActionsMenu.displayName = 'ProjectActionsMenu';
 // ── Component ────────────────────────────────────────────────────────
 export const DepartmentTrackingPage: React.FC = () => {
   const styles = useStyles();
+  const btnStyles = useButtonStyles();
   const { dataService, currentUser } = useAppContext();
   const { addToast } = useToast();
   const navigate = useNavigate();
@@ -1355,7 +1342,7 @@ export const DepartmentTrackingPage: React.FC = () => {
     [kickoffQuery.data, removeKickoffItemMutation],
   );
 
-  const updateRecordMutation = useMutation<
+  const updateRecordMutation = useMutationWithToast<
     IEstimatingTracker,
     Error,
     { id: number; field: string; patch: Partial<IEstimatingTracker> },
@@ -1363,6 +1350,12 @@ export const DepartmentTrackingPage: React.FC = () => {
   >({
     mutationFn: ({ id, patch }) => dataService.updateEstimatingRecord(id, patch),
     retry: 1,
+    toast: {
+      successMessage: (_data, { field }) => `${field} saved`,
+      errorMessage: (_error, { field }) => `Unable to save ${field}.`,
+      successDuration: 2500,
+      errorDuration: 4000,
+    },
     // Optimistically patch all estimating tab caches so inline edit feels instant.
     onMutate: async ({ id, patch }) => {
       const baseKey = qk.estimating.base(scope);
@@ -1416,15 +1409,12 @@ export const DepartmentTrackingPage: React.FC = () => {
       activeSaveKeyRef.current = saveKey;
 
       // Stage 18: keep inline saves non-blocking under React 18 concurrent rendering.
+      // Toast feedback handled automatically by useMutationWithToast hook.
       startTransition(() => {
         void updateRecordMutation.mutateAsync({
           id,
           field,
           patch: { [field]: validation.normalized } as Partial<IEstimatingTracker>,
-        }).then(() => {
-          addToast(`${field} saved`, 'success', 2500);
-        }).catch(() => {
-          addToast(`Unable to save ${field}.`, 'error', 4000);
         }).finally(() => {
           if (activeSaveKeyRef.current === saveKey) {
             activeSaveKeyRef.current = null;
@@ -1432,7 +1422,7 @@ export const DepartmentTrackingPage: React.FC = () => {
         });
       });
     },
-    [updateRecordMutation, isPendingSave, addToast],
+    [updateRecordMutation, isPendingSave],
   );
 
   const createRecordMutation = useMutation<
@@ -2573,7 +2563,7 @@ export const DepartmentTrackingPage: React.FC = () => {
                     {filteredItems.length} of {activeItems.length} row(s)
                   </span>
                   {/* Stage 18 Sub-task 7: ARIA labels + ESTIMATING_READ/EDIT permission gates on all toolbar actions */}
-                  <div className={styles.toolbarActions}>
+                  <div className={btnStyles.toolbarActions}>
                     <Button
                       size="small"
                       appearance="subtle"
@@ -2591,7 +2581,7 @@ export const DepartmentTrackingPage: React.FC = () => {
                       size="small"
                       appearance="subtle"
                       icon={<SlideText24Regular />}
-                      className={styles.meetingToolbarBtn}
+                      className={btnStyles.toolbarEmphasis}
                       disabled={filteredItems.length === 0 || !canEditEstimating}
                       onClick={handleEnterMeetingMode}
                       aria-label="Enter meeting review mode"
@@ -2701,7 +2691,7 @@ export const DepartmentTrackingPage: React.FC = () => {
           <div className={styles.drawerDetails}>
             {/* Edit toolbar — only visible to roles with edit access */}
             <RoleGate allowedRoles={EDIT_ROLES}>
-              <div className={styles.drawerEditToolbar}>
+              <div className={mergeClasses(btnStyles.toolbarActions, styles.drawerEditPadding)}>
                 {isDrawerEditing ? (
                   <Button size="small" appearance="subtle" onClick={() => setIsDrawerEditing(false)}>
                     Done Editing
@@ -2948,7 +2938,7 @@ export const DepartmentTrackingPage: React.FC = () => {
             )}
 
             {/* Drawer footer actions */}
-            <div className={styles.drawerActions}>
+            <div className={btnStyles.drawerFooter}>
               {isDrawerEditing && (
                 <Button size="small" appearance="subtle" onClick={() => setIsDrawerEditing(false)}>
                   Done Editing
@@ -3062,7 +3052,7 @@ export const DepartmentTrackingPage: React.FC = () => {
             </>
           )}
 
-          <div className={styles.drawerActions}>
+          <div className={btnStyles.drawerFooter}>
             <HbcButton onClick={closeDrawer}>Cancel</HbcButton>
             <HbcButton
               emphasis="strong"

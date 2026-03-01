@@ -6,15 +6,15 @@ import { HbcEmptyState } from '../../shared/HbcEmptyState';
 
 const useStyles = makeStyles({
   content: {
-    ...shorthands.padding('16px', '0'),
+    ...shorthands.padding(tokens.spacingVerticalM, '0'),
   },
   description: {
     color: tokens.colorNeutralForeground3,
-    fontSize: '14px',
+    fontSize: tokens.fontSizeBase300,
   },
 });
 
-export const EstimatingProjectHubPage: React.FC = () => {
+const EstimatingProjectHubPageInner: React.FC = () => {
   const styles = useStyles();
   const { selectedProject } = useAppContext();
 
@@ -32,7 +32,7 @@ export const EstimatingProjectHubPage: React.FC = () => {
 
   return (
     <div>
-      <PageHeader title={`Estimating Project Hub — ${selectedProject.projectName}`} />
+      <PageHeader title={`Estimating Project Hub \u2014 ${selectedProject.projectName}`} />
       <div className={styles.content}>
         <p className={styles.description}>
           Project-scoped estimating workspace for <strong>{selectedProject.projectCode}</strong>.
@@ -42,3 +42,5 @@ export const EstimatingProjectHubPage: React.FC = () => {
     </div>
   );
 };
+
+export const EstimatingProjectHubPage = React.memo(EstimatingProjectHubPageInner);

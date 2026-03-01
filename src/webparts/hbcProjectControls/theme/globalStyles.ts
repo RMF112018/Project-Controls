@@ -247,8 +247,8 @@ export const useGlobalStyles = makeStyles({
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    ...shorthands.padding(SPACING.md),
-    ...shorthands.gap(SPACING.sm),
+    ...shorthands.padding(tokens.spacingVerticalM),
+    ...shorthands.gap(tokens.spacingHorizontalS),
     flexWrap: 'wrap',
   },
 
@@ -299,16 +299,16 @@ export const useGlobalStyles = makeStyles({
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: '12px',
-    fontSize: '13px',
+    marginTop: tokens.spacingVerticalMNudge,
+    fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground3,
   },
   paginationButton: {
-    ...shorthands.padding('4px', '12px'),
+    ...shorthands.padding(tokens.spacingVerticalXS, tokens.spacingHorizontalMNudge),
     ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
-    ...shorthands.borderRadius('4px'),
+    ...shorthands.borderRadius(tokens.borderRadiusSmall),
     backgroundColor: tokens.colorNeutralBackground1,
-    fontSize: '13px',
+    fontSize: tokens.fontSizeBase200,
     cursor: 'pointer',
   },
   paginationButtonDisabled: {
@@ -323,18 +323,18 @@ export const useGlobalStyles = makeStyles({
     alignItems: 'center',
     justifyContent: 'center',
     ...shorthands.padding(SPACING.xxl),
-    ...shorthands.gap('12px'),
+    ...shorthands.gap(tokens.spacingVerticalMNudge),
   },
 
   // ── Export bar ─────────────────────────────────────────
   exportBar: {
     display: 'flex',
-    ...shorthands.gap('4px'),
+    ...shorthands.gap(tokens.spacingHorizontalXS),
     alignItems: 'center',
   },
   exportLabel: {
-    fontSize: '12px',
+    fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground4,
-    marginRight: '4px',
+    marginRight: tokens.spacingHorizontalXS,
   },
 });

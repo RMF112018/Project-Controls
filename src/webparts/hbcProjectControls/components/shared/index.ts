@@ -29,6 +29,7 @@ export type { IHbcEChartProps } from './HbcEChart';
 export { HbcDataTable } from './HbcDataTable';
 export { HbcButton } from './HbcButton';
 export type { HbcButtonEmphasis, IHbcButtonProps } from './HbcButton';
+export { useButtonStyles } from './useButtonStyles';
 export { HbcField } from './HbcField';
 export type { HbcFieldOrientation, IHbcFieldProps } from './HbcField';
 export { HbcCard } from './HbcCard';

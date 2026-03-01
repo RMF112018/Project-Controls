@@ -53,6 +53,7 @@ import { SkeletonLoader } from '../../shared/SkeletonLoader';
 import { ConfirmDialog } from '../../shared/ConfirmDialog';
 import { AzureADPeoplePicker } from '../../shared/AzureADPeoplePicker';
 import { ExportButtons } from '../../shared/ExportButtons';
+import { useButtonStyles, withToastFeedback } from './shared';
 import { useToast } from '../../shared/ToastContainer';
 import { useQueryScope } from '../../../tanstack/query/useQueryScope';
 import { postBidAutopsyByProjectOptions } from '../../../tanstack/query/queryOptions/postBidAutopsyQueryOptions';
@@ -206,18 +207,10 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground2,
     marginBottom: '4px',
   },
-  actionBar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    ...shorthands.gap('12px'),
-    ...shorthands.padding('16px', '0'),
-    ...shorthands.borderTop('1px', 'solid', tokens.colorNeutralStroke2),
-    marginTop: '8px',
-  },
-  actionGroup: {
-    display: 'flex',
-    ...shorthands.gap('8px'),
+  // actionBar → useButtonStyles().actionBar + local actionBarSpacing
+  // actionGroup → useButtonStyles().actionGroup
+  actionBarSpacing: {
+    marginTop: tokens.spacingVerticalS,
   },
   addRowBtn: {
     marginTop: '8px',
@@ -228,6 +221,17 @@ const useStyles = makeStyles({
   scoreGood: { color: HBC_COLORS.success },
   scoreMedium: { color: HBC_COLORS.warning },
   scoreLow: { color: HBC_COLORS.error },
+  validationBar: {
+    marginBottom: tokens.spacingVerticalS,
+  },
+  unansweredRow: {
+    borderLeft: `3px solid ${HBC_COLORS.warning}`,
+  },
+  sectionErrorBadge: {
+    color: HBC_COLORS.error,
+    fontWeight: tokens.fontWeightSemibold,
+    fontSize: tokens.fontSizeBase200,
+  },
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -243,6 +247,7 @@ function getScoreClass(
 // ── Component ──────────────────────────────────────────────────────────
 export const PostBidAutopsyPage: React.FC = () => {
   const styles = useStyles();
+  const btnStyles = useButtonStyles();
   const { dataService, selectedProject, currentUser, hasPermission } = useAppContext();
   const navigate = useAppNavigate();
   const toast = useToast();
@@ -274,6 +279,7 @@ export const PostBidAutopsyPage: React.FC = () => {
 
   // ── Confirm Dialog State ─────────────────────────────────────────
   const [showFinalize, setShowFinalize] = React.useState(false);
+  const [hasAttemptedFinalize, setHasAttemptedFinalize] = React.useState(false);
 
   // ── Computed Values ──────────────────────────────────────────────
   const items = autopsy?.items ?? [];
@@ -286,17 +292,43 @@ export const PostBidAutopsyPage: React.FC = () => {
     [items],
   );
 
+  // ── Validation Errors (derived from TanStack Query cache) ──────
+  const validationErrors = React.useMemo(() => {
+    if (!autopsy) return { errors: {} as Record<string, string>, errorList: [] as string[] };
+    const errors: Record<string, string> = {};
+
+    const unanswered = autopsy.items.filter((i) => i.answer === null);
+    if (unanswered.length > 0) {
+      errors.processQuestions = `${unanswered.length} process question(s) not answered.`;
+    }
+    if (autopsy.overallRating < 1 || autopsy.overallRating > 10) {
+      errors.overallRating = 'Overall rating must be between 1 and 10.';
+    }
+    if (autopsy.employees.length === 0) {
+      errors.employees = 'At least one team member is required.';
+    }
+
+    return { errors, errorList: Object.values(errors) };
+  }, [autopsy]);
+
+  const isValid = validationErrors.errorList.length === 0;
+
+  const unansweredItemIds = React.useMemo(() => {
+    if (!autopsy) return new Set<number>();
+    return new Set(autopsy.items.filter((i) => i.answer === null).map((i) => i.id));
+  }, [autopsy]);
+
   // ── Handlers ─────────────────────────────────────────────────────
   const handleInitialize = React.useCallback(() => {
-    void createAutopsy({
-      ProjectCode: projectCode,
-      LeadID: selectedProject?.leadId,
-      CreatedBy: currentUser?.email ?? 'system',
-    }).then(() => {
-      toast.addToast('Autopsy initialized from template', 'success');
-    }).catch(() => {
-      toast.addToast('Failed to initialize autopsy', 'error');
-    });
+    void withToastFeedback(
+      () => createAutopsy({
+        ProjectCode: projectCode,
+        LeadID: selectedProject?.leadId,
+        CreatedBy: currentUser?.email ?? 'system',
+      }),
+      toast.addToast,
+      { successMessage: 'Autopsy initialized from template', errorMessage: 'Failed to initialize autopsy' },
+    );
   }, [createAutopsy, projectCode, selectedProject?.leadId, currentUser?.email, toast]);
 
   const handleItemChange = React.useCallback(
@@ -305,14 +337,16 @@ export const PostBidAutopsyPage: React.FC = () => {
       const updatedItems = autopsy.items.map((item) =>
         item.id === itemId ? { ...item, [field]: value } : item,
       );
-      void saveAutopsy({
-        ...autopsy,
-        items: updatedItems,
-        processScore: PostBidAutopsyService.computeProcessScore(updatedItems),
-        ModifiedBy: currentUser?.email,
-      }).catch(() => {
-        toast.addToast('Failed to save', 'error');
-      });
+      void withToastFeedback(
+        () => saveAutopsy({
+          ...autopsy,
+          items: updatedItems,
+          processScore: PostBidAutopsyService.computeProcessScore(updatedItems),
+          ModifiedBy: currentUser?.email,
+        }),
+        toast.addToast,
+        { errorMessage: 'Failed to save' },
+      );
     },
     [autopsy, saveAutopsy, currentUser?.email, toast],
   );
@@ -320,13 +354,15 @@ export const PostBidAutopsyPage: React.FC = () => {
   const handleFieldChange = React.useCallback(
     (field: string, value: unknown) => {
       if (!autopsy) return;
-      void saveAutopsy({
-        ...autopsy,
-        [field]: value,
-        ModifiedBy: currentUser?.email,
-      }).catch(() => {
-        toast.addToast('Failed to save', 'error');
-      });
+      void withToastFeedback(
+        () => saveAutopsy({
+          ...autopsy,
+          [field]: value,
+          ModifiedBy: currentUser?.email,
+        }),
+        toast.addToast,
+        { errorMessage: 'Failed to save' },
+      );
     },
     [autopsy, saveAutopsy, currentUser?.email, toast],
   );
@@ -343,13 +379,15 @@ export const PostBidAutopsyPage: React.FC = () => {
       sortOrder: autopsy.items.length + 1,
       isCustom: true,
     };
-    void saveAutopsy({
-      ...autopsy,
-      items: [...autopsy.items, newItem],
-      ModifiedBy: currentUser?.email,
-    }).catch(() => {
-      toast.addToast('Failed to save', 'error');
-    });
+    void withToastFeedback(
+      () => saveAutopsy({
+        ...autopsy,
+        items: [...autopsy.items, newItem],
+        ModifiedBy: currentUser?.email,
+      }),
+      toast.addToast,
+      { errorMessage: 'Failed to save' },
+    );
   }, [autopsy, saveAutopsy, currentUser?.email, toast]);
 
   const handleEmployeesChange = React.useCallback(
@@ -364,41 +402,47 @@ export const PostBidAutopsyPage: React.FC = () => {
 
   const handleFinalize = React.useCallback(() => {
     if (!autopsy) return;
-    const errors = PostBidAutopsyService.validateForFinalization(autopsy);
-    if (errors.length > 0) {
-      toast.addToast(`Cannot finalize: ${errors.join(' ')}`, 'warning');
+    setHasAttemptedFinalize(true);
+
+    if (!isValid) {
+      toast.addToast(`Cannot finalize: ${validationErrors.errorList.join(' ')}`, 'warning');
       return;
     }
     setShowFinalize(true);
-  }, [autopsy, toast]);
+  }, [autopsy, isValid, validationErrors.errorList, toast]);
 
   const confirmFinalize = React.useCallback(() => {
     setShowFinalize(false);
-    void finalizeAutopsy(projectCode, {
-      isFinalized: true,
-      finalizedBy: currentUser?.email ?? 'system',
-    }).then(() => {
-      toast.addToast('Autopsy finalized and locked', 'success');
-    }).catch(() => {
-      toast.addToast('Failed to finalize', 'error');
-    });
+    void withToastFeedback(
+      () => finalizeAutopsy(projectCode, {
+        isFinalized: true,
+        finalizedBy: currentUser?.email ?? 'system',
+      }),
+      toast.addToast,
+      { successMessage: 'Autopsy finalized and locked', errorMessage: 'Failed to finalize' },
+    );
   }, [finalizeAutopsy, projectCode, currentUser?.email, toast]);
 
   // Phase 2 Task 3: Multi-sheet Excel export via PostBidAutopsyService
   const [isExportingExcel, setIsExportingExcel] = React.useState(false);
   const handleExcelExport = React.useCallback(async () => {
     if (!autopsy) return;
+    setIsExportingExcel(true);
     try {
-      setIsExportingExcel(true);
-      const sheets = PostBidAutopsyService.buildExcelExportData(autopsy);
-      const exportSvc = new ExportService();
-      await exportSvc.exportToExcelMultiSheet(sheets, {
-        filename: `post-bid-autopsy-${projectCode}`,
-        title: `Post-Bid Autopsy — ${projectCode}`,
-      });
-      toast.addToast('Excel export complete', 'success');
+      await withToastFeedback(
+        async () => {
+          const sheets = PostBidAutopsyService.buildExcelExportData(autopsy);
+          const exportSvc = new ExportService();
+          await exportSvc.exportToExcelMultiSheet(sheets, {
+            filename: `post-bid-autopsy-${projectCode}`,
+            title: `Post-Bid Autopsy — ${projectCode}`,
+          });
+        },
+        toast.addToast,
+        { successMessage: 'Excel export complete', errorMessage: 'Excel export failed' },
+      );
     } catch {
-      toast.addToast('Excel export failed', 'error');
+      // error toast already shown by withToastFeedback
     } finally {
       setIsExportingExcel(false);
     }
@@ -528,9 +572,16 @@ export const PostBidAutopsyPage: React.FC = () => {
         subtitle="13 Process Questions"
         defaultExpanded
         badge={
-          <span className={getScoreClass(styles, processScore)}>
-            {processScore}%
-          </span>
+          <>
+            <span className={getScoreClass(styles, processScore)}>
+              {processScore}%
+            </span>
+            {hasAttemptedFinalize && validationErrors.errors.processQuestions && (
+              <span className={styles.sectionErrorBadge}>
+                {' '}— {validationErrors.errors.processQuestions}
+              </span>
+            )}
+          </>
         }
       >
         <table className={styles.processTable}>
@@ -548,7 +599,13 @@ export const PostBidAutopsyPage: React.FC = () => {
                 (q) => q.key === item.questionKey,
               );
               return (
-                <tr key={item.id} className={styles.tr}>
+                <tr
+                  key={item.id}
+                  className={mergeClasses(
+                    styles.tr,
+                    hasAttemptedFinalize && unansweredItemIds.has(item.id) && styles.unansweredRow,
+                  )}
+                >
                   <td className={mergeClasses(styles.td, styles.rowNumber)}>
                     {idx + 1}
                   </td>
@@ -702,7 +759,14 @@ export const PostBidAutopsyPage: React.FC = () => {
         <div className={styles.closingGrid}>
           {/* Overall Rating */}
           <div>
-            <div className={styles.fieldLabel}>Overall Rating (1–10)</div>
+            <div className={styles.fieldLabel}>
+              Overall Rating (1–10)
+              {hasAttemptedFinalize && validationErrors.errors.overallRating && (
+                <span className={styles.sectionErrorBadge}>
+                  {' '}— {validationErrors.errors.overallRating}
+                </span>
+              )}
+            </div>
             <div className={styles.ratingContainer}>
               <Slider
                 min={1}
@@ -779,7 +843,17 @@ export const PostBidAutopsyPage: React.FC = () => {
       </CollapsibleSection>
 
       {/* ═══ Project Team ═══ */}
-      <CollapsibleSection title="Employees in Project" defaultExpanded>
+      <CollapsibleSection
+        title="Employees in Project"
+        defaultExpanded
+        badge={
+          hasAttemptedFinalize && validationErrors.errors.employees ? (
+            <span className={styles.sectionErrorBadge}>
+              {validationErrors.errors.employees}
+            </span>
+          ) : undefined
+        }
+      >
         <AzureADPeoplePicker
           multiSelect
           selectedUsers={
@@ -796,9 +870,20 @@ export const PostBidAutopsyPage: React.FC = () => {
         />
       </CollapsibleSection>
 
+      {/* ═══ Validation Summary ═══ */}
+      {hasAttemptedFinalize && !isValid && !isFinalized && (
+        <MessageBar intent="warning" className={styles.validationBar} role="alert">
+          <MessageBarBody>
+            {validationErrors.errorList.length === 1
+              ? validationErrors.errorList[0]
+              : `Please resolve ${validationErrors.errorList.length} issues before finalizing: ${validationErrors.errorList.join(' ')}`}
+          </MessageBarBody>
+        </MessageBar>
+      )}
+
       {/* ═══ Action Bar ═══ */}
-      <div className={styles.actionBar}>
-        <div className={styles.actionGroup}>
+      <div className={mergeClasses(btnStyles.actionBar, styles.actionBarSpacing)}>
+        <div className={btnStyles.actionGroup}>
           <ExportButtons
             filename={`post-bid-autopsy-${projectCode}`}
             pdfElementId="post-bid-autopsy-content"
@@ -813,16 +898,25 @@ export const PostBidAutopsyPage: React.FC = () => {
             {isExportingExcel ? 'Exporting...' : 'Excel'}
           </Button>
         </div>
-        <div className={styles.actionGroup}>
+        <div className={btnStyles.actionGroup}>
           {!isFinalized && canEdit && (
-            <Button
-              appearance="primary"
-              icon={<LockClosed24Regular />}
-              onClick={handleFinalize}
-              disabled={isFinalizing}
+            <Tooltip
+              content={
+                hasAttemptedFinalize && !isValid
+                  ? validationErrors.errorList.join(' ')
+                  : 'Lock all fields after review is complete'
+              }
+              relationship="description"
             >
-              {isFinalizing ? 'Finalizing...' : 'Finalize & Lock'}
-            </Button>
+              <Button
+                appearance="primary"
+                icon={<LockClosed24Regular />}
+                onClick={handleFinalize}
+                disabled={isFinalizing || (hasAttemptedFinalize && !isValid)}
+              >
+                {isFinalizing ? 'Finalizing...' : 'Finalize & Lock'}
+              </Button>
+            </Tooltip>
           )}
           {isFinalized && (
             <Button

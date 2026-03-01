@@ -26,6 +26,8 @@ import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { HbcField } from '../../shared/HbcField';
 import { HbcButton } from '../../shared/HbcButton';
+import { useButtonStyles } from '../../shared/useButtonStyles';
+import { withToastFeedback } from '../project-hub/shared';
 import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAppNavigate } from '../../hooks/router/useAppNavigate';
@@ -121,13 +123,7 @@ const useStyles = makeStyles({
   dividerSection: {
     ...shorthands.margin(tokens.spacingVerticalXL, '0', tokens.spacingVerticalM),
   },
-  actions: {
-    display: 'flex',
-    ...shorthands.gap(tokens.spacingHorizontalM),
-    ...shorthands.padding(tokens.spacingVerticalL, '0', '0'),
-    justifyContent: 'flex-start',
-    flexWrap: 'wrap',
-  },
+  // actions → useButtonStyles().formActions
   backButton: {
     marginBottom: tokens.spacingVerticalM,
   },
@@ -137,8 +133,9 @@ const useStyles = makeStyles({
 });
 
 // ── Component ───────────────────────────────────────────────────────
-export const ProjectNumberRequestForm: React.FC = () => {
+const ProjectNumberRequestFormInner: React.FC = () => {
   const styles = useStyles();
+  const btnStyles = useButtonStyles();
   const { dataService, currentUser } = useAppContext();
   const navigate = useAppNavigate();
   const params = useAppParams();
@@ -327,20 +324,26 @@ export const ProjectNumberRequestForm: React.FC = () => {
       };
 
       if (isEditing && requestId) {
-        await updateRequestMutation.mutateAsync({ requestId: Number(requestId), requestData });
-        addToast('Request updated successfully.', 'success');
+        await withToastFeedback(
+          () => updateRequestMutation.mutateAsync({ requestId: Number(requestId), requestData }),
+          addToast,
+          { successMessage: 'Request updated successfully.', errorMessage: 'Failed to submit request. Please try again.' },
+        );
       } else {
-        await createRequestMutation.mutateAsync({ requestData, workflowType });
-        addToast(
-          workflowType === 'typical'
-            ? 'Request submitted. Notification sent to Controller.'
-            : 'Request submitted. Site provisioning initiated.',
-          'success'
+        await withToastFeedback(
+          () => createRequestMutation.mutateAsync({ requestData, workflowType }),
+          addToast,
+          {
+            successMessage: workflowType === 'typical'
+              ? 'Request submitted. Notification sent to Controller.'
+              : 'Request submitted. Site provisioning initiated.',
+            errorMessage: 'Failed to submit request. Please try again.',
+          },
         );
       }
       navigate('/preconstruction/project-number-requests');
     } catch {
-      addToast('Failed to submit request. Please try again.', 'error');
+      // Error toast already shown by withToastFeedback; catch prevents unhandled rejection.
     } finally {
       setSubmitting(null);
     }
@@ -397,7 +400,7 @@ export const ProjectNumberRequestForm: React.FC = () => {
       <div className={styles.formCard}>
         <HbcCard title="Request Details">
           {hasErrors && (
-            <MessageBar intent="error" className={styles.errorBar}>
+            <MessageBar intent="error" className={styles.errorBar} role="alert">
               <MessageBarBody>Please correct the highlighted fields below.</MessageBarBody>
             </MessageBar>
           )}
@@ -526,6 +529,7 @@ export const ProjectNumberRequestForm: React.FC = () => {
                 value={formData.managedInProcore}
                 onChange={(_, data) => setFormData(prev => ({ ...prev, managedInProcore: data.value }))}
                 layout="horizontal"
+                aria-label="Will this project be managed in Procore?"
               >
                 <Radio value="yes" label="Yes" />
                 <Radio value="no" label="No" />
@@ -557,7 +561,7 @@ export const ProjectNumberRequestForm: React.FC = () => {
           </div>
 
           {/* ── Submit Buttons ── */}
-          <div className={styles.actions}>
+          <div className={btnStyles.formActions}>
             <HbcButton
               emphasis="strong"
               isLoading={submitting === 'typical'}
@@ -580,3 +584,5 @@ export const ProjectNumberRequestForm: React.FC = () => {
     </div>
   );
 };
+
+export const ProjectNumberRequestForm = React.memo(ProjectNumberRequestFormInner);
