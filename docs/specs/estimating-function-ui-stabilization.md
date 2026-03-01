@@ -56,12 +56,45 @@ See `docs/specs/fluent-ui-v9-global-standards.md` for all token mappings, access
 
 ## Phase 6 Task 2: Subtle micro-animations (Estimating-specific)
 
-**Status**: Complete  
+**Status**: Complete
 **Objective**: Fluent UI motion on badges, status pills, score tiers, and accordions in Estimating surfaces only.
 
-**Files Modified**  
-- `PostBidAutopsyPage.tsx`  
-- `DepartmentTrackingPage.tsx` (Estimating badges/accordions only)
+**Motion Infrastructure** (`HbcMotion.ts`)
+New `useEstimatingMotionStyles` hook with 5 presets, all ≤150ms (`tokens.durationFast`):
+
+| Preset | Animation | Duration | Easing | Targets |
+|--------|-----------|----------|--------|---------|
+| `scoreTransition` | CSS transition on `color, background-color` | `durationFast` (~150ms) | `curveEasyEase` | Process score badge tier changes |
+| `pillAppear` | Keyframe: opacity 0→1 + scale 0.9→1 | `durationFast` | `curveDecelerateMid` | Error badges, status pills |
+| `badgeScaleIn` | Keyframe: opacity 0→1 + scale 0.8→1 | `durationFast` | `curveDecelerateMid` | Reviewed badge |
+| `chevronRotate` | CSS transition on `transform` | `durationFast` | `curveDecelerateMid` | CollapsibleSection chevron |
+| `accordionContent` / `accordionContentExpanded` | CSS grid-template-rows 0fr↔1fr | `durationNormal` (~200ms) | `curveDecelerateMid` | CollapsibleSection body |
+
+**Reduced-Motion Support**
+All presets include `@media (prefers-reduced-motion: reduce) { animationDuration/transitionDuration: tokens.durationUltraFast }`.
+
+**PostBidAutopsyPage.tsx Changes**
+- Score badge (`scoreGood`/`scoreMedium`/`scoreLow`): Added `transitionProperty: 'color'` with `durationFast` + `curveEasyEase`
+- Error badges (3 instances): Added `pillAppear` class via `mergeClasses`
+- Score tier class applied to process score `<span>` via `scoreTransition`
+
+**DepartmentTrackingPage.tsx Changes**
+- `statusPill` base class: Added keyframe animation (scale 0.9→1 + fade)
+- `reviewedBadge` class: Added keyframe animation (scale 0.8→1 + fade)
+
+**CollapsibleSection.tsx Changes**
+- Replaced `max-height: 5000px` hack with CSS grid `grid-template-rows: 0fr↔1fr` transition
+- Migrated inline styles to Griffel `makeStyles` with Fluent UI tokens
+- Replaced `#fff` with `tokens.colorNeutralBackground1` (dark-mode compatible)
+- Chevron rotation uses `chevronRotate` preset instead of inline `transition: transform 0.2s ease`
+
+**Performance** — All animated properties are compositor-friendly (`opacity`, `transform`) or simple repaint (`color`, `background-color`, `grid-template-rows`). No layout thrashing. Zero new npm dependencies.
+
+**Files Modified**
+- `src/.../components/shared/HbcMotion.ts` (new `useEstimatingMotionStyles`)
+- `src/.../components/shared/CollapsibleSection.tsx` (CSS grid accordion, token migration)
+- `src/.../pages/project-hub/PostBidAutopsyPage.tsx` (score + error badge motion)
+- `src/.../pages/preconstruction/DepartmentTrackingPage.tsx` (status pill + reviewed badge motion)
 
 ## Phase 6 Task 3: Comprehensive tests and accessibility audit (Estimating-specific)
 

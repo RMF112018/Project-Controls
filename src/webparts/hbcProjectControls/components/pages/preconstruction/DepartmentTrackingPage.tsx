@@ -40,6 +40,7 @@ import { HBC_COLORS, ELEVATION } from '../../../theme/tokens';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcButton } from '../../shared/HbcButton';
 import { useButtonStyles, useMutationWithToast } from '../project-hub/shared';
+import { useEstimatingMotionStyles } from '../../shared/HbcMotion';
 import { HbcDataTable } from '../../shared/HbcDataTable';
 import type { IHbcDataTableColumn } from '../../shared/HbcDataTable';
 import type { IHbcVirtualizationConfig } from '../../../tanstack/table/types';
@@ -108,12 +109,23 @@ const useStyles = makeStyles({
   currencyText: {
     fontVariantNumeric: 'tabular-nums',
   },
+  // Phase 6 Task 2: Status pill with subtle scale-in + fade enter animation
   statusPill: {
     display: 'inline-block',
     ...shorthands.padding('2px', tokens.spacingHorizontalS),
     ...shorthands.borderRadius(tokens.borderRadiusLarge),
     fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
+    animationName: {
+      from: { opacity: 0, transform: 'scale(0.9)' },
+      to: { opacity: 1, transform: 'scale(1)' },
+    },
+    animationDuration: tokens.durationFast,
+    animationTimingFunction: tokens.curveDecelerateMid,
+    animationFillMode: 'both',
+    '@media (prefers-reduced-motion: reduce)': {
+      animationDuration: tokens.durationUltraFast,
+    },
   },
   drawerForm: {
     display: 'grid',
@@ -335,6 +347,7 @@ const useStyles = makeStyles({
     minWidth: '56px',
     textAlign: 'center' as const,
   },
+  // Phase 6 Task 2: Reviewed badge with expressive scale-in animation
   reviewedBadge: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -347,6 +360,16 @@ const useStyles = makeStyles({
     color: tokens.colorStatusSuccessForeground2,
     marginLeft: tokens.spacingHorizontalS,
     verticalAlign: 'middle',
+    animationName: {
+      from: { opacity: 0, transform: 'scale(0.8)' },
+      to: { opacity: 1, transform: 'scale(1)' },
+    },
+    animationDuration: tokens.durationFast,
+    animationTimingFunction: tokens.curveDecelerateMid,
+    animationFillMode: 'both',
+    '@media (prefers-reduced-motion: reduce)': {
+      animationDuration: tokens.durationUltraFast,
+    },
   },
   // P0.1: Status pill variants (replace inline style conditionals)
   statusPillPending: {

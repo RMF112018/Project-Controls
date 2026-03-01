@@ -55,13 +55,41 @@
 - High contrast: `@media (forced-colors: active)` + `forced-colors` CSS overrides  
 - Token migration summary and exceptions documented in full (see Token Migration Summary table below)
 
+## Motion Primitives (Phase 6 Task 2)
+
+**Central utility**: `src/.../components/shared/HbcMotion.ts`
+
+**Duration Token Mapping**
+
+| Token | Approximate Value | Usage |
+|-------|-------------------|-------|
+| `tokens.durationUltraFast` | ~50ms | Reduced-motion fallback |
+| `tokens.durationFaster` | ~100ms | Subtle preset |
+| `tokens.durationFast` | ~150ms | Standard micro-animation ceiling |
+| `tokens.durationNormal` | ~200ms | Accordion content expand |
+| `tokens.durationSlow` | ~300ms | Dialog entrance (max cap) |
+
+**Curve Token Mapping**
+
+| Token | Behavior | Usage |
+|-------|----------|-------|
+| `tokens.curveDecelerateMid` | Ease-out (natural deceleration) | Enter animations, scale-in |
+| `tokens.curveEasyEase` | Symmetric ease | Color/state transitions |
+
+**Reduced-Motion Mandate**
+Every animation MUST include `@media (prefers-reduced-motion: reduce)` with `tokens.durationUltraFast`. This is enforced in all `useHbcMotionStyles` and `useEstimatingMotionStyles` presets.
+
+**Max Duration Cap**: `HBC_MOTION_MAX_MS = 300` — no animation may exceed 300ms.
+
+**Estimating-Specific Presets** (`useEstimatingMotionStyles`): `scoreTransition`, `pillAppear`, `badgeScaleIn`, `chevronRotate`, `accordionContent`/`accordionContentExpanded`. See `estimating-function-ui-stabilization.md` Phase 6 Task 2 for details.
+
 ## Shared Patterns Reference
 
-- Button theming → `useButtonStyles` hook  
-- Mutation feedback → `useMutationWithToast` / `withToastFeedback`  
-- Micro-animations → Fluent UI motion primitives (estimating surfaces only)  
+- Button theming → `useButtonStyles` hook
+- Mutation feedback → `useMutationWithToast` / `withToastFeedback`
+- Micro-animations → `useHbcMotionStyles` (global) + `useEstimatingMotionStyles` (estimating surfaces only)
 
-**Usage Rule**  
+**Usage Rule**
 Every domain-specific spec MUST reference this file and may only contain domain-specific deviations. No duplication allowed.
 
 **End of Global UI Standards**

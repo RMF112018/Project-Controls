@@ -4,6 +4,24 @@ All notable changes to HBC Project Controls will be documented in this file.
 
 ## [Unreleased]
 
+### [2026-03-01] - Phase 6 Task 2: Estimating Micro-Animations
+
+#### Added
+- **`useEstimatingMotionStyles`** (`HbcMotion.ts`): 5 motion presets (`scoreTransition`, `pillAppear`, `badgeScaleIn`, `chevronRotate`, `accordionContent`/`accordionContentExpanded`) using Fluent UI `durationFast`/`curveDecelerateMid` tokens with `prefers-reduced-motion` support
+- **Motion Primitives section** (`fluent-ui-v9-global-standards.md`): Duration/curve token mappings, reduced-motion mandate, max duration cap documentation
+
+#### Changed
+- **CollapsibleSection**: Replaced `max-height: 5000px` hack with CSS grid `grid-template-rows: 0fr↔1fr` transition for consistent accordion speed; migrated inline styles to Griffel `makeStyles`; replaced `#fff` with `tokens.colorNeutralBackground1` for dark-mode compatibility; chevron rotation uses `curveDecelerateMid` easing
+- **PostBidAutopsyPage**: Score badge smoothly transitions color between tiers (green/amber/red) via `durationFast` + `curveEasyEase`; 3 error badge instances animate in with `pillAppear` (scale 0.9→1 + fade)
+- **DepartmentTrackingPage**: Status pills (Pending/Success/Danger/Neutral) animate in with scale+fade on render; Reviewed badge uses expressive scale-in (scale 0.8→1 + fade)
+
+#### Notes
+- Zero new npm dependencies; all animations use Fluent UI v9 tokens via Griffel `makeStyles`
+- All animations ≤150ms (`durationFast`) with ease-out; accordion content uses 200ms (`durationNormal`)
+- Full `@media (prefers-reduced-motion: reduce)` support on every animated property
+- No bundle size impact (Griffel tree-shakes unused atomic CSS at build time)
+- Role-based visibility and permission checks unchanged; animations are purely presentational
+
 ### [2026-03-01] - Phase 6 Task 1: Dark-Mode / High-Contrast Support
 
 #### Added

@@ -53,6 +53,7 @@ import { ConfirmDialog } from '../../shared/ConfirmDialog';
 import { AzureADPeoplePicker } from '../../shared/AzureADPeoplePicker';
 import { ExportButtons } from '../../shared/ExportButtons';
 import { useButtonStyles, withToastFeedback } from './shared';
+import { useEstimatingMotionStyles } from '../../shared/HbcMotion';
 import { useToast } from '../../shared/ToastContainer';
 import { useQueryScope } from '../../../tanstack/query/useQueryScope';
 import { postBidAutopsyByProjectOptions } from '../../../tanstack/query/queryOptions/postBidAutopsyQueryOptions';
@@ -217,9 +218,28 @@ const useStyles = makeStyles({
   finalizedBanner: {
     marginBottom: '8px',
   },
-  scoreGood: { color: tokens.colorStatusSuccessForeground1 },
-  scoreMedium: { color: tokens.colorStatusWarningForeground1 },
-  scoreLow: { color: tokens.colorStatusDangerForeground1 },
+  // Phase 6 Task 2: Score tier colors with smooth transition on tier change
+  scoreGood: {
+    color: tokens.colorStatusSuccessForeground1,
+    transitionProperty: 'color',
+    transitionDuration: tokens.durationFast,
+    transitionTimingFunction: tokens.curveEasyEase,
+    '@media (prefers-reduced-motion: reduce)': { transitionDuration: tokens.durationUltraFast },
+  },
+  scoreMedium: {
+    color: tokens.colorStatusWarningForeground1,
+    transitionProperty: 'color',
+    transitionDuration: tokens.durationFast,
+    transitionTimingFunction: tokens.curveEasyEase,
+    '@media (prefers-reduced-motion: reduce)': { transitionDuration: tokens.durationUltraFast },
+  },
+  scoreLow: {
+    color: tokens.colorStatusDangerForeground1,
+    transitionProperty: 'color',
+    transitionDuration: tokens.durationFast,
+    transitionTimingFunction: tokens.curveEasyEase,
+    '@media (prefers-reduced-motion: reduce)': { transitionDuration: tokens.durationUltraFast },
+  },
   validationBar: {
     marginBottom: tokens.spacingVerticalS,
   },
@@ -247,6 +267,7 @@ function getScoreClass(
 export const PostBidAutopsyPage: React.FC = () => {
   const styles = useStyles();
   const btnStyles = useButtonStyles();
+  const motionStyles = useEstimatingMotionStyles();
   const { dataService, selectedProject, currentUser, hasPermission } = useAppContext();
   const navigate = useAppNavigate();
   const toast = useToast();
@@ -572,11 +593,11 @@ export const PostBidAutopsyPage: React.FC = () => {
         defaultExpanded
         badge={
           <>
-            <span className={getScoreClass(styles, processScore)}>
+            <span className={mergeClasses(getScoreClass(styles, processScore), motionStyles.scoreTransition)}>
               {processScore}%
             </span>
             {hasAttemptedFinalize && validationErrors.errors.processQuestions && (
-              <span className={styles.sectionErrorBadge}>
+              <span className={mergeClasses(styles.sectionErrorBadge, motionStyles.pillAppear)}>
                 {' '}— {validationErrors.errors.processQuestions}
               </span>
             )}
@@ -761,7 +782,7 @@ export const PostBidAutopsyPage: React.FC = () => {
             <div className={styles.fieldLabel}>
               Overall Rating (1–10)
               {hasAttemptedFinalize && validationErrors.errors.overallRating && (
-                <span className={styles.sectionErrorBadge}>
+                <span className={mergeClasses(styles.sectionErrorBadge, motionStyles.pillAppear)}>
                   {' '}— {validationErrors.errors.overallRating}
                 </span>
               )}
@@ -847,7 +868,7 @@ export const PostBidAutopsyPage: React.FC = () => {
         defaultExpanded
         badge={
           hasAttemptedFinalize && validationErrors.errors.employees ? (
-            <span className={styles.sectionErrorBadge}>
+            <span className={mergeClasses(styles.sectionErrorBadge, motionStyles.pillAppear)}>
               {validationErrors.errors.employees}
             </span>
           ) : undefined

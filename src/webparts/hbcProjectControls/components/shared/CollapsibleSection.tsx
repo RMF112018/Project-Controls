@@ -1,6 +1,59 @@
 import * as React from 'react';
-import { tokens } from '@fluentui/react-components';
+import { makeStyles, mergeClasses, shorthands, tokens } from '@fluentui/react-components';
 import { ELEVATION } from '../../theme/tokens';
+import { useEstimatingMotionStyles } from './HbcMotion';
+
+const useStyles = makeStyles({
+  root: {
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    boxShadow: ELEVATION.level1,
+    marginBottom: tokens.spacingVerticalMNudge,
+    ...shorthands.overflow('hidden'),
+  },
+  trigger: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    ...shorthands.padding(tokens.spacingVerticalMNudge, tokens.spacingHorizontalL),
+    backgroundColor: 'transparent',
+    ...shorthands.border('0'),
+    cursor: 'pointer',
+    textAlign: 'left' as const,
+  },
+  headerGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap(tokens.spacingHorizontalSNudge),
+  },
+  chevron: {
+    display: 'inline-block',
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground2,
+    // Rotation set via inline transform; transition via chevronRotate motion style
+  },
+  chevronExpanded: {
+    transform: 'rotate(90deg)',
+  },
+  title: {
+    fontWeight: tokens.fontWeightSemibold,
+    fontSize: tokens.fontSizeBase300,
+    color: tokens.colorBrandForeground1,
+  },
+  subtitle: {
+    marginLeft: tokens.spacingHorizontalS,
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground2,
+  },
+  // CSS grid technique replaces max-height: 5000px for consistent animation speed
+  contentInner: {
+    ...shorthands.overflow('hidden'),
+  },
+  contentPadding: {
+    ...shorthands.padding('0', tokens.spacingHorizontalL, tokens.spacingVerticalM, tokens.spacingHorizontalL),
+  },
+});
 
 interface ICollapsibleSectionProps {
   title: string;
@@ -17,65 +70,46 @@ export const CollapsibleSection: React.FC<ICollapsibleSectionProps> = ({
   badge,
   children,
 }) => {
+  const styles = useStyles();
+  const motionStyles = useEstimatingMotionStyles();
   const [expanded, setExpanded] = React.useState(defaultExpanded);
-  const contentRef = React.useRef<HTMLDivElement>(null);
 
   return (
-    <div
-      style={{
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        boxShadow: ELEVATION.level1,
-        marginBottom: 12,
-        overflow: 'hidden',
-      }}
-    >
+    <div className={styles.root}>
       <button
         onClick={() => setExpanded(!expanded)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          width: '100%',
-          padding: '14px 20px',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          textAlign: 'left',
-        }}
+        className={styles.trigger}
         aria-expanded={expanded}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className={styles.headerGroup}>
           <span
-            style={{
-              display: 'inline-block',
-              transition: 'transform 0.2s ease',
-              transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-              fontSize: '12px',
-              color: tokens.colorNeutralForeground2,
-            }}
+            className={mergeClasses(
+              styles.chevron,
+              motionStyles.chevronRotate,
+              expanded && styles.chevronExpanded,
+            )}
           >
             {'\u25B6'}
           </span>
           <div>
-            <span style={{ fontWeight: 600, fontSize: '15px', color: tokens.colorBrandForeground1 }}>{title}</span>
+            <span className={styles.title}>{title}</span>
             {subtitle && (
-              <span style={{ marginLeft: 8, fontSize: '13px', color: tokens.colorNeutralForeground2 }}>{subtitle}</span>
+              <span className={styles.subtitle}>{subtitle}</span>
             )}
           </div>
           {badge && <span>{badge}</span>}
         </div>
       </button>
       <div
-        ref={contentRef}
-        style={{
-          maxHeight: expanded ? '5000px' : '0',
-          overflow: 'hidden',
-          transition: 'max-height 0.3s ease',
-        }}
+        className={mergeClasses(
+          motionStyles.accordionContent,
+          expanded && motionStyles.accordionContentExpanded,
+        )}
       >
-        <div style={{ padding: '0 20px 16px 20px' }}>
-          {children}
+        <div className={styles.contentInner}>
+          <div className={styles.contentPadding}>
+            {children}
+          </div>
         </div>
       </div>
     </div>

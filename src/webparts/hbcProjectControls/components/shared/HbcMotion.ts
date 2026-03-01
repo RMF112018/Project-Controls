@@ -88,3 +88,69 @@ export const useHbcMotionStyles = makeStyles({
     },
   },
 });
+
+// ── Estimating-specific micro-animation presets ──────────────────────
+// Phase 6 Task 2: Subtle motion on badges, status pills, score tiers,
+// and accordion chevrons within PostBidAutopsyPage and DepartmentTrackingPage.
+// All durations ≤150ms (durationFast). Reduced-motion collapses to ~0ms.
+export const useEstimatingMotionStyles = makeStyles({
+  /** Smooth color transition when score badge changes tier (green/amber/red) */
+  scoreTransition: {
+    transitionProperty: 'color, background-color',
+    transitionDuration: tokens.durationFast,
+    transitionTimingFunction: tokens.curveEasyEase,
+    '@media (prefers-reduced-motion: reduce)': {
+      transitionDuration: tokens.durationUltraFast,
+    },
+  },
+  /** Status pill / error badge enter: subtle scale-up + fade-in */
+  pillAppear: {
+    animationName: {
+      from: { opacity: 0, transform: 'scale(0.9)' },
+      to: { opacity: 1, transform: 'scale(1)' },
+    },
+    animationDuration: tokens.durationFast,
+    animationTimingFunction: tokens.curveDecelerateMid,
+    animationFillMode: 'both',
+    '@media (prefers-reduced-motion: reduce)': {
+      animationDuration: tokens.durationUltraFast,
+    },
+  },
+  /** Reviewed / success badge enter: slightly more expressive scale-in */
+  badgeScaleIn: {
+    animationName: {
+      from: { opacity: 0, transform: 'scale(0.8)' },
+      to: { opacity: 1, transform: 'scale(1)' },
+    },
+    animationDuration: tokens.durationFast,
+    animationTimingFunction: tokens.curveDecelerateMid,
+    animationFillMode: 'both',
+    '@media (prefers-reduced-motion: reduce)': {
+      animationDuration: tokens.durationUltraFast,
+    },
+  },
+  /** Accordion chevron rotation with ease-out deceleration */
+  chevronRotate: {
+    transitionProperty: 'transform',
+    transitionDuration: tokens.durationFast,
+    transitionTimingFunction: tokens.curveDecelerateMid,
+    '@media (prefers-reduced-motion: reduce)': {
+      transitionDuration: tokens.durationUltraFast,
+    },
+  },
+  /** Accordion content expand/collapse via CSS grid row transition */
+  accordionContent: {
+    display: 'grid',
+    gridTemplateRows: '0fr',
+    transitionProperty: 'grid-template-rows',
+    transitionDuration: tokens.durationNormal,
+    transitionTimingFunction: tokens.curveDecelerateMid,
+    '@media (prefers-reduced-motion: reduce)': {
+      transitionDuration: tokens.durationUltraFast,
+    },
+  },
+  /** Accordion content expanded state */
+  accordionContentExpanded: {
+    gridTemplateRows: '1fr',
+  },
+});
