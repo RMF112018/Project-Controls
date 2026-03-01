@@ -22,7 +22,9 @@ import { HbcEChart } from '../../shared/HbcEChart';
 import { useAppNavigate } from '../../hooks/router/useAppNavigate';
 import { Stage } from '@hbc/sp-services';
 import { usePreconDashboardData } from './usePreconDashboardData';
-import { HBC_COLORS, ELEVATION, TRANSITION } from '../../../theme/tokens';
+import { ELEVATION, TRANSITION } from '../../../theme/tokens';
+import { useHbcChartColors } from '../../hooks/useHbcChartColors';
+import { makeAreaGradient } from '../../../theme/hbcEChartsTheme';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -73,13 +75,13 @@ const useStyles = makeStyles({
   chartTitle: {
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     ...shorthands.margin('0', '0', tokens.spacingVerticalS),
   },
   sectionTitle: {
     fontSize: tokens.fontSizeBase400,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     ...shorthands.margin('0', '0', tokens.spacingVerticalS),
   },
   subHubGrid: {
@@ -145,6 +147,7 @@ const PreconDashboardPageInner: React.FC = () => {
   const styles = useStyles();
   const navigate = useAppNavigate();
   const { loading, kpis, leads, autopsies } = usePreconDashboardData();
+  const chartColors = useHbcChartColors();
 
   // ── Chart 1: Lead Funnel by Stage ─────────────────────────────────────────
 
@@ -224,20 +227,20 @@ const PreconDashboardPageInner: React.FC = () => {
           name: 'Win Rate',
           type: 'bar' as const,
           data: rates,
-          itemStyle: { color: HBC_COLORS.navy },
+          itemStyle: { color: chartColors.primary },
           barMaxWidth: 24,
         },
         {
           name: 'FL GC Avg',
           type: 'line' as const,
           data: names.map(() => benchmarkValue),
-          lineStyle: { type: 'dashed' as const, color: HBC_COLORS.orange, width: 2 },
+          lineStyle: { type: 'dashed' as const, color: chartColors.secondary, width: 2 },
           symbol: 'none',
           tooltip: { show: false },
         },
       ],
     };
-  }, [leads]);
+  }, [leads, chartColors]);
 
   // ── Chart 3: Post-Bid Autopsy Trend ───────────────────────────────────────
 
@@ -288,16 +291,9 @@ const PreconDashboardPageInner: React.FC = () => {
           type: 'line' as const,
           data: processScores,
           areaStyle: {
-            color: {
-              type: 'linear' as const,
-              x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: `${HBC_COLORS.navy}40` },
-                { offset: 1, color: `${HBC_COLORS.navy}00` },
-              ],
-            },
+            color: makeAreaGradient(chartColors.primary),
           },
-          itemStyle: { color: HBC_COLORS.navy },
+          itemStyle: { color: chartColors.primary },
           smooth: true,
         },
         {
@@ -305,12 +301,12 @@ const PreconDashboardPageInner: React.FC = () => {
           type: 'line' as const,
           data: overallRatings,
           lineStyle: { type: 'dashed' as const },
-          itemStyle: { color: HBC_COLORS.orange },
+          itemStyle: { color: chartColors.secondary },
           smooth: true,
         },
       ],
     };
-  }, [autopsies]);
+  }, [autopsies, chartColors]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 

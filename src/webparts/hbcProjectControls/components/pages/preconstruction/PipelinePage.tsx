@@ -8,7 +8,7 @@ import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { useAppContext } from '../../contexts/AppContext';
 import { Stage, getStageLabel, isActiveStage } from '@hbc/sp-services';
 import type { ILead } from '@hbc/sp-services';
-import { HBC_COLORS } from '../../../theme/tokens';
+import { useHbcChartColors } from '../../hooks/useHbcChartColors';
 
 const useStyles = makeStyles({
   kpiGrid: {
@@ -33,6 +33,7 @@ const STAGE_ORDER = [
 const PipelinePageInner: React.FC = () => {
   const styles = useStyles();
   const { dataService } = useAppContext();
+  const chartColors = useHbcChartColors();
 
   const { data, isLoading: loading } = useQuery({
     queryKey: ['pipeline-leads'],
@@ -58,12 +59,12 @@ const PipelinePageInner: React.FC = () => {
         label: { show: true, position: 'inside' as const },
         itemStyle: {
           borderWidth: 1,
-          borderColor: '#fff',
+          borderColor: chartColors.chartBackground,
         },
       }],
-      color: [HBC_COLORS.gray400, HBC_COLORS.info, HBC_COLORS.warning, HBC_COLORS.success, HBC_COLORS.navy],
+      color: [chartColors.muted, chartColors.info, chartColors.warning, chartColors.success, chartColors.primary],
     };
-  }, [leads]);
+  }, [leads, chartColors]);
 
   return (
     <div>

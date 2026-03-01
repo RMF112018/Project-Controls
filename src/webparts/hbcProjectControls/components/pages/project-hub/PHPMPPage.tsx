@@ -47,7 +47,7 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground3,
     ...shorthands.padding('4px', '8px'),
     ...shorthands.borderRadius('4px'),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   statusDot: {
     width: '8px',
@@ -100,7 +100,7 @@ export const PHPMPPage: React.FC = () => {
             <div key={section.number} className={styles.sectionItem}>
               <span className={styles.sectionNumber}>{section.number}</span>
               <div>
-                <div style={{ fontWeight: 600, color: HBC_COLORS.navy, marginBottom: '4px' }}>
+                <div style={{ fontWeight: 600, color: tokens.colorBrandForeground1, marginBottom: '4px' }}>
                   {section.title}
                 </div>
                 <div className={styles.sectionText}>{section.description}</div>
@@ -113,15 +113,15 @@ export const PHPMPPage: React.FC = () => {
       <HbcCard title="Plan Status">
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
           <div className={styles.statusIndicator}>
-            <span className={styles.statusDot} style={{ backgroundColor: HBC_COLORS.success }} />
+            <span className={styles.statusDot} style={{ backgroundColor: tokens.colorStatusSuccessForeground1 }} />
             Complete
           </div>
           <div className={styles.statusIndicator}>
-            <span className={styles.statusDot} style={{ backgroundColor: HBC_COLORS.warning }} />
+            <span className={styles.statusDot} style={{ backgroundColor: tokens.colorStatusWarningForeground1 }} />
             In Progress
           </div>
           <div className={styles.statusIndicator}>
-            <span className={styles.statusDot} style={{ backgroundColor: HBC_COLORS.gray300 }} />
+            <span className={styles.statusDot} style={{ backgroundColor: tokens.colorNeutralStroke1 }} />
             Not Started
           </div>
         </div>

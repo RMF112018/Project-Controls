@@ -12,15 +12,14 @@ import { useWorkflowMachine } from '../../hooks/useWorkflowMachine';
 import { useWorkflowTransition } from '../../hooks/useWorkflowTransition';
 import { useHbcOptimisticMutation } from '../../../tanstack/query/mutations/useHbcOptimisticMutation';
 import { OPTIMISTIC_MUTATION_FLAGS } from '../../../tanstack/query/mutations/optimisticMutationFlags';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const STATUS_MAP: Record<string, { color: string; backgroundColor: string }> = {
-  Draft: { color: HBC_COLORS.gray500, backgroundColor: HBC_COLORS.gray100 },
-  PendingSignatures: { color: HBC_COLORS.warning, backgroundColor: HBC_COLORS.warningLight },
-  PendingApproval: { color: HBC_COLORS.info, backgroundColor: HBC_COLORS.infoLight },
-  Approved: { color: HBC_COLORS.success, backgroundColor: HBC_COLORS.successLight },
-  Returned: { color: HBC_COLORS.error, backgroundColor: HBC_COLORS.errorLight },
-  Closed: { color: HBC_COLORS.gray500, backgroundColor: HBC_COLORS.gray200 },
+  Draft: { color: tokens.colorNeutralForeground2, backgroundColor: tokens.colorNeutralBackground3 },
+  PendingSignatures: { color: tokens.colorStatusWarningForeground1, backgroundColor: tokens.colorStatusWarningBackground1 },
+  PendingApproval: { color: tokens.colorBrandForeground1, backgroundColor: tokens.colorNeutralBackground4 },
+  Approved: { color: tokens.colorStatusSuccessForeground1, backgroundColor: tokens.colorStatusSuccessBackground1 },
+  Returned: { color: tokens.colorStatusDangerForeground1, backgroundColor: tokens.colorStatusDangerBackground1 },
+  Closed: { color: tokens.colorNeutralForeground2, backgroundColor: tokens.colorNeutralBackground4 },
 };
 
 const PMP_EVENT_LABELS: Record<string, string> = {

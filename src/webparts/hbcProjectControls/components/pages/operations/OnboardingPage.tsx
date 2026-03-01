@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { PageHeader } from '../../shared/PageHeader';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
   container: {
@@ -14,13 +13,13 @@ const useStyles = makeStyles({
   },
   heading: {
     ...shorthands.margin('0', '0', '8px', '0'),
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: '18px',
     fontWeight: '600',
   },
   description: {
     ...shorthands.margin('0'),
-    color: HBC_COLORS.gray500,
+    color: tokens.colorNeutralForeground2,
     fontSize: tokens.fontSizeBase300,
     lineHeight: tokens.lineHeightBase300,
     maxWidth: '480px',

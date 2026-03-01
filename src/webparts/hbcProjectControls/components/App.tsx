@@ -2,7 +2,7 @@ import * as React from 'react';
 import { FluentProvider, type Theme } from '@fluentui/react-components';
 import { QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { hbcLightTheme } from '../theme/hbcTheme';
+import { hbcLightTheme, hbcDarkTheme, hbcHighContrastTheme } from '../theme/hbcTheme';
 import { AppProvider, useAppContext } from './contexts/AppContext';
 import { HelpProvider } from './contexts/HelpContext';
 import { SignalRProvider } from './contexts/SignalRContext';
@@ -66,6 +66,31 @@ function isReactProfilingEnabled(): boolean {
     && window.localStorage.getItem('showReactProfiler') === 'true'
   );
 }
+
+/**
+ * ThemeGate — inner FluentProvider that applies the user's theme preference.
+ * Uses a nested FluentProvider (supported by Fluent UI v9) so theme selection
+ * can depend on AppContext (feature flags + user email) while the outer
+ * FluentProvider establishes baseline Fluent tokens.
+ * When DarkModeSupport flag is off, renders children directly (zero overhead).
+ */
+const ThemeGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isFeatureEnabled, effectiveThemeMode, isHighContrast } = useAppContext();
+  const darkModeEnabled = isFeatureEnabled('DarkModeSupport');
+
+  if (!darkModeEnabled) return <>{children}</>;
+
+  let activeTheme: Theme;
+  if (isHighContrast) {
+    activeTheme = hbcHighContrastTheme;
+  } else if (effectiveThemeMode === 'dark') {
+    activeTheme = hbcDarkTheme;
+  } else {
+    activeTheme = hbcLightTheme;
+  }
+
+  return <FluentProvider theme={activeTheme}>{children}</FluentProvider>;
+};
 
 const AppRoutes: React.FC = () => {
   const { dataService, currentUser, selectedProject, isFeatureEnabled, telemetryService, isLoading } = useAppContext();
@@ -236,15 +261,17 @@ export const App: React.FC<IAppProps> = ({ dataService, telemetryService, siteUr
       >
         <QueryClientProvider client={queryClient}>
           <AppProvider dataService={dataService} telemetryService={telemetryService} siteUrl={siteUrl} dataServiceMode={dataServiceMode} devToolsConfig={devToolsConfig}>
-            <SignalRProvider>
-              <HelpProvider>
-                <ToastProvider>
-                  <OfflineMonitor />
-                  <SwUpdateMonitor />
-                  <AppRoutes />
-                </ToastProvider>
-              </HelpProvider>
-            </SignalRProvider>
+            <ThemeGate>
+              <SignalRProvider>
+                <HelpProvider>
+                  <ToastProvider>
+                    <OfflineMonitor />
+                    <SwUpdateMonitor />
+                    <AppRoutes />
+                  </ToastProvider>
+                </HelpProvider>
+              </SignalRProvider>
+            </ThemeGate>
           </AppProvider>
           {showQueryDevtools && <ReactQueryDevtools initialIsOpen={false} />}
         </QueryClientProvider>

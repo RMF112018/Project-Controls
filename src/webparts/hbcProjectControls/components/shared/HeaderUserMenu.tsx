@@ -17,8 +17,9 @@ import {
   shorthands,
   tokens,
 } from '@fluentui/react-components';
-import { InfoRegular } from '@fluentui/react-icons';
+import { InfoRegular, WeatherSunny24Regular, WeatherMoon24Regular, Desktop24Regular } from '@fluentui/react-icons';
 import { useAppContext } from '../contexts/AppContext';
+import { FeatureGate } from '../guards/FeatureGate';
 import { useResponsive } from '../hooks/useResponsive';
 import { APP_VERSION, ROLE_LANDING_ROUTES, LANDING_PAGE_CONFIG, ROLE_PERMISSION_SETS } from '@hbc/sp-services';
 import { HBC_COLORS } from '../../theme/tokens';
@@ -113,7 +114,7 @@ function getPermissionSummary(roleName: string): string {
 
 export const HeaderUserMenu: React.FC<IHeaderUserMenuProps> = ({ onWhatsNew }) => {
   const styles = useStyles();
-  const { currentUser, dataServiceMode, devToolsConfig } = useAppContext();
+  const { currentUser, dataServiceMode, devToolsConfig, themeMode, setThemeMode } = useAppContext();
   const { isMobile } = useResponsive();
   const isMockMode = dataServiceMode === 'mock';
   const isStandaloneMode = dataServiceMode === 'standalone';
@@ -134,8 +135,14 @@ export const HeaderUserMenu: React.FC<IHeaderUserMenuProps> = ({ onWhatsNew }) =
       if (data.name === 'devRole' && data.checkedItems.length > 0 && devToolsConfig) {
         devToolsConfig.onRoleChange(data.checkedItems[0]);
       }
+      if (data.name === 'themeMode' && data.checkedItems.length > 0) {
+        const mode = data.checkedItems[0];
+        if (mode === 'light' || mode === 'dark' || mode === 'system') {
+          setThemeMode(mode);
+        }
+      }
     },
-    [devToolsConfig]
+    [devToolsConfig, setThemeMode]
   );
 
   return (
@@ -158,7 +165,10 @@ export const HeaderUserMenu: React.FC<IHeaderUserMenuProps> = ({ onWhatsNew }) =
         </MenuTrigger>
         <MenuPopover>
           <MenuList
-            checkedValues={devToolsConfig ? { devRole: [devToolsConfig.currentRole] } : undefined}
+            checkedValues={{
+              ...(devToolsConfig ? { devRole: [devToolsConfig.currentRole] } : {}),
+              themeMode: [themeMode],
+            }}
             onCheckedValueChange={handleCheckedValueChange}
           >
             {/* User info */}
@@ -175,6 +185,23 @@ export const HeaderUserMenu: React.FC<IHeaderUserMenuProps> = ({ onWhatsNew }) =
             <MenuItem icon={<InfoRegular />} onClick={onWhatsNew}>
               {"What's New (v" + APP_VERSION + ")"}
             </MenuItem>
+
+            {/* Appearance — theme mode toggle */}
+            <FeatureGate featureName="DarkModeSupport">
+              <MenuDivider />
+              <MenuGroup>
+                <MenuGroupHeader>Appearance</MenuGroupHeader>
+                <MenuItemRadio name="themeMode" value="light" icon={<WeatherSunny24Regular />}>
+                  Light
+                </MenuItemRadio>
+                <MenuItemRadio name="themeMode" value="dark" icon={<WeatherMoon24Regular />}>
+                  Dark
+                </MenuItemRadio>
+                <MenuItemRadio name="themeMode" value="system" icon={<Desktop24Regular />}>
+                  System
+                </MenuItemRadio>
+              </MenuGroup>
+            </FeatureGate>
 
             {/* Dev tools section — only in dev modes with config */}
             {/* Stage 2 (sub-task 6): Landing route preview per role in switcher */}

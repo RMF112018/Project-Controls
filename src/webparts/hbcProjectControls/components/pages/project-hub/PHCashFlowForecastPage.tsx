@@ -5,7 +5,6 @@ import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { KPICard } from '../../shared/KPICard';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const MOCK_CASH_FLOW: ICashFlowMonth[] = [
   { month: 'Jan 2026', billingProjection: 980_000, expenditureForecast: 1_050_000, netCashFlow: -70_000, cumulativeCash: -70_000 },
@@ -38,27 +37,27 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
   tableHead: {
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   th: {
     ...shorthands.padding('10px', '12px'),
     textAlign: 'left' as const,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: '11px',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.5px',
-    ...shorthands.borderBottom('2px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('2px', 'solid', tokens.colorNeutralStroke1),
   },
   thRight: {
     ...shorthands.padding('10px', '12px'),
     textAlign: 'right' as const,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: '11px',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.5px',
-    ...shorthands.borderBottom('2px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('2px', 'solid', tokens.colorNeutralStroke1),
   },
   td: {
     ...shorthands.padding('10px', '12px'),
@@ -75,16 +74,16 @@ const useStyles = makeStyles({
   },
   totalRow: {
     fontWeight: tokens.fontWeightBold,
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   positive: {
-    color: HBC_COLORS.success,
+    color: tokens.colorStatusSuccessForeground1,
   },
   negative: {
-    color: HBC_COLORS.error,
+    color: tokens.colorStatusDangerForeground1,
   },
   currentMonth: {
-    backgroundColor: HBC_COLORS.infoLight,
+    backgroundColor: tokens.colorNeutralBackground4,
   },
   barCell: {
     ...shorthands.padding('10px', '12px'),
@@ -122,7 +121,7 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
   value: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase200,
   },
@@ -203,7 +202,7 @@ export const PHCashFlowForecastPage: React.FC = () => {
                         className={styles.bar}
                         style={{
                           width: `${barWidth}%`,
-                          backgroundColor: HBC_COLORS.info,
+                          backgroundColor: tokens.colorBrandForeground1,
                         }}
                       />
                       <span className={styles.barLabel}>{barWidth}%</span>

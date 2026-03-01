@@ -46,17 +46,17 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
   tableHead: {
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   th: {
     ...shorthands.padding('10px', '12px'),
     textAlign: 'left' as const,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: '11px',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.5px',
-    ...shorthands.borderBottom('2px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('2px', 'solid', tokens.colorNeutralStroke1),
   },
   td: {
     ...shorthands.padding('10px', '12px'),
@@ -160,9 +160,9 @@ export const PHPermitLogPage: React.FC = () => {
 
       <HbcCard title="Permit Notes" subtitle="Key items requiring attention">
         {MOCK_PERMITS.filter(p => p.status !== 'Approved').map((permit) => (
-          <div key={permit.id} style={{ padding: '8px 0', borderBottom: `1px solid ${HBC_COLORS.gray200}` }}>
-            <div style={{ fontWeight: 600, color: HBC_COLORS.navy, fontSize: '13px' }}>{permit.permitType}</div>
-            <div style={{ color: HBC_COLORS.textGray, fontSize: '12px', marginTop: '2px' }}>{permit.notes}</div>
+          <div key={permit.id} style={{ padding: '8px 0', borderBottom: `1px solid ${tokens.colorNeutralStroke1}` }}>
+            <div style={{ fontWeight: 600, color: tokens.colorBrandForeground1, fontSize: '13px' }}>{permit.permitType}</div>
+            <div style={{ color: tokens.colorNeutralForeground2, fontSize: '12px', marginTop: '2px' }}>{permit.notes}</div>
           </div>
         ))}
       </HbcCard>

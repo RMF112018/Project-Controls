@@ -20,7 +20,7 @@ import type {
   EstimatingKickoffStatus,
   KickoffDeliverableStatus,
 } from '@hbc/sp-services';
-import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
+import { HBC_COLORS } from '../../theme/tokens';
 import { CollapsibleSection } from './CollapsibleSection';
 import {
   EditableTextCell,
@@ -63,9 +63,9 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase100,
   },
   tr: {
-    ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke1),
     ':hover': {
-      backgroundColor: HBC_COLORS.gray50,
+      backgroundColor: tokens.colorNeutralBackground2,
     },
   },
   trAlt: {
@@ -94,11 +94,11 @@ const useStyles = makeStyles({
   },
   readonlyCell: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   customRowLabel: {
     fontStyle: 'italic',
-    color: HBC_COLORS.gray500,
+    color: tokens.colorNeutralForeground2,
   },
   addRowBtn: {
     ...shorthands.margin('8px', '0'),
@@ -122,16 +122,16 @@ const useStyles = makeStyles({
     ...shorthands.borderRadius('12px'),
     fontSize: tokens.fontSizeBase100,
     fontWeight: tokens.fontWeightSemibold,
-    backgroundColor: HBC_COLORS.gray100,
-    color: HBC_COLORS.gray600,
+    backgroundColor: tokens.colorNeutralBackground3,
+    color: tokens.colorNeutralForeground2,
   },
   kvRow: {
-    ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray100),
-    ':hover': { backgroundColor: HBC_COLORS.gray50 },
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke2),
+    ':hover': { backgroundColor: tokens.colorNeutralBackground2 },
   },
   kvLabel: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase200,
   },
   kvValue: {
@@ -139,7 +139,7 @@ const useStyles = makeStyles({
   },
   footer: {
     ...shorthands.padding('4px', '10px'),
-    ...shorthands.borderTop('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderTop('1px', 'solid', tokens.colorNeutralStroke1),
   },
 });
 

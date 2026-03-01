@@ -12,7 +12,6 @@ import type {
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const MOCK_CHECKLIST_ITEMS: IChecklistItem[] = [
   {
@@ -61,18 +60,18 @@ const MOCK_CHECKLIST_ITEMS: IChecklistItem[] = [
 
 const STATUS_CONFIG: Record<ChecklistStatus, { color: string; bg: string; icon: React.ReactNode }> = {
   'Complete': {
-    color: HBC_COLORS.success,
-    bg: HBC_COLORS.successLight,
+    color: tokens.colorStatusSuccessForeground1,
+    bg: tokens.colorStatusSuccessBackground1,
     icon: <Checkmark24Regular />,
   },
   'In Progress': {
-    color: HBC_COLORS.info,
-    bg: HBC_COLORS.infoLight,
+    color: tokens.colorBrandForeground1,
+    bg: tokens.colorNeutralBackground4,
     icon: <Clock24Regular />,
   },
   'Not Started': {
-    color: HBC_COLORS.gray500,
-    bg: HBC_COLORS.gray100,
+    color: tokens.colorNeutralForeground2,
+    bg: tokens.colorNeutralBackground3,
     icon: <Circle24Regular />,
   },
 };
@@ -95,7 +94,7 @@ const useStyles = makeStyles({
   progressTrack: {
     flexGrow: 1,
     height: '8px',
-    backgroundColor: HBC_COLORS.gray200,
+    backgroundColor: tokens.colorNeutralBackground4,
     ...shorthands.borderRadius('4px'),
     ...shorthands.overflow('hidden'),
   },
@@ -108,7 +107,7 @@ const useStyles = makeStyles({
   progressLabel: {
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     minWidth: '60px',
     textAlign: 'right' as const,
   },
@@ -143,7 +142,7 @@ const useStyles = makeStyles({
   itemTitle: {
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   itemDescription: {
     fontSize: tokens.fontSizeBase200,
@@ -161,7 +160,7 @@ const useStyles = makeStyles({
   },
   metaValue: {
     fontSize: '11px',
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
   },
   itemNotes: {
@@ -170,7 +169,7 @@ const useStyles = makeStyles({
     fontStyle: 'italic',
     marginTop: '4px',
     ...shorthands.padding('4px', '8px'),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
     ...shorthands.borderRadius('4px'),
   },
   statusBadge: {
@@ -209,7 +208,7 @@ export const PHForecastChecklistPage: React.FC = () => {
             className={styles.progressFill}
             style={{
               width: `${progressPct}%`,
-              backgroundColor: progressPct === 100 ? HBC_COLORS.success : HBC_COLORS.info,
+              backgroundColor: progressPct === 100 ? tokens.colorStatusSuccessForeground1 : tokens.colorBrandForeground1,
             }}
           />
         </div>

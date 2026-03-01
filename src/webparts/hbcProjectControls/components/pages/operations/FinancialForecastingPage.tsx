@@ -13,7 +13,6 @@ import { ComingSoonPage } from '../../shared/ComingSoonPage';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useAppContext } from '../../contexts/AppContext';
 import { formatCurrency, type IRiskCostManagement, type IRiskCostItem } from '@hbc/sp-services';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 type ForecastTab = 'checklist' | 'summary' | 'gcgr' | 'cashflow';
 
@@ -45,7 +44,7 @@ const useStyles = makeStyles({
   checklistTitle: {
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase300,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   checklistDesc: {
     fontSize: tokens.fontSizeBase200,
@@ -60,10 +59,10 @@ const useStyles = makeStyles({
 });
 
 const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
-  Open: { color: HBC_COLORS.info, bg: HBC_COLORS.infoLight },
-  Realized: { color: HBC_COLORS.error, bg: HBC_COLORS.errorLight },
-  Mitigated: { color: HBC_COLORS.success, bg: HBC_COLORS.successLight },
-  Closed: { color: HBC_COLORS.gray500, bg: HBC_COLORS.gray100 },
+  Open: { color: tokens.colorBrandForeground1, bg: tokens.colorNeutralBackground4 },
+  Realized: { color: tokens.colorStatusDangerForeground1, bg: tokens.colorStatusDangerBackground1 },
+  Mitigated: { color: tokens.colorStatusSuccessForeground1, bg: tokens.colorStatusSuccessBackground1 },
+  Closed: { color: tokens.colorNeutralForeground2, bg: tokens.colorNeutralBackground3 },
 };
 
 const riskItemColumns: IHbcDataTableColumn<IRiskCostItem>[] = [

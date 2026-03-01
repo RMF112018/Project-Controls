@@ -19,7 +19,6 @@ import {
   type IEstimatingKickoff,
   type IEstimatingKickoffItem,
 } from '@hbc/sp-services';
-import { HBC_COLORS } from '../../../theme/tokens';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAppNavigate } from '../../hooks/router/useAppNavigate';
 import { PageHeader } from '../../shared/PageHeader';
@@ -49,11 +48,11 @@ const useStyles = makeStyles({
     ...shorthands.borderRadius('8px'),
     ...shorthands.padding('16px'),
     boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-    ...shorthands.border('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
   },
   kpiLabel: {
     fontSize: tokens.fontSizeBase200,
-    color: HBC_COLORS.gray500,
+    color: tokens.colorNeutralForeground2,
     fontWeight: tokens.fontWeightSemibold,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.03em',
@@ -62,7 +61,7 @@ const useStyles = makeStyles({
   kpiValue: {
     fontSize: tokens.fontSizeBase600,
     fontWeight: tokens.fontWeightBold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
 });
 

@@ -7,13 +7,12 @@ import { HbcDataTable } from '../../shared/HbcDataTable';
 import type { IHbcDataTableColumn } from '../../shared/HbcDataTable';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 import type { IActiveProject, ProjectStatus } from '@hbc/sp-services';
 
 const STATUS_BADGE_CONFIG: Record<ProjectStatus, { color: string; backgroundColor: string }> = {
-  'Precon': { color: '#fff', backgroundColor: HBC_COLORS.info },
-  'Construction': { color: '#fff', backgroundColor: HBC_COLORS.success },
-  'Final Payment': { color: '#fff', backgroundColor: HBC_COLORS.warning },
+  'Precon': { color: '#fff', backgroundColor: tokens.colorBrandForeground1 },
+  'Construction': { color: '#fff', backgroundColor: tokens.colorStatusSuccessForeground1 },
+  'Final Payment': { color: '#fff', backgroundColor: tokens.colorStatusWarningForeground1 },
 };
 
 const useStyles = makeStyles({
@@ -63,7 +62,7 @@ export const LuxuryResidentialPage: React.FC = () => {
       key: 'status',
       header: 'Status',
       render: (row) => {
-        const cfg = STATUS_BADGE_CONFIG[row.status] || { color: '#fff', backgroundColor: HBC_COLORS.gray400 };
+        const cfg = STATUS_BADGE_CONFIG[row.status] || { color: '#fff', backgroundColor: tokens.colorNeutralForeground3 };
         return <StatusBadge label={row.status} color={cfg.color} backgroundColor={cfg.backgroundColor} />;
       },
     },

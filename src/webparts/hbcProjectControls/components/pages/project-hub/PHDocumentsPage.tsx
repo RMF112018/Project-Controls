@@ -12,7 +12,6 @@ import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { KPICard } from '../../shared/KPICard';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const MOCK_CATEGORIES: IDocumentCategory[] = [
   {
@@ -116,8 +115,8 @@ const useStyles = makeStyles({
     width: '40px',
     height: '40px',
     ...shorthands.borderRadius('8px'),
-    backgroundColor: HBC_COLORS.infoLight,
-    color: HBC_COLORS.info,
+    backgroundColor: tokens.colorNeutralBackground4,
+    color: tokens.colorBrandForeground1,
     flexShrink: 0,
   },
   categoryInfo: {
@@ -127,7 +126,7 @@ const useStyles = makeStyles({
   categoryName: {
     fontSize: tokens.fontSizeBase400,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   categoryMeta: {
     fontSize: tokens.fontSizeBase200,
@@ -161,7 +160,7 @@ const useStyles = makeStyles({
   fileName: {
     fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     ...shorthands.overflow('hidden'),
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -175,7 +174,7 @@ const useStyles = makeStyles({
     cursor: 'pointer',
     flexShrink: 0,
     ':hover': {
-      color: HBC_COLORS.info,
+      color: tokens.colorBrandForeground1,
     },
   },
   integrationBanner: {
@@ -183,9 +182,9 @@ const useStyles = makeStyles({
     alignItems: 'center',
     ...shorthands.gap('12px'),
     ...shorthands.padding('16px', '20px'),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
     ...shorthands.borderRadius('8px'),
-    ...shorthands.border('1px', 'dashed', HBC_COLORS.gray300),
+    ...shorthands.border('1px', 'dashed', tokens.colorNeutralStroke1),
   },
   bannerText: {
     fontSize: tokens.fontSizeBase200,
@@ -234,7 +233,7 @@ export const PHDocumentsPage: React.FC = () => {
       </div>
 
       <div className={styles.integrationBanner}>
-        <Folder24Regular style={{ color: HBC_COLORS.gray400 }} />
+        <Folder24Regular style={{ color: tokens.colorNeutralForeground3 }} />
         <span className={styles.bannerText}>
           <strong>SharePoint Document Library Integration:</strong> When connected to a SharePoint
           project site, this view will display the embedded document library with full navigation,

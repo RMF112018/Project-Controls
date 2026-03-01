@@ -3,7 +3,6 @@ import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppNavigate } from '../../hooks/router/useAppNavigate';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
   grid: {
@@ -15,7 +14,7 @@ const useStyles = makeStyles({
   groupLabel: {
     fontSize: '16px',
     fontWeight: 600,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     ...shorthands.margin('0', '0', '4px'),
   },
   groupDescription: {

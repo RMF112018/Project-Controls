@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
-import { HBC_COLORS } from '../../theme/tokens';
 
 const useStyles = makeStyles({
   root: {
@@ -20,7 +19,7 @@ const useStyles = makeStyles({
     ...shorthands.margin('0'),
     fontSize: tokens.fontSizeBase600,
     fontWeight: tokens.fontWeightBold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   subtitle: {
     ...shorthands.margin(tokens.spacingVerticalXS, '0', '0', '0'),

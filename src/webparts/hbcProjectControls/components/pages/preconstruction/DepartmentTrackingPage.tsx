@@ -184,7 +184,7 @@ const useStyles = makeStyles({
     flexDirection: 'column' as const,
     height: '100%',
     minHeight: '80vh',
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   spotlightHeader: {
     display: 'flex',
@@ -248,19 +248,19 @@ const useStyles = makeStyles({
     alignItems: 'center',
     ...shorthands.gap(tokens.spacingHorizontalSNudge),
     ...shorthands.padding(tokens.spacingVerticalS, tokens.spacingHorizontalM),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
     boxShadow: ELEVATION.level1,
     ...shorthands.borderRadius(tokens.borderRadiusMedium),
     fontSize: tokens.fontSizeBase400,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   spotlightFieldCard: {
     backgroundColor: '#FFFFFF',
     boxShadow: ELEVATION.level1,
     ...shorthands.borderRadius(tokens.borderRadiusMedium),
     ...shorthands.padding(tokens.spacingVerticalL),
-    ...shorthands.border('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
   },
   spotlightFieldGrid: {
     display: 'grid',
@@ -273,14 +273,14 @@ const useStyles = makeStyles({
     ...shorthands.gap(tokens.spacingHorizontalM),
     alignItems: 'center',
     ...shorthands.padding(tokens.spacingVerticalS, tokens.spacingHorizontalM),
-    ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke1),
   },
   spotlightFieldRowAlt: {
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   // Stage 8: KickOffSection renderer integrated — see drawer kickoff sections below
   spotlightFieldLabel: {
-    color: HBC_COLORS.textGray,
+    color: tokens.colorNeutralForeground2,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase300,
     textTransform: 'uppercase' as const,
@@ -289,7 +289,7 @@ const useStyles = makeStyles({
   spotlightPanel: {
     backgroundColor: '#FFFFFF',
     boxShadow: ELEVATION.level1,
-    ...shorthands.border('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
     ...shorthands.borderRadius(tokens.borderRadiusMedium),
     ...shorthands.padding(tokens.spacingVerticalL),
   },
@@ -298,7 +298,7 @@ const useStyles = makeStyles({
     alignItems: 'center',
     ...shorthands.gap(tokens.spacingHorizontalS),
     ...shorthands.padding('0', '0', tokens.spacingHorizontalM, '0'),
-    ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke1),
     marginBottom: tokens.spacingHorizontalM,
     borderLeftWidth: '4px',
     borderLeftStyle: 'solid',
@@ -306,14 +306,14 @@ const useStyles = makeStyles({
     paddingLeft: tokens.spacingHorizontalM,
     fontSize: tokens.fontSizeBase400,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   spotlightFooter: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingVerticalL),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
     boxShadow: '0 -2px 6px rgba(0,0,0,0.08)',
     flexShrink: 0,
   },
@@ -394,13 +394,13 @@ const useStyles = makeStyles({
   },
   // P0.1: Section banner border-left variants by tab context
   sectionBannerEstimate: {
-    borderLeft: `4px solid ${HBC_COLORS.info}`,
+    borderLeft: `4px solid ${tokens.colorBrandForeground1}`,
   },
   sectionBannerPursuits: {
-    borderLeft: `4px solid ${HBC_COLORS.warning}`,
+    borderLeft: `4px solid ${tokens.colorStatusWarningForeground1}`,
   },
   sectionBannerPrecon: {
-    borderLeft: `4px solid ${HBC_COLORS.success}`,
+    borderLeft: `4px solid ${tokens.colorStatusSuccessForeground1}`,
   },
   // TODO (Stage 19 – Sub-task 24): In Estimating tab (Project Details panel, after Kick-Off section), add dynamic `PostBidAutopsySection` renderer with inline edit, field removal, and "+ Add custom field". Reference **reference/Estimating - Post Bid Autopsy.xlsx** for 100% field fidelity.
   spotlightNotesList: {
@@ -411,20 +411,20 @@ const useStyles = makeStyles({
     ...shorthands.gap(tokens.spacingVerticalS),
   },
   spotlightNoteEntry: {
-    ...shorthands.border('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
     ...shorthands.borderRadius(tokens.borderRadiusMedium),
     ...shorthands.padding(tokens.spacingVerticalS, tokens.spacingHorizontalM),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   spotlightNoteTimestamp: {
     fontSize: tokens.fontSizeBase200,
-    color: HBC_COLORS.textGray,
+    color: tokens.colorNeutralForeground2,
     fontStyle: 'italic' as const,
   },
   spotlightNoteUser: {
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     marginLeft: tokens.spacingHorizontalS,
   },
   spotlightNoteText: {

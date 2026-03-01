@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
+import { tokens } from '@fluentui/react-components';
+import { ELEVATION } from '../../theme/tokens';
 
 interface ICollapsibleSectionProps {
   title: string;
@@ -51,15 +52,15 @@ export const CollapsibleSection: React.FC<ICollapsibleSectionProps> = ({
               transition: 'transform 0.2s ease',
               transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
               fontSize: '12px',
-              color: HBC_COLORS.gray500,
+              color: tokens.colorNeutralForeground2,
             }}
           >
             {'\u25B6'}
           </span>
           <div>
-            <span style={{ fontWeight: 600, fontSize: '15px', color: HBC_COLORS.navy }}>{title}</span>
+            <span style={{ fontWeight: 600, fontSize: '15px', color: tokens.colorBrandForeground1 }}>{title}</span>
             {subtitle && (
-              <span style={{ marginLeft: 8, fontSize: '13px', color: HBC_COLORS.gray500 }}>{subtitle}</span>
+              <span style={{ marginLeft: 8, fontSize: '13px', color: tokens.colorNeutralForeground2 }}>{subtitle}</span>
             )}
           </div>
           {badge && <span>{badge}</span>}

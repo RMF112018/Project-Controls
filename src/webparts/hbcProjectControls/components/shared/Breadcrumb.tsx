@@ -1,12 +1,11 @@
 import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
-import { HBC_COLORS } from '../../theme/tokens';
 import { IBreadcrumbItem } from '@hbc/sp-services';
 
 const useStyles = makeStyles({
   button: {
-    color: HBC_COLORS.info,
+    color: tokens.colorBrandForeground1,
     cursor: 'pointer',
     textDecoration: 'none',
     backgroundColor: 'transparent',
@@ -46,11 +45,11 @@ export const Breadcrumb: React.FC<IBreadcrumbProps> = ({ items }) => {
         return (
           <React.Fragment key={index}>
             {index > 0 && (
-              <span style={{ color: HBC_COLORS.gray400, userSelect: 'none' }} aria-hidden="true">/</span>
+              <span style={{ color: tokens.colorNeutralForeground3, userSelect: 'none' }} aria-hidden="true">/</span>
             )}
             {isLast || !item.path ? (
               <span
-                style={{ color: HBC_COLORS.gray600, fontWeight: isLast ? 600 : 400 }}
+                style={{ color: tokens.colorNeutralForeground2, fontWeight: isLast ? 600 : 400 }}
                 aria-current={isLast ? 'page' : undefined}
               >
                 {item.label}

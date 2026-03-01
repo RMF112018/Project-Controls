@@ -1,34 +1,56 @@
 import * as React from 'react';
+import { makeStyles, tokens } from '@fluentui/react-components';
 import { useNavigate } from '@router';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
+
+const useStyles = makeStyles({
+  root: {
+    padding: '48px',
+    textAlign: 'center',
+  },
+  heading: {
+    color: tokens.colorBrandForeground1,
+    marginBottom: '12px',
+  },
+  message: {
+    color: tokens.colorNeutralForeground2,
+    marginBottom: '16px',
+  },
+  roleInfo: {
+    fontSize: '12px',
+    color: tokens.colorNeutralForeground2,
+    marginBottom: '24px',
+  },
+  button: {
+    padding: '8px 16px',
+    borderRadius: '4px',
+    border: `1px solid ${tokens.colorNeutralStroke1}`,
+    backgroundColor: tokens.colorNeutralBackground1,
+    color: tokens.colorBrandForeground1,
+    cursor: 'pointer',
+    fontWeight: 600,
+  },
+});
 
 export const AccessDeniedPage: React.FC = () => {
+  const styles = useStyles();
   const navigate = useNavigate();
   const { currentUser } = useAppContext();
   const roleLabel = currentUser?.roles?.join(', ') ?? 'Unknown';
 
   return (
-    <div role="alert" style={{ padding: 48, textAlign: 'center' }}>
-      <h2 style={{ color: HBC_COLORS.navy, marginBottom: 12 }}>Access Denied</h2>
-      <p style={{ color: HBC_COLORS.gray600, marginBottom: 16 }}>
+    <div role="alert" className={styles.root}>
+      <h2 className={styles.heading}>Access Denied</h2>
+      <p className={styles.message}>
         You do not have permission to view this page.
       </p>
-      <div style={{ fontSize: 12, color: HBC_COLORS.gray500, marginBottom: 24 }}>
+      <div className={styles.roleInfo}>
         Current role: {roleLabel}
       </div>
       <button
         type="button"
         onClick={() => navigate('/')}
-        style={{
-          padding: '8px 16px',
-          borderRadius: 4,
-          border: `1px solid ${HBC_COLORS.gray300}`,
-          backgroundColor: '#fff',
-          color: HBC_COLORS.navy,
-          cursor: 'pointer',
-          fontWeight: 600,
-        }}
+        className={styles.button}
       >
         Return to Dashboard
       </button>

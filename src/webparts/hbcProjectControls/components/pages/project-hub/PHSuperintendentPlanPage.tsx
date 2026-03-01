@@ -19,7 +19,7 @@ const useStyles = makeStyles({
     ...shorthands.gap('12px'),
     ...shorthands.padding('12px'),
     ...shorthands.borderRadius('8px'),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   sectionIcon: {
     display: 'flex',
@@ -36,7 +36,7 @@ const useStyles = makeStyles({
   },
   sectionTitle: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     marginBottom: '4px',
     fontSize: tokens.fontSizeBase300,
   },

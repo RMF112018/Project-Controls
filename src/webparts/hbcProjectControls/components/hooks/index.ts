@@ -24,3 +24,7 @@ export { useProvisioningStatus } from './useProvisioningStatus';
 export type { IProvisioningStatusState } from './useProvisioningStatus';
 export { usePerformanceMarker } from './usePerformanceMarker';
 export type { IUsePerformanceMarkerResult } from './usePerformanceMarker';
+export { useHbcThemeMode } from './useHbcThemeMode';
+export type { ThemeMode, IUseHbcThemeModeResult } from './useHbcThemeMode';
+export { useHbcChartColors } from './useHbcChartColors';
+export type { IHbcChartColors } from './useHbcChartColors';

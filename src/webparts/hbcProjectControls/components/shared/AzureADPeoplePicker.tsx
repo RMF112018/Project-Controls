@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { IPersonAssignment, MOCK_USERS } from '@hbc/sp-services';
-import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
+import { tokens } from '@fluentui/react-components';
+import { ELEVATION } from '../../theme/tokens';
 
 type IAzureADPeoplePickerProps = (
   | {
@@ -102,7 +103,7 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = (props) 
     return (
       <div ref={containerRef} style={{ position: 'relative' }}>
         {label && (
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: HBC_COLORS.gray600, marginBottom: '4px' }}>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: tokens.colorNeutralForeground2, marginBottom: '4px' }}>
             {label}
           </label>
         )}
@@ -116,8 +117,8 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = (props) 
             padding: '4px 8px',
             minHeight: '36px',
             borderRadius: '6px',
-            border: `1px solid ${isOpen ? HBC_COLORS.navy : HBC_COLORS.gray300}`,
-            backgroundColor: disabled ? HBC_COLORS.gray100 : '#fff',
+            border: `1px solid ${isOpen ? tokens.colorBrandStroke1 : tokens.colorNeutralStroke1}`,
+            backgroundColor: disabled ? tokens.colorNeutralBackground3 : '#fff',
             cursor: disabled ? 'default' : 'text',
             alignItems: 'center',
           }}
@@ -131,15 +132,15 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = (props) 
                 gap: '4px',
                 padding: '2px 8px 2px 4px',
                 borderRadius: '12px',
-                backgroundColor: HBC_COLORS.gray100,
+                backgroundColor: tokens.colorNeutralBackground3,
                 fontSize: '12px',
                 fontWeight: 500,
-                color: HBC_COLORS.navy,
+                color: tokens.colorBrandForeground1,
               }}
             >
               <span style={{
                 width: '20px', height: '20px', borderRadius: '50%',
-                backgroundColor: HBC_COLORS.navy, color: '#fff',
+                backgroundColor: tokens.colorBrandBackground, color: '#fff',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '9px', fontWeight: 600,
               }}>
@@ -149,7 +150,7 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = (props) 
               {!disabled && (
                 <span
                   onClick={(e) => handleRemovePill(user.userId, e)}
-                  style={{ cursor: 'pointer', color: HBC_COLORS.gray400, fontSize: '14px', lineHeight: 1, marginLeft: '2px' }}
+                  style={{ cursor: 'pointer', color: tokens.colorNeutralForeground3, fontSize: '14px', lineHeight: 1, marginLeft: '2px' }}
                 >
                   &times;
                 </span>
@@ -182,7 +183,7 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = (props) 
             right: 0,
             zIndex: 1000,
             backgroundColor: '#fff',
-            border: `1px solid ${HBC_COLORS.gray200}`,
+            border: `1px solid ${tokens.colorNeutralStroke1}`,
             borderRadius: '6px',
             boxShadow: ELEVATION.level3,
             maxHeight: '240px',
@@ -190,7 +191,7 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = (props) 
             marginTop: '2px',
           }}>
             {filtered.length === 0 ? (
-              <div style={{ padding: '12px', textAlign: 'center', color: HBC_COLORS.gray400, fontSize: '13px' }}>
+              <div style={{ padding: '12px', textAlign: 'center', color: tokens.colorNeutralForeground3, fontSize: '13px' }}>
                 No matching people
               </div>
             ) : (
@@ -207,28 +208,28 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = (props) 
                       alignItems: 'center',
                       gap: '8px',
                       fontSize: '13px',
-                      backgroundColor: isSelected ? HBC_COLORS.gray50 : 'transparent',
+                      backgroundColor: isSelected ? tokens.colorNeutralBackground2 : 'transparent',
                     }}
-                    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.backgroundColor = HBC_COLORS.gray50; }}
+                    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.backgroundColor = tokens.colorNeutralBackground2; }}
                     onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
                   >
                     <div style={{
                       width: '28px', height: '28px', borderRadius: '50%',
-                      backgroundColor: HBC_COLORS.lightNavy, color: '#fff',
+                      backgroundColor: tokens.colorBrandForeground2, color: '#fff',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '11px', fontWeight: 600, flexShrink: 0,
                     }}>
                       {initials(user.displayName)}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{user.displayName}</div>
-                      <div style={{ fontSize: '11px', color: HBC_COLORS.gray400 }}>{user.email}</div>
+                      <div style={{ fontWeight: 500, color: tokens.colorBrandForeground1 }}>{user.displayName}</div>
+                      <div style={{ fontSize: '11px', color: tokens.colorNeutralForeground3 }}>{user.email}</div>
                     </div>
                     {isSelected && (
-                      <span style={{ color: HBC_COLORS.success, fontSize: '16px', fontWeight: 700 }}>&#10003;</span>
+                      <span style={{ color: tokens.colorStatusSuccessForeground1, fontSize: '16px', fontWeight: 700 }}>&#10003;</span>
                     )}
                     {!isSelected && (
-                      <span style={{ fontSize: '11px', color: HBC_COLORS.gray400 }}>{user.department}</span>
+                      <span style={{ fontSize: '11px', color: tokens.colorNeutralForeground3 }}>{user.department}</span>
                     )}
                   </div>
                 );
@@ -244,7 +245,7 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = (props) 
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
       {label && (
-        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: HBC_COLORS.gray600, marginBottom: '4px' }}>
+        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: tokens.colorNeutralForeground2, marginBottom: '4px' }}>
           {label}
         </label>
       )}
@@ -256,25 +257,25 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = (props) 
           gap: '8px',
           padding: '6px 10px',
           borderRadius: '6px',
-          border: `1px solid ${HBC_COLORS.gray200}`,
-          backgroundColor: HBC_COLORS.gray50,
+          border: `1px solid ${tokens.colorNeutralStroke1}`,
+          backgroundColor: tokens.colorNeutralBackground2,
         }}>
           <div style={{
             width: '28px', height: '28px', borderRadius: '50%',
-            backgroundColor: HBC_COLORS.navy, color: '#fff',
+            backgroundColor: tokens.colorBrandBackground, color: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '11px', fontWeight: 600, flexShrink: 0,
           }}>
             {initials(props.selectedUser.displayName)}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '13px', fontWeight: 500, color: HBC_COLORS.navy }}>{props.selectedUser.displayName}</div>
-            <div style={{ fontSize: '11px', color: HBC_COLORS.gray400 }}>{props.selectedUser.email}</div>
+            <div style={{ fontSize: '13px', fontWeight: 500, color: tokens.colorBrandForeground1 }}>{props.selectedUser.displayName}</div>
+            <div style={{ fontSize: '11px', color: tokens.colorNeutralForeground3 }}>{props.selectedUser.email}</div>
           </div>
           {!disabled && (
             <span
               onClick={handleClear}
-              style={{ color: HBC_COLORS.gray400, cursor: 'pointer', fontSize: '16px', lineHeight: 1, flexShrink: 0 }}
+              style={{ color: tokens.colorNeutralForeground3, cursor: 'pointer', fontSize: '16px', lineHeight: 1, flexShrink: 0 }}
               title="Clear"
             >
               &times;
@@ -292,11 +293,11 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = (props) 
             width: '100%',
             padding: '6px 10px',
             borderRadius: '6px',
-            border: `1px solid ${isOpen ? HBC_COLORS.navy : HBC_COLORS.gray300}`,
+            border: `1px solid ${isOpen ? tokens.colorBrandStroke1 : tokens.colorNeutralStroke1}`,
             fontSize: '13px',
             outline: 'none',
             boxSizing: 'border-box',
-            backgroundColor: disabled ? HBC_COLORS.gray100 : '#fff',
+            backgroundColor: disabled ? tokens.colorNeutralBackground3 : '#fff',
           }}
         />
       )}
@@ -309,7 +310,7 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = (props) 
           right: 0,
           zIndex: 1000,
           backgroundColor: '#fff',
-          border: `1px solid ${HBC_COLORS.gray200}`,
+          border: `1px solid ${tokens.colorNeutralStroke1}`,
           borderRadius: '6px',
           boxShadow: ELEVATION.level3,
           maxHeight: '240px',
@@ -317,7 +318,7 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = (props) 
           marginTop: '2px',
         }}>
           {filtered.length === 0 ? (
-            <div style={{ padding: '12px', textAlign: 'center', color: HBC_COLORS.gray400, fontSize: '13px' }}>
+            <div style={{ padding: '12px', textAlign: 'center', color: tokens.colorNeutralForeground3, fontSize: '13px' }}>
               No matching people
             </div>
           ) : (
@@ -333,22 +334,22 @@ export const AzureADPeoplePicker: React.FC<IAzureADPeoplePickerProps> = (props) 
                   gap: '8px',
                   fontSize: '13px',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = HBC_COLORS.gray50)}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = tokens.colorNeutralBackground2)}
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 <div style={{
                   width: '28px', height: '28px', borderRadius: '50%',
-                  backgroundColor: HBC_COLORS.lightNavy, color: '#fff',
+                  backgroundColor: tokens.colorBrandForeground2, color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '11px', fontWeight: 600, flexShrink: 0,
                 }}>
                   {initials(user.displayName)}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{user.displayName}</div>
-                  <div style={{ fontSize: '11px', color: HBC_COLORS.gray400 }}>{user.email}</div>
+                  <div style={{ fontWeight: 500, color: tokens.colorBrandForeground1 }}>{user.displayName}</div>
+                  <div style={{ fontSize: '11px', color: tokens.colorNeutralForeground3 }}>{user.email}</div>
                 </div>
-                <span style={{ fontSize: '11px', color: HBC_COLORS.gray400 }}>
+                <span style={{ fontSize: '11px', color: tokens.colorNeutralForeground3 }}>
                   {user.department}
                 </span>
               </div>

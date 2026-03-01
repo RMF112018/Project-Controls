@@ -3,7 +3,6 @@ import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
   container: {
@@ -18,12 +17,12 @@ const useStyles = makeStyles({
   requirementCard: {
     ...shorthands.padding('16px'),
     ...shorthands.borderRadius('8px'),
-    backgroundColor: HBC_COLORS.gray50,
-    ...shorthands.borderTop('3px', 'solid', HBC_COLORS.info),
+    backgroundColor: tokens.colorNeutralBackground2,
+    ...shorthands.borderTop('3px', 'solid', tokens.colorBrandForeground1),
   },
   requirementTitle: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase300,
     marginBottom: '8px',
   },
@@ -46,7 +45,7 @@ const useStyles = makeStyles({
     ...shorthands.gap('12px'),
     ...shorthands.padding('10px', '12px'),
     ...shorthands.borderRadius('6px'),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   toolIcon: {
     display: 'flex',
@@ -55,8 +54,8 @@ const useStyles = makeStyles({
     width: '36px',
     height: '36px',
     ...shorthands.borderRadius('8px'),
-    backgroundColor: HBC_COLORS.infoLight,
-    color: HBC_COLORS.info,
+    backgroundColor: tokens.colorNeutralBackground4,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase100,
     flexShrink: 0,
@@ -67,7 +66,7 @@ const useStyles = makeStyles({
   },
   toolName: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase200,
   },
   toolDescription: {

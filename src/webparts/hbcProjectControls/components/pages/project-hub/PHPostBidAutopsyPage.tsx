@@ -11,7 +11,6 @@ import { HbcCard } from '../../shared/HbcCard';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const MOCK_VARIANCE: IVarianceItem[] = [
   { id: '1', division: 'Concrete', estimatedCost: 1200000, actualCost: 1340000, variance: -140000, variancePct: -11.7, notes: 'Labor rates higher than projected' },
@@ -31,16 +30,16 @@ const MOCK_LESSONS: ILessonLearned[] = [
 ];
 
 const impactColors: Record<string, { color: string; backgroundColor: string }> = {
-  High: { color: HBC_COLORS.error, backgroundColor: HBC_COLORS.errorLight },
-  Medium: { color: HBC_COLORS.warning, backgroundColor: HBC_COLORS.warningLight },
-  Low: { color: HBC_COLORS.info, backgroundColor: HBC_COLORS.infoLight },
+  High: { color: tokens.colorStatusDangerForeground1, backgroundColor: tokens.colorStatusDangerBackground1 },
+  Medium: { color: tokens.colorStatusWarningForeground1, backgroundColor: tokens.colorStatusWarningBackground1 },
+  Low: { color: tokens.colorBrandForeground1, backgroundColor: tokens.colorNeutralBackground4 },
 };
 
 const categoryColors: Record<string, { color: string; backgroundColor: string }> = {
-  Estimating: { color: HBC_COLORS.navy, backgroundColor: '#E0E7FF' },
+  Estimating: { color: tokens.colorBrandForeground1, backgroundColor: '#E0E7FF' },
   Scope: { color: '#7C3AED', backgroundColor: '#EDE9FE' },
-  Market: { color: HBC_COLORS.info, backgroundColor: HBC_COLORS.infoLight },
-  Process: { color: HBC_COLORS.warning, backgroundColor: HBC_COLORS.warningLight },
+  Market: { color: tokens.colorBrandForeground1, backgroundColor: tokens.colorNeutralBackground4 },
+  Process: { color: tokens.colorStatusWarningForeground1, backgroundColor: tokens.colorStatusWarningBackground1 },
 };
 
 const useStyles = makeStyles({
@@ -63,7 +62,7 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground3,
     fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     textAlign: 'left',
     ...shorthands.padding('10px', '12px'),
   },
@@ -71,7 +70,7 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground3,
     fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     textAlign: 'right',
     ...shorthands.padding('10px', '12px'),
   },
@@ -90,11 +89,11 @@ const useStyles = makeStyles({
     fontVariantNumeric: 'tabular-nums',
   },
   variancePositive: {
-    color: HBC_COLORS.success,
+    color: tokens.colorStatusSuccessForeground1,
     fontWeight: tokens.fontWeightSemibold,
   },
   varianceNegative: {
-    color: HBC_COLORS.error,
+    color: tokens.colorStatusDangerForeground1,
     fontWeight: tokens.fontWeightSemibold,
   },
   lessonCard: {
@@ -116,7 +115,7 @@ const useStyles = makeStyles({
   finding: {
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     marginBottom: '4px',
   },
   recommendation: {

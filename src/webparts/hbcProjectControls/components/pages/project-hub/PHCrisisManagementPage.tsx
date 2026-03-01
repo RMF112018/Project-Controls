@@ -13,13 +13,13 @@ const useStyles = makeStyles({
   emergencyBanner: {
     ...shorthands.padding('16px', '20px'),
     ...shorthands.borderRadius('8px'),
-    backgroundColor: HBC_COLORS.errorLight,
-    ...shorthands.borderLeft('4px', 'solid', HBC_COLORS.error),
+    backgroundColor: tokens.colorStatusDangerBackground1,
+    ...shorthands.borderLeft('4px', 'solid', tokens.colorStatusDangerForeground1),
     color: tokens.colorNeutralForeground1,
   },
   emergencyTitle: {
     fontWeight: tokens.fontWeightBold,
-    color: HBC_COLORS.error,
+    color: tokens.colorStatusDangerForeground1,
     fontSize: tokens.fontSizeBase400,
     marginBottom: '8px',
   },
@@ -36,7 +36,7 @@ const useStyles = makeStyles({
     display: 'flex',
     ...shorthands.gap('16px'),
     ...shorthands.padding('14px', '0'),
-    ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke1),
     alignItems: 'flex-start',
   },
   stepNumber: {
@@ -58,7 +58,7 @@ const useStyles = makeStyles({
   },
   stepTitle: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase300,
   },
   stepText: {
@@ -74,7 +74,7 @@ const useStyles = makeStyles({
   contactCard: {
     ...shorthands.padding('12px'),
     ...shorthands.borderRadius('8px'),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
     textAlign: 'center' as const,
   },
   contactLabel: {
@@ -83,7 +83,7 @@ const useStyles = makeStyles({
     marginBottom: '4px',
   },
   contactValue: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase300,
   },

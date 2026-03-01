@@ -19,12 +19,12 @@ const useStyles = makeStyles({
   practiceCard: {
     ...shorthands.padding('16px'),
     ...shorthands.borderRadius('8px'),
-    backgroundColor: HBC_COLORS.gray50,
-    ...shorthands.borderLeft('3px', 'solid', HBC_COLORS.success),
+    backgroundColor: tokens.colorNeutralBackground2,
+    ...shorthands.borderLeft('3px', 'solid', tokens.colorStatusSuccessForeground1),
   },
   practiceTitle: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase300,
     marginBottom: '8px',
   },
@@ -51,7 +51,7 @@ const useStyles = makeStyles({
     ...shorthands.gap('12px'),
     ...shorthands.padding('12px'),
     ...shorthands.borderRadius('8px'),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
     alignItems: 'flex-start',
   },
   lessonIcon: {
@@ -61,8 +61,8 @@ const useStyles = makeStyles({
     width: '32px',
     height: '32px',
     ...shorthands.borderRadius('50%'),
-    backgroundColor: HBC_COLORS.successLight,
-    color: HBC_COLORS.success,
+    backgroundColor: tokens.colorStatusSuccessBackground1,
+    color: tokens.colorStatusSuccessForeground1,
     fontWeight: tokens.fontWeightBold,
     fontSize: tokens.fontSizeBase200,
     flexShrink: 0,
@@ -73,7 +73,7 @@ const useStyles = makeStyles({
   },
   lessonTitle: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase200,
   },
   lessonText: {

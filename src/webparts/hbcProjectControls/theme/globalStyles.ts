@@ -31,13 +31,13 @@ export const useGlobalStyles = makeStyles({
   pageTitle: {
     fontSize: '24px',
     fontWeight: '700',
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     marginBottom: SPACING.lg,
   },
   sectionHeader: {
     fontSize: '18px',
     fontWeight: '600',
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     marginBottom: SPACING.md,
   },
 
@@ -149,19 +149,19 @@ export const useGlobalStyles = makeStyles({
   },
   badgeSuccess: {
     backgroundColor: tokens.colorStatusSuccessBackground1,
-    color: '#065F46',
+    color: tokens.colorStatusSuccessForeground1,
   },
   badgeWarning: {
     backgroundColor: tokens.colorStatusWarningBackground1,
-    color: '#92400E',
+    color: tokens.colorStatusWarningForeground1,
   },
   badgeError: {
     backgroundColor: tokens.colorStatusDangerBackground1,
-    color: '#991B1B',
+    color: tokens.colorStatusDangerForeground1,
   },
   badgeInfo: {
-    backgroundColor: HBC_COLORS.infoLight,
-    color: '#1E40AF',
+    backgroundColor: tokens.colorNeutralBackground4,
+    color: tokens.colorNeutralForeground1,
   },
 
   // ── Status badge base ───────────────────────────────────
@@ -219,13 +219,13 @@ export const useGlobalStyles = makeStyles({
     fontSize: '12px',
     fontWeight: '600',
     color: tokens.colorNeutralForeground3,
-    borderBottom: `2px solid ${HBC_COLORS.gray200}`,
+    borderBottom: `2px solid ${tokens.colorNeutralStroke1}`,
     whiteSpace: 'nowrap',
   },
   tableCell: {
     ...shorthands.padding('10px', '12px'),
     fontSize: '13px',
-    borderBottom: `1px solid ${HBC_COLORS.gray100}`,
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     color: tokens.colorNeutralForeground1,
   },
   tableSortable: {
@@ -336,5 +336,12 @@ export const useGlobalStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground4,
     marginRight: tokens.spacingHorizontalXS,
+  },
+
+  // ── Forced-colors (Windows High Contrast) support ──────
+  forcedColorsSupport: {
+    '@media (forced-colors: active)': {
+      forcedColorAdjust: 'none',
+    },
   },
 });

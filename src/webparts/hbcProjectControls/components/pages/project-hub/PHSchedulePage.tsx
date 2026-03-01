@@ -46,17 +46,17 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
   tableHead: {
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   th: {
     ...shorthands.padding('10px', '12px'),
     textAlign: 'left' as const,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: '11px',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.5px',
-    ...shorthands.borderBottom('2px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('2px', 'solid', tokens.colorNeutralStroke1),
   },
   td: {
     ...shorthands.padding('10px', '12px'),
@@ -77,17 +77,17 @@ const useStyles = makeStyles({
     alignItems: 'center',
     ...shorthands.gap('12px'),
     ...shorthands.padding('16px', '20px'),
-    backgroundColor: HBC_COLORS.infoLight,
+    backgroundColor: tokens.colorNeutralBackground4,
     ...shorthands.borderRadius('8px'),
-    ...shorthands.border('1px', 'solid', HBC_COLORS.info),
+    ...shorthands.border('1px', 'solid', tokens.colorBrandStroke1),
   },
   bannerIcon: {
-    color: HBC_COLORS.info,
+    color: tokens.colorBrandForeground1,
     flexShrink: 0,
   },
   bannerText: {
     fontSize: tokens.fontSizeBase200,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   summaryGrid: {
     display: 'grid',
@@ -105,7 +105,7 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
   value: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase200,
   },
@@ -186,7 +186,7 @@ export const PHSchedulePage: React.FC = () => {
                   <td className={styles.td} style={{ fontWeight: tokens.fontWeightSemibold as string }}>{ms.name}</td>
                   <td className={styles.td}>{planned.toLocaleDateString()}</td>
                   <td className={styles.td}>{forecast.toLocaleDateString()}</td>
-                  <td className={styles.td} style={{ color: varianceDays > 0 ? HBC_COLORS.warning : HBC_COLORS.success }}>
+                  <td className={styles.td} style={{ color: varianceDays > 0 ? tokens.colorStatusWarningForeground1 : tokens.colorStatusSuccessForeground1 }}>
                     {varianceDays > 0 ? `+${varianceDays}` : varianceDays === 0 ? 'On Time' : `${varianceDays}`}
                   </td>
                   <td className={styles.td}>

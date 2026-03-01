@@ -3,7 +3,6 @@ import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
   container: {
@@ -18,12 +17,12 @@ const useStyles = makeStyles({
   sectionCard: {
     ...shorthands.padding('16px'),
     ...shorthands.borderRadius('8px'),
-    backgroundColor: HBC_COLORS.gray50,
-    ...shorthands.borderLeft('3px', 'solid', HBC_COLORS.error),
+    backgroundColor: tokens.colorNeutralBackground2,
+    ...shorthands.borderLeft('3px', 'solid', tokens.colorStatusDangerForeground1),
   },
   sectionTitle: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase300,
     marginBottom: '8px',
   },
@@ -41,17 +40,17 @@ const useStyles = makeStyles({
   emergencyItem: {
     ...shorthands.padding('12px'),
     ...shorthands.borderRadius('8px'),
-    backgroundColor: HBC_COLORS.errorLight,
+    backgroundColor: tokens.colorStatusDangerBackground1,
     textAlign: 'center' as const,
   },
   emergencyLabel: {
-    color: HBC_COLORS.error,
+    color: tokens.colorStatusDangerForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase200,
     marginBottom: '4px',
   },
   emergencyValue: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
   },

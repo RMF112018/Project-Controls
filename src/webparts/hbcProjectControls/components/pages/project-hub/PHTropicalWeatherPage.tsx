@@ -3,7 +3,6 @@ import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
   container: {
@@ -13,8 +12,8 @@ const useStyles = makeStyles({
   alertBanner: {
     ...shorthands.padding('16px'),
     ...shorthands.borderRadius('8px'),
-    ...shorthands.borderLeft('4px', 'solid', HBC_COLORS.warning),
-    backgroundColor: HBC_COLORS.warningLight,
+    ...shorthands.borderLeft('4px', 'solid', tokens.colorStatusWarningForeground1),
+    backgroundColor: tokens.colorStatusWarningBackground1,
     color: tokens.colorNeutralForeground1,
     fontSize: tokens.fontSizeBase300,
     lineHeight: tokens.lineHeightBase400,
@@ -27,7 +26,7 @@ const useStyles = makeStyles({
     display: 'flex',
     ...shorthands.gap('16px'),
     ...shorthands.padding('14px', '0'),
-    ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke1),
   },
   timelineBadge: {
     display: 'flex',
@@ -47,7 +46,7 @@ const useStyles = makeStyles({
   },
   timelineTitle: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase300,
   },
   timelineText: {
@@ -65,7 +64,7 @@ const useStyles = makeStyles({
     ...shorthands.gap('10px'),
     ...shorthands.padding('8px', '12px'),
     ...shorthands.borderRadius('6px'),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
     fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground2,
     lineHeight: tokens.lineHeightBase300,
@@ -74,17 +73,17 @@ const useStyles = makeStyles({
     width: '18px',
     height: '18px',
     ...shorthands.borderRadius('3px'),
-    ...shorthands.border('2px', 'solid', HBC_COLORS.gray300),
+    ...shorthands.border('2px', 'solid', tokens.colorNeutralStroke1),
     flexShrink: 0,
     marginTop: '1px',
   },
 });
 
 const PREPARATION_TIMELINE = [
-  { hours: '72 hrs', title: 'Tropical Storm Watch', text: 'Begin monitoring. Review site-specific hurricane plan. Inventory securing materials and fuel supplies.', color: HBC_COLORS.success, bg: HBC_COLORS.successLight },
-  { hours: '48 hrs', title: 'Hurricane Watch', text: 'Begin securing loose materials, scaffolding, and temporary structures. Back up all project data offsite. Fuel all generators and vehicles.', color: HBC_COLORS.warning, bg: HBC_COLORS.warningLight },
-  { hours: '24 hrs', title: 'Hurricane Warning', text: 'Complete all securing operations. Weathervane or lower cranes per manufacturer specs. Remove or secure all signage and temporary fencing.', color: HBC_COLORS.error, bg: HBC_COLORS.errorLight },
-  { hours: '0 hrs', title: 'Site Shutdown', text: 'Evacuate all personnel. Secure the site perimeter. Confirm all personnel have reported to safe locations. Activate communication tree.', color: HBC_COLORS.error, bg: HBC_COLORS.errorLight },
+  { hours: '72 hrs', title: 'Tropical Storm Watch', text: 'Begin monitoring. Review site-specific hurricane plan. Inventory securing materials and fuel supplies.', color: tokens.colorStatusSuccessForeground1, bg: tokens.colorStatusSuccessBackground1 },
+  { hours: '48 hrs', title: 'Hurricane Watch', text: 'Begin securing loose materials, scaffolding, and temporary structures. Back up all project data offsite. Fuel all generators and vehicles.', color: tokens.colorStatusWarningForeground1, bg: tokens.colorStatusWarningBackground1 },
+  { hours: '24 hrs', title: 'Hurricane Warning', text: 'Complete all securing operations. Weathervane or lower cranes per manufacturer specs. Remove or secure all signage and temporary fencing.', color: tokens.colorStatusDangerForeground1, bg: tokens.colorStatusDangerBackground1 },
+  { hours: '0 hrs', title: 'Site Shutdown', text: 'Evacuate all personnel. Secure the site perimeter. Confirm all personnel have reported to safe locations. Activate communication tree.', color: tokens.colorStatusDangerForeground1, bg: tokens.colorStatusDangerBackground1 },
 ];
 
 const POST_STORM_ITEMS = [

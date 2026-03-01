@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { makeStyles, shorthands } from '@fluentui/react-components';
+import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../shared/PageHeader';
 import { CollapsibleSection } from '../../shared/CollapsibleSection';
@@ -13,7 +13,6 @@ import type { IStartupChecklistItem, ICloseoutItem } from '@hbc/sp-services';
 import { useQueryScope } from '../../../tanstack/query/useQueryScope';
 import { closeoutItemsOptions, startupChecklistOptions } from '../../../tanstack/query/queryOptions/operations';
 import { qk } from '../../../tanstack/query/queryKeys';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
   container: {
@@ -26,17 +25,17 @@ function getChecklistStatusBadge(status: string): React.ReactNode {
   switch (status) {
     case 'Complete':
     case 'Completed':
-      return <StatusBadge label={status} color={HBC_COLORS.success} backgroundColor={HBC_COLORS.successLight} />;
+      return <StatusBadge label={status} color={tokens.colorStatusSuccessForeground1} backgroundColor={tokens.colorStatusSuccessBackground1} />;
     case 'In Progress':
     case 'InProgress':
-      return <StatusBadge label="In Progress" color={HBC_COLORS.info} backgroundColor={HBC_COLORS.infoLight} />;
+      return <StatusBadge label="In Progress" color={tokens.colorBrandForeground1} backgroundColor={tokens.colorNeutralBackground4} />;
     case 'NotStarted':
     case 'Not Started':
-      return <StatusBadge label="Not Started" color={HBC_COLORS.gray500} backgroundColor={HBC_COLORS.gray100} />;
+      return <StatusBadge label="Not Started" color={tokens.colorNeutralForeground2} backgroundColor={tokens.colorNeutralBackground3} />;
     case 'NA':
-      return <StatusBadge label="N/A" color={HBC_COLORS.gray400} backgroundColor={HBC_COLORS.gray100} />;
+      return <StatusBadge label="N/A" color={tokens.colorNeutralForeground3} backgroundColor={tokens.colorNeutralBackground3} />;
     default:
-      return <StatusBadge label={status} color={HBC_COLORS.gray500} backgroundColor={HBC_COLORS.gray100} />;
+      return <StatusBadge label={status} color={tokens.colorNeutralForeground2} backgroundColor={tokens.colorNeutralBackground3} />;
   }
 }
 
@@ -137,7 +136,7 @@ export const StartupCloseoutPage: React.FC = () => {
 
       <CollapsibleSection
         title="Startup Checklist"
-        badge={<StatusBadge label={`${startupItems.length} items`} color={HBC_COLORS.info} backgroundColor={HBC_COLORS.infoLight} />}
+        badge={<StatusBadge label={`${startupItems.length} items`} color={tokens.colorBrandForeground1} backgroundColor={tokens.colorNeutralBackground4} />}
       >
         <HbcDataTable
           tableId="startup-checklist"
@@ -152,7 +151,7 @@ export const StartupCloseoutPage: React.FC = () => {
 
       <CollapsibleSection
         title="Closeout Checklist"
-        badge={<StatusBadge label={`${closeoutItems.length} items`} color={HBC_COLORS.info} backgroundColor={HBC_COLORS.infoLight} />}
+        badge={<StatusBadge label={`${closeoutItems.length} items`} color={tokens.colorBrandForeground1} backgroundColor={tokens.colorNeutralBackground4} />}
       >
         <HbcDataTable
           tableId="closeout-checklist"

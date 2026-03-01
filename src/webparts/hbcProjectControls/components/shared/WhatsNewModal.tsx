@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { tokens } from '@fluentui/react-components';
 import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
 import { APP_VERSION } from '@hbc/sp-services';
 
@@ -174,10 +175,10 @@ export const WhatsNewModal: React.FC<IWhatsNewModalProps> = ({ isOpen, onClose }
                 gap: '12px',
                 marginBottom: '12px',
               }}>
-                <span style={{ fontSize: '14px', fontWeight: 600, color: HBC_COLORS.navy }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: tokens.colorBrandForeground1 }}>
                   Version {entry.version}
                 </span>
-                <span style={{ fontSize: '12px', color: HBC_COLORS.gray400 }}>
+                <span style={{ fontSize: '12px', color: tokens.colorNeutralForeground3 }}>
                   {entry.date}
                 </span>
               </div>
@@ -189,7 +190,7 @@ export const WhatsNewModal: React.FC<IWhatsNewModalProps> = ({ isOpen, onClose }
                 {entry.items.map((item, idx) => (
                   <li key={idx} style={{
                     fontSize: '13px',
-                    color: HBC_COLORS.gray700,
+                    color: tokens.colorNeutralForeground1,
                     marginBottom: '8px',
                     position: 'relative',
                     paddingLeft: '4px',

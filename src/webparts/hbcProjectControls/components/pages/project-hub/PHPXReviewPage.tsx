@@ -104,7 +104,7 @@ const useStyles = makeStyles({
   sectionTitle: {
     fontSize: tokens.fontSizeBase400,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   itemsGrid: {
     display: 'grid',
@@ -122,7 +122,7 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
   value: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase200,
   },
@@ -132,7 +132,7 @@ const useStyles = makeStyles({
     lineHeight: tokens.lineHeightBase300,
     marginTop: '12px',
     ...shorthands.padding('12px'),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
     ...shorthands.borderRadius('6px'),
   },
   statusIcon: {
@@ -149,7 +149,7 @@ const useStyles = makeStyles({
     display: 'grid',
     ...shorthands.gap('8px'),
     ...shorthands.padding('16px'),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
     ...shorthands.borderRadius('8px'),
   },
   signatureLabel: {
@@ -160,7 +160,7 @@ const useStyles = makeStyles({
     letterSpacing: '0.5px',
   },
   signatureLine: {
-    ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray400),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralForeground3),
     height: '32px',
   },
   signatureDate: {

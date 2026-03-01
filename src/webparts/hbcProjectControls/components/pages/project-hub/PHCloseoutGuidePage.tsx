@@ -18,7 +18,7 @@ const useStyles = makeStyles({
     display: 'flex',
     ...shorthands.gap('16px'),
     ...shorthands.padding('14px', '0'),
-    ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke1),
     alignItems: 'flex-start',
   },
   stepNumber: {
@@ -40,7 +40,7 @@ const useStyles = makeStyles({
   },
   stepTitle: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase300,
   },
   stepText: {
@@ -56,12 +56,12 @@ const useStyles = makeStyles({
   docCard: {
     ...shorthands.padding('14px'),
     ...shorthands.borderRadius('8px'),
-    backgroundColor: HBC_COLORS.gray50,
-    ...shorthands.borderLeft('3px', 'solid', HBC_COLORS.navy),
+    backgroundColor: tokens.colorNeutralBackground2,
+    ...shorthands.borderLeft('3px', 'solid', tokens.colorBrandStroke1),
   },
   docTitle: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase200,
     marginBottom: '6px',
   },

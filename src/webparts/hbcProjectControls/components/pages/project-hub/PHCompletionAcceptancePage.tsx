@@ -3,7 +3,6 @@ import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
   container: {
@@ -18,7 +17,7 @@ const useStyles = makeStyles({
     display: 'flex',
     ...shorthands.gap('16px'),
     ...shorthands.padding('14px', '0'),
-    ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke1),
     alignItems: 'flex-start',
   },
   phaseIndicator: {
@@ -38,7 +37,7 @@ const useStyles = makeStyles({
   },
   phaseTitle: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase300,
   },
   phaseText: {
@@ -54,7 +53,7 @@ const useStyles = makeStyles({
   trackingItem: {
     ...shorthands.padding('14px'),
     ...shorthands.borderRadius('8px'),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
     textAlign: 'center' as const,
   },
   trackingLabel: {
@@ -63,7 +62,7 @@ const useStyles = makeStyles({
     marginBottom: '6px',
   },
   trackingValue: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase300,
   },
@@ -75,19 +74,19 @@ const useStyles = makeStyles({
 });
 
 const COMPLETION_PHASES = [
-  { number: 1, title: 'Pre-Substantial Completion', text: 'Internal walkthrough and punch list generation. All major systems operational and tested. MEP commissioning complete. Final cleaning in progress.', color: HBC_COLORS.info, bg: HBC_COLORS.infoLight },
-  { number: 2, title: 'Substantial Completion', text: 'Owner/architect walkthrough and acceptance of the work. Certificate of Substantial Completion issued. Warranty periods begin. Owner may begin beneficial occupancy.', color: HBC_COLORS.warning, bg: HBC_COLORS.warningLight },
-  { number: 3, title: 'Punch List Resolution', text: 'Systematic completion of all punch list items. Weekly progress tracking and owner verification of completed items. Target 100% resolution within 30 days.', color: HBC_COLORS.warning, bg: HBC_COLORS.warningLight },
-  { number: 4, title: 'Final Completion', text: 'All contract requirements satisfied. Final inspections passed. Certificate of Occupancy obtained. All closeout documentation submitted and accepted.', color: HBC_COLORS.success, bg: HBC_COLORS.successLight },
-  { number: 5, title: 'Owner Acceptance', text: 'Formal acceptance of the completed work. Final retainage released. Training sessions completed. Transition to warranty service period.', color: HBC_COLORS.success, bg: HBC_COLORS.successLight },
+  { number: 1, title: 'Pre-Substantial Completion', text: 'Internal walkthrough and punch list generation. All major systems operational and tested. MEP commissioning complete. Final cleaning in progress.', color: tokens.colorBrandForeground1, bg: tokens.colorNeutralBackground4 },
+  { number: 2, title: 'Substantial Completion', text: 'Owner/architect walkthrough and acceptance of the work. Certificate of Substantial Completion issued. Warranty periods begin. Owner may begin beneficial occupancy.', color: tokens.colorStatusWarningForeground1, bg: tokens.colorStatusWarningBackground1 },
+  { number: 3, title: 'Punch List Resolution', text: 'Systematic completion of all punch list items. Weekly progress tracking and owner verification of completed items. Target 100% resolution within 30 days.', color: tokens.colorStatusWarningForeground1, bg: tokens.colorStatusWarningBackground1 },
+  { number: 4, title: 'Final Completion', text: 'All contract requirements satisfied. Final inspections passed. Certificate of Occupancy obtained. All closeout documentation submitted and accepted.', color: tokens.colorStatusSuccessForeground1, bg: tokens.colorStatusSuccessBackground1 },
+  { number: 5, title: 'Owner Acceptance', text: 'Formal acceptance of the completed work. Final retainage released. Training sessions completed. Transition to warranty service period.', color: tokens.colorStatusSuccessForeground1, bg: tokens.colorStatusSuccessBackground1 },
 ];
 
 const TRACKING_ITEMS = [
-  { label: 'Substantial Completion', value: 'TBD', status: 'Pending', statusColor: HBC_COLORS.gray400 },
-  { label: 'Punch List Items', value: '0 / 0', status: 'Not Started', statusColor: HBC_COLORS.gray400 },
-  { label: 'Final Inspections', value: '0 / 0', status: 'Not Started', statusColor: HBC_COLORS.gray400 },
-  { label: 'Certificate of Occupancy', value: 'TBD', status: 'Pending', statusColor: HBC_COLORS.gray400 },
-  { label: 'Owner Acceptance', value: 'TBD', status: 'Pending', statusColor: HBC_COLORS.gray400 },
+  { label: 'Substantial Completion', value: 'TBD', status: 'Pending', statusColor: tokens.colorNeutralForeground3 },
+  { label: 'Punch List Items', value: '0 / 0', status: 'Not Started', statusColor: tokens.colorNeutralForeground3 },
+  { label: 'Final Inspections', value: '0 / 0', status: 'Not Started', statusColor: tokens.colorNeutralForeground3 },
+  { label: 'Certificate of Occupancy', value: 'TBD', status: 'Pending', statusColor: tokens.colorNeutralForeground3 },
+  { label: 'Owner Acceptance', value: 'TBD', status: 'Pending', statusColor: tokens.colorNeutralForeground3 },
 ];
 
 export const PHCompletionAcceptancePage: React.FC = () => {

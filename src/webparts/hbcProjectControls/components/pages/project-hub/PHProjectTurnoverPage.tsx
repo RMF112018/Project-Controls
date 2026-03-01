@@ -238,7 +238,7 @@ const useStyles = makeStyles({
   sectionTitle: {
     fontSize: tokens.fontSizeBase400,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   // Presentation mode: two-column layout for conference room projection
   presentationContainer: {
@@ -291,7 +291,7 @@ const useStyles = makeStyles({
   bdBanner: {
     ...shorthands.padding('16px'),
     backgroundColor: tokens.colorNeutralBackground3,
-    ...shorthands.borderLeft('4px', 'solid', HBC_COLORS.navy),
+    ...shorthands.borderLeft('4px', 'solid', tokens.colorBrandStroke1),
     ...shorthands.borderRadius('0', '8px', '8px', '0'),
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
@@ -307,7 +307,7 @@ const useStyles = makeStyles({
   bdBannerValue: {
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   // Section cards
   sectionCard: {
@@ -324,7 +324,7 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
   infoValue: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase200,
   },
@@ -336,18 +336,18 @@ const useStyles = makeStyles({
     ...shorthands.borderRadius('0', '8px', '8px', '0'),
     fontSize: tokens.fontSizeBase300,
     lineHeight: '1.6',
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontStyle: 'italic',
   },
   // Affidavit callout
   affidavitCallout: {
     ...shorthands.padding('16px', '24px'),
     backgroundColor: tokens.colorNeutralBackground3,
-    ...shorthands.borderLeft('4px', 'solid', HBC_COLORS.navy),
+    ...shorthands.borderLeft('4px', 'solid', tokens.colorBrandStroke1),
     ...shorthands.borderRadius('0', '8px', '8px', '0'),
     fontSize: tokens.fontSizeBase300,
     lineHeight: '1.6',
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     marginBottom: '16px',
   },
   // Signature row
@@ -368,7 +368,7 @@ const useStyles = makeStyles({
   signatureRole: {
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   signatureName: {
     fontSize: tokens.fontSizeBase200,
@@ -378,7 +378,7 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     ...shorthands.gap('4px'),
-    color: HBC_COLORS.success,
+    color: tokens.colorStatusSuccessForeground1,
     fontSize: tokens.fontSizeBase200,
   },
   // Thread panel
@@ -386,7 +386,7 @@ const useStyles = makeStyles({
     ...shorthands.padding('16px'),
     backgroundColor: tokens.colorNeutralBackground2,
     ...shorthands.borderRadius('8px'),
-    ...shorthands.borderLeft('4px', 'solid', HBC_COLORS.navy),
+    ...shorthands.borderLeft('4px', 'solid', tokens.colorBrandStroke1),
   },
   // TODO (Stage 19 – Sub-task 15): In the sign-off useEffect (handoffMutation payload construction), include the full `deepBidPackage` (or turnoverAgendaPopulation subset) from the merged agenda state. Update the handoff to Operations to carry complete normalized data. Reference provided source lines 370–410 and Sub-task 9 handoff extension.
   threadHeader: {
@@ -394,7 +394,7 @@ const useStyles = makeStyles({
     alignItems: 'center',
     ...shorthands.gap('8px'),
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     marginBottom: '12px',
     fontSize: tokens.fontSizeBase300,
   },
@@ -423,7 +423,7 @@ const useStyles = makeStyles({
   threadUser: {
     fontSize: tokens.fontSizeBase100,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   threadText: {
     fontSize: tokens.fontSizeBase200,
@@ -452,7 +452,7 @@ const useStyles = makeStyles({
   prereqLabel: {
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   prereqLabelDone: {
     fontSize: tokens.fontSizeBase300,
@@ -466,7 +466,7 @@ const useStyles = makeStyles({
   },
   prereqBadge: {
     fontSize: tokens.fontSizeBase100,
-    color: HBC_COLORS.success,
+    color: tokens.colorStatusSuccessForeground1,
   },
   // Estimate overview table
   estimateRow: {
@@ -485,7 +485,7 @@ const useStyles = makeStyles({
   estimateValue: {
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontFamily: 'monospace',
   },
   // Discussion item
@@ -496,7 +496,7 @@ const useStyles = makeStyles({
   discussionLabel: {
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     marginBottom: '4px',
   },
   discussionNotes: {
@@ -523,7 +523,7 @@ const useStyles = makeStyles({
   handoffTitle: {
     fontSize: tokens.fontSizeBase500,
     fontWeight: tokens.fontWeightBold,
-    color: HBC_COLORS.success,
+    color: tokens.colorStatusSuccessForeground1,
   },
   handoffMessage: {
     fontSize: tokens.fontSizeBase300,
@@ -540,7 +540,7 @@ const useStyles = makeStyles({
   },
   exhibitLabel: {
     fontSize: tokens.fontSizeBase300,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   // ── Rich Text Field styles ──────────────────────────────────────────
   // Full-width rich text editor replacing plain Textarea components.
@@ -1331,7 +1331,7 @@ export const PHProjectTurnoverPage: React.FC = () => {
         <PageHeader title="Project Turnover" subtitle={projectCode} />
         <HbcCard title="Initialize Turnover Package">
           <div style={{ padding: '32px', textAlign: 'center' }}>
-            <DocumentAdd24Regular style={{ fontSize: '48px', color: HBC_COLORS.navy, marginBottom: '16px' }} />
+            <DocumentAdd24Regular style={{ fontSize: '48px', color: tokens.colorBrandForeground1, marginBottom: '16px' }} />
             <div style={{ fontSize: tokens.fontSizeBase200, color: tokens.colorNeutralForeground3, marginBottom: '24px', maxWidth: '480px', margin: '0 auto 24px' }}>
               No turnover agenda exists for this project yet.
             </div>
@@ -1353,7 +1353,7 @@ export const PHProjectTurnoverPage: React.FC = () => {
       <div className={styles.root} id="turnover-page-root">
         <PageHeader title="Project Turnover" subtitle={`${projectCode} — ${agenda.projectName}`} />
         <div className={styles.handoffSuccess}>
-          <CheckmarkCircle24Regular style={{ fontSize: '64px', color: HBC_COLORS.success }} />
+          <CheckmarkCircle24Regular style={{ fontSize: '64px', color: tokens.colorStatusSuccessForeground1 }} />
           <div className={styles.handoffTitle}>Turnover Complete</div>
           <div className={styles.handoffMessage}>
             The Estimating-to-Operations turnover for {agenda.projectName} has been completed.
@@ -1509,7 +1509,7 @@ export const PHProjectTurnoverPage: React.FC = () => {
       case 'attendees':
         return (
           <HbcCard key={section.id} title={section.label} className={styles.sectionCard}>
-            <div style={{ marginBottom: '8px', fontWeight: tokens.fontWeightSemibold, color: HBC_COLORS.navy }}>
+            <div style={{ marginBottom: '8px', fontWeight: tokens.fontWeightSemibold, color: tokens.colorBrandForeground1 }}>
               Required Attendees
             </div>
             {agenda.signatures.map(sig => (
@@ -1520,7 +1520,7 @@ export const PHProjectTurnoverPage: React.FC = () => {
             ))}
             {agenda.pmName && (
               <>
-                <div style={{ marginTop: '12px', marginBottom: '8px', fontWeight: tokens.fontWeightSemibold, color: HBC_COLORS.navy }}>
+                <div style={{ marginTop: '12px', marginBottom: '8px', fontWeight: tokens.fontWeightSemibold, color: tokens.colorBrandForeground1 }}>
                   Optional Attendees
                 </div>
                 {agenda.pmName && (
@@ -1545,8 +1545,8 @@ export const PHProjectTurnoverPage: React.FC = () => {
             headerActions={
               <StatusBadge
                 label={`${prereqComplete}/${prereqTotal}`}
-                color={prereqComplete === prereqTotal ? HBC_COLORS.success : HBC_COLORS.warning}
-                backgroundColor={prereqComplete === prereqTotal ? HBC_COLORS.successLight : HBC_COLORS.warningLight}
+                color={prereqComplete === prereqTotal ? tokens.colorStatusSuccessForeground1 : tokens.colorStatusWarningForeground1}
+                backgroundColor={prereqComplete === prereqTotal ? tokens.colorStatusSuccessBackground1 : tokens.colorStatusWarningBackground1}
                 size="medium"
               />
             }
@@ -1847,8 +1847,8 @@ export const PHProjectTurnoverPage: React.FC = () => {
             <div style={{ marginTop: '16px', textAlign: 'center' }}>
               <StatusBadge
                 label={`${signaturesComplete}/${signaturesTotal} Signatures`}
-                color={signaturesComplete === signaturesTotal ? HBC_COLORS.success : HBC_COLORS.warning}
-                backgroundColor={signaturesComplete === signaturesTotal ? HBC_COLORS.successLight : HBC_COLORS.warningLight}
+                color={signaturesComplete === signaturesTotal ? tokens.colorStatusSuccessForeground1 : tokens.colorStatusWarningForeground1}
+                backgroundColor={signaturesComplete === signaturesTotal ? tokens.colorStatusSuccessBackground1 : tokens.colorStatusWarningBackground1}
                 size="medium"
               />
             </div>
@@ -1962,8 +1962,8 @@ export const PHProjectTurnoverPage: React.FC = () => {
           <div className={styles.bdBannerValue}>
             <StatusBadge
               label={agenda.status}
-              color={agenda.status === TurnoverStatus.Complete ? HBC_COLORS.success : HBC_COLORS.info}
-              backgroundColor={agenda.status === TurnoverStatus.Complete ? HBC_COLORS.successLight : HBC_COLORS.infoLight}
+              color={agenda.status === TurnoverStatus.Complete ? tokens.colorStatusSuccessForeground1 : tokens.colorBrandForeground1}
+              backgroundColor={agenda.status === TurnoverStatus.Complete ? tokens.colorStatusSuccessBackground1 : tokens.colorNeutralBackground4}
               size="small"
             />
           </div>

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { makeStyles, shorthands } from '@fluentui/react-components';
+import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { Add24Regular, Delete24Regular } from '@fluentui/react-icons';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcDataTable } from '../../shared/HbcDataTable';
@@ -12,17 +12,16 @@ import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
 import { formatDate, type IConstraintLog } from '@hbc/sp-services';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
-  Open: { color: HBC_COLORS.info, bg: HBC_COLORS.infoLight },
-  Closed: { color: HBC_COLORS.gray500, bg: HBC_COLORS.gray100 },
+  Open: { color: tokens.colorBrandForeground1, bg: tokens.colorNeutralBackground4 },
+  Closed: { color: tokens.colorNeutralForeground2, bg: tokens.colorNeutralBackground3 },
 };
 
 const PRIORITY_APPEARANCE: Record<string, { color: string; bg: string }> = {
-  High: { color: HBC_COLORS.error, bg: HBC_COLORS.errorLight },
-  Medium: { color: HBC_COLORS.warning, bg: HBC_COLORS.warningLight },
-  Low: { color: HBC_COLORS.success, bg: HBC_COLORS.successLight },
+  High: { color: tokens.colorStatusDangerForeground1, bg: tokens.colorStatusDangerBackground1 },
+  Medium: { color: tokens.colorStatusWarningForeground1, bg: tokens.colorStatusWarningBackground1 },
+  Low: { color: tokens.colorStatusSuccessForeground1, bg: tokens.colorStatusSuccessBackground1 },
 };
 
 const useStyles = makeStyles({

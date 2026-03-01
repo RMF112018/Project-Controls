@@ -12,7 +12,6 @@ import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
 import { useQueryScope } from '../../../tanstack/query/useQueryScope';
 import { activeProjectsOptions, scheduleMetricsOptions, deliverablesOptions } from '../../../tanstack/query/queryOptions/operations';
-import { HBC_COLORS } from '../../../theme/tokens';
 import { useSearch } from '@tanstack/react-router';
 import type { IActiveProject } from '@hbc/sp-services';
 
@@ -37,7 +36,7 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
   value: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase200,
   },

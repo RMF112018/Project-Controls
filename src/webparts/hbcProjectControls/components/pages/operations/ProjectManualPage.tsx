@@ -5,7 +5,6 @@ import { HbcCard } from '../../shared/HbcCard';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAppNavigate } from '../../hooks/router/useAppNavigate';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 interface IManualTile {
   title: string;
@@ -92,7 +91,7 @@ const useStyles = makeStyles({
     lineHeight: tokens.lineHeightBase200,
   },
   tileTitle: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
   },
 });

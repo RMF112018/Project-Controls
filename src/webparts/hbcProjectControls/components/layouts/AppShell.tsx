@@ -209,7 +209,7 @@ interface IAppShellProps {
 export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
   const styles = useStyles();
   const motionStyles = useHbcMotionStyles();
-  const { dataService, isFeatureEnabled, isFullScreen, toggleFullScreen, exitFullScreen, isOnline, isLoading, error } = useAppContext();
+  const { dataService, isFeatureEnabled, isFullScreen, toggleFullScreen, exitFullScreen, isOnline, isLoading, error, setThemeMode } = useAppContext();
   const { isMobile, isTablet } = useResponsive();
   const navigate = useAppNavigate();
   const { pathname } = useAppLocation();
@@ -281,7 +281,31 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
       requiredFeatureFlags: ['PreconstructionWorkspace'],
       run: () => navigate('/preconstruction/ids'),
     },
-  ], [isFullScreen, mobileNavOpen, toggleFullScreen, navigate]);
+    {
+      id: 'theme-light',
+      label: 'Switch to Light Mode',
+      keywords: ['theme', 'light', 'appearance', 'color'],
+      section: 'Appearance',
+      requiredFeatureFlags: ['DarkModeSupport'],
+      run: () => setThemeMode('light'),
+    },
+    {
+      id: 'theme-dark',
+      label: 'Switch to Dark Mode',
+      keywords: ['theme', 'dark', 'appearance', 'color', 'night'],
+      section: 'Appearance',
+      requiredFeatureFlags: ['DarkModeSupport'],
+      run: () => setThemeMode('dark'),
+    },
+    {
+      id: 'theme-system',
+      label: 'Use System Theme',
+      keywords: ['theme', 'system', 'auto', 'os', 'appearance'],
+      section: 'Appearance',
+      requiredFeatureFlags: ['DarkModeSupport'],
+      run: () => setThemeMode('system'),
+    },
+  ], [isFullScreen, mobileNavOpen, toggleFullScreen, navigate, setThemeMode]);
 
   // Keyboard shortcuts
   useKeyboardShortcut([

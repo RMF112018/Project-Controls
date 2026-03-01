@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { ITelemetryService } from '@hbc/sp-services';
-import { HBC_COLORS } from '../../theme/tokens';
+import { tokens } from '@fluentui/react-components';
 
 interface IErrorBoundaryProps {
   children: React.ReactNode;
@@ -76,14 +76,14 @@ export class ErrorBoundary extends React.Component<IErrorBoundaryProps, IErrorBo
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
       return (
-        <div style={{ padding: '24px', backgroundColor: HBC_COLORS.errorLight, borderRadius: '8px', border: `1px solid ${HBC_COLORS.error}` }}>
-          <h3 style={{ color: HBC_COLORS.error, margin: '0 0 8px 0' }}>Something went wrong</h3>
-          <p style={{ color: HBC_COLORS.gray700, margin: 0, fontSize: '14px' }}>
+        <div style={{ padding: '24px', backgroundColor: tokens.colorStatusDangerBackground1, borderRadius: '8px', border: `1px solid ${tokens.colorStatusDangerBorder1}` }}>
+          <h3 style={{ color: tokens.colorStatusDangerForeground1, margin: '0 0 8px 0' }}>Something went wrong</h3>
+          <p style={{ color: tokens.colorNeutralForeground1, margin: 0, fontSize: '14px' }}>
             {this.state.error?.message || 'An unexpected error occurred.'}
           </p>
           <button
             onClick={() => this.setState({ hasError: false, error: undefined })}
-            style={{ marginTop: '12px', padding: '6px 16px', backgroundColor: HBC_COLORS.navy, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            style={{ marginTop: '12px', padding: '6px 16px', backgroundColor: tokens.colorBrandBackground, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
           >
             Try Again
           </button>

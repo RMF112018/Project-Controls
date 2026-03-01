@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { makeStyles, shorthands } from '@fluentui/react-components';
+import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { Add24Regular, Delete24Regular } from '@fluentui/react-icons';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcDataTable } from '../../shared/HbcDataTable';
@@ -12,16 +12,15 @@ import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
 import { formatDate, type IPermit } from '@hbc/sp-services';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
-  'Active': { color: HBC_COLORS.success, bg: HBC_COLORS.successLight },
-  'Pending Application': { color: HBC_COLORS.warning, bg: HBC_COLORS.warningLight },
-  'Pending Revision': { color: HBC_COLORS.warning, bg: HBC_COLORS.warningLight },
-  'Inactive': { color: HBC_COLORS.gray500, bg: HBC_COLORS.gray100 },
-  'VOID': { color: HBC_COLORS.error, bg: HBC_COLORS.errorLight },
-  'Expired': { color: HBC_COLORS.error, bg: HBC_COLORS.errorLight },
-  'Closed': { color: HBC_COLORS.gray500, bg: HBC_COLORS.gray200 },
+  'Active': { color: tokens.colorStatusSuccessForeground1, bg: tokens.colorStatusSuccessBackground1 },
+  'Pending Application': { color: tokens.colorStatusWarningForeground1, bg: tokens.colorStatusWarningBackground1 },
+  'Pending Revision': { color: tokens.colorStatusWarningForeground1, bg: tokens.colorStatusWarningBackground1 },
+  'Inactive': { color: tokens.colorNeutralForeground2, bg: tokens.colorNeutralBackground3 },
+  'VOID': { color: tokens.colorStatusDangerForeground1, bg: tokens.colorStatusDangerBackground1 },
+  'Expired': { color: tokens.colorStatusDangerForeground1, bg: tokens.colorStatusDangerBackground1 },
+  'Closed': { color: tokens.colorNeutralForeground2, bg: tokens.colorNeutralBackground4 },
 };
 
 const truncate = (text: string | undefined, maxLen: number): string => {

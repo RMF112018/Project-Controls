@@ -5,7 +5,6 @@ import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { KPICard } from '../../shared/KPICard';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const MOCK_GC_ITEMS: IGCGRLineItem[] = [
   { code: 'GC-01', description: 'Project Management Staff', monthlyBudget: 45_000, totalBudget: 810_000, actualToDate: 495_000, projectedFinal: 800_000, variance: 10_000 },
@@ -41,27 +40,27 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
   tableHead: {
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   th: {
     ...shorthands.padding('10px', '12px'),
     textAlign: 'left' as const,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: '11px',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.5px',
-    ...shorthands.borderBottom('2px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('2px', 'solid', tokens.colorNeutralStroke1),
   },
   thRight: {
     ...shorthands.padding('10px', '12px'),
     textAlign: 'right' as const,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: '11px',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.5px',
-    ...shorthands.borderBottom('2px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('2px', 'solid', tokens.colorNeutralStroke1),
   },
   td: {
     ...shorthands.padding('10px', '12px'),
@@ -84,13 +83,13 @@ const useStyles = makeStyles({
   },
   totalRow: {
     fontWeight: tokens.fontWeightBold,
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   positive: {
-    color: HBC_COLORS.success,
+    color: tokens.colorStatusSuccessForeground1,
   },
   negative: {
-    color: HBC_COLORS.error,
+    color: tokens.colorStatusDangerForeground1,
   },
   progressCell: {
     ...shorthands.padding('10px', '12px'),
@@ -99,7 +98,7 @@ const useStyles = makeStyles({
   progressTrack: {
     width: '100%',
     height: '6px',
-    backgroundColor: HBC_COLORS.gray200,
+    backgroundColor: tokens.colorNeutralBackground4,
     ...shorthands.borderRadius('3px'),
     ...shorthands.overflow('hidden'),
   },
@@ -141,7 +140,7 @@ const CostTable: React.FC<{
       <tbody>
         {items.map((item) => {
           const pct = item.totalBudget > 0 ? Math.round((item.actualToDate / item.totalBudget) * 100) : 0;
-          const barColor = pct > 90 ? HBC_COLORS.error : pct > 75 ? HBC_COLORS.warning : HBC_COLORS.success;
+          const barColor = pct > 90 ? tokens.colorStatusDangerForeground1 : pct > 75 ? tokens.colorStatusWarningForeground1 : tokens.colorStatusSuccessForeground1;
           return (
             <tr key={item.code}>
               <td className={s.tdCode}>{item.code}</td>

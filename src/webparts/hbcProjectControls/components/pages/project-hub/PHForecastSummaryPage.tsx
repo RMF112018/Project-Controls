@@ -10,7 +10,6 @@ import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const MOCK_COST_LINES: ICostLineItem[] = [
   {
@@ -85,27 +84,27 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
   tableHead: {
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   th: {
     ...shorthands.padding('10px', '12px'),
     textAlign: 'left' as const,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: '11px',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.5px',
-    ...shorthands.borderBottom('2px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('2px', 'solid', tokens.colorNeutralStroke1),
   },
   thRight: {
     ...shorthands.padding('10px', '12px'),
     textAlign: 'right' as const,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: '11px',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.5px',
-    ...shorthands.borderBottom('2px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('2px', 'solid', tokens.colorNeutralStroke1),
   },
   td: {
     ...shorthands.padding('10px', '12px'),
@@ -121,13 +120,13 @@ const useStyles = makeStyles({
   },
   totalRow: {
     fontWeight: tokens.fontWeightBold,
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   positive: {
-    color: HBC_COLORS.success,
+    color: tokens.colorStatusSuccessForeground1,
   },
   negative: {
-    color: HBC_COLORS.error,
+    color: tokens.colorStatusDangerForeground1,
   },
   summaryGrid: {
     display: 'grid',
@@ -145,7 +144,7 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
   value: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase200,
   },

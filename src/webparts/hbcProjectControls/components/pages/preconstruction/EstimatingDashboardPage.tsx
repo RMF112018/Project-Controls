@@ -21,7 +21,8 @@ import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { HbcEChart } from '../../shared/HbcEChart';
 import { AwardStatus } from '@hbc/sp-services';
 import { useEstimatingDashboardData } from './useEstimatingDashboardData';
-import { HBC_COLORS, ELEVATION, TRANSITION } from '../../../theme/tokens';
+import { ELEVATION, TRANSITION } from '../../../theme/tokens';
+import { useHbcChartColors } from '../../hooks/useHbcChartColors';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -75,7 +76,7 @@ const useStyles = makeStyles({
   chartTitle: {
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     ...shorthands.margin('0', '0', tokens.spacingVerticalS),
   },
   powerBiPlaceholder: {
@@ -122,13 +123,6 @@ const useStyles = makeStyles({
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const AWARD_STATUS_COLORS: Record<string, string> = {
-  [AwardStatus.Pending]: HBC_COLORS.info,
-  [AwardStatus.AwardedWithPrecon]: HBC_COLORS.success,
-  [AwardStatus.AwardedWithoutPrecon]: HBC_COLORS.warning,
-  [AwardStatus.NotAwarded]: HBC_COLORS.error,
-};
-
 const AWARD_STATUS_LABELS: Record<string, string> = {
   [AwardStatus.Pending]: 'Pending',
   [AwardStatus.AwardedWithPrecon]: 'Awarded w/ Precon',
@@ -141,6 +135,15 @@ const AWARD_STATUS_LABELS: Record<string, string> = {
 const EstimatingDashboardPageInner: React.FC = () => {
   const styles = useStyles();
   const { loading, kpis, allRecords, currentPursuits } = useEstimatingDashboardData();
+  const chartColors = useHbcChartColors();
+
+  // Theme-aware award status color mapping
+  const awardStatusColors = React.useMemo<Record<string, string>>(() => ({
+    [AwardStatus.Pending]: chartColors.info,
+    [AwardStatus.AwardedWithPrecon]: chartColors.success,
+    [AwardStatus.AwardedWithoutPrecon]: chartColors.warning,
+    [AwardStatus.NotAwarded]: chartColors.error,
+  }), [chartColors]);
 
   // ── Chart 1: Award Status Distribution (Donut) ────────────────────────────
 
@@ -155,7 +158,7 @@ const EstimatingDashboardPageInner: React.FC = () => {
     const data = Array.from(statusMap.entries()).map(([status, count]) => ({
       name: AWARD_STATUS_LABELS[status] ?? status,
       value: count,
-      itemStyle: { color: AWARD_STATUS_COLORS[status] ?? tokens.colorNeutralForeground3 },
+      itemStyle: { color: awardStatusColors[status] ?? tokens.colorNeutralForeground3 },
     }));
 
     return {
@@ -184,7 +187,7 @@ const EstimatingDashboardPageInner: React.FC = () => {
         },
       ],
     };
-  }, [allRecords]);
+  }, [allRecords, awardStatusColors]);
 
   // ── Chart 2: Estimates by Source (Bar) ─────────────────────────────────────
 
@@ -213,12 +216,12 @@ const EstimatingDashboardPageInner: React.FC = () => {
         {
           type: 'bar' as const,
           data: counts,
-          itemStyle: { color: HBC_COLORS.navy },
+          itemStyle: { color: chartColors.primary },
           barMaxWidth: 40,
         },
       ],
     };
-  }, [allRecords]);
+  }, [allRecords, chartColors]);
 
   // ── Chart 3: Estimator Workload (Grouped Bar) ─────────────────────────────
 
@@ -263,17 +266,17 @@ const EstimatingDashboardPageInner: React.FC = () => {
           name: 'Active Pursuits',
           type: 'bar' as const,
           data: activeCounts,
-          itemStyle: { color: HBC_COLORS.navy },
+          itemStyle: { color: chartColors.primary },
         },
         {
           name: 'Submitted',
           type: 'bar' as const,
           data: submittedCounts,
-          itemStyle: { color: HBC_COLORS.orange },
+          itemStyle: { color: chartColors.secondary },
         },
       ],
     };
-  }, [allRecords, currentPursuits]);
+  }, [allRecords, currentPursuits, chartColors]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 

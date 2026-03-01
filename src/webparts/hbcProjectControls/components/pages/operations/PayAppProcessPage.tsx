@@ -9,7 +9,6 @@ import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useAppContext } from '../../contexts/AppContext';
 import type { IContractInfo, IDeliverable } from '@hbc/sp-services';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
   container: {
@@ -27,7 +26,7 @@ const useStyles = makeStyles({
     marginBottom: '4px',
   },
   summaryValue: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase400,
   },
@@ -37,14 +36,14 @@ function getDeliverableStatusBadge(status: string): React.ReactNode {
   switch (status) {
     case 'Completed':
     case 'Complete':
-      return <StatusBadge label="Completed" color={HBC_COLORS.success} backgroundColor={HBC_COLORS.successLight} />;
+      return <StatusBadge label="Completed" color={tokens.colorStatusSuccessForeground1} backgroundColor={tokens.colorStatusSuccessBackground1} />;
     case 'InProgress':
     case 'In Progress':
-      return <StatusBadge label="In Progress" color={HBC_COLORS.info} backgroundColor={HBC_COLORS.infoLight} />;
+      return <StatusBadge label="In Progress" color={tokens.colorBrandForeground1} backgroundColor={tokens.colorNeutralBackground4} />;
     case 'Overdue':
-      return <StatusBadge label="Overdue" color={HBC_COLORS.error} backgroundColor={HBC_COLORS.errorLight} />;
+      return <StatusBadge label="Overdue" color={tokens.colorStatusDangerForeground1} backgroundColor={tokens.colorStatusDangerBackground1} />;
     default:
-      return <StatusBadge label={status} color={HBC_COLORS.gray500} backgroundColor={HBC_COLORS.gray100} />;
+      return <StatusBadge label={status} color={tokens.colorNeutralForeground2} backgroundColor={tokens.colorNeutralBackground3} />;
   }
 }
 

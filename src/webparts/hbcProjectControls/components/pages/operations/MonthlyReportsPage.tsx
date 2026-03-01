@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { makeStyles, shorthands } from '@fluentui/react-components';
+import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { Add24Regular } from '@fluentui/react-icons';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcDataTable } from '../../shared/HbcDataTable';
@@ -12,18 +12,17 @@ import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
 import { formatDate, type IMonthlyProjectReview } from '@hbc/sp-services';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
-  NotStarted: { color: HBC_COLORS.gray500, bg: HBC_COLORS.gray100 },
-  InProgress: { color: HBC_COLORS.info, bg: HBC_COLORS.infoLight },
-  PendingPXReview: { color: HBC_COLORS.warning, bg: HBC_COLORS.warningLight },
-  PXReviewComplete: { color: HBC_COLORS.success, bg: HBC_COLORS.successLight },
-  PMRevising: { color: HBC_COLORS.warning, bg: HBC_COLORS.warningLight },
-  PendingPXValidation: { color: HBC_COLORS.warning, bg: HBC_COLORS.warningLight },
-  SubmittedToLeadership: { color: HBC_COLORS.info, bg: HBC_COLORS.infoLight },
-  FollowUpPending: { color: HBC_COLORS.warning, bg: HBC_COLORS.warningLight },
-  Complete: { color: HBC_COLORS.success, bg: HBC_COLORS.successLight },
+  NotStarted: { color: tokens.colorNeutralForeground2, bg: tokens.colorNeutralBackground3 },
+  InProgress: { color: tokens.colorBrandForeground1, bg: tokens.colorNeutralBackground4 },
+  PendingPXReview: { color: tokens.colorStatusWarningForeground1, bg: tokens.colorStatusWarningBackground1 },
+  PXReviewComplete: { color: tokens.colorStatusSuccessForeground1, bg: tokens.colorStatusSuccessBackground1 },
+  PMRevising: { color: tokens.colorStatusWarningForeground1, bg: tokens.colorStatusWarningBackground1 },
+  PendingPXValidation: { color: tokens.colorStatusWarningForeground1, bg: tokens.colorStatusWarningBackground1 },
+  SubmittedToLeadership: { color: tokens.colorBrandForeground1, bg: tokens.colorNeutralBackground4 },
+  FollowUpPending: { color: tokens.colorStatusWarningForeground1, bg: tokens.colorStatusWarningBackground1 },
+  Complete: { color: tokens.colorStatusSuccessForeground1, bg: tokens.colorStatusSuccessBackground1 },
 };
 
 const STATUS_LABELS: Record<string, string> = {

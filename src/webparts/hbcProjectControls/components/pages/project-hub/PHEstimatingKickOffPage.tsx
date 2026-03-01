@@ -7,7 +7,6 @@ import { HbcCard } from '../../shared/HbcCard';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const INITIAL_CHECKLIST: IChecklistItem[] = [
   { id: 'doc-1', label: 'Bid Documents Received', description: 'All drawings, specifications, and addenda received and logged', category: 'Documents', checked: true },
@@ -52,7 +51,7 @@ const useStyles = makeStyles({
   checklistLabel: {
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   checklistLabelDone: {
     fontSize: tokens.fontSizeBase300,
@@ -122,8 +121,8 @@ export const PHEstimatingKickOffPage: React.FC = () => {
         const catComplete = items.filter(i => i.checked).length;
         const catTotal = items.length;
         const badgeColors = catComplete === catTotal
-          ? { color: HBC_COLORS.success, backgroundColor: HBC_COLORS.successLight }
-          : { color: HBC_COLORS.warning, backgroundColor: HBC_COLORS.warningLight };
+          ? { color: tokens.colorStatusSuccessForeground1, backgroundColor: tokens.colorStatusSuccessBackground1 }
+          : { color: tokens.colorStatusWarningForeground1, backgroundColor: tokens.colorStatusWarningBackground1 };
 
         return (
           <HbcCard

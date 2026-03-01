@@ -4,6 +4,33 @@ All notable changes to HBC Project Controls will be documented in this file.
 
 ## [Unreleased]
 
+### [2026-03-01] - Phase 6 Task 1: Dark-Mode / High-Contrast Support
+
+#### Added
+- **`DarkModeSupport` feature flag** (`featureFlags.json`): Enabled by default; gates theme toggle UI and ThemeGate provider
+- **`hbcDarkTheme`** (`theme/hbcTheme.ts`): Full dark theme with 50+ custom token overrides — dark-appropriate neutrals, status colors with WCAG AA contrast on dark surfaces, deeper shadows for dark elevation perception
+- **`hbcHighContrastTheme`** (`theme/hbcTheme.ts`): Re-export of `teamsHighContrastTheme` for Windows High Contrast / forced-colors support
+- **`useHbcThemeMode` hook** (`hooks/useHbcThemeMode.ts`): Theme preference management with `localStorage` persistence (`hbc:theme-mode:{email}`), `prefers-color-scheme` OS detection via `matchMedia`, and `forced-colors: active` high-contrast detection; default mode: `'system'`
+- **`ThemeGate` component** (`App.tsx`): Nested `FluentProvider` inside `AppProvider` that selects `hbcLightTheme` / `hbcDarkTheme` / `hbcHighContrastTheme` based on user preference and feature flag
+- **`HBC_TOKENS` semantic layer** (`theme/tokens.ts`): Theme-aware domain color mappings (`headingColor`, `badgeSuccessFg/Bg`, `tableBorderStrong/Subtle`, `cardBackground`, `textPrimary/Secondary/Tertiary`) referencing Fluent design tokens
+- **Dark ECharts theme** (`theme/hbcEChartsTheme.ts`): `HBC_ECHARTS_DARK_THEME_OBJ` with `registerHbcDarkTheme()` for canvas-based chart dark mode; `makeTooltipFormatter` parameterized for both light/dark
+- **Theme toggle UI** (`HeaderUserMenu.tsx`): Light/Dark/System radio group in user menu, gated by `FeatureGate featureName="DarkModeSupport"`
+- **Command palette commands** (`AppShell.tsx`): "Switch to Light Mode", "Switch to Dark Mode", "Use System Theme" with `requiredFeatureFlags: ['DarkModeSupport']`
+- **`forcedColorsSupport` class** (`globalStyles.ts`): `@media (forced-colors: active)` override for Windows High Contrast
+
+#### Changed
+- **88 component files migrated**: `HBC_COLORS.*` references replaced with Fluent UI `tokens.*` for automatic theme adaptation — covers all shared components, navigation, help system, guards, and all page components across preconstruction, project hub, operations, admin, and hub workspaces
+- **`AppContext.tsx`**: Added `themeMode`, `effectiveThemeMode`, `isHighContrast`, `setThemeMode` to context value
+- **`HbcEChart.tsx`**: Added `themeName` prop (default: `'hbc'`); registers dark ECharts theme on load; loading spinner adapts to dark theme
+- **`globalStyles.ts`**: `pageTitle`/`sectionHeader` migrated from `HBC_COLORS.navy` to `tokens.colorBrandForeground1`; badge variants migrated to Fluent status tokens; table borders migrated to `tokens.colorNeutralStroke1/2`
+
+#### Notes
+- Zero new npm dependencies; all theming uses existing Fluent UI v9 primitives
+- Navy header bar preserved as brand element across all themes (fixed `HBC_COLORS.navy` bg + `#fff` text)
+- Orange brand accent, score tier colors, ECharts light theme hex values, email HTML templates, and Joyride overlay styles intentionally excluded from migration
+- Pre-existing TypeScript error in `EditableEmailCell.tsx` unrelated to this change
+- Feature flag can be disabled to force light-only mode during rollout
+
 ### [2026-03-01] - Phase 4 Task 2: Mutation UX Feedback — `useMutationWithToast`
 
 #### Added

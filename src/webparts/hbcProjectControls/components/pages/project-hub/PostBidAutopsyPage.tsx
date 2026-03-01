@@ -41,7 +41,6 @@ import {
   type IPersonAssignment,
   type ISWOCSection,
 } from '@hbc/sp-services';
-import { HBC_COLORS } from '../../../theme/tokens';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAppNavigate } from '../../hooks/router/useAppNavigate';
 import { PageHeader } from '../../shared/PageHeader';
@@ -81,7 +80,7 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground3,
     fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     textAlign: 'left',
     ...shorthands.padding('10px', '12px'),
     ...shorthands.borderBottom('2px', 'solid', tokens.colorNeutralStroke2),
@@ -90,7 +89,7 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground3,
     fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     textAlign: 'center',
     ...shorthands.padding('10px', '12px'),
     ...shorthands.borderBottom('2px', 'solid', tokens.colorNeutralStroke2),
@@ -142,9 +141,9 @@ const useStyles = makeStyles({
   yesBtnActive: {
     minWidth: '40px',
     fontSize: tokens.fontSizeBase200,
-    backgroundColor: HBC_COLORS.success,
+    backgroundColor: tokens.colorStatusSuccessForeground1,
     color: '#fff',
-    ':hover': { backgroundColor: HBC_COLORS.success },
+    ':hover': { backgroundColor: tokens.colorStatusSuccessForeground1 },
   },
   noBtn: {
     minWidth: '40px',
@@ -153,9 +152,9 @@ const useStyles = makeStyles({
   noBtnActive: {
     minWidth: '40px',
     fontSize: tokens.fontSizeBase200,
-    backgroundColor: HBC_COLORS.error,
+    backgroundColor: tokens.colorStatusDangerForeground1,
     color: '#fff',
-    ':hover': { backgroundColor: HBC_COLORS.error },
+    ':hover': { backgroundColor: tokens.colorStatusDangerForeground1 },
   },
   notesTextarea: {
     width: '100%',
@@ -167,7 +166,7 @@ const useStyles = makeStyles({
   swocPromptLabel: {
     fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     marginBottom: '4px',
     marginTop: '12px',
   },
@@ -194,7 +193,7 @@ const useStyles = makeStyles({
   ratingValue: {
     fontSize: tokens.fontSizeBase600,
     fontWeight: tokens.fontWeightBold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     minWidth: '32px',
     textAlign: 'center',
   },
@@ -218,17 +217,17 @@ const useStyles = makeStyles({
   finalizedBanner: {
     marginBottom: '8px',
   },
-  scoreGood: { color: HBC_COLORS.success },
-  scoreMedium: { color: HBC_COLORS.warning },
-  scoreLow: { color: HBC_COLORS.error },
+  scoreGood: { color: tokens.colorStatusSuccessForeground1 },
+  scoreMedium: { color: tokens.colorStatusWarningForeground1 },
+  scoreLow: { color: tokens.colorStatusDangerForeground1 },
   validationBar: {
     marginBottom: tokens.spacingVerticalS,
   },
   unansweredRow: {
-    borderLeft: `3px solid ${HBC_COLORS.warning}`,
+    borderLeft: `3px solid ${tokens.colorStatusWarningForeground1}`,
   },
   sectionErrorBadge: {
-    color: HBC_COLORS.error,
+    color: tokens.colorStatusDangerForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase200,
   },

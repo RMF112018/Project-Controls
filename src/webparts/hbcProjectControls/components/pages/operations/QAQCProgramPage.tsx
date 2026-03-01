@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { makeStyles, shorthands } from '@fluentui/react-components';
+import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { PageHeader } from '../../shared/PageHeader';
 import { KPICard } from '../../shared/KPICard';
 import { HbcDataTable } from '../../shared/HbcDataTable';
@@ -11,7 +11,6 @@ import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAppNavigate } from '../../hooks/router/useAppNavigate';
 import type { IQualityConcern } from '@hbc/sp-services';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
   container: {
@@ -34,13 +33,13 @@ function getConcernStatusBadge(status: string): React.ReactNode {
   switch (status) {
     case 'Resolved':
     case 'Closed':
-      return <StatusBadge label={status} color={HBC_COLORS.success} backgroundColor={HBC_COLORS.successLight} />;
+      return <StatusBadge label={status} color={tokens.colorStatusSuccessForeground1} backgroundColor={tokens.colorStatusSuccessBackground1} />;
     case 'Monitoring':
-      return <StatusBadge label="Monitoring" color={HBC_COLORS.warning} backgroundColor={HBC_COLORS.warningLight} />;
+      return <StatusBadge label="Monitoring" color={tokens.colorStatusWarningForeground1} backgroundColor={tokens.colorStatusWarningBackground1} />;
     case 'Open':
-      return <StatusBadge label="Open" color={HBC_COLORS.error} backgroundColor={HBC_COLORS.errorLight} />;
+      return <StatusBadge label="Open" color={tokens.colorStatusDangerForeground1} backgroundColor={tokens.colorStatusDangerBackground1} />;
     default:
-      return <StatusBadge label={status} color={HBC_COLORS.gray500} backgroundColor={HBC_COLORS.gray100} />;
+      return <StatusBadge label={status} color={tokens.colorNeutralForeground2} backgroundColor={tokens.colorNeutralBackground3} />;
   }
 }
 

@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { makeStyles, shorthands, Tooltip } from '@fluentui/react-components';
+import { makeStyles, shorthands, tokens, Tooltip } from '@fluentui/react-components';
 import { usePresence } from '../hooks/usePresence';
 import { useResponsive } from '../hooks/useResponsive';
-import { HBC_COLORS } from '../../theme/tokens';
 
 const useStyles = makeStyles({
   container: {
@@ -32,7 +31,7 @@ const useStyles = makeStyles({
     fontSize: '10px',
     fontWeight: '600',
     color: '#fff',
-    backgroundColor: HBC_COLORS.gray500,
+    backgroundColor: tokens.colorNeutralForeground2,
     flexShrink: 0,
   },
   tooltipContent: {
@@ -64,7 +63,7 @@ function getInitials(displayName: string): string {
 }
 
 function getStatusColor(status: 'active' | 'idle'): string {
-  return status === 'active' ? HBC_COLORS.success : HBC_COLORS.warning;
+  return status === 'active' ? tokens.colorStatusSuccessForeground1 : tokens.colorStatusWarningForeground1;
 }
 
 function formatPage(path: string): string {

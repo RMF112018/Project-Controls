@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
+import { tokens } from '@fluentui/react-components';
+import { ELEVATION } from '../../theme/tokens';
 
 interface ISlideDrawerProps {
   isOpen: boolean;
@@ -113,12 +114,12 @@ export const SlideDrawer: React.FC<ISlideDrawerProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '16px 20px',
-            borderBottom: `1px solid ${HBC_COLORS.gray200}`,
+            borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
             flexShrink: 0,
           }}
         >
           {title && (
-            <h3 id={titleId} style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: HBC_COLORS.navy }}>{title}</h3>
+            <h3 id={titleId} style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: tokens.colorBrandForeground1 }}>{title}</h3>
           )}
           <button
             ref={closeButtonRef}
@@ -129,7 +130,7 @@ export const SlideDrawer: React.FC<ISlideDrawerProps> = ({
               border: 'none',
               cursor: 'pointer',
               fontSize: '18px',
-              color: HBC_COLORS.gray500,
+              color: tokens.colorNeutralForeground2,
               padding: '4px 8px',
               borderRadius: 4,
               marginLeft: 'auto',

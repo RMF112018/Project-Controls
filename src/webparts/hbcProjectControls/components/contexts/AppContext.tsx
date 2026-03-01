@@ -17,6 +17,8 @@ import { MockTelemetryService } from '@hbc/sp-services';
 import type { IDevToolsConfig } from '../App';
 import { useFullScreen } from '../hooks/useFullScreen';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import { useHbcThemeMode } from '../hooks/useHbcThemeMode';
+import type { ThemeMode } from '../hooks/useHbcThemeMode';
 
 export type { IDashboardPreference, ISelectedProject, ProjectHealthStatus } from '@hbc/sp-services';
 
@@ -47,6 +49,10 @@ export interface IAppContextValue {
   setNonLocalhostTelemetryAdminEnabled: (enabled: boolean) => void;
   isTelemetryExceptionCaptureEnabled: boolean;
   devToolsConfig?: IDevToolsConfig;
+  themeMode: ThemeMode;
+  effectiveThemeMode: 'light' | 'dark';
+  isHighContrast: boolean;
+  setThemeMode: (mode: ThemeMode) => void;
 }
 
 const AppContext = React.createContext<IAppContextValue | undefined>(undefined);
@@ -138,6 +144,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
   const isProjectSite = !siteContext.isHubSite && !!siteContext.projectCode;
   const { isFullScreen, toggleFullScreen, exitFullScreen } = useFullScreen();
   const isOnline = useOnlineStatus();
+  const themeModeResult = useHbcThemeMode(currentUser?.email);
   const dashboardStoragePrefix = React.useMemo(
     () => `hbc:dash-pref:${currentUser?.email ?? 'anonymous'}`,
     [currentUser?.email]
@@ -484,7 +491,11 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     setNonLocalhostTelemetryAdminEnabled,
     isTelemetryExceptionCaptureEnabled,
     devToolsConfig,
-  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isProjectSwitching, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode, isOnline, dashboardPreferences, getDashboardPreference, setDashboardPreference, resetDashboardPreference, isNonLocalhostTelemetryAdminEnabled, setNonLocalhostTelemetryAdminEnabled, isTelemetryExceptionCaptureEnabled, devToolsConfig]);
+    themeMode: themeModeResult.themeMode,
+    effectiveThemeMode: themeModeResult.effectiveMode,
+    isHighContrast: themeModeResult.isHighContrast,
+    setThemeMode: themeModeResult.setThemeMode,
+  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isProjectSwitching, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode, isOnline, dashboardPreferences, getDashboardPreference, setDashboardPreference, resetDashboardPreference, isNonLocalhostTelemetryAdminEnabled, setNonLocalhostTelemetryAdminEnabled, isTelemetryExceptionCaptureEnabled, devToolsConfig, themeModeResult]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

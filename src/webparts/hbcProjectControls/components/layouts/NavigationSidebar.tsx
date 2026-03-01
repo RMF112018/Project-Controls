@@ -29,7 +29,7 @@ const useStyles = makeStyles({
   },
   navItemActive: {
     fontWeight: '600',
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     backgroundColor: tokens.colorNeutralBackground3,
     borderLeft: `3px solid ${HBC_COLORS.orange}`,
   },

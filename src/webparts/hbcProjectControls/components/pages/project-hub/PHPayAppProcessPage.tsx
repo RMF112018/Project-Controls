@@ -18,7 +18,7 @@ const useStyles = makeStyles({
     display: 'flex',
     ...shorthands.gap('16px'),
     ...shorthands.padding('16px', '0'),
-    ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke1),
   },
   stepNumber: {
     display: 'flex',
@@ -39,7 +39,7 @@ const useStyles = makeStyles({
   },
   stepTitle: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase300,
   },
   stepDescription: {
@@ -55,8 +55,8 @@ const useStyles = makeStyles({
   timelineItem: {
     ...shorthands.padding('12px'),
     ...shorthands.borderRadius('8px'),
-    backgroundColor: HBC_COLORS.gray50,
-    ...shorthands.borderLeft('3px', 'solid', HBC_COLORS.navy),
+    backgroundColor: tokens.colorNeutralBackground2,
+    ...shorthands.borderLeft('3px', 'solid', tokens.colorBrandStroke1),
   },
   timelineLabel: {
     color: tokens.colorNeutralForeground3,
@@ -64,7 +64,7 @@ const useStyles = makeStyles({
     marginBottom: '4px',
   },
   timelineValue: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase300,
   },

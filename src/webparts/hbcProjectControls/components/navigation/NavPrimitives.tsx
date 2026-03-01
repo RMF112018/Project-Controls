@@ -47,7 +47,7 @@ const useStyles = makeStyles({
   },
   itemActive: {
     fontWeight: 600,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     backgroundColor: tokens.colorNeutralBackground3,
     borderLeftColor: HBC_COLORS.orange,
   },

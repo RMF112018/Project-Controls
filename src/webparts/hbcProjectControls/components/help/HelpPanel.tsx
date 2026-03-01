@@ -70,14 +70,14 @@ const useStyles = makeStyles({
     alignItems: 'center',
     justifyContent: 'space-between',
     ...shorthands.padding('16px', '20px'),
-    ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke1),
     flexShrink: 0,
   },
   headerTitle: {
     ...shorthands.margin('0'),
     fontSize: '16px',
     fontWeight: 600 as unknown as string,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   searchContainer: {
     ...shorthands.padding('0', '20px', '12px', '20px'),
@@ -134,7 +134,7 @@ const useStyles = makeStyles({
   },
   accordionIcon: {
     flexShrink: 0,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   accordionTitle: {
     flexGrow: 1,
@@ -145,13 +145,13 @@ const useStyles = makeStyles({
     marginTop: SPACING.lg,
     ...shorthands.padding(SPACING.md),
     ...shorthands.borderRadius('8px'),
-    backgroundColor: HBC_COLORS.gray50,
-    ...shorthands.border('1px', 'solid', HBC_COLORS.gray200),
+    backgroundColor: tokens.colorNeutralBackground2,
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
   },
   supportTitle: {
     fontSize: '14px',
     fontWeight: 600 as unknown as string,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     marginBottom: SPACING.sm,
     ...shorthands.margin('0', '0', SPACING.sm, '0'),
   },
@@ -163,7 +163,7 @@ const useStyles = makeStyles({
     fontSize: '13px',
   },
   supportLink: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     textDecoration: 'none',
     ':hover': {
       textDecoration: 'underline',
@@ -171,7 +171,7 @@ const useStyles = makeStyles({
     },
   },
   supportIcon: {
-    color: HBC_COLORS.gray500,
+    color: tokens.colorNeutralForeground2,
     flexShrink: 0,
   },
 });

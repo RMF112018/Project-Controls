@@ -7,7 +7,6 @@ import { HbcSkeleton } from '../../shared/HbcSkeleton';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useAppContext } from '../../contexts/AppContext';
 import type { IActiveProject } from '@hbc/sp-services';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
   container: {
@@ -35,7 +34,7 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
   dateValue: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase200,
   },

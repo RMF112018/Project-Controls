@@ -16,7 +16,7 @@ import { FeatureGate } from '../guards/FeatureGate';
 import { useAppNavigate } from '../hooks/router/useAppNavigate';
 import { useAppContext } from '../contexts/AppContext';
 import { LAUNCHER_WORKSPACES } from './workspaceConfig';
-import { HBC_COLORS, TRANSITION } from '../../theme/tokens';
+import { TRANSITION } from '../../theme/tokens';
 
 const useStyles = makeStyles({
   trigger: {
@@ -44,7 +44,7 @@ const useStyles = makeStyles({
   },
   label: {
     fontWeight: 500,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   description: {
     fontSize: tokens.fontSizeBase100,

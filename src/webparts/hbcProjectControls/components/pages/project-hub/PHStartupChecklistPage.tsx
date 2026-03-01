@@ -4,7 +4,6 @@ import type { IChecklistCategory } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
   container: {
@@ -31,7 +30,7 @@ const useStyles = makeStyles({
     ...shorthands.gap('10px'),
     ...shorthands.padding('8px', '12px'),
     ...shorthands.borderRadius('6px'),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
     fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground2,
     lineHeight: tokens.lineHeightBase300,
@@ -41,7 +40,7 @@ const useStyles = makeStyles({
     width: '18px',
     height: '18px',
     ...shorthands.borderRadius('3px'),
-    ...shorthands.border('2px', 'solid', HBC_COLORS.gray300),
+    ...shorthands.border('2px', 'solid', tokens.colorNeutralStroke1),
     flexShrink: 0,
     marginTop: '1px',
   },
@@ -53,7 +52,7 @@ const useStyles = makeStyles({
   summaryItem: {
     ...shorthands.padding('12px', '16px'),
     ...shorthands.borderRadius('8px'),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
     textAlign: 'center' as const,
     minWidth: '140px',
   },
@@ -63,7 +62,7 @@ const useStyles = makeStyles({
     marginBottom: '4px',
   },
   summaryValue: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase400,
   },

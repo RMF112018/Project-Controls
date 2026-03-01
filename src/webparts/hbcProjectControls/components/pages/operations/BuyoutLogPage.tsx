@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { makeStyles, shorthands } from '@fluentui/react-components';
+import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { Add24Regular, Delete24Regular } from '@fluentui/react-icons';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcDataTable } from '../../shared/HbcDataTable';
@@ -12,13 +12,12 @@ import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
 import { formatCurrency, formatDate, type IBuyoutEntry } from '@hbc/sp-services';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
-  'Not Started': { color: HBC_COLORS.gray500, bg: HBC_COLORS.gray100 },
-  'In Progress': { color: HBC_COLORS.info, bg: HBC_COLORS.infoLight },
-  'Awarded': { color: HBC_COLORS.success, bg: HBC_COLORS.successLight },
-  'Executed': { color: HBC_COLORS.navy, bg: HBC_COLORS.gray200 },
+  'Not Started': { color: tokens.colorNeutralForeground2, bg: tokens.colorNeutralBackground3 },
+  'In Progress': { color: tokens.colorBrandForeground1, bg: tokens.colorNeutralBackground4 },
+  'Awarded': { color: tokens.colorStatusSuccessForeground1, bg: tokens.colorStatusSuccessBackground1 },
+  'Executed': { color: tokens.colorBrandForeground1, bg: tokens.colorNeutralBackground4 },
 };
 
 const formatCurrencyDisplay = (value: number | undefined): string =>

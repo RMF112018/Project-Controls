@@ -7,7 +7,6 @@ import { HbcCard } from '../../shared/HbcCard';
 import { HbcEmptyState } from '../../shared/HbcEmptyState';
 import { StatusBadge } from '../../shared/StatusBadge';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const MOCK_LINE_ITEMS: IEstimateLineItem[] = [
   { id: '1', csiCode: '03 30 00', description: 'Cast-in-Place Concrete', quantity: 4200, unit: 'CY', unitCost: 285, totalCost: 1197000, status: 'Approved' },
@@ -22,9 +21,9 @@ const MOCK_LINE_ITEMS: IEstimateLineItem[] = [
 
 const statusColorMap: Record<string, { color: string; backgroundColor: string }> = {
   Draft: { color: tokens.colorNeutralForeground3, backgroundColor: tokens.colorNeutralBackground3 },
-  'In Review': { color: HBC_COLORS.info, backgroundColor: HBC_COLORS.infoLight },
-  Approved: { color: HBC_COLORS.success, backgroundColor: HBC_COLORS.successLight },
-  Revised: { color: HBC_COLORS.warning, backgroundColor: HBC_COLORS.warningLight },
+  'In Review': { color: tokens.colorBrandForeground1, backgroundColor: tokens.colorNeutralBackground4 },
+  Approved: { color: tokens.colorStatusSuccessForeground1, backgroundColor: tokens.colorStatusSuccessBackground1 },
+  Revised: { color: tokens.colorStatusWarningForeground1, backgroundColor: tokens.colorStatusWarningBackground1 },
 };
 
 const useStyles = makeStyles({
@@ -47,7 +46,7 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground3,
     fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     textAlign: 'left',
     ...shorthands.padding('10px', '12px'),
   },
@@ -55,7 +54,7 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground3,
     fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     textAlign: 'right',
     ...shorthands.padding('10px', '12px'),
   },
@@ -75,7 +74,7 @@ const useStyles = makeStyles({
   },
   csiCode: {
     fontFamily: 'monospace',
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase200,
   },
@@ -99,7 +98,7 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
   infoValue: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
     fontSize: tokens.fontSizeBase200,
   },

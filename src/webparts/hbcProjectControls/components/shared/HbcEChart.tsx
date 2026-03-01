@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { EChartsReactProps } from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import { makeStyles, tokens } from '@fluentui/react-components';
+import { useAppContext } from '../contexts/AppContext';
 
 interface IEChartsRuntime {
   ReactECharts: React.ComponentType<EChartsReactProps & { ref?: React.Ref<unknown> }>;
@@ -59,6 +60,9 @@ export interface IHbcEChartProps {
   progressiveRender?: boolean;
   /** Data downsampling strategy — useful for line/scatter charts with 1000+ points */
   sampling?: 'lttb' | 'average' | 'max' | 'min';
+  /** ECharts theme name. When omitted, auto-selects based on app theme mode.
+   *  Pass explicitly to override (e.g. 'hbc' to force light). */
+  themeName?: string;
 }
 
 export interface IHbcChartSelection {
@@ -119,8 +123,22 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
   large,
   progressiveRender,
   sampling,
+  themeName,
 }) => {
   const styles = useStyles();
+  const { effectiveThemeMode, isFeatureEnabled } = useAppContext();
+  const darkModeEnabled = isFeatureEnabled('DarkModeSupport');
+
+  // Resolve the ECharts theme name:
+  // 1. Explicit prop overrides everything (manual control escape hatch)
+  // 2. When DarkModeSupport flag is off, always 'hbc' (light)
+  // 3. Otherwise, follow the app's effective theme mode
+  const resolvedThemeName = React.useMemo(() => {
+    if (themeName) return themeName;
+    if (!darkModeEnabled) return 'hbc';
+    return effectiveThemeMode === 'dark' ? 'hbc-dark' : 'hbc';
+  }, [themeName, darkModeEnabled, effectiveThemeMode]);
+
   const chartRef = React.useRef<{ getEchartsInstance?: () => { resize: () => void } } | null>(null);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [runtime, setRuntime] = React.useState<IEChartsRuntime | null>(null);
@@ -138,6 +156,7 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
       ]);
 
       themeMod.registerHbcTheme();
+      themeMod.registerHbcDarkTheme();
 
       if (isMounted) {
         setRuntime({
@@ -277,10 +296,11 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
+  const isDarkTheme = resolvedThemeName === 'hbc-dark';
   const loadingOption = {
     text: '',
-    color: '#1B2A4A',
-    maskColor: 'rgba(255, 255, 255, 0.7)',
+    color: isDarkTheme ? '#9DB3D4' : '#1B2A4A',
+    maskColor: isDarkTheme ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.7)',
   };
 
   const ReactECharts = runtime.ReactECharts;
@@ -300,10 +320,11 @@ export const HbcEChart: React.FC<IHbcEChartProps> = ({
         <p id={descriptionId} style={srOnly}>{ariaDescription}</p>
       )}
       <ReactECharts
+        key={resolvedThemeName}
         ref={chartRef}
         echarts={runtime.echartsCore as EChartsReactProps['echarts']}
         option={mergedOption}
-        theme="hbc"
+        theme={resolvedThemeName}
         notMerge={notMerge}
         lazyUpdate={lazyUpdate}
         showLoading={loading}

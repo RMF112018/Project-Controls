@@ -25,6 +25,8 @@ import { useAppContext } from '../../contexts/AppContext';
 import { LAUNCHER_WORKSPACES } from '../../navigation/workspaceConfig';
 import { useHubDashboardData } from './useHubDashboardData';
 import { usePerformanceMarker } from '../../hooks/usePerformanceMarker';
+import { useHbcChartColors } from '../../hooks/useHbcChartColors';
+import { makeAreaGradient } from '../../../theme/hbcEChartsTheme';
 import { HBC_COLORS, ELEVATION, TRANSITION } from '../../../theme/tokens';
 import { Stage, ROLE_NAV_ITEMS } from '@hbc/sp-services';
 
@@ -65,7 +67,7 @@ const useStyles = makeStyles({
   workspaceCardTitle: {
     fontSize: '16px',
     fontWeight: '600',
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     marginTop: '0',
     marginBottom: '0',
   },
@@ -122,14 +124,14 @@ const useStyles = makeStyles({
   chartTitle: {
     fontSize: '14px',
     fontWeight: '600',
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     marginBottom: '12px',
     marginTop: '0',
   },
   sectionTitle: {
     fontSize: '18px',
     fontWeight: '600',
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     marginBottom: '16px',
     marginTop: '0',
   },
@@ -152,11 +154,11 @@ const useStyles = makeStyles({
   },
   activityUser: {
     fontWeight: '600',
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   activityEntity: {
     fontWeight: '500',
-    color: HBC_COLORS.lightNavy,
+    color: tokens.colorBrandForeground2,
   },
   activityMeta: {
     display: 'flex',
@@ -263,6 +265,7 @@ export const AnalyticsHubDashboardPage: React.FC = () => {
   const { currentUser, dataServiceMode } = useAppContext();
   const { loading, kpis, leads, activeProjects } = useHubDashboardData();
   usePerformanceMarker('page:analytics-hub', { autoMeasure: true });
+  const chartColors = useHbcChartColors();
 
   // Stage 2 (sub-tasks 4+7): Role-filtered workspace cards.
   // Mock mode shows all workspaces; production filters by ROLE_NAV_ITEMS.
@@ -336,14 +339,14 @@ export const AnalyticsHubDashboardPage: React.FC = () => {
           levels: [
             {
               itemStyle: {
-                borderColor: '#fff',
+                borderColor: chartColors.chartBackground,
                 borderWidth: 3,
                 gapWidth: 3,
               },
             },
             {
               itemStyle: {
-                borderColor: '#fff',
+                borderColor: chartColors.chartBackground,
                 borderWidth: 1,
               },
               colorSaturation: [0.3, 0.6],
@@ -356,7 +359,7 @@ export const AnalyticsHubDashboardPage: React.FC = () => {
         },
       ],
     };
-  }, [activeProjects]);
+  }, [activeProjects, chartColors]);
 
   // ── Chart 3: Win Rate Trend with Forecast ───────────────────────────────
 
@@ -382,35 +385,28 @@ export const AnalyticsHubDashboardPage: React.FC = () => {
           type: 'line',
           data: historicalPadded,
           areaStyle: {
-            color: {
-              type: 'linear',
-              x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: `${HBC_COLORS.navy}40` },
-                { offset: 1, color: `${HBC_COLORS.navy}00` },
-              ],
-            },
+            color: makeAreaGradient(chartColors.primary),
           },
-          itemStyle: { color: HBC_COLORS.navy },
+          itemStyle: { color: chartColors.primary },
         },
         {
           name: 'Forecast',
           type: 'line',
           data: forecastPadded,
           lineStyle: { type: 'dashed' },
-          itemStyle: { color: HBC_COLORS.orange },
+          itemStyle: { color: chartColors.secondary },
         },
         {
           name: 'FL GC Average',
           type: 'line',
           data: benchmark,
-          lineStyle: { type: 'dotted', color: HBC_COLORS.gray400, width: 1 },
-          itemStyle: { color: HBC_COLORS.gray400 },
+          lineStyle: { type: 'dotted', color: chartColors.muted, width: 1 },
+          itemStyle: { color: chartColors.muted },
           symbol: 'none',
         },
       ],
     };
-  }, []);
+  }, [chartColors]);
 
   // ── Chart 4: Resource Utilization Heatmap ───────────────────────────────
 
@@ -434,7 +430,7 @@ export const AnalyticsHubDashboardPage: React.FC = () => {
         left: 'center',
         bottom: 0,
         inRange: {
-          color: ['#D1FAE5', HBC_COLORS.warning, HBC_COLORS.error],
+          color: [chartColors.heatmapLow, chartColors.warning, chartColors.error],
         },
       },
       series: [
@@ -449,7 +445,7 @@ export const AnalyticsHubDashboardPage: React.FC = () => {
         },
       ],
     };
-  }, []);
+  }, [chartColors]);
 
   // ── Chart 5: Florida Labor Rate Benchmark ───────────────────────────────
 
@@ -465,23 +461,23 @@ export const AnalyticsHubDashboardPage: React.FC = () => {
           name: 'HBC Actual',
           type: 'bar',
           data: LABOR_HBC,
-          itemStyle: { color: HBC_COLORS.navy },
+          itemStyle: { color: chartColors.primary },
         },
         {
           name: 'FL State Avg',
           type: 'bar',
           data: LABOR_FL_AVG,
-          itemStyle: { color: HBC_COLORS.orange },
+          itemStyle: { color: chartColors.secondary },
         },
         {
           name: 'National Avg',
           type: 'bar',
           data: LABOR_NATIONAL,
-          itemStyle: { color: HBC_COLORS.gray400 },
+          itemStyle: { color: chartColors.muted },
         },
       ],
     };
-  }, []);
+  }, [chartColors]);
 
   // ── Chart 6: Material Cost Index Trend (normalized) ─────────────────────
 
@@ -507,23 +503,23 @@ export const AnalyticsHubDashboardPage: React.FC = () => {
           name: 'ENR Florida',
           type: 'line',
           data: normalizeSeries(ENR_FL_RAW),
-          itemStyle: { color: HBC_COLORS.navy },
+          itemStyle: { color: chartColors.primary },
         },
         {
           name: 'Turner Index',
           type: 'line',
           data: normalizeSeries(TURNER_RAW),
-          itemStyle: { color: HBC_COLORS.orange },
+          itemStyle: { color: chartColors.secondary },
         },
         {
           name: 'RoMac',
           type: 'line',
           data: normalizeSeries(ROMAC_RAW),
-          itemStyle: { color: HBC_COLORS.success },
+          itemStyle: { color: chartColors.success },
         },
       ],
     };
-  }, []);
+  }, [chartColors]);
 
   // ── Workspace card descriptions ─────────────────────────────────────
   const WORKSPACE_DESCRIPTIONS: Record<string, string> = React.useMemo(() => ({

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { HBC_COLORS, ELEVATION } from '../../theme/tokens';
+import { tokens } from '@fluentui/react-components';
+import { ELEVATION } from '../../theme/tokens';
 import { Stage, getStageLabel, isActiveStage, ILead, type ISelectedProject } from '@hbc/sp-services';
 
 interface IProjectPickerProps {
@@ -114,14 +115,14 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6,
           padding: '6px 10px', borderRadius: 6,
-          border: `1px solid ${HBC_COLORS.gray200}`,
-          backgroundColor: HBC_COLORS.gray50,
+          border: `1px solid ${tokens.colorNeutralStroke1}`,
+          backgroundColor: tokens.colorNeutralBackground2,
           fontSize: 13, minHeight: 32,
         }}>
-          <span style={{ flex: 1, fontWeight: 500, color: HBC_COLORS.navy, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ flex: 1, fontWeight: 500, color: tokens.colorBrandForeground1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {selected.projectName}
           </span>
-            <span style={{ color: HBC_COLORS.gray600, fontSize: 11 }}>{selected.projectCode}</span>
+            <span style={{ color: tokens.colorNeutralForeground2, fontSize: 11 }}>{selected.projectCode}</span>
         </div>
       </div>
     );
@@ -137,7 +138,7 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
           gap: '6px',
           padding: '6px 10px',
           borderRadius: '6px',
-          border: `1px solid ${isOpen ? HBC_COLORS.navy : HBC_COLORS.gray300}`,
+          border: `1px solid ${isOpen ? tokens.colorBrandStroke1 : tokens.colorNeutralStroke1}`,
           backgroundColor: '#fff',
           cursor: 'pointer',
           fontSize: '13px',
@@ -146,19 +147,19 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
       >
         {selected ? (
           <>
-            <span style={{ flex: 1, fontWeight: 500, color: HBC_COLORS.navy, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ flex: 1, fontWeight: 500, color: tokens.colorBrandForeground1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {selected.projectName}
             </span>
             <span
               onClick={handleClear}
-              style={{ color: HBC_COLORS.gray600, cursor: 'pointer', fontSize: '16px', lineHeight: 1, flexShrink: 0 }}
+              style={{ color: tokens.colorNeutralForeground2, cursor: 'pointer', fontSize: '16px', lineHeight: 1, flexShrink: 0 }}
               title="Clear selection"
             >
               &times;
             </span>
           </>
         ) : (
-          <span style={{ flex: 1, color: HBC_COLORS.gray600 }}>Select a project...</span>
+          <span style={{ flex: 1, color: tokens.colorNeutralForeground2 }}>Select a project...</span>
         )}
       </div>
 
@@ -170,13 +171,13 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
           right: '12px',
           zIndex: 1000,
           backgroundColor: '#fff',
-          border: `1px solid ${HBC_COLORS.gray200}`,
+          border: `1px solid ${tokens.colorNeutralStroke1}`,
           borderRadius: '6px',
           boxShadow: ELEVATION.level3,
           maxHeight: '320px',
           overflow: 'auto',
         }}>
-          <div style={{ padding: '8px', borderBottom: `1px solid ${HBC_COLORS.gray200}` }}>
+          <div style={{ padding: '8px', borderBottom: `1px solid ${tokens.colorNeutralStroke1}` }}>
             <input
               autoFocus
               value={query}
@@ -185,7 +186,7 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
               style={{
                 width: '100%',
                 padding: '6px 8px',
-                border: `1px solid ${HBC_COLORS.gray300}`,
+                border: `1px solid ${tokens.colorNeutralStroke1}`,
                 borderRadius: '4px',
                 fontSize: '13px',
                 outline: 'none',
@@ -195,7 +196,7 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
           </div>
 
           {filtered.length === 0 ? (
-            <div style={{ padding: '16px', textAlign: 'center', color: HBC_COLORS.gray600, fontSize: '13px' }}>
+            <div style={{ padding: '16px', textAlign: 'center', color: tokens.colorNeutralForeground2, fontSize: '13px' }}>
               {accessibleCodes !== null && accessibleCodes.length === 0
                 ? 'No projects assigned to you'
                 : 'No matching projects'}
@@ -209,11 +210,11 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
                     padding: '6px 12px',
                     fontSize: '10px',
                     fontWeight: 700,
-                    color: HBC_COLORS.gray600,
+                    color: tokens.colorNeutralForeground2,
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
-                    backgroundColor: HBC_COLORS.gray50,
-                    borderBottom: `1px solid ${HBC_COLORS.gray200}`,
+                    backgroundColor: tokens.colorNeutralBackground2,
+                    borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
                   }}>
                     {getStageLabel(stage)}
                   </div>
@@ -228,14 +229,14 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        backgroundColor: selected?.projectCode === p.projectCode ? HBC_COLORS.gray100 : 'transparent',
+                        backgroundColor: selected?.projectCode === p.projectCode ? tokens.colorNeutralBackground3 : 'transparent',
                       }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = HBC_COLORS.gray50)}
-                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = selected?.projectCode === p.projectCode ? HBC_COLORS.gray100 : 'transparent')}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = tokens.colorNeutralBackground2)}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = selected?.projectCode === p.projectCode ? tokens.colorNeutralBackground3 : 'transparent')}
                     >
                       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontWeight: 500, color: HBC_COLORS.navy }}>{p.projectName}</span>
-                        <span style={{ color: HBC_COLORS.gray600, marginLeft: '6px' }}>{p.projectCode}</span>
+                        <span style={{ fontWeight: 500, color: tokens.colorBrandForeground1 }}>{p.projectName}</span>
+                        <span style={{ color: tokens.colorNeutralForeground2, marginLeft: '6px' }}>{p.projectCode}</span>
                       </span>
                     </div>
                   ))}

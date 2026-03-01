@@ -100,5 +100,15 @@
     "TargetDate": null,
     "Notes": "TODO (Stage 19 – Sub-task 6): Add DeepBidImportEnabled flag and any role-specific sub-flags. Update AppContext and PermissionGate usage in Estimating tab to respect the 14-role/70+ permission matrix (Estimator roles only). Reference: plan feature-flag & permission gating deliverable.",
     "Category": "Estimating"
+  },
+  {
+    "id": 61,
+    "FeatureName": "DarkModeSupport",
+    "DisplayName": "Dark Mode / High Contrast",
+    "Enabled": true,
+    "EnabledForRoles": null,
+    "TargetDate": null,
+    "Notes": "Phase 6 Task 1: Theme mode toggle (light/dark/system) + forced-colors high-contrast support. Default mode is 'system' (follows OS preference).",
+    "Category": "UX"
   }
 ]

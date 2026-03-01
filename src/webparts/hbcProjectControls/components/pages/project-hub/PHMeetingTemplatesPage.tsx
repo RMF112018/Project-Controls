@@ -4,7 +4,6 @@ import type { IMeetingTemplate } from '@hbc/sp-services';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
   container: {
@@ -35,7 +34,7 @@ const useStyles = makeStyles({
     width: '6px',
     height: '6px',
     ...shorthands.borderRadius('50%'),
-    backgroundColor: HBC_COLORS.navy,
+    backgroundColor: tokens.colorBrandBackground,
     flexShrink: 0,
   },
   frequencyBadge: {
@@ -44,8 +43,8 @@ const useStyles = makeStyles({
     ...shorthands.borderRadius('4px'),
     fontSize: tokens.fontSizeBase100,
     fontWeight: tokens.fontWeightSemibold,
-    backgroundColor: HBC_COLORS.infoLight,
-    color: HBC_COLORS.info,
+    backgroundColor: tokens.colorNeutralBackground4,
+    color: tokens.colorBrandForeground1,
   },
 });
 

@@ -3,7 +3,6 @@ import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
   container: {
@@ -18,7 +17,7 @@ const useStyles = makeStyles({
     display: 'flex',
     ...shorthands.gap('16px'),
     ...shorthands.padding('16px', '0'),
-    ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke1),
     alignItems: 'flex-start',
   },
   phaseBadge: {
@@ -39,7 +38,7 @@ const useStyles = makeStyles({
   },
   phaseTitle: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase300,
   },
   phaseText: {
@@ -61,7 +60,7 @@ const useStyles = makeStyles({
     ...shorthands.gap('12px'),
     ...shorthands.padding('10px', '12px'),
     ...shorthands.borderRadius('6px'),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   milestoneDot: {
     width: '10px',
@@ -83,22 +82,22 @@ const useStyles = makeStyles({
 });
 
 const STARTUP_PHASES = [
-  { phase: 'Phase 1', title: 'Preconstruction Handoff', text: 'Review of all preconstruction documents, estimates, contracts, and design packages. Knowledge transfer from estimating to operations team.', duration: 'Week 1-2', color: HBC_COLORS.info, bg: HBC_COLORS.infoLight },
-  { phase: 'Phase 2', title: 'Site Assessment & Planning', text: 'Site visits, existing conditions survey, logistics planning, temporary facility design, and utility coordination.', duration: 'Week 2-3', color: HBC_COLORS.info, bg: HBC_COLORS.infoLight },
-  { phase: 'Phase 3', title: 'Procurement & Mobilization', text: 'Subcontractor buyout, material procurement for long-lead items, trailer and equipment mobilization, and safety setup.', duration: 'Week 3-6', color: HBC_COLORS.warning, bg: HBC_COLORS.warningLight },
-  { phase: 'Phase 4', title: 'Operations Setup', text: 'Document control system configuration, schedule baseline establishment, cost tracking setup, and communication protocol rollout.', duration: 'Week 4-6', color: HBC_COLORS.warning, bg: HBC_COLORS.warningLight },
-  { phase: 'Phase 5', title: 'Construction Start', text: 'Kick-off meeting with owner and design team, first day of construction activities, and establishment of meeting cadence.', duration: 'Week 6-8', color: HBC_COLORS.success, bg: HBC_COLORS.successLight },
+  { phase: 'Phase 1', title: 'Preconstruction Handoff', text: 'Review of all preconstruction documents, estimates, contracts, and design packages. Knowledge transfer from estimating to operations team.', duration: 'Week 1-2', color: tokens.colorBrandForeground1, bg: tokens.colorNeutralBackground4 },
+  { phase: 'Phase 2', title: 'Site Assessment & Planning', text: 'Site visits, existing conditions survey, logistics planning, temporary facility design, and utility coordination.', duration: 'Week 2-3', color: tokens.colorBrandForeground1, bg: tokens.colorNeutralBackground4 },
+  { phase: 'Phase 3', title: 'Procurement & Mobilization', text: 'Subcontractor buyout, material procurement for long-lead items, trailer and equipment mobilization, and safety setup.', duration: 'Week 3-6', color: tokens.colorStatusWarningForeground1, bg: tokens.colorStatusWarningBackground1 },
+  { phase: 'Phase 4', title: 'Operations Setup', text: 'Document control system configuration, schedule baseline establishment, cost tracking setup, and communication protocol rollout.', duration: 'Week 4-6', color: tokens.colorStatusWarningForeground1, bg: tokens.colorStatusWarningBackground1 },
+  { phase: 'Phase 5', title: 'Construction Start', text: 'Kick-off meeting with owner and design team, first day of construction activities, and establishment of meeting cadence.', duration: 'Week 6-8', color: tokens.colorStatusSuccessForeground1, bg: tokens.colorStatusSuccessBackground1 },
 ];
 
 const KEY_MILESTONES = [
-  { text: 'Preconstruction handoff meeting completed', target: 'Day 1', color: HBC_COLORS.info },
-  { text: 'Site logistics plan approved', target: 'Week 2', color: HBC_COLORS.info },
-  { text: 'Safety orientation program established', target: 'Week 2', color: HBC_COLORS.error },
-  { text: 'Schedule baseline approved by owner', target: 'Week 3', color: HBC_COLORS.warning },
-  { text: 'All long-lead procurement initiated', target: 'Week 4', color: HBC_COLORS.warning },
-  { text: 'Document control system operational', target: 'Week 4', color: HBC_COLORS.info },
-  { text: 'Project kickoff meeting with all stakeholders', target: 'Week 6', color: HBC_COLORS.success },
-  { text: 'First construction activity begins', target: 'Week 6', color: HBC_COLORS.success },
+  { text: 'Preconstruction handoff meeting completed', target: 'Day 1', color: tokens.colorBrandForeground1 },
+  { text: 'Site logistics plan approved', target: 'Week 2', color: tokens.colorBrandForeground1 },
+  { text: 'Safety orientation program established', target: 'Week 2', color: tokens.colorStatusDangerForeground1 },
+  { text: 'Schedule baseline approved by owner', target: 'Week 3', color: tokens.colorStatusWarningForeground1 },
+  { text: 'All long-lead procurement initiated', target: 'Week 4', color: tokens.colorStatusWarningForeground1 },
+  { text: 'Document control system operational', target: 'Week 4', color: tokens.colorBrandForeground1 },
+  { text: 'Project kickoff meeting with all stakeholders', target: 'Week 6', color: tokens.colorStatusSuccessForeground1 },
+  { text: 'First construction activity begins', target: 'Week 6', color: tokens.colorStatusSuccessForeground1 },
 ];
 
 export const PHStartupGuidePage: React.FC = () => {

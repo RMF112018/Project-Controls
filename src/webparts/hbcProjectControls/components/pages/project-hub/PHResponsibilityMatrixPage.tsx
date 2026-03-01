@@ -25,26 +25,26 @@ const useStyles = makeStyles({
   },
   tableCell: {
     ...shorthands.padding('10px', '12px'),
-    ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke1),
     color: tokens.colorNeutralForeground2,
   },
   cellCenter: {
     ...shorthands.padding('10px', '12px'),
-    ...shorthands.borderBottom('1px', 'solid', HBC_COLORS.gray200),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke1),
     textAlign: 'center' as const,
     fontWeight: tokens.fontWeightSemibold,
   },
   raciR: {
-    color: HBC_COLORS.error,
+    color: tokens.colorStatusDangerForeground1,
   },
   raciA: {
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
   },
   raciC: {
-    color: HBC_COLORS.info,
+    color: tokens.colorBrandForeground1,
   },
   raciI: {
-    color: HBC_COLORS.gray400,
+    color: tokens.colorNeutralForeground3,
   },
   legendRow: {
     display: 'flex',

@@ -1,19 +1,19 @@
 import * as React from 'react';
 import { offlineQueueService, ConnectivityStatus, SignalRConnectionStatus } from '@hbc/sp-services';
+import { tokens } from '@fluentui/react-components';
 import { useSignalRContext } from '../contexts/SignalRContext';
-import { HBC_COLORS } from '../../theme/tokens';
 
 const STATUS_CONFIG: Record<ConnectivityStatus, { color: string; label: string }> = {
-  online: { color: HBC_COLORS.success, label: 'Online' },
-  offline: { color: HBC_COLORS.error, label: 'Offline' },
-  syncing: { color: HBC_COLORS.warning, label: 'Syncing' },
+  online: { color: tokens.colorStatusSuccessForeground1, label: 'Online' },
+  offline: { color: tokens.colorStatusDangerForeground1, label: 'Offline' },
+  syncing: { color: tokens.colorStatusWarningForeground1, label: 'Syncing' },
 };
 
 const SIGNALR_STATUS_CONFIG: Record<SignalRConnectionStatus, { color: string; label: string }> = {
-  connected: { color: HBC_COLORS.success, label: 'Live' },
-  connecting: { color: HBC_COLORS.info, label: 'Connecting' },
-  reconnecting: { color: HBC_COLORS.warning, label: 'Reconnecting' },
-  disconnected: { color: HBC_COLORS.gray400, label: 'Offline' },
+  connected: { color: tokens.colorStatusSuccessForeground1, label: 'Live' },
+  connecting: { color: tokens.colorBrandForeground1, label: 'Connecting' },
+  reconnecting: { color: tokens.colorStatusWarningForeground1, label: 'Reconnecting' },
+  disconnected: { color: tokens.colorNeutralForeground3, label: 'Offline' },
 };
 
 export const SyncStatusIndicator: React.FC = () => {

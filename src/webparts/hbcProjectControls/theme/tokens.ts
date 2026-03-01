@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { tokens } from '@fluentui/react-components';
 
 export const HBC_COLORS = {
   // Primary brand
@@ -83,6 +84,44 @@ export const TOUCH_TARGET = {
   min: '44px',
   /** Preferred comfortable target for field use (gloves, sunlight) */
   preferred: '48px',
+} as const;
+
+/**
+ * Theme-aware semantic tokens for domain-specific colors.
+ * These reference Fluent design tokens and automatically adapt to
+ * light/dark/high-contrast modes via the FluentProvider theme.
+ *
+ * Migration: replace HBC_COLORS.xxx with HBC_TOKENS.xxx for theme-aware usage.
+ * Keep HBC_COLORS for brand elements (navy header) that stay fixed.
+ */
+export const HBC_TOKENS = {
+  // Headings and titles (replaces HBC_COLORS.navy for text)
+  headingColor: tokens.colorBrandForeground1,
+
+  // Badge semantic colors
+  badgeSuccessFg: tokens.colorStatusSuccessForeground1,
+  badgeSuccessBg: tokens.colorStatusSuccessBackground1,
+  badgeWarningFg: tokens.colorStatusWarningForeground1,
+  badgeWarningBg: tokens.colorStatusWarningBackground1,
+  badgeDangerFg: tokens.colorStatusDangerForeground1,
+  badgeDangerBg: tokens.colorStatusDangerBackground1,
+  badgeInfoFg: tokens.colorNeutralForeground1,
+  badgeInfoBg: tokens.colorNeutralBackground4,
+
+  // Table borders
+  tableBorderStrong: tokens.colorNeutralStroke1,
+  tableBorderSubtle: tokens.colorNeutralStroke2,
+
+  // Surfaces
+  cardBackground: tokens.colorNeutralBackground1,
+  pageBackground: tokens.colorNeutralBackground2,
+  elevatedSurface: tokens.colorNeutralBackground3,
+
+  // Text hierarchy
+  textPrimary: tokens.colorNeutralForeground1,
+  textSecondary: tokens.colorNeutralForeground2,
+  textTertiary: tokens.colorNeutralForeground3,
+  textDisabled: tokens.colorNeutralForegroundDisabled,
 } as const;
 
 export const RISK_INDICATOR = {

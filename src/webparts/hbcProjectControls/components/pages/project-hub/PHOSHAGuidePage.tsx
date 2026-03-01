@@ -3,7 +3,6 @@ import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { PageHeader } from '../../shared/PageHeader';
 import { HbcCard } from '../../shared/HbcCard';
 import { useAppContext } from '../../contexts/AppContext';
-import { HBC_COLORS } from '../../../theme/tokens';
 
 const useStyles = makeStyles({
   container: {
@@ -20,7 +19,7 @@ const useStyles = makeStyles({
     ...shorthands.gap('10px'),
     ...shorthands.padding('8px', '12px'),
     ...shorthands.borderRadius('6px'),
-    backgroundColor: HBC_COLORS.gray50,
+    backgroundColor: tokens.colorNeutralBackground2,
     fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground2,
     lineHeight: tokens.lineHeightBase300,
@@ -29,21 +28,21 @@ const useStyles = makeStyles({
     width: '18px',
     height: '18px',
     ...shorthands.borderRadius('3px'),
-    ...shorthands.border('2px', 'solid', HBC_COLORS.gray300),
+    ...shorthands.border('2px', 'solid', tokens.colorNeutralStroke1),
     flexShrink: 0,
     marginTop: '1px',
   },
   phaseTitle: {
     fontWeight: tokens.fontWeightSemibold,
-    color: HBC_COLORS.navy,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase300,
     marginBottom: '12px',
   },
   phaseSection: {
     ...shorthands.padding('16px'),
     ...shorthands.borderRadius('8px'),
-    ...shorthands.borderLeft('3px', 'solid', HBC_COLORS.warning),
-    backgroundColor: HBC_COLORS.warningLight,
+    ...shorthands.borderLeft('3px', 'solid', tokens.colorStatusWarningForeground1),
+    backgroundColor: tokens.colorStatusWarningBackground1,
     marginBottom: '12px',
   },
   warningText: {
