@@ -35,6 +35,7 @@ function buildContext(overrides?: Partial<ITanStackRouteContext>): ITanStackRout
       siteContext: 'hub',
       siteUrl: 'https://tenant.sharepoint.com/sites/HBCentral',
       projectCode: null,
+      projectUuid: null,
     },
     selectedProject: {
       projectCode: 'P-1001',

@@ -13,6 +13,7 @@ export function useQueryScope(): IQueryScope {
       siteContext: isProjectSite ? 'project' : 'hub',
       siteUrl,
       projectCode: selectedProject?.projectCode ?? null,
+      projectUuid: selectedProject?.projectUuid ?? null, // HBC-PC-UUID-001
     };
-  }, [dataServiceMode, isProjectSite, selectedProject?.projectCode]);
+  }, [dataServiceMode, isProjectSite, selectedProject?.projectCode, selectedProject?.projectUuid]);
 }

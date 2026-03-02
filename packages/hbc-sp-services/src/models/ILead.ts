@@ -33,6 +33,8 @@ export interface ILead {
   AwardDate?: string;
   Stage: Stage;
   ProjectCode?: string;
+  /** HBC-PC-UUID-001: Immutable project identifier, synced from Active_Projects_Portfolio. */
+  projectUuid?: string;
   ProjectSiteURL?: string;
   GoNoGoScore_Originator?: number;
   GoNoGoScore_Committee?: number;

@@ -58,6 +58,7 @@ Always loaded first in every agent session. This file is the single source of tr
 - All new components wrapped in `React.memo` where props are stable
 - New routes added to `routeTree`
 - CHANGELOG.md updated with user-facing impact
+- Docs/spec updated if any specification changes
 - Docs/ updated if operational procedure changes
 
 ### 7. Known Failure Modes & Never-Do Rules
@@ -70,18 +71,18 @@ Always loaded first in every agent session. This file is the single source of tr
 - Never use `any` type (except legacy SPFx props)
 
 ### 8. Trigger Table (routing to specialist agents)
-| File pattern / Task keywords                                       | Required specialist agent                  |
-|--------------------------------------------------------------------|--------------------------------------------|
-| `routes/` or TanStack Router                                       | `tanstack-router-specialist`               |
-| `useHbcQuery` / `useHbcMutation`                                   | `tanstack-query-specialist`                |
-| `components/` + Fluent UI                                          | `fluent-ui-v9-specialist`                  |
-| `@hbc/sp-services` or Graph/SharePoint                             | `sp-services-guardian`                     |
-| Role, permission, feature flag                                     | `permissions-feature-flag-engineer`        |
-| Scheduling, cost, RFI, change order                                | `construction-domain-specialist`           |
-| Performance, re-renders, memo                                      | `react-18-performance-engineer`            |
-| Playwright / E2E                                                   | `playwright-test-specialist`               |
-| agent factory, create specialist, new domain                       | `agent-factory`                            |
-| coordinate, date, baseline, float, Gantt, WBS, permitting timeline | `coordinate-wizard`                        |
+| File pattern / Task keywords                                                                | Required specialist agent                  |
+|---------------------------------------------------------------------------------------------|--------------------------------------------|
+| `@hbc/sp-services`, SharePoint, pnp/sp, data service, Graph API, service layer, REST bypass | `sp-services-guardian`                     |
+| `useHbcQuery`, `useHbcMutation`, query key, invalidation, TanStack Query v5                 | `tanstack-query-specialist`                |
+| `routes/`, routeTree.tsx, loader, action, TanStack Router                                   | `tanstack-router-specialist`               |
+| `components/` + Fluent UI, Combobox, Dropdown, Button, Theme, Fluent UI v9                  | `fluent-ui-v9-specialist`                  |
+| Role, permission, `can()`, feature flag, loader check                                       | `permissions-feature-flag-engineer`        |
+| Performance, React.memo, useMemo, useCallback, Suspense, TTI                                | `react-18-performance-engineer`            |
+| Construction domain, CPM, EVMS, RFI, change order, Florida compliance                       | `construction-domain-specialist`           |
+| Estimating, takeoff, CSI, RSMeans, bid, assembly, markup, ProEst, STACK                     | `construction-estimating-specialist`       |
+| Coordinate, isometric, camera transform, virtual framebuffer, mouse picking                 | `coordinate-wizard`                        |
+| Create agent, new specialist, AGENT.md, agent factory                                       | `factory-agent`                            |
 
 When a task matches any pattern above, invoke the specialist first and paste this constitution.
 
@@ -95,9 +96,8 @@ gulp package-solution --ship
 ```
 
 ### 10. Session Hygiene Rules
-- Start every fresh Claude Code session with this file loaded first.
-- If you explained something twice → add it here immediately.
-- After any change, ask the relevant specialist to review and propose updates to this constitution.
+- If something is explained or corrected twice → add it here immediately.
+- After any change, ask the relevant specialist at .claude/agents/ to review and propose updates to this constitution.
 - Weekly drift review: run full codebase scan against this file.
 - Never create, reference, or modify any repository-level context files except this CLAUDE.md.
 

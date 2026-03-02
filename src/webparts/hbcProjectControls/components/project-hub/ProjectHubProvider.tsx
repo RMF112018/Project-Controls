@@ -14,6 +14,7 @@
 import * as React from 'react';
 import { useSearch } from '@tanstack/react-router';
 import type { ISelectedProject } from '@hbc/sp-services';
+import { Stage } from '@hbc/sp-services';
 import { useAppContext } from '../contexts/AppContext';
 
 // ── Context ─────────────────────────────────────────────────────────────
@@ -21,6 +22,8 @@ import { useAppContext } from '../contexts/AppContext';
 interface IProjectHubContextValue {
   /** Effective projectCode (search params → context fallback) */
   projectCode: string;
+  /** HBC-PC-UUID-001: Effective projectUuid */
+  projectUuid: string | undefined;
   /** LeadID from search params or context */
   leadId: number | undefined;
   /** Project name (populated after async resolution) */
@@ -49,11 +52,15 @@ interface IProjectHubProviderProps {
 }
 
 export const ProjectHubProvider: React.FC<IProjectHubProviderProps> = ({ children }) => {
-  const { dataService, selectedProject, setSelectedProject } = useAppContext();
+  const { dataService, selectedProject, setSelectedProject, isFeatureEnabled } = useAppContext();
   const searchParams = useSearch({ strict: false }) as {
     projectCode?: string;
+    pid?: string;         // HBC-PC-PID-001: canonical
+    projectUuid?: string; // HBC-PC-UUID-001: backward compat
     leadId?: number;
   };
+
+  const uuidNavEnabled = isFeatureEnabled('ProjectUuidNavigation');
 
   const [isResolving, setIsResolving] = React.useState(false);
 
@@ -61,14 +68,88 @@ export const ProjectHubProvider: React.FC<IProjectHubProviderProps> = ({ childre
   const effectiveProjectCode = searchParams.projectCode || selectedProject?.projectCode || '';
   const effectiveLeadId = searchParams.leadId ?? selectedProject?.leadId;
 
-  // Track resolved code to avoid duplicate resolution on re-renders
+  // Track resolved identifiers to avoid duplicate resolution on re-renders
   const resolvedCodeRef = React.useRef<string | null>(null);
+  const resolvedUuidRef = React.useRef<string | null>(null);
 
+  // ── HBC-PC-PID-001: pid/UUID resolution (highest priority) ──────────
+  React.useEffect(() => {
+    if (!uuidNavEnabled) return;
+    const searchUuid = searchParams.pid || searchParams.projectUuid;
+    if (!searchUuid) return;
+    if (selectedProject?.projectUuid === searchUuid) {
+      resolvedUuidRef.current = searchUuid;
+      return;
+    }
+    if (resolvedUuidRef.current === searchUuid) return;
+
+    let cancelled = false;
+    setIsResolving(true);
+
+    const resolve = async (): Promise<void> => {
+      try {
+        let resolved: ISelectedProject | null = null;
+
+        // Try lead first (covers BD pipeline projects) — accepts pid or full UUID
+        const lead = await dataService.getLeadByPidOrUuid(searchUuid);
+        if (lead) {
+          resolved = {
+            projectCode: lead.ProjectCode ?? '',
+            projectUuid: lead.projectUuid,
+            projectName: lead.Title,
+            stage: lead.Stage,
+            region: lead.Region,
+            division: lead.Division,
+            leadId: lead.id,
+            siteUrl: lead.ProjectSiteURL,
+            clientName: lead.ClientName,
+            projectValue: lead.ProjectValue,
+          };
+        }
+
+        // Fallback: active project
+        if (!resolved) {
+          const project = await dataService.getActiveProjectByPidOrUuid(searchUuid);
+          if (project) {
+            resolved = {
+              projectCode: project.projectCode,
+              projectUuid: project.projectUuid,
+              projectName: project.projectName,
+              stage: Stage.ActiveConstruction,
+            };
+          }
+        }
+
+        if (!cancelled && resolved) {
+          resolvedUuidRef.current = searchUuid;
+          resolvedCodeRef.current = resolved.projectCode || null;
+          setSelectedProject(resolved);
+        }
+      } catch (err) {
+        console.warn('ProjectHubProvider: failed to resolve projectUuid', searchUuid, err);
+        if (!cancelled) {
+          resolvedUuidRef.current = searchUuid;
+        }
+      } finally {
+        if (!cancelled) {
+          setIsResolving(false);
+        }
+      }
+    };
+
+    void resolve();
+    return () => { cancelled = true; };
+  }, [uuidNavEnabled, searchParams.pid, searchParams.projectUuid, selectedProject?.projectUuid, dataService, setSelectedProject]);
+
+  // ── Legacy projectCode resolution ────────────────────────────────────
   React.useEffect(() => {
     const searchCode = searchParams.projectCode;
 
     // Skip if: no search-param projectCode
     if (!searchCode) return;
+
+    // Skip if: pid/UUID resolution already handled this
+    if (uuidNavEnabled && (searchParams.pid || searchParams.projectUuid)) return;
 
     // Skip if: AppContext already has the correct project
     if (selectedProject?.projectCode === searchCode) {
@@ -92,6 +173,7 @@ export const ProjectHubProvider: React.FC<IProjectHubProviderProps> = ({ childre
           if (lead && lead.ProjectCode === searchCode) {
             resolved = {
               projectCode: lead.ProjectCode!,
+              projectUuid: lead.projectUuid, // HBC-PC-UUID-001
               projectName: lead.Title,
               stage: lead.Stage,
               region: lead.Region,
@@ -111,6 +193,7 @@ export const ProjectHubProvider: React.FC<IProjectHubProviderProps> = ({ childre
           if (match) {
             resolved = {
               projectCode: match.ProjectCode!,
+              projectUuid: match.projectUuid, // HBC-PC-UUID-001
               projectName: match.Title,
               stage: match.Stage,
               region: match.Region,
@@ -146,12 +229,15 @@ export const ProjectHubProvider: React.FC<IProjectHubProviderProps> = ({ childre
     return () => { cancelled = true; };
   }, [searchParams.projectCode, searchParams.leadId, selectedProject?.projectCode, dataService, setSelectedProject]);
 
+  const effectiveProjectUuid = searchParams.pid || searchParams.projectUuid || selectedProject?.projectUuid;
+
   const value = React.useMemo<IProjectHubContextValue>(() => ({
     projectCode: effectiveProjectCode,
+    projectUuid: effectiveProjectUuid,
     leadId: effectiveLeadId,
     projectName: selectedProject?.projectName || '',
     isResolving,
-  }), [effectiveProjectCode, effectiveLeadId, selectedProject?.projectName, isResolving]);
+  }), [effectiveProjectCode, effectiveProjectUuid, effectiveLeadId, selectedProject?.projectName, isResolving]);
 
   return (
     <ProjectHubContext.Provider value={value}>

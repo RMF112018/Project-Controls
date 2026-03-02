@@ -53,6 +53,7 @@ function renderMenu(devToolsConfig?: IDevToolsConfig) {
     currentUser: makeUser(),
     dataServiceMode: devToolsConfig?.mode ?? 'mock',
     devToolsConfig,
+    isFeatureEnabled: () => false,
   });
   mockUseResponsive.mockReturnValue({ isMobile: false, isTablet: false });
 
@@ -96,6 +97,7 @@ describe('HeaderUserMenu', () => {
       currentUser: makeUser(),
       dataServiceMode: 'standalone',
       devToolsConfig: config,
+      isFeatureEnabled: () => false,
     });
     mockUseResponsive.mockReturnValue({ isMobile: false, isTablet: false });
 
@@ -140,6 +142,7 @@ describe('HeaderUserMenu', () => {
       currentUser: makeUser(),
       dataServiceMode: 'mock',
       devToolsConfig: undefined,
+      isFeatureEnabled: () => false,
     });
     mockUseResponsive.mockReturnValue({ isMobile: true, isTablet: false });
 

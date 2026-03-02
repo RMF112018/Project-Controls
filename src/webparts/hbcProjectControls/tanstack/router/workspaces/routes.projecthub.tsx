@@ -161,30 +161,37 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
     getParentRoute: () => rootRoute as never,
     id: 'project-hub-layout',
     component: ProjectHubLayout,
-    // Stage 20: Accept projectCode + leadId at layout level so all 36 child
-    // routes inherit search-param awareness without per-route changes.
+    // Stage 20 + HBC-PC-PID-001: Accept pid (canonical), projectCode, projectUuid (backward compat),
+    // leadId at layout level so all 36 child routes inherit search-param awareness.
     validateSearch: (search: Record<string, unknown>) => ({
       projectCode: (search.projectCode as string) || undefined,
+      pid: (search.pid as string) || undefined,                 // HBC-PC-PID-001
+      projectUuid: (search.projectUuid as string) || undefined, // backward compat
       leadId: search.leadId ? Number(search.leadId) : undefined,
     }),
     beforeLoad: ({ context, search }: {
       context: ITanStackRouteContext;
-      search: { projectCode?: string; leadId?: number };
+      search: { projectCode?: string; pid?: string; projectUuid?: string; leadId?: number };
     }): { selectedProject: ISelectedProject } | void => {
       requireFeature(context, 'ProjectHubWorkspace');
-      // Stage 20: If no selectedProject in context but search params have projectCode,
-      // return a minimal ISelectedProject as context extension for child routes.
-      // TanStack Router v1 merges returned objects into the route context seen by
-      // child beforeLoad functions, so all 33 requireProject() guards pass immediately.
-      if (!context.selectedProject?.projectCode && search.projectCode) {
-        return {
-          selectedProject: {
-            projectCode: search.projectCode,
-            projectName: '',
-            stage: Stage.Pursuit,
-            leadId: search.leadId,
-          } satisfies ISelectedProject,
-        };
+      // HBC-PC-PID-001: pid OR legacy projectUuid as effective identifier
+      const effectivePidOrUuid = search.pid || search.projectUuid;
+      // Stage 20 + HBC-PC-PID-001: If no selectedProject in context but search params
+      // have projectCode OR pid/projectUuid, return a minimal ISelectedProject as context
+      // extension for child routes. TanStack Router v1 merges returned objects into the
+      // route context seen by child beforeLoad functions, so requireProject() guards pass.
+      if (!context.selectedProject?.projectCode && !context.selectedProject?.projectUuid) {
+        if (search.projectCode || effectivePidOrUuid) {
+          return {
+            selectedProject: {
+              projectCode: search.projectCode ?? '',
+              projectUuid: effectivePidOrUuid,
+              projectName: '',
+              stage: Stage.Pursuit,
+              leadId: search.leadId,
+            } satisfies ISelectedProject,
+          };
+        }
       }
     },
   });
@@ -199,11 +206,10 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
       handoffFrom: (search.handoffFrom as string) || undefined,
       projectCode: (search.projectCode as string) || undefined,
     }),
-    beforeLoad: ({ context, search }: { context: ITanStackRouteContext; search: { projectCode?: string } }) => {
+    beforeLoad: ({ context, search }: { context: ITanStackRouteContext; search: { projectCode?: string; pid?: string; projectUuid?: string } }) => {
       requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
-      // Stage 19 routing fix: Accept projectCode from search params as alternative
-      // to context.selectedProject for cross-workspace navigation from DepartmentTrackingPage.
-      if (!context.selectedProject?.projectCode && !search.projectCode) {
+      // Stage 19 routing fix + HBC-PC-PID-001: Accept pid/projectCode from search params.
+      if (!context.selectedProject?.projectCode && !context.selectedProject?.projectUuid && !search.projectCode && !search.pid && !search.projectUuid) {
         throw redirect({ to: '/', replace: true });
       }
     },
@@ -252,14 +258,12 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
       projectCode: (search.projectCode as string) || undefined,
       leadId: search.leadId ? Number(search.leadId) : undefined,
     }),
-    beforeLoad: ({ context, search }: { context: ITanStackRouteContext; search: { projectCode?: string } }) => {
+    beforeLoad: ({ context, search }: { context: ITanStackRouteContext; search: { projectCode?: string; pid?: string; projectUuid?: string } }) => {
       // Authorization: KICKOFF_VIEW enforced at loader level (permissions-engine-spec.md).
       // Covers Estimator, Preconstruction Manager, Administrator, and Leadership roles.
       requirePermission(context, PERMISSIONS.KICKOFF_VIEW);
-      // Stage 9 routing fix: Accept projectCode from search params as alternative to
-      // context.selectedProject. DepartmentTrackingPage passes projectCode via search
-      // param for cross-workspace navigation (Preconstruction → Project Hub).
-      if (!context.selectedProject?.projectCode && !search.projectCode) {
+      // Stage 9 routing fix + HBC-PC-PID-001: Accept pid/projectCode from search params.
+      if (!context.selectedProject?.projectCode && !context.selectedProject?.projectUuid && !search.projectCode && !search.pid && !search.projectUuid) {
         throw redirect({ to: '/', replace: true });
       }
       // Phase 1 Task 2: Prefetch kickoff data during navigation so the component
@@ -297,12 +301,10 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
       projectCode: (search.projectCode as string) || undefined,
       leadId: search.leadId ? Number(search.leadId) : undefined,
     }),
-    beforeLoad: ({ context, search }: { context: ITanStackRouteContext; search: { projectCode?: string } }) => {
+    beforeLoad: ({ context, search }: { context: ITanStackRouteContext; search: { projectCode?: string; pid?: string; projectUuid?: string } }) => {
       requirePermission(context, PERMISSIONS.TURNOVER_READ);
-      // Stage 19 routing fix: Accept projectCode from search params as alternative to
-      // context.selectedProject. DepartmentTrackingPage passes projectCode via search
-      // param for cross-workspace navigation (Preconstruction → Project Hub).
-      if (!context.selectedProject?.projectCode && !search.projectCode) {
+      // Stage 19 routing fix + HBC-PC-PID-001: Accept pid/projectCode from search params.
+      if (!context.selectedProject?.projectCode && !context.selectedProject?.projectUuid && !search.projectCode && !search.pid && !search.projectUuid) {
         throw redirect({ to: '/', replace: true });
       }
     },
@@ -319,14 +321,13 @@ export function createProjectHubWorkspaceRoutes(rootRoute: unknown) {
       projectCode: (search.projectCode as string) || undefined,
       leadId: search.leadId ? Number(search.leadId) : undefined,
     }),
-    beforeLoad: ({ context, search }: { context: ITanStackRouteContext; search: { projectCode?: string } }) => {
+    beforeLoad: ({ context, search }: { context: ITanStackRouteContext; search: { projectCode?: string; pid?: string; projectUuid?: string } }) => {
       // Authorization: AUTOPSY_VIEW is the domain-specific read permission for
       // post-bid autopsies (permissions-engine-spec.md). Previously used the broader
       // ESTIMATING_READ — narrowed for proper 70-permission granularity.
       requirePermission(context, PERMISSIONS.AUTOPSY_VIEW);
-      // Phase 1 Task 2: Accept projectCode from search params as alternative to
-      // context.selectedProject for cross-workspace navigation parity with kickoff/turnover.
-      if (!context.selectedProject?.projectCode && !search.projectCode) {
+      // Phase 1 Task 2 + HBC-PC-PID-001: Accept pid/projectCode from search params.
+      if (!context.selectedProject?.projectCode && !context.selectedProject?.projectUuid && !search.projectCode && !search.pid && !search.projectUuid) {
         throw redirect({ to: '/', replace: true });
       }
       // Phase 1 Task 2: Prefetch post-bid autopsy data during navigation.

@@ -27,8 +27,8 @@ const flags = featureFlags as IFeatureFlag[];
 
 describe('Feature Flag Registry Integrity', () => {
   describe('total flag count', () => {
-    it('should contain exactly 16 flags (25 post-Batch 5E - 9 Sub-Task 6 disabled-and-unused)', () => {
-      expect(flags).toHaveLength(16);
+    it('should contain exactly 11 flags (post Batch 5E cleanup + DarkModeSupport)', () => {
+      expect(flags).toHaveLength(11);
     });
   });
 
@@ -89,8 +89,8 @@ describe('Feature Flag Registry Integrity', () => {
       expect(flags.find((f) => f.FeatureName === 'LeadIntake')).toBeUndefined();
     });
 
-    it('GoNoGoScorecard should NOT exist (removed Batch 5B)', () => {
-      expect(flags.find((f) => f.FeatureName === 'GoNoGoScorecard')).toBeUndefined();
+    it('GoNoGoScorecard SHOULD exist (core platform flag)', () => {
+      expect(flags.find((f) => f.FeatureName === 'GoNoGoScorecard')).toBeDefined();
     });
 
     it('PipelineDashboard should NOT exist (removed Batch 5B)', () => {

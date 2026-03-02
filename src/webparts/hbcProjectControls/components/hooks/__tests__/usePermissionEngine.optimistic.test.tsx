@@ -10,6 +10,7 @@ const scope: IQueryScope = {
   siteContext: 'hub',
   siteUrl: 'http://localhost',
   projectCode: null,
+  projectUuid: null,
 };
 
 const mockUseAppContext = jest.fn();

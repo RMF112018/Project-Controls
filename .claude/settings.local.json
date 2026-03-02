@@ -125,7 +125,9 @@
       "Bash(npx playwright test:*)",
       "Bash(for file in /Users/bobbyfetting/Project-Controls/playwright/*.spec.ts)",
       "Bash(do:*)",
-      "Bash(npx ts-node:*)"
+      "Bash(npx ts-node:*)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_install"
     ]
   },
   "enabledPlugins": {

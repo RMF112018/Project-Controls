@@ -6,6 +6,7 @@ import { AppLauncher } from '../navigation/AppLauncher';
 import { ContextualSidebar } from '../navigation/ContextualSidebar';
 import { SkeletonLoader } from '../shared/SkeletonLoader';
 import { SearchBar } from '../shared/SearchBar';
+import { HbcHeaderProjectSelector } from '../shared/HbcHeaderProjectSelector';
 import { SyncStatusIndicator } from '../shared/SyncStatusIndicator';
 import { PresenceIndicator } from '../shared/PresenceIndicator';
 import { WhatsNewModal, shouldShowWhatsNew } from '../shared/WhatsNewModal';
@@ -431,6 +432,7 @@ export const AppShell: React.FC<IAppShellProps> = ({ children }) => {
               {ENV_BADGE_LABELS[envConfig.currentTier] || envConfig.currentTier.toUpperCase()}
             </span>
           )}
+          {!isMobile && isFeatureEnabled('ProjectUuidNavigation') && <HbcHeaderProjectSelector />}
         </div>
 
         {!isMobile && <SearchBar />}

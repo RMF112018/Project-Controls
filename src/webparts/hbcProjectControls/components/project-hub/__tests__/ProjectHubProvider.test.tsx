@@ -27,6 +27,7 @@ jest.mock('../../contexts/AppContext', () => ({
     },
     selectedProject: mockSelectedProject,
     setSelectedProject: mockSetSelectedProject,
+    isFeatureEnabled: () => false,
   }),
 }));
 

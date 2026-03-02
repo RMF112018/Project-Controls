@@ -28,3 +28,5 @@ export { useHbcThemeMode } from './useHbcThemeMode';
 export type { ThemeMode, IUseHbcThemeModeResult } from './useHbcThemeMode';
 export { useHbcChartColors } from './useHbcChartColors';
 export type { IHbcChartColors } from './useHbcChartColors';
+export { useCurrentProject } from './useCurrentProject';
+export type { IUseCurrentProjectResult } from './useCurrentProject';

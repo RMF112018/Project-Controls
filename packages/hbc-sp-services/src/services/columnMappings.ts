@@ -65,6 +65,7 @@ export const LEADS_MASTER_COLUMNS = {
   AwardDate: 'AwardDate',                      // SP: DateTime
   Stage: 'Stage',                              // SP: Choice
   ProjectCode: 'ProjectCode',                  // SP: Single Line of Text
+  projectUuid: 'projectUuid',                  // SP: Single Line of Text (Indexed, Read-only after creation) HBC-PC-UUID-001
   ProjectSiteURL: 'ProjectSiteURL',            // SP: Hyperlink
   GoNoGoScore_Originator: 'GoNoGoScore_Originator', // SP: Number
   GoNoGoScore_Committee: 'GoNoGoScore_Committee',   // SP: Number
@@ -343,6 +344,7 @@ export const ACTIVE_PROJECTS_PORTFOLIO_COLUMNS = {
   id: 'ID',                                    // SP: Auto-generated
   jobNumber: 'jobNumber',                      // SP: Single Line of Text
   projectCode: 'projectCode',                  // SP: Single Line of Text
+  projectUuid: 'projectUuid',                  // SP: Single Line of Text (Indexed, Read-only after creation) HBC-PC-UUID-001
   projectName: 'projectName',                  // SP: Single Line of Text
 
   // Personnel (IProjectPersonnel — stored as flat columns)

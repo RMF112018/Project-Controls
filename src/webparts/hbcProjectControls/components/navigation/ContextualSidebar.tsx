@@ -182,7 +182,20 @@ export const ContextualSidebar: React.FC = () => {
 
   return (
     <nav className={styles.sidebar} aria-label="Workspace navigation">
-      <ProjectPicker selected={selectedProject} onSelect={setSelectedProject} locked={isProjectSite} />
+      {isFeatureEnabled('ProjectUuidNavigation') ? (
+        selectedProject ? (
+          <div style={{ padding: '8px 12px', fontSize: 13, fontWeight: 500 }} aria-label="Current project">
+            {selectedProject.projectName}
+            {selectedProject.projectCode && (
+              <span style={{ marginLeft: 6, fontWeight: 400, opacity: 0.7, fontSize: 11 }}>{selectedProject.projectCode}</span>
+            )}
+          </div>
+        ) : (
+          <div style={{ padding: '8px 12px', fontSize: 13, opacity: 0.6 }}>No project selected</div>
+        )
+      ) : (
+        <ProjectPicker selected={selectedProject} onSelect={setSelectedProject} locked={isProjectSite} />
+      )}
 
       <div className={styles.divider} />
 

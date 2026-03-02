@@ -1,9 +1,9 @@
 /**
- * Stage 20 — useProjectHubNavigate
+ * Stage 20 / HBC-PC-PID-001 — useProjectHubNavigate
  *
- * Navigate within Project Hub while preserving projectCode and leadId
- * search params across all internal navigation (sidebar, command bar,
- * breadcrumbs, page-internal links).
+ * Navigate within Project Hub while preserving pid (short project identifier)
+ * and leadId search params across all internal navigation (sidebar, command
+ * bar, breadcrumbs, page-internal links).
  *
  * Dual-source strategy:
  *   1. Primary: URL search params via useSearch({ strict: false })
@@ -19,6 +19,7 @@
 import * as React from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useAppContext } from '../contexts/AppContext';
+import { toShortPid, normalizeToPid } from '../utils/projectPid';
 
 export interface IProjectHubNavigateOptions {
   replace?: boolean;
@@ -33,12 +34,13 @@ export type ProjectHubNavigate = (
 
 /**
  * Navigate within the Project Hub subtree (/project-hub/*) while
- * automatically preserving projectCode and leadId search params.
+ * automatically preserving `pid` (the canonical project identifier).
+ * `projectCode` and `leadId` are NOT propagated — pid alone is sufficient.
  *
  * @example
  * ```ts
  * const projectHubNavigate = useProjectHubNavigate();
- * // Simple navigation — params preserved automatically
+ * // Simple navigation — pid preserved automatically
  * projectHubNavigate('/project-hub/precon/turnover');
  * // With additional search params
  * projectHubNavigate('/project-hub/dashboard', { search: { handoffFrom: 'turnover' } });
@@ -51,6 +53,8 @@ export function useProjectHubNavigate(): ProjectHubNavigate {
 
   const searchParams = useSearch({ strict: false }) as {
     projectCode?: string;
+    pid?: string;         // HBC-PC-PID-001: canonical
+    projectUuid?: string; // HBC-PC-UUID-001: backward compat
     leadId?: number;
   };
   const searchRef = React.useRef(searchParams);
@@ -65,17 +69,17 @@ export function useProjectHubNavigate(): ProjectHubNavigate {
       const sp = searchRef.current;
       const proj = projectRef.current;
 
-      // Resolve projectCode: URL search params > AppContext selectedProject
-      const projectCode = sp.projectCode || proj?.projectCode;
-      // Resolve leadId: URL search params > AppContext selectedProject
-      const leadId = sp.leadId ?? proj?.leadId;
+      // HBC-PC-PID-001: Resolve pid only — projectCode and leadId are NOT propagated.
+      // pid alone is sufficient; ProjectHubProvider resolves the full project from pid.
+      const pid = sp.pid
+        || (sp.projectUuid ? normalizeToPid(sp.projectUuid) : undefined)
+        || (proj?.projectUuid ? toShortPid(proj.projectUuid) : undefined);
 
       void navRef.current({
         to,
         replace: options?.replace,
         search: {
-          ...(projectCode ? { projectCode } : {}),
-          ...(leadId !== undefined ? { leadId } : {}),
+          ...(pid ? { pid } : {}),
           // Caller can add/override params (e.g., handoffFrom)
           ...options?.search,
         },

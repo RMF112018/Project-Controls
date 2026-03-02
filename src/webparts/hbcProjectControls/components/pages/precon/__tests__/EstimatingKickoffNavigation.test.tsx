@@ -46,7 +46,7 @@ jest.mock('../../../shared/ToastContainer', () => ({
 }));
 
 jest.mock('../../../../tanstack/query/useQueryScope', () => ({
-  useQueryScope: () => ({ mode: 'mock', siteContext: 'hub', siteUrl: '', projectCode: null }),
+  useQueryScope: () => ({ mode: 'mock', siteContext: 'hub', siteUrl: '', projectCode: null, projectUuid: null }),
 }));
 
 jest.mock('../../../../tanstack/query/queryKeys', () => ({

@@ -14,6 +14,8 @@ export type ProjectHealthStatus = 'Green' | 'Yellow' | 'Red';
 
 export interface ISelectedProject {
   projectCode: string;
+  /** HBC-PC-UUID-001: Immutable project identifier for Procore-style navigation. */
+  projectUuid?: string;
   projectName: string;
   stage: Stage;
   region?: string;

@@ -124,6 +124,10 @@ export interface IDataService {
   // Leads
   getLeads(options?: IListQueryOptions): Promise<IPagedResult<ILead>>;
   getLeadById(id: number): Promise<ILead | null>;
+  /** HBC-PC-UUID-001: Retrieve lead by immutable UUID. */
+  getLeadByUuid(uuid: string): Promise<ILead | null>;
+  /** HBC-PC-PID-001: Resolve lead by 7-char pid prefix or full UUID. */
+  getLeadByPidOrUuid(pidOrUuid: string): Promise<ILead | null>;
   getLeadsByStage(stage: Stage): Promise<ILead[]>;
   createLead(data: ILeadFormData): Promise<ILead>;
   updateLead(id: number, data: Partial<ILead>): Promise<ILead>;
@@ -431,6 +435,10 @@ export interface IDataService {
   // Active Projects Portfolio
   getActiveProjects(options?: IActiveProjectsQueryOptions): Promise<IActiveProject[]>;
   getActiveProjectById(id: number): Promise<IActiveProject | null>;
+  /** HBC-PC-UUID-001: Retrieve active project by immutable UUID. */
+  getActiveProjectByUuid(uuid: string): Promise<IActiveProject | null>;
+  /** HBC-PC-PID-001: Resolve active project by 7-char pid prefix or full UUID. */
+  getActiveProjectByPidOrUuid(pidOrUuid: string): Promise<IActiveProject | null>;
   syncActiveProject(projectCode: string): Promise<IActiveProject>;
   updateActiveProject(id: number, data: Partial<IActiveProject>): Promise<IActiveProject>;
   getPortfolioSummary(filters?: IActiveProjectsFilter): Promise<IPortfolioSummary>;

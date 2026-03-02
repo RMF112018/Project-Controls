@@ -35,6 +35,7 @@ export interface IAppContextValue {
   hasPermission: (permission: string) => boolean;
   isFeatureEnabled: (featureName: string) => boolean;
   resolvedPermissions: IResolvedPermissions | null;
+  refreshPermissions: () => Promise<void>;
   isProjectSite: boolean;
   isFullScreen: boolean;
   toggleFullScreen: () => void;
@@ -162,13 +163,17 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     setSelectedProject(project);
 
     // Invalidate stale project-scoped query cache entries on switch.
-    // Query keys follow format: ['scope', mode, siteContext, siteUrl, projectCode, domain, ...].
-    // Index 4 is projectCode — invalidate entries from the previous project.
+    // Query keys follow format: ['scope', mode, siteContext, siteUrl, projectCode, projectUuid, domain, ...].
+    // Index 4 is projectCode, index 5 is projectUuid (HBC-PC-UUID-001).
+    // Invalidate when EITHER identifier is stale (OR logic).
     if (project) {
       getQueryClient().invalidateQueries({
         predicate: (query) => {
           const key = query.queryKey;
-          return key.length > 4 && typeof key[4] === 'string' && key[4] !== '' && key[4] !== project.projectCode;
+          if (key.length <= 4) return false;
+          const staleByCode = typeof key[4] === 'string' && key[4] !== '' && key[4] !== project.projectCode;
+          const staleByUuid = key.length > 5 && typeof key[5] === 'string' && key[5] !== '' && key[5] !== (project.projectUuid ?? '');
+          return staleByCode || staleByUuid;
         },
       });
     }
@@ -410,6 +415,20 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     return () => clearTimeout(permResolveTimerRef.current);
   }, [selectedProject?.projectCode, currentUser?.email, dataService, featureFlags, isPermissionEngineEnabled]);
 
+  // Expose a manual permission re-resolution callback for admin pages to call
+  // after mutating templates or assignments. Complements the automatic project-change resolution above.
+  const refreshPermissions = React.useCallback(async (): Promise<void> => {
+    if (!currentUser || !isPermissionEngineEnabled(featureFlags)) return;
+    const projectCode = selectedProject?.projectCode || null;
+    try {
+      const resolved = await dataService.resolveUserPermissions(currentUser.email, projectCode);
+      setCurrentUser(prev => prev ? { ...prev, permissions: resolved.permissions } : prev);
+      setResolvedPermissions(resolved);
+    } catch {
+      console.warn('Manual permission refresh failed');
+    }
+  }, [currentUser, featureFlags, selectedProject?.projectCode, dataService, isPermissionEngineEnabled]);
+
   // Stage 3 (sub-task 3): In mock/dev mode, bypass granular permission checks
   // so all UI remains accessible during development. Production uses real sets.
   const devModeFullAccess = dataServiceMode === 'mock';
@@ -490,6 +509,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     hasPermission,
     isFeatureEnabled,
     resolvedPermissions,
+    refreshPermissions,
     isProjectSite,
     isProjectSwitching,
     isFullScreen,
@@ -509,7 +529,7 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
     effectiveThemeMode: themeModeResult.effectiveMode,
     isHighContrast: themeModeResult.isHighContrast,
     setThemeMode: themeModeResult.setThemeMode,
-  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, isProjectSite, isProjectSwitching, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode, isOnline, dashboardPreferences, getDashboardPreference, setDashboardPreference, resetDashboardPreference, isNonLocalhostTelemetryAdminEnabled, setNonLocalhostTelemetryAdminEnabled, isTelemetryExceptionCaptureEnabled, devToolsConfig, themeModeResult]);
+  }), [dataService, resolvedTelemetry, currentUser, featureFlags, isLoading, error, selectedProject, handleSetSelectedProject, hasPermission, isFeatureEnabled, resolvedPermissions, refreshPermissions, isProjectSite, isProjectSwitching, isFullScreen, toggleFullScreen, exitFullScreen, dataServiceMode, isOnline, dashboardPreferences, getDashboardPreference, setDashboardPreference, resetDashboardPreference, isNonLocalhostTelemetryAdminEnabled, setNonLocalhostTelemetryAdminEnabled, isTelemetryExceptionCaptureEnabled, devToolsConfig, themeModeResult]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

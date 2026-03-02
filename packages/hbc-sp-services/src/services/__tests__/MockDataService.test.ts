@@ -95,6 +95,83 @@ describe('MockDataService', () => {
     });
   });
 
+  // ─── Project UUID (HBC-PC-UUID-001) ──────────────────────────────
+
+  describe('Project UUID (HBC-PC-UUID-001)', () => {
+    it('createLead generates a projectUuid', async () => {
+      const lead = await ds.createLead({
+        Title: 'UUID Test Lead',
+        ClientName: 'Test Client',
+        Region: 'West Palm Beach' as never,
+        Sector: 'Commercial' as never,
+        Division: 'Commercial' as never,
+        DepartmentOfOrigin: 'Business Development' as never,
+        Stage: Stage.LeadDiscovery,
+      });
+      expect(lead.projectUuid).toBeDefined();
+      expect(typeof lead.projectUuid).toBe('string');
+      expect(lead.projectUuid!.length).toBeGreaterThan(0);
+    });
+
+    it('getLeadByUuid returns lead by UUID', async () => {
+      const leads = await ds.getLeads();
+      const leadWithUuid = leads.items.find(l => l.projectUuid);
+      if (!leadWithUuid) {
+        // No leads with UUID in mock data — skip
+        return;
+      }
+      const found = await ds.getLeadByUuid(leadWithUuid.projectUuid!);
+      expect(found).not.toBeNull();
+      expect(found!.id).toBe(leadWithUuid.id);
+    });
+
+    it('getLeadByUuid returns null for unknown UUID', async () => {
+      const found = await ds.getLeadByUuid('00000000-0000-0000-0000-000000000000');
+      expect(found).toBeNull();
+    });
+
+    it('getActiveProjectByUuid returns project by UUID', async () => {
+      const projects = await ds.getActiveProjects();
+      expect(projects.length).toBeGreaterThan(0);
+      const first = projects[0];
+      expect(first.projectUuid).toBeDefined();
+      const found = await ds.getActiveProjectByUuid(first.projectUuid!);
+      expect(found).not.toBeNull();
+      expect(found!.id).toBe(first.id);
+    });
+
+    it('getActiveProjectByUuid returns null for unknown UUID', async () => {
+      const found = await ds.getActiveProjectByUuid('00000000-0000-0000-0000-000000000000');
+      expect(found).toBeNull();
+    });
+
+    it('updateLead rejects projectUuid mutation', async () => {
+      const leads = await ds.getLeads();
+      const leadWithUuid = leads.items.find(l => l.projectUuid);
+      if (!leadWithUuid) return;
+      await expect(
+        ds.updateLead(leadWithUuid.id, { projectUuid: 'different-uuid' }),
+      ).rejects.toThrow('HBC-PC-UUID-001');
+    });
+
+    it('updateActiveProject rejects projectUuid mutation', async () => {
+      const projects = await ds.getActiveProjects();
+      const project = projects[0];
+      await expect(
+        ds.updateActiveProject(project.id, { projectUuid: 'different-uuid' }),
+      ).rejects.toThrow('HBC-PC-UUID-001');
+    });
+
+    it('all mock active projects have projectUuid', async () => {
+      const projects = await ds.getActiveProjects();
+      for (const p of projects) {
+        expect(p.projectUuid).toBeDefined();
+        expect(typeof p.projectUuid).toBe('string');
+        expect(p.projectUuid!.length).toBeGreaterThan(0);
+      }
+    });
+  });
+
   // ─── Scorecards ────────────────────────────────────────────
 
   describe('Scorecards', () => {

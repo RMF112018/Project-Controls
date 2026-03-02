@@ -284,6 +284,14 @@ const REQUIRED_PROMPT6_FEATURE_FLAGS: ReadonlyArray<Omit<IFeatureFlag, 'id'>> = 
     Notes: 'Cross-cutting project workspace with 10 sidebar groups. Hidden unless project selected.',
     Category: 'Infrastructure',
   },
+  {
+    FeatureName: 'ProjectUuidNavigation',
+    DisplayName: 'Project UUID Navigation',
+    Enabled: false,
+    EnabledForRoles: undefined,
+    Notes: 'HBC-PC-UUID-001 + HBC-PC-NAV-001: Immutable project UUID URL navigation (Procore-style header selector)',
+    Category: 'Infrastructure',
+  },
 ];
 
 function ensurePrompt6FeatureFlags(flags: IFeatureFlag[]): IFeatureFlag[] {
@@ -473,6 +481,12 @@ export class MockDataService implements IDataService {
     this.leads = benchmarkMode
       ? generateLeads(200)
       : JSON.parse(JSON.stringify(mockLeads)) as ILead[];
+    // HBC-PC-UUID-001: Ensure all leads with a ProjectCode get a projectUuid
+    for (const lead of this.leads) {
+      if (lead.ProjectCode && !lead.projectUuid) {
+        lead.projectUuid = crypto.randomUUID();
+      }
+    }
     // Scorecards — new Phase 16 format with flat child arrays
     const rawScorecardsData = JSON.parse(JSON.stringify(mockScorecards)) as {
       scorecards: IGoNoGoScorecard[];
@@ -1427,6 +1441,7 @@ export class MockDataService implements IDataService {
       
       return {
         ...project,
+        projectUuid: crypto.randomUUID(), // HBC-PC-UUID-001
         hasUnbilledAlert: unbilledPct >= DEFAULT_ALERT_THRESHOLDS.unbilledWarningPct,
       };
     });
@@ -1524,6 +1539,24 @@ export class MockDataService implements IDataService {
     return this.leads.find(l => l.id === id) ?? null;
   }
 
+  /** HBC-PC-UUID-001: Retrieve lead by immutable UUID. */
+  public async getLeadByUuid(uuid: string): Promise<ILead | null> {
+    await delay();
+    return this.leads.find(l => l.projectUuid === uuid) ?? null;
+  }
+
+  /** HBC-PC-PID-001: Resolve lead by 7-char pid prefix or full UUID. */
+  public async getLeadByPidOrUuid(pidOrUuid: string): Promise<ILead | null> {
+    await delay();
+    if (pidOrUuid.includes('-') || pidOrUuid.length > 7) {
+      return this.leads.find(l => l.projectUuid === pidOrUuid) ?? null;
+    }
+    const prefix = pidOrUuid.toLowerCase();
+    return this.leads.find(l =>
+      l.projectUuid?.replace(/-/g, '').toLowerCase().startsWith(prefix),
+    ) ?? null;
+  }
+
   public async getLeadsByStage(stage: Stage): Promise<ILead[]> {
     await delay();
     return this.leads.filter(l => l.Stage === stage);
@@ -1535,6 +1568,7 @@ export class MockDataService implements IDataService {
     const newLead: ILead = {
       ...data,
       id: this.getNextId(),
+      projectUuid: data.projectUuid || crypto.randomUUID(), // HBC-PC-UUID-001
       DateOfEvaluation: new Date().toISOString().split('T')[0],
       Originator: 'kfoster@hedrickbrothers.com',
       OriginatorId: 5,
@@ -1551,6 +1585,11 @@ export class MockDataService implements IDataService {
     const index = this.leads.findIndex(l => l.id === id);
     if (index === -1) {
       throw new Error(`Lead with id ${id} not found`);
+    }
+
+    // HBC-PC-UUID-001: projectUuid is immutable after creation
+    if (data.projectUuid !== undefined && this.leads[index].projectUuid && data.projectUuid !== this.leads[index].projectUuid) {
+      throw new Error('HBC-PC-UUID-001: projectUuid is immutable and cannot be modified.');
     }
 
     this.leads[index] = { ...this.leads[index], ...data };
@@ -5415,6 +5454,24 @@ export class MockDataService implements IDataService {
     return this.activeProjects.find(p => p.id === id) ?? null;
   }
 
+  /** HBC-PC-UUID-001: Retrieve active project by immutable UUID. */
+  public async getActiveProjectByUuid(uuid: string): Promise<IActiveProject | null> {
+    await delay();
+    return this.activeProjects.find(p => p.projectUuid === uuid) ?? null;
+  }
+
+  /** HBC-PC-PID-001: Resolve active project by 7-char pid prefix or full UUID. */
+  public async getActiveProjectByPidOrUuid(pidOrUuid: string): Promise<IActiveProject | null> {
+    await delay();
+    if (pidOrUuid.includes('-') || pidOrUuid.length > 7) {
+      return this.activeProjects.find(p => p.projectUuid === pidOrUuid) ?? null;
+    }
+    const prefix = pidOrUuid.toLowerCase();
+    return this.activeProjects.find(p =>
+      p.projectUuid?.replace(/-/g, '').toLowerCase().startsWith(prefix),
+    ) ?? null;
+  }
+
   public async syncActiveProject(projectCode: string): Promise<IActiveProject> {
     await delay();
     const existing = this.activeProjects.find(p => p.projectCode === projectCode);
@@ -5429,7 +5486,12 @@ export class MockDataService implements IDataService {
     await delay();
     const index = this.activeProjects.findIndex(p => p.id === id);
     if (index === -1) throw new Error(`Active project ${id} not found`);
-    
+
+    // HBC-PC-UUID-001: projectUuid is immutable after creation
+    if (data.projectUuid !== undefined && this.activeProjects[index].projectUuid && data.projectUuid !== this.activeProjects[index].projectUuid) {
+      throw new Error('HBC-PC-UUID-001: projectUuid is immutable and cannot be modified.');
+    }
+
     this.activeProjects[index] = {
       ...this.activeProjects[index],
       ...data,

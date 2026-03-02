@@ -283,6 +283,42 @@ export class SharePointDataService implements IDataService {
     }
   }
 
+  /** HBC-PC-UUID-001: Retrieve lead by immutable UUID. SP-INDEX-REQUIRED: Leads_Master → projectUuid */
+  async getLeadByUuid(uuid: string): Promise<ILead | null> {
+    performanceService.startMark('sp:getLeadByUuid');
+    try {
+      await this.ensureListAccess(LIST_NAMES.LEADS_MASTER, 'read');
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items
+        .filter(`projectUuid eq '${uuid}'`)
+        .top(1)();
+      performanceService.endMark('sp:getLeadByUuid');
+      return items.length > 0 ? (items[0] as ILead) : null;
+    } catch {
+      performanceService.endMark('sp:getLeadByUuid');
+      return null;
+    }
+  }
+
+  /** HBC-PC-PID-001: Resolve lead by 7-char pid prefix or full UUID. */
+  async getLeadByPidOrUuid(pidOrUuid: string): Promise<ILead | null> {
+    if (pidOrUuid.includes('-')) {
+      return this.getLeadByUuid(pidOrUuid);
+    }
+    if (!/^[0-9a-f]+$/i.test(pidOrUuid)) return null;
+    performanceService.startMark('sp:getLeadByPid');
+    try {
+      await this.ensureListAccess(LIST_NAMES.LEADS_MASTER, 'read');
+      const items = await this.sp.web.lists.getByTitle(LIST_NAMES.LEADS_MASTER).items
+        .filter(`startswith(projectUuid, '${pidOrUuid}')`)
+        .top(1)();
+      performanceService.endMark('sp:getLeadByPid');
+      return items.length > 0 ? (items[0] as ILead) : null;
+    } catch {
+      performanceService.endMark('sp:getLeadByPid');
+      return null;
+    }
+  }
+
   // SP-INDEX-REQUIRED: Leads_Master → Stage
   async getLeadsByStage(stage: Stage): Promise<ILead[]> {
     performanceService.startMark('sp:getLeadsByStage');
@@ -4693,6 +4729,74 @@ export class SharePointDataService implements IDataService {
       this.handleError('getActiveProjectById', err, {
         entityType: 'Project',
         entityId: String(id),
+        rethrow: false,
+      });
+      return null;
+    }
+  }
+
+  /** HBC-PC-UUID-001: Retrieve active project by immutable UUID. SP-INDEX-REQUIRED: Active_Projects_Portfolio → projectUuid */
+  async getActiveProjectByUuid(uuid: string): Promise<IActiveProject | null> {
+    const cacheKey = CACHE_KEYS.ACTIVE_PROJECTS + '_uuid_' + uuid;
+    const cached = cacheService.get<IActiveProject>(cacheKey);
+    if (cached) return cached;
+
+    performanceService.startMark('sp:getActiveProjectByUuid');
+    try {
+      const items = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+        .items
+        .filter(`projectUuid eq '${uuid}'`)
+        .top(1)();
+      if (items.length === 0) {
+        performanceService.endMark('sp:getActiveProjectByUuid');
+        return null;
+      }
+      const result = this.mapToActiveProject(items[0]);
+      cacheService.set(cacheKey, result, CACHE_TTL_MS);
+      performanceService.endMark('sp:getActiveProjectByUuid');
+      return result;
+    } catch (err) {
+      performanceService.endMark('sp:getActiveProjectByUuid');
+      this.handleError('getActiveProjectByUuid', err, {
+        entityType: 'Project',
+        entityId: uuid,
+        rethrow: false,
+      });
+      return null;
+    }
+  }
+
+  /** HBC-PC-PID-001: Resolve active project by 7-char pid prefix or full UUID. */
+  async getActiveProjectByPidOrUuid(pidOrUuid: string): Promise<IActiveProject | null> {
+    if (pidOrUuid.includes('-')) {
+      return this.getActiveProjectByUuid(pidOrUuid);
+    }
+    if (!/^[0-9a-f]+$/i.test(pidOrUuid)) return null;
+    const cacheKey = CACHE_KEYS.ACTIVE_PROJECTS + '_pid_' + pidOrUuid;
+    const cached = cacheService.get<IActiveProject>(cacheKey);
+    if (cached) return cached;
+
+    performanceService.startMark('sp:getActiveProjectByPid');
+    try {
+      const items = await this.sp.web.lists
+        .getByTitle(LIST_NAMES.ACTIVE_PROJECTS_PORTFOLIO)
+        .items
+        .filter(`startswith(projectUuid, '${pidOrUuid}')`)
+        .top(1)();
+      if (items.length === 0) {
+        performanceService.endMark('sp:getActiveProjectByPid');
+        return null;
+      }
+      const result = this.mapToActiveProject(items[0]);
+      cacheService.set(cacheKey, result, CACHE_TTL_MS);
+      performanceService.endMark('sp:getActiveProjectByPid');
+      return result;
+    } catch (err) {
+      performanceService.endMark('sp:getActiveProjectByPid');
+      this.handleError('getActiveProjectByPid', err, {
+        entityType: 'Project',
+        entityId: pidOrUuid,
         rethrow: false,
       });
       return null;

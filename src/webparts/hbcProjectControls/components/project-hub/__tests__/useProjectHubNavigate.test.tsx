@@ -1,8 +1,11 @@
 /**
- * Stage 20 — useProjectHubNavigate Tests
+ * Stage 20 / HBC-PC-PID-001 — useProjectHubNavigate Tests
  *
- * Tests dual-source search-param preservation (URL > context fallback),
+ * Tests pid-only search-param preservation (URL > context fallback),
  * caller param merging, ref-stability, and edge cases.
+ *
+ * After pid-only migration, useProjectHubNavigate no longer propagates
+ * projectCode or leadId — only pid is carried across navigations.
  */
 import { renderHook, act } from '@testing-library/react';
 
@@ -42,7 +45,8 @@ describe('Stage 20: useProjectHubNavigate', () => {
     mockSelectedProject = null;
   });
 
-  it('merges projectCode and leadId from URL search params', () => {
+  it('preserves pid from URL search params (not projectCode/leadId)', () => {
+    mockSearchParams.pid = 'ab12345';
     mockSearchParams.projectCode = '25-022-01';
     mockSearchParams.leadId = 31;
 
@@ -56,15 +60,15 @@ describe('Stage 20: useProjectHubNavigate', () => {
       to: '/project-hub/precon/turnover',
       replace: undefined,
       search: {
-        projectCode: '25-022-01',
-        leadId: 31,
+        pid: 'ab12345',
       },
     });
   });
 
-  it('falls back to selectedProject context when URL params are absent', () => {
+  it('falls back to context projectUuid when URL pid is absent', () => {
     mockSelectedProject = {
       projectCode: '25-030-02',
+      projectUuid: 'ab123456-7890-abcd-ef01-234567890abc',
       leadId: 7,
     };
 
@@ -78,17 +82,16 @@ describe('Stage 20: useProjectHubNavigate', () => {
       to: '/project-hub/dashboard',
       replace: undefined,
       search: {
-        projectCode: '25-030-02',
-        leadId: 7,
+        pid: 'ab12345',
       },
     });
   });
 
-  it('URL params take precedence over context values', () => {
-    mockSearchParams.projectCode = '25-022-01';
-    mockSearchParams.leadId = 31;
+  it('URL pid takes precedence over context projectUuid', () => {
+    mockSearchParams.pid = 'url1234';
     mockSelectedProject = {
       projectCode: '25-030-02',
+      projectUuid: 'ctx12345-7890-abcd-ef01-234567890abc',
       leadId: 7,
     };
 
@@ -100,17 +103,29 @@ describe('Stage 20: useProjectHubNavigate', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        search: expect.objectContaining({
-          projectCode: '25-022-01',
-          leadId: 31,
-        }),
+        search: { pid: 'url1234' },
       }),
     );
   });
 
-  it('merges caller search params alongside preserved params', () => {
-    mockSearchParams.projectCode = '25-022-01';
-    mockSearchParams.leadId = 31;
+  it('normalizes legacy projectUuid search param to pid', () => {
+    mockSearchParams.projectUuid = 'ab123456-7890-abcd-ef01-234567890abc';
+
+    const { result } = renderHook(() => useProjectHubNavigate());
+
+    act(() => {
+      result.current('/project-hub/dashboard');
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        search: { pid: 'ab12345' },
+      }),
+    );
+  });
+
+  it('merges caller search params alongside pid', () => {
+    mockSearchParams.pid = 'ab12345';
 
     const { result } = renderHook(() => useProjectHubNavigate());
 
@@ -124,16 +139,14 @@ describe('Stage 20: useProjectHubNavigate', () => {
       to: '/project-hub/dashboard',
       replace: undefined,
       search: {
-        projectCode: '25-022-01',
-        leadId: 31,
+        pid: 'ab12345',
         handoffFrom: 'turnover',
       },
     });
   });
 
-  it('caller search can override preserved params', () => {
-    mockSearchParams.projectCode = '25-022-01';
-    mockSearchParams.leadId = 31;
+  it('caller search can add arbitrary params', () => {
+    mockSearchParams.pid = 'ab12345';
 
     const { result } = renderHook(() => useProjectHubNavigate());
 
@@ -145,16 +158,16 @@ describe('Stage 20: useProjectHubNavigate', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        search: expect.objectContaining({
-          projectCode: '25-022-01',
+        search: {
+          pid: 'ab12345',
           leadId: 99,
-        }),
+        },
       }),
     );
   });
 
   it('passes replace option through', () => {
-    mockSearchParams.projectCode = '25-022-01';
+    mockSearchParams.pid = 'ab12345';
 
     const { result } = renderHook(() => useProjectHubNavigate());
 
@@ -185,7 +198,7 @@ describe('Stage 20: useProjectHubNavigate', () => {
   });
 
   it('returns a ref-stable callback', () => {
-    mockSearchParams.projectCode = '25-022-01';
+    mockSearchParams.pid = 'ab12345';
 
     const { result, rerender } = renderHook(() => useProjectHubNavigate());
     const firstRef = result.current;

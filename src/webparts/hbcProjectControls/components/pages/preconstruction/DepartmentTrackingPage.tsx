@@ -68,6 +68,7 @@ import {
 import type { IEstimatingTracker } from '@hbc/sp-services';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
+import { navigateWithProject } from '../../utils/navigateWithProject';
 import { createColumnHelper } from '@tanstack/react-table';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useQueryScope } from '../../../tanstack/query/useQueryScope';
@@ -1575,12 +1576,17 @@ export const DepartmentTrackingPage: React.FC = () => {
     setDrawerOpen(true);
   }, []);
 
-  const handleNavigateProjectHub = React.useCallback((row: IEstimatingTracker): void => {
-    // Stage 19 routing fix: Pass projectCode for cross-workspace navigation.
-    // Project Hub layout no longer blocks on context.selectedProject; dashboard
-    // route accepts projectCode search param as fallback.
-    void navigate({ to: '/project-hub/dashboard', search: { projectCode: row.ProjectCode } });
-  }, [navigate]);
+  const handleNavigateProjectHub = React.useCallback(async (row: IEstimatingTracker): Promise<void> => {
+    // HBC-PC-PID-001: Resolve lead UUID for pid-only navigation.
+    // IEstimatingTracker has LeadID + ProjectCode but no projectUuid.
+    const lead = await dataService.getLeadById(row.LeadID);
+    if (lead?.projectUuid) {
+      navigateWithProject({ navigate, to: '/project-hub/dashboard', projectUuid: lead.projectUuid });
+    } else {
+      // Fallback for leads without UUID (backward compat)
+      void navigate({ to: '/project-hub/dashboard', search: { projectCode: row.ProjectCode } });
+    }
+  }, [navigate, dataService]);
 
   const handleNavigateGoNoGo = React.useCallback((row: IEstimatingTracker): void => {
     void row;
@@ -1590,23 +1596,32 @@ export const DepartmentTrackingPage: React.FC = () => {
   // Stage 19: Navigate to turnover page for the selected project.
   // For turnover page usage guide, see docs/turnover-meeting-guide.md
   // Award Status guard is enforced in the ProjectActionsMenu component (MenuItem disabled prop).
-  const handleNavigateTurnover = React.useCallback((row: IEstimatingTracker): void => {
-    // Stage 19 Sub-task 2: Pass leadId for on-demand turnover agenda initialization.
-    // createTurnoverAgenda(projectCode, leadId) needs both params to seed the agenda
-    // with lead data (estimate overview, team assignments, financial roll-up).
-    void navigate({
-      to: '/project-hub/precon/turnover',
-      search: { projectCode: row.ProjectCode, leadId: row.LeadID },
-    });
-  }, [navigate]);
+  const handleNavigateTurnover = React.useCallback(async (row: IEstimatingTracker): Promise<void> => {
+    // HBC-PC-PID-001: Resolve lead UUID for pid-only navigation.
+    const lead = await dataService.getLeadById(row.LeadID);
+    if (lead?.projectUuid) {
+      navigateWithProject({ navigate, to: '/project-hub/precon/turnover', projectUuid: lead.projectUuid });
+    } else {
+      void navigate({
+        to: '/project-hub/precon/turnover',
+        search: { projectCode: row.ProjectCode, leadId: row.LeadID },
+      });
+    }
+  }, [navigate, dataService]);
 
   // Stage 9: Navigate to kickoff page for the selected project.
-  const handleNavigateKickoff = React.useCallback((row: IEstimatingTracker): void => {
-    void navigate({
-      to: '/project-hub/precon/estimating-kickoff',
-      search: { projectCode: row.ProjectCode, leadId: row.LeadID },
-    });
-  }, [navigate]);
+  const handleNavigateKickoff = React.useCallback(async (row: IEstimatingTracker): Promise<void> => {
+    // HBC-PC-PID-001: Resolve lead UUID for pid-only navigation.
+    const lead = await dataService.getLeadById(row.LeadID);
+    if (lead?.projectUuid) {
+      navigateWithProject({ navigate, to: '/project-hub/precon/estimating-kickoff', projectUuid: lead.projectUuid });
+    } else {
+      void navigate({
+        to: '/project-hub/precon/estimating-kickoff',
+        search: { projectCode: row.ProjectCode, leadId: row.LeadID },
+      });
+    }
+  }, [navigate, dataService]);
 
   // Stage 18 Sub-task 7: stable render callback for ProjectActionsMenu — prevents column def re-memoization.
   const renderActionMenu = React.useCallback(

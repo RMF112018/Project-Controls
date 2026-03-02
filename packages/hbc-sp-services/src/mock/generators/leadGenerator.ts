@@ -128,6 +128,7 @@ export function generateLeads(count: number, seed: number = 42): ILead[] {
       lead.WinLossDecision = WinLossDecision.Win;
       lead.WinLossDate = randomDateOnly(rng, 2025, 2026);
       lead.ProjectCode = `25-${rng.int(1, 99).toString().padStart(3, '0')}-01`;
+      lead.projectUuid = crypto.randomUUID(); // HBC-PC-UUID-001
       lead.OfficialJobNumber = `HBC-${rng.int(1000, 9999)}`;
     }
 

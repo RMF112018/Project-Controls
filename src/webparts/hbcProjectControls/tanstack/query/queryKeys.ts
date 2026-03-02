@@ -6,10 +6,12 @@ export interface IQueryScope {
   siteContext: QuerySiteContext;
   siteUrl: string;
   projectCode: string | null;
+  /** HBC-PC-UUID-001: Immutable project identifier, index [5] in scope tuple. */
+  projectUuid: string | null;
 }
 
 export const qk = {
-  scope: (scope: IQueryScope) => ['scope', scope.mode, scope.siteContext, scope.siteUrl, scope.projectCode] as const,
+  scope: (scope: IQueryScope) => ['scope', scope.mode, scope.siteContext, scope.siteUrl, scope.projectCode, scope.projectUuid] as const,
   activeProjects: {
     base: (scope: IQueryScope) => [...qk.scope(scope), 'activeProjects'] as const,
     list: (scope: IQueryScope, filtersHash: string) => [...qk.scope(scope), 'activeProjects', 'list', filtersHash] as const,

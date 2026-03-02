@@ -68,6 +68,8 @@ export interface IActiveProject {
   id: number;
   jobNumber: string;
   projectCode: string;
+  /** HBC-PC-UUID-001: Immutable project identifier. Optional during migration, required post-Phase 3. */
+  projectUuid?: string;
   projectName: string;
   status: ProjectStatus;
   sector: SectorType;
