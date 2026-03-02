@@ -10,12 +10,15 @@ interface IProjectPickerProps {
   locked?: boolean;
 }
 
+const LISTBOX_ID = 'project-picker-listbox';
+
 export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelect, locked }) => {
   const { dataService, currentUser, resolvedPermissions } = useAppContext();
   const [leads, setLeads] = React.useState<ILead[]>([]);
   const [query, setQuery] = React.useState('');
   const [isOpen, setIsOpen] = React.useState(false);
   const [accessibleCodes, setAccessibleCodes] = React.useState<string[] | null>(null);
+  const [highlightedIndex, setHighlightedIndex] = React.useState(-1);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   // Fetch leads directly from data service
@@ -97,17 +100,68 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
     Stage.Closeout,
   ];
 
-  const handleSelect = (project: ISelectedProject): void => {
+  // Flat ordered list matching grouped render order — used for keyboard navigation
+  const flatItems = React.useMemo(() => {
+    const items: ISelectedProject[] = [];
+    stageOrder.forEach(stage => {
+      if (grouped[stage]) items.push(...grouped[stage]);
+    });
+    return items;
+  }, [grouped]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset highlighted index when filtered results change
+  React.useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [filtered]);
+
+  // Scroll highlighted item into view
+  React.useEffect(() => {
+    if (highlightedIndex >= 0) {
+      document.getElementById(`project-option-${highlightedIndex}`)
+        ?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [highlightedIndex]);
+
+  const handleSelect = React.useCallback((project: ISelectedProject): void => {
     setIsOpen(false);
     setQuery('');
+    setHighlightedIndex(-1);
     React.startTransition(() => onSelect(project));
-  };
+  }, [onSelect]);
 
   const handleClear = (e: React.MouseEvent): void => {
     e.stopPropagation();
     setQuery('');
     React.startTransition(() => onSelect(null));
   };
+
+  const handleKeyDown = React.useCallback((e: React.KeyboardEvent) => {
+    const count = flatItems.length;
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        if (!count) return;
+        setHighlightedIndex(prev => (prev + 1) % count);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        if (!count) return;
+        setHighlightedIndex(prev => (prev - 1 + count) % count);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (highlightedIndex >= 0 && highlightedIndex < count) {
+          handleSelect(flatItems[highlightedIndex]);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setIsOpen(false);
+        break;
+    }
+  }, [flatItems, highlightedIndex, handleSelect]);
+
+  const activeDescendant = highlightedIndex >= 0 ? `project-option-${highlightedIndex}` : undefined;
 
   if (locked && selected) {
     return (
@@ -127,6 +181,9 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
       </div>
     );
   }
+
+  // Build a flat index counter for rendering to map grouped items to flat indices
+  let flatIndex = 0;
 
   return (
     <div ref={containerRef} style={{ position: 'relative', padding: '8px 12px' }}>
@@ -154,6 +211,8 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
               onClick={handleClear}
               style={{ color: tokens.colorNeutralForeground2, cursor: 'pointer', fontSize: '16px', lineHeight: 1, flexShrink: 0 }}
               title="Clear selection"
+              role="button"
+              aria-label="Clear project selection"
             >
               &times;
             </span>
@@ -182,7 +241,14 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
               autoFocus
               value={query}
               onChange={e => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Search projects..."
+              role="combobox"
+              aria-expanded={isOpen}
+              aria-controls={LISTBOX_ID}
+              aria-activedescendant={activeDescendant}
+              aria-autocomplete="list"
+              aria-label="Search projects"
               style={{
                 width: '100%',
                 padding: '6px 8px',
@@ -196,52 +262,73 @@ export const ProjectPicker: React.FC<IProjectPickerProps> = ({ selected, onSelec
           </div>
 
           {filtered.length === 0 ? (
-            <div style={{ padding: '16px', textAlign: 'center', color: tokens.colorNeutralForeground2, fontSize: '13px' }}>
+            <div style={{ padding: '16px', textAlign: 'center', color: tokens.colorNeutralForeground2, fontSize: '13px' }} role="status">
               {accessibleCodes !== null && accessibleCodes.length === 0
                 ? 'No projects assigned to you'
                 : 'No matching projects'}
             </div>
           ) : (
-            stageOrder
-              .filter(stage => grouped[stage] && grouped[stage].length > 0)
-              .map(stage => (
-                <div key={stage}>
-                  <div style={{
-                    padding: '6px 12px',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    color: tokens.colorNeutralForeground2,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    backgroundColor: tokens.colorNeutralBackground2,
-                    borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
-                  }}>
-                    {getStageLabel(stage)}
-                  </div>
-                  {grouped[stage].map(p => (
-                    <div
-                      key={p.projectCode}
-                      onClick={() => handleSelect(p)}
-                      style={{
-                        padding: '8px 12px',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        backgroundColor: selected?.projectCode === p.projectCode ? tokens.colorNeutralBackground3 : 'transparent',
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = tokens.colorNeutralBackground2)}
-                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = selected?.projectCode === p.projectCode ? tokens.colorNeutralBackground3 : 'transparent')}
-                    >
-                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontWeight: 500, color: tokens.colorBrandForeground1 }}>{p.projectName}</span>
-                        <span style={{ color: tokens.colorNeutralForeground2, marginLeft: '6px' }}>{p.projectCode}</span>
-                      </span>
+            <div role="listbox" id={LISTBOX_ID} aria-label="Project list">
+              {stageOrder
+                .filter(stage => grouped[stage] && grouped[stage].length > 0)
+                .map(stage => (
+                  <div key={stage} role="group" aria-label={getStageLabel(stage)}>
+                    <div style={{
+                      padding: '6px 12px',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      color: tokens.colorNeutralForeground2,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      backgroundColor: tokens.colorNeutralBackground2,
+                      borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
+                    }} role="presentation">
+                      {getStageLabel(stage)}
                     </div>
-                  ))}
-                </div>
-              ))
+                    {grouped[stage].map(p => {
+                      const itemIndex = flatIndex++;
+                      const isHighlighted = itemIndex === highlightedIndex;
+                      const isSelected = selected?.projectCode === p.projectCode;
+                      return (
+                        <div
+                          key={p.projectCode}
+                          id={`project-option-${itemIndex}`}
+                          role="option"
+                          aria-selected={isSelected}
+                          onClick={() => handleSelect(p)}
+                          style={{
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            backgroundColor: isHighlighted
+                              ? tokens.colorNeutralBackground1Selected
+                              : isSelected
+                                ? tokens.colorNeutralBackground3
+                                : 'transparent',
+                            outline: isHighlighted ? `2px solid ${tokens.colorBrandStroke1}` : 'none',
+                            outlineOffset: '-2px',
+                          }}
+                          onMouseEnter={e => {
+                            if (!isHighlighted) e.currentTarget.style.backgroundColor = tokens.colorNeutralBackground2;
+                            setHighlightedIndex(itemIndex);
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.backgroundColor = isSelected ? tokens.colorNeutralBackground3 : 'transparent';
+                          }}
+                        >
+                          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontWeight: 500, color: tokens.colorBrandForeground1 }}>{p.projectName}</span>
+                            <span style={{ color: tokens.colorNeutralForeground2, marginLeft: '6px' }}>{p.projectCode}</span>
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+            </div>
           )}
         </div>
       )}

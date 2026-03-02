@@ -18,6 +18,7 @@ import type { IDevToolsConfig } from '../App';
 import { useFullScreen } from '../hooks/useFullScreen';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useHbcThemeMode } from '../hooks/useHbcThemeMode';
+import { getQueryClient } from '../../tanstack/query/queryClient';
 import type { ThemeMode } from '../hooks/useHbcThemeMode';
 
 export type { IDashboardPreference, ISelectedProject, ProjectHealthStatus } from '@hbc/sp-services';
@@ -159,6 +160,19 @@ export const AppProvider: React.FC<IAppProviderProps> = ({ dataService, telemetr
   const handleSetSelectedProject = React.useCallback((project: ISelectedProject | null, options?: { skipSwitchingFlag?: boolean }) => {
     if (isProjectSite && project === null) return;
     setSelectedProject(project);
+
+    // Invalidate stale project-scoped query cache entries on switch.
+    // Query keys follow format: ['scope', mode, siteContext, siteUrl, projectCode, domain, ...].
+    // Index 4 is projectCode — invalidate entries from the previous project.
+    if (project) {
+      getQueryClient().invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey;
+          return key.length > 4 && typeof key[4] === 'string' && key[4] !== '' && key[4] !== project.projectCode;
+        },
+      });
+    }
+
     if (project && !options?.skipSwitchingFlag) {
       setIsProjectSwitching(true);
       clearTimeout(switchTimerRef.current);

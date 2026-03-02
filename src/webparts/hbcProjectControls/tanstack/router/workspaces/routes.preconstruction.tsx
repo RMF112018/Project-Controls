@@ -9,7 +9,6 @@ import { createRoute, redirect } from '@tanstack/react-router';
 import { PERMISSIONS } from '@hbc/sp-services';
 import { requireFeature } from '../guards/requireFeature';
 import { requirePermission } from '../guards/requirePermission';
-import { requireProject } from '../guards/requireProject';
 import { requireRole } from '../guards/requireRole';
 import type { ITanStackRouteContext } from '../routeContext';
 import { RouteErrorBoundary } from '../../../components/boundaries/RouteErrorBoundary';
@@ -159,7 +158,6 @@ export function createPreconstructionWorkspaceRoutes(rootRoute: unknown) {
     component: BDProjectHubPage,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
       requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
-      requireProject(context);
     },
   });
 
@@ -211,7 +209,6 @@ export function createPreconstructionWorkspaceRoutes(rootRoute: unknown) {
     component: EstimatingProjectHubPage,
     beforeLoad: ({ context }: { context: ITanStackRouteContext }) => {
       requirePermission(context, PERMISSIONS.PROJECT_HUB_VIEW);
-      requireProject(context);
     },
   });
 

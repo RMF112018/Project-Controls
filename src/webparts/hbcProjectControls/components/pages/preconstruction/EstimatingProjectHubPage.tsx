@@ -2,7 +2,7 @@ import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { PageHeader } from '../../shared/PageHeader';
 import { useAppContext } from '../../contexts/AppContext';
-import { HbcEmptyState } from '../../shared/HbcEmptyState';
+import { ProjectRequiredGuard } from '../../common/ProjectRequiredGuard';
 
 const useStyles = makeStyles({
   content: {
@@ -14,28 +14,20 @@ const useStyles = makeStyles({
   },
 });
 
-const EstimatingProjectHubPageInner: React.FC = () => {
+const EstimatingProjectHubContent: React.FC = () => {
   const styles = useStyles();
   const { selectedProject } = useAppContext();
 
-  if (!selectedProject) {
-    return (
-      <div>
-        <PageHeader title="Estimating Project Hub" />
-        <HbcEmptyState
-          title="No project selected"
-          description="Select a project from the sidebar to view Estimating details."
-        />
-      </div>
-    );
-  }
+  // Guard guarantees selectedProject is non-null
+  const projectName = selectedProject?.projectName ?? '';
+  const projectCode = selectedProject?.projectCode ?? '';
 
   return (
     <div>
-      <PageHeader title={`Estimating Project Hub \u2014 ${selectedProject.projectName}`} />
+      <PageHeader title={`Estimating Project Hub \u2014 ${projectName}`} />
       <div className={styles.content}>
         <p className={styles.description}>
-          Project-scoped estimating workspace for <strong>{selectedProject.projectCode}</strong>.
+          Project-scoped estimating workspace for <strong>{projectCode}</strong>.
           Detailed estimating modules will be built in a future phase.
         </p>
       </div>
@@ -43,4 +35,13 @@ const EstimatingProjectHubPageInner: React.FC = () => {
   );
 };
 
-export const EstimatingProjectHubPage = React.memo(EstimatingProjectHubPageInner);
+export const EstimatingProjectHubPage = React.memo(() => (
+  <ProjectRequiredGuard
+    pageTitle="Estimating Project Hub"
+    description="Select a project from the picker to view Estimating details."
+  >
+    <EstimatingProjectHubContent />
+  </ProjectRequiredGuard>
+));
+
+EstimatingProjectHubPage.displayName = 'EstimatingProjectHubPage';

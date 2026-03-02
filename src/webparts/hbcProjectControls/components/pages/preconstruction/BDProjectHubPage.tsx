@@ -2,7 +2,7 @@ import * as React from 'react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { PageHeader } from '../../shared/PageHeader';
 import { useAppContext } from '../../contexts/AppContext';
-import { HbcEmptyState } from '../../shared/HbcEmptyState';
+import { ProjectRequiredGuard } from '../../common/ProjectRequiredGuard';
 
 const useStyles = makeStyles({
   content: {
@@ -14,31 +14,32 @@ const useStyles = makeStyles({
   },
 });
 
-export const BDProjectHubPage: React.FC = () => {
+const BDProjectHubContent: React.FC = () => {
   const styles = useStyles();
   const { selectedProject } = useAppContext();
 
-  if (!selectedProject) {
-    return (
-      <div>
-        <PageHeader title="BD Project Hub" />
-        <HbcEmptyState
-          title="No project selected"
-          description="Select a project from the sidebar to view Business Development details."
-        />
-      </div>
-    );
-  }
+  // Guard guarantees selectedProject is non-null
+  const projectName = selectedProject?.projectName ?? '';
+  const projectCode = selectedProject?.projectCode ?? '';
 
   return (
     <div>
-      <PageHeader title={`BD Project Hub — ${selectedProject.projectName}`} />
+      <PageHeader title={`BD Project Hub \u2014 ${projectName}`} />
       <div className={styles.content}>
         <p className={styles.description}>
-          Project-scoped BD workspace for <strong>{selectedProject.projectCode}</strong>.
+          Project-scoped BD workspace for <strong>{projectCode}</strong>.
           Detailed project BD tracking modules will be built in a future phase.
         </p>
       </div>
     </div>
   );
 };
+
+export const BDProjectHubPage: React.FC = () => (
+  <ProjectRequiredGuard
+    pageTitle="BD Project Hub"
+    description="Select a project from the picker to view Business Development details."
+  >
+    <BDProjectHubContent />
+  </ProjectRequiredGuard>
+);

@@ -4,6 +4,53 @@ All notable changes to HBC Project Controls will be documented in this file.
 
 ## [Unreleased]
 
+### [2026-03-01] - Phase 3 (Dev Plan): Route Guard Fix, Keyboard Nav, Query Invalidation
+
+#### Fixed
+- **Route guard conflict**: Removed `requireProject` from preconstruction BD/Estimating project-hub `beforeLoad` — component-level `ProjectRequiredGuard` now renders inline picker instead of hard-redirecting to Analytics Hub
+
+#### Added
+- **Keyboard navigation** in `ProjectPicker`: Arrow Up/Down, Enter to select, Escape to close, ARIA `role="combobox"`/`role="listbox"`/`role="option"` attributes (WCAG 2.2 AA)
+- **TanStack Query invalidation** on project switch: stale project-scoped cache entries cleared immediately when switching projects (`AppContext.tsx`)
+
+#### Notes
+- Only 2 preconstruction routes affected; 50+ Project Hub routes retain route-level `requireProject` (layout-level guard handles those)
+- Zero new npm dependencies
+
+### [2026-03-01] - Phase 2 (Dev Plan): ProjectRequiredGuard, Toast & Motion
+
+#### Added
+- **`ProjectRequiredGuard.tsx`** (`components/common/`): Composition wrapper over `ProjectSelector` adding success toast on project selection and Fluent UI Motion enter animation (`routeTransition` + `reducedMotion`) on children
+
+#### Changed
+- **`BDProjectHubPage.tsx`**: Replaced inline `HbcEmptyState` no-project guard with `ProjectRequiredGuard`
+- **`EstimatingProjectHubPage.tsx`**: Replaced inline `HbcEmptyState` no-project guard with `ProjectRequiredGuard`
+- **`ProjectRequiredRoute.tsx`**: Re-pointed from `ProjectSelector` to `ProjectRequiredGuard` for toast + motion
+
+#### Notes
+- Zero new npm dependencies
+- No `@hbc/sp-services` changes
+- `ProjectSelector` remains the base guard; `ProjectRequiredGuard` is a thin composition layer
+- DepartmentTrackingPage intentionally not wrapped (operates on global data)
+- References: Internal Development Plan, Phase 2: ProjectRequiredGuard Creation & Page Wrapping
+
+### [2026-03-01] - Phase 1 (Dev Plan): No-Project Guard & Project Selection Flow
+
+#### Added
+- **`useProjectParams.ts`** (`components/common/`): Zod-validated hook unifying URL search params (`?projectCode`, `?leadId`, `?handoffFrom`), route dynamic params (`$leadId`), and `AppContext.selectedProject` into a single `IProjectParams` return with priority resolution
+- **`ProjectSelector.tsx`** (`components/common/`): Guard wrapper component with embedded `ProjectPicker` for polished "no project selected" UX; renders children when project is selected, shows inline picker when not
+
+#### Changed
+- **`ProjectHubDashboardPage.tsx`**: Replaced inline `useSearch` + `HbcEmptyState` no-project pattern with `useProjectParams` + `ProjectSelector`
+- **`ProjectHubLayout.tsx`**: Replaced manual `useAppContext` + `useSearch` project detection with `useProjectParams().hasProject`
+- **`ProjectRequiredRoute.tsx`**: Refactored to thin wrapper over `ProjectSelector`; removed inline styles and manual navigate
+
+#### Notes
+- `zod` already present in `package.json` (v4.3.6) — first usage in application code
+- `ProjectSelector` composes existing `ProjectPicker` (no search/grouping/permission logic duplication)
+- No `@hbc/sp-services` changes
+- References: Internal Development Plan, Phase 1: Polished "No Project Selected" Guard
+
 ### [2026-03-01] - Phase 4 (GNG Plan): Polish, Export, Integration & Release
 
 #### Added

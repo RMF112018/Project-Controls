@@ -12,7 +12,8 @@ import { useToast } from '../../shared/ToastContainer';
 import { useAppContext } from '../../contexts/AppContext';
 import { useQueryScope } from '../../../tanstack/query/useQueryScope';
 import { activeProjectsOptions, scheduleMetricsOptions, deliverablesOptions } from '../../../tanstack/query/queryOptions/operations';
-import { useSearch } from '@tanstack/react-router';
+import { useProjectParams } from '../../common/useProjectParams';
+import { ProjectSelector } from '../../common/ProjectSelector';
 import type { IActiveProject } from '@hbc/sp-services';
 
 const useStyles = makeStyles({
@@ -60,38 +61,37 @@ function formatSignedCurrency(amount: number): string {
 
 export const ProjectHubDashboardPage: React.FC = () => {
   const styles = useStyles();
-  const { selectedProject, dataService } = useAppContext();
+  const { projectCode: resolvedProjectCode, hasProject, selectedProject, handoffFrom } = useProjectParams();
+  const { dataService } = useAppContext();
   const scope = useQueryScope();
   const { addToast } = useToast();
 
   // Stage 19: Detect incoming handoff from Preconstruction turnover meeting.
   // When the turnover sign-off completes, it navigates here with ?handoffFrom=turnover.
   // The handoff mutation has already enriched the project record — we just notify the user.
-  const searchParams = useSearch({ strict: false }) as { handoffFrom?: string; projectCode?: string };
   React.useEffect(() => {
-    if (searchParams.handoffFrom === 'turnover' && selectedProject) {
+    if (handoffFrom === 'turnover' && selectedProject) {
       addToast(
         'Project handed off from Estimating. Turnover meeting complete — kickoff fields pre-populated.',
         'info',
         5000
       );
     }
-  }, [searchParams.handoffFrom, selectedProject, addToast]);
+  }, [handoffFrom, selectedProject, addToast]);
 
   // P1.1: Three parallel queries → five KPI derivations
   // Placed before early return to satisfy React hooks ordering rules.
   // Queries use `enabled` to avoid firing when no project is selected.
-  const currentProjectCode = selectedProject?.projectCode ?? '';
   const [projectResult, scheduleResult, deliverablesResult] = useQueries({
     queries: [
       {
         ...activeProjectsOptions(scope, dataService),
         select: (data: IActiveProject[]) =>
-          data.find((p) => p.projectCode === currentProjectCode),
-        enabled: !!currentProjectCode,
+          data.find((p) => p.projectCode === resolvedProjectCode),
+        enabled: !!resolvedProjectCode,
       },
-      scheduleMetricsOptions(scope, dataService, currentProjectCode),
-      deliverablesOptions(scope, dataService, currentProjectCode),
+      scheduleMetricsOptions(scope, dataService, resolvedProjectCode),
+      deliverablesOptions(scope, dataService, resolvedProjectCode),
     ],
   });
 
@@ -158,20 +158,20 @@ export const ProjectHubDashboardPage: React.FC = () => {
     ];
   }, [projectResult.data, scheduleResult.data, deliverablesResult.data]);
 
-  if (!selectedProject) {
+  if (!hasProject) {
     return (
       <div className={styles.container}>
         <PageHeader title="Project Dashboard" />
-        <HbcEmptyState
-          title="No project selected"
-          description="Select a project from the sidebar to view the Project Dashboard."
+        <ProjectSelector
+          title="No Project Selected"
+          description="Select a project from the picker below to view the Project Dashboard."
         />
       </div>
     );
   }
 
-  const projectName = selectedProject.projectName || 'Unknown Project';
-  const projectCode = selectedProject.projectCode || '\u2014';
+  const projectName = selectedProject?.projectName || 'Unknown Project';
+  const displayCode = selectedProject?.projectCode || '\u2014';
 
   // TODO (Stage 19 – Sub-task 9 cont.): Consume new deepBidPackage in KPI cards and handoff alerts (builds on existing Stage-18 handoff instrumentation). Reference: plan handoff integration.
 
@@ -179,7 +179,7 @@ export const ProjectHubDashboardPage: React.FC = () => {
     <div className={styles.container}>
       <PageHeader
         title="Project Dashboard"
-        subtitle={`${projectCode} \u2014 ${projectName}`}
+        subtitle={`${displayCode} \u2014 ${projectName}`}
       />
 
       <ErrorBoundary boundaryName="ProjectHubDashboard">
@@ -210,27 +210,27 @@ export const ProjectHubDashboardPage: React.FC = () => {
         <HbcCard title="Project Overview">
           <div className={styles.infoRow}>
             <span className={styles.label}>Project Code</span>
-            <span className={styles.value}>{projectCode}</span>
+            <span className={styles.value}>{displayCode}</span>
           </div>
           <div className={styles.infoRow}>
             <span className={styles.label}>Client</span>
-            <span className={styles.value}>{selectedProject.clientName || '\u2014'}</span>
+            <span className={styles.value}>{selectedProject?.clientName || '\u2014'}</span>
           </div>
           <div className={styles.infoRow}>
             <span className={styles.label}>Region</span>
-            <span className={styles.value}>{selectedProject.region || '\u2014'}</span>
+            <span className={styles.value}>{selectedProject?.region || '\u2014'}</span>
           </div>
           <div className={styles.infoRow}>
             <span className={styles.label}>Division</span>
-            <span className={styles.value}>{selectedProject.division || '\u2014'}</span>
+            <span className={styles.value}>{selectedProject?.division || '\u2014'}</span>
           </div>
           <div className={styles.infoRow}>
             <span className={styles.label}>Stage</span>
-            <span className={styles.value}>{selectedProject.stage || '\u2014'}</span>
+            <span className={styles.value}>{selectedProject?.stage || '\u2014'}</span>
           </div>
           <div className={styles.infoRow}>
             <span className={styles.label}>Health</span>
-            <span className={styles.value}>{selectedProject.overallHealth || '\u2014'}</span>
+            <span className={styles.value}>{selectedProject?.overallHealth || '\u2014'}</span>
           </div>
         </HbcCard>
 
