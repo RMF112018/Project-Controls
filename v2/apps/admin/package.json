@@ -1,0 +1,34 @@
+{
+  "name": "@hbc/app-admin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Admin SPFx webpart — permissions, workflow definitions, project settings, telemetry",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/ --ext .ts,.tsx",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hbc/models": "workspace:*",
+    "@hbc/data-access": "workspace:*",
+    "@hbc/query-hooks": "workspace:*",
+    "@hbc/ui-kit": "workspace:*",
+    "@hbc/auth": "workspace:*",
+    "@hbc/shell": "workspace:*",
+    "@fluentui/react-components": "^9.46.0",
+    "@fluentui/react-icons": "2.0.319",
+    "@tanstack/react-query": "^5.90.0",
+    "@tanstack/react-router": "^1.161.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@microsoft/sp-core-library": "1.22.2",
+    "@microsoft/sp-webpart-base": "1.22.2",
+    "@microsoft/sp-property-pane": "1.22.2"
+  }
+}

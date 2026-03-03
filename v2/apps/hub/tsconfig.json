@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "composite": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/models" },
+    { "path": "../../packages/data-access" },
+    { "path": "../../packages/query-hooks" },
+    { "path": "../../packages/ui-kit" },
+    { "path": "../../packages/auth" },
+    { "path": "../../packages/shell" }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@hbc/data-access",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Data access layer — domain-scoped repository interfaces and adapters (SharePoint, Mock, API)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/ --ext .ts",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hbc/models": "workspace:*",
+    "@pnp/sp": "^4.4.1",
+    "@pnp/queryable": "^4.4.1",
+    "@pnp/logging": "^4.4.1"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@hbc/dev-harness",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vite dev harness — unified dev experience for all webpart apps with mock auth and dev tools",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@hbc/models": "workspace:*",
+    "@hbc/data-access": "workspace:*",
+    "@hbc/query-hooks": "workspace:*",
+    "@hbc/ui-kit": "workspace:*",
+    "@hbc/auth": "workspace:*",
+    "@hbc/shell": "workspace:*",
+    "@fluentui/react-components": "^9.46.0",
+    "@tanstack/react-query": "^5.90.0",
+    "@tanstack/react-query-devtools": "^5.91.0",
+    "@tanstack/react-router": "^1.161.0",
+    "@tanstack/router-devtools": "^1.161.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.4.0",
+    "vite": "^7.1.0"
+  }
+}

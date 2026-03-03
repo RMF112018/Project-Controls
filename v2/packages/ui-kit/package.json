@@ -1,0 +1,30 @@
+{
+  "name": "@hbc/ui-kit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared Fluent UI v9 component library — HbcDataTable, HbcChart, form primitives, theme",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/ --ext .ts,.tsx",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hbc/models": "workspace:*",
+    "@fluentui/react-components": "^9.46.0",
+    "@fluentui/react-icons": "2.0.319",
+    "@tanstack/react-table": "^8.21.0",
+    "@tanstack/react-virtual": "^3.13.0"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}

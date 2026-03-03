@@ -1,0 +1,25 @@
+{
+  "name": "@hbc/query-hooks",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TanStack Query hooks per domain — centralized query keys, default options, mutations",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/ --ext .ts,.tsx",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hbc/models": "workspace:*",
+    "@hbc/data-access": "workspace:*",
+    "@tanstack/react-query": "^5.90.0"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0"
+  }
+}
